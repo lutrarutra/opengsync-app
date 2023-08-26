@@ -1,18 +1,12 @@
 from io import StringIO
 
-import difflib
-
-from flask import Blueprint, request, redirect, url_for, Response, render_template, flash
+from flask import Blueprint, redirect, url_for, render_template, flash
 from flask_restful import Api, Resource
 from flask_htmx import make_response
-from sqlmodel import Session
 import pandas as pd
 
-from .... import db, logger, models, forms, tools
-from ....core import exceptions
+from .... import db, logger, forms, tools
 from ....core.DBSession import DBSession
-
-from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField
 
 samples_bp = Blueprint("samples_bp", __name__, url_prefix="/api/samples/")
 api = Api(samples_bp)
@@ -38,39 +32,28 @@ class PostSample(Resource):
             return redirect("/projects") # TODO: 404
 
         if sample_form.validate_on_submit():
-            try:
-                with DBSession(db.db_handler) as session:
-                    sample = session.create_sample(
-                        name=sample_form.sample_name.data,
-                        organism=sample_form.organism.data,
-                        index1=sample_form.index1.data,
-                        index2=sample_form.index2.data,
-                    )
-                    session.link_project_sample(project.id, sample.id)
-
-                    sample = session.get_sample(sample.id)
-                    project = session.get_project(project.id)
-                    project.samples = session.get_project_samples(project.id)
-
-            except Exception as e:
-                sample_form.sample_name.errors.append("Sample with the same name exists in the project already.")
-                template = render_template(
-                    "forms/sample.html",
-                    sample_form=sample_form, project=project
+            with DBSession(db.db_handler) as session:
+                sample = session.create_sample(
+                    name=sample_form.name.data,
+                    organism=sample_form.organism.data,
+                    index1=sample_form.index1.data,
+                    index2=sample_form.index2.data,
+                    project_id=project_id
                 )
-                return make_response(
-                    template, push_url=False
-                )
-        
+
+                sample = session.get_sample(sample.id)
+                project = session.get_project(project.id)
+                project.samples = session.get_project_samples(project.id)
 
             logger.info(f"Added sample {sample.name} (id: {sample.id}) to project {project.name} (id: {project.id})")
+            flash(f"Added sample {sample.name} (id: {sample.id}) to project {project.name} (id: {project.id})", "success")
             return make_response(
                 redirect=url_for(
                     "projects_page.project_page", project_id=project_id,
                 ),
             )
         else:
-            print(sample_form.errors)
+            logger.debug(sample_form.errors)
 
         template = render_template(
             "forms/sample.html",
@@ -112,6 +95,7 @@ class ReadSampleTable(Resource):
                     "forms/sample_table.html",
                     columns=columns, sample_table_form=sample_table_form,
                     matches=matches, data=df.values.tolist(),
+                    required_fields=refs,
                     submittable=submittable
                 ), push_url=False
             )
@@ -135,7 +119,6 @@ class PostSampleTable(Resource):
             df = pd.read_csv(StringIO(table_form.text.data), sep="\t", index_col=False, header=0)
             for i, entry in enumerate(table_form.fields.entries):
                 val = entry.select_field.data.strip()
-                print(val)
                 if not val:
                     continue
                 df.rename(columns={df.columns[i]:val}, inplace=True)
@@ -169,7 +152,7 @@ class PostSampleTable(Resource):
                 redirect=url_for("projects_page.project_page", project_id=project_id),
             )
         else:
-            print(table_form.errors)
+            logger.debug(table_form.errors)
 
         template = render_template(
             "components/sample_popup.html",

@@ -79,10 +79,6 @@ nav {
     }
 }
 
-.table-cursor {
-    tr { cursor: pointer; }
-}
-
 .pagination .page-item {
     cursor: pointer;
 }
@@ -129,7 +125,9 @@ nav {
         to   { top: -200px; }
     }
 }
-
+.table-cursor {
+    tr { cursor: pointer; }
+}
 
 .table-container {
     .pagination {
