@@ -1,0 +1,53 @@
+{% extends "template.html" %}
+{% set active_page = "runs-page" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Run (lane: {{ run.lane }})</h1>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#run-form-popup">
+                Edit Run
+            </button>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2>Libraries</h2>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup">
+                Add Library
+            </button>
+        </div>
+    </div>
+    
+    {% set libraries = run.libraries %}
+    {% include "components/tables/library.html" %}
+
+    <div class="modal fade" id="run-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="">Add Sample</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include "forms/run.html" %}
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button class="btn btn-primary"
+                hx-include="#run-form" hx-target="#run-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('runs_bp.editrun', run_id=run.id ) }}">
+                Submit</button>
+            </div>
+          </div>
+        </div>
+    </div>
+    {% include "components/library_form_popup.html" %}
+</div>
+<script type="text/javascript">
+</script>
+{% endblock content %}

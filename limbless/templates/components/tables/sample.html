@@ -1,0 +1,29 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tables/table_col.jinja2" import table_col %}
+<div id="sample-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Organism</th>
+                <th scope="col">Index 1</th>
+                <th scope="col">Index 2</th>
+                <th scope="col">Project ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sample in samples %}
+            <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id) }}';">
+                <th scope="row">{{sample.id}}</th>
+                <td>{{sample.name}}</td>
+                <td>{{sample.organism}}</td>
+                <td>{{sample.index1}}</td>
+                <td>{{sample.index2}}</td>
+                <td>{{sample.project_id}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("sample-table", "samples_bp.getsamples", n_pages, active_page) }}
+</div>

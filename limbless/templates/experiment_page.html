@@ -1,0 +1,37 @@
+{% extends "template.html" %}
+{% set active_page = "experiments-page" %}
+{% block content %}
+<div class="container">
+    <h1>Experiment: {{ experiment.name }}</h1>
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2>Runs</h2>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
+                New Run
+            </button>
+        </div>
+    </div>
+    {% include "components/tables/run.html" %}
+
+    <div class="modal fade" id="form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="">New Project</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include "forms/run.html" %}
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button class="btn btn-primary"
+                hx-include="#run-form" hx-target="#run-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('runs_bp.postrun', experiment_id=experiment.id) }}">Submit</button>
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

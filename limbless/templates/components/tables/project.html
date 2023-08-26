@@ -1,0 +1,24 @@
+{% from "components/pagination.jinja2" import pagination %}
+<div id="project-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Description</th>
+                <th scope="col">Num. Samples</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr onclick="window.location.href='{{ url_for('projects_page.project_page', project_id=project.id) }}';">
+                <th scope="row">{{ project.id }}</th>
+                <td>{{ project.name }}</td>
+                <td>{{ project.description }}</td>
+                <td>{{ project._num_samples }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("project-table", "projects_bp.getprojects", n_pages, active_page) }}
+</div>

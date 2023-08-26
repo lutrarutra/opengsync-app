@@ -1,0 +1,41 @@
+{% from 'components/form_group.jinja2' import form_group %}
+<form id="sample-table-form">
+    <h2>Check Columns: </h2>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                {% for column in columns %}
+                <td>
+                    {{ sample_table_form.fields.entries[loop.index-1].select_field(class="form-control") }}
+                    {{ sample_table_form.fields.entries[loop.index-1].csrf_token }}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for column in columns %}
+                <th scope="col">{{ column }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                {% for col in row %}
+                <td>{{ col }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="hidden" style="display: none;">
+        {{ sample_table_form.text }}
+        {{ sample_table_form.csrf_token }}
+    </div>
+</form>
+<script>
+    {% if submittable %}
+    $(document).ready(function() {
+        $("#submit-table-btn").removeClass("disabled");
+    })
+    {% endif %}
+</script>

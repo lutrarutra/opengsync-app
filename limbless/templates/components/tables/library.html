@@ -1,0 +1,22 @@
+{% from "components/pagination.jinja2" import pagination %}
+<div id="library-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for library in libraries %}
+            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+                <th scope="row">{{ library.id }}</th>
+                <td>{{ library.name }}</td>
+                <td>{{ library.library_type }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("library-table", "libraries_bp.getlibraries", n_pages, active_page) }}
+</div>

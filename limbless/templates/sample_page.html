@@ -1,0 +1,38 @@
+{% extends "template.html" %}
+{% set active_page = "samples-page" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Sample: {{ sample.name }}</h1>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-form-popup">
+                Edit Sample
+            </button>
+        </div>
+    </div>
+    <h2>Libraries</h2>
+    {% include "components/tables/library.html" %}
+    <h2>Runs</h2>
+    {% include "components/tables/run.html" %}
+</div>
+<div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="">Edit Sample</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            {% include "forms/sample.html" %}
+        </div>
+        <div class="modal-footer" id="popup-footer">
+            <button class="btn btn-primary"
+            hx-include="#sample-form" hx-target="#sample-form" hx-swap="outerHTML"
+            hx-post="{{ url_for('samples_bp.editsample', sample_id=sample.id) }}">Submit</button>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock content %}

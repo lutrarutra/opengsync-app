@@ -1,0 +1,39 @@
+{% extends "template.html" %}
+{% set active_page = "projects-page" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Projects</h1>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
+                New Project
+            </button>
+        </div>
+    </div>
+
+    {% include "components/tables/project.html" %}
+
+    <div class="modal fade" id="form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="">New Project</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include "forms/project.html" %}
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button id="submit-project-btn" class="btn btn-primary"
+                hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('projects_bp.postproject') }}">Submit</button>
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+</script>
+{% endblock content %}

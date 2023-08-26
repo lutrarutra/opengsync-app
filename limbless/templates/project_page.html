@@ -1,0 +1,25 @@
+{% extends "template.html" %}
+{% set active_page = "projects-page" %}
+{% block content %}
+<div class="container">
+    <h1>
+        Project: {{ project.name }}
+    </h1>
+    <h2>Description:</h2>
+    <p>{{ project.description }}</p>
+
+    <div class="d-flex justify-content-between">
+        <div>
+            <h2>Samples:</h2>
+        </div>
+        <div>
+            <button type="button" id="open-sample-form-popup" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
+                Add Sample(s)
+            </button>
+        </div>
+    </div>
+    {% include "components/tables/sample.html" %}
+
+    {% include "components/sample_form_popup.html" %}
+</div>
+{% endblock content %}

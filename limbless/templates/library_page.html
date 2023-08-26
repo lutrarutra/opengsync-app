@@ -1,0 +1,68 @@
+{% extends "template.html" %}
+{% set active_page = "libraries-page" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Library: {{ library.name }}</h1>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup">
+                Edit Library
+            </button>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2>Samples</h2>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-form-popup">
+                Add Sample
+            </button>
+        </div>
+    </div>
+    {% set samples = library.samples %}
+    {% include "components/tables/sample.html" %}
+
+    <div class="modal fade" id="library-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="">Edit Library</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include "forms/library.html" %}
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button class="btn btn-primary"
+                hx-include="#library-form" hx-target="#library-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('libraries_bp.editlibrary', library_id=library.id) }}">Submit</button>
+            </div>
+          </div>
+        </div>
+    </div>
+    <div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="">Add Sample</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button id="submit-select-sample-btn" class="btn btn-primary"
+                hx-include="#select-sample-form" hx-target="#select-sample-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('experiments_bp.postexperiment') }}">Submit</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+</div>
+<script type="text/javascript">
+</script>
+{% endblock content %}

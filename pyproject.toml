@@ -1,0 +1,7 @@
+[build-system]
+requires = ["hatchling", "setuptools"]
+build-backend = "hatchling.build"
+
+[project]
+name = "limbless"
+version = "0.1.0"

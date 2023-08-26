@@ -1,0 +1,13 @@
+{% macro form_group(field, class='') -%}
+<div class="{{class}} form-group">
+    {{ field.label }}
+    {% if field.errors %}
+        {{ field(class="form-control is-invalid", placeholder=place_holder) }}
+        {% for error in field.errors %}
+            <p class="invalid-feedback">{{ error }}</p>
+        {% endfor %}
+    {% else %}
+        {{ field(class="form-control", placeholder="Required" if field.flags.required else "Optional") }}
+    {% endif %}
+</div>
+{%- endmacro %}

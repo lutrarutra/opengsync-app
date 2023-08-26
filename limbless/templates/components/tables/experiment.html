@@ -1,0 +1,22 @@
+{% from "components/pagination.jinja2" import pagination %}
+<div id="experiment-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Flowcell</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for experiment in experiments %}
+            <tr onclick="window.location.href='{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}';">
+                <th scope="row">{{ experiment.id }}</th>
+                <td>{{ experiment.name }}</td>
+                <td>{{ experiment.flowcell }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("experiment-table", "experiments_bp.getexperiments", n_pages, active_page) }}
+</div>

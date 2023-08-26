@@ -1,0 +1,26 @@
+{% macro searchbar(object) -%}
+<form id="search-form">
+    {% if object == "library" %}
+        <input type="text" class="form-control" placeholder="Library Search"
+        name="query" hx-get="{{ url_for('libraries_bp.searchlibrary') }}"
+        hx-trigger="keyup changed delay:500ms" hx-target="#library-table"
+        hx-swap="outerHTML">
+        {% include "components/tables/library.html" %}
+    {% elif object == "sample" %}
+        <input type="text" class="form-control" placeholder="Search"
+        name="query" hx-get="sample"
+        hx-trigger="keyup changed delay:500ms" hx-target="#sample-table"
+        hx-swap="outerHTML">
+    {% elif object == "run" %}
+        <input type="text" class="form-control" placeholder="Search"
+        name="query" hx-get="run"
+        hx-trigger="keyup changed delay:500ms" hx-target="#run-table"
+        hx-swap="outerHTML">
+    {% elif object == "experiment" %}
+        <input type="text" class="form-control" placeholder="Search"
+        name="query" hx-get="experiment"
+        hx-trigger="keyup changed delay:500ms" hx-target="#experiment-table"
+        hx-swap="outerHTML">
+    {% endif %}
+</form>
+{%- endmacro %}

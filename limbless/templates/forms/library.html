@@ -1,0 +1,6 @@
+{% from 'components/form_group.jinja2' import form_group %}
+<form id="library-form">
+    {{ library_form.csrf_token }}
+    {{ form_group(library_form.name) }}
+    {{ form_group(library_form.library_type) }}
+</form>

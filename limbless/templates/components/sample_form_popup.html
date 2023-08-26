@@ -1,0 +1,54 @@
+<div class="modal fade" id="form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalToggleLabel">Add Sample(s)</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="sample-form-btn" data-bs-toggle="tab" data-bs-target="#sample-form-tab" type="button" role="tab" aria-controls="sample-form-tab" aria-selected="true">
+                    Add Single Sample
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="sample-table-form-btn" data-bs-toggle="tab" data-bs-target="#sample-table-form-tab" type="button" role="tab" aria-controls="sample-table-form-tab" aria-selected="false">
+                    Add Sample Table
+                  </button>
+                </li>
+            </ul>
+            <div class="tab-content pt-3" id="myTabContent">
+                <div class="tab-pane fade show active" id="sample-form-tab" role="tabpanel" aria-labelledby="sample-form-btn" tabindex="0">
+                    {% include "forms/sample.html" %}
+                </div>
+                <div class="tab-pane fade" id="sample-table-form-tab" role="tabpanel" aria-labelledby="sample-table-form-btn" tabindex="0">
+                    {% include "components/sample_popup.html" %}
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="submit-sample-btn" class="btn btn-primary"
+            hx-include="#sample-form" hx-target="#sample-form" hx-swap="outerHTML"
+            hx-post="{{ url_for('samples_bp.postsample', project_id=project.id) }}">Submit</button>
+            
+            <button type="button" id="submit-table-btn" class="btn btn-primary disabled"
+            style="display: none;" hx-include="#sample-table-form"
+            hx-target="#sample-table-form" hx-swap="outerHTML"
+            hx-post="{{ url_for('samples_bp.postsampletable', project_id=project.id) }}">Submit SSSamples</button>
+        </div>
+      </div>
+    </div>
+</div>
+
+<script>
+    $("#sample-form-btn").on("click", function() {
+        $("#submit-sample-btn").show();
+        $("#submit-table-btn").hide();
+    });
+
+    $("#sample-table-form-btn").on("click", function() {
+        $("#submit-table-btn").show();
+        $("#submit-sample-btn").hide();
+    });
+</script>

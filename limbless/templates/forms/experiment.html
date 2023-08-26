@@ -1,0 +1,6 @@
+{% from 'components/form_group.jinja2' import form_group %}
+<form id="experiment-form">
+    {{ experiment_form.csrf_token }}
+    {{ form_group(experiment_form.name) }}
+    {{ form_group(experiment_form.flowcell) }}
+</form>
