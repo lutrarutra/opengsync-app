@@ -6,7 +6,7 @@ from flask_htmx import make_response
 import pandas as pd
 
 from .... import db, logger, forms, tools
-from ....core.DBSession import DBSession
+from ....core import DBSession
 
 samples_bp = Blueprint("samples_bp", __name__, url_prefix="/api/samples/")
 api = Api(samples_bp)

@@ -1,0 +1,14 @@
+{% from 'components/form_group.jinja2' import form_group %}
+<form id="complete-register-form">
+    {{ register_form.csrf_token }}
+    <div class="form-group pb-3">
+        <label for="password">Email</label>
+        <span class="input-group-text" id="basic-addon2">{{ register_form.email.data }}</span>
+    </div>
+    {{ form_group(register_form.password) }}
+    {{ form_group(register_form.confirm) }}
+    
+    <button type="button" class="btn btn-primary"
+    hx-target="#complete-register-form" hx-swap="outerHTML"
+    hx-post="{{ url_for('auth_bp.completeregistration', token=token) }}">Register</button>
+</form>

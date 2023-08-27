@@ -5,7 +5,7 @@ runs_page_bp = Blueprint("runs_page", __name__)
 from ... import db
 from ... import models, forms
 from ...core import exceptions
-from ...core.DBSession import DBSession
+from ...core import DBSession
 
 @runs_page_bp.route("/runs")
 def runs_page():

@@ -2,7 +2,7 @@ from limbless import models
 
 def create_sample_experiment(db_handler):
     user = db_handler.create_user(
-        email="artur.gynter@hotmail.com",
+        email="test@user.com",
         password="password",
         role=models.UserRole.ADMIN
     )

@@ -17,7 +17,7 @@ def test_create_user(db_handler):
     )
     assert user.id is not None
     assert user.role is not None
-    assert user.password_hash is not None
+    assert user.password is not None
     assert user.email == "user"
 
     # invalid user role

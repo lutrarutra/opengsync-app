@@ -32,6 +32,7 @@ class UserRole(Enum):
     ADMIN = 1
     BIOINFORMATICIAN = 2
     TECHNICIAN = 3
+    CLIENT = 4
 
     def __eq__(self, other: Union["UserRole", int]):
         if isinstance(other, UserRole):

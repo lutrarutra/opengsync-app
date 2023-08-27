@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, request, url_for
 projects_page_bp = Blueprint("projects_page", __name__)
 
 from ... import db, forms
-from ...core.DBSession import DBSession
+from ...core import DBSession
 
 @projects_page_bp.route("/projects")
 def projects_page():

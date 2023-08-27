@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, redirect, request, url_for
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
 from ... import db, forms
-from ...core.DBSession import DBSession
+from ...core import DBSession
 
 @libraries_page_bp.route("/libraries")
 def libraries_page():

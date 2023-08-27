@@ -25,7 +25,7 @@ class DBHandler():
             self.__admin = self._session.get(models.User, 1)
             if not self.__admin:
                 self.__admin = models.User(
-                    email="admin", password_hash="1234",
+                    email="admin", password="1234",
                     role=models.UserRole.ADMIN.value
                 )
             self._session.add(self.__admin)
@@ -76,7 +76,8 @@ class DBHandler():
 
     from .model_handlers._user_methods import (
         create_user, get_user, get_users,
-        delete_user, update_user
+        delete_user, update_user,
+        get_user_by_email
     )
 
     from .model_handlers._link_methods import (

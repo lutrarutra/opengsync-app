@@ -4,7 +4,6 @@ from wtforms_sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, ValidationError
 
 from ..db import db_handler
-from .. import models
 
 class SampleForm(FlaskForm):
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])

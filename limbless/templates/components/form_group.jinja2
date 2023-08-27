@@ -3,11 +3,15 @@
     {{ field.label }}
     {% if field.errors %}
         {{ field(class="form-control is-invalid", placeholder=place_holder) }}
+        <div class="invalid-feedback-container">
         {% for error in field.errors %}
-            <p class="invalid-feedback">{{ error }}</p>
+        <p class="">{{ error }}</p>
         {% endfor %}
+        </div>
     {% else %}
         {{ field(class="form-control", placeholder="Required" if field.flags.required else "Optional") }}
+        <div class="invalid-feedback-container">
+        </div>
     {% endif %}
 </div>
 {%- endmacro %}

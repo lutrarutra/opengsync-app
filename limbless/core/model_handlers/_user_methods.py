@@ -21,7 +21,7 @@ def create_user(
     
     user = models.User(
         email=email,
-        password_hash=password, # FIXME: hash password
+        password=password, # FIXME: hash password
         role=role if isinstance(role, int) else role.value
     )
 
@@ -42,6 +42,17 @@ def get_user(self, user_id: int) -> models.User:
     if not persist_session: self.close_session()
     return res
 
+def get_user_by_email(self, email: str) -> models.User:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    user = self._session.query(models.User).where(
+        models.User.email == email
+    ).first()
+    if not persist_session: self.close_session()
+    return user
+
 def get_users(self) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
@@ -54,7 +65,7 @@ def get_users(self) -> list[models.User]:
 def update_user(
         self, user_id: int,
         email: Optional[str] = None,
-        password_hash: Optional[str] = None,
+        password: Optional[str] = None,
         role: Optional[Union[models.UserRole, int]] = None,
         commit: bool = True
     ) -> models.User:
@@ -67,7 +78,7 @@ def update_user(
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
     if email is not None: user.email = email
-    if password_hash is not None: user.password_hash = password_hash
+    if password is not None: user.password = password
     if role is not None:
         if not models.UserRole.is_valid(role):
             raise exceptions.InvalidRole(f"Invalid role {role}")

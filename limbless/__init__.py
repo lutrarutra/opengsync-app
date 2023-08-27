@@ -2,6 +2,10 @@ import sys, os
 
 from loguru import logger
 from flask_htmx import HTMX
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager
+from flask_mail import Mail
+from itsdangerous import URLSafeTimedSerializer
 
 logger.remove()
 
@@ -19,4 +23,11 @@ else:
         format=fmt, level="INFO"
     )
 
+
+SECRET_KEY = "SECRET_KEY"
+EMAIL_SENDER = "noreply@limbless.com"
 htmx = HTMX()
+bcrypt = Bcrypt()
+login_manager = LoginManager()
+mail = Mail()
+serializer = URLSafeTimedSerializer(SECRET_KEY)

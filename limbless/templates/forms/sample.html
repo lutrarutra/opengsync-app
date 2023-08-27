@@ -1,11 +1,11 @@
 {% from 'components/form_group.jinja2' import form_group %}
 <form id="sample-form">
     {{ sample_form.csrf_token }}
-    <div class="row pb-3">
-        {{ form_group(sample_form.name) }}
-        {{ form_group(sample_form.organism) }}
+    <div class="row">
+        {{ form_group(sample_form.name, class="col") }}
+        {{ form_group(sample_form.organism, class="col") }}
     </div>
-    <div class="row pb-3">
+    <div class="row">
         {{ form_group(sample_form.index1, class="col") }}
         {{ form_group(sample_form.index2, class="col") }}
     </div>

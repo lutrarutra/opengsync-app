@@ -5,7 +5,7 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 
 from ... import db
 from ... import models, forms
-from ...core.DBSession import DBSession
+from ...core import DBSession
 
 @experiments_page_bp.route("/experiments")
 def experiments_page():
