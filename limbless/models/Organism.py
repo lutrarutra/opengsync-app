@@ -8,3 +8,9 @@ class Organism(SQLModel, table=True):
     scientific_name: str = Field(nullable=False, max_length=128, index=True)
     common_name: Optional[str] = Field(nullable=True, max_length=128, index=True)
     category: int = Field(nullable=False)
+
+    def __str__(self) -> str:
+        _val = f"{self.scientific_name} [{self.tax_id}]"
+        if self.common_name:
+            _val += f" ({self.common_name})"
+        return _val

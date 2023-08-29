@@ -19,7 +19,7 @@ def create_library(
     
     library = models.Library(
         name=name,
-        library_type=library_type if isinstance(library_type, str) else library_type.value
+        library_type=library_type if isinstance(library_type, str) else library_type.id
     )
 
     self._session.add(library)

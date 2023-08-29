@@ -13,13 +13,27 @@ def create_sample_experiment(db_handler):
         ) for i in range(10)
     ]
 
+    db_handler.create_organism(
+        tax_id=9606,
+        scientific_name="Homo sapiens",
+        common_name="human",
+        category=models.OrganismCategory.EUKARYOTA,
+    )
+
+    db_handler.create_organism(
+        tax_id=10090,
+        scientific_name="Mus musculus",
+        common_name="house mouse",
+        category=models.OrganismCategory.EUKARYOTA,
+    )
+
     for project in projects:
         db_handler.link_project_user(project.id, user.id, models.ProjectRole.OWNER)
 
     samples = [
         db_handler.create_sample(
             f"Sample_{i+1:02d}",
-            "human" if i < 100 else "mouse",
+            9606 if i < 100 else 10090,
             projects[i % len(projects)].id,
             f"index1_{i+1:02d}",
             f"index2_{i+1:02d}"

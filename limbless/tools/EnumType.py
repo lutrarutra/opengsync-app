@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 from abc import ABC
 
 @dataclass
@@ -52,7 +52,7 @@ class DescriptiveEnum:
         return dict(cls.as_tuples(enum_type))
 
     @classmethod
-    def is_valid(cls, enum_type: str, _id: int) -> bool:
+    def is_valid_id(cls, enum_type: str, _id: int) -> bool:
         return _id in cls.__types__[enum_type].keys()
 
     def __str__(self):
@@ -64,7 +64,7 @@ class DescriptiveEnum:
 class EnumType(ABC):
     @classmethod
     def create(cls, _id, name, description=None) -> DescriptiveEnum:
-        return DescriptiveEnum(cls.__name__, _id, name, description)
+        return DescriptiveEnum(cls.__enum_type__, _id, name, description)
 
     @classmethod
     def as_tuples(cls) -> tuple[int, str]:
@@ -77,10 +77,16 @@ class EnumType(ABC):
     @classmethod
     def values(cls) -> list[DescriptiveEnum]:
         return DescriptiveEnum.values(cls.__name__)
+    
+    @classmethod
+    def is_valid(cls, _id: Union[DescriptiveEnum, int]) -> bool:
+        if isinstance(_id, DescriptiveEnum):
+            return True
+        return cls.is_valid_id(_id)
 
     @classmethod
     def is_valid_id(cls, _id: int) -> bool:
-        return DescriptiveEnum.is_valid(cls.__name__, _id)
+        return DescriptiveEnum.is_valid_id(cls.__name__, _id)
 
     @classmethod
     def is_valid_name(cls, name: str):

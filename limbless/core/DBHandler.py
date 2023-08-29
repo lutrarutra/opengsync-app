@@ -26,7 +26,7 @@ class DBHandler():
             if not self.__admin:
                 self.__admin = models.User(
                     email="admin", password="1234",
-                    role=models.UserRole.ADMIN.value
+                    role=models.UserRole.ADMIN.id
                 )
             self._session.add(self.__admin)
             self.close_session(commit=True)

@@ -12,7 +12,7 @@ class LibraryForm(FlaskForm):
     ])
     
     library_type = SelectField(
-        "Library Type", choices=models.LibraryType.to_tuple(),
+        "Library Type", choices=models.LibraryType.as_tuples(),
         validators=[DataRequired()]
     )
 

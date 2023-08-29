@@ -53,7 +53,7 @@ class UserMixin:
         return not equal
 
 
-class User(UserMixin, SQLModel, table=True):
+class User(UserMixin, SQLModel, table=True):    
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(nullable=False, unique=True, index=True, max_length=128)
     password: str = Field(nullable=False, max_length=128)

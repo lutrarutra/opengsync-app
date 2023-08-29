@@ -49,7 +49,11 @@ def get_project_samples(self, project_id: int) -> list[models.Sample]:
     if self._session.get(models.Project, project_id) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
-    project_samples = self._session.query(models.Sample).where(
+    project_samples = self._session.query(models.Sample).join(
+        models.Organism, models.Sample.organism_id == models.Organism.tax_id
+    ).options(
+        selectinload(models.Sample.organism),
+    ).where(
         models.Sample.project_id == project_id
     ).all()
 
@@ -103,9 +107,15 @@ def get_library_samples(self, library_id: int) -> list[models.Sample]:
     library_samples = self._session.query(models.Sample).join(
         models.LibrarySampleLink,
         models.LibrarySampleLink.sample_id == models.Sample.id
+    ).join(
+        models.Organism, models.Sample.organism_id == models.Organism.tax_id
+    ).options(
+        selectinload(models.Sample.organism),
     ).where(
         models.LibrarySampleLink.library_id == library_id
     ).all()
+
+
 
     if not persist_session: self.close_session()
     return library_samples
@@ -277,7 +287,7 @@ def link_project_user(
     
     project_user_link = models.ProjectUserLink(
         project_id=project_id, user_id=user_id,
-        role=role if isinstance(role, int) else role.value
+        role=role if isinstance(role, int) else role.id
     )
     self._session.add(project_user_link)
 

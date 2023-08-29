@@ -124,9 +124,7 @@ class CompleteRegistration(Resource):
         
         user = db.db_handler.create_user(
             email=register_form.email.data,
-            password=bcrypt.generate_password_hash(
-                register_form.password.data
-            ),
+            password=register_form.password.data,
             role=models.UserRole.CLIENT
         )
 

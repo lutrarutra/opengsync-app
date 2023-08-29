@@ -4,7 +4,8 @@ from ... import models
 from .. import exceptions
 
 def create_sample(
-        self, name: str, organism: str,
+        self, name: str,
+        organism_tax_id: int,
         project_id: int,
         index1: str, index2: Optional[str] = None,
         commit: bool = True
@@ -17,8 +18,13 @@ def create_sample(
     if not self._session.get(models.Project, project_id):
         raise exceptions.ElementDoesNotExist(f"Project with id '{project_id}', not found.")
 
+    organism = self._session.get(models.Organism, organism_tax_id)
+    if not organism:
+        raise exceptions.ElementDoesNotExist(f"Organism with tax_id '{organism_tax_id}', not found.")
+
     sample = models.Sample(
-        name=name, organism=organism,
+        name=name,
+        organism_id=organism.tax_id,
         index1=index1, index2=index2,
         project_id=project_id
     )

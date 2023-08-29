@@ -1,6 +1,6 @@
 from typing import Optional, Union
 
-from ... import models
+from ... import models, bcrypt
 from .. import exceptions
 
 def create_user(
@@ -19,10 +19,12 @@ def create_user(
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"User with email {email} already exists")
     
+    hashed_password = bcrypt.generate_password_hash(password)
+    
     user = models.User(
         email=email,
-        password=password, # FIXME: hash password
-        role=role if isinstance(role, int) else role.value
+        password=hashed_password,
+        role=role if isinstance(role, int) else role.id
     )
 
     self._session.add(user)
