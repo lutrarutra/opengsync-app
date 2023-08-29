@@ -3,7 +3,7 @@ from typing import Optional
 from .DBHandler import DBHandler
 
 class DBSession():
-    def __init__(self, db_handler: DBHandler, commit: Optional[bool] = False):
+    def __init__(self, db_handler: DBHandler, commit: bool = True):
         self.db_handler = db_handler
         self.commit = commit
 

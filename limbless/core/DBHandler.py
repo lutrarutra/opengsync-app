@@ -80,6 +80,12 @@ class DBHandler():
         get_user_by_email
     )
 
+    from .model_handlers._organism_methods import (
+        create_organism, get_organism, get_organisms,
+        get_organisms_by_name,
+        get_num_organisms
+    )
+
     from .model_handlers._link_methods import (
         get_project_samples,
         get_project_users,

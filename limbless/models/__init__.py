@@ -9,6 +9,7 @@ from .Run import Run
 from .User import User
 from .Experiment import Experiment
 from .Library import Library
+from .Organism import Organism
 from .Links import LibrarySampleLink, RunLibraryLink, ProjectUserLink
 
 class ProjectRole(Enum):
@@ -75,6 +76,29 @@ class LibraryType(Enum):
     @staticmethod
     def to_tuple():
         return [(val.value, val.name) for val in LibraryType.__members__.values()]
+    
+class OrganismCategory(Enum):
+    OTHER = 0
+    ARCHAEA = 1
+    BACTERIA = 2
+    EUKARYOTA = 3
+    VIRUSES = 4
+    UNCLASSIFIED = 5
+
+    def __eq__(self, other: Union["OrganismCategory", str]):
+        if isinstance(other, OrganismCategory):
+            other = other.value
+        return self.value == other
+
+    @staticmethod
+    def is_valid(organism_type: Union["OrganismCategory", str]):
+        if isinstance(organism_type, OrganismCategory):
+            organism_type = organism_type.value
+        return organism_type in [val.value for val in OrganismCategory.__members__.values()]
+    
+    @staticmethod
+    def to_tuple():
+        return [(val.value, val.name) for val in OrganismCategory.__members__.values()]
     
 # TODO: Enumerate library types
 # LIBRARY_TYPES = [
