@@ -5,7 +5,7 @@ from .. import exceptions
 
 def create_library(
         self, name: str,
-        library_type: Union[models.LibraryType, int],
+        library_type: Union[models.LibraryType, str],
         commit: bool = True
     ) -> list[models.Library]:
     persist_session = self._session is not None
