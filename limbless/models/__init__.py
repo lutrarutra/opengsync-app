@@ -27,7 +27,6 @@ class ProjectRole(Enum):
         if isinstance(role, ProjectRole):
             role = role.value
         return role in [val.value for val in ProjectRole.__members__.values()]
-    
 
 class UserRole(Enum):
     ADMIN = 1
@@ -46,21 +45,29 @@ class UserRole(Enum):
             role = role.value
         return role in [val.value for val in UserRole.__members__.values()]
 
-class LibraryType(Enum):
-    TRANSCRIPTOME = "Transcriptome"
-    CUSTOM_BARCODED_FEATURE = "Custom Barcoded Feature"
-    ANTIBODY_QUANTIFICATION = "Antibody Quantification"
-    ANTIBODY_QUANTIFICATION_CITE = "Antibody Quantification CITE"
-    CRISPR_GUIDE = "CRISPR Guide"
-    CRISPR_GUIDE_SINGLE_INDEX = "CRISPR Guide SINGLE_INDEX"
-    TCR = "TCR"
-    CHROMATIN = "Chromatin"
-    VISIUM = "Visium"
-    MULTIOME_ATAC_AS_ATAC = "Multiome ATAC as ATAC"
-    MULTIOME_GEX = "Multiome GEX"
-    MULTIOME_ATAC = "Multiome ATAC"
-    TRANSCRIPTOME_NUCLEI = "Transcriptome Nuclei"
-    CUSTOM = "Custom"
+class LibraryType(EnumType):
+    TRANSCRIPTOME = LibraryType.create(0, "Transcriptome", "")
+    TRANSCRIPTOME_NUCLEI = LibraryType.create(1, "Transcriptome Nuclei", "")
+    CUSTOM_BARCODED_FEATURE = LibraryType.create(2, "Custom Barcoded Feature", "")
+    ANTIBODY_QUANTIFICATION = LibraryType.create(3, "Antibody Quantification", "")
+    VISIUM = LibraryType.create(4, "Visium", "")
+    CHROMATIN = LibraryType.create(5, "Chromatin", "")
+
+# class LibraryType(Enum):
+#     TRANSCRIPTOME = "Transcriptome"
+#     TRANSCRIPTOME_NUCLEI = "Transcriptome Nuclei"
+#     CUSTOM_BARCODED_FEATURE = "Custom Barcoded Feature"
+#     ANTIBODY_QUANTIFICATION = "Antibody Quantification"
+#     ANTIBODY_QUANTIFICATION_CITE = "Antibody Quantification CITE"
+#     CRISPR_GUIDE = "CRISPR Guide"
+#     CRISPR_GUIDE_SINGLE_INDEX = "CRISPR Guide SINGLE_INDEX"
+#     TCR = "TCR"
+#     CHROMATIN = "Chromatin"
+#     VISIUM = "Visium"
+#     MULTIOME_ATAC_AS_ATAC = "Multiome ATAC as ATAC"
+#     MULTIOME_GEX = "Multiome GEX"
+#     MULTIOME_ATAC = "Multiome ATAC"
+#     CUSTOM = "Custom"
 
     def __eq__(self, other: Union["LibraryType", str]):
         if isinstance(other, LibraryType):
@@ -70,7 +77,7 @@ class LibraryType(Enum):
     @staticmethod
     def is_valid(library_type: Union["LibraryType", str]):
         if isinstance(library_type, LibraryType):
-            library_type = library_type.value
+            return True
         return library_type in [val.value for val in LibraryType.__members__.values()]
     
     @staticmethod
