@@ -126,11 +126,6 @@ class PostSampleTable(Resource):
             n_added = 0
             with DBSession(db.db_handler) as session:
                 for _, row in df.iterrows():
-                    existing_sample = session.get_sample_by_name(row["sample_name"])
-
-                    if existing_sample:
-                        continue
-
                     session.create_sample(
                         name=row["sample_name"],
                         organism=row["organism"],

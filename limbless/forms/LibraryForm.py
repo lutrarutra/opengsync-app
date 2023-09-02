@@ -4,6 +4,7 @@ from wtforms_sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length,ValidationError
 
 from .. import models
+from ..core import categories
 from ..db import db_handler
 
 class LibraryForm(FlaskForm):    
@@ -12,7 +13,7 @@ class LibraryForm(FlaskForm):
     ])
     
     library_type = SelectField(
-        "Library Type", choices=models.LibraryType.as_tuples(),
+        "Library Type", choices=categories.LibraryType.as_tuples(),
         validators=[DataRequired()]
     )
 

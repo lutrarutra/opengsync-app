@@ -4,24 +4,25 @@ from sqlalchemy.orm import selectinload
 
 from ... import models
 from .. import exceptions
+from ...core import categories
 
 def get_user_projects(self, user_id: int) -> list[models.Project]:
-        persist_session = self._session is not None
-        if not self._session:
-            self.open_session()
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
 
-        if self._session.get(models.User, user_id) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+    if self._session.get(models.User, user_id) is None:
+        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
-        user_projects = self._session.query(models.Project).join(
-            models.ProjectUserLink,
-            models.ProjectUserLink.project_id == models.Project.id
-        ).where(
-            models.ProjectUserLink.user_id == user_id
-        ).all()
+    user_projects = self._session.query(models.Project).join(
+        models.ProjectUserLink,
+        models.ProjectUserLink.project_id == models.Project.id
+    ).where(
+        models.ProjectUserLink.user_id == user_id
+    ).all()
 
-        if not persist_session: self.close_session()
-        return user_projects
+    if not persist_session: self.close_session()
+    return user_projects
         
 def get_project_users(self, project_id: int) -> list[models.User]:
     persist_session = self._session is not None
@@ -156,9 +157,9 @@ def get_experiment_runs(self, experiment_id: int) -> list[models.Run]:
 
 # TODO: testing
 def get_experiment_data(
-        self, experiment_id: int,
-        unraveled: bool = False
-    ) -> Union[list[models.Run], list[tuple[models.Run, models.Library, models.Sample]]]:
+    self, experiment_id: int,
+    unraveled: bool = False
+) -> Union[list[models.Run], list[tuple[models.Run, models.Library, models.Sample]]]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -200,8 +201,8 @@ def get_experiment_data(
 
 # TODO: testing
 def get_run_data(
-        self, run_id: int,
-        unraveled: bool = False
+    self, run_id: int,
+    unraveled: bool = False
     ) -> Union[list[models.Library], list[tuple[models.Library, models.Sample]]]:
     persist_session = self._session is not None
     if not self._session:
@@ -231,8 +232,8 @@ def get_run_data(
     return run_data
 
 def get_project_data(
-        self, project_id: int,
-        unraveled: bool = False
+    self, project_id: int,
+    unraveled: bool = False
 ) -> Union[list[models.Sample], list[tuple[models.Sample, models.Library]]]:
     persist_session = self._session is not None
     if not self._session:
@@ -259,14 +260,11 @@ def get_project_data(
     
 
 def link_project_user(
-        self, project_id: int, user_id: int,
-        role: Union[models.ProjectRole, int],
-        commit: bool = True
-    ) -> models.ProjectUserLink:
-
-    if not models.ProjectRole.is_valid(role):
-        raise exceptions.InvalidRole(f"Role {role} is not valid")
-
+    self, project_id: int, user_id: int,
+    role: categories.ProjectRole,
+    commit: bool = True
+) -> models.ProjectUserLink:
+    
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -287,7 +285,7 @@ def link_project_user(
     
     project_user_link = models.ProjectUserLink(
         project_id=project_id, user_id=user_id,
-        role=role if isinstance(role, int) else role.id
+        role=role.id
     )
     self._session.add(project_user_link)
 
@@ -300,9 +298,9 @@ def link_project_user(
 
 
 def unlink_project_user(
-        self, project_id: int, user_id: int,
-        commit: bool = True
-    ) -> None:
+    self, project_id: int, user_id: int,
+    commit: bool = True
+) -> None:
 
     persist_session = self._session is not None
     if not self._session:
@@ -330,9 +328,9 @@ def unlink_project_user(
     if not persist_session: self.close_session()
 
 def link_run_library(
-        self, run_id: int, library_id: int,
-        commit: bool = True
-    ) -> models.RunLibraryLink:
+    self, run_id: int, library_id: int,
+    commit: bool = True
+) -> models.RunLibraryLink:
 
     persist_session = self._session is not None
     if not self._session:
@@ -365,8 +363,8 @@ def link_run_library(
     return run_library_link
 
 def unlink_run_library(
-        self, run_id: int, library_id: int,
-        commit: bool = True
+    self, run_id: int, library_id: int,
+    commit: bool = True
 ) -> None:
     
     persist_session = self._session is not None
@@ -395,8 +393,8 @@ def unlink_run_library(
     if not persist_session: self.close_session()
 
 def link_library_sample(
-        self, library_id: int, sample_id: int,
-        commit: bool = True
+    self, library_id: int, sample_id: int,
+    commit: bool = True
 ) -> models.LibrarySampleLink:
 
     persist_session = self._session is not None
@@ -430,8 +428,8 @@ def link_library_sample(
     return library_sample_link
     
 def unlink_library_sample(
-        self, library_id: int, sample_id: int,
-        commit: bool = True
+    self, library_id: int, sample_id: int,
+    commit: bool = True
 ) -> None:
     
     persist_session = self._session is not None
@@ -458,3 +456,36 @@ def unlink_library_sample(
         self._session.commit()
 
     if not persist_session: self.close_session()
+
+# TODO: testing
+def link_sample_index(
+    self, sample_id: int, index_id: int,
+    type: str, commit: bool = True
+) -> models.SampleSeqIndexLink:
+
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if not self._session.get(models.Sample, sample_id):
+        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    if not self._session.get(models.SeqIndex, index_id):
+        raise exceptions.ElementDoesNotExist(f"Index with id {index_id} does not exist")
+    
+    if self._session.query(models.SampleSeqIndexLink).where(
+        models.SampleSeqIndexLink.sample_id == sample_id,
+        models.SampleSeqIndexLink.seq_index_id == index_id
+    ).first():
+        raise exceptions.LinkAlreadyExists(f"Sample with id {sample_id} and index with id {index_id} are already linked")
+    
+    sample_index_link = models.SampleSeqIndexLink(
+        sample_id=sample_id, seq_index_id=index_id, type=type
+    )
+    self._session.add(sample_index_link)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(sample_index_link)
+
+    if not persist_session: self.close_session()
+    return sample_index_link

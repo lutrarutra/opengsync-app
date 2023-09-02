@@ -27,8 +27,6 @@ def sample_page(sample_id):
 
     sample_form.name.data = sample.name
     sample_form.organism.data = sample.organism
-    sample_form.index1.data = sample.index1
-    sample_form.index2.data = sample.index2
 
     with DBSession(db.db_handler) as session:
         sample = session.get_sample(sample_id)

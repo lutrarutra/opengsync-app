@@ -2,10 +2,11 @@ from typing import Optional, Union
 
 from ... import models
 from .. import exceptions
+from ...core import categories
 
 def create_library(
         self, name: str,
-        library_type: Union[models.LibraryType, str],
+        library_type: categories.LibraryType,
         commit: bool = True
     ) -> list[models.Library]:
     persist_session = self._session is not None
@@ -16,10 +17,10 @@ def create_library(
         models.Library.name == name
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"Library with name {name} already exists")
-    
+
     library = models.Library(
         name=name,
-        library_type=library_type if isinstance(library_type, str) else library_type.id
+        library_type_id=library_type.id
     )
 
     self._session.add(library)

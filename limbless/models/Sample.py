@@ -1,24 +1,24 @@
 from typing import Optional, List
-from enum import Enum
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import LibrarySampleLink
+from .Links import LibrarySampleLink, SampleSeqIndexLink
 
 class Sample(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=64, index=True) # TODO: Unique + tests
-    index1: str = Field(nullable=False, max_length=128)
-    index2: Optional[str] = Field(nullable=True, max_length=128)
+    name: str = Field(nullable=False, max_length=64, index=True)
 
     organism_id: int = Field(nullable=False, foreign_key="organism.tax_id")
-    project_id: int = Field(nullable=False, foreign_key="project.id")
+    organism: "Organism" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
 
+    project_id: int = Field(nullable=False, foreign_key="project.id")
     project: "Project" = Relationship(back_populates="samples")
-    organism: "Organism" = Relationship()
 
     libraries: List["Library"] = Relationship(
         back_populates="samples", link_model=LibrarySampleLink
+    )
+    indices: List["SeqIndex"] = Relationship(
+        link_model=SampleSeqIndexLink, sa_relationship_kwargs={"lazy": "joined"}
     )
 
     def to_dict(self):

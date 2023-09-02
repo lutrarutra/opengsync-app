@@ -5,15 +5,17 @@ from sqlmodel import create_engine, SQLModel, Session, select
 from sqlalchemy import orm
 
 from .. import models
+from . import categories
 from ..sample_experiment import create_sample_experiment
+from ..index_kits import add_index_kits
 
 class DBHandler():
     def __init__(self, db_path, create_admin: bool = True, load_sample_data: bool = False):
         if not os.path.exists(os.path.dirname(db_path)) and db_path != ":memory:":
             os.mkdir(os.path.dirname(db_path))
 
-        if load_sample_data and os.path.exists(db_path):
-            os.remove(db_path)
+        if os.path.exists(db_path):
+            load_sample_data = False
 
         self._engine = create_engine(f"sqlite:///{db_path}?check_same_thread=False")
         self._session: Optional[orm.Session] = None
@@ -25,14 +27,16 @@ class DBHandler():
             self.__admin = self._session.get(models.User, 1)
             if not self.__admin:
                 self.__admin = models.User(
-                    email="admin", password="1234",
-                    role=models.UserRole.ADMIN.id
+                    email="admin", password="password",
+                    role=categories.UserRole.ADMIN.id
                 )
             self._session.add(self.__admin)
             self.close_session(commit=True)
 
         if load_sample_data:
+            add_index_kits(self)
             create_sample_experiment(self)
+
 
     def open_session(self) -> None:
         self._session = Session(self._engine, expire_on_commit=False)
@@ -86,6 +90,14 @@ class DBHandler():
         get_num_organisms
     )
 
+    from .model_handlers._seqindex_methods import (
+        create_seqindex, get_seqindex, get_seqindices_by_adapter
+    )
+
+    from .model_handlers._seqkit_methods import (
+        create_seqkit, get_seqkit, get_seqkit_by_name
+    )
+
     from .model_handlers._link_methods import (
         get_project_samples,
         get_project_users,
@@ -103,6 +115,7 @@ class DBHandler():
         link_project_user,
         link_library_sample,
         link_run_library,
+        link_sample_index,
 
         unlink_library_sample,
         unlink_run_library,

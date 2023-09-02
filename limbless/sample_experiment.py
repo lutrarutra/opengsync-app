@@ -1,10 +1,11 @@
 from limbless import models
+from limbless.core import categories
 
 def create_sample_experiment(db_handler):
     user = db_handler.create_user(
         email="test@user.com",
         password="password",
-        role=models.UserRole.ADMIN
+        role=categories.UserRole.ADMIN
     )
     projects = [
         db_handler.create_project(
@@ -17,33 +18,31 @@ def create_sample_experiment(db_handler):
         tax_id=9606,
         scientific_name="Homo sapiens",
         common_name="human",
-        category=models.OrganismCategory.EUKARYOTA,
+        category=categories.OrganismCategory.EUKARYOTA,
     )
 
     db_handler.create_organism(
         tax_id=10090,
         scientific_name="Mus musculus",
         common_name="house mouse",
-        category=models.OrganismCategory.EUKARYOTA,
+        category=categories.OrganismCategory.EUKARYOTA,
     )
 
     for project in projects:
-        db_handler.link_project_user(project.id, user.id, models.ProjectRole.OWNER)
+        db_handler.link_project_user(project.id, user.id, categories.ProjectRole.OWNER)
 
     samples = [
         db_handler.create_sample(
             f"Sample_{i+1:02d}",
             9606 if i < 100 else 10090,
             projects[i % len(projects)].id,
-            f"index1_{i+1:02d}",
-            f"index2_{i+1:02d}"
         ) for i in range(200)
     ]
 
     libs = [
         db_handler.create_library(
             f"Library_{i+1:02d}",
-            models.LibraryType.TRANSCRIPTOME
+            categories.LibraryType.TRANSCRIPTOME
         ) for i in range(20)
     ]
 

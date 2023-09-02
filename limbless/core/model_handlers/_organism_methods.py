@@ -4,12 +4,13 @@ from sqlalchemy.orm import selectinload
 
 from ... import models
 from .. import exceptions
+from ...core import categories
 
 def create_organism(
         self,
         tax_id: int,
         scientific_name: str,
-        category: models.OrganismCategory,
+        category: categories.OrganismCategory,
         common_name: Optional[str] = None,
         commit: bool = True
     ) -> models.Organism:

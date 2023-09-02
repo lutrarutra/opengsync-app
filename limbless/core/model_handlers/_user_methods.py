@@ -2,17 +2,16 @@ from typing import Optional, Union
 
 from ... import models, bcrypt
 from .. import exceptions
+from ...core import categories
 
 def create_user(
         self, email: str, password: str,
-        role: Union[models.UserRole, int], commit: bool = True
+        role: categories.UserRole,
+        commit: bool = True
     ) -> models.User:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-
-    if not models.UserRole.is_valid(role):
-        raise exceptions.InvalidRole(f"Invalid role {role}")
     
     if self._session.query(models.User).where(
         models.User.email == email
@@ -68,7 +67,7 @@ def update_user(
         self, user_id: int,
         email: Optional[str] = None,
         password: Optional[str] = None,
-        role: Optional[Union[models.UserRole, int]] = None,
+        role: Optional[categories.UserRole] = None,
         commit: bool = True
     ) -> models.User:
     persist_session = self._session is not None

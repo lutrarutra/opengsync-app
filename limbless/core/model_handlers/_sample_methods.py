@@ -1,5 +1,7 @@
 from typing import Optional, Union
 
+from sqlalchemy.orm import selectinload
+
 from ... import models
 from .. import exceptions
 
@@ -7,7 +9,6 @@ def create_sample(
         self, name: str,
         organism_tax_id: int,
         project_id: int,
-        index1: str, index2: Optional[str] = None,
         commit: bool = True
     ) -> models.Sample:
 
@@ -25,7 +26,6 @@ def create_sample(
     sample = models.Sample(
         name=name,
         organism_id=organism.tax_id,
-        index1=index1, index2=index2,
         project_id=project_id
     )
 
@@ -43,6 +43,7 @@ def get_sample(self, sample_id: int) -> models.Sample:
         self.open_session()
 
     res = self._session.get(models.Sample, sample_id)
+
     if not persist_session: self.close_session()
     return res
 

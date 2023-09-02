@@ -11,10 +11,6 @@ class SampleForm(FlaskForm):
     index1 = StringField("Index 1 (Barcode i7)", validators=[DataRequired()])
     index2 = StringField("Index 2 (Barcode i5)", validators=[])
 
-    def validate_name(self, name):
-        if db_handler.get_sample_by_name(name.data):
-            raise ValidationError("Sample name already exists.")
-
 class SampleSelectForm(FlaskForm):
     query_field = StringField("Search", validators=[DataRequired()])
 
