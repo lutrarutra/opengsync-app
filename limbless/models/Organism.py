@@ -14,3 +14,7 @@ class Organism(SQLModel, table=True):
         if self.common_name:
             _val += f" ({self.common_name})"
         return _val
+    
+    @property
+    def id(self):
+        return self.tax_id

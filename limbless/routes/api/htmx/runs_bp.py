@@ -10,8 +10,7 @@ api = Api(runs_bp)
 class GetRuns(Resource):
     def get(self, page):
         n_pages = int(db.db_handler.get_num_runs() / 20)
-        if page > n_pages:
-            page = n_pages
+        page = min(page, n_pages)
 
         runs = db.db_handler.get_runs(limit=20, offset=20*(page))
         return make_response(

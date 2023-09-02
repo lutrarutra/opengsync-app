@@ -166,3 +166,28 @@ nav {
         font-size: 14px;
     }
 }
+
+.search-select {
+    .input-group {
+        display: flex;
+        width: 100%;
+        .input-group-text {
+            border-bottom-left-radius: 0;
+        }
+        .form-control {
+            border-bottom-right-radius: 0;
+        }
+    }
+    .dropdown-menu {
+        position: static;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        a:hover {
+            cursor: pointer;
+        }
+    }
+}

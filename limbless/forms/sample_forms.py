@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField
+from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField, IntegerField
 from wtforms_sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, ValidationError
 
@@ -7,9 +7,8 @@ from ..db import db_handler
 
 class SampleForm(FlaskForm):
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
-    organism = StringField("Organism", validators=[DataRequired(), Length(min=1, max=64)])
-    index1 = StringField("Index 1 (Barcode i7)", validators=[DataRequired()])
-    index2 = StringField("Index 2 (Barcode i5)", validators=[])
+    organism = IntegerField("Organism", validators=[DataRequired()])
+    search = StringField("Organism")
 
 class SampleSelectForm(FlaskForm):
     query_field = StringField("Search", validators=[DataRequired()])

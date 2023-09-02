@@ -86,7 +86,7 @@ class DBHandler():
 
     from .model_handlers._organism_methods import (
         create_organism, get_organism, get_organisms,
-        get_organisms_by_name,
+        get_organisms_by_name, query_organisms,
         get_num_organisms
     )
 

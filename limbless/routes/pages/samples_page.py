@@ -34,9 +34,9 @@ def sample_page(sample_id):
         runs = []
         for library in sample.libraries:
             runs.extend(session.get_library_runs(library.id))
-        
 
     return render_template(
-        "sample_page.html", sample_form=sample_form, sample=sample,
-        libraries=libraries, runs=runs
+        "sample_page.html", sample_form=sample_form,
+        sample=sample, libraries=libraries,
+        runs=runs, q_organisms=db.common_organisms
     )

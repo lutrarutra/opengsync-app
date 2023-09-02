@@ -1,0 +1,11 @@
+{% if results | length > 0 %}
+    {% for res in results %}
+    <li>
+        <a class="dropdown-item" onclick="select_option('{{res}}', '{{res.id}}')">{{ res }}</a>
+    </li>
+    {% endfor %}
+{% else %}
+    <li>
+        <a class="dropdown-item disabled">No results...</a>
+    </li>
+{% endif %}

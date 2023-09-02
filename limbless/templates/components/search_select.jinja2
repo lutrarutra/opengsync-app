@@ -1,0 +1,34 @@
+{% macro search_select_field(field, url, results, selected) -%}
+<div id="{{field.name}}-search-select" class="search-select form-group">
+    <label for="{{field.name}}-search">{{ field.label }}</label>
+    <div class="input-group">
+        <span class="input-group-text selected-label" id="{{field.name}}-selected-label">{{ selected }}</span>
+        <input type="search" class="form-control"
+        autocomplete="off"
+        name="search"
+        id="{{field.name}}-search"
+        name="search"
+        hx-post="{{ url }}"
+        hx-target="#{{field.name}}-results"
+        hx-trigger="keyup changed delay:500ms, search"
+        data-bs-toggle="dropdown"
+        hx-swap="innerHTML"
+        placeholder="Search">
+    </div>
+    <ul id="{{field.name}}-results" class="dropdown-menu">
+        {% include "components/search_select_results.html" %}
+    </ul>
+</div>
+<script>
+    function select_option(name, id) {
+        $('#{{field.name}}-results').css('display', 'none');
+        $('#{{field.name}}').val(id);
+        $('#{{field.name}}-selected-label').text(name);
+    }
+
+    $("#{{field.name}}-search").on("focus", function() {
+        $('#{{field.name}}-results').css('display', 'block');
+    });
+
+</script>
+{%- endmacro %}

@@ -87,9 +87,7 @@ def get_sample_by_name(self, name: str) -> models.Sample:
 def update_sample(
         self, sample_id: int,
         name: Optional[str] = None,
-        organism: Optional[str] = None,
-        index1: Optional[str] = None,
-        index2: Optional[str] = None,
+        organism_tax_id: Optional[int] = None,
         commit: bool = True
     ) -> models.Sample:
     persist_session = self._session is not None
@@ -99,11 +97,15 @@ def update_sample(
     sample = self._session.get(models.Sample, sample_id)
     if not sample:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    
+    if organism_tax_id is not None:
+        if (organism := self._session.get(models.Organism, organism_tax_id)) is not None:
+            sample.organism_id = organism_tax_id
+            sample.organism = organism
+        else:
+            raise exceptions.ElementDoesNotExist(f"Organism with id {organism_tax_id} does not exist")
 
     if name is not None: sample.name = name
-    if organism is not None: sample.organism = organism
-    if index1 is not None: sample.index1 = index1
-    if index2 is not None: sample.index2 = index2
 
     if commit:
         self._session.commit()

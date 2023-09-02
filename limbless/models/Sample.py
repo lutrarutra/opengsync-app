@@ -26,9 +26,7 @@ class Sample(SQLModel, table=True):
             "id": self.id,
             "name": self.name,
             "organism": self.organism,
-            "index1": self.index1,
-            "index2": self.index2
         }
 
     def __str__(self):
-        return f"Sample(id: {self.id}, name:{self.name})"
+        return f"Sample(id: {self.id}, name:{self.name}, organism:{self.organism})"

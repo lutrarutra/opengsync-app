@@ -10,8 +10,7 @@ api = Api(experiments_bp)
 class GetExperiments(Resource):
     def get(self, page):
         n_pages = int(db.db_handler.get_num_experiments() / 20)
-        if page > n_pages:
-            page = n_pages
+        page = min(page, n_pages)
         experiments = db.db_handler.get_experiments(limit=20, offset=20*(page))
 
         return make_response(

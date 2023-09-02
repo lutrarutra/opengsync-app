@@ -11,8 +11,7 @@ class GetLibraries(Resource):
     def get(self, page):
         n_pages = int(db.db_handler.get_num_libraries() / 20)
         
-        if page > n_pages:
-            page = n_pages
+        page = min(page, n_pages)
 
         samples = db.db_handler.get_libraries(limit=20, offset=20*(page))
 

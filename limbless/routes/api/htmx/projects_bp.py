@@ -10,8 +10,7 @@ api = Api(projects_bp)
 class GetProjects(Resource):
     def get(self, page):
         n_pages = int(db.db_handler.get_num_projects() / 20)
-        if page > n_pages:
-            page = n_pages
+        page = min(page, n_pages)
         projects = db.db_handler.get_projects(limit=20, offset=20*(page))
         
         return make_response(

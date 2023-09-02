@@ -1,7 +1,5 @@
 from typing import Optional, Union
 
-from sqlalchemy.orm import selectinload
-
 from ... import models
 from .. import exceptions
 from ...core import categories
@@ -67,7 +65,7 @@ def get_organisms(
         query = query.offset(offset)
 
     if limit is not None:
-        organisms = query.limit(limit)
+        organisms = query.limit(limit).all()
     else:
         organisms = query.all()
     
@@ -82,3 +80,17 @@ def get_organisms_by_name(self, name: str) -> list[models.Organism]:
     organism = self._session.query(models.Organism).filter_by(name=name).all()
     if not persist_session: self.close_session()
     return organism
+
+def query_organisms(self, query: str):
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    organisms = self._session.query(models.Organism).where(
+        models.Organism.common_name.contains(query)
+    ).limit(20).all() + self._session.query(models.Organism).where(
+        models.Organism.scientific_name.contains(query)
+    ).limit(20).all()
+
+    if not persist_session: self.close_session()
+    return organisms

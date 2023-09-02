@@ -14,8 +14,7 @@ api = Api(samples_bp)
 class GetSamples(Resource):
     def get(self, page):
         n_pages = int(db.db_handler.get_num_samples() / 20)
-        if page > n_pages:
-            page = n_pages
+        page = min(page, n_pages)
         samples = db.db_handler.get_samples(limit=20, offset=20*(page))
         return make_response(
             render_template(
@@ -173,18 +172,19 @@ class EditSample(Resource):
                 sample_form.name.errors.remove("Sample name already exists.")
             else:
                 template = render_template(
-                    "forms/sample.html", sample_form=sample_form
+                    "forms/sample.html",
+                    sample_form=sample_form,
+                    sample=sample
                 )
                 return make_response(
                     template, push_url=False
                 )
-    
+        
+        print(sample_form.organism.data)
         db.db_handler.update_sample(
             sample_id,
             name=sample_form.name.data,
-            organism=sample_form.organism.data,
-            index1=sample_form.index1.data,
-            index2=sample_form.index2.data
+            organism_tax_id=sample_form.organism.data
         )
 
         logger.debug(f"Edited {sample}")
