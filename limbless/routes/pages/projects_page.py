@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, request, url_for
 
 projects_page_bp = Blueprint("projects_page", __name__)
 
-from ... import db, forms
+from ... import db, forms, logger
 from ...core import DBSession
 
 @projects_page_bp.route("/projects")
@@ -33,9 +33,12 @@ def project_page(project_id):
     with open("data/test.tsv", "r") as f:
         table_form.text.data = f.read()
 
+    logger.debug(db.common_organisms)
+
     return render_template(
         "project_page.html", project=project,
         sample_form=forms.SampleForm(),
         samples=samples,
-        table_form=table_form
+        table_form=table_form,
+        common_organisms=db.common_organisms
     )

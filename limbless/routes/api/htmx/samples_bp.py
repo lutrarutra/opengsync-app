@@ -30,36 +30,47 @@ class PostSample(Resource):
         if not project:
             return redirect("/projects") # TODO: 404
 
-        if sample_form.validate_on_submit():
-            with DBSession(db.db_handler) as session:
-                sample = session.create_sample(
-                    name=sample_form.name.data,
-                    organism=sample_form.organism.data,
-                    index1=sample_form.index1.data,
-                    index2=sample_form.index2.data,
-                    project_id=project_id
-                )
-
-                sample = session.get_sample(sample.id)
-                project = session.get_project(project.id)
-                project.samples = session.get_project_samples(project.id)
-
-            logger.info(f"Added sample {sample.name} (id: {sample.id}) to project {project.name} (id: {project.id})")
-            flash(f"Added sample {sample.name} (id: {sample.id}) to project {project.name} (id: {project.id})", "success")
-            return make_response(
-                redirect=url_for(
-                    "projects_page.project_page", project_id=project_id,
-                ),
-            )
-        else:
+        if not sample_form.validate_on_submit():
             logger.debug(sample_form.errors)
+            query = sample_form.organism_search.data
+            if query == "" or query is None:
+                q_organisms = db.common_organisms
+            else:
+                try:
+                    query = int(query)
+                    if res := db.db_handler.get_organism(query):
+                        q_organisms = [res]
+                    else:
+                        q_organisms = []
+                except ValueError:
+                    q_organisms = db.db_handler.query_organisms(query)
 
-        template = render_template(
-            "forms/sample.html",
-            sample_form=sample_form, project=project,
-        )
+            template = render_template(
+                "forms/sample.html",
+                sample_form=sample_form, project=project,
+                q_organisms=q_organisms
+            )
+            return make_response(
+                template, push_url=False
+            )
+    
+        with DBSession(db.db_handler) as session:
+            sample = session.create_sample(
+                name=sample_form.name.data,
+                organism_tax_id=sample_form.organism.data,
+                project_id=project_id
+            )
+
+        sample = session.get_sample(sample.id)
+        project = session.get_project(project.id)
+        project.samples = session.get_project_samples(project.id)
+
+        logger.info(f"Added sample {sample.name} (id: {sample.id}) to project {project.name} (id: {project.id})")
+        flash(f"Added sample {sample.name} (id: {sample.id}) to project {project.name} (id: {project.id})", "success")
         return make_response(
-            template, push_url=False
+            redirect=url_for(
+                "projects_page.project_page", project_id=project_id,
+            ),
         )
     
 class ReadSampleTable(Resource):

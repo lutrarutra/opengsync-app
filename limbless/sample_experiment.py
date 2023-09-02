@@ -1,7 +1,7 @@
 from limbless import models
-from limbless.core import categories
+from limbless.core import categories, DBHandler
 
-def create_sample_experiment(db_handler):
+def create_sample_experiment(db_handler: DBHandler):
     user = db_handler.create_user(
         email="test@user.com",
         password="password",
@@ -42,13 +42,17 @@ def create_sample_experiment(db_handler):
     libs = [
         db_handler.create_library(
             f"Library_{i+1:02d}",
-            categories.LibraryType.TRANSCRIPTOME
+            categories.LibraryType.SC_RNA,
+            (i % 5) + 1,
         ) for i in range(20)
     ]
 
+    n_seqindices = db_handler.get_num_seqindices()
     for i, sample in enumerate(samples):
-        db_handler.link_library_sample(libs[i % len(libs)].id, sample.id)
-
+        db_handler.link_library_sample(
+            libs[i % len(libs)].id, sample.id,
+            seq_index_id=(i % n_seqindices) + 1
+        )
 
     experiments = [
         db_handler.create_experiment(

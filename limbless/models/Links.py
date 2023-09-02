@@ -9,6 +9,11 @@ class LibrarySampleLink(SQLModel, table=True):
     sample_id: int = Field(
         foreign_key="sample.id", primary_key=True
     )
+    seq_index_id: int = Field(
+        foreign_key="seqindex.id", primary_key=True
+    )
+    # seq_index_type: int = Field(nullable=False, primary_key=True)
+
 
 class RunLibraryLink(SQLModel, table=True):
     run_id: int = Field(
@@ -26,12 +31,3 @@ class ProjectUserLink(SQLModel, table=True):
         foreign_key="user.id", primary_key=True
     )
     role: int = Field(nullable=False)
-
-class SampleSeqIndexLink(SQLModel, table=True):
-    sample_id: int = Field(
-        foreign_key="sample.id", primary_key=True
-    )
-    seq_index_id: int = Field(
-        foreign_key="seqindex.id", primary_key=True
-    )
-    type: str = Field(nullable=False)

@@ -14,15 +14,18 @@ api = Api(organisms_bp)
 class QueryOrganisms(Resource):
     def post(self):
         sample_form = forms.SampleForm()
-        query = sample_form.search.data
-        try:
-            query = int(query)
-            if res := db.db_handler.get_organism(query):
-                q_organisms = [res]
-            else:
-                q_organisms = []
-        except ValueError:
-            q_organisms = db.db_handler.query_organisms(query)
+        query = sample_form.organism_search.data
+        if query == "":
+            q_organisms = db.common_organisms
+        else:
+            try:
+                query = int(query)
+                if res := db.db_handler.get_organism(query):
+                    q_organisms = [res]
+                else:
+                    q_organisms = []
+            except ValueError:
+                q_organisms = db.db_handler.query_organisms(query)
 
         return make_response(
             render_template(

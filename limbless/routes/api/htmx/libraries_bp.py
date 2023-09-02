@@ -102,7 +102,6 @@ class SearchLibrary(Resource):
         return make_response(
             template, push_url=False
         )
-    
 
 api.add_resource(GetLibraries, "get")    
 api.add_resource(PostLibrary, "library/<int:run_id>")

@@ -6,3 +6,4 @@ from .htmx.runs_bp import runs_bp
 from .htmx.libraries_bp import libraries_bp
 from .htmx.auth_bp import auth_bp
 from .htmx.organisms_pb import organisms_bp
+from .htmx.indices_bp import indices_bp

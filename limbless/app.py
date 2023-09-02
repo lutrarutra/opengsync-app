@@ -47,6 +47,7 @@ def create_app():
     app.register_blueprint(api.libraries_bp)
     app.register_blueprint(api.auth_bp)
     app.register_blueprint(api.organisms_bp)
+    app.register_blueprint(api.indices_bp)
     
     app.register_blueprint(pages.runs_page_bp)
     app.register_blueprint(pages.samples_page_bp)

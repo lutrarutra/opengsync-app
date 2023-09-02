@@ -1,6 +1,11 @@
 {% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/search_select.jinja2' import search_select_field %}
 <form id="library-form">
     {{ library_form.csrf_token }}
     {{ form_group(library_form.name) }}
     {{ form_group(library_form.library_type) }}
+    {{ search_select_field(library_form.index_kit, url_for('indices_bp.queryindexkits'), results=common_indexkits, selected=selected) }}
+    <div style="display: none;">
+        {{ form_group(library_form.index_kit) }}
+    </div>
 </form>

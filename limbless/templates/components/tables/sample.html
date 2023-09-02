@@ -7,8 +7,9 @@
                 <th scope="col">ID</th>
                 <th scope="col">Name</th>
                 <th scope="col">Organism</th>
+                {% if show_indices %}
                 <th scope="col">Indices</th>
-                <th scope="col">Project ID</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -17,8 +18,9 @@
                 <th scope="row">{{sample.id}}</th>
                 <td>{{sample.name}}</td>
                 <td>{{sample.organism}}</td>
+                {% if show_indices %}
                 <td>{{sample.indices}}</td>
-                <td>{{sample.project_id}}</td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>

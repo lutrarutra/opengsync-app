@@ -110,13 +110,14 @@ def get_library_samples(self, library_id: int) -> list[models.Sample]:
         models.LibrarySampleLink.sample_id == models.Sample.id
     ).join(
         models.Organism, models.Sample.organism_id == models.Organism.tax_id
+    ).join(
+        models.SeqIndex, models.LibrarySampleLink.seq_index_id == models.SeqIndex.id
     ).options(
         selectinload(models.Sample.organism),
+        selectinload(models.Sample.indices)
     ).where(
         models.LibrarySampleLink.library_id == library_id
     ).all()
-
-
 
     if not persist_session: self.close_session()
     return library_samples
@@ -393,7 +394,10 @@ def unlink_run_library(
     if not persist_session: self.close_session()
 
 def link_library_sample(
-    self, library_id: int, sample_id: int,
+    self,
+    library_id: int,
+    sample_id: int,
+    seq_index_id: int,
     commit: bool = True
 ) -> models.LibrarySampleLink:
 
@@ -401,22 +405,23 @@ def link_library_sample(
     if not self._session:
         self.open_session()
 
-    library = self._session.get(models.Library, library_id)
-    sample = self._session.get(models.Sample, sample_id)
-
-    if not library:
+    if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    if not sample:
+    if (sample := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    if (seq_index := self._session.get(models.SeqIndex, seq_index_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")
     
     if self._session.query(models.LibrarySampleLink).where(
         models.LibrarySampleLink.library_id == library_id,
-        models.LibrarySampleLink.sample_id == sample_id
+        models.LibrarySampleLink.sample_id == sample_id,
+        models.LibrarySampleLink.seq_index_id == seq_index_id,
     ).first():
         raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and sample with id {sample_id} are already linked")
     
     library_sample_link = models.LibrarySampleLink(
-        library_id=library_id, sample_id=sample_id
+        library_id=library_id, sample_id=sample_id,
+        seq_index_id=seq_index_id
     )
     self._session.add(library_sample_link)
 
@@ -456,36 +461,3 @@ def unlink_library_sample(
         self._session.commit()
 
     if not persist_session: self.close_session()
-
-# TODO: testing
-def link_sample_index(
-    self, sample_id: int, index_id: int,
-    type: str, commit: bool = True
-) -> models.SampleSeqIndexLink:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if not self._session.get(models.Sample, sample_id):
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    if not self._session.get(models.SeqIndex, index_id):
-        raise exceptions.ElementDoesNotExist(f"Index with id {index_id} does not exist")
-    
-    if self._session.query(models.SampleSeqIndexLink).where(
-        models.SampleSeqIndexLink.sample_id == sample_id,
-        models.SampleSeqIndexLink.seq_index_id == index_id
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"Sample with id {sample_id} and index with id {index_id} are already linked")
-    
-    sample_index_link = models.SampleSeqIndexLink(
-        sample_id=sample_id, seq_index_id=index_id, type=type
-    )
-    self._session.add(sample_index_link)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(sample_index_link)
-
-    if not persist_session: self.close_session()
-    return sample_index_link

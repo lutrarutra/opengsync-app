@@ -61,7 +61,11 @@ class DescriptiveEnum:
     def __repr__(self):
         return f"{self.__enum_type}(id={self.__id}, name='{self.name}')"
 
-class EnumType(ABC):
+class EnumType:
+    @classmethod
+    def get_enum_type(cls):
+        return cls.__enum_type__
+        
     @classmethod
     def create(cls, _id, name, description=None) -> DescriptiveEnum:
         return DescriptiveEnum(cls.__enum_type__, _id, name, description)

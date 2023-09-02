@@ -18,9 +18,9 @@ def create_seqindex(
     if not self._session:
         self.open_session()
 
-    seq_kit = self._session.get(models.SeqKit, seq_kit_id)
+    seq_kit = self._session.get(models.IndexKit, seq_kit_id)
     if not seq_kit:
-        raise exceptions.ElementDoesNotExist(f"SeqKit with id '{seq_kit_id}', not found.")
+        raise exceptions.ElementDoesNotExist(f"IndexKit with id '{seq_kit_id}', not found.")
 
     seq_index = models.SeqIndex(
         sequence=sequence,
@@ -52,5 +52,14 @@ def get_seqindices_by_adapter(self, adapter: str) -> list[models.SeqIndex]:
         self.open_session()
 
     res = self._session.query(models.SeqIndex).where(models.SeqIndex.adapter == adapter).all()
+    if not persist_session: self.close_session()
+    return res
+
+def get_num_seqindices(self) -> int:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    res = self._session.query(models.SeqIndex).count()
     if not persist_session: self.close_session()
     return res

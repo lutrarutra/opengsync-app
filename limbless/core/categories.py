@@ -16,12 +16,10 @@ class UserRole(EnumType):
 
 class LibraryType(EnumType):
     EnumType.__enum_type__ = "LibraryType"
-    TRANSCRIPTOME = EnumType.create(0, "Transcriptome", "")
-    TRANSCRIPTOME_NUCLEI = EnumType.create(1, "Transcriptome Nuclei", "")
-    CUSTOM_BARCODED_FEATURE = EnumType.create(2, "Custom Barcoded Feature", "")
-    ANTIBODY_QUANTIFICATION = EnumType.create(3, "Antibody Quantification", "")
-    VISIUM = EnumType.create(4, "Visium", "")
-    CHROMATIN = EnumType.create(5, "Chromatin", "")
+    SC_RNA = EnumType.create(1, "single-cell RNA-Seq", "")
+    SN_RNA = EnumType.create(2, "single-nucleus RNA-Seq", "")
+    SC_ATAC = EnumType.create(3, "single-cell ATAC-Seq", "")
+    SC_MULTIOME = EnumType.create(4, "single-cell Multiome", "")
 
 class OrganismCategory(EnumType):
     EnumType.__enum_type__ = "OrganismCategory"

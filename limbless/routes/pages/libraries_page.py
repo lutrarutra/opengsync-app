@@ -30,5 +30,9 @@ def library_page(library_id):
     library_form.library_type.data = library.library_type
     
     return render_template(
-        "library_page.html", library=library, library_form=library_form
+        "library_page.html", library=library,
+        library_form=library_form,
+        common_indexkits=db.common_kits,
+        selected=library.index_kit,
+        show_indices=True
     )

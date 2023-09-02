@@ -2,7 +2,7 @@ from typing import Optional, List
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import LibrarySampleLink, SampleSeqIndexLink
+from .Links import LibrarySampleLink
 
 class Sample(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -18,7 +18,7 @@ class Sample(SQLModel, table=True):
         back_populates="samples", link_model=LibrarySampleLink
     )
     indices: List["SeqIndex"] = Relationship(
-        link_model=SampleSeqIndexLink, sa_relationship_kwargs={"lazy": "joined"}
+        link_model=LibrarySampleLink
     )
 
     def to_dict(self):

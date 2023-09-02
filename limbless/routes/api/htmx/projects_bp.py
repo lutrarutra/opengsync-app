@@ -24,7 +24,7 @@ class PostProject(Resource):
     def post(self):
         project_form = forms.ProjectForm()
 
-        if project_form.validate_on_submit():
+        if not project_form.validate_on_submit():
             template = render_template(
                 "forms/project.html",
                 project_form=project_form

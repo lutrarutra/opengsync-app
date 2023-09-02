@@ -7,6 +7,7 @@ from ...core import categories
 def create_library(
         self, name: str,
         library_type: categories.LibraryType,
+        index_kit_id: int,
         commit: bool = True
     ) -> list[models.Library]:
     persist_session = self._session is not None
@@ -17,10 +18,14 @@ def create_library(
         models.Library.name == name
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"Library with name {name} already exists")
+    
+    if (index_kit := self._session.get(models.IndexKit, index_kit_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"IndexKit with id {index_kit_id} does not exist")
 
     library = models.Library(
         name=name,
-        library_type_id=library_type.id
+        library_type_id=library_type.id,
+        index_kit_id=index_kit_id
     )
 
     self._session.add(library)

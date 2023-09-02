@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField
+from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField, IntegerField
 from wtforms_sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length,ValidationError
 
@@ -16,6 +16,9 @@ class LibraryForm(FlaskForm):
         "Library Type", choices=categories.LibraryType.as_tuples(),
         validators=[DataRequired()]
     )
+
+    index_kit = IntegerField("Index Kit", validators=[DataRequired()])
+    index_kit_search = StringField("Index Kit")
 
     def validate_name(self, name):
         if db_handler.get_library_by_name(name.data):

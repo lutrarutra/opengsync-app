@@ -1,7 +1,15 @@
+import os
 from .core import DBHandler
 
-# db_handler = DBHandler("data/database.db", load_sample_data=False)
-db_handler = DBHandler("data/sample_experiment.db", load_sample_data=True)
+db_path = "data/sample_experiment.db"
+# db_path = "data/database.db"
+
+load_sample_data = not os.path.exists(db_path)
+
+if not os.path.exists("data") and db_path != ":memory:":
+    os.mkdir("data")
+
+db_handler = DBHandler(db_path)
 
 common_organisms = [
     db_handler.get_organism(9606),
@@ -12,11 +20,23 @@ common_organisms = [
     db_handler.get_organism(7227),
     db_handler.get_organism(6239),
     db_handler.get_organism(7955),
-    db_handler.get_organism(6239),
     db_handler.get_organism(1423),
-    db_handler.get_organism(6239),
     db_handler.get_organism(1773),
     db_handler.get_organism(5833),
 ]
 
-common_organisms = [org for org in common_organisms if org is not None]
+common_kits = [
+    db_handler.get_indexkit_by_name("10x Dual Index Kit NN Set A"),
+    db_handler.get_indexkit_by_name("10x Dual Index Kit NT Set A"),
+    db_handler.get_indexkit_by_name("10x Dual Index Kit TN Seq A"),
+    db_handler.get_indexkit_by_name("10x Dual Index Kit TT Seq A"),
+    db_handler.get_indexkit_by_name("10x Single Index Kit N Seq A"),
+    db_handler.get_indexkit_by_name("10x Single Index Kit T Seq A"),
+]
+
+from .index_kits import add_index_kits
+add_index_kits(db_handler)
+
+if load_sample_data:
+    from .sample_experiment import create_sample_experiment
+    create_sample_experiment(db_handler)

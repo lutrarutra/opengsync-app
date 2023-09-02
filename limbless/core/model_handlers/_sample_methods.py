@@ -19,8 +19,7 @@ def create_sample(
     if not self._session.get(models.Project, project_id):
         raise exceptions.ElementDoesNotExist(f"Project with id '{project_id}', not found.")
 
-    organism = self._session.get(models.Organism, organism_tax_id)
-    if not organism:
+    if (organism := self._session.get(models.Organism, organism_tax_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Organism with tax_id '{organism_tax_id}', not found.")
 
     sample = models.Sample(

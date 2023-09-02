@@ -59,6 +59,10 @@ class User(UserMixin, SQLModel, table=True):
     password: str = Field(nullable=False, max_length=128)
     role: int = Field(nullable=False)
 
+    requests: List["SeqRequest"] = Relationship(
+        back_populates="requestor", sa_relationship_kwargs={"lazy": "joined"}
+    )
+
     projects: List["Project"] = Relationship(
         back_populates="users", link_model=ProjectUserLink
     )

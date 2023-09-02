@@ -38,5 +38,5 @@ def sample_page(sample_id):
     return render_template(
         "sample_page.html", sample_form=sample_form,
         sample=sample, libraries=libraries,
-        runs=runs, q_organisms=db.common_organisms
+        runs=runs, common_organisms=db.common_organisms
     )

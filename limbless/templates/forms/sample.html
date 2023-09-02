@@ -3,7 +3,12 @@
 <form id="sample-form">
     {{ sample_form.csrf_token }}
     {{ form_group(sample_form.name) }}
-    {{ search_select_field(sample_form.organism, url_for('organisms_bp.queryorganisms'), results=q_organisms, selected=sample.organism) }}
+    {% if sample is defined %}
+        {% set selected = sample.organism %}
+    {% else %}
+        {% set selected = None %}
+    {% endif %}
+    {{ search_select_field(sample_form.organism, url_for('organisms_bp.queryorganisms'), results=common_organisms, selected=selected) }}
     <div style="display: none;">
         {{ form_group(sample_form.organism) }}
     </div>
