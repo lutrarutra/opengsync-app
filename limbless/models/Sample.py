@@ -4,6 +4,7 @@ from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import LibrarySampleLink
+from ..tools import SearchResult
 
 class Sample(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -33,4 +34,7 @@ class Sample(SQLModel, table=True):
 
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name}, organism:{self.organism})"
+    
+    def to_search_result(self) -> SearchResult:
+        return SearchResult(self.id, self.name, self.project.name)
     

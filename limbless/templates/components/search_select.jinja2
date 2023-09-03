@@ -1,30 +1,29 @@
 {% macro search_select_field(field, url, results, selected, id) -%}
 {% if id is defined %}
+    {% set field_name = id %}
 {% else %}
-    {% set id = field.name %}
+    {% set field_name = field.name %}
 {% endif %}
-<div id="{{id}}-select" class="search-select form-group">
-    <label for="{{id}}_search">{{ field.label }}</label>
+<div id="{{field_name}}-select" class="search-select form-group">
+    <label for="{{field_name}}_search">{{ field.label }}</label>
     <div class="input-group">
         <span class="input-group-text selected-label"
-        id="{{id}}-selected-label">{{ selected }}</span>
+        id="{{field_name}}-selected-label">{{ selected }}</span>
         <input type="search"
         class="{{'form-control is-invalid search-component' if field.errors else 'form-control search-component'}}"
         autocomplete="off"
-        name="{{id}}_search"
-        id="{{id}}_search"
+        name="{{field_name}}_search"
+        id="{{field_name}}_search"
         hx-post="{{ url }}"
-        hx-target="#{{id}}-results"
-        hx-trigger="keyup changed delay:500ms, {{id}}"
-        data-bs-toggle="dropdown"
+        hx-target="#{{field_name}}-results"
+        hx-trigger="keyup changed delay:500ms, {{field_name}}"
         hx-swap="innerHTML"
         placeholder="Search">
-        <div id="{{id}}-results" class="search-results-container">
-            {% set field_name = id %}
+        <div id="{{field_name}}-results" class="search-results-container">
             {% include "components/search_select_results.html" %}
         </div>
     </div>
-    <div class="invalid-feedback-container" id="{{id}}-invalid-container">
+    <div class="invalid-feedback-container" id="{{field_name}}-invalid-container">
         {% for error in field.errors %}
         <p>{{ error }}</p>
         {% endfor %}
@@ -34,8 +33,8 @@
     function select_option(name, id, field_name) {
         $(`#${field_name}-results`).css("display", "none");
         $(`#${field_name}`).val(id);
-
         $(`#${field_name}-selected-label`).text(name);
+        $(`#${field_name}_search`).val("");
 
         if ($(`#${field_name}_search`).hasClass("is-invalid")){
             $(`#${field_name}_search`).removeClass("is-invalid");
@@ -44,13 +43,11 @@
     }
 
     $("#{{field_name}}_search").on("focus", function(event) {
-        event.preventDefault();
         $("#{{field_name}}-results").css("display", "block");
-        $("#{{field_name}}-results").children().css("display", "block");
         $("#{{field_name}}-invalid-container").empty();
     });
 
-    $(document).on("mousedown", function(event) {
+    $(document).on("click", function(event) {
         if (!event.target.classList.contains("search-component")) {
             $("#{{field_name}}-results").css("display", "none");
         }

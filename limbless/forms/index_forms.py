@@ -4,7 +4,7 @@ from wtforms_sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, ValidationError
 
 class SCRNAIndexForm(FlaskForm):
-    adapter = IntegerField("Adapter", validators=[DataRequired()])
+    adapter = StringField("Adapter", validators=[DataRequired()])
     adapter_search = StringField("Adapter")
 
     workflow = SelectField("Workflow", choices=[])

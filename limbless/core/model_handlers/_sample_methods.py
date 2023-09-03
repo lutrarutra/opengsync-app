@@ -150,7 +150,7 @@ def query_samples(
         res = res.limit(limit)
 
     res = res.all()
-    res = [SearchResult(sample.id, f"{sample.name} ({sample.project.name})") for sample in res]
+    res = [sample.to_search_result() for sample in res]
 
     if not persist_session: self.close_session()
     

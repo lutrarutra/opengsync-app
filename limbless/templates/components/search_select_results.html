@@ -1,8 +1,8 @@
-<ul class="dropdown-menu show">
+<ul class="list-group search-component">
 {% if results | length > 0 %}
     {% for res in results %}
     <li>
-        <a class="dropdown-item search-component"
+        <a class="list-group-item search-component"
         onclick='select_option("{{res.name}}", "{{res.value}}", "{{field_name}}")'>
             <div class="search-select-name">{{ res.name }}</div>
             {% if res.description %}
@@ -13,7 +13,7 @@
     {% endfor %}
 {% else %}
     <li>
-        <a class="dropdown-item disabled">No results...</a>
+        <a class="list-group-item disabled">No results...</a>
     </li>
 {% endif %}
 </ul>

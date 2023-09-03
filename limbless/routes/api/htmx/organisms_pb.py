@@ -32,7 +32,7 @@ class QueryOrganisms(Resource):
         return make_response(
             render_template(
                 "components/search_select_results.html",
-                results=q_organisms
+                results=q_organisms, field_name="organism"
             ), push_url=False
         )
     

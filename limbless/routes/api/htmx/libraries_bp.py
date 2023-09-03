@@ -135,16 +135,30 @@ class AddSample(Resource):
         library_sample_form = forms.LibrarySampleForm()
         index_form = forms.SCRNAIndexForm()
 
+        if library_sample_form.sample.data is not None:
+            selected_sample = db.db_handler.get_sample(library_sample_form.sample.data)
+        else:
+            selected_sample = None
+
+        if index_form.adapter.data is not None:
+            selected_adapter = index_form.adapter.data
+        else:
+            selected_adapter = ""
+
         form = Form()
         form.library_sample_form.form = library_sample_form
+        form.library_sample_form.form.sample.data = library_sample_form.sample.data
         form.index_form.form = index_form
 
         if not form.validate_on_submit():
+            logger.debug(form.errors)
             template = render_template(
                 "forms/sample_library.html",
                 library=library,
                 library_sample_form=form.library_sample_form.form,
-                index_form=form.index_form.form
+                index_form=form.index_form.form,
+                selected_sample=selected_sample.name if selected_sample is not None else "",
+                selected_adapter=selected_adapter
             )
             return make_response(template)
         

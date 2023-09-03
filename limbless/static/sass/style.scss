@@ -180,37 +180,42 @@ nav {
         }
     }
     .search-results-container {
+        display: none;
+        z-index: 1;
         ul {
             position: absolute;
             max-height: 200px;
             width: 100%;
             overflow-y: auto;
-            overflow-x: hidden;
             border-top-left-radius: 0;
             border-top-right-radius: 0;
-            a:hover {
-                cursor: pointer;
-            }
-        }
-        width: 100%;
 
-        li {
-            height: 40px;
-        }
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            justify-content: start;
-            gap: 10px;
-            height: 40px;
-            width: 100%;
-            div {
+            li {
+                height: 40px;
+            }
+            .list-group-item:hover {
+                background-color: $gray-100;
+            }
+            .list-group-item {
                 display: flex;
                 align-items: center;
+                justify-content: start;
+                gap: 10px;
+                height: 40px;
+                width: 100%;
+                div {
+                    display: flex;
+                    align-items: center;
+                }
+                .search-select-desc {
+                    color: $gray-500;
+                }
             }
-            .search-select-desc {
-                color: $gray-500;
+            .list-group-item:hover {
+                cursor: pointer;
             }
+            
         }
+        width: 100%;
     }
 }
