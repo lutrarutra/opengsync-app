@@ -1,5 +1,4 @@
-import os
-from io import StringIO
+import os, warnings
 
 from flask import Flask, render_template, redirect, request, url_for
 from flask_login import current_user
@@ -20,7 +19,6 @@ def create_app():
     app.config["MAIL_PASSWORD"] = os.environ.get("EMAIL_PASS")
     assert app.config["MAIL_USERNAME"]
     assert app.config["MAIL_PASSWORD"]
-    print(app.config["MAIL_USERNAME"])
     
     htmx.init_app(app)
     bcrypt.init_app(app)
@@ -31,9 +29,11 @@ def create_app():
     def load_user(user_id):
         return db.db_handler.get_user(user_id)
 
-    app.wsgi_app = SassMiddleware(app.wsgi_app, {
-        "limbless" : ("static/sass", "static/css", "/static/css")
-    })
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        app.wsgi_app = SassMiddleware(app.wsgi_app, {
+            "limbless" : ("static/sass", "static/css", "/static/css")
+        })
 
     @app.route("/")
     def index_page():

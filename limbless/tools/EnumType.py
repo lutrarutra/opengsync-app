@@ -96,4 +96,9 @@ class EnumType:
     def is_valid_name(cls, name: str):
         return name in cls.names()
 
-    
+    @classmethod
+    def get(cls, id: int):
+        if cls.is_valid_id(id):
+            return DescriptiveEnum.__types__[cls.__name__][id]
+
+        return None

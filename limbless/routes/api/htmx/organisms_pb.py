@@ -15,6 +15,7 @@ class QueryOrganisms(Resource):
     def post(self):
         sample_form = forms.SampleForm()
         query = sample_form.organism_search.data
+        logger.debug(query)
         if query == "":
             q_organisms = db.common_organisms
         else:

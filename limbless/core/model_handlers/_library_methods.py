@@ -94,7 +94,8 @@ def delete_library(
 def update_library(
         self, library_id: int,
         name: Optional[str] = None,
-        library_type: Optional[str] = None,
+        library_type: Optional[categories.LibraryType] = None,
+        index_kit_id: Optional[int] = None,
         commit: bool = True
     ) -> models.Library:
     persist_session = self._session is not None
@@ -114,7 +115,11 @@ def update_library(
 
     if name is not None: library.name = name
     if library_type is not None:
-        library.library_type = library_type if isinstance(library_type, str) else library_type.value
+        library.library_type_id = library_type.id
+    if index_kit_id is not None:
+        if self._session.get(models.IndexKit, index_kit_id) is None:
+            raise exceptions.ElementDoesNotExist(f"IndexKit with id {index_kit_id} does not exist")
+        library.index_kit_id = index_kit_id
 
     self._session.add(library)
     if commit:

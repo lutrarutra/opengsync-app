@@ -178,16 +178,19 @@ nav {
             border-bottom-right-radius: 0;
         }
     }
-    .dropdown-menu {
-        position: static;
-        width: 100%;
-        max-height: 200px;
-        overflow-y: auto;
-        overflow-x: hidden;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        a:hover {
-            cursor: pointer;
+    .search-results-container {
+        ul {
+            position: static;
+            max-height: 200px;
+            width: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+            a:hover {
+                cursor: pointer;
+            }
         }
+        width: 100%;
     }
 }

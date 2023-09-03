@@ -17,7 +17,7 @@ class Library(SQLModel, table=True):
     )
 
     samples: List["Sample"] = Relationship(
-        back_populates="libraries", link_model=LibrarySampleLink
+        back_populates="libraries", link_model=LibrarySampleLink,
     )
     runs: List["Run"] = Relationship(
         back_populates="libraries", link_model=RunLibraryLink

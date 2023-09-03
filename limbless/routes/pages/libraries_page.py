@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, request, url_for
 
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
-from ... import db, forms
+from ... import db, forms, logger
 from ...core import DBSession
 
 @libraries_page_bp.route("/libraries")
@@ -27,12 +27,18 @@ def library_page(library_id):
 
     library_form = forms.LibraryForm()
     library_form.name.data = library.name
-    library_form.library_type.data = library.library_type
+    library_form.library_type.data = str(library.library_type_id)
+    library_form.index_kit.data = library.index_kit_id
+
+    sample_form = forms.SampleForm()
     
     return render_template(
         "library_page.html", library=library,
         library_form=library_form,
         common_indexkits=db.common_kits,
-        selected=library.index_kit,
+        selected_kit=library.index_kit,
+        sample_form=sample_form,
+        common_organisms=db.common_organisms,
+        selected_organism="",
         show_indices=True
     )

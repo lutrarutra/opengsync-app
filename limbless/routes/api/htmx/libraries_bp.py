@@ -3,6 +3,7 @@ from flask_restful import Api, Resource
 from flask_htmx import make_response
 
 from .... import db, logger, forms
+from ....core import categories
 
 libraries_bp = Blueprint("libraries_bp", __name__, url_prefix="/api/libraries/")
 api = Api(libraries_bp)
@@ -66,16 +67,26 @@ class EditLibrary(Resource):
                 library_form.name.errors.remove("Library name already exists.")
             else:
                 template = render_template(
-                    "forms/library.html", library_form=library_form, library_id=library_id
+                    "forms/library.html",
+                    library_form=library_form,
+                    library_id=library_id,
+                    selected_kit=library.index_kit,
                 )
                 return make_response(
                     template, push_url=False
                 )
+
+        try:
+            library_type_id = int(library_form.library_type.data)
+            library_type = categories.LibraryType.get(library_type_id)
+        except ValueError:
+            library_type = None
         
-        db.db_handler.update_library(
+        library = db.db_handler.update_library(
             library_id=library_id,
             name=library_form.name.data,
-            library_type=library_form.library_type.data,
+            library_type=library_type,
+            index_kit_id=library_form.index_kit.data,
         )
         logger.debug(f"Updated library '{library.name}'.")
         flash(f"Updated library '{library.name}'.", "success")

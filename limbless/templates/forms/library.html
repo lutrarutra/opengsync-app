@@ -4,7 +4,7 @@
     {{ library_form.csrf_token }}
     {{ form_group(library_form.name) }}
     {{ form_group(library_form.library_type) }}
-    {{ search_select_field(library_form.index_kit, url_for('indices_bp.queryindexkits'), results=common_indexkits, selected=selected) }}
+    {{ search_select_field(library_form.index_kit, url_for('indices_bp.queryindexkits'), results=common_indexkits, selected=selected_kit) }}
     <div style="display: none;">
         {{ form_group(library_form.index_kit) }}
     </div>

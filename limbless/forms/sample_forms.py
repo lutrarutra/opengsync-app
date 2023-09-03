@@ -8,7 +8,8 @@ from ..db import db_handler
 class SampleForm(FlaskForm):
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
     organism = IntegerField("Organism", validators=[DataRequired()])
-    organism_search = StringField("Organism") 
+    organism_search = StringField("Organism")
+    
 
 class SampleSelectForm(FlaskForm):
     query_field = StringField("Search", validators=[DataRequired()])

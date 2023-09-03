@@ -1,4 +1,5 @@
 from typing import Optional, List
+from pydantic import PrivateAttr
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -15,10 +16,12 @@ class Sample(SQLModel, table=True):
     project: "Project" = Relationship(back_populates="samples")
 
     libraries: List["Library"] = Relationship(
-        back_populates="samples", link_model=LibrarySampleLink
+        back_populates="samples",
+        link_model=LibrarySampleLink
     )
     indices: List["SeqIndex"] = Relationship(
-        link_model=LibrarySampleLink
+        link_model=LibrarySampleLink,
+        sa_relationship_kwargs={"lazy": "noload", "viewonly":True},
     )
 
     def to_dict(self):
@@ -30,3 +33,4 @@ class Sample(SQLModel, table=True):
 
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name}, organism:{self.organism})"
+    

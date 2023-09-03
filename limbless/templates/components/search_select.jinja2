@@ -2,9 +2,10 @@
 <div id="{{field.name}}-select" class="search-select form-group">
     <label for="{{field.name}}_search">{{ field.label }}</label>
     <div class="input-group">
-        <span class="input-group-text selected-label"id="{{field.name}}-selected-label">{{ selected }}</span>
+        <span class="input-group-text selected-label"
+        id="{{field.name}}-selected-label">{{ selected }}</span>
         <input type="search"
-        class="{{'form-control is-invalid' if field.errors else 'form-control'}}"
+        class="{{'form-control is-invalid search-component' if field.errors else 'form-control search-component'}}"
         autocomplete="off"
         name="{{field.name}}_search"
         id="{{field.name}}_search"
@@ -17,25 +18,38 @@
     </div>
     <div class="invalid-feedback-container" id="{{field.name}}-invalid-container">
         {% for error in field.errors %}
-        <p class="">{{ error }}</p>
+        <p>{{ error }}</p>
         {% endfor %}
     </div>
-    <ul id="{{field.name}}-results" class="dropdown-menu">
+    <div id="{{field.name}}-results" class="search-results-container">
+        {% set field_name = field.name %}
         {% include "components/search_select_results.html" %}
-    </ul>
+    </div>
 </div>
 <script>
-    function select_option(name, id) {
-        $('#{{field.name}}-results').css('display', 'none');
-        $('#{{field.name}}').val(id);
-        $('#{{field.name}}-selected-label').text(name);
-        $('#{{field.name}}_search').removeClass('is-invalid');
-        $('#{{field.name}}-invalid-container').empty();
+    function select_option(name, id, field_name) {
+        $(`#${field_name}-results`).css("display", "none");
+        $(`#${field_name}`).val(id);
+
+        $(`#${field_name}-selected-label`).text(name);
+
+        if ($(`#${field_name}_search`).hasClass("is-invalid")){
+            $(`#${field_name}_search`).removeClass("is-invalid");
+        }
+        $(`#${field_name}-invalid-container`).empty();
     }
 
-    $("#{{field.name}}_search").on("focus", function() {
-        $('#{{field.name}}-results').css('display', 'block');
-        $('#{{field.name}}-invalid-container').hide();
+    $("#{{field_name}}_search").on("focus", function(event) {
+        event.preventDefault();
+        $("#{{field_name}}-results").css("display", "block");
+        $("#{{field_name}}-results").children().css("display", "block");
+        $("#{{field_name}}-invalid-container").css("display", "none");
+    });
+
+    $(document).on("mousedown", function(event) {
+        if (!event.target.classList.contains("search-component")) {
+            $("#{{field_name}}-results").css("display", "none");
+        }
     });
 
 </script>
