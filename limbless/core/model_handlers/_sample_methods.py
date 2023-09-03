@@ -1,9 +1,11 @@
 from typing import Optional, Union
 
 from sqlalchemy.orm import selectinload
+from sqlmodel import and_
 
 from ... import models
 from .. import exceptions
+from ...tools import SearchResult
 
 def create_sample(
         self, name: str,
@@ -129,3 +131,28 @@ def delete_sample(
     if commit: self._session.commit()
 
     if not persist_session: self.close_session()
+
+def query_samples(
+    self, query: str,
+    user_id: Optional[int] = None,
+    limit: Optional[int] = 20
+) -> list[SearchResult]:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    res = self._session.query(models.Sample).where(
+        models.Sample.name.contains(query)
+    )
+
+    if limit is not None:
+        res = res.limit(limit)
+
+    res = res.all()
+    res = [SearchResult(sample.id, f"{sample.name} ({sample.project.name})") for sample in res]
+
+    if not persist_session: self.close_session()
+    
+    return res
+

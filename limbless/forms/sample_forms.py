@@ -4,12 +4,14 @@ from wtforms_sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, ValidationError
 
 from ..db import db_handler
-
 class SampleForm(FlaskForm):
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
     organism = IntegerField("Organism", validators=[DataRequired()])
     organism_search = StringField("Organism")
-    
+
+class LibrarySampleForm(FlaskForm):
+    sample = IntegerField("Sample", validators=[DataRequired()])
+    sample_search = StringField()
 
 class SampleSelectForm(FlaskForm):
     query_field = StringField("Search", validators=[DataRequired()])

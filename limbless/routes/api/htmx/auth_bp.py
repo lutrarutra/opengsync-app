@@ -1,4 +1,4 @@
-from flask import Blueprint, url_for, render_template, flash
+from flask import Blueprint, url_for, render_template, flash, request
 from flask_restful import Api, Resource
 from flask_htmx import make_response
 from flask_mail import Message
@@ -13,10 +13,14 @@ class Login(Resource):
     def post(self):
         login_form = forms.LoginForm()
 
+        if (dest := request.args.get("next")) is None:
+            dest = "index_page"
+
         if not login_form.validate_on_submit():
             template = render_template(
                 "forms/login.html",
-                login_form=login_form
+                login_form=login_form,
+                next=dest
             )
             return make_response(
                 template, push_url=False
@@ -51,7 +55,7 @@ class Login(Resource):
         login_user(user)
         flash("Logged in.", "success")
         return make_response(
-            redirect=url_for("index_page"),
+            redirect=dest,
         )
     
 class Logout(Resource):

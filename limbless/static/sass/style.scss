@@ -173,6 +173,7 @@ nav {
         width: 100%;
         .input-group-text {
             border-bottom-left-radius: 0;
+            width: 30%;
         }
         .form-control {
             border-bottom-right-radius: 0;
@@ -180,7 +181,7 @@ nav {
     }
     .search-results-container {
         ul {
-            position: static;
+            position: absolute;
             max-height: 200px;
             width: 100%;
             overflow-y: auto;
@@ -192,5 +193,24 @@ nav {
             }
         }
         width: 100%;
+
+        li {
+            height: 40px;
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: start;
+            gap: 10px;
+            height: 40px;
+            width: 100%;
+            div {
+                display: flex;
+                align-items: center;
+            }
+            .search-select-desc {
+                color: $gray-500;
+            }
+        }
     }
 }

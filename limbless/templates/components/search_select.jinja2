@@ -1,29 +1,33 @@
-{% macro search_select_field(field, url, results, selected) -%}
-<div id="{{field.name}}-select" class="search-select form-group">
-    <label for="{{field.name}}_search">{{ field.label }}</label>
+{% macro search_select_field(field, url, results, selected, id) -%}
+{% if id is defined %}
+{% else %}
+    {% set id = field.name %}
+{% endif %}
+<div id="{{id}}-select" class="search-select form-group">
+    <label for="{{id}}_search">{{ field.label }}</label>
     <div class="input-group">
         <span class="input-group-text selected-label"
-        id="{{field.name}}-selected-label">{{ selected }}</span>
+        id="{{id}}-selected-label">{{ selected }}</span>
         <input type="search"
         class="{{'form-control is-invalid search-component' if field.errors else 'form-control search-component'}}"
         autocomplete="off"
-        name="{{field.name}}_search"
-        id="{{field.name}}_search"
+        name="{{id}}_search"
+        id="{{id}}_search"
         hx-post="{{ url }}"
-        hx-target="#{{field.name}}-results"
-        hx-trigger="keyup changed delay:500ms, {{field.name}}"
+        hx-target="#{{id}}-results"
+        hx-trigger="keyup changed delay:500ms, {{id}}"
         data-bs-toggle="dropdown"
         hx-swap="innerHTML"
         placeholder="Search">
+        <div id="{{id}}-results" class="search-results-container">
+            {% set field_name = id %}
+            {% include "components/search_select_results.html" %}
+        </div>
     </div>
-    <div class="invalid-feedback-container" id="{{field.name}}-invalid-container">
+    <div class="invalid-feedback-container" id="{{id}}-invalid-container">
         {% for error in field.errors %}
         <p>{{ error }}</p>
         {% endfor %}
-    </div>
-    <div id="{{field.name}}-results" class="search-results-container">
-        {% set field_name = field.name %}
-        {% include "components/search_select_results.html" %}
     </div>
 </div>
 <script>
@@ -43,7 +47,7 @@
         event.preventDefault();
         $("#{{field_name}}-results").css("display", "block");
         $("#{{field_name}}-results").children().css("display", "block");
-        $("#{{field_name}}-invalid-container").css("display", "none");
+        $("#{{field_name}}-invalid-container").empty();
     });
 
     $(document).on("mousedown", function(event) {

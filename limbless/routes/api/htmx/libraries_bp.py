@@ -1,6 +1,8 @@
 from flask import Blueprint, redirect, url_for, render_template, flash, request
 from flask_restful import Api, Resource
 from flask_htmx import make_response
+from flask_wtf import FlaskForm
+from wtforms import FormField
 
 from .... import db, logger, forms
 from ....core import categories
@@ -113,8 +115,41 @@ class SearchLibrary(Resource):
         return make_response(
             template, push_url=False
         )
+    
+class Form(FlaskForm):
+    library_sample_form = FormField(forms.LibrarySampleForm)
+    index_form = FormField(forms.SCRNAIndexForm)
+    
+class AddSample(Resource):
+    def post(self, library_id: int):
+        library = db.db_handler.get_library(library_id)
+        if not library:
+            return redirect("/libraries")
+        
+        library_sample_form = forms.LibrarySampleForm()
+        index_form = forms.SCRNAIndexForm()
+
+        form = Form()
+        form.library_sample_form.form = library_sample_form
+        form.index_form.form = index_form
+
+        if not form.validate_on_submit():
+            template = render_template(
+                "forms/sample_library.html",
+                library=library,
+                library_sample_form=form.library_sample_form.form,
+                index_form=form.index_form.form
+            )
+            return make_response(template)
+        
+        logger.debug(form.validate_on_submit())
+        logger.debug(form.errors)
+
+        logger.debug(form.index_form.form.adapter.data)
+        logger.debug(form.library_sample_form.form.sample.data)
 
 api.add_resource(GetLibraries, "get")    
 api.add_resource(PostLibrary, "library/<int:run_id>")
 api.add_resource(EditLibrary, "edit/<int:library_id>")
 api.add_resource(SearchLibrary, "search")
+api.add_resource(AddSample, "<int:library_id>/add_sample")

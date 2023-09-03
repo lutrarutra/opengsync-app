@@ -31,7 +31,6 @@ class PostSample(Resource):
             return redirect("/projects") # TODO: 404
 
         if not sample_form.validate_on_submit():
-            logger.debug(sample_form.errors)
             query = sample_form.organism_search.data
             if query == "" or query is None:
                 q_organisms = db.common_organisms
@@ -204,6 +203,24 @@ class EditSample(Resource):
         return make_response(
             redirect=url_for("samples_page.sample_page", sample_id=sample_id),
         )
+    
+class QuerySamples(Resource):
+    def post(self):
+        library_sample_form = forms.LibrarySampleForm()
+
+        query = library_sample_form.sample_search.data
+
+        results = db.db_handler.query_samples(query)
+
+        logger.debug(results)
+
+        return make_response(
+            render_template(
+                "components/search_select_results.html",
+                results=results,
+                field_name="sample"
+            ), push_url=False
+        )
 
     
 api.add_resource(PostSample, "add/<int:project_id>")
@@ -211,3 +228,4 @@ api.add_resource(GetSamples, "get/<int:page>")
 api.add_resource(PostSampleTable, "table/<int:project_id>")
 api.add_resource(EditSample, "edit/<int:sample_id>")
 api.add_resource(ReadSampleTable, "read_table")
+api.add_resource(QuerySamples, "query")

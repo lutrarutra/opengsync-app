@@ -1,9 +1,11 @@
 from typing import Optional, Union
 
 from sqlalchemy.orm import selectinload
+from sqlmodel import and_
 
 from ... import models
 from .. import exceptions
+from ...tools import SearchResult
 
 def create_seqindex(
     self,
@@ -61,5 +63,56 @@ def get_num_seqindices(self) -> int:
         self.open_session()
 
     res = self._session.query(models.SeqIndex).count()
+    if not persist_session: self.close_session()
+    return res
+
+def query_adapters(
+    self, query: str, index_kit_id: Optional[int] = None,
+    limit: Optional[int] = 20,
+) -> list[SearchResult]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+    
+    if index_kit_id is None:
+        res = self._session.query(models.SeqIndex.adapter).where(
+            models.SeqIndex.adapter.contains(query)
+        ).distinct()
+    else:
+        res = self._session.query(models.SeqIndex.adapter).where(
+            and_(
+                models.SeqIndex.adapter.contains(query),
+                models.SeqIndex.seq_kit_id == index_kit_id
+            )
+        ).distinct()
+
+    if limit is not None:
+        res = res.limit(limit)
+
+    res = res.all()
+
+    res = [SearchResult(a[0],a[0]) for a in res]
+
+    if not persist_session: self.close_session()
+    return res
+
+def get_adapters_from_kit(
+    self, index_kit_id: int, limit: Optional[int] = None
+) -> list[SearchResult]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+    
+    res = self._session.query(models.SeqIndex.adapter).where(
+        models.SeqIndex.seq_kit_id == index_kit_id
+    ).distinct()
+
+    if limit is not None:
+        res = res.limit(limit)
+
+    res = res.all()
+
+    res = [SearchResult(a[0], a[0]) for a in res]
+
     if not persist_session: self.close_session()
     return res

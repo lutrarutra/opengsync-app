@@ -52,12 +52,14 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {% include "forms/sample.html" %}
+                {% include "forms/sample_library.html" %}
             </div>
             <div class="modal-footer" id="popup-footer">
-                <button id="submit-select-sample-btn" class="btn btn-primary"
-                hx-include="#select-sample-form" hx-target="#select-sample-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('experiments_bp.postexperiment') }}">Submit</button>
+                <button class="btn btn-primary"
+                hx-include="#library-sample-index-form"
+                hx-target="#library-sample-index-form"
+                hx-swap="outerHTML"
+                hx-post="{{ url_for('libraries_bp.addsample', library_id=library.id) }}">Submit</button>
             </div>
           </div>
         </div>

@@ -51,7 +51,7 @@ class DBHandler():
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
         delete_sample, update_sample, get_sample_by_name,
-        get_num_samples
+        get_num_samples, query_samples
     )
 
     from .model_handlers._run_methods import (
@@ -81,7 +81,7 @@ class DBHandler():
 
     from .model_handlers._seqindex_methods import (
         create_seqindex, get_seqindex, get_seqindices_by_adapter,
-        get_num_seqindices
+        get_num_seqindices, query_adapters, get_adapters_from_kit
     )
 
     from .model_handlers._indexkit_methods import (
@@ -96,11 +96,10 @@ class DBHandler():
         get_library_samples,
         get_library_runs,
         get_user_projects,
+        get_user_samples,
         get_sample_libraries,
-        
         get_experiment_data,
         get_run_data,
-
         get_experiment_runs,
 
         link_project_user,

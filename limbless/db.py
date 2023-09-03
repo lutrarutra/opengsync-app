@@ -1,5 +1,6 @@
 import os
 from .core import DBHandler
+from .tools import SearchResult
 
 db_path = "data/sample_experiment.db"
 # db_path = "data/database.db"
@@ -25,6 +26,8 @@ common_organisms = [
     db_handler.get_organism(5833),
 ]
 
+common_organisms = [SearchResult(organism.id, str(organism)) for organism in common_organisms]
+
 common_kits = [
     db_handler.get_indexkit_by_name("10x Dual Index Kit NN Set A"),
     db_handler.get_indexkit_by_name("10x Dual Index Kit NT Set A"),
@@ -33,6 +36,8 @@ common_kits = [
     db_handler.get_indexkit_by_name("10x Single Index Kit N Seq A"),
     db_handler.get_indexkit_by_name("10x Single Index Kit T Seq A"),
 ]
+
+common_kits = [SearchResult(kit.id, kit.name) for kit in common_kits]
 
 from .index_kits import add_index_kits
 add_index_kits(db_handler)

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, request, url_for
-from sqlmodel import select, Session
+from flask_login import login_required, current_user
 
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
@@ -8,6 +8,7 @@ from ... import models, forms
 from ...core import DBSession
 
 @experiments_page_bp.route("/experiments")
+@login_required
 def experiments_page():
     experiment_form = forms.ExperimentForm()
 
@@ -22,6 +23,7 @@ def experiments_page():
     )
 
 @experiments_page_bp.route("/experiments/<experiment_id>")
+@login_required
 def experiment_page(experiment_id):
     experiment = db.db_handler.get_experiment(experiment_id)
     if not experiment:

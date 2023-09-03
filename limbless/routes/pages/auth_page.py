@@ -4,11 +4,12 @@ from flask_login import current_user
 
 auth_page_bp = Blueprint("auth_page", __name__)
 
-from ... import db, forms, models
-from ...core import DBSession
+from ... import db, forms, models, logger
 
 @auth_page_bp.route("/auth")
 def auth_page():
+    dest = request.args.get("next")
+
     if current_user.is_authenticated:
         return redirect(url_for("user_page.user_page"))
     
@@ -18,7 +19,8 @@ def auth_page():
     return render_template(
         "auth_page.html", 
         login_form=login_form,
-        register_form=register_form
+        register_form=register_form,
+        next=dest
     )
 
 @auth_page_bp.route("/register/<token>")

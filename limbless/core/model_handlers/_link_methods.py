@@ -1,10 +1,13 @@
 from typing import Optional, Union
 
 from sqlalchemy.orm import selectinload
+from sqlmodel import and_
 
 from ... import models
 from .. import exceptions
 from ...core import categories
+from ...tools import SearchResult
+
 
 def get_user_projects(self, user_id: int) -> list[models.Project]:
     persist_session = self._session is not None
@@ -461,3 +464,38 @@ def unlink_library_sample(
         self._session.commit()
 
     if not persist_session: self.close_session()
+
+
+def get_user_samples(
+    self, user_id: int,
+    limit: Optional[int] = None
+) -> list[SearchResult]:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    res = self._session.query(models.Sample).join(
+        models.Project,
+        models.Sample.project_id == models.Project.id
+    ).join(
+        models.ProjectUserLink,
+        and_(
+            models.ProjectUserLink.project_id == models.Project.id,
+            models.ProjectUserLink.user_id == user_id,
+        )
+    ).options(
+        selectinload(models.Sample.project)
+    ).where(
+        models.User.id == user_id
+    )
+
+    if limit is not None:
+        res = res.limit(limit)
+    res = res.all()
+    
+    res = [SearchResult(sample.id, sample.name, sample.project.name) for sample in res]
+
+    if not persist_session: self.close_session()
+    
+    return res

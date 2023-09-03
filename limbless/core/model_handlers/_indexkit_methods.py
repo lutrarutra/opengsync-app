@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from ... import models
 from .. import exceptions
+from ...tools import SearchResult
 
 def create_indexkit(
     self,
@@ -47,10 +48,21 @@ def get_indexkit_by_name(self, name: str) -> models.IndexKit:
     if not persist_session: self.close_session()
     return res
     
-def query_indexkit(self, query: str) -> list[models.IndexKit]:
+def query_indexkit(
+    self, query: str, limit: Optional[int] = 20
+) -> list[SearchResult]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-    res = self._session.query(models.IndexKit).where(models.IndexKit.name.contains(query)).all()
+    res = self._session.query(models.IndexKit).where(
+        models.IndexKit.name.contains(query)
+    )
+    if limit is not None:
+        res = res.limit(limit)
+
+    res = res.all()
+
+    res = [SearchResult(index_kit.id, str(index_kit)) for index_kit in res]
+    
     if not persist_session: self.close_session()
     return res

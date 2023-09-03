@@ -38,6 +38,11 @@ def create_app():
     @app.route("/")
     def index_page():
         return render_template("index.html")
+    
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        next = url_for(request.endpoint, **request.view_args)
+        return redirect(url_for(f"auth_page.auth_page", next=next))
 
     app.register_blueprint(api.jobs_bp)
     app.register_blueprint(api.samples_bp)

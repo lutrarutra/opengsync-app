@@ -1,6 +1,5 @@
-from io import StringIO
-import pandas as pd
 from flask import Blueprint, render_template, redirect, request, url_for
+from flask_login import login_required, current_user
 
 projects_page_bp = Blueprint("projects_page", __name__)
 
@@ -8,6 +7,7 @@ from ... import db, forms, logger
 from ...core import DBSession
 
 @projects_page_bp.route("/projects")
+@login_required
 def projects_page():
     project_form = forms.ProjectForm()
 
@@ -21,6 +21,7 @@ def projects_page():
     )
 
 @projects_page_bp.route("/projects/<project_id>")
+@login_required
 def project_page(project_id):
     with DBSession(db.db_handler) as session:
         project = db.db_handler.get_project(project_id)

@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, redirect, request, url_for
+from flask_login import login_required, current_user
 
 runs_page_bp = Blueprint("runs_page", __name__)
 
@@ -8,6 +9,7 @@ from ...core import exceptions
 from ...core import DBSession
 
 @runs_page_bp.route("/runs")
+@login_required
 def runs_page():
     form = forms.RunForm()
     with DBSession(db.db_handler) as session:
@@ -20,6 +22,7 @@ def runs_page():
     )
 
 @runs_page_bp.route("/runs/<run_id>", methods=["GET", "POST"])
+@login_required
 def run_page(run_id):
     with DBSession(db.db_handler) as session:
         run = session.get_run(run_id)

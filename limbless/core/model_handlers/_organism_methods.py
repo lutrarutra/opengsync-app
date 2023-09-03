@@ -3,6 +3,7 @@ from typing import Optional, Union
 from ... import models
 from .. import exceptions
 from ...core import categories
+from ...tools import SearchResult
 
 def create_organism(
         self,
@@ -81,16 +82,18 @@ def get_organisms_by_name(self, name: str) -> list[models.Organism]:
     if not persist_session: self.close_session()
     return organism
 
-def query_organisms(self, query: str):
+def query_organisms(self, query: str) -> list[SearchResult]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    organisms = self._session.query(models.Organism).where(
+    res = self._session.query(models.Organism).where(
         models.Organism.common_name.contains(query)
     ).limit(20).all() + self._session.query(models.Organism).where(
         models.Organism.scientific_name.contains(query)
     ).limit(20).all()
 
+    res = [SearchResult(organism.id, str(organism)) for organism in res]
+
     if not persist_session: self.close_session()
-    return organisms
+    return res

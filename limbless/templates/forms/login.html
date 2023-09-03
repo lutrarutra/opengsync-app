@@ -5,5 +5,5 @@
     {{ form_group(login_form.password) }}
     <button id="login-btn" class="btn btn-primary"
     hx-include="#login-form" hx-target="#login-form" hx-swap="outerHTML"
-    hx-post="{{ url_for('auth_bp.login') }}">Login</button>
+    hx-post="{{ url_for('auth_bp.login', next=next) }}">Login</button>
 </form>

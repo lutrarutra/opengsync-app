@@ -2,7 +2,13 @@
 {% if results | length > 0 %}
     {% for res in results %}
     <li>
-        <a class="dropdown-item search-component" onclick='select_option("{{res}}", "{{res.id}}", "{{field_name}}")'>{{ res }}</a>
+        <a class="dropdown-item search-component"
+        onclick='select_option("{{res.name}}", "{{res.value}}", "{{field_name}}")'>
+            <div class="search-select-name">{{ res.name }}</div>
+            {% if res.description %}
+            <div class="search-select-desc">({{ res.description }})</div>
+            {% endif %}
+        </a>
     </li>
     {% endfor %}
 {% else %}

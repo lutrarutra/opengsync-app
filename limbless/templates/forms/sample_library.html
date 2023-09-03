@@ -1,0 +1,27 @@
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+<form id="library-sample-index-form">
+    {{ library_sample_form.csrf_token }}
+    {{ 
+        search_select_field(
+            library_sample_form.sample,
+            url_for('samples_bp.querysamples'),
+            results=available_samples,
+        )
+    }}
+    <div style="display: none;">
+        {{ form_group(library_sample_form.sample) }}
+    </div>
+    {{ index_form.csrf_token }}
+    {{ 
+        search_select_field(
+            index_form.adapter,
+            url_for('indices_bp.queryseqadapters', index_kit_id=library.index_kit_id),
+            results=adapters,
+            selected=selected_adapter,
+        ) 
+    }}
+    <div style="display: none;">
+        {{ form_group(index_form.adapter) }}
+    </div>
+</form>
