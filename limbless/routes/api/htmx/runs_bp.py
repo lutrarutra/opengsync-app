@@ -1,6 +1,7 @@
 from flask import Blueprint, redirect, url_for, render_template, flash
 from flask_restful import Api, Resource
 from flask_htmx import make_response
+from flask_login import login_required, current_user
 
 from .... import db, logger, forms
 
@@ -8,6 +9,7 @@ runs_bp = Blueprint("runs_bp", __name__, url_prefix="/api/runs/")
 api = Api(runs_bp)
 
 class GetRuns(Resource):
+    @login_required
     def get(self, page):
         n_pages = int(db.db_handler.get_num_runs() / 20)
         page = min(page, n_pages)
@@ -21,6 +23,7 @@ class GetRuns(Resource):
         )
 
 class PostRun(Resource):
+    @login_required
     def post(self, experiment_id):
         run_form = forms.RunForm()        
         
@@ -59,6 +62,7 @@ class PostRun(Resource):
         )
 
 class EditRun(Resource):
+    @login_required
     def post(self, run_id):
         run = db.db_handler.get_run(run_id)
         if not run:

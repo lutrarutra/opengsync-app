@@ -3,7 +3,7 @@ from io import StringIO
 from flask import Blueprint, redirect, url_for, render_template, flash, request
 from flask_restful import Api, Resource
 from flask_htmx import make_response
-import pandas as pd
+from flask_login import login_required, current_user
 
 from .... import db, logger, forms, tools
 from ....core import DBSession
@@ -12,10 +12,11 @@ organisms_bp = Blueprint("organisms_bp", __name__, url_prefix="/api/organism/")
 api = Api(organisms_bp)
 
 class QueryOrganisms(Resource):
+    @login_required
     def post(self):
         sample_form = forms.SampleForm()
         query = sample_form.organism_search.data
-        logger.debug(query)
+
         if query == "":
             q_organisms = db.common_organisms
         else:

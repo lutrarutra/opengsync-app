@@ -1,6 +1,7 @@
 from flask import Blueprint, url_for, render_template, flash
 from flask_restful import Api, Resource
 from flask_htmx import make_response
+from flask_login import login_required, current_user
 
 from .... import db, forms, logger
 
@@ -8,6 +9,7 @@ experiments_bp = Blueprint("experiments_bp", __name__, url_prefix="/api/experime
 api = Api(experiments_bp)
 
 class GetExperiments(Resource):
+    @login_required
     def get(self, page):
         n_pages = int(db.db_handler.get_num_experiments() / 20)
         page = min(page, n_pages)
@@ -22,6 +24,7 @@ class GetExperiments(Resource):
         )
 
 class PostExperiment(Resource):
+    @login_required
     def post(self):
         experiment_form = forms.ExperimentForm()
 
@@ -47,6 +50,7 @@ class PostExperiment(Resource):
         )
 
 class AddSampleToProject(Resource):
+    @login_required
     def post(self, project_id):
         project = db.db_handler.get_project(project_id)
         if not project:

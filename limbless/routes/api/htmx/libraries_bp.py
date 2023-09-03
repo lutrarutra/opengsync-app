@@ -3,6 +3,7 @@ from flask_restful import Api, Resource
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
 from wtforms import FormField
+from flask_login import login_required, current_user
 
 from .... import db, logger, forms
 from ....core import categories
@@ -11,6 +12,7 @@ libraries_bp = Blueprint("libraries_bp", __name__, url_prefix="/api/libraries/")
 api = Api(libraries_bp)
 
 class GetLibraries(Resource):
+    @login_required
     def get(self, page):
         n_pages = int(db.db_handler.get_num_libraries() / 20)
         
@@ -25,6 +27,7 @@ class GetLibraries(Resource):
             ), push_url=False
         )
 class PostLibrary(Resource):
+    @login_required
     def post(self, run_id):
         run = db.db_handler.get_run(run_id)
         if not run:
@@ -54,6 +57,7 @@ class PostLibrary(Resource):
         )
 
 class EditLibrary(Resource):
+    @login_required
     def post(self, library_id):
         library = db.db_handler.get_library(library_id)
         if not library:
@@ -98,6 +102,7 @@ class EditLibrary(Resource):
         )
     
 class SearchLibrary(Resource):
+    @login_required
     def get(self):
         query = request.args.get("query")
 
@@ -121,6 +126,7 @@ class Form(FlaskForm):
     index_form = FormField(forms.SCRNAIndexForm)
     
 class AddSample(Resource):
+    @login_required
     def post(self, library_id: int):
         library = db.db_handler.get_library(library_id)
         if not library:

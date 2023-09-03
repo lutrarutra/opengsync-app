@@ -3,15 +3,15 @@ from io import StringIO
 from flask import Blueprint, redirect, url_for, render_template, flash, request
 from flask_restful import Api, Resource
 from flask_htmx import make_response
-import pandas as pd
+from flask_login import login_required, current_user
 
 from .... import db, logger, forms, tools
-from ....core import DBSession
 
 indices_bp = Blueprint("indices_bp", __name__, url_prefix="/api/indices/")
 api = Api(indices_bp)
 
 class QueryIndexKits(Resource):
+    @login_required
     def post(self):
         library_form = forms.LibraryForm()
         query = library_form.index_kit_search.data
@@ -26,6 +26,7 @@ class QueryIndexKits(Resource):
         )
     
 class QuerySeqAdapters(Resource):
+    @login_required
     def post(self, index_kit_id: int):
         index_form = forms.SCRNAIndexForm()
 

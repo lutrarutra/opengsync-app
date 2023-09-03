@@ -1,6 +1,7 @@
 from flask import Blueprint, url_for, render_template, flash
 from flask_restful import Api, Resource
 from flask_htmx import make_response
+from flask_login import login_required, current_user
 
 from .... import db, forms, logger
 
@@ -8,6 +9,7 @@ projects_bp = Blueprint("projects_bp", __name__, url_prefix="/api/projects/")
 api = Api(projects_bp)
 
 class GetProjects(Resource):
+    @login_required
     def get(self, page):
         n_pages = int(db.db_handler.get_num_projects() / 20)
         page = min(page, n_pages)
@@ -21,6 +23,7 @@ class GetProjects(Resource):
         )
 
 class PostProject(Resource):
+    @login_required
     def post(self):
         project_form = forms.ProjectForm()
 

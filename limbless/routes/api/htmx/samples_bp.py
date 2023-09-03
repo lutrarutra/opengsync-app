@@ -3,6 +3,8 @@ from io import StringIO
 from flask import Blueprint, redirect, url_for, render_template, flash
 from flask_restful import Api, Resource
 from flask_htmx import make_response
+from flask_login import login_required, current_user
+
 import pandas as pd
 
 from .... import db, logger, forms, tools
@@ -12,6 +14,7 @@ samples_bp = Blueprint("samples_bp", __name__, url_prefix="/api/samples/")
 api = Api(samples_bp)
 
 class GetSamples(Resource):
+    @login_required
     def get(self, page):
         n_pages = int(db.db_handler.get_num_samples() / 20)
         page = min(page, n_pages)
@@ -24,6 +27,7 @@ class GetSamples(Resource):
         )
 
 class PostSample(Resource):
+    @login_required
     def post(self, project_id):
         sample_form = forms.SampleForm()
         project = db.db_handler.get_project(project_id)
@@ -73,6 +77,7 @@ class PostSample(Resource):
         )
     
 class ReadSampleTable(Resource):
+    @login_required
     def post(self):
         sample_text_form = forms.SampleTextForm()
         sample_table_form = forms.SampleTableForm()
@@ -117,6 +122,7 @@ class ReadSampleTable(Resource):
             )
     
 class PostSampleTable(Resource):
+    @login_required
     def post(self, project_id):
         table_form = forms.SampleTableForm()
 
@@ -167,6 +173,7 @@ class PostSampleTable(Resource):
         )
     
 class EditSample(Resource):
+    @login_required
     def post(self, sample_id):
         sample = db.db_handler.get_sample(sample_id)
         if not sample:
@@ -205,6 +212,7 @@ class EditSample(Resource):
         )
     
 class QuerySamples(Resource):
+    @login_required
     def post(self):
         library_sample_form = forms.LibrarySampleForm()
 
