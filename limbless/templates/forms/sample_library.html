@@ -11,7 +11,7 @@
         )
     }}
     <div style="display: none;">
-        {{ form_group(library_sample_form.sample) }}
+        {{ library_sample_form.sample() }}
     </div>
     {{ index_form.csrf_token }}
     {{ 
@@ -23,6 +23,6 @@
         ) 
     }}
     <div style="display: none;">
-        {{ form_group(index_form.adapter) }}
+        {{ index_form.adapter() }}
     </div>
 </form>
