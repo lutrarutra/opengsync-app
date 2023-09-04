@@ -35,6 +35,10 @@ def create_app():
             "limbless" : ("static/sass", "static/css", "/static/css")
         })
 
+    @app.route("/index_page")
+    def _index_page():
+        return redirect(url_for("index_page"))
+
     @app.route("/")
     def index_page():
         return render_template("index.html")

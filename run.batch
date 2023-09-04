@@ -19,7 +19,7 @@ echo "http://${node}:${port}"
 echo "scancel --user=agynter ${SLURM_JOB_ID}"
 
 LOG="/nobackup/lab_bsf/users/agynter/logs/$SLURM_JOB_ID.log"
-LATEST_LOG_SYMLINK="/home/agynter/documents/logs/flask.log"
+LATEST_LOG_SYMLINK="/home/agynter/documents/logs/limbless.log"
 rm -f "$LATEST_LOG_SYMLINK"
 ln -s "$LOG" "$LATEST_LOG_SYMLINK"
 
@@ -30,4 +30,6 @@ conda activate dev
 
 # DON'T USE ADDRESS BELOW.
 # DO USE TOKEN BELOW
-flask --app /home/agynter/documents/cemm/limbless/app.py run --debug --port=${port} --host=0.0.0.0
+export EMAIL_USER=${EMAIL_USER}
+export EMAIL_PASS=${EMAIL_PASS}
+flask --app /home/agynter/documents/limbless/limbless/app.py run --debug --port=${port} --host=0.0.0.0

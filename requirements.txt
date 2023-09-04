@@ -52,3 +52,11 @@ wcwidth==0.2.6
 Werkzeug==2.3.6
 WTForms==3.0.1
 WTForms-SQLAlchemy==0.3
+flask-login==0.6.2
+flask-htmx==0.3.1
+bcrypt==4.0.1
+flask-bcrypt==1.0.1
+flask-mail=0.9.1
+dnspython==2.4.2
+email-validator==2.0.0.post2
+idna==3.4

@@ -31,8 +31,8 @@ def project_page(project_id):
         samples = db.db_handler.get_project_samples(project_id)
     
     table_form = forms.SampleTableForm()
-    with open("data/test.tsv", "r") as f:
-        table_form.text.data = f.read()
+    # with open("data/test.tsv", "r") as f:
+    #     table_form.text.data = f.read()
 
     logger.debug(db.common_organisms)
 

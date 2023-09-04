@@ -26,7 +26,7 @@ common_organisms = [
     db_handler.get_organism(5833),
 ]
 
-common_organisms = [SearchResult(organism.id, str(organism)) for organism in common_organisms]
+common_organisms = [SearchResult(organism.id, str(organism)) for organism in common_organisms if organism is not None]
 
 common_kits = [
     db_handler.get_indexkit_by_name("10x Dual Index Kit NN Set A"),
@@ -37,7 +37,7 @@ common_kits = [
     db_handler.get_indexkit_by_name("10x Single Index Kit T Seq A"),
 ]
 
-common_kits = [SearchResult(kit.id, kit.name) for kit in common_kits]
+common_kits = [SearchResult(kit.id, kit.name) for kit in common_kits if kit is not None]
 
 from .index_kits import add_index_kits
 add_index_kits(db_handler)
