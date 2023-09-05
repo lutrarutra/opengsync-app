@@ -1,11 +1,12 @@
-from flask import Blueprint, render_template, redirect, request, url_for
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect, url_for
+from flask_login import login_required
+
+from ...core import DBSession
+from ... import forms
+from ... import db
 
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
-from ... import db
-from ... import models, forms
-from ...core import DBSession
 
 @experiments_page_bp.route("/experiments")
 @login_required
@@ -22,13 +23,14 @@ def experiments_page():
         n_pages=n_pages, active_page=0
     )
 
+
 @experiments_page_bp.route("/experiments/<experiment_id>")
 @login_required
 def experiment_page(experiment_id):
     experiment = db.db_handler.get_experiment(experiment_id)
     if not experiment:
         return redirect(url_for("experiments_page.experiments_page"))
-        
+
     with DBSession(db.db_handler) as session:
         runs = session.get_experiment_data(experiment_id)
         for run in runs:

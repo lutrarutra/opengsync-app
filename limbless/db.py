@@ -1,6 +1,8 @@
 import os
+
 from .core import DBHandler
 from .tools import SearchResult
+from .index_kits import add_index_kits
 
 db_path = "data/sample_experiment.db"
 # db_path = "data/database.db"
@@ -39,9 +41,9 @@ common_kits = [
 
 common_kits = [SearchResult(kit.id, kit.name) for kit in common_kits if kit is not None]
 
-from .index_kits import add_index_kits
 add_index_kits(db_handler)
 
 if load_sample_data:
     from .sample_experiment import create_sample_experiment
     create_sample_experiment(db_handler)
+    

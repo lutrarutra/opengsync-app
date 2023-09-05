@@ -1,12 +1,12 @@
 .hintrc
 .DS_Store
 pipeline.yml
-.vscode/
 data/
 .snakemake/
 containers/images/
 *.scss.css
 *.scss.css.map
+poetry.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,12 +1,12 @@
-from flask import Blueprint, render_template, redirect, request, url_for
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect
+from flask_login import login_required
+
+from ... import db
+from ... import forms
+from ...core import DBSession
 
 runs_page_bp = Blueprint("runs_page", __name__)
 
-from ... import db
-from ... import models, forms
-from ...core import exceptions
-from ...core import DBSession
 
 @runs_page_bp.route("/runs")
 @login_required
@@ -21,6 +21,7 @@ def runs_page():
         n_pages=n_pages, page=0
     )
 
+
 @runs_page_bp.route("/runs/<run_id>", methods=["GET", "POST"])
 @login_required
 def run_page(run_id):
@@ -28,7 +29,7 @@ def run_page(run_id):
         run = session.get_run(run_id)
         if not run:
             return redirect("/runs")
-        
+
     run_form = forms.RunForm()
     run_form.lane.data = run.lane
     run_form.r1_cycles.data = run.r1_cycles

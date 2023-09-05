@@ -1,11 +1,11 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField, IntegerField
-from wtforms_sqlalchemy.fields import QuerySelectField
-from wtforms.validators import DataRequired, Length, ValidationError
+from wtforms import StringField, SelectField
+
+from wtforms.validators import DataRequired
+
 
 class SCRNAIndexForm(FlaskForm):
     adapter = StringField("Adapter", validators=[DataRequired()])
     adapter_search = StringField("Adapter")
 
     workflow = SelectField("Workflow", choices=[])
-    

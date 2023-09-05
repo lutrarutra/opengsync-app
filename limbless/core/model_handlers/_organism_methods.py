@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 from ... import models
 from .. import exceptions
-from ...core import categories
+from ...models import categories
 from ...tools import SearchResult
 
 def create_organism(

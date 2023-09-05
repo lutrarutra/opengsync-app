@@ -1,15 +1,16 @@
-import os, warnings
+import os
+import warnings
 
 from flask import Flask, render_template, redirect, request, url_for
-from flask_login import current_user
 from sassutils.wsgi import SassMiddleware
 
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger
+from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY
 from .routes import api, pages
+
 
 def create_app():
     app = Flask(__name__)
-    
+
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAIL_SERVER"] = "smtp-relay.sendinblue.com"
     app.config["MAIL_PORT"] = 587
@@ -19,7 +20,7 @@ def create_app():
     app.config["MAIL_PASSWORD"] = os.environ.get("EMAIL_PASS")
     assert app.config["MAIL_USERNAME"]
     assert app.config["MAIL_PASSWORD"]
-    
+
     htmx.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)
@@ -32,7 +33,7 @@ def create_app():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
         app.wsgi_app = SassMiddleware(app.wsgi_app, {
-            "limbless" : ("static/sass", "static/css", "/static/css")
+            "limbless": ("static/sass", "static/css", "/static/css")
         })
 
     @app.route("/index_page")
@@ -42,11 +43,11 @@ def create_app():
     @app.route("/")
     def index_page():
         return render_template("index.html")
-    
+
     @login_manager.unauthorized_handler
     def unauthorized():
         next = url_for(request.endpoint, **request.view_args)
-        return redirect(url_for(f"auth_page.auth_page", next=next))
+        return redirect(url_for("auth_page.auth_page", next=next))
 
     app.register_blueprint(api.jobs_bp)
     app.register_blueprint(api.samples_bp)
@@ -57,7 +58,7 @@ def create_app():
     app.register_blueprint(api.auth_bp)
     app.register_blueprint(api.organisms_bp)
     app.register_blueprint(api.indices_bp)
-    
+
     app.register_blueprint(pages.runs_page_bp)
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

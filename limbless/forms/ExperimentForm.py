@@ -1,8 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, IntegerField, SelectField, FieldList, FormField
+from wtforms import StringField
 from wtforms.validators import DataRequired, Length, ValidationError
 
 from ..db import db_handler
+
 
 class ExperimentForm(FlaskForm):
     name = StringField("Experiment Name", validators=[DataRequired(), Length(min=6, max=64)])

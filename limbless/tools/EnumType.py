@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional, Union
-from abc import ABC
+
 
 @dataclass
 class DescriptiveEnum:
@@ -11,7 +11,7 @@ class DescriptiveEnum:
 
     __types__ = dict()
 
-    def __init__(self, enum_type: str, _id: int, name: str, description: Optional[str]=None):
+    def __init__(self, enum_type: str, _id: int, name: str, description: Optional[str] = None):
         if enum_type not in self.__types__.keys():
             self.__types__[enum_type] = dict()
 
@@ -61,11 +61,12 @@ class DescriptiveEnum:
     def __repr__(self):
         return f"{self.__enum_type}(id={self.__id}, name='{self.name}')"
 
+
 class EnumType:
     @classmethod
     def get_enum_type(cls):
         return cls.__enum_type__
-        
+
     @classmethod
     def create(cls, _id, name, description=None) -> DescriptiveEnum:
         return DescriptiveEnum(cls.__enum_type__, _id, name, description)
@@ -73,7 +74,7 @@ class EnumType:
     @classmethod
     def as_tuples(cls) -> tuple[int, str]:
         return DescriptiveEnum.as_tuples(cls.__name__)
-    
+
     @classmethod
     def as_dict(cls) -> dict[int, str]:
         return DescriptiveEnum.as_dict(cls.__name__)
@@ -81,7 +82,7 @@ class EnumType:
     @classmethod
     def values(cls) -> list[DescriptiveEnum]:
         return DescriptiveEnum.values(cls.__name__)
-    
+
     @classmethod
     def is_valid(cls, _id: Union[DescriptiveEnum, int]) -> bool:
         if isinstance(_id, DescriptiveEnum):

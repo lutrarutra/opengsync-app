@@ -32,4 +32,4 @@ conda activate dev
 # DO USE TOKEN BELOW
 export EMAIL_USER=${EMAIL_USER}
 export EMAIL_PASS=${EMAIL_PASS}
-flask --app /home/agynter/documents/limbless/limbless/app.py run --debug --port=${port} --host=0.0.0.0
+python /home/agynter/documents/limbless/run.py --debug --port=${port} --host=0.0.0.0

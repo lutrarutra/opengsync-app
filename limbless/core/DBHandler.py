@@ -1,11 +1,10 @@
-import os
-from typing import Optional, Union
+from typing import Optional
 
-from sqlmodel import create_engine, SQLModel, Session, select
+from sqlmodel import create_engine, SQLModel, Session
 from sqlalchemy import orm
 
 from .. import models
-from . import categories
+from ..models import categories
 
 class DBHandler():
     def __init__(self, db_path, create_admin: bool = True):

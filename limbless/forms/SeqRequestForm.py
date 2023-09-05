@@ -1,7 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField, IntegerField
-from wtforms_sqlalchemy.fields import QuerySelectField
-from wtforms.validators import DataRequired, Length, ValidationError
+from wtforms import StringField
+from wtforms.validators import DataRequired, Length
 
 
 class SeqRequestForm(FlaskForm):

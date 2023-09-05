@@ -1,6 +1,10 @@
-from typing import Optional, List
+from typing import Optional, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
+
+if TYPE_CHECKING:
+    from .IndexKit import IndexKit
+
 
 class SeqIndex(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -13,6 +17,6 @@ class SeqIndex(SQLModel, table=True):
 
     def __str__(self):
         return f"SeqIndex('{self.sequence}', {self.type})"
-    
+
     def __repr__(self) -> str:
         return str(self)

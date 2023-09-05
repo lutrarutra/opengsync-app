@@ -1,6 +1,5 @@
-from typing import List, Optional
+from sqlmodel import Field, SQLModel
 
-from sqlmodel import Field, Relationship, SQLModel
 
 class LibrarySampleLink(SQLModel, table=True):
     library_id: int = Field(
@@ -22,6 +21,7 @@ class RunLibraryLink(SQLModel, table=True):
     library_id: int = Field(
         foreign_key="library.id", primary_key=True
     )
+
 
 class ProjectUserLink(SQLModel, table=True):
     project_id: int = Field(

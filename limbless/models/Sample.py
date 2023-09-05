@@ -1,10 +1,16 @@
-from typing import Optional, List
-from pydantic import PrivateAttr
+from typing import Optional, List, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import LibrarySampleLink
 from ..tools import SearchResult
+
+if TYPE_CHECKING:
+    from .Organism import Organism
+    from .Project import Project
+    from .Library import Library
+    from .SeqIndex import SeqIndex
+
 
 class Sample(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -22,7 +28,7 @@ class Sample(SQLModel, table=True):
     )
     indices: List["SeqIndex"] = Relationship(
         link_model=LibrarySampleLink,
-        sa_relationship_kwargs={"lazy": "noload", "viewonly":True},
+        sa_relationship_kwargs={"lazy": "noload", "viewonly": True},
     )
 
     def to_dict(self):
@@ -34,7 +40,6 @@ class Sample(SQLModel, table=True):
 
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name}, organism:{self.organism})"
-    
+
     def to_search_result(self) -> SearchResult:
         return SearchResult(self.id, self.name, self.project.name)
-    

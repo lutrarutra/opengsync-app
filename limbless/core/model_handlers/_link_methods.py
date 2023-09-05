@@ -5,7 +5,7 @@ from sqlmodel import and_
 
 from ... import models
 from .. import exceptions
-from ...core import categories
+from ...models import categories
 from ...tools import SearchResult
 
 

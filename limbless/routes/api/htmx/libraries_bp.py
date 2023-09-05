@@ -6,7 +6,7 @@ from wtforms import FormField
 from flask_login import login_required, current_user
 
 from .... import db, logger, forms
-from ....core import categories
+from ....models import categories
 
 libraries_bp = Blueprint("libraries_bp", __name__, url_prefix="/api/libraries/")
 api = Api(libraries_bp)

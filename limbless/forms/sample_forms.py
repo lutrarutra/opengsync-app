@@ -1,27 +1,30 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField, IntegerField
-from wtforms_sqlalchemy.fields import QuerySelectField
-from wtforms.validators import DataRequired, Length, ValidationError
+from wtforms import StringField, SelectField, FieldList, FormField, TextAreaField, IntegerField
+from wtforms.validators import DataRequired, Length
 
-from ..db import db_handler
+
 class SampleForm(FlaskForm):
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
     organism = IntegerField("Organism", validators=[DataRequired()])
     organism_search = StringField("Organism")
 
+
 class LibrarySampleForm(FlaskForm):
     sample = IntegerField("Sample", validators=[DataRequired()])
     sample_search = StringField()
 
+
 class SampleSelectForm(FlaskForm):
     query_field = StringField("Search", validators=[DataRequired()])
+
 
 class SampleTextForm(FlaskForm):
     text = TextAreaField("Sample Sheet (csv/tsv)", validators=[DataRequired()])
 
+
 class SampleColSelectForm(FlaskForm):
     _sample_fields = [
-        ("","-"),
+        ("", "-"),
         ("sample_name", "Sample Name"),
         ("organism", "Organism"),
         ("index1", "Index 1 (Barcode i7)"),
@@ -32,6 +35,7 @@ class SampleColSelectForm(FlaskForm):
     select_field = SelectField(
         choices=_sample_fields,
     )
+
 
 class SampleTableForm(FlaskForm):
     fields = FieldList(FormField(SampleColSelectForm))

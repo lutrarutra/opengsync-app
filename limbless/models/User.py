@@ -1,10 +1,14 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 
-from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import ProjectUserLink
 from .. import serializer
+
+if TYPE_CHECKING:
+    from .SeqRequest import SeqRequest
+    from .Project import Project
+
 
 class UserMixin:
     """
@@ -53,7 +57,7 @@ class UserMixin:
         return not equal
 
 
-class User(UserMixin, SQLModel, table=True):    
+class User(UserMixin, SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(nullable=False, unique=True, index=True, max_length=128)
     password: str = Field(nullable=False, max_length=128)
@@ -68,13 +72,13 @@ class User(UserMixin, SQLModel, table=True):
     )
 
     @staticmethod
-    def generate_registration_token(email:str):
+    def generate_registration_token(email: str):
         return serializer.dumps({"email": email})
 
     @staticmethod
-    def verify_registration_token(token:str):
+    def verify_registration_token(token: str):
         try:
             email = serializer.loads(token, max_age=3600)["email"]
-        except:
+        except: # FIXME: Specify exception
             return None
         return email

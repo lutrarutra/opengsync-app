@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, redirect, request, url_for
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect
+from flask_login import login_required
+
+from ... import db, forms
+from ...core import DBSession
 
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
-from ... import db, forms, logger
-from ...core import DBSession
 
 @libraries_page_bp.route("/libraries")
 @login_required
@@ -18,6 +19,7 @@ def libraries_page():
         n_pages=n_pages, page=0
     )
 
+
 @libraries_page_bp.route("/libraries/<int:library_id>")
 @login_required
 def library_page(library_id):
@@ -25,7 +27,7 @@ def library_page(library_id):
         library = session.get_library(library_id)
         if not library:
             return redirect("/libraries")
-        
+
         library.samples = session.get_library_samples(library.id)
 
     library_form = forms.LibraryForm()
@@ -35,15 +37,15 @@ def library_page(library_id):
 
     library_sample_form = forms.LibrarySampleForm()
     index_form = forms.SCRNAIndexForm()
-    
+
     return render_template(
         "library_page.html",
         library=library,
-        
+
         library_form=library_form,
         common_indexkits=db.common_kits,
         selected_kit=library.index_kit,
-        
+
         library_sample_form=library_sample_form,
         available_samples=db.db_handler.get_user_samples(2),
 

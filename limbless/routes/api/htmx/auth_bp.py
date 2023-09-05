@@ -5,7 +5,7 @@ from flask_mail import Message
 from flask_login import login_user, current_user, logout_user
 
 from .... import db, forms, logger, models, bcrypt, mail, EMAIL_SENDER
-from ....core import categories
+from ....models import categories
 
 auth_bp = Blueprint("auth_bp", __name__, url_prefix="/api/auth/")
 api = Api(auth_bp)

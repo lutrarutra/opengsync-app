@@ -1,0 +1,15 @@
+{
+    "python.defaultInterpreterPath": "/home/lutrarutra/.cache/pypoetry/virtualenvs/limbless-T3Q5fbE5-py3.11",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "files.exclude": {
+        "**/.pytest_cache": true,
+        "**/__pycache__": true,
+    },
+    "flake8.args": [
+        "--ignore=E501,W292,W293",
+    ],
+}

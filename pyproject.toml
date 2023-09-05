@@ -1,7 +1,31 @@
-[build-system]
-requires = ["hatchling", "setuptools"]
-build-backend = "hatchling.build"
-
-[project]
+[tool.poetry]
 name = "limbless"
 version = "0.1.0"
+description = ""
+authors = ["lutrarutra"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Flask = "^2.3.3"
+
+[tool.poetry.group.dev.dependencies]
+autopep8 = "^2.0.4"
+flake8 = "^6.1.0"
+loguru = "^0.7.1"
+flask-htmx = "^0.3.1"
+flask-bcrypt = "^1.0.1"
+flask-login = "^0.6.2"
+flask-mail = "^0.9.1"
+sqlmodel = "^0.0.8"
+libsass = "^0.22.0"
+pandas = "^2.1.0"
+flask-restful = "^0.3.10"
+flask-wtf = "^1.1.1"
+wtforms-sqlalchemy = "^0.3"
+email-validator = "^2.0.0.post2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

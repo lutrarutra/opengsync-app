@@ -1,9 +1,14 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 
 from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import ProjectUserLink
+
+if TYPE_CHECKING:
+    from .Sample import Sample
+    from .User import User
+
 
 class Project(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

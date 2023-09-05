@@ -1,11 +1,12 @@
-from flask import Blueprint, render_template, redirect, request, url_for
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect, url_for
+from flask_login import login_required
+
+from ... import db
+from ... import forms
+from ...core import DBSession
 
 samples_page_bp = Blueprint("samples_page", __name__)
 
-from ... import db
-from ... import models, forms
-from ...core import DBSession
 
 @samples_page_bp.route("/samples")
 @login_required
@@ -19,13 +20,14 @@ def samples_page():
         n_pages=n_pages, active_page=0
     )
 
+
 @samples_page_bp.route("/samples/<sample_id>")
 @login_required
 def sample_page(sample_id):
     sample = db.db_handler.get_sample(sample_id)
     if not sample:
         return redirect(url_for("samples_page.samples_page"))
-    
+
     sample_form = forms.SampleForm()
 
     sample_form.name.data = sample.name

@@ -1,6 +1,7 @@
 import pandas as pd
-from limbless import models
+
 from limbless.core import DBHandler
+
 
 def add_index_kits(db_handler: DBHandler):
     df = pd.read_csv("data/10x_kits/Dual_Index_Kit_NN_Set_A.csv", comment="#", index_col=0)
@@ -21,7 +22,7 @@ def add_index_kits(db_handler: DBHandler):
                 adapter=adapter,
                 seq_kit_id=seq_kit.id,
                 type=df.columns[i],
-            ) 
+            )
 
     df = pd.read_csv("data/10x_kits/Dual_Index_Kit_NT_Set_A.csv", comment="#", index_col=0)
 
@@ -42,12 +43,11 @@ def add_index_kits(db_handler: DBHandler):
                 type=df.columns[i],
             )
 
-
     df = pd.read_csv("data/10x_kits/Dual_Index_Kit_TN_Set_A.csv", comment="#", index_col=0)
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit TN Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
-            name = "10x Dual Index Kit TN Seq A"
+            name="10x Dual Index Kit TN Seq A"
         )
 
     for adapter, row in df.iterrows():
@@ -66,7 +66,7 @@ def add_index_kits(db_handler: DBHandler):
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit TT Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
-            name = "10x Dual Index Kit TT Seq A"
+            name="10x Dual Index Kit TT Seq A"
         )
 
     for adapter, row in df.iterrows():
@@ -85,7 +85,7 @@ def add_index_kits(db_handler: DBHandler):
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Single Index Kit N Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
-            name = "10x Single Index Kit N Seq A"
+            name="10x Single Index Kit N Seq A"
         )
 
     for adapter, row in df.iterrows():
@@ -105,7 +105,7 @@ def add_index_kits(db_handler: DBHandler):
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Single Index Kit T Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
-            name = "10x Single Index Kit T Seq A"
+            name="10x Single Index Kit T Seq A"
         )
 
     for adapter, row in df.iterrows():

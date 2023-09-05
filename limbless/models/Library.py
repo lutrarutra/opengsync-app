@@ -4,7 +4,7 @@ from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import LibrarySampleLink, RunLibraryLink
-from ..core.categories import LibraryType
+from .categories import LibraryType
 
 class Library(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

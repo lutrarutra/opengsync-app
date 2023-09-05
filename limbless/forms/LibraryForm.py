@@ -4,7 +4,7 @@ from wtforms_sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length,ValidationError
 
 from .. import models
-from ..core import categories
+from ..models import categories
 from ..db import db_handler
 
 class LibraryForm(FlaskForm):    

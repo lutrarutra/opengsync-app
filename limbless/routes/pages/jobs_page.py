@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, redirect, request, url_for
-from sqlmodel import select, Session
+from flask import Blueprint, render_template, redirect, request
+from sqlmodel import Session
+
+from ... import models, forms
+from ... import db
 
 jobs_page_bp = Blueprint("jobs_page", __name__)
 
-from ... import db
-from ... import models, forms
 
 @jobs_page_bp.route("/jobs", methods=["GET", "POST"])
 def jobs_page():

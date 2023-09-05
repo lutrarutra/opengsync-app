@@ -1,7 +1,7 @@
 from typing import Optional
-from enum import Enum
 
 from sqlmodel import Field, SQLModel
+
 
 class Organism(SQLModel, table=True):
     tax_id: int = Field(default=None, primary_key=True)
@@ -14,7 +14,7 @@ class Organism(SQLModel, table=True):
         if self.common_name:
             _val += f" ({self.common_name})"
         return _val
-    
+
     @property
     def id(self):
         return self.tax_id

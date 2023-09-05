@@ -1,6 +1,5 @@
-from typing import Optional
-
 from .DBHandler import DBHandler
+
 
 class DBSession():
     def __init__(self, db_handler: DBHandler, commit: bool = True):

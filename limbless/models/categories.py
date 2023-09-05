@@ -1,5 +1,6 @@
 from ..tools.EnumType import EnumType
 
+
 class ProjectRole(EnumType):
     EnumType.__enum_type__ = "ProjectRole"
     OWNER = EnumType.create(1, "Owner", "")
@@ -14,12 +15,14 @@ class UserRole(EnumType):
     TECHNICIAN = EnumType.create(3, "Technician", "")
     CLIENT = EnumType.create(4, "Client", "")
 
+
 class LibraryType(EnumType):
     EnumType.__enum_type__ = "LibraryType"
     SC_RNA = EnumType.create(1, "single-cell RNA-Seq", "")
     SN_RNA = EnumType.create(2, "single-nucleus RNA-Seq", "")
     SC_ATAC = EnumType.create(3, "single-cell ATAC-Seq", "")
     SC_MULTIOME = EnumType.create(4, "single-cell Multiome", "")
+
 
 class OrganismCategory(EnumType):
     EnumType.__enum_type__ = "OrganismCategory"

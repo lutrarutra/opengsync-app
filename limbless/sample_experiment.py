@@ -1,5 +1,6 @@
-from limbless import models
-from limbless.core import categories, DBHandler
+from limbless.core import DBHandler
+from limbless.models import categories
+
 
 def create_sample_experiment(db_handler: DBHandler):
     user = db_handler.create_user(
@@ -65,15 +66,15 @@ def create_sample_experiment(db_handler: DBHandler):
     for i, experiment in enumerate(experiments):
         runs.append(
             db_handler.create_run(
-                1,experiment.id,1,2,3,4,
+                1, experiment.id, 1, 2, 3, 4,
             )
-        )    
+        )
         if i % 2 == 0:
             runs.append(
                 db_handler.create_run(
-                    2,experiment.id,1,2,3,4,
+                    2, experiment.id, 1, 2, 3, 4,
                 )
             )
-    
+
     for i, library in enumerate(libs):
         db_handler.link_run_library(runs[i % len(runs)].id, library.id)

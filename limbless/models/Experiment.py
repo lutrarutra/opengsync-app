@@ -1,8 +1,11 @@
-from typing import Optional, List
-from enum import Enum
+from typing import Optional, List, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, TIMESTAMP, text, Column, Relationship
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from .Run import Run
+
 
 class Experiment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -14,5 +17,5 @@ class Experiment(SQLModel, table=True):
         server_default=text("CURRENT_TIMESTAMP"),
         server_onupdate=text("CURRENT_TIMESTAMP"),
     ))
-    
+
     runs: List["Run"] = Relationship(back_populates="experiment")

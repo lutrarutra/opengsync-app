@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 from ... import models, bcrypt
 from .. import exceptions
-from ...core import categories
+from ...models import categories
 
 def create_user(
         self, email: str, password: str,
