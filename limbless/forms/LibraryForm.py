@@ -1,17 +1,17 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, FieldList, FormField, TextAreaField, IntegerField
-from wtforms_sqlalchemy.fields import QuerySelectField
-from wtforms.validators import DataRequired, Length,ValidationError
+from wtforms import StringField, SelectField, IntegerField
+from wtforms.validators import DataRequired, Length, ValidationError
 
-from .. import models
-from ..models import categories
+
+from .. import categories
 from ..db import db_handler
 
-class LibraryForm(FlaskForm):    
+
+class LibraryForm(FlaskForm):
     name = StringField("Library Name", validators=[
         DataRequired(), Length(min=6, max=64)
     ])
-    
+
     library_type = SelectField(
         "Library Type", choices=categories.LibraryType.as_tuples(),
         validators=[DataRequired()]

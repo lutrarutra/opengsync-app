@@ -8,6 +8,8 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from itsdangerous import URLSafeTimedSerializer
 
+from .categories import UserRole, LibraryType, ProjectRole, OrganismCategory
+
 logger.remove()
 
 fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} ({file}:{line} in {function}):

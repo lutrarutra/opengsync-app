@@ -1,0 +1,45 @@
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+<form id="index-form">
+    {{ index_form.csrf_token }}
+    {{ 
+        search_select_field(
+            index_form.sample,
+            url_for('samples_bp.querysamples'),
+            results=available_samples,
+            selected=selected_sample.name if selected_sample is defined,
+        )
+    }}
+    <input  id="sample" name="sample" type="number"
+    value="{{ selected_sample.id if selected_sample is defined }}" hidden>
+    {{ 
+        search_select_field(
+            index_form.adapter,
+            url_for('indices_bp.queryseqadapters', index_kit_id=library.index_kit_id),
+            results=adapters,
+            selected=selected_adapter,
+        ) 
+    }}
+
+    <input id="adapter" name="adapter"
+    hx-target="#index-form"
+    hx-swap="outerHTML"
+    hx-include="#index-form"
+    hx-trigger="change"
+    hx-post="{{ url_for('indices_bp.selectindices', library_id=library.id) }}"
+    value="{{ selected_adapter }}"
+    hidden>
+
+    <div class="row">
+        <div class="col form-group">
+            {{ index_form.index_i7.label }}
+            <input type="number" name="index_i7_id" value="{{ index_form.index_i7_id.data }}" hidden>
+            {{ index_form.index_i7(class="form-control", readonly=True) }}
+        </div>
+        <div class="col form-group">
+            {{ index_form.index_i5.label }}
+            <input type="number" name="index_i5_id" value="{{ index_form.index_i5_id.data }}" hidden>
+            {{ index_form.index_i5(class="form-control", readonly=True) }}
+        </div>
+    </div>
+</form>

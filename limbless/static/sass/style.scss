@@ -181,7 +181,7 @@ nav {
     }
     .search-results-container {
         display: none;
-        z-index: 1;
+        z-index: 10;
         ul {
             position: absolute;
             max-height: 200px;

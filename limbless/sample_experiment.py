@@ -1,5 +1,5 @@
 from limbless.core import DBHandler
-from limbless.models import categories
+from limbless import categories
 
 
 def create_sample_experiment(db_handler: DBHandler):

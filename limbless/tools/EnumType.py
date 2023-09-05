@@ -41,14 +41,14 @@ class DescriptiveEnum:
         return [_type.name for _type in cls.values(enum_type)]
 
     @classmethod
-    def as_tuples(cls, enum_type: str) -> tuple[int, str]:
+    def as_tuples(cls, enum_type: str) -> tuple[int, "DescriptiveEnum"]:
         if enum_type not in cls.__types__.keys():
             raise Exception(f"No DescriptiveEnums with type '{enum_type}' found.")
 
-        return [(_type.__id, _type.name) for _type in cls.__types__[enum_type].values()]
+        return [(_type.__id, _type) for _type in cls.__types__[enum_type].values()]
 
     @classmethod
-    def as_dict(cls, enum_type: str) -> dict[int, str]:
+    def as_dict(cls, enum_type: str) -> dict[int, "DescriptiveEnum"]:
         return dict(cls.as_tuples(enum_type))
 
     @classmethod
@@ -72,11 +72,11 @@ class EnumType:
         return DescriptiveEnum(cls.__enum_type__, _id, name, description)
 
     @classmethod
-    def as_tuples(cls) -> tuple[int, str]:
+    def as_tuples(cls) -> tuple[int, DescriptiveEnum]:
         return DescriptiveEnum.as_tuples(cls.__name__)
 
     @classmethod
-    def as_dict(cls) -> dict[int, str]:
+    def as_dict(cls) -> dict[int, DescriptiveEnum]:
         return DescriptiveEnum.as_dict(cls.__name__)
 
     @classmethod

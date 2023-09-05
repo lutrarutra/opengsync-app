@@ -1,8 +1,8 @@
-from typing import Optional, Union
+from typing import Optional
 
 from ... import models, bcrypt
 from .. import exceptions
-from ...models import categories
+from ... import categories
 
 def create_user(
         self, email: str, password: str,

@@ -1,11 +1,11 @@
-from typing import Optional, Union
+from typing import Optional
 
-from sqlalchemy.orm import selectinload
 from sqlmodel import and_
 
 from ... import models
 from .. import exceptions
 from ...tools import SearchResult
+
 
 def create_seqindex(
     self,
@@ -36,8 +36,10 @@ def create_seqindex(
         self._session.commit()
         self._session.refresh(seq_index)
 
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return seq_index
+
 
 def get_seqindex(self, id: int) -> models.SeqIndex:
     persist_session = self._session is not None
@@ -45,8 +47,10 @@ def get_seqindex(self, id: int) -> models.SeqIndex:
         self.open_session()
 
     res = self._session.query(models.SeqIndex).where(models.SeqIndex.id == id).first()
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res
+
 
 def get_seqindices_by_adapter(self, adapter: str) -> list[models.SeqIndex]:
     persist_session = self._session is not None
@@ -54,8 +58,10 @@ def get_seqindices_by_adapter(self, adapter: str) -> list[models.SeqIndex]:
         self.open_session()
 
     res = self._session.query(models.SeqIndex).where(models.SeqIndex.adapter == adapter).all()
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res
+
 
 def get_num_seqindices(self) -> int:
     persist_session = self._session is not None
@@ -63,8 +69,10 @@ def get_num_seqindices(self) -> int:
         self.open_session()
 
     res = self._session.query(models.SeqIndex).count()
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res
+
 
 def query_adapters(
     self, query: str, index_kit_id: Optional[int] = None,
@@ -73,7 +81,7 @@ def query_adapters(
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-    
+
     if index_kit_id is None:
         res = self._session.query(models.SeqIndex.adapter).where(
             models.SeqIndex.adapter.contains(query)
@@ -91,10 +99,12 @@ def query_adapters(
 
     res = res.all()
 
-    res = [SearchResult(a[0],a[0]) for a in res]
+    res = [SearchResult(a[0], a[0]) for a in res]
 
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res
+
 
 def get_adapters_from_kit(
     self, index_kit_id: int, limit: Optional[int] = None
@@ -102,7 +112,7 @@ def get_adapters_from_kit(
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-    
+
     res = self._session.query(models.SeqIndex.adapter).where(
         models.SeqIndex.seq_kit_id == index_kit_id
     ).distinct()
@@ -114,5 +124,6 @@ def get_adapters_from_kit(
 
     res = [SearchResult(a[0], a[0]) for a in res]
 
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res

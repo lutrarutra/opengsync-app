@@ -40,6 +40,7 @@
             $(`#${field_name}_search`).removeClass("is-invalid");
         }
         $(`#${field_name}-invalid-container`).empty();
+        htmx.trigger(`#${field_name}`, "change");
     }
 
     $("#{{field_name}}_search").on("focus", function(event) {

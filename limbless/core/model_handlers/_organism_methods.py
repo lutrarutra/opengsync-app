@@ -1,8 +1,8 @@
-from typing import Optional, Union
+from typing import Optional
 
 from ... import models
 from .. import exceptions
-from ...models import categories
+from ... import categories
 from ...tools import SearchResult
 
 def create_organism(

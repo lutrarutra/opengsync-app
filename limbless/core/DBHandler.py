@@ -4,7 +4,8 @@ from sqlmodel import create_engine, SQLModel, Session
 from sqlalchemy import orm
 
 from .. import models
-from ..models import categories
+from .. import categories
+
 
 class DBHandler():
     def __init__(self, db_path, create_admin: bool = True):
@@ -25,10 +26,9 @@ class DBHandler():
             self._session.add(self.__admin)
             self.close_session(commit=True)
 
-
     def open_session(self) -> None:
         self._session = Session(self._engine, expire_on_commit=False)
-    
+
     def close_session(self, commit=True) -> None:
         if commit:
             self._session.commit()
@@ -109,6 +109,3 @@ class DBHandler():
         unlink_run_library,
         unlink_project_user
     )
-
-            
-    

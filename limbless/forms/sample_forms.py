@@ -9,11 +9,6 @@ class SampleForm(FlaskForm):
     organism_search = StringField("Organism")
 
 
-class LibrarySampleForm(FlaskForm):
-    sample = IntegerField("Sample", validators=[DataRequired()])
-    sample_search = StringField()
-
-
 class SampleSelectForm(FlaskForm):
     query_field = StringField("Search", validators=[DataRequired()])
 

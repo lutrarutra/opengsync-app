@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect
 from flask_login import login_required
 
-from ... import db, forms
+from ... import db, forms, LibraryType, logger
 from ...core import DBSession
 
 libraries_page_bp = Blueprint("libraries_page", __name__)
@@ -35,8 +35,19 @@ def library_page(library_id):
     library_form.library_type.data = str(library.library_type_id)
     library_form.index_kit.data = library.index_kit_id
 
-    library_sample_form = forms.LibrarySampleForm()
-    index_form = forms.SCRNAIndexForm()
+    library_sample_ids = [s.id for s in library.samples]
+    available_samples = [sample.to_search_result() for sample in db.db_handler.get_user_samples(2) if sample.id not in library_sample_ids]
+
+    if library.library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
+        index_form = render_template(
+            "forms/index_forms/dual_index_form.html",
+            library=library,
+            index_form=forms.DualIndexForm(),
+            available_samples=available_samples,
+            adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
+        )
+    else:
+        assert False
 
     return render_template(
         "library_page.html",
@@ -45,12 +56,7 @@ def library_page(library_id):
         library_form=library_form,
         common_indexkits=db.common_kits,
         selected_kit=library.index_kit,
-
-        library_sample_form=library_sample_form,
-        available_samples=db.db_handler.get_user_samples(2),
-
         index_form=index_form,
-        adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
 
         show_indices=True
     )

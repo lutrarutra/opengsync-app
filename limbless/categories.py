@@ -1,4 +1,4 @@
-from ..tools.EnumType import EnumType
+from .tools.EnumType import EnumType
 
 
 class ProjectRole(EnumType):
