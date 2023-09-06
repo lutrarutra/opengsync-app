@@ -30,12 +30,12 @@
         <div class="modal-footer">
             <button id="submit-sample-btn" class="btn btn-primary"
             hx-include="#sample-form" hx-target="#sample-form" hx-swap="outerHTML"
-            hx-post="{{ url_for('samples_bp.postsample', project_id=project.id) }}">Submit</button>
+            hx-post="{{ url_for('samples_htmx.postsample', project_id=project.id) }}">Submit</button>
             
             <button type="button" id="submit-table-btn" class="btn btn-primary disabled"
             style="display: none;" hx-include="#sample-table-form"
             hx-target="#sample-table-form" hx-swap="outerHTML"
-            hx-post="{{ url_for('samples_bp.postsampletable', project_id=project.id) }}">Submit Samples</button>
+            hx-post="{{ url_for('samples_htmx.postsampletable', project_id=project.id) }}">Submit Samples</button>
         </div>
       </div>
     </div>

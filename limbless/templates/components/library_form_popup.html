@@ -40,7 +40,7 @@
             <button id="submit-new-library-form-btn" class="btn btn-primary"
             style="display: none;"
             hx-include="#library-form" hx-target="#library-form" hx-swap="outerHTML"
-            hx-post="{{ url_for('libraries_bp.postlibrary', run_id=run.id) }}">Submit</button>
+            hx-post="{{ url_for('libraries_htmx.create', run_id=run.id) }}">Submit</button>
         </div>
       </div>
     </div>

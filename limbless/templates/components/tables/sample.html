@@ -25,5 +25,5 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("sample-table", "samples_bp.getsamples", n_pages, active_page) }}
+    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page) }}
 </div>

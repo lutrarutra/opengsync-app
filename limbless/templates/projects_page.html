@@ -28,7 +28,7 @@
             <div class="modal-footer" id="popup-footer">
                 <button id="submit-project-btn" class="btn btn-primary"
                 hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('projects_bp.postproject') }}">Submit</button>
+                hx-post="{{ url_for('projects_htmx.create') }}">Submit</button>
             </div>
           </div>
         </div>

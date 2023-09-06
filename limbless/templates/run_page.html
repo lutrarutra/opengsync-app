@@ -40,7 +40,7 @@
             <div class="modal-footer" id="popup-footer">
                 <button class="btn btn-primary"
                 hx-include="#run-form" hx-target="#run-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('runs_bp.editrun', run_id=run.id ) }}">
+                hx-post="{{ url_for('runs_htmx.edit', run_id=run.id ) }}">
                 Submit</button>
             </div>
           </div>

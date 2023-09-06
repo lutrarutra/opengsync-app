@@ -3,7 +3,7 @@
 <form id="sample-form">
     {{ sample_form.csrf_token }}
     {{ form_group(sample_form.name) }}
-    {{ search_select_field(sample_form.organism, url_for('organisms_bp.queryorganisms'), results=common_organisms, selected=selected_organism) }}
+    {{ search_select_field(sample_form.organism, url_for('organisms_htmx.query'), results=common_organisms, selected=selected_organism) }}
     <div style="display: none;">
         {{ sample_form.organism() }}
     </div>

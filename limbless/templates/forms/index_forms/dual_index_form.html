@@ -5,7 +5,7 @@
     {{ 
         search_select_field(
             index_form.sample,
-            url_for('samples_bp.querysamples'),
+            url_for('samples_htmx.query'),
             results=available_samples,
             selected=selected_sample.name if selected_sample is defined,
         )
@@ -15,7 +15,7 @@
     {{ 
         search_select_field(
             index_form.adapter,
-            url_for('indices_bp.queryseqadapters', index_kit_id=library.index_kit_id),
+            url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
             results=adapters,
             selected=selected_adapter,
         ) 
@@ -26,7 +26,7 @@
     hx-swap="outerHTML"
     hx-include="#index-form"
     hx-trigger="change"
-    hx-post="{{ url_for('indices_bp.selectindices', library_id=library.id) }}"
+    hx-post="{{ url_for('indices_htmx.select_indices', library_id=library.id) }}"
     value="{{ selected_adapter }}"
     hidden>
 

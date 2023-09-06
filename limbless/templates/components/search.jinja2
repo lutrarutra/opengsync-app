@@ -2,7 +2,7 @@
 <form id="search-form">
     {% if object == "library" %}
         <input type="text" class="form-control" placeholder="Library Search"
-        name="query" hx-get="{{ url_for('libraries_bp.searchlibrary') }}"
+        name="query" hx-get="{{ url_for('libraries_htmx.query') }}"
         hx-trigger="keyup changed delay:500ms" hx-target="#library-table"
         hx-swap="outerHTML">
         {% include "components/tables/library.html" %}

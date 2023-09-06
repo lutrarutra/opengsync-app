@@ -28,7 +28,7 @@
             <div class="modal-footer" id="popup-footer">
                 <button id="submit-experiment-btn" class="btn btn-primary"
                 hx-include="#experiment-form" hx-target="#experiment-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('experiments_bp.postexperiment') }}">Submit</button>
+                hx-post="{{ url_for('experiments_htmx.create') }}">Submit</button>
             </div>
           </div>
         </div>
