@@ -156,6 +156,7 @@ nav {
     }
 }
 
+
 .invalid-feedback-container {
     display: flex;
     height: 20px;
@@ -164,6 +165,26 @@ nav {
         height: 20px;
         color: $danger;
         font-size: 14px;
+    }
+}
+
+.modal-body {
+    height: 80vh;
+    .tab-content {
+        height: 100%;
+        .tab-pane {
+            height: 100%;
+        }
+    }
+}
+
+.form-table-container{
+    height: 100%;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    form table {
+        width: 100%;
     }
 }
 

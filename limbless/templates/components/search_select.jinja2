@@ -14,7 +14,7 @@
         autocomplete="off"
         name="{{field_name}}_search"
         id="{{field_name}}_search"
-        hx-post="{{ url }}"
+        hx-get="{{ url }}"
         hx-target="#{{field_name}}-results"
         hx-trigger="keyup changed delay:500ms, {{field_name}}"
         hx-swap="innerHTML"
@@ -31,6 +31,9 @@
 </div>
 <script>
     function select_option(name, id, field_name) {
+        console.log(field_name);
+        console.log(name);
+        console.log(id);
         $(`#${field_name}-results`).css("display", "none");
         $(`#${field_name}`).val(id);
         $(`#${field_name}-selected-label`).text(name);

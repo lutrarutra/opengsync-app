@@ -3,6 +3,7 @@ from io import StringIO
 from flask import Blueprint, redirect, url_for, render_template, flash
 from flask_htmx import make_response
 from flask_login import login_required
+from werkzeug.utils import secure_filename
 
 import pandas as pd
 
@@ -80,98 +81,159 @@ def create(project_id):
 @login_required
 @samples_htmx.route("read_table", methods=["POST"])
 def read_table():
-    sample_text_form = forms.SampleTextForm()
+    table_input_form = forms.TableForm()
     sample_table_form = forms.SampleTableForm()
-    if sample_text_form.validate_on_submit():
-        df = pd.read_csv(
-            StringIO(sample_text_form.text.data.rstrip()), sep="\t",
-            index_col=False, header=0
-        )
 
-        sample_table_form.text.data = sample_text_form.text.data
-
-        columns = df.columns.tolist()
-        refs = [key for key, _ in forms.SampleColSelectForm._sample_fields if key]
-        matches = tools.connect_similar_strings(forms.SampleColSelectForm._sample_fields, columns)
-
-        for i, col in enumerate(columns):
-            select_form = forms.SampleColSelectForm()
-            select_form.select_field.label.text = col
-            sample_table_form.fields.append_entry(select_form)
-            sample_table_form.fields.entries[i].select_field.label.text = col
-            if col in matches.keys():
-                sample_table_form.fields.entries[i].select_field.data = matches[col]
-
-        # Form is submittable if all columns are selected
-        submittable: bool = set(matches.values()) == set(refs)
-
+    if not table_input_form.validate_on_submit():
         return make_response(
             render_template(
-                "forms/sample_table.html",
-                columns=columns, sample_table_form=sample_table_form,
-                matches=matches, data=df.values.tolist(),
-                required_fields=refs,
-                submittable=submittable
+                "forms/sample_table_input.html",
+                table_form=table_input_form,
             ), push_url=False
         )
+
+    if table_input_form.text.data:
+        raw_text = table_input_form.text.data
+        sep = "\t" if raw_text.count("\t") > raw_text.count(",") else ","
+    elif table_input_form.file.data:
+        filename = secure_filename(table_input_form.file.data.filename)
+        table_input_form.file.data.save("data/uploads/" + filename)
+        logger.debug(f"Saved file to data/uploads/{filename}")
+        raw_text = open("data/uploads/" + filename).read()
+        sep = "\t" if filename.split(".")[-1] == "tsv" else ","
     else:
+        table_input_form.text.errors.append("Please enter text or upload a file.")
+        table_input_form.file.errors.append("Please enter text or upload a file.")
         return make_response(
             render_template(
-                "components/sample_popup.html",
-                table_form=sample_text_form,
+                "forms/sample_table_input.html",
+                table_form=table_input_form,
             ), push_url=False
         )
+
+    df = pd.read_csv(
+        StringIO(raw_text.rstrip()), sep=sep,
+        index_col=False, header=0
+    )
+
+    sample_table_form.text.data = raw_text
+
+    columns = df.columns.tolist()
+    refs = [key for key, _ in forms.SampleColSelectForm._sample_fields if key]
+    matches = tools.connect_similar_strings(forms.SampleColSelectForm._sample_fields, columns)
+
+    for i, col in enumerate(columns):
+        select_form = forms.SampleColSelectForm()
+        select_form.select_field.label.text = col
+        sample_table_form.fields.append_entry(select_form)
+        sample_table_form.fields.entries[i].select_field.label.text = col
+        if col in matches.keys():
+            sample_table_form.fields.entries[i].select_field.data = matches[col]
+
+    # Form is submittable if all columns are selected
+    submittable: bool = set(matches.values()) == set(refs)
+
+    return make_response(
+        render_template(
+            "forms/sample_col_mapping.html",
+            columns=columns, sample_table_form=sample_table_form,
+            matches=matches, data=df.values.tolist(),
+            required_fields=refs,
+            submittable=submittable
+        ), push_url=False
+    )
 
 
 @login_required
 @samples_htmx.route("table/<int:project_id>", methods=["POST"])
 def add_samples_from_table(project_id):
-    table_form = forms.SampleTableForm()
+    if (project := db.db_handler.get_project(project_id)) is None:
+        return redirect("/projects")
 
-    project = db.db_handler.get_project(project_id)
-    if not project:
-        return redirect("/projects")  # TODO: 404
-
-    if table_form.validate_on_submit():
-        df = pd.read_csv(StringIO(table_form.text.data), sep="\t", index_col=False, header=0)
-        for i, entry in enumerate(table_form.fields.entries):
-            val = entry.select_field.data.strip()
-            if not val:
-                continue
-            df.rename(columns={df.columns[i]: val}, inplace=True)
-
-        n_added = 0
-        with DBSession(db.db_handler) as session:
-            for _, row in df.iterrows():
-                session.create_sample(
-                    name=row["sample_name"],
-                    organism=row["organism"],
-                    project_id=project_id,
-                    index1=row["index1"],
-                    index2=row["index2"]
-                )
-                n_added += 1
-
-        logger.info(f"Added samples from table to project {project.name} (id: {project.id})")
-        if n_added == len(df):
-            flash(f"Added all ({n_added}) samples to project succesfully.", "success")
-        elif n_added == 0:
-            flash(f"No samples added.", "error")
-        elif n_added < len(df):
-            flash(f"Some samples ({len(df) - n_added}) could not be added.", "warning")
-
+    categorical_mapping_form = forms.CategoricalMappingForm()
+    if not categorical_mapping_form.validate_on_submit():
         return make_response(
-            redirect=url_for("projects_page.project_page", project_id=project_id),
+            render_template(
+                "forms/categorical_mapping.html",
+                form=categorical_mapping_form,
+            ), push_url=False
         )
-    else:
-        logger.debug(table_form.errors)
 
-    template = render_template(
-        "components/sample_popup.html",
-        table_form=table_form, project=project,
-    )
+    df = pd.read_csv(StringIO(categorical_mapping_form.data.data), sep="\t", index_col=False, header=0)
+
+    with DBSession(db.db_handler) as session:
+        n_added = 0
+        for _, row in df.iterrows():
+            session.create_sample(
+                name=row["sample_name"],
+                organism=row["organism"],
+                project_id=project_id,
+            )
+            n_added += 1
+
+    logger.info(f"Added samples from table to project {project.name} (id: {project.id})")
+    if n_added == len(df):
+        flash(f"Added all ({n_added}) samples to project succesfully.", "success")
+    elif n_added == 0:
+        flash("No samples added.", "error")
+    elif n_added < len(df):
+        flash(f"Some samples ({len(df) - n_added}) could not be added.", "warning")
+
     return make_response(
-        template, push_url=False
+        redirect=url_for(
+            "projects_page.project_page",
+            project_id=project_id
+        ),
+    )
+
+
+@login_required
+@samples_htmx.route("map_columns", methods=["POST"])
+def map_columns():
+    sample_table_form = forms.SampleTableForm()
+
+    if not sample_table_form.validate_on_submit():
+        template = render_template(
+            "forms/sample_col_mapping.html",
+            sample_table_form=sample_table_form,
+        )
+        return make_response(
+            template, push_url=False
+        )
+
+    df = pd.read_csv(StringIO(sample_table_form.text.data), sep="\t", index_col=False, header=0)
+    for i, entry in enumerate(sample_table_form.fields.entries):
+        val = entry.select_field.data.strip()
+        if not val:
+            continue
+        df.rename(columns={df.columns[i]: val}, inplace=True)
+
+    refs = [key for key, _ in forms.SampleColSelectForm._sample_fields if key]
+    df = df[refs]
+
+    category_mapping_form = forms.CategoricalMappingForm()
+    organisms = sorted(df["organism"].unique())
+
+    results: list[list[str]] = []
+
+    with DBSession(db.db_handler) as session:
+        for i, organism in enumerate(organisms):
+            category_mapping_form.fields.append_entry(forms.CategoricalMappingField())
+            category_mapping_form.fields.entries[i].raw_category.data = organism
+            results.append(session.query_organisms(organism, limit=20))
+        # category_mapping_form.fields.entries[i].category.data = organism
+
+    category_mapping_form.data.data = df.to_csv(sep="\t", index=False)
+
+    logger.debug(results[0])
+
+    return make_response(
+        render_template(
+            "forms/categorical_mapping.html",
+            category_mapping_form=category_mapping_form,
+            categories=organisms,
+            results=results
+        ), push_url=False
     )
 
 
@@ -215,8 +277,8 @@ def edit(sample_id):
     )
 
 
-@login_required
-@samples_htmx.route("query", methods=["POST"])
+@ login_required
+@ samples_htmx.route("query", methods=["POST"])
 def query():
     library_sample_form = forms.LibrarySampleForm()
 

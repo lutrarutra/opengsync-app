@@ -49,7 +49,7 @@ def create_app():
         next = url_for(request.endpoint, **request.view_args)
         return redirect(url_for("auth_page.auth_page", next=next))
 
-    app.register_blueprint(api.jobs_bp)
+    # app.register_blueprint(api.jobs_bp)
     app.register_blueprint(api.samples_htmx)
     app.register_blueprint(api.projects_htmx)
     app.register_blueprint(api.experiments_htmx)

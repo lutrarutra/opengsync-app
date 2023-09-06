@@ -21,10 +21,10 @@ flask-mail = "^0.9.1"
 sqlmodel = "^0.0.8"
 libsass = "^0.22.0"
 pandas = "^2.1.0"
-flask-restful = "^0.3.10"
 flask-wtf = "^1.1.1"
 wtforms-sqlalchemy = "^0.3"
 email-validator = "^2.0.0.post2"
+werkzeug = "^2.3.7"
 
 [build-system]
 requires = ["poetry-core"]

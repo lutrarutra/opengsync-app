@@ -5,14 +5,15 @@ from .. import exceptions
 from ... import categories
 from ...tools import SearchResult
 
+
 def create_organism(
-        self,
-        tax_id: int,
-        scientific_name: str,
-        category: categories.OrganismCategory,
-        common_name: Optional[str] = None,
-        commit: bool = True
-    ) -> models.Organism:
+    self,
+    tax_id: int,
+    scientific_name: str,
+    category: categories.OrganismCategory,
+    common_name: Optional[str] = None,
+    commit: bool = True
+) -> models.Organism:
 
     persist_session = self._session is not None
     if not self._session:
@@ -33,8 +34,10 @@ def create_organism(
         self._session.commit()
         self._session.refresh(organism)
 
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return organism
+
 
 def get_organism(self, tax_id: int) -> models.Organism:
     persist_session = self._session is not None
@@ -42,8 +45,10 @@ def get_organism(self, tax_id: int) -> models.Organism:
         self.open_session()
 
     res = self._session.get(models.Organism, tax_id)
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res
+
 
 def get_num_organisms(self) -> int:
     persist_session = self._session is not None
@@ -51,12 +56,14 @@ def get_num_organisms(self) -> int:
         self.open_session()
 
     res = self._session.query(models.Organism).count()
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res
-    
+
+
 def get_organisms(
-        self, limit: Optional[int]=20, offset: Optional[int]=None
-    ) -> list[models.Organism]:
+    self, limit: Optional[int] = 20, offset: Optional[int] = None
+) -> list[models.Organism]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -69,9 +76,11 @@ def get_organisms(
         organisms = query.limit(limit).all()
     else:
         organisms = query.all()
-    
-    if not persist_session: self.close_session()
+
+    if not persist_session:
+        self.close_session()
     return organisms
+
 
 def get_organisms_by_name(self, name: str) -> list[models.Organism]:
     persist_session = self._session is not None
@@ -79,21 +88,24 @@ def get_organisms_by_name(self, name: str) -> list[models.Organism]:
         self.open_session()
 
     organism = self._session.query(models.Organism).filter_by(name=name).all()
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return organism
 
-def query_organisms(self, query: str) -> list[SearchResult]:
+
+def query_organisms(self, query: str, limit: Optional[int] = 20) -> list[SearchResult]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     res = self._session.query(models.Organism).where(
         models.Organism.common_name.contains(query)
-    ).limit(20).all() + self._session.query(models.Organism).where(
+    ).limit(limit / 2).all() + self._session.query(models.Organism).where(
         models.Organism.scientific_name.contains(query)
-    ).limit(20).all()
+    ).limit(limit / 2).all()
 
     res = [SearchResult(organism.id, str(organism)) for organism in res]
 
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res

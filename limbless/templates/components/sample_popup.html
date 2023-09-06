@@ -1,8 +1,0 @@
-{% from 'components/form_group.jinja2' import form_group %}
-<form id="sample-text-form" hx-swap="outerHTML">
-    {{ table_form.csrf_token }}
-    {{ form_group(table_form.text) }}
-    <button type="button" id="parse-table-btn" class="btn btn-primary"
-    hx-target="#sample-text-form" hx-swap="outerHTML"
-    hx-post="{{ url_for('samples_htmx.readsampletable') }}">Parse Table</button>
-</form>

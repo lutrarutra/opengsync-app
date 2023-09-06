@@ -31,20 +31,18 @@ class DescriptiveEnum:
 
     @classmethod
     def values(cls, enum_type: str) -> list["DescriptiveEnum"]:
-        if enum_type not in cls.__types__.keys():
-            raise Exception(f"No DescriptiveEnums with type '{enum_type}' found.")
-
         return list(cls.__types__[enum_type].values())
 
     @classmethod
     def names(cls, enum_type: str) -> list[str]:
         return [_type.name for _type in cls.values(enum_type)]
+    
+    @classmethod
+    def as_selectable(cls, enum_type: str) -> list[tuple[int, str]]:
+        return [(_type.__id, _type.name) for _type in cls.__types__[enum_type].values()]
 
     @classmethod
-    def as_tuples(cls, enum_type: str) -> tuple[int, "DescriptiveEnum"]:
-        if enum_type not in cls.__types__.keys():
-            raise Exception(f"No DescriptiveEnums with type '{enum_type}' found.")
-
+    def as_tuples(cls, enum_type: str) -> list[tuple[int, "DescriptiveEnum"]]:
         return [(_type.__id, _type) for _type in cls.__types__[enum_type].values()]
 
     @classmethod
@@ -70,9 +68,13 @@ class EnumType:
     @classmethod
     def create(cls, _id, name, description=None) -> DescriptiveEnum:
         return DescriptiveEnum(cls.__enum_type__, _id, name, description)
+    
+    @classmethod
+    def as_selectable(cls) -> list[tuple[int, str]]:
+        return DescriptiveEnum.as_selectable(cls.__name__)
 
     @classmethod
-    def as_tuples(cls) -> tuple[int, DescriptiveEnum]:
+    def as_tuples(cls) -> list[tuple[int, DescriptiveEnum]]:
         return DescriptiveEnum.as_tuples(cls.__name__)
 
     @classmethod

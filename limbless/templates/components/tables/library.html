@@ -14,7 +14,7 @@
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
                 <th scope="row">{{ library.id }}</th>
                 <td>{{ library.name }}</td>
-                <td>{{ library.library_type }}</td>
+                <td>{{ library.library_type.name }}</td>
                 <td>{{ library.index_kit }}</td>
             </tr>
             {% endfor %}

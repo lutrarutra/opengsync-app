@@ -13,19 +13,11 @@ class SampleSelectForm(FlaskForm):
     query_field = StringField("Search", validators=[DataRequired()])
 
 
-class SampleTextForm(FlaskForm):
-    text = TextAreaField("Sample Sheet (csv/tsv)", validators=[DataRequired()])
-
-
 class SampleColSelectForm(FlaskForm):
     _sample_fields = [
         ("", "-"),
         ("sample_name", "Sample Name"),
         ("organism", "Organism"),
-        ("index1", "Index 1 (Barcode i7)"),
-        ("index2", "Index 2 (Barcode i5)"),
-        ("library_name", "Library Name"),
-        ("library_type", "Library Type"),
     ]
     select_field = SelectField(
         choices=_sample_fields,

@@ -1,18 +1,19 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 
 from flask_htmx import make_response
 from flask_login import login_required
 
-from .... import db, logger, forms
+from .... import db, logger
 
 organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism/")
 
 
 @login_required
-@organisms_htmx.route("query", methods=["POST"])
+@organisms_htmx.route("query", methods=["GET"])
 def query():
-    sample_form = forms.SampleForm()
-    query = sample_form.organism_search.data
+    query = next(request.args.values(), None)
+    logger.debug(query)
+    assert query is not None
 
     if query == "":
         q_organisms = db.common_organisms

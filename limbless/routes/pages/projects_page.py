@@ -32,11 +32,7 @@ def project_page(project_id):
 
         samples = session.get_project_samples(project_id)
 
-    table_form = forms.SampleTableForm()
-    # with open("data/test.tsv", "r") as f:
-    #     table_form.text.data = f.read()
-
-    logger.debug(db.common_organisms)
+    table_form = forms.TableForm()
 
     return render_template(
         "project_page.html", project=project,

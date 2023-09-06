@@ -1,0 +1,56 @@
+{% from 'components/form_group.jinja2' import form_group %}
+<div class="form-table-container">
+    <form id="sample-table-form">
+        <h2>Check Columns: </h2>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    {% for column in columns %}
+                    <td>
+                        {{ sample_table_form.fields.entries[loop.index-1].select_field(class="form-control select-field") }}
+                        {{ sample_table_form.fields.entries[loop.index-1].csrf_token() }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    {% for column in columns %}
+                    <th scope="col">{{ column }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    {% for col in row %}
+                    <td>{{ col }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {{ sample_table_form.text(hidden=True) }}
+        {{ sample_table_form.csrf_token(hidden=True) }}
+    </form>
+</div>
+<script>
+    const required_fields = {{ required_fields | safe }};
+    {% if submittable %}
+    $(document).ready(function() {
+        $("#submit-table-btn").removeClass("disabled");
+        $("#clear-table-btn").removeClass("disabled");
+    });
+    {% endif %}
+    $(".select-field").on("change", function() {
+        var array = [];
+        $(".select-field").each(function() {
+            array.push($(this).find(":selected").val())
+        });
+        console.log(required_fields.sort().join(""));
+        console.log(array.sort().join(""));
+        if (required_fields.sort().join("") === array.sort().join("")) {
+            $("#submit-table-btn").removeClass("disabled");
+        } else {
+            $("#submit-table-btn").addClass("disabled");
+        }
+    });
+</script>

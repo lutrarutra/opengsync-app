@@ -8,12 +8,13 @@ from ..db import db_handler
 
 
 class LibraryForm(FlaskForm):
+    _choises = categories.LibraryType.as_selectable()
     name = StringField("Library Name", validators=[
         DataRequired(), Length(min=6, max=64)
     ])
 
     library_type = SelectField(
-        "Library Type", choices=categories.LibraryType.as_tuples(),
+        "Library Type", choices=_choises,
         validators=[DataRequired()]
     )
 
