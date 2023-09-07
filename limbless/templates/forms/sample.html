@@ -3,6 +3,13 @@
 <form id="sample-form">
     {{ sample_form.csrf_token }}
     {{ form_group(sample_form.name) }}
-    {{ search_select_field(sample_form.organism, url_for('organisms_htmx.query'), results=common_organisms, selected=selected_organism) }}
-    {{ sample_form.organism(hidden=True, readonly=True) }}
+    {{ 
+        search_select_field(
+            sample_form.organism_search,
+            url_for('organisms_htmx.query'),
+            results=common_organisms,
+            selected=selected_organism
+        )
+    }}
+    {{ sample_form.organism(hidden=False, readonly=True) }}
 </form>

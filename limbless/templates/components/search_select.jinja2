@@ -5,15 +5,15 @@
     {% set field_name = field.name %}
 {% endif %}
 <div id="{{field_name}}-select" class="search-select form-group">
-    <label for="{{field_name}}_search">{{ field.label }}</label>
+    <label for="{{field_name}}">{{ field.label }}</label>
     <div class="input-group">
         <span class="input-group-text selected-label"
         id="{{field_name}}-selected-label">{{ selected }}</span>
         <input type="search"
         class="{{'form-control is-invalid search-component' if field.errors else 'form-control search-component'}}"
         autocomplete="off"
-        name="{{field_name}}_search"
-        id="{{field_name}}_search"
+        name="{{field_name}}"
+        id="{{field_name}}"
         hx-get="{{ url }}"
         hx-target="#{{field_name}}-results"
         hx-trigger="keyup changed delay:500ms, {{field_name}}"
@@ -30,23 +30,24 @@
     </div>
 </div>
 <script>
-    function select_option(name, id, field_name) {
-        console.log(field_name);
-        console.log(name);
-        console.log(id);
-        $(`#${field_name}-results`).css("display", "none");
-        $(`#${field_name}`).val(id);
-        $(`#${field_name}-selected-label`).text(name);
-        $(`#${field_name}_search`).val("");
+    function select_option(name, id, search_field_id) {
+        const value_field_id = search_field_id.replace(/_search$/, '');
 
-        if ($(`#${field_name}_search`).hasClass("is-invalid")){
-            $(`#${field_name}_search`).removeClass("is-invalid");
+        $(`#${value_field_id}-results`).css("display", "none");
+        $(`#${value_field_id}`).val(id);
+        $(`#${search_field_id}-selected-label`).text(name);
+        $(`#${search_field_id}`).val("");
+
+        if ($(`#${search_field_id}`).hasClass("is-invalid")){
+            $(`#${search_field_id}`).removeClass("is-invalid");
         }
-        $(`#${field_name}-invalid-container`).empty();
-        htmx.trigger(`#${field_name}`, "change");
+        $(`#${value_field_id}-invalid-container`).empty();
+        
+        $(`#${search_field_id}-results`).css("display", "none");
+        htmx.trigger(`#${value_field_id}`, "change");
     }
 
-    $("#{{field_name}}_search").on("focus", function(event) {
+    $("#{{field_name}}").on("focus", function(event) {
         $("#{{field_name}}-results").css("display", "block");
         $("#{{field_name}}-invalid-container").empty();
     });

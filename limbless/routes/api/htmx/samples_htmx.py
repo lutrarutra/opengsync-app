@@ -1,6 +1,6 @@
 from io import StringIO
 
-from flask import Blueprint, redirect, url_for, render_template, flash
+from flask import Blueprint, redirect, url_for, render_template, flash, request
 from flask_htmx import make_response
 from flask_login import login_required
 from werkzeug.utils import secure_filename
@@ -225,7 +225,6 @@ def map_columns():
 
     category_mapping_form.data.data = df.to_csv(sep="\t", index=False)
 
-    logger.debug(results[0])
 
     return make_response(
         render_template(
@@ -278,11 +277,11 @@ def edit(sample_id):
 
 
 @ login_required
-@ samples_htmx.route("query", methods=["POST"])
+@ samples_htmx.route("query", methods=["GET"])
 def query():
-    library_sample_form = forms.LibrarySampleForm()
-
-    query = library_sample_form.sample_search.data
+    field_name = next(iter(request.args.keys()))
+    query = request.args.get(field_name)
+    assert query is not None
 
     results = db.db_handler.query_samples(query)
 
@@ -292,6 +291,6 @@ def query():
         render_template(
             "components/search_select_results.html",
             results=results,
-            field_name="sample"
+            field_name=field_name
         ), push_url=False
     )

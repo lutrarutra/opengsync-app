@@ -4,7 +4,7 @@
     {{ index_form.csrf_token }}
     {{ 
         search_select_field(
-            index_form.sample,
+            index_form.sample_search,
             url_for('samples_htmx.query'),
             results=available_samples,
             selected=selected_sample.name if selected_sample is defined,
@@ -14,7 +14,7 @@
     value="{{ selected_sample.id if selected_sample is defined }}" hidden>
     {{ 
         search_select_field(
-            index_form.adapter,
+            index_form.adapter_search,
             url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
             results=adapters,
             selected=selected_adapter,

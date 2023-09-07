@@ -11,8 +11,8 @@ organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism
 @login_required
 @organisms_htmx.route("query", methods=["GET"])
 def query():
-    query = next(request.args.values(), None)
-    logger.debug(query)
+    field_name = next(iter(request.args.keys()))
+    query = request.args.get(field_name)
     assert query is not None
 
     if query == "":
@@ -30,6 +30,7 @@ def query():
     return make_response(
         render_template(
             "components/search_select_results.html",
-            results=q_organisms, field_name="organism"
+            results=q_organisms,
+            field_name=field_name
         ), push_url=False
     )

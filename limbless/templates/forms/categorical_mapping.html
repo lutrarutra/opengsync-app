@@ -12,7 +12,7 @@
             <div class="form-group col-9">
                 {{ 
                     search_select_field(
-                        category_mapping_form.fields.entries[loop.index-1].category_select,
+                        category_mapping_form.fields.entries[loop.index-1].category_search,
                         url_for('organisms_htmx.query'),
                         results=results[loop.index-1]
                     )

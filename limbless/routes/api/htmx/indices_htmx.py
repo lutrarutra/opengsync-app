@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 from flask_login import login_required
 
@@ -9,33 +9,33 @@ indices_htmx = Blueprint("indices_htmx", __name__, url_prefix="/api/indices/")
 
 
 @login_required
-@indices_htmx.route("query_index_kits", methods=["POST"])
+@indices_htmx.route("query_index_kits", methods=["GET"])
 def query_index_kits():
-    library_form = forms.LibraryForm()
-    query = library_form.index_kit_search.data
+    field_name = next(iter(request.args.keys()))
+    query = request.args.get(field_name)
+    assert query is not None
 
     results = db.db_handler.query_indexkit(query)
 
     return make_response(
         render_template(
             "components/search_select_results.html",
-            results=results
+            results=results,
+            field_name=field_name
         ), push_url=False
     )
 
 
 @login_required
-@indices_htmx.route("query_seq_adapters/<int:index_kit_id>", methods=["POST"])
+@indices_htmx.route("query_seq_adapters/<int:index_kit_id>", methods=["GET"])
 def query_seq_adapters(index_kit_id: int):
-    index_form = forms.SCRNAIndexForm()
-
-    query = index_form.adapter_search.data
+    field_name = next(iter(request.args.keys()))
+    query = request.args.get(field_name)
+    assert query is not None
 
     results = db.db_handler.query_adapters(
         query, index_kit_id=index_kit_id
     )
-
-    logger.debug(results)
 
     return make_response(
         render_template(
