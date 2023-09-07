@@ -1,7 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group %}
-<div class="form-table-container">
-    <form id="sample-table-form">
-        <h2>Check Columns: </h2>
+<h2>Check Columns: </h2>
+<form id="sample-table-form">
+    <div class="form-table-container">
         <table class="table table-hover">
             <thead>
                 <tr>
@@ -30,8 +30,8 @@
         </table>
         {{ sample_table_form.text(hidden=True) }}
         {{ sample_table_form.csrf_token(hidden=True) }}
-    </form>
-</div>
+    </div>
+</form>
 <script>
     const required_fields = {{ required_fields | safe }};
     {% if submittable %}

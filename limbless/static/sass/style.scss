@@ -169,7 +169,9 @@ nav {
 }
 
 .modal-body {
-    height: 80vh;
+    min-height: 70vh;
+    max-height: 85vh;
+    padding: 20px 30px 20px 30px;
     .tab-content {
         height: 100%;
         .tab-pane {
@@ -178,7 +180,7 @@ nav {
     }
 }
 
-.form-table-container{
+.form-table-container {
     height: 100%;
     width: 100%;
     overflow-x: auto;
