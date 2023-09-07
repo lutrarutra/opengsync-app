@@ -2,15 +2,19 @@ from typing import Optional
 
 from sqlmodel import create_engine, SQLModel, Session
 from sqlalchemy import orm
+from sqlalchemy_utils import database_exists, create_database
 
-from .. import models
-from .. import categories
+from .. import models, categories, logger
 
 
 class DBHandler():
-    def __init__(self, db_path, create_admin: bool = True):
-        self.db_path = db_path
-        self._engine = create_engine(f"sqlite:///{self.db_path}?check_same_thread=False")
+    def __init__(self, url: str, create_admin: bool = True):
+        self.url = url
+        # self._engine = create_engine(f"sqlite:///{self.url}?check_same_thread=False")
+        if not database_exists(self.url):
+            logger.debug(f"Created database {self.url}")
+            create_database(self.url)
+        self._engine = create_engine(self.url)
         self._session: Optional[orm.Session] = None
 
         SQLModel.metadata.create_all(self._engine)
@@ -19,9 +23,9 @@ class DBHandler():
             self.open_session()
             self.__admin = self._session.get(models.User, 1)
             if not self.__admin:
-                self.__admin = models.User(
-                    email="admin", password="password",
-                    role=categories.UserRole.ADMIN.id
+                self.__admin = self.create_user(
+                    email="admin@limbless.com", password="password",
+                    role=categories.UserRole.ADMIN
                 )
             self._session.add(self.__admin)
             self.close_session(commit=True)

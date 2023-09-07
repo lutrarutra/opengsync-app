@@ -9,6 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 Flask = "^2.3.3"
+sqlalchemy-utils = "^0.41.1"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.4"
@@ -25,6 +26,7 @@ flask-wtf = "^1.1.1"
 wtforms-sqlalchemy = "^0.3"
 email-validator = "^2.0.0.post2"
 werkzeug = "^2.3.7"
+psycopg2-binary = "^2.9.7"
 
 [build-system]
 requires = ["poetry-core"]

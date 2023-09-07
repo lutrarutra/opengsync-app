@@ -1,18 +1,13 @@
-import os
-
 from .core import DBHandler
 from .tools import SearchResult
 from .index_kits import add_index_kits
+from .sample_experiment import create_sample_experiment
 
-db_path = "data/sample_experiment.db"
+db_url = "data/sample_experiment.db"
+db_url = "postgresql://postgres:limbless@localhost/limblessdb"
 # db_path = "data/database.db"
 
-load_sample_data = not os.path.exists(db_path)
-
-if not os.path.exists("data") and db_path != ":memory:":
-    os.mkdir("data")
-
-db_handler = DBHandler(db_path)
+db_handler = DBHandler(db_url)
 
 common_organisms = [
     db_handler.get_organism(9606),
@@ -43,7 +38,6 @@ common_kits = [SearchResult(kit.id, kit.name) for kit in common_kits if kit is n
 
 add_index_kits(db_handler)
 
-if load_sample_data:
-    from .sample_experiment import create_sample_experiment
-    create_sample_experiment(db_handler)
+
+create_sample_experiment(db_handler)
     
