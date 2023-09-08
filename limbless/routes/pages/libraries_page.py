@@ -21,6 +21,7 @@ def libraries_page():
 
     return render_template(
         "libraries_page.html", libraries=libraries,
+        library_form=forms.LibraryForm(),
         n_pages=n_pages, active_page=0
     )
 

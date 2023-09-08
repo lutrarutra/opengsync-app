@@ -8,7 +8,7 @@ from .. import models, categories, logger
 
 
 class DBHandler():
-    def __init__(self, url: str, create_admin: bool = True):
+    def __init__(self, url: str):
         self.url = url
         # self._engine = create_engine(f"sqlite:///{self.url}?check_same_thread=False")
         if not database_exists(self.url):
@@ -18,17 +18,6 @@ class DBHandler():
         self._session: Optional[orm.Session] = None
 
         SQLModel.metadata.create_all(self._engine)
-
-        if create_admin:
-            self.open_session()
-            self.__admin = self._session.get(models.User, 1)
-            if not self.__admin:
-                self.__admin = self.create_user(
-                    email="admin@limbless.com", password="password",
-                    role=categories.UserRole.ADMIN
-                )
-            self._session.add(self.__admin)
-            self.close_session(commit=True)
 
     def open_session(self) -> None:
         self._session = Session(self._engine, expire_on_commit=False)

@@ -1,10 +1,12 @@
+import os
+
 import pandas as pd
 
 from limbless.core import DBHandler
 
 
-def add_index_kits(db_handler: DBHandler):
-    df = pd.read_csv("data/10x_kits/Dual_Index_Kit_NN_Set_A.csv", comment="#", index_col=0)
+def add_index_kits(db_handler: DBHandler, datadir: str = ""):
+    df = pd.read_csv(os.path.join(datadir, "10x_kits", "Dual_Index_Kit_NN_Set_A.csv"), comment="#", index_col=0)
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit NN Set A")) is None:
         seq_kit = db_handler.create_indexkit(
@@ -24,7 +26,7 @@ def add_index_kits(db_handler: DBHandler):
                 type=df.columns[i],
             )
 
-    df = pd.read_csv("data/10x_kits/Dual_Index_Kit_NT_Set_A.csv", comment="#", index_col=0)
+    df = pd.read_csv(os.path.join(datadir, "10x_kits", "Dual_Index_Kit_NT_Set_A.csv"), comment="#", index_col=0)
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit NT Set A")) is None:
         seq_kit = db_handler.create_indexkit(
@@ -43,7 +45,7 @@ def add_index_kits(db_handler: DBHandler):
                 type=df.columns[i],
             )
 
-    df = pd.read_csv("data/10x_kits/Dual_Index_Kit_TN_Set_A.csv", comment="#", index_col=0)
+    df = pd.read_csv(os.path.join(datadir, "10x_kits", "Dual_Index_Kit_TN_Set_A.csv"), comment="#", index_col=0)
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit TN Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
@@ -62,7 +64,7 @@ def add_index_kits(db_handler: DBHandler):
                 type=df.columns[i],
             )
 
-    df = pd.read_csv("data/10x_kits/Dual_Index_Kit_TT_Set_A.csv", comment="#", index_col=0)
+    df = pd.read_csv(os.path.join(datadir, "10x_kits", "Dual_Index_Kit_TT_Set_A.csv"), comment="#", index_col=0)
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit TT Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
@@ -81,7 +83,7 @@ def add_index_kits(db_handler: DBHandler):
                 type=df.columns[i],
             )
 
-    df = pd.read_csv("data/10x_kits/Single_Index_Kit_N_Set_A.csv", index_col=0, header=None)
+    df = pd.read_csv(os.path.join(datadir, "10x_kits", "Single_Index_Kit_N_Set_A.csv"), index_col=0, header=None)
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Single Index Kit N Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
@@ -101,7 +103,7 @@ def add_index_kits(db_handler: DBHandler):
                 type=cols[i],
             )
 
-    df = pd.read_csv("data/10x_kits/Single_Index_Kit_T_Set_A.csv", index_col=0, header=None)
+    df = pd.read_csv(os.path.join(datadir, "10x_kits", "Single_Index_Kit_T_Set_A.csv"), index_col=0, header=None)
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Single Index Kit T Seq A")) is None:
         seq_kit = db_handler.create_indexkit(

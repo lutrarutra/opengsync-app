@@ -29,12 +29,8 @@ def get(page):
 
 
 @login_required
-@libraries_htmx.route("create/<int:run_id>", methods=["POST"])
-def create(run_id):
-    run = db.db_handler.get_run(run_id)
-    if not run:
-        return redirect("/runs")
-
+@libraries_htmx.route("create", methods=["POST"])
+def create():
     library_form = forms.LibraryForm()
 
     if not library_form.validate_on_submit():
@@ -49,7 +45,6 @@ def create(run_id):
         name=library_form.name.data,
         library_type=library_form.library_type.data,
     )
-    db.db_handler.link_run_library(run_id, library.id)
 
     logger.debug(f"Created library '{library.name}'.")
     flash(f"Created library '{library.name}'.", "success")

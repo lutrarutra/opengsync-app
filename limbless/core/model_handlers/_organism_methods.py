@@ -1,5 +1,7 @@
 from typing import Optional
 
+import pandas as pd
+
 from ... import models
 from .. import exceptions
 from ... import categories
@@ -98,13 +100,28 @@ def query_organisms(self, query: str, limit: Optional[int] = 20) -> list[SearchR
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.Organism).where(
-        models.Organism.common_name.contains(query)
-    ).limit(limit / 2).all() + self._session.query(models.Organism).where(
-        models.Organism.scientific_name.contains(query)
-    ).limit(limit / 2).all()
+    # res = self._session.query(models.Organism).where(
+    #     models.Organism.common_name.contains(query)
+    # ).limit(limit / 2).all() + self._session.query(models.Organism).where(
+    #     models.Organism.scientific_name.contains(query)
+    # ).limit(limit / 2).all()
 
-    res = [SearchResult(organism.id, str(organism)) for organism in res]
+    q = f"""
+    SELECT
+        *,
+        greatest(similarity(common_name, %(word)s), similarity(scientific_name, %(word)s)) AS score
+    FROM
+        organism
+    WHERE
+        common_name %% %(word)s
+    OR
+        scientific_name %% %(word)s
+    ORDER BY
+        score DESC
+    LIMIT {limit};
+    """
+    res = pd.read_sql(q, self._engine, params={"word": query})
+    res = [SearchResult(int(row["tax_id"]), f"{row['scientific_name']} [{row['tax_id']}] ({row['common_name']})") for _, row in res.iterrows()]
 
     if not persist_session:
         self.close_session()

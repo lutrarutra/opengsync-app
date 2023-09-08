@@ -2,7 +2,36 @@
 {% set active_page = "libraries-page" %}
 {% block content %}
 <div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Libraries</h1>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
+                Create Library
+            </button>
+        </div>
+    </div>
     {% include "components/tables/library.html" %}
+
+    <div class="modal fade" id="form-popup" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="">Create Library</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include "forms/library.html" %}
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button class="btn btn-primary"
+                hx-include="#library-form" hx-target="#library-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('libraries_htmx.create') }}">Submit</button>
+            </div>
+          </div>
+        </div>
+    </div>
 </div>
 <script type="text/javascript">
 </script>
