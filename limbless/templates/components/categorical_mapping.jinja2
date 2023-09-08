@@ -1,0 +1,49 @@
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+{% macro categorical_mapping(form, categories, results, url, selected) -%}
+    {% for category in categories %}
+        {% set sub_form = form.fields.entries[loop.index-1] %}
+        <td>
+            <div class="row">
+                <div class="form-group col-3">
+                    {{ sub_form.raw_category.label }}
+                    {{ sub_form.raw_category(class="form-control select-field", readonly=True) }}
+                </div>
+                <div class="form-group col-9">
+                    {% if form.fields.errors[loop.index-1] %}
+                        {{ 
+                            search_select_field(
+                                field=sub_form.category_search,
+                                url=url,
+                                results=results[loop.index-1],
+                                selected=selected[loop.index-1]
+                            ) 
+                        }}
+                        <div class="invalid-feedback-container">
+                            {% for val in form.fields.errors[loop.index-1].values() %}
+                                {% for error in val %}
+                                    <p class="">{{ error }}</p>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{
+                            search_select_field(
+                                sub_form.category_search,
+                                url,
+                                results=results[loop.index-1],
+                                selected=selected[loop.index-1]
+                            )
+                        }}
+                        <div class="invalid-feedback-container">
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {{ sub_form.category(hidden=True, readonly=True) }}
+            {{ sub_form.csrf_token() }}
+        </td>
+    {% endfor %}
+    {{ form.data(class="form-control", hidden=True, readonly=True) }}
+    {{ form.csrf_token(hidden=True) }}
+{%- endmacro %}

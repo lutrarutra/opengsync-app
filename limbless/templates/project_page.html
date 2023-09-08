@@ -13,15 +13,29 @@
             <h2>Samples:</h2>
         </div>
         <div>
-            <button type="button" id="open-sample-form-popup"
-            class="btn btn-primary" data-bs-toggle="modal"
-            data-bs-target="#form-popup">
-                Add Sample(s)
+            <button type="button" id="open-sample-form-popup" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#sample-form-popup">
+                Add Sample
+            </button>
+            <button type="button" id="open-sample-table-form-popup" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#sample-table-form-popup">
+                Add Sample Table
             </button>
         </div>
     </div>
     {% include "components/tables/sample.html" %}
 
-    {% include "components/sample_form_popup.html" %}
+    <div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            {% include "components/popups/sample.html" %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            {% set project_id = project.id %}
+            {% include "components/popups/sample_table.html" %}
+        </div>
+    </div>
 </div>
 {% endblock content %}

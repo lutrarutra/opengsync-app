@@ -1,24 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group %}
 <form id="sample-table-input-form" hx-swap="outerHTML" enctype="multipart/form-data">
-    <div class="input-help">
-        <head>
-            <h3>Sample Table Input</h3>
-        </head>
-        <body>
-            <p>
-            Enter a table in the text box below or upload a file containing a table.
-            Supported file types are .csv (separated by ','), .tsv (separated by '\t').
-            </p>
-            <p><b>Required columns: <i>Sample Name</i> and <i>Sample Organism</i></b></p>
-        </body>
-    </div>
     {{ table_form.csrf_token }}
-    {{ form_group(table_form.text) }}
+    {{ form_group(table_form.data) }}
     <p>or</p>
     {{ form_group(table_form.file) }}
-    <button type="button" id="parse-table-btn" class="btn btn-primary"
-    hx-target="#sample-table-input-form" hx-swap="outerHTML"
-    hx-include="#sample-table-input-form"
-    hx-encoding="multipart/form-data"
-    hx-post="{{ url_for('samples_htmx.read_table') }}">Parse Table</button>
 </form>

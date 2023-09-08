@@ -1,0 +1,13 @@
+<div id="sample-submission-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Add Sample</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        {% include "forms/sample.html" %}
+    </div>
+    <div class="modal-footer">
+        <button id="submit-sample-btn" class="btn btn-primary" hx-include="#sample-form" hx-target="#sample-form"
+            hx-swap="outerHTML" hx-post="{{ url_for('samples_htmx.create', project_id=project.id) }}">Submit</button>
+    </div>
+</div>

@@ -7,8 +7,14 @@
             <h1>Sample: {{ sample.name }}</h1>
         </div>
         <div>
-            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-form-popup">
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#sample-form-popup">
                 Edit Sample
+            </button>
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            <button hx-get="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
+             hx-confirm="Are you sure?">
+                Delete Sample
             </button>
         </div>
     </div>
@@ -19,20 +25,19 @@
 </div>
 <div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h1 class="modal-title fs-5" id="">Edit Sample</h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="">Edit Sample</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include "forms/sample.html" %}
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button class="btn btn-primary" hx-include="#sample-form" hx-target="#sample-form" hx-swap="outerHTML"
+                    hx-post="{{ url_for('samples_htmx.edit', sample_id=sample.id) }}">Submit</button>
+            </div>
         </div>
-        <div class="modal-body">
-            {% include "forms/sample.html" %}
-        </div>
-        <div class="modal-footer" id="popup-footer">
-            <button class="btn btn-primary"
-            hx-include="#sample-form" hx-target="#sample-form" hx-swap="outerHTML"
-            hx-post="{{ url_for('samples_htmx.edit', sample_id=sample.id) }}">Submit</button>
-        </div>
-      </div>
     </div>
 </div>
 {% endblock content %}

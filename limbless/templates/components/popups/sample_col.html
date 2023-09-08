@@ -1,0 +1,21 @@
+<div id="sample-table-col-select-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Add Samples from Table</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help">
+            <p><b>Required columns: <i>Sample Name</i> and <i>Sample Organism</i></b></p>
+        </div>
+        {% include "forms/sample_col_mapping.html" %}
+    </div>
+    <div class="modal-footer">
+        <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
+            hx-target="#sample-table-col-select-container" hx-swap="outerHTML"
+            hx-include="#sample-table-col-select-form" hx-post="{{ url_for('samples_htmx.map_columns', project_id=project_id) }}">Check
+            Columns</button>
+        <button type="button"class="btn btn-danger"
+            hx-target="#sample-table-col-select-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('samples_htmx.restart_form', project_id=project_id) }}">Cancel</button>
+    </div>
+</div>

@@ -5,4 +5,4 @@ from wtforms import TextAreaField
 
 class TableForm(FlaskForm):
     file = FileField("File", validators=[])
-    text = TextAreaField("Sample Sheet (csv/tsv)", validators=[])
+    data = TextAreaField("Sample Sheet (csv/tsv)", validators=[])

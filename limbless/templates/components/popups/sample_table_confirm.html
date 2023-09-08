@@ -1,0 +1,101 @@
+<div id="confirm-sample-table-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Confirm Samples</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help">
+            <p>
+                Click on row to include/exclude sample.
+            </p>
+        </div>
+        <table class="table table-hover table-cursor">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Organism</th>
+                    <th scope="col">Organism ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sample in new_samples %}
+                <tr id="sample-select-{{ sample.id }}" onclick="toggle_sample('{{ sample.id }}')"
+                    class="sample-element {{'disabled' if errors[loop.index-1] else '' }}">
+                    <th scope="row">{{sample.id}}</th>
+                    <td>{{sample.name}}</td>
+                    <td>{{sample.organism}}</td>
+                    <td>{{sample.organism_id}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <form id="confirm-sample-table-form">
+            {{ sample_table_confirm_form.csrf_token() }}
+            {{ sample_table_confirm_form.data(hidden=True, readonly=True) }}
+            {{ sample_table_confirm_form.selected_samples(hidden=True, readonly=True) }}
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="select_all()">Select All</button>
+        <button type="button" class="btn btn-primary" onclick="deselect_all()">Remove All</button>
+        <button type="button" class="btn btn-primary" hx-target="#confirm-sample-table-container" hx-swap="outerHTML"
+            hx-include="#confirm-sample-table-form"
+            hx-post="{{ url_for('samples_htmx.add_samples_from_table', project_id=project_id) }}">Add Selected
+            Samples</button>
+
+        <button type="button" class="btn btn-danger" hx-target="#confirm-sample-table-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('samples_htmx.restart_form', project_id=project_id) }}">Cancel</button>
+    </div>
+</div>
+
+<script>
+    function toggle_sample(sample_id) {
+        var selected_str = $("#selected_samples").val();
+        var selected = selected_str.split(",");
+        var index = selected.indexOf(sample_id);
+        if ($("#sample-select-" + sample_id).hasClass("disabled")) {
+            return;
+        }
+        if (index > -1) {
+            selected.splice(index, 1);
+            $(`#sample-select-${sample_id}`).addClass("excluded");
+        } else {
+            selected.push(sample_id);
+            $(`#sample-select-${sample_id}`).removeClass("excluded");
+        }
+        $("#selected_samples").val(selected.join(","));
+
+        if (selected.length === 0 || (selected[0] === "" && selected.length === 1)) {
+            $("#map-sample-table-col-btn").prop("disabled", true);
+        } else {
+            $("#map-sample-table-col-btn").prop("disabled", false);
+        }
+    }
+
+    function deselect_all() {
+        $(".sample-element").each(function () {
+            var id = $(this).attr("id").split("-")[2];
+            if (!$(this).hasClass("disabled")) {
+                if (!$(this).hasClass("excluded")) {
+                    $(this).addClass("excluded");
+                }
+            }
+        });
+        $("#selected_samples").val("");
+    }
+
+    function select_all() {
+        var selected = [];
+        $(".sample-element").each(function () {
+            var id = $(this).attr("id").split("-")[2];
+            if (!$(this).hasClass("disabled")) {
+                if ($(this).hasClass("excluded")) {
+                    $(this).removeClass("excluded");
+                }
+                selected.push(id);
+            }
+        });
+        $("#selected_samples").val(selected.join(","));
+    }
+</script>

@@ -1,6 +1,6 @@
 from .JobForm import JobForm
 from .RunForm import RunForm
-from .sample_forms import SampleSelectForm, SampleForm, SampleTableForm, SampleColSelectForm
+from .sample_forms import SampleSelectForm, SampleForm, SampleTableForm, SampleColSelectForm, SampleTableConfirmForm
 from .ProjectForm import ProjectForm
 from .ExperimentForm import ExperimentForm
 from .LibraryForm import LibraryForm

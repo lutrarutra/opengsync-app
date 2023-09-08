@@ -13,6 +13,11 @@ class SampleSelectForm(FlaskForm):
     query_field = StringField("Search", validators=[DataRequired()])
 
 
+class SampleTableConfirmForm(FlaskForm):
+    data = TextAreaField(validators=[DataRequired()])
+    selected_samples = StringField()
+
+
 class SampleColSelectForm(FlaskForm):
     _sample_fields = [
         ("", "-"),
@@ -26,4 +31,4 @@ class SampleColSelectForm(FlaskForm):
 
 class SampleTableForm(FlaskForm):
     fields = FieldList(FormField(SampleColSelectForm))
-    text = TextAreaField(validators=[DataRequired()])
+    data = TextAreaField(validators=[DataRequired()])

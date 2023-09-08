@@ -23,11 +23,13 @@
             {% include "components/search_select_results.html" %}
         </div>
     </div>
-    <div class="invalid-feedback-container" id="{{field_name}}-invalid-container">
-        {% for error in field.errors %}
-        <p>{{ error }}</p>
-        {% endfor %}
-    </div>
+    {% if field.errors %}
+        <div class="invalid-feedback-container" id="{{field_name}}-invalid-container">
+            {% for error in field.errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
 </div>
 <script>
     function select_option(name, id, search_field_id) {

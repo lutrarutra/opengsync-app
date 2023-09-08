@@ -16,11 +16,14 @@ def create_sample(
     if not self._session:
         self.open_session()
 
-    if not self._session.get(models.Project, project_id):
+    if (project := self._session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id '{project_id}', not found.")
 
     if (organism := self._session.get(models.Organism, organism_tax_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Organism with tax_id '{organism_tax_id}', not found.")
+
+    if name in [sample.name for sample in project.samples]:
+        raise exceptions.ElementAlreadyExists(f"Sample with name '{name}' already exists in project '{project.name}'")
 
     sample = models.Sample(
         name=name,
@@ -68,14 +71,14 @@ def get_samples(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.Sample)
+    query = self._session.query(models.Sample).order_by(models.Sample.id.desc())
     if offset is not None:
         query = query.offset(offset)
 
     if limit is not None:
-        samples = query.limit(limit)
-    else:
-        samples = query.all()
+        query = query.limit(limit)
+
+    samples = query.all()
 
     if not persist_session:
         self.close_session()
@@ -148,7 +151,7 @@ def delete_sample(
 
 def query_samples(
     self, query: str,
-    user_id: Optional[int] = None,
+    user_id: Optional[int] = None,  # TODO: query from only user owned samples
     limit: Optional[int] = 20
 ) -> list[SearchResult]:
 

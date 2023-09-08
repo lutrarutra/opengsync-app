@@ -1,0 +1,29 @@
+{% from "components/categorical_mapping.jinja2" import categorical_mapping %}
+<div id="sample-table-organism-map-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Map Organisms</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <form id="sample-organism-category-mapping-form">
+            {{    
+                categorical_mapping(
+                    form=category_mapping_form,
+                    categories=categories,
+                    results=results,
+                    url=url_for('organisms_htmx.query'),
+                    selected=selected,
+                )
+            }}
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
+            hx-target="#sample-table-organism-map-container" hx-swap="outerHTML"
+            hx-include="#sample-organism-category-mapping-form" hx-post="{{ url_for('samples_htmx.map_organisms', project_id=project_id) }}">Map Organisms</button>
+        
+        <button type="button"class="btn btn-danger"
+            hx-target="#sample-table-organism-map-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('samples_htmx.restart_form', project_id=project_id) }}">Cancel</button>
+    </div>
+</div>
