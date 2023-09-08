@@ -39,6 +39,11 @@ class DBHandler():
         self._session.close()
         self._session = None
 
+    from .model_handlers._auth_methods import (
+        get_user_project_access, get_user_experiment_access,
+        get_user_library_access, get_user_sample_access
+    )
+
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
         update_project, delete_project, get_project_by_name,
@@ -108,6 +113,7 @@ class DBHandler():
         link_project_user,
         link_library_sample,
         link_run_library,
+        link_library_user,
 
         unlink_library_sample,
         unlink_run_library,

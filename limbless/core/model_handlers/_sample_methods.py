@@ -1,5 +1,7 @@
 from typing import Optional
 
+from sqlmodel import and_
+
 from ... import models
 from .. import exceptions
 from ...tools import SearchResult
@@ -53,25 +55,49 @@ def get_sample(self, sample_id: int) -> models.Sample:
     return res
 
 
-def get_num_samples(self) -> int:
+def get_num_samples(self, user_id: Optional[int] = None) -> int:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.Sample).count()
+    if user_id is None:
+        res = self._session.query(models.Sample).count()
+    else:
+        res = self._session.query(models.Sample).order_by(models.Sample.id.desc()).join(
+            models.Project, models.Project.id == models.Sample.project_id
+        ).join(
+            models.ProjectUserLink,
+            and_(
+                models.ProjectUserLink.project_id == models.Project.id,
+                models.ProjectUserLink.user_id == user_id
+            )
+        ).count()
+
     if not persist_session:
         self.close_session()
     return res
 
 
 def get_samples(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None
+    self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    user_id: Optional[int] = None
 ) -> list[models.Sample]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.Sample).order_by(models.Sample.id.desc())
+    if user_id is not None:
+        query = query.join(
+            models.Project, models.Project.id == models.Sample.project_id
+        ).join(
+            models.ProjectUserLink,
+            and_(
+                models.ProjectUserLink.project_id == models.Project.id,
+                models.ProjectUserLink.user_id == user_id
+            )
+        )
+
     if offset is not None:
         query = query.offset(offset)
 

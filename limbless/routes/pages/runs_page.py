@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, redirect
-from flask_login import login_required
+from flask import Blueprint, render_template, redirect, abort
+from flask_login import login_required, current_user
 
-from ... import db
-from ... import forms
+from ... import db, forms
 from ...core import DBSession
+from ...categories import UserRole
 
 runs_page_bp = Blueprint("runs_page", __name__)
 
@@ -11,13 +11,15 @@ runs_page_bp = Blueprint("runs_page", __name__)
 @runs_page_bp.route("/runs")
 @login_required
 def runs_page():
-    form = forms.RunForm()
+    if current_user.role_type == UserRole.CLIENT:
+        return abort(403)
+    
     with DBSession(db.db_handler) as session:
         runs = session.get_runs()
         n_pages = int(session.get_num_runs() / 20)
 
     return render_template(
-        "runs_page.html", form=form, runs=runs,
+        "runs_page.html", form=forms.RunForm(), runs=runs,
         n_pages=n_pages, page=0
     )
 
@@ -25,6 +27,9 @@ def runs_page():
 @runs_page_bp.route("/runs/<run_id>", methods=["GET", "POST"])
 @login_required
 def run_page(run_id):
+    if current_user.role_type == UserRole.CLIENT:
+        return abort(403)
+    
     with DBSession(db.db_handler) as session:
         run = session.get_run(run_id)
         if not run:

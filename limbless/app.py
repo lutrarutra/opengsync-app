@@ -67,5 +67,6 @@ def create_app():
     app.register_blueprint(pages.libraries_page_bp)
     app.register_blueprint(pages.auth_page_bp)
     app.register_blueprint(pages.user_page_bp)
+    app.register_blueprint(pages.errors_bp)
 
     return app

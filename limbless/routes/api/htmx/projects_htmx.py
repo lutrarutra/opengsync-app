@@ -1,8 +1,10 @@
 from flask import Blueprint, url_for, render_template, flash
 from flask_htmx import make_response
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from .... import db, forms, logger
+from ....categories import UserResourceRelation
+from ....core import DBSession
 
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/")
 
@@ -36,10 +38,15 @@ def create():
             template, push_url=False
         )
 
-    project = db.db_handler.create_project(
-        name=project_form.name.data,
-        description=project_form.description.data,
-    )
+    with DBSession(db.db_handler) as session:
+        project = session.create_project(
+            name=project_form.name.data,
+            description=project_form.description.data,
+        )
+        session.link_project_user(
+            project.id, user_id=current_user.id,
+            relation=UserResourceRelation.OWNER
+        )
 
     logger.debug(f"Created project {project.name}.")
     flash(f"Created project {project.name}.", "success")

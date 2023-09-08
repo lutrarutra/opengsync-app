@@ -296,9 +296,44 @@ def get_project_data(
     return project_data
 
 
+def link_library_user(
+    self, library_id: int, user_id: int,
+    relation: categories.UserResourceRelation,
+    commit: bool = True
+) -> models.LibraryUserLink:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (user := self._session.get(models.User, user_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    if self._session.query(models.LibraryUserLink).where(
+        models.LibraryUserLink.library_id == library_id,
+        models.LibraryUserLink.user_id == user_id
+    ).first():
+        raise exceptions.LinkAlreadyExists(f"User with id {user_id} and library with id {library_id} are already linked")
+
+    library_user_link = models.LibraryUserLink(
+        library_id=library_id, user_id=user_id,
+        relation_id=relation.id
+    )
+    self._session.add(library_user_link)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(library_user_link)
+
+    if not persist_session:
+        self.close_session()
+    return library_user_link
+
+
 def link_project_user(
     self, project_id: int, user_id: int,
-    role: categories.ProjectRole,
+    relation: categories.UserResourceRelation,
     commit: bool = True
 ) -> models.ProjectUserLink:
 
@@ -306,12 +341,9 @@ def link_project_user(
     if not self._session:
         self.open_session()
 
-    user = self._session.get(models.User, user_id)
-    project = self._session.get(models.Project, project_id)
-
-    if not user:
+    if (user := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-    if not project:
+    if (project := self._session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
     if self._session.query(models.ProjectUserLink).where(
@@ -322,7 +354,7 @@ def link_project_user(
 
     project_user_link = models.ProjectUserLink(
         project_id=project_id, user_id=user_id,
-        role=role.id
+        relation_id=relation.id
     )
     self._session.add(project_user_link)
 

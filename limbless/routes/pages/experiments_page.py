@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, redirect, url_for
-from flask_login import login_required
+from flask import Blueprint, render_template, redirect, url_for, abort
+from flask_login import login_required, current_user
 
 from ...core import DBSession
-from ... import forms
-from ... import db
+from ... import forms, db
+from ...categories import UserRole
 
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
@@ -11,8 +11,10 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 @experiments_page_bp.route("/experiments")
 @login_required
 def experiments_page():
+    if current_user.role_type == UserRole.CLIENT:
+        return abort(403)
+    
     experiment_form = forms.ExperimentForm()
-
     with DBSession(db.db_handler) as session:
         experiments = session.get_experiments()
         n_pages = int(session.get_num_experiments() / 20)
@@ -27,6 +29,13 @@ def experiments_page():
 @experiments_page_bp.route("/experiments/<experiment_id>")
 @login_required
 def experiment_page(experiment_id):
+    with DBSession(db.db_handler) as session:
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(404)
+        access = session.get_user_experiment_access(current_user.id, experiment_id)
+        if access is None:
+            return abort(403)
+
     experiment = db.db_handler.get_experiment(experiment_id)
     if not experiment:
         return redirect(url_for("experiments_page.experiments_page"))

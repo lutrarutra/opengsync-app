@@ -1,8 +1,8 @@
 from .tools.EnumType import EnumType
 
 
-class ProjectRole(EnumType):
-    EnumType.__enum_type__ = "ProjectRole"
+class UserResourceRelation(EnumType):
+    EnumType.__enum_type__ = "UserResourceRelation"
     OWNER = EnumType.create(1, "Owner", "")
     CONTRIBUTOR = EnumType.create(2, "Contributor", "")
     VIEWER = EnumType.create(3, "Viewer", "")
@@ -32,3 +32,9 @@ class OrganismCategory(EnumType):
     EUKARYOTA = EnumType.create(3, "Eukaryota", "")
     VIRUSES = EnumType.create(4, "Viruses", "")
     OTHER = EnumType.create(5, "Other", "")
+
+
+class AccessType(EnumType):
+    EnumType.__enum_type__ = "AccessType"
+    WRITE = EnumType.create(1, "Write", "")
+    READ = EnumType.create(2, "Read", "")

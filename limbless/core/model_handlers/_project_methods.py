@@ -4,7 +4,9 @@ from ... import models
 from .. import exceptions
 
 
-def create_project(self, name: str, description: str, commit: bool = True) -> models.Project:
+def create_project(
+    self, name: str, description: str, commit: bool = True
+) -> models.Project:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -40,12 +42,24 @@ def get_project(self, project_id: int) -> models.Project:
     return res
 
 
-def get_projects(self, limit: Optional[int] = 20, offset: Optional[int] = None) -> list[models.Project]:
+def get_projects(
+    self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    user_id: Optional[int] = None
+) -> list[models.Project]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.Project).order_by(models.Project.id.desc())
+    
+    if user_id is not None:
+        query = query.join(
+            models.ProjectUserLink,
+            models.ProjectUserLink.project_id == models.Project.id
+        ).where(
+            models.ProjectUserLink.user_id == user_id
+        )
+
     if offset is not None:
         query = query.offset(offset)
 
@@ -62,12 +76,18 @@ def get_projects(self, limit: Optional[int] = 20, offset: Optional[int] = None) 
     return projects
 
 
-def get_num_projects(self) -> int:
+def get_num_projects(self, user_id: Optional[int] = None) -> int:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-
-    res = self._session.query(models.Project).count()
+    
+    if user_id is None:
+        res = self._session.query(models.Project).count()
+    else:
+        res = self._session.query(models.ProjectUserLink).where(
+            models.ProjectUserLink.user_id == user_id
+        ).count()
+    
     if not persist_session:
         self.close_session()
     return res

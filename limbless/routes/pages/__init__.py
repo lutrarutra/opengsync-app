@@ -6,3 +6,4 @@ from .experiments_page import experiments_page_bp
 from .libraries_page import libraries_page_bp
 from .auth_page import auth_page_bp
 from .user_page import user_page_bp
+from .error_pages import errors_bp

@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, redirect
-from flask_login import login_required
+from flask import Blueprint, render_template, abort
+from flask_login import login_required, current_user
 
 from ... import db, forms, LibraryType, logger
 from ...core import DBSession
+from ...categories import UserRole
 
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
@@ -11,12 +12,16 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 @login_required
 def libraries_page():
     with DBSession(db.db_handler) as session:
-        libraries = session.get_libraries()
-        n_pages = int(session.get_num_libraries() / 20)
+        if current_user.role_type == UserRole.CLIENT:
+            libraries = session.get_libraries(limit=20, user_id=current_user.id)
+            n_pages = int(session.get_num_libraries(user_id=current_user.id) / 20)
+        else:
+            libraries = session.get_libraries(limit=20, user_id=None)
+            n_pages = int(session.get_num_libraries(user_id=None) / 20)
 
     return render_template(
         "libraries_page.html", libraries=libraries,
-        n_pages=n_pages, page=0
+        n_pages=n_pages, active_page=0
     )
 
 
@@ -24,9 +29,12 @@ def libraries_page():
 @login_required
 def library_page(library_id):
     with DBSession(db.db_handler) as session:
-        library = session.get_library(library_id)
-        if not library:
-            return redirect("/libraries")
+        if (library := session.get_library(library_id)) is None:
+            return abort(404)
+
+        access = session.get_user_library_access(current_user.id, library_id)
+        if access is None:
+            return abort(403)
 
         library.samples = session.get_library_samples(library.id)
 

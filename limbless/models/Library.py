@@ -3,14 +3,15 @@ from typing import Optional, List, TYPE_CHECKING
 from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import LibrarySampleLink, RunLibraryLink
+from .Links import LibrarySampleLink, RunLibraryLink, LibraryUserLink
 from ..categories import LibraryType
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
     from .Sample import Sample
     from .Run import Run
-    
+    from .User import User
+
 
 class Library(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -27,6 +28,9 @@ class Library(SQLModel, table=True):
     )
     runs: List["Run"] = Relationship(
         back_populates="libraries", link_model=RunLibraryLink
+    )
+    users: List["User"] = Relationship(
+        back_populates="libraries", link_model=LibraryUserLink
     )
 
     _num_samples: int = PrivateAttr(0)

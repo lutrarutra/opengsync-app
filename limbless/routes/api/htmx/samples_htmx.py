@@ -1,6 +1,6 @@
 from io import StringIO
 
-from flask import Blueprint, redirect, url_for, render_template, flash, request
+from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 from werkzeug.utils import secure_filename
@@ -35,7 +35,7 @@ def create(project_id):
 
     with DBSession(db.db_handler) as session:
         if (project := session.get_project(project_id)) is None:
-            return redirect("/projects")  # TODO: 404
+            return abort(404)
 
         sample_name_taken = name in [sample.name for sample in project.samples]
 

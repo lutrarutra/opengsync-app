@@ -22,12 +22,12 @@ def test_link_project_user(db_handler):
     assert len(db_handler.get_user_projects(user.id)) == 0
 
     project_user_link = db_handler.link_project_user(
-        project.id, user.id, role=models.ProjectRole.OWNER
+        project.id, user.id, role=models.UserResourceRelation.OWNER
     )
     assert project_user_link is not None
     assert project_user_link.project_id == project.id
     assert project_user_link.user_id == user.id
-    assert project_user_link.role == models.ProjectRole.OWNER
+    assert project_user_link.role == models.UserResourceRelation.OWNER
     
     project_users = db_handler.get_project_users(project.id)
     assert len(project_users) == 1
@@ -40,19 +40,19 @@ def test_link_project_user(db_handler):
     # Try non existent project
     with pytest.raises(exceptions.ElementDoesNotExist):
         db_handler.link_project_user(
-            -1, user.id, role=models.ProjectRole.OWNER
+            -1, user.id, role=models.UserResourceRelation.OWNER
         )
 
     # Try non existent user
     with pytest.raises(exceptions.ElementDoesNotExist):
         db_handler.link_project_user(
-            project.id, -1, role=models.ProjectRole.OWNER
+            project.id, -1, role=models.UserResourceRelation.OWNER
         )
 
     # Try duplicate link
     with pytest.raises(exceptions.LinkAlreadyExists):
         db_handler.link_project_user(
-            project.id, user.id, role=models.ProjectRole.OWNER
+            project.id, user.id, role=models.UserResourceRelation.OWNER
         )
 
     # Try invalid role
@@ -74,7 +74,7 @@ def test_unlink_project_user(db_handler):
     )
 
     project_user_link = db_handler.link_project_user(
-        project.id, user.id, role=models.ProjectRole.OWNER
+        project.id, user.id, role=models.UserResourceRelation.OWNER
     )
     assert project_user_link is not None
 

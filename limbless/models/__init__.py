@@ -10,7 +10,7 @@ from .User import User
 from .Experiment import Experiment
 from .Library import Library
 from .Organism import Organism
-from .Links import LibrarySampleLink, RunLibraryLink, ProjectUserLink
+from .Links import LibrarySampleLink, RunLibraryLink, ProjectUserLink, LibraryUserLink
 from .SeqIndex import SeqIndex
 from .IndexKit import IndexKit
 from .SeqRequest import SeqRequest

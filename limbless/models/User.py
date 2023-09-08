@@ -2,12 +2,14 @@ from typing import Optional, List, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import ProjectUserLink
+from .Links import ProjectUserLink, LibraryUserLink
 from .. import serializer
+from ..categories import UserRole
 
 if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
     from .Project import Project
+    from .Library import Library
 
 
 class UserMixin:
@@ -70,6 +72,9 @@ class User(UserMixin, SQLModel, table=True):
     projects: List["Project"] = Relationship(
         back_populates="users", link_model=ProjectUserLink
     )
+    libraries: List["Library"] = Relationship(
+        back_populates="users", link_model=LibraryUserLink
+    )
 
     @staticmethod
     def generate_registration_token(email: str):
@@ -79,6 +84,10 @@ class User(UserMixin, SQLModel, table=True):
     def verify_registration_token(token: str):
         try:
             email = serializer.loads(token, max_age=3600)["email"]
-        except: # FIXME: Specify exception
+        except:  # FIXME: Specify exception
             return None
         return email
+
+    @property
+    def role_type(self) -> UserRole:
+        return UserRole.as_dict()[self.role]

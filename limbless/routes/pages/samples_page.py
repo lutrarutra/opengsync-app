@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, redirect, url_for
-from flask_login import login_required
+from flask import Blueprint, render_template, redirect, url_for, abort
+from flask_login import login_required, current_user
 
-from ... import db
-from ... import forms
+from ... import db, forms, logger
 from ...core import DBSession
+from ...categories import UserRole
 
 samples_page_bp = Blueprint("samples_page", __name__)
 
@@ -12,8 +12,12 @@ samples_page_bp = Blueprint("samples_page", __name__)
 @login_required
 def samples_page():
     with DBSession(db.db_handler) as session:
-        samples = session.get_samples()
-        n_pages = int(session.get_num_samples() / 20)
+        if current_user.role_type == UserRole.CLIENT:
+            samples = session.get_samples(limit=20, user_id=current_user.id)
+            n_pages = int(session.get_num_samples(user_id=current_user.id) / 20)
+        else:
+            samples = session.get_samples(limit=20, user_id=None)
+            n_pages = int(session.get_num_samples(user_id=None) / 20)
 
     return render_template(
         "samples_page.html", samples=samples,
@@ -24,9 +28,13 @@ def samples_page():
 @samples_page_bp.route("/samples/<sample_id>")
 @login_required
 def sample_page(sample_id):
-    sample = db.db_handler.get_sample(sample_id)
-    if not sample:
-        return redirect(url_for("samples_page.samples_page"))
+    with DBSession(db.db_handler) as session:
+        if (sample := session.get_sample(sample_id)) is None:
+            return abort(404)
+
+        access = session.get_user_sample_access(current_user.id, sample_id)
+        if access is None:
+            return abort(403)
 
     sample_form = forms.SampleForm()
 

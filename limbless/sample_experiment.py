@@ -17,7 +17,7 @@ def create_sample_experiment(db_handler: DBHandler):
                 name=f"Project_{i+1:02d}",
                 description=f"Project_{i+1:02d} description"
             )
-            db_handler.link_project_user(project.id, user.id, categories.ProjectRole.OWNER)
+            db_handler.link_project_user(project.id, user.id, categories.UserResourceRelation.OWNER)
 
         projects.append(project)
 
@@ -55,6 +55,7 @@ def create_sample_experiment(db_handler: DBHandler):
                 categories.LibraryType.SC_RNA,
                 (i % 5) + 1,
             )
+            db_handler.link_library_user(library.id, user.id, categories.UserResourceRelation.OWNER)
 
         libs.append(library)
 

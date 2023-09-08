@@ -50,23 +50,49 @@ def get_library(self, library_id: int) -> models.Library:
     return library
 
 
-def get_libraries(self) -> list[models.Library]:
+def get_libraries(
+    self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    user_id: Optional[int] = None
+) -> list[models.Library]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    libraries = self._session.query(models.Library).all()
+    query = self._session.query(models.Library).order_by(models.Library.id.desc())
+    if user_id is not None:
+        query = query.join(
+            models.LibraryUserLink,
+            models.LibraryUserLink.library_id == models.Library.id
+        ).where(
+            models.LibraryUserLink.user_id == user_id
+        )
+        
+    if offset is not None:
+        query = query.offset(offset)
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    libraries = query.all()
+
     if not persist_session:
         self.close_session()
+
     return libraries
 
 
-def get_num_libraries(self) -> int:
+def get_num_libraries(self, user_id: Optional[int] = None) -> int:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.Library).count()
+    if user_id is None:
+        res = self._session.query(models.Library).count()
+    else:
+        res = self._session.query(models.LibraryUserLink).where(
+            models.LibraryUserLink.user_id == user_id
+        ).count()
+
     if not persist_session:
         self.close_session()
     return res
