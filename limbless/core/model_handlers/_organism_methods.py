@@ -100,12 +100,6 @@ def query_organisms(self, query: str, limit: Optional[int] = 20) -> list[SearchR
     if not self._session:
         self.open_session()
 
-    # res = self._session.query(models.Organism).where(
-    #     models.Organism.common_name.contains(query)
-    # ).limit(limit / 2).all() + self._session.query(models.Organism).where(
-    #     models.Organism.scientific_name.contains(query)
-    # ).limit(limit / 2).all()
-
     q = f"""
     SELECT
         *,
@@ -121,7 +115,12 @@ def query_organisms(self, query: str, limit: Optional[int] = 20) -> list[SearchR
     LIMIT {limit};
     """
     res = pd.read_sql(q, self._engine, params={"word": query})
-    res = [SearchResult(int(row["tax_id"]), f"{row['scientific_name']} [{row['tax_id']}] ({row['common_name']})") for _, row in res.iterrows()]
+    res = [
+        SearchResult(
+            value=int(row["tax_id"]),
+            name=f"{row['scientific_name']} [{row['tax_id']}] {'(' + row['common_name'] + ')' if row['common_name'] else ''}"
+        ) for _, row in res.iterrows()
+    ]
 
     if not persist_session:
         self.close_session()

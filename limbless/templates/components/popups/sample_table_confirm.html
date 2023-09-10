@@ -13,6 +13,7 @@
             <thead>
                 <tr>
                     <th scope="col">#</th>
+                    <th scope="col">Selected</th>
                     <th scope="col">Name</th>
                     <th scope="col">Organism</th>
                     <th scope="col">Organism ID</th>
@@ -20,9 +21,15 @@
             </thead>
             <tbody>
                 {% for sample in new_samples %}
-                <tr id="sample-select-{{ sample.id }}" onclick="toggle_sample('{{ sample.id }}')"
-                    class="sample-element {{'disabled' if errors[loop.index-1] else '' }}">
+                <tr class="{{ 'disabled' if errors[loop.index-1] }} sample-check" onclick="select_row('{{ sample.id }}')">
                     <th scope="row">{{sample.id}}</th>
+                    <td>
+                        <input  type="checkbox"
+                        class="form-check-input sample-checkbox {{'disabled' if errors[loop.index-1] else '' }}"
+                        {{ "checked" if not errors[loop.index-1] }}
+                        {{ "disabled" if errors[loop.index-1] }}
+                        id="sample-select-{{ sample.id }}" readonly>
+                    </td>
                     <td>{{sample.name}}</td>
                     <td>{{sample.organism}}</td>
                     <td>{{sample.organism_id}}</td>
@@ -33,14 +40,14 @@
         <form id="confirm-sample-table-form">
             {{ sample_table_confirm_form.csrf_token() }}
             {{ sample_table_confirm_form.data(hidden=True, readonly=True) }}
-            {{ sample_table_confirm_form.selected_samples(hidden=True, readonly=True) }}
+            {{ sample_table_confirm_form.selected_samples(hidden=False, readonly=True) }}
         </form>
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-primary" onclick="select_all()">Select All</button>
         <button type="button" class="btn btn-primary" onclick="deselect_all()">Remove All</button>
         <button type="button" class="btn btn-primary" hx-target="#confirm-sample-table-container" hx-swap="outerHTML"
-            hx-include="#confirm-sample-table-form"
+            hx-include="#confirm-sample-table-form" id="confirm-sample-table-form-btn"
             hx-post="{{ url_for('samples_htmx.add_samples_from_table', project_id=project_id) }}">Add Selected
             Samples</button>
 
@@ -50,52 +57,62 @@
 </div>
 
 <script>
-    function toggle_sample(sample_id) {
-        var selected_str = $("#selected_samples").val();
-        var selected = selected_str.split(",");
-        var index = selected.indexOf(sample_id);
-        if ($("#sample-select-" + sample_id).hasClass("disabled")) {
+    $(".sample-checkbox:checkbox").click(function() { return false; });
+
+    function select_row(sample_id) {
+        var checkbox = $("#sample-select-" + sample_id);
+        if (checkbox.hasClass("disabled")) {
             return;
         }
-        if (index > -1) {
-            selected.splice(index, 1);
-            $(`#sample-select-${sample_id}`).addClass("excluded");
+        const checked = checkbox.prop("checked");
+        
+        var selected_str = $("#selected_samples").val();
+        var selected = selected_str.split(",");
+        const index = selected.indexOf(sample_id);
+        if (checked) {
+            // checkbox was checked, uncheck it
+            checkbox.prop("checked", false);
+            if (index > -1) {
+                selected.splice(index, 1);
+            }
         } else {
-            selected.push(sample_id);
-            $(`#sample-select-${sample_id}`).removeClass("excluded");
+            // checkbox was unchecked, check it
+            checkbox.prop("checked", true);
+            if (index === -1) {
+                selected.push(sample_id);
+            }
         }
         $("#selected_samples").val(selected.join(","));
 
         if (selected.length === 0 || (selected[0] === "" && selected.length === 1)) {
-            $("#map-sample-table-col-btn").prop("disabled", true);
+            $("#confirm-sample-table-form-btn").prop("disabled", true);
         } else {
-            $("#map-sample-table-col-btn").prop("disabled", false);
+            $("#confirm-sample-table-form-btn").prop("disabled", false);
         }
     }
+    
 
     function deselect_all() {
-        $(".sample-element").each(function () {
-            var id = $(this).attr("id").split("-")[2];
-            if (!$(this).hasClass("disabled")) {
-                if (!$(this).hasClass("excluded")) {
-                    $(this).addClass("excluded");
-                }
-            }
+        $(".sample-checkbox").each(function () {
+            $(this).prop("checked", false);
         });
         $("#selected_samples").val("");
+        $("#confirm-sample-table-form-btn").prop("disabled", true);
+
     }
 
     function select_all() {
         var selected = [];
-        $(".sample-element").each(function () {
-            var id = $(this).attr("id").split("-")[2];
+        $(".sample-checkbox").each(function () {
             if (!$(this).hasClass("disabled")) {
-                if ($(this).hasClass("excluded")) {
-                    $(this).removeClass("excluded");
-                }
-                selected.push(id);
+                $(this).prop("checked", true);
+                selected.push($(this).attr("id").split("-")[2]);
             }
         });
+        console.log(selected);
         $("#selected_samples").val(selected.join(","));
+        if (selected.length > 0) {
+            $("#confirm-sample-table-form-btn").prop("disabled", false);
+        }
     }
 </script>

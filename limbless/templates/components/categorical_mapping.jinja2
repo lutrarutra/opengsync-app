@@ -11,32 +11,23 @@
                 </div>
                 <div class="form-group col-9">
                     {% if form.fields.errors[loop.index-1] %}
-                        {{ 
-                            search_select_field(
-                                field=sub_form.category_search,
-                                url=url,
-                                results=results[loop.index-1],
-                                selected=selected[loop.index-1]
-                            ) 
-                        }}
-                        <div class="invalid-feedback-container">
-                            {% for val in form.fields.errors[loop.index-1].values() %}
-                                {% for error in val %}
-                                    <p class="">{{ error }}</p>
-                                {% endfor %}
-                            {% endfor %}
-                        </div>
+                    {{ 
+                        search_select_field(
+                            field=sub_form.category,
+                            url=url,
+                            results=results[loop.index-1],
+                            selected=selected[loop.index-1]
+                        ) 
+                    }}
                     {% else %}
-                        {{
-                            search_select_field(
-                                sub_form.category_search,
-                                url,
-                                results=results[loop.index-1],
-                                selected=selected[loop.index-1]
-                            )
-                        }}
-                        <div class="invalid-feedback-container">
-                        </div>
+                    {{
+                        search_select_field(
+                            sub_form.category,
+                            url,
+                            results=results[loop.index-1],
+                            selected=selected[loop.index-1]
+                        )
+                    }}
                     {% endif %}
                 </div>
             </div>

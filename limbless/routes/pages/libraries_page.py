@@ -47,16 +47,15 @@ def library_page(library_id):
     library_sample_ids = [s.id for s in library.samples]
     available_samples = [sample.to_search_result() for sample in db.db_handler.get_user_samples(2) if sample.id not in library_sample_ids]
 
-    if library.library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
-        index_form = render_template(
-            "forms/index_forms/dual_index_form.html",
-            library=library,
-            index_form=forms.DualIndexForm(),
-            available_samples=available_samples,
-            adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
-        )
-    else:
-        assert False
+    index_form = forms.create_index_form(library.library_type)
+
+    index_form = render_template(
+        "forms/index_form.html",
+        library=library,
+        index_form=index_form,
+        available_samples=available_samples,
+        adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
+    )
 
     return render_template(
         "library_page.html",

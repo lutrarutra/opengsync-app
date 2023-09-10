@@ -6,6 +6,8 @@
     <div class="modal-body">
         <div class="input-help">
             <p><b>Required columns: <i>Sample Name</i> and <i>Sample Organism</i></b></p>
+            <p id="missing-col-list" class="requirement-list"></p>
+            <p id="duplicate-col-list" class="requirement-list"></p>
         </div>
         {% include "forms/sample_col_mapping.html" %}
     </div>

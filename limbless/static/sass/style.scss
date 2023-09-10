@@ -86,6 +86,20 @@ nav {
         align-items: center;
         justify-content: end;
         padding-right: 15px;
+        .login-btn {
+            height: 40px;
+            width: 100px;
+            display: flex;
+            align-content: center;
+            justify-content: left;
+            p {
+                padding-left: 3px; 
+                margin: auto;
+                text-overflow: ".";
+                overflow: hidden;
+                white-space: nowrap;
+            }
+        }
     }
     .nav-left {
         width: 15vw;
@@ -156,10 +170,6 @@ nav {
     }
 }
 
-table tbody .excluded td,
-table tbody .excluded th {
-    background-color: $gray-400;
-}
 
 table tbody .disabled {
     cursor: not-allowed;
@@ -209,15 +219,12 @@ table tbody .disabled th {
     .input-group {
         display: flex;
         width: 100%;
-        .input-group-text {
+        input:focus {
             border-bottom-left-radius: 0;
-            width: 30%;
-        }
-        .form-control {
             border-bottom-right-radius: 0;
         }
     }
-    .search-results-container {
+    .search-select-results {
         display: none;
         z-index: 10;
         ul {
@@ -255,5 +262,21 @@ table tbody .disabled th {
             
         }
         width: 100%;
+    }
+}
+
+.requirement-list {
+    color: $danger;
+    text-transform: capitalize;
+    height: 12px;
+    padding: 0;
+}
+
+.indices-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    .form-group {
+        flex: calc(50% - 10px);
     }
 }

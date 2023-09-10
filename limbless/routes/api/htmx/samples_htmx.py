@@ -43,27 +43,31 @@ def create(project_id):
         if sample_name_taken:
             sample_form.name.errors.append("Sample name already exists.")
 
-        query = sample_form.organism_search.data
-        if query == "" or query is None:
-            q_organisms = db.common_organisms
-        else:
-            try:
-                query = int(query)
-                if res := db.db_handler.get_organism(query):
-                    q_organisms = [res]
-                else:
-                    q_organisms = []
-            except ValueError:
-                q_organisms = db.db_handler.query_organisms(query)
+        # query = sample_form.organism_search.data
+        # if query == "" or query is None:
+        #     q_organisms = db.common_organisms
+        # else:
+        #     try:
+        #         query = int(query)
+        #         if res := db.db_handler.get_organism(query):
+        #             q_organisms = [res]
+        #         else:
+        #             q_organisms = []
+        #     except ValueError:
+        #         q_organisms = db.db_handler.query_organisms(query)
 
-        logger.debug(q_organisms)
+        q_organisms = []
+
         selected_organism = db.db_handler.get_organism(sample_form.organism.data)
+
+        logger.debug(sample_form.errors)
+        logger.debug(selected_organism)
 
         template = render_template(
             "forms/sample.html",
             sample_form=sample_form, project=project,
             sample_results=q_organisms,
-            selected_organism=str(selected_organism) if selected_organism else None
+            selected_organism=str(selected_organism) if selected_organism else ""
         )
         return make_response(
             template, push_url=False

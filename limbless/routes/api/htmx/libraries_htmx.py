@@ -1,9 +1,9 @@
 from flask import Blueprint, redirect, url_for, render_template, flash, request
 from flask_htmx import make_response
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from .... import db, logger, forms
-from .... import LibraryType
+from .... import LibraryType, UserResourceRelation
 from ....core import DBSession
 
 
@@ -34,16 +34,27 @@ def create():
     library_form = forms.LibraryForm()
 
     if not library_form.validate_on_submit():
+        selected_kit = db.db_handler.get_indexkit(library_form.index_kit.data)
         template = render_template(
-            "forms/library.html", run_form=library_form
+            "forms/library.html",
+            library_form=library_form,
+            selected_kit=selected_kit.name if selected_kit else "",
         )
         return make_response(
             template, push_url=False
         )
 
+    library_type = LibraryType.get(int(library_form.library_type.data))
     library = db.db_handler.create_library(
         name=library_form.name.data,
-        library_type=library_form.library_type.data,
+        library_type=library_type,
+        index_kit_id=library_form.index_kit.data,
+    )
+
+    db.db_handler.link_library_user(
+        library_id=library.id,
+        user_id=current_user.id,
+        relation=UserResourceRelation.OWNER
     )
 
     logger.debug(f"Created library '{library.name}'.")
@@ -54,8 +65,8 @@ def create():
     )
 
 
-@login_required
-@libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
+@ login_required
+@ libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
 def edit(library_id):
     library = db.db_handler.get_library(library_id)
     if not library:
@@ -122,16 +133,13 @@ def query():
 
 
 @login_required
-@libraries_htmx.route("<int:library_id>/add_sample")
+@libraries_htmx.route("<int:library_id>/add_sample", methods=["POST"])
 def add_sample(library_id: int):
     if (library := db.db_handler.get_library(library_id)) is None:
         logger.warning(f"Unknown library id '{library_id}'")
         return redirect("/libraries")
 
-    if library.library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
-        index_form = forms.DualIndexForm()
-    else:
-        assert False
+    index_form = forms.IndexForm()
 
     selected_adapter = index_form.adapter.data
     selected_sample_id = index_form.sample.data
@@ -146,7 +154,7 @@ def add_sample(library_id: int):
     if not index_form.validate_on_submit():
         logger.debug(index_form.errors)
         template = render_template(
-            "forms/index_forms/dual_index_form.html",
+            "forms/index_form.html",
             library=library,
             index_form=index_form,
             available_samples=[sample.to_search_result() for sample in db.db_handler.get_user_samples(2)],
@@ -159,19 +167,29 @@ def add_sample(library_id: int):
 
     # TODO: check if sample is already in the library
     with DBSession(db.db_handler) as session:
-        seq_index_id = index_form.index_i7_id.data
-        session.link_library_sample(
-            library_id=library.id,
-            sample_id=selected_sample.id,
-            seq_index_id=seq_index_id,
-        )
+        if library.library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
+            seq_index_id = index_form.index_i7_id.data
+            session.link_library_sample(
+                library_id=library.id,
+                sample_id=selected_sample.id,
+                seq_index_id=seq_index_id,
+            )
 
-        seq_index_id = index_form.index_i5_id.data
-        session.link_library_sample(
-            library_id=library.id,
-            sample_id=selected_sample.id,
-            seq_index_id=seq_index_id,
-        )
+            seq_index_id = index_form.index_i5_id.data
+            session.link_library_sample(
+                library_id=library.id,
+                sample_id=selected_sample.id,
+                seq_index_id=seq_index_id,
+            )
+        elif library.library_type in [LibraryType.SC_ATAC]:
+            seq_index_id = index_form.index_1_id.data
+            session.link_library_sample(
+                library_id=library.id,
+                sample_id=selected_sample.id,
+                seq_index_id=seq_index_id,
+            )
+
+            seq_index_id = index_form.index_2_id.data
 
     logger.debug(f"Added sample '{selected_sample}' to library '{library_id}'")
     flash(f"Added sample '{selected_sample.name}' to library '{library.name}'.", "success")

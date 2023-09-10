@@ -1,6 +1,7 @@
 from typing import Optional
 
 from sqlmodel import and_
+import pandas as pd
 
 from ... import models
 from .. import exceptions
@@ -83,23 +84,33 @@ def query_adapters(
         self.open_session()
 
     if index_kit_id is None:
-        res = self._session.query(models.SeqIndex.adapter).where(
-            models.SeqIndex.adapter.contains(query)
-        ).distinct()
+        q = f"""
+        SELECT
+            adapter,
+            similarity(lower(adapter), lower(%(word)s)) AS sml
+        FROM
+            seqindex
+        ORDER BY
+            sml DESC
+        {f'LIMIT {limit}' if limit is not None else ''};
+        """
+        res = pd.read_sql(q, self._engine, params={"word": query, "seq_kit_id": index_kit_id})
     else:
-        res = self._session.query(models.SeqIndex.adapter).where(
-            and_(
-                models.SeqIndex.adapter.contains(query),
-                models.SeqIndex.seq_kit_id == index_kit_id
-            )
-        ).distinct()
+        q = f"""
+        SELECT
+            adapter, seq_kit_id,
+            similarity(lower(adapter), lower(%(word)s)) AS sml
+        FROM
+            seqindex
+        WHERE
+            seq_kit_id = %(seq_kit_id)s
+        ORDER BY
+            sml DESC
+        {f'LIMIT {limit}' if limit is not None else ''};
+        """
+        res = pd.read_sql(q, self._engine, params={"word": query, "seq_kit_id": index_kit_id})
 
-    if limit is not None:
-        res = res.limit(limit)
-
-    res = res.all()
-
-    res = [SearchResult(a[0], a[0]) for a in res]
+    res = [SearchResult(row["adapter"], row["adapter"]) for _, row in res.iterrows()]
 
     if not persist_session:
         self.close_session()

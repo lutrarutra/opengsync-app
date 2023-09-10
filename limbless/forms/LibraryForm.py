@@ -19,7 +19,6 @@ class LibraryForm(FlaskForm):
     )
 
     index_kit = IntegerField("Index Kit", validators=[DataRequired()])
-    index_kit_search = StringField("Index Kit")
 
     def validate_name(self, name):
         if db_handler.get_library_by_name(name.data):

@@ -1,64 +1,42 @@
-{% macro search_select_field(field, url, results, selected, id) -%}
-{% if id is defined %}
-    {% set field_name = id %}
-{% else %}
-    {% set field_name = field.name %}
-{% endif %}
+{% macro search_select_field(field, url, results, selected, include_data_element=True) -%}
+{% set field_name = field.name %}
 <div id="{{field_name}}-select" class="search-select form-group">
     <label for="{{field_name}}">{{ field.label }}</label>
     <div class="input-group">
-        <span class="input-group-text selected-label"
-        id="{{field_name}}-selected-label">{{ selected }}</span>
         <input type="search"
-        class="{{'form-control is-invalid search-component' if field.errors else 'form-control search-component'}}"
+        onclick="this.select();"
+        class="{{'form-control is-invalid search-component search-select-input' if field.errors else 'form-control search-component search-select-input'}}"
         autocomplete="off"
-        name="{{field_name}}"
-        id="{{field_name}}"
+        name="{{field_name}}-search"
+        id="{{field_name}}-search"
+        aria-controls="#{{field_name}}-results"
+        value="{{ selected }}"
         hx-get="{{ url }}"
         hx-target="#{{field_name}}-results"
         hx-trigger="keyup changed delay:500ms, {{field_name}}"
         hx-swap="innerHTML"
         placeholder="Search">
-        <div id="{{field_name}}-results" class="search-results-container">
+    </div>
+    <div class="input-group">
+        <div id="{{field_name}}-results" class="search-select-results">
             {% include "components/search_select_results.html" %}
         </div>
     </div>
+    <div class="invalid-feedback-container" id="{{field_name}}-invalid-container">
     {% if field.errors %}
-        <div class="invalid-feedback-container" id="{{field_name}}-invalid-container">
             {% for error in field.errors %}
             <p>{{ error }}</p>
             {% endfor %}
-        </div>
     {% endif %}
+    </div>
 </div>
+{% if include_data_element %}
+    {{ field(hidden=False, readonly=True) }}
+{% endif %}
 <script>
-    function select_option(name, id, search_field_id) {
-        const value_field_id = search_field_id.replace(/_search$/, '');
-
-        $(`#${value_field_id}-results`).css("display", "none");
-        $(`#${value_field_id}`).val(id);
-        $(`#${search_field_id}-selected-label`).text(name);
-        $(`#${search_field_id}`).val("");
-
-        if ($(`#${search_field_id}`).hasClass("is-invalid")){
-            $(`#${search_field_id}`).removeClass("is-invalid");
-        }
-        $(`#${value_field_id}-invalid-container`).empty();
-        
-        $(`#${search_field_id}-results`).css("display", "none");
-        htmx.trigger(`#${value_field_id}`, "change");
-    }
-
-    $("#{{field_name}}").on("focus", function(event) {
+    // Shows search results when user focuses on search component
+    $("#{{field_name}}-search").on("focus", function() {
         $("#{{field_name}}-results").css("display", "block");
-        $("#{{field_name}}-invalid-container").empty();
     });
-
-    $(document).on("click", function(event) {
-        if (!event.target.classList.contains("search-component")) {
-            $("#{{field_name}}-results").css("display", "none");
-        }
-    });
-
 </script>
 {%- endmacro %}

@@ -11,7 +11,7 @@ organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism
 @login_required
 @organisms_htmx.route("query", methods=["GET"])
 def query():
-    field_name = next(iter(request.args.keys()))
+    field_name = next(iter(request.args.keys()), None)
     query = request.args.get(field_name)
     assert query is not None
 

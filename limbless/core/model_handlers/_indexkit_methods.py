@@ -1,10 +1,11 @@
 from typing import Optional, Union
 
-from sqlalchemy.orm import selectinload
+import pandas as pd
 
-from ... import models
+from ... import models, logger
 from .. import exceptions
 from ...tools import SearchResult
+
 
 def create_indexkit(
     self,
@@ -27,8 +28,10 @@ def create_indexkit(
         self._session.commit()
         self._session.refresh(seq_kit)
 
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return seq_kit
+
 
 def get_indexkit(self, id: int) -> models.IndexKit:
     persist_session = self._session is not None
@@ -36,8 +39,10 @@ def get_indexkit(self, id: int) -> models.IndexKit:
         self.open_session()
 
     res = self._session.query(models.IndexKit).where(models.IndexKit.id == id).first()
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res
+
 
 def get_indexkit_by_name(self, name: str) -> models.IndexKit:
     persist_session = self._session is not None
@@ -45,24 +50,31 @@ def get_indexkit_by_name(self, name: str) -> models.IndexKit:
         self.open_session()
 
     res = self._session.query(models.IndexKit).where(models.IndexKit.name == name).first()
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res
-    
+
+
 def query_indexkit(
     self, query: str, limit: Optional[int] = 20
 ) -> list[SearchResult]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-    res = self._session.query(models.IndexKit).where(
-        models.IndexKit.name.contains(query)
-    )
-    if limit is not None:
-        res = res.limit(limit)
 
-    res = res.all()
+    q = f"""
+    SELECT
+        *,
+        similarity(lower(name), lower(%(word)s)) as sml
+    FROM
+        indexkit
+    ORDER BY
+        sml DESC
+    LIMIT {limit};
+    """
+    res = pd.read_sql(q, self._engine, params={"word": query})
+    res = [SearchResult(int(row["id"]), row["name"]) for _, row in res.iterrows()]
 
-    res = [SearchResult(index_kit.id, str(index_kit)) for index_kit in res]
-    
-    if not persist_session: self.close_session()
+    if not persist_session:
+        self.close_session()
     return res

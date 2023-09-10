@@ -6,11 +6,10 @@
     {{ form_group(library_form.library_type) }}
     {{ 
         search_select_field(
-            library_form.index_kit_search,
+            library_form.index_kit,
             url_for('indices_htmx.query_index_kits'),
             results=common_indexkits,
             selected=selected_kit
-        ) 
+        )
     }}
-    {{ library_form.index_kit(hidden=True) }}
 </form>

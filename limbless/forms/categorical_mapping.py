@@ -5,9 +5,7 @@ from wtforms.validators import DataRequired
 
 class CategoricalMappingField(FlaskForm):
     raw_category = StringField("Category", validators=[DataRequired()])
-    
     category = IntegerField("Category", validators=[DataRequired()])
-    category_search = StringField("Category")
 
 
 class CategoricalMappingForm(FlaskForm):

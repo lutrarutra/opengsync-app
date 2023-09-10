@@ -19,4 +19,4 @@ class SeqIndex(SQLModel, table=True):
         return f"SeqIndex('{self.sequence}', {self.type})"
 
     def __repr__(self) -> str:
-        return str(self)
+        return f"{self.sequence} [{self.type}]"

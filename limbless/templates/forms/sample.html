@@ -5,11 +5,10 @@
     {{ form_group(sample_form.name) }}
     {{ 
         search_select_field(
-            sample_form.organism_search,
-            url_for('organisms_htmx.query'),
+            field=sample_form.organism,
+            url=url_for('organisms_htmx.query'),
             results=sample_results,
-            selected=selected_organism
+            selected=selected_organism,
         )
     }}
-    {{ sample_form.organism(hidden=False, readonly=True) }}
 </form>
