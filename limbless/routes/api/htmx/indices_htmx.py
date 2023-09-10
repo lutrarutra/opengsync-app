@@ -66,7 +66,7 @@ def select_indices(library_id: int):
 
     return make_response(
         render_template(
-            "forms/index_form.html",
+            "forms/index.html",
             library=library,
             index_form=index_form,
             available_samples=[sample.to_search_result() for sample in db.db_handler.get_user_samples(2)],

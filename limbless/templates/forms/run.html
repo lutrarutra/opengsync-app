@@ -1,6 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group %}
 <form id="run-form">
-    {{ run_form.csrf_token }}
+    {{ run_form.csrf_token() }}
     <div class="row">
         {{ form_group(run_form.lane, class="col") }}
     </div>

@@ -50,7 +50,7 @@ def library_page(library_id):
     index_form = forms.create_index_form(library.library_type)
 
     index_form = render_template(
-        "forms/index_form.html",
+        "forms/index.html",
         library=library,
         index_form=index_form,
         available_samples=available_samples,
@@ -65,6 +65,5 @@ def library_page(library_id):
         common_indexkits=db.common_kits,
         selected_kit=library.index_kit,
         index_form=index_form,
-
         show_indices=True
     )

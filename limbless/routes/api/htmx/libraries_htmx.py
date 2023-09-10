@@ -144,17 +144,16 @@ def add_sample(library_id: int):
     selected_adapter = index_form.adapter.data
     selected_sample_id = index_form.sample.data
 
+    selected_sample = None
     if selected_sample_id is not None:
         if (selected_sample := db.db_handler.get_sample(selected_sample_id)) is None:
             logger.warning(f"Unknown sample id '{selected_sample_id}'")
             return make_response(redirect("/libraries"))
-    else:
-        selected_sample = None
 
     if not index_form.validate_on_submit():
         logger.debug(index_form.errors)
         template = render_template(
-            "forms/index_form.html",
+            "forms/index.html",
             library=library,
             index_form=index_form,
             available_samples=[sample.to_search_result() for sample in db.db_handler.get_user_samples(2)],
@@ -167,29 +166,13 @@ def add_sample(library_id: int):
 
     # TODO: check if sample is already in the library
     with DBSession(db.db_handler) as session:
-        if library.library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
-            seq_index_id = index_form.index_i7_id.data
+        for entry in index_form.indices.entries:
+            seq_index_id = entry.index_seq_id.data
             session.link_library_sample(
                 library_id=library.id,
                 sample_id=selected_sample.id,
                 seq_index_id=seq_index_id,
             )
-
-            seq_index_id = index_form.index_i5_id.data
-            session.link_library_sample(
-                library_id=library.id,
-                sample_id=selected_sample.id,
-                seq_index_id=seq_index_id,
-            )
-        elif library.library_type in [LibraryType.SC_ATAC]:
-            seq_index_id = index_form.index_1_id.data
-            session.link_library_sample(
-                library_id=library.id,
-                sample_id=selected_sample.id,
-                seq_index_id=seq_index_id,
-            )
-
-            seq_index_id = index_form.index_2_id.data
 
     logger.debug(f"Added sample '{selected_sample}' to library '{library_id}'")
     flash(f"Added sample '{selected_sample.name}' to library '{library.name}'.", "success")

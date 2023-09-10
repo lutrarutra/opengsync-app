@@ -1,17 +1,23 @@
-{% macro form_group(field, class='') -%}
+{% macro form_group(field, class='', disabled=false) -%}
 <div class="{{class}} form-group">
-    {{ field.label }}
-    {% if field.errors %}
-        {{ field(class="form-control is-invalid", placeholder=place_holder) }}
-        <div class="invalid-feedback-container">
-            {% for error in field.errors %}
+    <a data-bs-toggle="{{ 'tooltip' if field.description else '' }}"
+    data-bs-title="{{ field.description if field.description }}"
+    data-bs-custom-class="custom-tooltip">
+        {{ field.label }}
+    </a>
+    {{ 
+        field(
+            class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else ""), 
+            placeholder=("" if disabled else ("Required" if field.flags.required else "Optional")),
+            readonly=disabled
+        ) 
+    }}
+    <div class="invalid-feedback-container">
+        {% if not disabled %}
+        {% for error in field.errors %}
             <p class="">{{ error }}</p>
-            {% endfor %}
-        </div>
-    {% else %}
-        {{ field(class="form-control", placeholder="Required" if field.flags.required else "Optional") }}
-        <div class="invalid-feedback-container">
-        </div>
-    {% endif %}
+        {% endfor %}
+        {% endif %}
+    </div>
 </div>
 {%- endmacro %}

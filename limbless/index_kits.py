@@ -91,7 +91,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
         )
 
     for adapter, row in df.iterrows():
-        cols = [f"single_index_{i+1}" for i in range(1, 5)]
+        cols = [f"single_index_{i}" for i in range(1, 5)]
         for i, seq in enumerate(row.values):
             if (indices := db_handler.get_seqindices_by_adapter(adapter)) is not None:
                 if seq in [i.sequence for i in indices]:
@@ -111,7 +111,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
         )
 
     for adapter, row in df.iterrows():
-        cols = [f"single_index_{i+1}" for i in range(1, 5)]
+        cols = [f"single_index_{i}" for i in range(1, 5)]
         for i, seq in enumerate(row.values):
             if (indices := db_handler.get_seqindices_by_adapter(adapter)) is not None:
                 if seq in [i.sequence for i in indices]:

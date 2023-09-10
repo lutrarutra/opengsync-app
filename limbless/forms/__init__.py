@@ -8,4 +8,6 @@ from .SearchForm import SearchForm
 from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm
 from .index_forms import IndexForm, create_index_form
 from .TableForm import TableForm
+from .SeqRequestForm import SeqRequestForm
+
 from .categorical_mapping import CategoricalMappingField, CategoricalMappingForm

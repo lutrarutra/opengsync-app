@@ -1,0 +1,33 @@
+{% extends "template.html" %}
+{% set active_page = "seq_requests-page" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Sequencing Requests</h1>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#seq_request-form-popup">
+                New Request
+            </button>
+        </div>
+    </div>
+    <div class="modal fade" id="seq_request-form-popup" aria-hidden="true" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Create Sequencing Request</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {% include "forms/seq_request.html" %}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form"
+                    hx-swap="outerHTML" hx-post="{{ url_for('seq_requests_htmx.create') }}">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

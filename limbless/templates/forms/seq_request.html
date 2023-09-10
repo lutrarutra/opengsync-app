@@ -1,0 +1,64 @@
+{% from 'components/form_group.jinja2' import form_group %}
+<form id="seq_request-form">
+    {{ seq_request_form.csrf_token() }}
+    
+    {{ form_group(seq_request_form.name, class="col") }}
+    {{ form_group(seq_request_form.description, class="col") }}
+    
+    <div class="row">
+        {{ form_group(seq_request_form.contact_person_name, class="col-6 col-xl-3") }}
+        {{ form_group(seq_request_form.contact_person_email, class="col-6 col-xl-5") }}
+        {{ form_group(seq_request_form.contact_person_phone, class="col-6 col-xl-4") }}
+    </div>
+
+    <div class="row">
+        {{ form_group(seq_request_form.organization_name, class="col-6 col-xl-3") }}
+        {{ form_group(seq_request_form.organization_department, class="col-6 col-xl-5") }}
+        {{ form_group(seq_request_form.organization_address, class="col-6 col-xl-4") }}
+    </div>
+
+    <div class="form-check form-switch">
+        {{ seq_request_form.billing_is_organization(class="form-check-input") }}
+        <label class="form-check-label">Use organization as billing address.</label>
+    </div>
+
+    <div class="row">
+        {{ form_group(seq_request_form.billing_contact, class="col-6 col-xl-3", disabled=seq_request_form.billing_is_organization.data) }}
+        {{ form_group(seq_request_form.billing_address, class="col-6 col-xl-5", disabled=seq_request_form.billing_is_organization.data) }}
+        {{ form_group(seq_request_form.billing_code, class="col-6 col-xl-4") }}
+    </div>
+</form>
+
+<script>
+    $("#billing_is_organization").on("click", function(){
+        const checked = $(this).is(":checked");
+        if (checked){
+            $("#billing_contact").addClass("disabled");
+            $("#billing_contact").prop("readonly", true);
+            $("#billing_contact").val($("#organization_name").val());
+
+            $("#billing_address").addClass("disabled");
+            $("#billing_address").prop("readonly", true);
+            $("#billing_address").val($("#organization_address").val());
+
+        } else {
+            $("#billing_contact").removeClass("disabled");
+            $("#billing_contact").prop("readonly", false);
+            $("#billing_contact").val("");
+
+            $("#billing_address").removeClass("disabled");
+            $("#billing_address").prop("readonly", false);
+            $("#billing_address").val("");
+        }
+    });
+    $("#organization_name").on("keyup", function(){
+        if ($("#billing_is_organization").is(":checked")){
+            $("#billing_contact").val($(this).val());
+        }
+    });
+    $("#organization_address").on("keyup", function(){
+        if ($("#billing_is_organization").is(":checked")){
+            $("#billing_address").val($(this).val());
+        }
+    });
+</script>

@@ -40,6 +40,11 @@ body {
     overflow-x: hidden;
 }
 
+.custom-tooltip {
+  --bs-tooltip-bg: #222529;
+  --bs-tooltip-color: #fff;
+}
+
 nav {
     width: 100vw;
     height: 60px;
@@ -115,12 +120,24 @@ nav {
     cursor: pointer;
 }
 
+.modal-xl {
+    min-width: 80vw;
+    .modal-content {
+        width: 100%;
+    }
+}
+
 .modal-body {
-    max-height: 60vh;
-    min-height: 40vh;
-    width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
+    min-height: 70vh;
+    max-height: 85vh;
+    padding: 20px 30px 20px 30px;
+
+    .tab-content {
+        height: 100%;
+        .tab-pane {
+            height: 100%;
+        }
+    }
 }
 
 .alert {
@@ -170,6 +187,18 @@ nav {
     }
 }
 
+input.disabled {
+    background-color: var(--bs-secondary-bg);
+    opacity: 1;
+    box-shadow: none;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+input.disabled:focus {
+    box-shadow: none;
+    background-color: var(--bs-secondary-bg);
+    border: var(--bs-border-width) solid var(--bs-border-color);
+}
 
 table tbody .disabled {
     cursor: not-allowed;
@@ -190,18 +219,6 @@ table tbody .disabled th {
         height: 20px;
         color: $danger;
         font-size: 14px;
-    }
-}
-
-.modal-body {
-    min-height: 70vh;
-    max-height: 85vh;
-    padding: 20px 30px 20px 30px;
-    .tab-content {
-        height: 100%;
-        .tab-pane {
-            height: 100%;
-        }
     }
 }
 

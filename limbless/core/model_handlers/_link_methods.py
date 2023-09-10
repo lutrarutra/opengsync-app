@@ -3,9 +3,8 @@ from typing import Optional, Union
 from sqlalchemy.orm import selectinload
 from sqlmodel import and_
 
-from ... import models
+from ... import models, logger, categories
 from .. import exceptions
-from ... import categories
 
 
 def get_user_projects(self, user_id: int) -> list[models.Project]:
@@ -127,19 +126,28 @@ def get_library_samples(self, library_id: int) -> list[models.Sample]:
     if self._session.get(models.Library, library_id) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
-    library_samples = self._session.query(models.Sample).join(
+    res = self._session.query(models.Sample, models.SeqIndex).join(
         models.LibrarySampleLink,
-        models.LibrarySampleLink.sample_id == models.Sample.id
+        and_(
+            models.LibrarySampleLink.sample_id == models.Sample.id,
+            models.LibrarySampleLink.library_id == library_id
+        )
     ).join(
-        models.Organism, models.Sample.organism_id == models.Organism.tax_id
-    ).join(
-        models.SeqIndex, models.LibrarySampleLink.seq_index_id == models.SeqIndex.id
-    ).options(
-        selectinload(models.Sample.organism),
-        selectinload(models.Sample.indices)
+        models.SeqIndex,
+        models.LibrarySampleLink.seq_index_id == models.SeqIndex.id
     ).where(
         models.LibrarySampleLink.library_id == library_id
     ).all()
+
+    library_samples = {}
+    for sample, seq_index in res:
+        if sample.id not in library_samples:
+            library_samples[sample.id] = sample
+            library_samples[sample.id].indices = []
+
+        library_samples[sample.id].indices.append(seq_index)
+
+    library_samples = list(library_samples.values())
 
     if not persist_session:
         self.close_session()

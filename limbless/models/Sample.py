@@ -28,7 +28,7 @@ class Sample(SQLModel, table=True):
     )
     indices: List["SeqIndex"] = Relationship(
         link_model=LibrarySampleLink,
-        sa_relationship_kwargs={"lazy": "noload", "viewonly": True},
+        sa_relationship_kwargs={"lazy": "noload", "viewonly": True}
     )
 
     def to_dict(self):

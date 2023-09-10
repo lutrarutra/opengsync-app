@@ -4,12 +4,14 @@ import warnings
 from flask import Flask, render_template, redirect, request, url_for
 from sassutils.wsgi import SassMiddleware
 
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY
+from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger
 from .routes import api, pages
 
 
 def create_app():
     app = Flask(__name__)
+
+    app.debug = os.getenv("FLASK_DEBUG") == "1"
 
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAIL_SERVER"] = "smtp-relay.sendinblue.com"
@@ -48,6 +50,10 @@ def create_app():
     def unauthorized():
         next = url_for(request.endpoint, **request.view_args)
         return redirect(url_for("auth_page.auth_page", next=next))
+    
+    @app.context_processor
+    def inject_debug():
+        return dict(debug=app.debug)
 
     # app.register_blueprint(api.jobs_bp)
     app.register_blueprint(api.samples_htmx)
@@ -58,6 +64,7 @@ def create_app():
     app.register_blueprint(api.auth_htmx)
     app.register_blueprint(api.organisms_htmx)
     app.register_blueprint(api.indices_htmx)
+    app.register_blueprint(api.seq_requests_htmx)
 
     app.register_blueprint(pages.runs_page_bp)
     app.register_blueprint(pages.samples_page_bp)
@@ -67,6 +74,7 @@ def create_app():
     app.register_blueprint(pages.libraries_page_bp)
     app.register_blueprint(pages.auth_page_bp)
     app.register_blueprint(pages.user_page_bp)
+    app.register_blueprint(pages.seq_requests_page_bp)
     app.register_blueprint(pages.errors_bp)
 
     return app
