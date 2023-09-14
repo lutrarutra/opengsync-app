@@ -41,6 +41,9 @@ def project_page(project_id):
 
     table_form = forms.TableForm()
 
+    logger.debug(db.common_kits)
+    logger.debug(db.common_organisms)
+
     return render_template(
         "project_page.html", project=project,
         sample_form=forms.SampleForm(),

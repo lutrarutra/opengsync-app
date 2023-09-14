@@ -20,7 +20,9 @@ def libraries_page():
             n_pages = int(session.get_num_libraries(user_id=None) / 20)
 
     return render_template(
-        "libraries_page.html", libraries=libraries,
+        "libraries_page.html",
+        libraries=libraries,
+        index_kit_results=db.common_kits,
         library_form=forms.LibraryForm(),
         n_pages=n_pages, active_page=0
     )
@@ -60,10 +62,8 @@ def library_page(library_id):
     return render_template(
         "library_page.html",
         library=library,
-
-        library_form=library_form,
-        common_indexkits=db.common_kits,
         selected_kit=library.index_kit,
+        library_form=library_form,
         index_form=index_form,
         show_indices=True
     )

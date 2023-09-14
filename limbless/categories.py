@@ -18,6 +18,7 @@ class UserRole(EnumType):
 
 class LibraryType(EnumType):
     EnumType.__enum_type__ = "LibraryType"
+    RAW = EnumType.create(0, "Raw", "")
     SC_RNA = EnumType.create(1, "single-cell RNA-Seq", "")
     SN_RNA = EnumType.create(2, "single-nucleus RNA-Seq", "")
     SC_ATAC = EnumType.create(3, "single-cell ATAC-Seq", "")

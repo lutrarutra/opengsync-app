@@ -313,9 +313,9 @@ def link_library_user(
     if not self._session:
         self.open_session()
 
-    if (user := self._session.get(models.User, user_id)) is None:
+    if (_ := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (_ := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
     if self._session.query(models.LibraryUserLink).where(
@@ -349,9 +349,9 @@ def link_project_user(
     if not self._session:
         self.open_session()
 
-    if (user := self._session.get(models.User, user_id)) is None:
+    if (_ := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-    if (project := self._session.get(models.Project, project_id)) is None:
+    if (_ := self._session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
     if self._session.query(models.ProjectUserLink).where(
@@ -480,7 +480,7 @@ def link_library_sample(
     self,
     library_id: int,
     sample_id: int,
-    seq_index_id: int,
+    seq_index_id: Optional[int] = None,
     commit: bool = True
 ) -> models.LibrarySampleLink:
 
@@ -488,12 +488,13 @@ def link_library_sample(
     if not self._session:
         self.open_session()
 
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (_ := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
+    if (_ := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    if (seq_index := self._session.get(models.SeqIndex, seq_index_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")
+    if seq_index_id is not None:
+        if (_ := self._session.get(models.SeqIndex, seq_index_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")
 
     if self._session.query(models.LibrarySampleLink).where(
         models.LibrarySampleLink.library_id == library_id,

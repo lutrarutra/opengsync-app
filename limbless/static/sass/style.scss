@@ -247,6 +247,7 @@ table tbody .disabled th {
     }
 }
 
+
 .search-select {
     .input-group {
         display: flex;
@@ -256,6 +257,7 @@ table tbody .disabled th {
             border-bottom-right-radius: 0;
         }
     }
+
     .search-select-results {
         display: none;
         z-index: 10;
@@ -274,18 +276,19 @@ table tbody .disabled th {
                 background-color: $gray-100;
             }
             .list-group-item {
-                display: flex;
-                align-items: center;
-                justify-content: start;
-                gap: 10px;
+                .search-select-name {
+                    font-weight: 600;
+                    min-width: 120px;
+                }
+                .search-select-desc {
+                    color: $gray-500;
+                    padding-left: 10px;
+                }
                 height: 40px;
                 width: 100%;
                 div {
                     display: flex;
                     align-items: center;
-                }
-                .search-select-desc {
-                    color: $gray-500;
                 }
             }
             .list-group-item:hover {

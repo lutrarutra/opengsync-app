@@ -13,7 +13,7 @@ class LibrarySampleLink(SQLModel, table=True):
         foreign_key="sample.id", primary_key=True
     )
     seq_index_id: int = Field(
-        foreign_key="seqindex.id", primary_key=True
+        foreign_key="seqindex.id", primary_key=True, nullable=True
     )
     # seq_index_type: int = Field(nullable=False, primary_key=True)
 

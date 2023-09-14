@@ -2,16 +2,16 @@
 {% if results | length > 0 %}
     {% for res in results %}
     <li>
-        <option id="option-{{ field_name}}-{{ loop.index }}"
+        <a id="option-{{ field_name}}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         value="{{ res.value }}"
         onclick="select_option('{{ res.name }}', '{{ res.value }}', '{{ field_name }}');"
         aria-controls="{{ field_name }}">
-            <div class="search-select-name">{{ res.name }}</div>
+            <span class="search-select-name">{{ res.name }}</span>
             {% if res.description %}
-            <div class="search-select-desc">({{ res.description }})</div>
+            <span class="search-select-desc">(Project: {{ res.description }})</span>
             {% endif %}
-        </option>
+        </a>
     </li>
     {% endfor %}
 {% else %}
