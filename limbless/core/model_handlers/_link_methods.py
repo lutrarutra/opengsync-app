@@ -488,18 +488,32 @@ def link_library_sample(
     if not self._session:
         self.open_session()
 
+    if seq_index_id is None:
+        seq_index_id = 0
+
     if (_ := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     if (_ := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    if seq_index_id is not None:
-        if (_ := self._session.get(models.SeqIndex, seq_index_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")
+    if (_ := self._session.get(models.SeqIndex, seq_index_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")        
+        
+    logger.debug(
+        self._session.query(models.LibrarySampleLink).where(
+            and_(
+                models.LibrarySampleLink.library_id == library_id,
+                models.LibrarySampleLink.sample_id == sample_id,
+                models.LibrarySampleLink.seq_index_id == seq_index_id,
+            )
+        ).first()
+    )
 
     if self._session.query(models.LibrarySampleLink).where(
-        models.LibrarySampleLink.library_id == library_id,
-        models.LibrarySampleLink.sample_id == sample_id,
-        models.LibrarySampleLink.seq_index_id == seq_index_id,
+        and_(
+            models.LibrarySampleLink.library_id == library_id,
+            models.LibrarySampleLink.sample_id == sample_id,
+            models.LibrarySampleLink.seq_index_id == seq_index_id,
+        )
     ).first():
         raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and sample with id {sample_id} are already linked")
 

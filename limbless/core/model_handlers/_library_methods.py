@@ -187,7 +187,7 @@ def query_libraries(
 
     q = """
     SELECT
-        *,
+        id, name,
         similarity(lower(library.name), lower(%(word)s)) as sml
     FROM
         library

@@ -1,14 +1,16 @@
 from io import StringIO
+from typing import Optional
 
 from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
-from flask_login import login_required
+from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
 import pandas as pd
 
 from .... import db, logger, forms, tools, models
 from ....core import DBSession
+from ....categories import UserRole
 
 samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/samples/")
 
@@ -414,13 +416,22 @@ def edit(sample_id):
 
 
 @login_required
-@samples_htmx.route("query", methods=["GET"])
-def query():
+@samples_htmx.route("query", methods=["GET"], defaults={"exclude_library_id": None})
+@samples_htmx.route("query/<int:exclude_library_id>", methods=["GET"])
+def query(exclude_library_id: Optional[int] = None):
     field_name = next(iter(request.args.keys()))
     query = request.args.get(field_name)
-    assert query is not None
 
-    results = db.db_handler.query_samples(query)
+    if current_user.role_type == UserRole.CLIENT:
+        _user_id = current_user.id
+    else:
+        _user_id = None
+    if exclude_library_id is None:
+        results = db.db_handler.query_samples(query, user_id=_user_id)
+    else:
+        results = db.db_handler.query_samples_for_library(
+            query, exclude_library_id=exclude_library_id, user_id=_user_id
+        )
 
     logger.debug(results)
 

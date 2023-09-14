@@ -2,9 +2,8 @@ from flask import Blueprint, redirect, url_for, render_template, flash, request
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, logger, forms
-from .... import LibraryType, UserResourceRelation
-from ....core import DBSession
+from .... import db, logger, forms, LibraryType, UserResourceRelation
+from ....core import DBSession, exceptions
 from ....categories import UserRole
 
 
@@ -197,18 +196,26 @@ def add_sample(library_id: int):
         with DBSession(db.db_handler) as session:
             for entry in index_form.indices.entries:
                 seq_index_id = entry.index_seq_id.data
+                try:
+                    session.link_library_sample(
+                        library_id=library.id,
+                        sample_id=selected_sample.id,
+                        seq_index_id=seq_index_id,
+                    )
+                except exceptions.LinkAlreadyExists:
+                    logger.warning(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{seq_index_id}'")
+                    flash(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{seq_index_id}'.", "warning")
+    else:
+        with DBSession(db.db_handler) as session:
+            try:
                 session.link_library_sample(
                     library_id=library.id,
                     sample_id=selected_sample.id,
-                    seq_index_id=seq_index_id,
+                    seq_index_id=None,
                 )
-    else:
-        with DBSession(db.db_handler) as session:
-            session.link_library_sample(
-                library_id=library.id,
-                sample_id=selected_sample.id,
-                seq_index_id=None,
-            )
+            except exceptions.LinkAlreadyExists:
+                logger.warning(f"Sample '{selected_sample}' already linked to library '{library.id}'")
+                flash(f"Sample '{selected_sample}' already linked to library '{library.id}''.", "warning")
 
     logger.debug(f"Added sample '{selected_sample}' to library '{library_id}'")
     flash(f"Added sample '{selected_sample.name}' to library '{library.name}'.", "success")

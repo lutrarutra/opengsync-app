@@ -5,7 +5,7 @@
     {{
         search_select_field(
             index_form.sample,
-            url_for('samples_htmx.query'),
+            url_for('samples_htmx.query', exclude_library_id=library.id),
             results=available_samples,
             selected=selected_sample.name if selected_sample is defined,
         )

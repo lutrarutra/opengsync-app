@@ -27,7 +27,8 @@ class SeqRequest(SQLModel, table=True):
 
     libraries: List["Library"] = Relationship(
         back_populates="seq_requests",
-        link_model=LibrarySeqRequestLink
+        link_model=LibrarySeqRequestLink,
+        sa_relationship_kwargs={"lazy": "joined"}
     )
     
     contact_person: "Contact" = Relationship(

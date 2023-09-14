@@ -1,5 +1,6 @@
 from typing import Optional
 
+import pandas as pd
 from sqlmodel import and_
 
 from ... import models
@@ -198,5 +199,93 @@ def query_samples(
 
     if not persist_session:
         self.close_session()
+
+    return res
+
+# This excludes samples already existing in the library
+
+
+def query_samples_for_library(
+    self, word: str,
+    exclude_library_id: int,
+    user_id: Optional[int] = None,
+    limit: Optional[int] = 20
+) -> list[SearchResult]:
+
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if self._session.get(models.Library, exclude_library_id) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {exclude_library_id} does not exist")
+
+    if user_id is not None:
+        q = """
+        SELECT
+            sample.id, sample.name, project.name as project_name,
+            similarity(lower(sample.name), lower(%(word)s)) as sml
+        FROM
+            projectuserlink
+        JOIN
+            project
+        ON
+            projectuserlink.project_id = project.id
+        JOIN
+            sample
+        ON
+            sample.project_id = project.id
+        LEFT JOIN
+            librarysamplelink
+        ON
+            librarysamplelink.sample_id = sample.id
+        WHERE
+            projectuserlink.user_id = 2
+            AND
+            (
+                librarysamplelink.library_id != %(library_id)s
+                OR
+                librarysamplelink.library_id IS NULL
+            )
+        ORDER BY
+            sml DESC
+        """
+    else:
+        q = """
+            SELECT
+                sample.id, sample.name, project.name as project_name,
+                similarity(lower(sample.name), lower(%(word)s)) as sml
+            FROM
+                sample
+            LEFT JOIN
+                librarysamplelink
+            ON
+                sample.id = librarysamplelink.sample_id
+            JOIN
+                project
+            ON
+                sample.project_id = project.id
+            WHERE
+                librarysamplelink.library_id != %(library_id)s
+            OR
+                librarysamplelink.library_id IS NULL
+            ORDER BY
+                sml DESC
+            """
+
+    if limit is not None:
+        q += f"LIMIT {limit};"
+
+    res = pd.read_sql(q, self._engine, params={"word": word, "library_id": exclude_library_id})
+
+    if not persist_session:
+        self.close_session()
+
+    res = [
+        SearchResult(
+            value=sample["id"],
+            name=sample["name"],
+            description=sample["project_name"]
+        ) for _, sample in res.iterrows()
+    ]
 
     return res
