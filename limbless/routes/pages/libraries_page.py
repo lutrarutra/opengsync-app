@@ -50,8 +50,7 @@ def library_page(library_id):
     available_samples = [sample.to_search_result() for sample in db.db_handler.get_user_samples(2) if sample.id not in library_sample_ids]
 
     index_form = forms.create_index_form(library.library_type)
-
-    index_form = render_template(
+    index_form_html = render_template(
         "forms/index.html",
         library=library,
         index_form=index_form,
@@ -64,6 +63,6 @@ def library_page(library_id):
         library=library,
         selected_kit=library.index_kit,
         library_form=library_form,
-        index_form=index_form,
-        show_indices=True
+        index_form=index_form_html,
+        show_indices=library.library_type != LibraryType.RAW,
     )

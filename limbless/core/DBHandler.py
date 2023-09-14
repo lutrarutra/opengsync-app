@@ -61,7 +61,7 @@ class DBHandler():
     from .model_handlers._library_methods import (
         create_library, get_library, get_libraries,
         delete_library, update_library, get_library_by_name,
-        get_num_libraries
+        get_num_libraries, query_libraries
     )
 
     from .model_handlers._user_methods import (
@@ -112,6 +112,7 @@ class DBHandler():
         link_library_sample,
         link_run_library,
         link_library_user,
+        link_library_seq_request,
 
         unlink_library_sample,
         unlink_run_library,

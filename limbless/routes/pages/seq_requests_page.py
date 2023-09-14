@@ -73,5 +73,6 @@ def seq_request_page(seq_request_id: int):
     return render_template(
         "seq_request_page.html",
         seq_request=seq_request,
+        select_library_form=forms.SelectLibraryForm(),
         seq_request_form=seq_request_form
     )

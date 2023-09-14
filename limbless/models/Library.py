@@ -3,7 +3,7 @@ from typing import Optional, List, TYPE_CHECKING
 from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import LibrarySampleLink, RunLibraryLink, LibraryUserLink
+from .Links import LibrarySampleLink, RunLibraryLink, LibraryUserLink, LibrarySeqRequestLink
 from ..categories import LibraryType
 
 if TYPE_CHECKING:
@@ -11,15 +11,16 @@ if TYPE_CHECKING:
     from .Sample import Sample
     from .Run import Run
     from .User import User
+    from .SeqRequest import SeqRequest
 
 
 class Library(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True, unique=True)
     library_type_id: int = Field(nullable=False)
-
-    index_kit_id: int = Field(nullable=False, foreign_key="indexkit.id")
-    index_kit: "IndexKit" = Relationship(
+    
+    index_kit_id: int = Field(nullable=True, foreign_key="indexkit.id")
+    index_kit: Optional["IndexKit"] = Relationship(
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
@@ -31,6 +32,10 @@ class Library(SQLModel, table=True):
     )
     users: List["User"] = Relationship(
         back_populates="libraries", link_model=LibraryUserLink
+    )
+    seq_requests: List["SeqRequest"] = Relationship(
+        back_populates="libraries",
+        link_model=LibrarySeqRequestLink
     )
 
     _num_samples: int = PrivateAttr(0)

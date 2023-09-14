@@ -137,3 +137,38 @@ def create():
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
     )
+
+
+@login_required
+@seq_requests_htmx.route("<int:seq_request_id>/add_library", methods=["POST"])
+def add_library(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(404)
+
+    if seq_request.requestor_id != current_user.id:
+        if current_user.role_type != UserRole.ADMIN:
+            return abort(403)
+
+    select_library_form = forms.SelectLibraryForm()
+
+    if not select_library_form.validate_on_submit():
+        template = render_template(
+            "forms/seq_request/select_library.html",
+            select_library_form=select_library_form
+        )
+        return make_response(
+            template, push_url=False
+        )
+    
+    library_id = select_library_form.library.data
+    if (library := db.db_handler.get_library(library_id)) is None:
+        return abort(404)
+    
+    _ = db.db_handler.link_library_seq_request(library_id, seq_request_id)
+
+    flash(f"Added library '{library.name}' to sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Added library '{library.name}' to sequencing request '{seq_request.name}'")
+
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
+    )

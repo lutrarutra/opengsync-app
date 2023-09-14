@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, IntegerField
-from wtforms.validators import DataRequired, Length, ValidationError
+from wtforms.validators import DataRequired, Length, ValidationError, Optional
 
 
 from .. import categories
@@ -18,7 +18,7 @@ class LibraryForm(FlaskForm):
         validators=[DataRequired()]
     )
 
-    index_kit = IntegerField("Index Kit", validators=[DataRequired()])
+    index_kit = IntegerField("Index Kit", validators=[Optional()])
 
     def validate_name(self, name):
         if db_handler.get_library_by_name(name.data):

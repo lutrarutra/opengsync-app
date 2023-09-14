@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, FieldList, FormField
 
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Optional
 
 from ..categories import LibraryType
 
@@ -13,8 +13,7 @@ class IndexSeqForm(FlaskForm):
 
 class IndexForm(FlaskForm):
     sample = IntegerField("Sample", validators=[DataRequired()])
-    adapter = StringField("Adapter", validators=[DataRequired()])
-
+    adapter = StringField("Adapter", validators=[Optional()])
     indices = FieldList(FormField(IndexSeqForm), min_entries=0)
 
 
@@ -45,5 +44,7 @@ def create_index_form(library_type: LibraryType) -> IndexForm:
         return __crete_dual_index_form()
     elif library_type in [LibraryType.SC_ATAC]:
         return __create_atac_index_form()
+    elif library_type in [LibraryType.RAW]:
+        return IndexForm()
 
     raise NotImplementedError(f"Index form for library type '{library_type}' not implemented.")

@@ -1,12 +1,14 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List
 
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import SeqRequestStatus
+from .Links import LibrarySeqRequestLink
 
 if TYPE_CHECKING:
     from .User import User
     from .Contact import Contact
+    from .Library import Library
 
 
 class SeqRequest(SQLModel, table=True):
@@ -22,6 +24,11 @@ class SeqRequest(SQLModel, table=True):
     person_contact_id: int = Field(nullable=False, foreign_key="contact.id")
     billing_contact_id: int = Field(nullable=False, foreign_key="contact.id")
     bioinformatician_contact_id: int = Field(nullable=True, foreign_key="contact.id")
+
+    libraries: List["Library"] = Relationship(
+        back_populates="seq_requests",
+        link_model=LibrarySeqRequestLink
+    )
     
     contact_person: "Contact" = Relationship(
         sa_relationship_kwargs={

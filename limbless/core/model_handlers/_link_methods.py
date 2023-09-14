@@ -505,7 +505,7 @@ def link_library_sample(
 
     library_sample_link = models.LibrarySampleLink(
         library_id=library_id, sample_id=sample_id,
-        seq_index_id=seq_index_id
+        seq_index_id=seq_index_id if seq_index_id is not None else 0
     )
     self._session.add(library_sample_link)
 
@@ -584,3 +584,38 @@ def get_user_samples(
         self.close_session()
 
     return res
+
+
+def link_library_seq_request(
+    self, library_id: int, seq_request_id: int,
+    commit: bool = True
+) -> models.LibrarySeqRequestLink:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    if (_ := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
+
+    if self._session.query(models.LibrarySeqRequestLink).where(
+        models.LibrarySeqRequestLink.library_id == library_id,
+        models.LibrarySeqRequestLink.seq_request_id == seq_request_id,
+    ).first():
+        raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and SeqRequest with id {seq_request_id} are already linked")
+
+    library_seq_request_link = models.LibrarySeqRequestLink(
+        library_id=library_id, seq_request_id=seq_request_id,
+    )
+    self._session.add(library_seq_request_link)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(library_seq_request_link)
+
+    if not persist_session:
+        self.close_session()
+        
+    return library_seq_request_link

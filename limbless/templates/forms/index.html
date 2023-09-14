@@ -10,6 +10,7 @@
             selected=selected_sample.name if selected_sample is defined,
         )
     }}
+    {% if library.index_kit_id %}
     {{
         search_select_field(
             index_form.adapter,
@@ -19,10 +20,11 @@
             include_data_element=False,
         )
     }}
-
     <input id="adapter" name="adapter" hx-target="#index-form" hx-swap="outerHTML" hx-include="#index-form"
         hx-trigger="change" hx-post="{{ url_for('indices_htmx.select_indices', library_id=library.id) }}"
         value="{{ selected_adapter }}">
+    {% endif %}
+
 
     <div class="indices-container">
         {% for index_seq_form in index_form.indices %}

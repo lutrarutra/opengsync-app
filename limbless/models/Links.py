@@ -5,6 +5,15 @@ from sqlmodel import Field, SQLModel
 from ..categories import AccessType, UserResourceRelation
 
 
+class LibrarySeqRequestLink(SQLModel, table=True):
+    library_id: int = Field(
+        foreign_key="library.id", primary_key=True
+    )
+    seq_request_id: int = Field(
+        foreign_key="seqrequest.id", primary_key=True
+    )
+
+
 class LibrarySampleLink(SQLModel, table=True):
     library_id: int = Field(
         foreign_key="library.id", primary_key=True
@@ -13,7 +22,7 @@ class LibrarySampleLink(SQLModel, table=True):
         foreign_key="sample.id", primary_key=True
     )
     seq_index_id: int = Field(
-        foreign_key="seqindex.id", primary_key=True, nullable=True
+        foreign_key="seqindex.id", primary_key=True
     )
     # seq_index_type: int = Field(nullable=False, primary_key=True)
 

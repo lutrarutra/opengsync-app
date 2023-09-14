@@ -9,5 +9,6 @@ from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm
 from .index_forms import IndexForm, create_index_form
 from .TableForm import TableForm
 from .SeqRequestForm import SeqRequestForm
+from .select_forms import SelectLibraryForm
 
 from .categorical_mapping import CategoricalMappingField, CategoricalMappingForm

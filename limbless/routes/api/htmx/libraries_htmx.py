@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from .... import db, logger, forms
 from .... import LibraryType, UserResourceRelation
 from ....core import DBSession
+from ....categories import UserRole
 
 
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/libraries/")
@@ -33,18 +34,31 @@ def get(page):
 def create():
     library_form = forms.LibraryForm()
 
-    if not library_form.validate_on_submit():
+    # if raw library (i.e. no index kit)
+    validated_indexkit = True
+    if library_form.library_type.data == "0":
+        if library_form.index_kit.data is not None:
+            validated_indexkit = False
+
+    if not library_form.validate_on_submit() or not validated_indexkit:
+        if not validated_indexkit:
+            library_form.index_kit.errors.append("Raw library cannot have an index kit.")
+
         selected_kit = db.db_handler.get_indexkit(library_form.index_kit.data)
+
         template = render_template(
             "forms/library.html",
             library_form=library_form,
-            selected_kit=selected_kit.name if selected_kit else "",
+            index_kit_results=db.common_kits,
+            selected_kit=selected_kit,
         )
         return make_response(
             template, push_url=False
         )
 
     library_type = LibraryType.get(int(library_form.library_type.data))
+
+    logger.debug(library_form.index_kit.data)
     library = db.db_handler.create_library(
         name=library_form.name.data,
         library_type=library_type,
@@ -114,21 +128,28 @@ def edit(library_id):
 @login_required
 @libraries_htmx.route("query", methods=["GET"])
 def query():
-    query = request.args.get("query")
+    field_name = next(iter(request.args.keys()))
+    query = request.args.get(field_name)
+    assert query is not None
+
+    if current_user.role_type == UserRole.CLIENT:
+        results = db.db_handler.query_libraries(query, current_user.id)
+    else:
+        results = db.db_handler.query_libraries(query)
 
     if not query:
-        template = render_template(
-            "components/tables/library.html"
-        )
         return make_response(
-            template, push_url=False
+            render_template(
+                "components/tables/library.html"
+            ), push_url=False
         )
 
-    template = render_template(
-        "components/tables/library.html"
-    )
     return make_response(
-        template, push_url=False
+        render_template(
+            "components/search_select_results.html",
+            results=results,
+            field_name=field_name
+        ), push_url=False
     )
 
 
@@ -149,8 +170,15 @@ def add_sample(library_id: int):
         if (selected_sample := db.db_handler.get_sample(selected_sample_id)) is None:
             logger.warning(f"Unknown sample id '{selected_sample_id}'")
             return make_response(redirect("/libraries"))
+        
+    valid_adapter = True
+    if library.library_type != LibraryType.RAW:
+        if selected_adapter is None:
+            valid_adapter = False
 
-    if not index_form.validate_on_submit():
+    if not index_form.validate_on_submit() or not valid_adapter:
+        if not valid_adapter:
+            index_form.adapter.errors.append("Adapter required.")
         logger.debug(index_form.errors)
         template = render_template(
             "forms/index.html",
@@ -165,13 +193,21 @@ def add_sample(library_id: int):
         return make_response(template)
 
     # TODO: check if sample is already in the library
-    with DBSession(db.db_handler) as session:
-        for entry in index_form.indices.entries:
-            seq_index_id = entry.index_seq_id.data
+    if library.library_type != LibraryType.RAW:
+        with DBSession(db.db_handler) as session:
+            for entry in index_form.indices.entries:
+                seq_index_id = entry.index_seq_id.data
+                session.link_library_sample(
+                    library_id=library.id,
+                    sample_id=selected_sample.id,
+                    seq_index_id=seq_index_id,
+                )
+    else:
+        with DBSession(db.db_handler) as session:
             session.link_library_sample(
                 library_id=library.id,
                 sample_id=selected_sample.id,
-                seq_index_id=seq_index_id,
+                seq_index_id=None,
             )
 
     logger.debug(f"Added sample '{selected_sample}' to library '{library_id}'")

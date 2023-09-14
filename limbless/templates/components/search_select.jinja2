@@ -38,5 +38,11 @@
     $("#{{field_name}}-search").on("focus", function() {
         $("#{{field_name}}-results").css("display", "block");
     });
+
+    $("#{{field_name}}-search").on("change", function() {
+        if ($(this).val() === "") {
+            $("#{{field_name}}").val("");
+        }
+    });
 </script>
 {%- endmacro %}
