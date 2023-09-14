@@ -1,0 +1,34 @@
+{% from "components/pagination.jinja2" import pagination %}
+<div id="experiment-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Status</th>
+                <th scope="col">Requestor</th>
+                <th scope="col">Requestor Email</th>
+                <th scope="col">Contact Name</th>
+                <th scope="col">Contact Email</th>
+                <th scope="col">Billing</th>
+                <th scope="col">Billing Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for seq_request in seq_requests %}
+            <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
+                <th scope="row">{{ seq_request.id }}</th>
+                <td>{{ seq_request.name }}</td>
+                <td>{{ seq_request.status_type.name }}</td>
+                <td>{{ seq_request.requestor.first_name }} {{ seq_request.requestor.last_name }}</td>
+                <td>{{ seq_request.requestor.email }}</td>
+                <td>{{ seq_request.contact_person.name }}</td>
+                <td>{{ seq_request.contact_person.email }}</td>
+                <td>{{ seq_request.billing_contact.name }}</td>
+                <td>{{ seq_request.billing_contact.email }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("experiment-table", "experiments_htmx.getexperiments", n_pages, active_page) }}
+</div>

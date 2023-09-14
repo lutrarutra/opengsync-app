@@ -5,11 +5,11 @@ from ... import models
 
 def create_contact(
     self, name: str,
-    organization: Optional[str],
-    email: Optional[str],
-    phone: Optional[str],
-    address: Optional[str],
-    billing_code: Optional[str],
+    organization: Optional[str] = None,
+    email: Optional[str] = None,
+    phone: Optional[str] = None,
+    address: Optional[str] = None,
+    billing_code: Optional[str] = None,
     commit: bool = True
 ) -> models.Contact:
 

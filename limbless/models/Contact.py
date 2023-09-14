@@ -8,6 +8,6 @@ class Contact(SQLModel, table=True):
     name: str = Field(nullable=False, max_length=128)
     organization: str = Field(nullable=True, max_length=128)
     email: str = Field(nullable=True, max_length=128)
-    phone: str = Field(nullable=True, max_length=32)
-    billing_code: str = Field(nullable=True, max_length=64)
+    phone: str = Field(nullable=True, max_length=16)
+    billing_code: str = Field(nullable=True, max_length=32)
     address: str = Field(nullable=True, max_length=256)

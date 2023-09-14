@@ -52,6 +52,9 @@ nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: fixed;
+    top: 0;
+    z-index: 15;
     
     #navbar-container {
         width: 70vw;
@@ -116,6 +119,10 @@ nav {
     }
 }
 
+#main {
+    margin-top: 60px;
+}
+
 .pagination .page-item {
     cursor: pointer;
 }
@@ -129,8 +136,9 @@ nav {
 
 .modal-body {
     min-height: 70vh;
-    max-height: 85vh;
+    max-height: 75vh;
     padding: 20px 30px 20px 30px;
+    overflow-y: auto;
 
     .tab-content {
         height: 100%;
@@ -192,12 +200,19 @@ input.disabled {
     opacity: 1;
     box-shadow: none;
     border: var(--bs-border-width) solid var(--bs-border-color);
+    cursor: default;
 }
 
 input.disabled:focus {
     box-shadow: none;
     background-color: var(--bs-secondary-bg);
     border: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+.display-form {
+    input.disabled {
+        background-color: $white;
+    }
 }
 
 table tbody .disabled {

@@ -12,10 +12,12 @@
                 Edit Sample
             </button>
             <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            {% if sample.libraries|length == 0 %}
             <button hx-get="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
              hx-confirm="Are you sure?">
                 Delete Sample
             </button>
+            {% endif %}
         </div>
     </div>
     <h2>Libraries</h2>

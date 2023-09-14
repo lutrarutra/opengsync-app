@@ -1,4 +1,4 @@
-{% with infos = get_flashed_messages(category_filter=["info"]) %}
+{% with infos = get_flashed_messages(category_filter=["info", "message"]) %}
 {% if infos %}
 <div id="info-alert" class="alert alert-primary d-flex align-items-center" role="alert">
     <div class="alert-content">
@@ -56,5 +56,6 @@
     </div>
 </div>
 {% endif %}
+
 {% endwith %}
 

@@ -38,3 +38,10 @@ class AccessType(EnumType):
     EnumType.__enum_type__ = "AccessType"
     WRITE = EnumType.create(1, "Write", "")
     READ = EnumType.create(2, "Read", "")
+
+
+class SeqRequestStatus(EnumType):
+    EnumType.__enum_type__ = "SeqRequestStatus"
+    CREATED = EnumType.create(0, "Created", "")
+    SUBMITTED = EnumType.create(1, "Submitted", "")
+    FINISHED = EnumType.create(2, "Finished", "")

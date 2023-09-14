@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, EmailField, BooleanField
-from wtforms.validators import DataRequired, Length
+from wtforms.validators import DataRequired, Length, Email, Optional
 
 
 class SeqRequestForm(FlaskForm):
@@ -26,7 +26,7 @@ class SeqRequestForm(FlaskForm):
     )
 
     contact_person_email = EmailField(
-        "Contact Person Email", validators=[DataRequired(), Length(max=128)],
+        "Contact Person Email", validators=[DataRequired(), Email(), Length(max=128)],
         description="E-Mail address of primary contact."
     )
     contact_person_phone = StringField(
@@ -47,6 +47,21 @@ class SeqRequestForm(FlaskForm):
         description="Address of the organization."
     )
 
+    bioinformatician_name = StringField(
+        "Bioinformatician Name", validators=[Length(max=128)],
+        description="Name of the bioinformatician."
+    )
+
+    bioinformatician_email = EmailField(
+        "Bioinformatician Email", validators=[Optional(), Email(), Length(max=128)],
+        description="E-Mail address of the bioinformatician (optional)."
+    )
+
+    bioinformatician_phone = StringField(
+        "Bioinformatician Phone", validators=[Length(max=16)],
+        description="Phone number of the bioinformatician (optional)."
+    )
+
     billing_is_organization = BooleanField(
         "Billing Same as Organization", default=True,
     )
@@ -60,7 +75,7 @@ class SeqRequestForm(FlaskForm):
         description="Address for billing."
     )
     billing_email = EmailField(
-        "Billing Email", validators=[DataRequired(), Length(max=128)],
+        "Billing Email", validators=[DataRequired(), Email(), Length(max=128)],
         description="E-Mail address for billing."
     )
     billing_phone = StringField(

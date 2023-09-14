@@ -167,6 +167,7 @@ def delete_sample(
     if not sample:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
 
+    self._session.query(models.LibrarySampleLink).filter_by(sample_id=sample_id).delete()
     self._session.delete(sample)
     if commit:
         self._session.commit()

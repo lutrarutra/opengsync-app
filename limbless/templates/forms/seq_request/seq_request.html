@@ -2,14 +2,16 @@
 <form id="seq_request-form">
     {{ seq_request_form.csrf_token() }}
     
+    <h4>Request Info</h4>
     {{ form_group(seq_request_form.name, class="col") }}
     {{ form_group(seq_request_form.description, class="col") }}
 
+    <br>
+    <h4>Contact Person</h4>
     <div class="form-check form-switch">
         {{ seq_request_form.current_user_is_contact(class="form-check-input") }}
         <label class="form-check-label">I am contact person.</label>
     </div>
-    
     <div class="row">
         {{ 
             form_group(
@@ -32,24 +34,39 @@
             ) 
         }}
     </div>
-
     <div class="row">
         {{ form_group(seq_request_form.organization_name, class="col-6 col-xl-3") }}
         {{ form_group(seq_request_form.organization_department, class="col-6 col-xl-5") }}
         {{ form_group(seq_request_form.organization_address, class="col-6 col-xl-4") }}
     </div>
+    <br>
 
+    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#bioinformatician-collapse-section" aria-expanded="false" aria-controls="bioinformatician-collapse-section">
+        Add Bioinformatician Contact
+    </button>
+    <br>
+    <div class="collapse {{ 'show' if seq_request_form.bioinformatician_name.data else ''}}" id="bioinformatician-collapse-section">
+        <div class="card-body pt-3">
+          <h4>Bioinformatician Contact</h4>
+            <div class="row">
+                {{ form_group(seq_request_form.bioinformatician_name, class="col-6 col-xl-3") }}
+                {{ form_group(seq_request_form.bioinformatician_email, class="col-6 col-xl-5") }}
+                {{ form_group(seq_request_form.bioinformatician_phone, class="col-6 col-xl-4") }}
+            </div>
+        </div>
+    </div>
+
+    <br>
+    <h4>Billing Info</h4>
     <div class="form-check form-switch">
         {{ seq_request_form.billing_is_organization(class="form-check-input") }}
         <label class="form-check-label">Use organization as billing address.</label>
     </div>
-
     <div class="row">
         {{ form_group(seq_request_form.billing_contact, class="col-6 col-xl-3", disabled=seq_request_form.billing_is_organization.data) }}
         {{ form_group(seq_request_form.billing_address, class="col-6 col-xl-5", disabled=seq_request_form.billing_is_organization.data) }}
         {{ form_group(seq_request_form.billing_code, class="col-6 col-xl-4") }}
     </div>
-
     <div class="row">
         {{ form_group(seq_request_form.billing_email, class="col") }}
         {{ form_group(seq_request_form.billing_phone, class="col") }}

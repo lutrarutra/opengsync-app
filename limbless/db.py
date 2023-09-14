@@ -4,7 +4,8 @@ from .index_kits import add_index_kits
 from .sample_experiment import create_sample_experiment
 
 db_url = "data/sample_experiment.db"
-db_url = "postgresql://postgres:limbless@localhost/limbless_db"
+# db_url = "postgresql://postgres:limbless@localhost/limbless_db"
+db_url = "postgresql://postgres:password@127.0.0.1:5432/limbless_db"
 # db_path = "data/database.db"
 
 db_handler = DBHandler(db_url)
