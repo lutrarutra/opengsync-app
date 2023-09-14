@@ -6,7 +6,10 @@ from ... import categories
 
 
 def create_user(
-    self, email: str, password: str,
+    self, email: str,
+    first_name: str,
+    last_name: str,
+    password: str,
     role: categories.UserRole,
     commit: bool = True
 ) -> models.User:
@@ -23,6 +26,8 @@ def create_user(
 
     user = models.User(
         email=email,
+        first_name=first_name,
+        last_name=last_name,
         password=hashed_password,
         role=role if isinstance(role, int) else role.id
     )

@@ -16,6 +16,10 @@ class SeqRequestForm(FlaskForm):
         or the methods section of a previous paper on the same topic."""
     )
 
+    current_user_is_contact = BooleanField(
+        "Current User is Contact", default=True,
+    )
+
     contact_person_name = StringField(
         "Contact Person Name", validators=[DataRequired(), Length(max=64)],
         description="Name of the contact person."
@@ -35,7 +39,7 @@ class SeqRequestForm(FlaskForm):
         description="Name of the organization."
     )
     organization_department = StringField(
-        "Organization Department", validators=[Length(max=128)],
+        "Organization Department", validators=[Length(max=64)],
         description="Department of the organization."
     )
     organization_address = StringField(
@@ -55,6 +59,15 @@ class SeqRequestForm(FlaskForm):
         "Billing Address", validators=[DataRequired(), Length(max=128)],
         description="Address for billing."
     )
+    billing_email = EmailField(
+        "Billing Email", validators=[DataRequired(), Length(max=128)],
+        description="E-Mail address for billing."
+    )
+    billing_phone = StringField(
+        "Billing Phone", validators=[Length(max=16)],
+        description="Phone number for billing (optional)."
+    )
+
     billing_code = StringField(
         "Billing Code", validators=[Length(max=64)],
         description="Billing code assigned by your institution."

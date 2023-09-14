@@ -86,6 +86,14 @@ class DBHandler():
         query_indexkit
     )
 
+    from .model_handlers._seq_request_methods import (
+        create_seq_request
+    )
+
+    from .model_handlers._contact_methods import (
+        create_contact
+    )
+
     from .model_handlers._link_methods import (
         get_project_samples,
         get_project_users,

@@ -61,6 +61,8 @@ class UserMixin:
 
 class User(UserMixin, SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    first_name: str = Field(nullable=False, max_length=64)
+    last_name: str = Field(nullable=False, max_length=64)
     email: str = Field(nullable=False, unique=True, index=True, max_length=128)
     password: str = Field(nullable=False, max_length=128)
     role: int = Field(nullable=False)

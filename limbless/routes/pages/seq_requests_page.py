@@ -10,6 +10,8 @@ seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 @login_required
 def seq_requests_page():
     seq_request_form = forms.SeqRequestForm()
+    seq_request_form.contact_person_name.data = f"{current_user.first_name} {current_user.last_name}"
+    seq_request_form.contact_person_email.data = current_user.email
     return render_template(
         "seq_requests_page.html",
         seq_request_form=seq_request_form

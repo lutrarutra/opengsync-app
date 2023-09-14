@@ -5,9 +5,15 @@
         <label for="password">Email</label>
         <span class="input-group-text" id="basic-addon2">{{ register_form.email.data }}</span>
     </div>
-    {{ form_group(register_form.password) }}
-    {{ form_group(register_form.confirm) }}
-    
+    {{ form_group(register_form.email) }}
+    <div class="row">
+        {{ form_group(register_form.first_name, class="col") }}
+        {{ form_group(register_form.last_name, class="col") }}
+    </div>
+    <div class="row">
+        {{ form_group(register_form.password, class="col") }}
+        {{ form_group(register_form.confirm, class="col") }}
+    </div>
     <button type="button" class="btn btn-primary"
     hx-target="#complete-register-form" hx-swap="outerHTML"
     hx-post="{{ url_for('auth_htmx.complete_registration', token=token) }}">Register</button>

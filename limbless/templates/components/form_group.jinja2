@@ -9,7 +9,7 @@
         field(
             class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else ""), 
             placeholder=("" if disabled else ("Required" if field.flags.required else "Optional")),
-            readonly=disabled
+            readonly=disabled, value=field.data if field.data else ""
         ) 
     }}
     <div class="invalid-feedback-container">

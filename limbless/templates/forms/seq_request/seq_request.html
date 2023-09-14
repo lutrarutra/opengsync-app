@@ -4,11 +4,33 @@
     
     {{ form_group(seq_request_form.name, class="col") }}
     {{ form_group(seq_request_form.description, class="col") }}
+
+    <div class="form-check form-switch">
+        {{ seq_request_form.current_user_is_contact(class="form-check-input") }}
+        <label class="form-check-label">I am contact person.</label>
+    </div>
     
     <div class="row">
-        {{ form_group(seq_request_form.contact_person_name, class="col-6 col-xl-3") }}
-        {{ form_group(seq_request_form.contact_person_email, class="col-6 col-xl-5") }}
-        {{ form_group(seq_request_form.contact_person_phone, class="col-6 col-xl-4") }}
+        {{ 
+            form_group(
+                seq_request_form.contact_person_name,
+                disabled=seq_request_form.current_user_is_contact.data,
+                class="col-6 col-xl-3",
+            ) 
+        }}
+        {{ 
+            form_group(
+                seq_request_form.contact_person_email,
+                disabled=seq_request_form.current_user_is_contact.data,
+                class="col-6 col-xl-5"
+            )
+        }}
+        {{ 
+            form_group(
+                seq_request_form.contact_person_phone,
+                class="col-6 col-xl-4"
+            ) 
+        }}
     </div>
 
     <div class="row">
@@ -26,6 +48,11 @@
         {{ form_group(seq_request_form.billing_contact, class="col-6 col-xl-3", disabled=seq_request_form.billing_is_organization.data) }}
         {{ form_group(seq_request_form.billing_address, class="col-6 col-xl-5", disabled=seq_request_form.billing_is_organization.data) }}
         {{ form_group(seq_request_form.billing_code, class="col-6 col-xl-4") }}
+    </div>
+
+    <div class="row">
+        {{ form_group(seq_request_form.billing_email, class="col") }}
+        {{ form_group(seq_request_form.billing_phone, class="col") }}
     </div>
 </form>
 
@@ -61,4 +88,28 @@
             $("#billing_address").val($(this).val());
         }
     });
+
+    $("#current_user_is_contact").on("click", function(){
+        const checked = $(this).is(":checked");
+        if (checked){
+            $("#contact_person_name").addClass("disabled");
+            $("#contact_person_name").prop("readonly", true);
+            $("#contact_person_name").val("{{ current_user.first_name }} {{ current_user.last_name }}");
+
+            $("#contact_person_email").addClass("disabled");
+            $("#contact_person_email").prop("readonly", true);
+            $("#contact_person_email").val("{{ current_user.email }}");
+
+        } else {
+            $("#contact_person_name").removeClass("disabled");
+            $("#contact_person_name").prop("readonly", false);
+            $("#contact_person_name").val("");
+
+            $("#contact_person_email").removeClass("disabled");
+            $("#contact_person_email").prop("readonly", false);
+            $("#contact_person_email").val("");
+        }
+    });
+
+
 </script>
