@@ -1,48 +1,42 @@
-from .tools.EnumType import EnumType
+from enum import Enum
+from .tools.EnumType import ExtendedEnumMeta, DescriptiveEnum
 
 
-class UserResourceRelation(EnumType):
-    EnumType.__enum_type__ = "UserResourceRelation"
-    OWNER = EnumType.create(1, "Owner", "")
-    CONTRIBUTOR = EnumType.create(2, "Contributor", "")
-    VIEWER = EnumType.create(3, "Viewer", "")
+class UserResourceRelation(Enum, metaclass=ExtendedEnumMeta):
+    OWNER = DescriptiveEnum(1, "Owner")
+    CONTRIBUTOR = DescriptiveEnum(2, "Contributor")
+    VIEWER = DescriptiveEnum(3, "Viewer")
 
 
-class UserRole(EnumType):
-    EnumType.__enum_type__ = "UserRole"
-    ADMIN = EnumType.create(1, "Admin", "")
-    BIOINFORMATICIAN = EnumType.create(2, "Bioinformatician", "")
-    TECHNICIAN = EnumType.create(3, "Technician", "")
-    CLIENT = EnumType.create(4, "Client", "")
+class UserRole(Enum, metaclass=ExtendedEnumMeta):
+    ADMIN = DescriptiveEnum(1, "Admin")
+    BIOINFORMATICIAN = DescriptiveEnum(2, "Bioinformatician")
+    TECHNICIAN = DescriptiveEnum(3, "Technician")
+    CLIENT = DescriptiveEnum(4, "Client")
 
 
-class LibraryType(EnumType):
-    EnumType.__enum_type__ = "LibraryType"
-    RAW = EnumType.create(0, "Raw", "")
-    SC_RNA = EnumType.create(1, "single-cell RNA-Seq", "")
-    SN_RNA = EnumType.create(2, "single-nucleus RNA-Seq", "")
-    SC_ATAC = EnumType.create(3, "single-cell ATAC-Seq", "")
-    SC_MULTIOME = EnumType.create(4, "single-cell Multiome", "")
+class LibraryType(Enum, metaclass=ExtendedEnumMeta):
+    SC_RNA = DescriptiveEnum(1, "single-cell RNA-Seq")
+    SN_RNA = DescriptiveEnum(2, "single-nucleus RNA-Seq")
+    SC_ATAC = DescriptiveEnum(3, "single-cell ATAC-Seq")
+    SC_MULTIOME = DescriptiveEnum(4, "single-cell Multiome")
 
 
-class OrganismCategory(EnumType):
-    EnumType.__enum_type__ = "OrganismCategory"
-    UNCLASSIFIED = EnumType.create(0, "Unclassified", "")
-    ARCHAEA = EnumType.create(1, "Archaea", "")
-    BACTERIA = EnumType.create(2, "Bacteria", "")
-    EUKARYOTA = EnumType.create(3, "Eukaryota", "")
-    VIRUSES = EnumType.create(4, "Viruses", "")
-    OTHER = EnumType.create(5, "Other", "")
+class OrganismCategory(Enum, metaclass=ExtendedEnumMeta):
+    UNCLASSIFIED = DescriptiveEnum(0, "Unclassified")
+    ARCHAEA = DescriptiveEnum(1, "Archaea")
+    BACTERIA = DescriptiveEnum(2, "Bacteria")
+    EUKARYOTA = DescriptiveEnum(3, "Eukaryota")
+    VIRUSES = DescriptiveEnum(4, "Viruses")
+    OTHER = DescriptiveEnum(5, "Other")
 
 
-class AccessType(EnumType):
-    EnumType.__enum_type__ = "AccessType"
-    WRITE = EnumType.create(1, "Write", "")
-    READ = EnumType.create(2, "Read", "")
+class AccessType(Enum, metaclass=ExtendedEnumMeta):
+    WRITE = DescriptiveEnum(1, "Write")
+    READ = DescriptiveEnum(2, "Read")
 
 
-class SeqRequestStatus(EnumType):
-    EnumType.__enum_type__ = "SeqRequestStatus"
-    CREATED = EnumType.create(0, "Created", "")
-    SUBMITTED = EnumType.create(1, "Submitted", "")
-    FINISHED = EnumType.create(2, "Finished", "")
+class SeqRequestStatus(Enum, metaclass=ExtendedEnumMeta):
+    CREATED = DescriptiveEnum(0, "Created")
+    SUBMITTED = DescriptiveEnum(1, "Submitted")
+    FINISHED = DescriptiveEnum(2, "Finished")

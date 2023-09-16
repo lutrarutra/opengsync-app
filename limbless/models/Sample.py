@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class Sample(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
 
     organism_id: int = Field(nullable=False, foreign_key="organism.tax_id")

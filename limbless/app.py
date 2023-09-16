@@ -4,7 +4,7 @@ import warnings
 from flask import Flask, render_template, redirect, request, url_for
 from sassutils.wsgi import SassMiddleware
 
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger
+from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, models
 from .routes import api, pages
 
 
@@ -29,7 +29,7 @@ def create_app():
     mail.init_app(app)
 
     @login_manager.user_loader
-    def load_user(user_id):
+    def load_user(user_id: int) -> models.User:
         return db.db_handler.get_user(user_id)
 
     with warnings.catch_warnings():

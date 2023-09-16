@@ -44,7 +44,5 @@ def create_index_form(library_type: LibraryType) -> IndexForm:
         return __crete_dual_index_form()
     elif library_type in [LibraryType.SC_ATAC]:
         return __create_atac_index_form()
-    elif library_type in [LibraryType.RAW]:
-        return IndexForm()
 
     raise NotImplementedError(f"Index form for library type '{library_type}' not implemented.")

@@ -38,12 +38,11 @@ def create():
         )
 
     experiment = db.db_handler.create_experiment(
-        name=experiment_form.name.data,
         flowcell=experiment_form.flowcell.data
     )
 
-    logger.debug(f"Created experiment {experiment.name}.")
-    flash(f"Created experiment {experiment.name}.", "success")
+    logger.debug(f"Created experiment on flowcell '{experiment.flowcell}'")
+    flash(f"Created experiment on flowcell '{experiment.flowcell}'.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),

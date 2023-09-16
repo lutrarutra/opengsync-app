@@ -421,6 +421,8 @@ def edit(sample_id):
 def query(exclude_library_id: Optional[int] = None):
     field_name = next(iter(request.args.keys()))
     query = request.args.get(field_name)
+    if query is None:
+        return abort(500)
 
     if current_user.role_type == UserRole.CLIENT:
         _user_id = current_user.id

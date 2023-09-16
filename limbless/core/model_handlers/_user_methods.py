@@ -2,7 +2,7 @@ from typing import Optional
 
 from ... import models, bcrypt
 from .. import exceptions
-from ... import categories
+from ...categories import UserRole
 
 
 def create_user(
@@ -10,7 +10,7 @@ def create_user(
     first_name: str,
     last_name: str,
     password: str,
-    role: categories.UserRole,
+    role: UserRole,
     commit: bool = True
 ) -> models.User:
     persist_session = self._session is not None
@@ -22,14 +22,14 @@ def create_user(
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"User with email {email} already exists")
 
-    hashed_password = bcrypt.generate_password_hash(password)
+    hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
 
     user = models.User(
         email=email,
         first_name=first_name,
         last_name=last_name,
         password=hashed_password,
-        role=role if isinstance(role, int) else role.id
+        role=role.value.id
     )
 
     self._session.add(user)
@@ -81,7 +81,7 @@ def update_user(
     self, user_id: int,
     email: Optional[str] = None,
     password: Optional[str] = None,
-    role: Optional[categories.UserRole] = None,
+    role: Optional[UserRole] = None,
     commit: bool = True
 ) -> models.User:
     persist_session = self._session is not None

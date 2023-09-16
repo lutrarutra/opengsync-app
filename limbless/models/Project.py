@@ -11,12 +11,17 @@ if TYPE_CHECKING:
 
 
 class Project(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=64, unique=True, index=True)
+    id: int = Field(default=None, primary_key=True)
+    name: str = Field(nullable=False, max_length=64, index=True)
     description: str = Field(default="", max_length=1024)
 
     samples: List["Sample"] = Relationship(
         back_populates="project"
+    )
+
+    owner_id: int = Field(nullable=False, foreign_key="user.id")
+    owner: "User" = Relationship(
+        sa_relationship_kwargs={"lazy": "joined"}
     )
 
     users: List["User"] = Relationship(

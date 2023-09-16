@@ -60,7 +60,7 @@ class UserMixin:
 
 
 class User(UserMixin, SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)
     first_name: str = Field(nullable=False, max_length=64)
     last_name: str = Field(nullable=False, max_length=64)
     email: str = Field(nullable=False, unique=True, index=True, max_length=128)
@@ -92,4 +92,4 @@ class User(UserMixin, SQLModel, table=True):
 
     @property
     def role_type(self) -> UserRole:
-        return UserRole.as_dict()[self.role]
+        return UserRole.get(self.role)

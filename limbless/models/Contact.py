@@ -4,7 +4,7 @@ from sqlmodel import Field, SQLModel
 
 
 class Contact(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=128)
     organization: str = Field(nullable=True, max_length=128)
     email: str = Field(nullable=True, max_length=128)

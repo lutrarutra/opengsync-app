@@ -64,5 +64,4 @@ def library_page(library_id):
         selected_kit=library.index_kit,
         library_form=library_form,
         index_form=index_form_html,
-        show_indices=library.library_type != LibraryType.RAW,
     )

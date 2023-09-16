@@ -17,6 +17,9 @@ def get_user_project_access(
 
     if (user := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+    
+    if (project := self._session.get(models.Project, project_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
     if user.role_type == UserRole.ADMIN:
         access = [AccessType.READ, AccessType.WRITE]
@@ -28,15 +31,20 @@ def get_user_project_access(
         if self._session.get(models.Project, project_id) is None:
             raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
-        res: models.ProjectUserLink = self._session.query(models.ProjectUserLink).where(
-            models.ProjectUserLink.project_id == project_id,
-            models.ProjectUserLink.user_id == user_id
-        ).first()
-
-        if res is None:
-            access = None
+        if user.id == project.owner_id:
+            access = [AccessType.READ, AccessType.WRITE]
         else:
-            access = res.access_type
+            res: models.ProjectUserLink = self._session.query(models.ProjectUserLink).where(
+                models.ProjectUserLink.project_id == project_id,
+                models.ProjectUserLink.user_id == user_id
+            ).first()
+
+            if res is None:
+                access = None
+            else:
+                access = res.access_type
+    else:
+        raise exceptions.InvalidRole(f"User with id {user_id} has invalid role {user.role_type}")
 
     if not persist_session:
         self.close_session()
@@ -78,7 +86,11 @@ def get_user_library_access(
 
     if (user := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+    
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
+    logger.debug(user.role_type)
     if user.role_type == UserRole.ADMIN:
         access = [AccessType.READ, AccessType.WRITE]
     elif user.role_type == UserRole.BIOINFORMATICIAN:
@@ -86,18 +98,20 @@ def get_user_library_access(
     elif user.role_type == UserRole.TECHNICIAN:
         access = [AccessType.READ]
     elif user.role_type == UserRole.CLIENT:
-        if self._session.get(models.Library, library_id) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-
-        res: models.LibraryUserLink = self._session.query(models.LibraryUserLink).where(
-            models.LibraryUserLink.library_id == library_id,
-            models.LibraryUserLink.user_id == user_id
-        ).first()
-
-        if res is None:
-            access = None
+        if library.owner_id == user_id:
+            access = [AccessType.READ, AccessType.WRITE]
         else:
-            access = res.access_type
+            res: models.LibraryUserLink = self._session.query(models.LibraryUserLink).where(
+                models.LibraryUserLink.library_id == library_id,
+                models.LibraryUserLink.user_id == user_id
+            ).first()
+
+            if res is None:
+                access = None
+            else:
+                access = res.access_type
+    else:
+        raise exceptions.InvalidRole(f"User with id {user_id} has invalid role {user.role_type}")
 
     if not persist_session:
         self.close_session()

@@ -27,7 +27,7 @@ def create_organism(
     organism = models.Organism(
         tax_id=tax_id,
         scientific_name=scientific_name,
-        category=category.id,
+        category=category.value.id,
         common_name=common_name
     )
 

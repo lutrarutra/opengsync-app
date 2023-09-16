@@ -5,6 +5,7 @@
             <tr>
                 <th scope="col">ID</th>
                 <th scope="col">Name</th>
+                <th scope="col">Owner</th>
                 <th scope="col">Type</th>
                 <th scope="col">Index Kit</th>
             </tr>
@@ -14,8 +15,9 @@
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
                 <th scope="row">{{ library.id }}</th>
                 <td>{{ library.name }}</td>
-                <td>{{ library.library_type.name }}</td>
-                <td>{{ library.index_kit }}</td>
+                <td class="owner-col">{{ library.owner.first_name }} {{ library.owner.last_name }} <p>{{ "(me)" if current_user.id == library.owner_id }}</p></td>
+                <td>{{ library.library_type.value.name }}</td>
+                <td>{{ library.index_kit.name if library.index_kit }}</td>
             </tr>
             {% endfor %}
         </tbody>

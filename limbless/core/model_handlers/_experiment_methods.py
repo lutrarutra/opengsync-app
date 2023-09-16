@@ -5,19 +5,14 @@ from .. import exceptions
 
 
 def create_experiment(
-    self, name: str, flowcell: str, commit: bool = True
-) -> list[models.Sample]:
+    self, flowcell: str, commit: bool = True
+) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if self._session.query(models.Experiment).where(
-        models.Experiment.name == name
-    ).first() is not None:
-        raise exceptions.NotUniqueValue(f"Experiment with name {name} already exists")
-
     experiment = models.Experiment(
-        name=name, flowcell=flowcell
+        flowcell=flowcell, timestamp=None
     )
 
     self._session.add(experiment)
@@ -27,6 +22,7 @@ def create_experiment(
 
     if not persist_session:
         self.close_session()
+
     return experiment
 
 

@@ -35,7 +35,7 @@ class DBHandler():
 
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
-        update_project, delete_project, get_project_by_name,
+        update_project, delete_project,
         get_num_projects, project_contains_sample_with_name
     )
 
@@ -60,7 +60,7 @@ class DBHandler():
 
     from .model_handlers._library_methods import (
         create_library, get_library, get_libraries,
-        delete_library, update_library, get_library_by_name,
+        delete_library, update_library,
         get_num_libraries, query_libraries
     )
 

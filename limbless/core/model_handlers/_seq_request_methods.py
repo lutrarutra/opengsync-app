@@ -24,10 +24,10 @@ def create_seq_request(
 
     if self._session.get(models.Contact, billing_contact_id) is None:
         raise exceptions.ElementDoesNotExist(f"Contact with id '{billing_contact_id}', not found.")
-    
+
     if self._session.get(models.Contact, person_contact_id) is None:
         raise exceptions.ElementDoesNotExist(f"Contact with id '{person_contact_id}', not found.")
-    
+
     if bioinformatician_contact_id is not None:
         if self._session.get(models.Contact, bioinformatician_contact_id) is None:
             raise exceptions.ElementDoesNotExist(f"Contact with id '{bioinformatician_contact_id}', not found.")

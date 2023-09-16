@@ -8,8 +8,7 @@ if TYPE_CHECKING:
 
 
 class Experiment(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=64, unique=True, index=True)
+    id: int = Field(default=None, primary_key=True)
     flowcell: str = Field(nullable=False, max_length=64)
     timestamp: datetime = Field(sa_column=Column(
         TIMESTAMP(timezone=True),

@@ -9,7 +9,6 @@ def db_handler():
 
 def test_create_experimet(db_handler):
     experiment = db_handler.create_experiment(
-        name="experiment",
         flowcell="flowcell",
     )
 
@@ -24,7 +23,6 @@ def test_create_experimet(db_handler):
 
 def test_get_experiment(db_handler):
     experiment = db_handler.create_experiment(
-        name="experiment",
         flowcell="flowcell",
     )
     q_experiment = db_handler.get_experiment(experiment.id)
@@ -37,7 +35,6 @@ def test_get_experiment(db_handler):
 
 def test_update_experiment(db_handler):
     experiment = db_handler.create_experiment(
-        name="experiment",
         flowcell="flowcell",
     )
 
@@ -49,7 +46,6 @@ def test_update_experiment(db_handler):
     assert updated_experiment.flowcell == "flowcell_updated"
 
     db_handler.create_experiment(
-        name="duplicate_name_rename_experiment",
         flowcell="flowcell",
     )
 

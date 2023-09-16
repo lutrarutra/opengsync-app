@@ -6,6 +6,8 @@ from .... import db, logger, forms, LibraryType, UserResourceRelation
 from ....core import DBSession, exceptions
 from ....categories import UserRole
 
+from enum import Enum
+
 
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/libraries/")
 
@@ -33,23 +35,14 @@ def get(page):
 def create():
     library_form = forms.LibraryForm()
 
-    # if raw library (i.e. no index kit)
-    validated_indexkit = True
-    if library_form.library_type.data == "0":
-        if library_form.index_kit.data is not None:
-            validated_indexkit = False
+    validated, library_form = library_form.custom_validate(db.db_handler, current_user.id)
 
-    if not library_form.validate_on_submit() or not validated_indexkit:
-        if not validated_indexkit:
-            library_form.index_kit.errors.append("Raw library cannot have an index kit.")
-
-        selected_kit = db.db_handler.get_indexkit(library_form.index_kit.data)
-
+    if not validated:
         template = render_template(
             "forms/library.html",
             library_form=library_form,
             index_kit_results=db.common_kits,
-            selected_kit=selected_kit,
+            selected_kit=db.db_handler.get_indexkit(library_form.index_kit.data),
         )
         return make_response(
             template, push_url=False
@@ -62,12 +55,7 @@ def create():
         name=library_form.name.data,
         library_type=library_type,
         index_kit_id=library_form.index_kit.data,
-    )
-
-    db.db_handler.link_library_user(
-        library_id=library.id,
-        user_id=current_user.id,
-        relation=UserResourceRelation.OWNER
+        owner_id=current_user.id,
     )
 
     logger.debug(f"Created library '{library.name}'.")
@@ -87,22 +75,20 @@ def edit(library_id):
 
     library_form = forms.LibraryForm()
 
-    if not library_form.validate_on_submit():
-        if (
-            "Library name already exists." in library_form.name.errors and
-            library_form.name.data == library.name
-        ):
-            library_form.name.errors.remove("Library name already exists.")
-        else:
-            template = render_template(
-                "forms/library.html",
-                library_form=library_form,
-                library_id=library_id,
-                selected_kit=library.index_kit,
-            )
-            return make_response(
-                template, push_url=False
-            )
+    validated, library_form = library_form.custom_validate(db.db_handler, current_user.id, library_id=library_id)
+
+    if not validated:
+        logger.debug("Not valid")
+        logger.debug(library_form.errors)
+        template = render_template(
+            "forms/library.html",
+            library_form=library_form,
+            library_id=library_id,
+            selected_kit=library.index_kit,
+        )
+        return make_response(
+            template, push_url=False
+        )
 
     try:
         library_type_id = int(library_form.library_type.data)
@@ -169,11 +155,6 @@ def add_sample(library_id: int):
         if (selected_sample := db.db_handler.get_sample(selected_sample_id)) is None:
             logger.warning(f"Unknown sample id '{selected_sample_id}'")
             return make_response(redirect("/libraries"))
-        
-    valid_adapter = True
-    if library.library_type != LibraryType.RAW:
-        if selected_adapter is None:
-            valid_adapter = False
 
     if not index_form.validate_on_submit() or not valid_adapter:
         if not valid_adapter:

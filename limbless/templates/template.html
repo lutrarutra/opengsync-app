@@ -22,7 +22,7 @@
 
 <body>
     {% if current_user.is_authenticated %}
-        {% set role_name = current_user.role_type.name %}
+        {% set role_name = current_user.role_type.value.name %}
     {% else %}
         {% set role_name = "Quest" %}
     {% endif %}

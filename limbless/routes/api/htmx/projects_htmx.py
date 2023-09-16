@@ -28,8 +28,9 @@ def get(page):
 @projects_htmx.route("create", methods=["POST"])
 def create():
     project_form = forms.ProjectForm()
+    validated, project_form = project_form.custom_validate(db.db_handler, current_user.id)
 
-    if not project_form.validate_on_submit():
+    if not validated:
         template = render_template(
             "forms/project.html",
             project_form=project_form
@@ -42,10 +43,7 @@ def create():
         project = session.create_project(
             name=project_form.name.data,
             description=project_form.description.data,
-        )
-        session.link_project_user(
-            project.id, user_id=current_user.id,
-            relation=UserResourceRelation.OWNER
+            owner_id=current_user.id
         )
 
     logger.debug(f"Created project {project.name}.")
@@ -54,3 +52,5 @@ def create():
     return make_response(
         redirect=url_for("projects_page.project_page", project_id=project.id),
     )
+
+# TODO: edit project

@@ -17,7 +17,6 @@ def create_sample_experiment(db_handler: DBHandler):
                 name=f"Project_{i+1:02d}",
                 description=f"Project_{i+1:02d} description"
             )
-            db_handler.link_project_user(project.id, user.id, categories.UserResourceRelation.OWNER)
 
         projects.append(project)
 
@@ -51,11 +50,11 @@ def create_sample_experiment(db_handler: DBHandler):
     for i in range(20):
         if (library := db_handler.get_library(i + 1)) is None:
             library = db_handler.create_library(
-                f"Library_{i+1:02d}",
-                categories.LibraryType.SC_RNA,
-                (i % 5) + 1,
+                name=f"Library_{i+1:02d}",
+                library_type=categories.LibraryType.SC_RNA,
+                index_kit_id=(i % 5) + 1,
+                owner_id=user.id,
             )
-            db_handler.link_library_user(library.id, user.id, categories.UserResourceRelation.OWNER)
 
         libs.append(library)
 
@@ -66,8 +65,7 @@ def create_sample_experiment(db_handler: DBHandler):
     for i in range(10):
         if (experiment := db_handler.get_experiment(i + 1)) is None:
             experiment = db_handler.create_experiment(
-                f"Experiment_{i+1:02d}",
-                f"Flowcell_{i+1:02d}"
+                flowcell=f"Flowcell_{i+1:02d}"
             )
         experiments.append(experiment)
 

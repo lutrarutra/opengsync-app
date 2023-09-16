@@ -15,12 +15,17 @@ if TYPE_CHECKING:
 
 
 class Library(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=64, index=True, unique=True)
+    id: int = Field(default=None, primary_key=True)
+    name: str = Field(nullable=False, max_length=64, index=True)
     library_type_id: int = Field(nullable=False)
     
-    index_kit_id: int = Field(nullable=True, foreign_key="indexkit.id")
+    index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
     index_kit: Optional["IndexKit"] = Relationship(
+        sa_relationship_kwargs={"lazy": "joined"}
+    )
+
+    owner_id: int = Field(nullable=False, foreign_key="user.id")
+    owner: "User" = Relationship(
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
@@ -50,4 +55,4 @@ class Library(SQLModel, table=True):
 
     @property
     def library_type(self) -> LibraryType:
-        return LibraryType.as_dict()[self.library_type_id]
+        return LibraryType.get(self.library_type_id)

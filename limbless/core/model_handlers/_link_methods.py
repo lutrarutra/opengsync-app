@@ -306,8 +306,7 @@ def get_project_data(
 
 def link_library_user(
     self, library_id: int, user_id: int,
-    relation: categories.UserResourceRelation,
-    commit: bool = True
+    relation: categories.UserResourceRelation
 ) -> models.LibraryUserLink:
     persist_session = self._session is not None
     if not self._session:
@@ -326,13 +325,12 @@ def link_library_user(
 
     library_user_link = models.LibraryUserLink(
         library_id=library_id, user_id=user_id,
-        relation_id=relation.id
+        relation_id=relation.value.id
     )
     self._session.add(library_user_link)
 
-    if commit:
-        self._session.commit()
-        self._session.refresh(library_user_link)
+    self._session.commit()
+    self._session.refresh(library_user_link)
 
     if not persist_session:
         self.close_session()
@@ -362,7 +360,7 @@ def link_project_user(
 
     project_user_link = models.ProjectUserLink(
         project_id=project_id, user_id=user_id,
-        relation_id=relation.id
+        relation_id=relation.value.id
     )
     self._session.add(project_user_link)
 

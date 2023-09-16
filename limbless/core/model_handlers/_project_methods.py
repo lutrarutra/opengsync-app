@@ -1,29 +1,37 @@
 from typing import Optional, Union
 
-from ... import models
+from ... import models, logger
 from .. import exceptions
+from ...categories import UserResourceRelation
+
+from ._link_methods import link_project_user
 
 
 def create_project(
-    self, name: str, description: str, commit: bool = True
+    self, name: str, description: str, owner_id: int
 ) -> models.Project:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if self._session.query(models.Project).where(
-        models.Project.name == name
-    ).first() is not None:
-        raise exceptions.NotUniqueValue(f"Project with name {name} already exists")
+    if self._session.get(models.User, owner_id) is None:
+        raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
 
     project = models.Project(
         name=name,
-        description=description
+        description=description,
+        owner_id=owner_id
     )
 
     self._session.add(project)
-    if commit:
-        self._session.commit()
+    self._session.commit()
+    self._session.refresh(project)
+
+    link_project_user(
+        self, project_id=project.id, user_id=owner_id,
+        relation=UserResourceRelation.OWNER
+    )
+
     self._session.refresh(project)
 
     if not persist_session:
@@ -51,7 +59,7 @@ def get_projects(
         self.open_session()
 
     query = self._session.query(models.Project).order_by(models.Project.id.desc())
-    
+
     if user_id is not None:
         query = query.join(
             models.ProjectUserLink,
@@ -80,30 +88,17 @@ def get_num_projects(self, user_id: Optional[int] = None) -> int:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-    
+
     if user_id is None:
         res = self._session.query(models.Project).count()
     else:
         res = self._session.query(models.ProjectUserLink).where(
             models.ProjectUserLink.user_id == user_id
         ).count()
-    
+
     if not persist_session:
         self.close_session()
     return res
-
-
-def get_project_by_name(self, name: str) -> models.Project:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    project = self._session.query(models.Project).where(
-        models.Project.name == name
-    ).first()
-    if not persist_session:
-        self.close_session()
-    return project
 
 
 def delete_project(

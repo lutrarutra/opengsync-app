@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from sqlmodel import Field, SQLModel
 
@@ -53,7 +53,7 @@ class ProjectUserLink(SQLModel, table=True):
         return UserResourceRelation.as_dict()[self.relation_id]
 
     @property
-    def access_type(self) -> Optional[list[AccessType]]:
+    def access_type(self) -> Optional[List[AccessType]]:
         access = []
         project_role = self.relation
         if project_role == UserResourceRelation.OWNER:
