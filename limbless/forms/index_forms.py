@@ -3,7 +3,11 @@ from wtforms import StringField, IntegerField, FieldList, FormField
 
 from wtforms.validators import DataRequired, Optional
 
+from ..models import Library
 from ..categories import LibraryType
+from ..core.DBHandler import DBHandler
+from ..core.DBSession import DBSession
+from .. import logger
 
 
 class IndexSeqForm(FlaskForm):
@@ -15,6 +19,33 @@ class IndexForm(FlaskForm):
     sample = IntegerField("Sample", validators=[DataRequired()])
     adapter = StringField("Adapter", validators=[Optional()])
     indices = FieldList(FormField(IndexSeqForm), min_entries=0)
+
+    def custom_validate(
+        self,
+        library_id: int, user_id: int,
+        db_handler: DBHandler,
+    ) -> tuple[bool, "IndexForm"]:
+
+        validated = self.validate()
+        if not validated:
+            return False, self
+
+        with DBSession(db_handler) as session:
+            if (library := session.get_library(library_id)) is None:
+                logger.error(f"Library with id {library_id} does not exist.")
+                return False, self
+            
+            if (user := session.get_user(user_id)) is None:
+                logger.error(f"User with id {user_id} does not exist.")
+                return False, self
+            
+            library_samples = library.samples
+            ids = [sample.id for sample in library_samples]
+            if int(self.sample.data) in ids:
+                self.sample.errors = ("Sample already in library",)
+                validated = False
+
+        return validated, self
 
 
 def __crete_dual_index_form() -> IndexForm:
@@ -39,10 +70,12 @@ def __create_atac_index_form() -> IndexForm:
     return form
 
 
-def create_index_form(library_type: LibraryType) -> IndexForm:
-    if library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
+def create_index_form(library: Library) -> IndexForm:
+    if library.is_raw_library:
+        return IndexForm()
+    if library.library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
         return __crete_dual_index_form()
-    elif library_type in [LibraryType.SC_ATAC]:
+    elif library.library_type in [LibraryType.SC_ATAC]:
         return __create_atac_index_form()
 
-    raise NotImplementedError(f"Index form for library type '{library_type}' not implemented.")
+    raise NotImplementedError(f"Index form for library type '{library.library_type}' not implemented.")

@@ -9,23 +9,23 @@ organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism
 
 
 @login_required
-@organisms_htmx.route("query", methods=["GET"])
+@organisms_htmx.route("query", methods=["POST"])
 def query():
-    field_name = next(iter(request.args.keys()), None)
-    query = request.args.get(field_name)
-    assert query is not None
+    field_name = next(iter(request.form.keys()))
+    word = request.form.get(field_name)
+    assert word is not None
 
-    if query == "":
+    if word == "" or word == " ":
         q_organisms = db.common_organisms
     else:
         try:
-            query = int(query)
-            if res := db.db_handler.get_organism(query):
+            tax_id = int(word)
+            if res := db.db_handler.get_organism(tax_id):
                 q_organisms = [res]
             else:
                 q_organisms = []
         except ValueError:
-            q_organisms = db.db_handler.query_organisms(query)
+            q_organisms = db.db_handler.query_organisms(word)
 
     return make_response(
         render_template(

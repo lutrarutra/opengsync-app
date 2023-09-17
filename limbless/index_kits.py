@@ -3,6 +3,7 @@ import os
 import pandas as pd
 
 from limbless.core import DBHandler
+from limbless.categories import LibraryType
 
 
 def add_index_kits(db_handler: DBHandler, datadir: str = ""):
@@ -11,6 +12,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit NN Set A")) is None:
         seq_kit = db_handler.create_indexkit(
             name="10x Dual Index Kit NN Set A",
+            allowed_library_types=[LibraryType.SC_RNA]
         )
 
     for adapter, row in df.iterrows():
@@ -31,6 +33,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit NT Set A")) is None:
         seq_kit = db_handler.create_indexkit(
             name="10x Dual Index Kit NT Set A",
+            allowed_library_types=[LibraryType.SC_RNA]
         )
 
     for adapter, row in df.iterrows():
@@ -49,7 +52,8 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit TN Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
-            name="10x Dual Index Kit TN Seq A"
+            name="10x Dual Index Kit TN Seq A",
+            allowed_library_types=[LibraryType.SC_RNA]
         )
 
     for adapter, row in df.iterrows():
@@ -68,7 +72,8 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Dual Index Kit TT Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
-            name="10x Dual Index Kit TT Seq A"
+            name="10x Dual Index Kit TT Seq A",
+            allowed_library_types=[LibraryType.SC_RNA]
         )
 
     for adapter, row in df.iterrows():
@@ -87,7 +92,8 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Single Index Kit N Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
-            name="10x Single Index Kit N Seq A"
+            name="10x Single Index Kit N Seq A",
+            allowed_library_types=[LibraryType.SC_ATAC]
         )
 
     for adapter, row in df.iterrows():
@@ -107,7 +113,8 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
 
     if (seq_kit := db_handler.get_indexkit_by_name("10x Single Index Kit T Seq A")) is None:
         seq_kit = db_handler.create_indexkit(
-            name="10x Single Index Kit T Seq A"
+            name="10x Single Index Kit T Seq A",
+            allowed_library_types=[LibraryType.SC_ATAC]
         )
 
     for adapter, row in df.iterrows():

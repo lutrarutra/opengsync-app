@@ -22,9 +22,7 @@ class DBHandler():
     def open_session(self) -> None:
         self._session = Session(self._engine, expire_on_commit=False)
 
-    def close_session(self, commit=True) -> None:
-        if commit:
-            self._session.commit()
+    def close_session(self) -> None:
         self._session.close()
         self._session = None
 
@@ -106,8 +104,10 @@ class DBHandler():
         get_experiment_data,
         get_run_data,
         get_experiment_runs,
+        get_sample_indices_from_library,
 
         link_library_sample,
+        link_indexkit_library_type,
         link_run_library,
         link_library_seq_request,
 

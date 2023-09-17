@@ -1,13 +1,12 @@
+from typing import Optional
+
 from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, logger, forms, LibraryType, UserResourceRelation
+from .... import db, logger, forms, LibraryType, models
 from ....core import DBSession, exceptions
 from ....categories import UserRole
-
-from enum import Enum
-
 
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/libraries/")
 
@@ -42,7 +41,7 @@ def create():
             "forms/library.html",
             library_form=library_form,
             index_kit_results=db.common_kits,
-            selected_kit=db.db_handler.get_indexkit(library_form.index_kit.data),
+            selected_kit_id=library_form.index_kit.data,
         )
         return make_response(
             template, push_url=False
@@ -69,8 +68,11 @@ def create():
 @login_required
 @libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
 def edit(library_id):
-    if (library := db.db_handler.get_library(library_id)) is None:
-        return abort(404)
+    with DBSession(db.db_handler) as session:
+        if (library := session.get_library(library_id)) is None:
+            return abort(404)
+        if not library.is_editable:
+            return abort(403)
 
     library_form = forms.LibraryForm()
 
@@ -148,14 +150,10 @@ def add_sample(library_id: int):
 
     selected_adapter = index_form.adapter.data
     selected_sample_id = index_form.sample.data
+        
+    validated, index_form = index_form.custom_validate(library_id, current_user.id, db.db_handler)
 
-    selected_sample = None
-    if selected_sample_id is not None:
-        if (selected_sample := db.db_handler.get_sample(selected_sample_id)) is None:
-            logger.warning(f"Unknown sample id '{selected_sample_id}'")
-            return make_response(redirect("/libraries"))
-
-    if not index_form.validate_on_submit():
+    if not validated:
         template = render_template(
             "forms/index.html",
             library=library,
@@ -163,14 +161,23 @@ def add_sample(library_id: int):
             available_samples=[sample.to_search_result() for sample in current_user.samples],
             adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
             selected_adapter=selected_adapter,
-            selected_sample=selected_sample
+            selected_sample=db.db_handler.get_sample(selected_sample_id)
         )
 
         return make_response(template)
+    
+    if (selected_sample := db.db_handler.get_sample(selected_sample_id)) is None:
+        logger.error(f"Unknown sample id '{selected_sample_id}'")
+        return abort(403)
 
-    # TODO: check if sample is already in the library
-    if library.library_type != LibraryType.RAW:
-        with DBSession(db.db_handler) as session:
+    with DBSession(db.db_handler) as session:
+        if library.is_raw_library:
+            session.link_library_sample(
+                library_id=library.id,
+                sample_id=selected_sample.id,
+                seq_index_id=None,
+            )
+        else:
             for entry in index_form.indices.entries:
                 seq_index_id = entry.index_seq_id.data
                 try:
@@ -180,20 +187,9 @@ def add_sample(library_id: int):
                         seq_index_id=seq_index_id,
                     )
                 except exceptions.LinkAlreadyExists:
-                    logger.warning(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{seq_index_id}'")
-                    flash(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{seq_index_id}'.", "warning")
-    else:
-        with DBSession(db.db_handler) as session:
-            try:
-                session.link_library_sample(
-                    library_id=library.id,
-                    sample_id=selected_sample.id,
-                    seq_index_id=None,
-                )
-            except exceptions.LinkAlreadyExists:
-                logger.warning(f"Sample '{selected_sample}' already linked to library '{library.id}'")
-                flash(f"Sample '{selected_sample}' already linked to library '{library.id}''.", "warning")
-
+                    logger.error(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{seq_index_id}'")
+                    flash(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{seq_index_id}'.", "error")
+    
     logger.debug(f"Added sample '{selected_sample}' to library '{library_id}'")
     flash(f"Added sample '{selected_sample.name}' to library '{library.name}'.", "success")
 

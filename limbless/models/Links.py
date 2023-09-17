@@ -1,8 +1,10 @@
 from typing import Optional, List
+from enum import Enum
 
 from sqlmodel import Field, SQLModel
+from sqlalchemy import Column
 
-from ..categories import AccessType, UserResourceRelation
+from ..categories import LibraryType
 
 
 class LibrarySeqRequestLink(SQLModel, table=True):
@@ -34,6 +36,13 @@ class RunLibraryLink(SQLModel, table=True):
     library_id: int = Field(
         foreign_key="library.id", primary_key=True
     )
+
+
+class IndexKitLibraryType(SQLModel, table=True):
+    index_kit_id: int = Field(
+        foreign_key="indexkit.id", primary_key=True
+    )
+    library_type_id: int = Field(primary_key=True)
 
 
 # class ProjectUserLink(SQLModel, table=True):

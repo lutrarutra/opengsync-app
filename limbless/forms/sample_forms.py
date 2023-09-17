@@ -4,6 +4,7 @@ from wtforms.validators import DataRequired, Length
 
 from .. import logger
 from ..core.DBHandler import DBHandler
+from ..core.DBSession import DBSession
 
 class SampleForm(FlaskForm):
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
@@ -19,29 +20,26 @@ class SampleForm(FlaskForm):
         if not validated:
             return False, self
 
-        db_handler.open_session()
-        if (user := db_handler.get_user(user_id)) is None:
-            logger.error(f"User with id {user_id} does not exist.")
-            db_handler.close_session()
-            return False, self
+        with DBSession(db_handler) as session:
+            if (user := session.get_user(user_id)) is None:
+                logger.error(f"User with id {user_id} does not exist.")
+                return False, self
 
-        user_samples = user.samples
+            user_projects = user.projects
 
-        # Creating new sample
-        if sample_id is None:
-            if self.name.data in [project.name for project in user_projects]:
-                self.name.errors = ("You already have a project with this name.",)
-                validated = False
+            # Creating new sample
+            if sample_id is None:
+                if self.name.data in [project.name for project in user_projects]:
+                    self.name.errors = ("You already have a project with this name.",)
+                    validated = False
 
-        # Editing existing project
-        else:
-            for project in user_projects:
-                if project.name == self.name.data:
-                    if project.id != project_id and project.owner_id == user_id:
-                        self.name.errors = ("You already have a library with this name.",)
-                        validated = False
-
-        db_handler.close_session()
+            # Editing existing project
+            else:
+                for project in user_projects:
+                    if project.name == self.name.data:
+                        if project.id != project_id and project.owner_id == user_id:
+                            self.name.errors = ("You already have a library with this name.",)
+                            validated = False
 
         return validated, self
 

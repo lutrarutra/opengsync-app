@@ -43,6 +43,16 @@ body {
 .custom-tooltip {
   --bs-tooltip-bg: #222529;
   --bs-tooltip-color: #fff;
+  .tooltip-row {
+    display: flex;
+    flex-direction: column;
+    span {
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        white-space: nowrap;
+    }
+  }
 }
 
 nav {
@@ -231,6 +241,20 @@ input.disabled:focus {
             gap: 7px;
             :nth-child(2) {
                 color: $gray-500;
+            }
+        }
+        .index-col {
+            display: flex;
+            gap: 7px;
+            p {
+                font-weight:600;
+            }
+            div {
+                p {
+                    font-size: x-small;
+                    font-weight:normal;
+                    color: $gray-500;
+                }
             }
         }
         .organism-col {

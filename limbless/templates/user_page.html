@@ -2,7 +2,7 @@
 {% set active_page = "" %}
 {% block content %}
 <div class="container">
-    <h2>User: {{ current_user.email }} ({{ current_user.role_type.name }})</h2>
+    <h2>User: {{ current_user.email }} ({{ current_user.role_type.value.name }})</h2>
     <div>
         <ul class="nav nav-tabs" id="auth-tab" role="tablist">
             <li class="nav-item" role="presentation">

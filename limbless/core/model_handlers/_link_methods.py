@@ -6,6 +6,34 @@ from sqlmodel import and_
 from ... import models, logger, categories
 from .. import exceptions
 
+def get_sample_indices_from_library(
+    self, sample_id: int, library_id: int
+) -> list[models.SeqIndex]:
+
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if self._session.get(models.Sample, sample_id) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    
+    if self._session.get(models.Library, library_id) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    res = self._session.query(models.SeqIndex).join(
+        models.LibrarySampleLink,
+        and_(
+            models.LibrarySampleLink.library_id == library_id,
+            models.LibrarySampleLink.sample_id == sample_id,
+            models.LibrarySampleLink.seq_index_id == models.SeqIndex.id
+        )
+    ).all()
+
+    if not persist_session:
+        self.close_session()
+
+    return res
+
 
 def get_user_projects(self, user_id: int) -> list[models.Project]:
     persist_session = self._session is not None
@@ -303,7 +331,6 @@ def get_project_data(
         self.close_session()
     return project_data
 
-
 # def link_library_user(
 #     self, library_id: int, user_id: int,
 #     relation: categories.UserResourceRelation
@@ -494,8 +521,8 @@ def link_library_sample(
     if (_ := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     if (_ := self._session.get(models.SeqIndex, seq_index_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")        
-        
+        raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")
+
     logger.debug(
         self._session.query(models.LibrarySampleLink).where(
             and_(
@@ -528,6 +555,39 @@ def link_library_sample(
     if not persist_session:
         self.close_session()
     return library_sample_link
+
+
+def link_indexkit_library_type(
+    self, index_kit_id: int, library_type_id: int,
+) -> models.IndexKitLibraryType:
+
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"IndexKit with id {index_kit_id} does not exist")
+
+    if not categories.LibraryType.is_valid(library_type_id):
+        raise exceptions.ElementDoesNotExist(f"LibraryType with id {library_type_id} is not valid")
+
+    if self._session.query(models.IndexKitLibraryType).where(
+        models.IndexKitLibraryType.index_kit_id == index_kit_id,
+        models.IndexKitLibraryType.library_type_id == library_type_id,
+    ).first():
+        raise exceptions.LinkAlreadyExists(f"IndexKit with id {index_kit_id} and LibraryType with id {library_type_id} are already linked")
+
+    indexkit_library_type_link = models.IndexKitLibraryType(
+        index_kit_id=index_kit_id, library_type_id=library_type_id,
+    )
+    self._session.add(indexkit_library_type_link)
+    self._session.commit()
+    self._session.refresh(indexkit_library_type_link)
+
+    if not persist_session:
+        self.close_session()
+
+    return indexkit_library_type_link
 
 
 def unlink_library_sample(
@@ -566,7 +626,7 @@ def link_library_seq_request(
     self, library_id: int, seq_request_id: int,
     commit: bool = True
 ) -> models.LibrarySeqRequestLink:
-    
+
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -593,5 +653,5 @@ def link_library_seq_request(
 
     if not persist_session:
         self.close_session()
-        
+
     return library_seq_request_link

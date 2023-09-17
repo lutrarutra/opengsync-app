@@ -55,3 +55,11 @@ class Library(SQLModel, table=True):
     @property
     def library_type(self) -> LibraryType:
         return LibraryType.get(self.library_type_id)
+    
+    @property
+    def is_raw_library(self) -> bool:
+        return self.index_kit_id is None
+    
+    @property
+    def is_editable(self) -> bool:
+        return len(self.samples) == 0

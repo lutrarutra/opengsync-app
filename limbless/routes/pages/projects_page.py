@@ -46,5 +46,4 @@ def project_page(project_id):
         sample_form=forms.SampleForm(),
         samples=samples,
         table_form=table_form,
-        sample_results=db.common_organisms
     )

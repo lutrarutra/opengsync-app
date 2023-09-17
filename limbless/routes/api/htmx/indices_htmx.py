@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, abort
+from typing import Optional
+
+from flask import Blueprint, render_template, request, abort, url_for
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
@@ -10,13 +12,33 @@ indices_htmx = Blueprint("indices_htmx", __name__, url_prefix="/api/indices/")
 
 
 @login_required
-@indices_htmx.route("query_index_kits", methods=["GET"])
+@indices_htmx.route("query_index_kits", methods=["POST"])
 def query_index_kits():
-    field_name = next(iter(request.args.keys()))
-    query = request.args.get(field_name)
-    assert query is not None
+    library_type_id: Optional[int] = None
+    raw_library_type_id = request.form.get("library_type")
 
-    results = db.db_handler.query_indexkit(query)
+    try:
+        library_type_id = int(raw_library_type_id)
+    except KeyError:
+        logger.debug("No library type id provided with POST request")
+    except ValueError:
+        logger.debug(f"Invalid library type '{raw_library_type_id}' id provided with POST request")
+        return abort(400)
+    
+    field_name = next(iter(request.form.keys()))
+    word = request.form.get(field_name)
+
+    if word is None:
+        return abort(400)
+
+    if library_type_id is not None:
+        library_type = LibraryType.get(library_type_id)
+    else:
+        library_type = None
+
+    logger.debug(library_type)
+
+    results = db.db_handler.query_indexkit(word, library_type=library_type)
 
     return make_response(
         render_template(
@@ -28,14 +50,16 @@ def query_index_kits():
 
 
 @login_required
-@indices_htmx.route("query_seq_adapters/<int:index_kit_id>", methods=["GET"])
+@indices_htmx.route("query_seq_adapters/<int:index_kit_id>", methods=["POST"])
 def query_seq_adapters(index_kit_id: int):
-    field_name = next(iter(request.args.keys()))
-    query = request.args.get(field_name)
-    assert query is not None
+    field_name = next(iter(request.form.keys()))
+    word = request.form.get(field_name)
+
+    if word is None:
+        return abort(400)
 
     results = db.db_handler.query_adapters(
-        query, index_kit_id=index_kit_id
+        word, index_kit_id=index_kit_id
     )
 
     return make_response(
@@ -77,8 +101,6 @@ def select_indices(library_id: int):
             "forms/index.html",
             library=library,
             index_form=index_form,
-            available_samples=user.samples,
-            adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
             selected_adapter=selected_adapter,
             selected_sample=selected_sample
         )

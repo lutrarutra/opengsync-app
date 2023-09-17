@@ -45,12 +45,12 @@ def library_page(library_id):
     library_form.name.data = library.name
     library_form.library_type.data = str(library.library_type_id)
     library_form.index_kit.data = library.index_kit_id
-    library_form.is_raw_library.data = library.index_kit_id is None
+    library_form.is_raw_library.data = library.is_raw_library
 
     library_sample_ids = [s.id for s in library.samples]
     available_samples = [sample.to_search_result() for sample in current_user.samples if sample.id not in library_sample_ids]
 
-    index_form = forms.create_index_form(library.library_type)
+    index_form = forms.create_index_form(library)
     index_form_html = render_template(
         "forms/index.html",
         library=library,
@@ -58,6 +58,10 @@ def library_page(library_id):
         available_samples=available_samples,
         adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
     )
+
+    with DBSession(db.db_handler) as session:
+        for sample in library.samples:
+            sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
 
     return render_template(
         "library_page.html",

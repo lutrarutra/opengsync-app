@@ -11,4 +11,4 @@ class DBSession():
         return self.db_handler
 
     def __exit__(self, *_):
-        self.db_handler.close_session(commit=self.commit)
+        self.db_handler.close_session()

@@ -7,7 +7,7 @@
             <h1>Library: {{ library.name }}</h1>
         </div>
         <div>
-            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup">
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup" {{ "disabled" if not library.is_editable }}>
                 Edit Library
             </button>
         </div>
@@ -24,6 +24,11 @@
         </div>
     </div>
     {% set samples = library.samples %}
+    {% if not library.is_raw_library %}
+        {% set show_indices = true %}
+    {% else %}
+        {% set show_indices = false %}
+    {% endif %}
     {% include "components/tables/sample.html" %}
 
     <div class="modal fade" id="library-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">

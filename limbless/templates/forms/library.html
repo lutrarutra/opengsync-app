@@ -3,7 +3,7 @@
 <form id="library-form">
     {{ library_form.csrf_token }}
     {{ form_group(library_form.name) }}
-    {{ form_group(library_form.library_type) }}
+    {{ form_group(library_form.library_type, trigger_dest_id="index_kit-search") }}
 
     {{ switch_input(library_form.is_raw_library) }}
 
@@ -11,9 +11,9 @@
         search_select_field(
             library_form.index_kit,
             url=url_for('indices_htmx.query_index_kits'),
-            results=index_kit_results,
-            selected=selected_kit.name if selected_kit is defined,
-            disabled=library_form.is_raw_library.data
+            selected=selected_kit_id,
+            disabled=library_form.is_raw_library.data,
+            include_field="library_type"
         )
     }}
 </form>

@@ -6,7 +6,6 @@
         search_select_field(
             index_form.sample,
             url_for('samples_htmx.query', exclude_library_id=library.id),
-            results=available_samples,
             selected=selected_sample.name if selected_sample is defined,
         )
     }}
@@ -15,7 +14,6 @@
         search_select_field(
             index_form.adapter,
             url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
-            results=adapters,
             selected=selected_adapter,
             include_data_element=False,
         )

@@ -58,8 +58,6 @@ def create(project_id):
         #     except ValueError:
         #         q_organisms = db.db_handler.query_organisms(query)
 
-        q_organisms = []
-
         selected_organism = db.db_handler.get_organism(sample_form.organism.data)
 
         logger.debug(sample_form.errors)
@@ -68,7 +66,6 @@ def create(project_id):
         template = render_template(
             "forms/sample.html",
             sample_form=sample_form, project=project,
-            sample_results=q_organisms,
             selected_organism=str(selected_organism) if selected_organism else ""
         )
         return make_response(
@@ -209,14 +206,11 @@ def map_columns(project_id: int):
     category_mapping_form = forms.CategoricalMappingForm()
     organisms = sorted(df["organism"].unique())
 
-    results: list[list[str]] = []
     selected: list[str] = []
-    with DBSession(db.db_handler) as session:
-        for i, organism in enumerate(organisms):
-            selected.append("")
-            category_mapping_form.fields.append_entry(forms.CategoricalMappingField())
-            category_mapping_form.fields.entries[i].raw_category.data = organism
-            results.append(session.query_organisms(organism, limit=20))
+    for i, organism in enumerate(organisms):
+        selected.append("")
+        category_mapping_form.fields.append_entry(forms.CategoricalMappingField())
+        category_mapping_form.fields.entries[i].raw_category.data = organism
         # category_mapping_form.fields.entries[i].category.data = organism
 
     category_mapping_form.data.data = df.to_csv(sep="\t", index=False)
@@ -226,7 +220,6 @@ def map_columns(project_id: int):
             "components/popups/sample_organism_map.html",
             category_mapping_form=category_mapping_form,
             categories=organisms,
-            results=results,
             selected=selected,
             project_id=project_id,
         ), push_url=False
@@ -242,7 +235,6 @@ def map_organisms(project_id: int):
     category_mapping_form = forms.CategoricalMappingForm()
     organisms = sorted(df["organism"].unique())
 
-    results: list[list[str]] = []
 
     if not category_mapping_form.validate_on_submit():
         selected = []
@@ -254,13 +246,12 @@ def map_organisms(project_id: int):
                     selected.append(str(selected_organism))
                 else:
                     selected.append("")
-                results.append(session.query_organisms(organism, limit=20))
+                    
         return make_response(
             render_template(
                 "components/popups/sample_organism_map.html",
                 category_mapping_form=category_mapping_form,
                 categories=organisms,
-                results=results,
                 selected=selected,
                 project_id=project_id,
             ), push_url=False
@@ -417,16 +408,18 @@ def edit(sample_id):
 
 
 @login_required
-@samples_htmx.route("query", methods=["GET"], defaults={"exclude_library_id": None})
-@samples_htmx.route("query/<int:exclude_library_id>", methods=["GET"])
+@samples_htmx.route("query", methods=["POST"], defaults={"exclude_library_id": None})
+@samples_htmx.route("query/<int:exclude_library_id>", methods=["POST"])
 def query(exclude_library_id: Optional[int] = None):
-    field_name = next(iter(request.args.keys()))
-    query = request.args.get(field_name)
-    if query is None:
-        return abort(500)
+    field_name = next(iter(request.form.keys()))
+    query = request.form.get(field_name)
 
-    if current_user.role_type == UserRole.CLIENT:
-        _user_id = current_user.id
+    if query is None:
+        return abort(400)
+    
+    user = current_user
+    if user.role_type == UserRole.CLIENT:
+        _user_id = user.id
     else:
         _user_id = None
     if exclude_library_id is None:
@@ -435,8 +428,6 @@ def query(exclude_library_id: Optional[int] = None):
         results = db.db_handler.query_samples_for_library(
             query, exclude_library_id=exclude_library_id, user_id=_user_id
         )
-
-    logger.debug(results)
 
     return make_response(
         render_template(

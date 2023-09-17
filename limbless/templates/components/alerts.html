@@ -43,7 +43,7 @@
 {% endif %}
 {% endwith %}
 
-{% with errors = get_flashed_messages(category_filter=["error"]) %}
+{% with errors = get_flashed_messages(category_filter=["error", "danger"]) %}
 {% if errors %}
 <div class="alert alert-danger d-flex align-items-center" role="alert">
     <div class="alert-content">
