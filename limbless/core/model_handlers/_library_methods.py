@@ -7,8 +7,6 @@ from ...categories import LibraryType, UserResourceRelation
 from .. import exceptions
 from ...tools import SearchResult
 
-from ._link_methods import link_library_user
-
 
 def create_library(
     self, name: str,
@@ -35,13 +33,6 @@ def create_library(
     )
     self._session.add(library)
     self._session.commit()
-    self._session.refresh(library)
-
-    link_library_user(
-        self, library_id=library.id, user_id=owner_id,
-        relation=UserResourceRelation.OWNER
-    )
-
     self._session.refresh(library)
 
     if not persist_session:
@@ -71,11 +62,8 @@ def get_libraries(
 
     query = self._session.query(models.Library).order_by(models.Library.id.desc())
     if user_id is not None:
-        query = query.join(
-            models.LibraryUserLink,
-            models.LibraryUserLink.library_id == models.Library.id
-        ).where(
-            models.LibraryUserLink.user_id == user_id
+        query = query.where(
+            models.Library.owner_id == user_id
         )
 
     if offset is not None:
@@ -85,6 +73,9 @@ def get_libraries(
         query = query.limit(limit)
 
     libraries = query.all()
+
+    for library in libraries:
+        library._num_samples = len(library.samples)
 
     if not persist_session:
         self.close_session()
@@ -97,12 +88,13 @@ def get_num_libraries(self, user_id: Optional[int] = None) -> int:
     if not self._session:
         self.open_session()
 
-    if user_id is None:
-        res = self._session.query(models.Library).count()
-    else:
-        res = self._session.query(models.LibraryUserLink).where(
-            models.LibraryUserLink.user_id == user_id
-        ).count()
+    query = self._session.query(models.Library)
+    if user_id is not None:
+        query = query.where(
+            models.Library.owner_id == user_id
+        )
+
+    res = query.count()
 
     if not persist_session:
         self.close_session()
@@ -159,6 +151,8 @@ def update_library(
         if self._session.get(models.IndexKit, index_kit_id) is None:
             raise exceptions.ElementDoesNotExist(f"IndexKit with id {index_kit_id} does not exist")
         library.index_kit_id = index_kit_id
+    else:
+        library.index_kit_id = None
 
     self._session.add(library)
     if commit:

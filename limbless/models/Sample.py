@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .Project import Project
     from .Library import Library
     from .SeqIndex import SeqIndex
+    from .User import User
 
 
 class Sample(SQLModel, table=True):
@@ -20,7 +21,15 @@ class Sample(SQLModel, table=True):
     organism: "Organism" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
 
     project_id: int = Field(nullable=False, foreign_key="project.id")
-    project: "Project" = Relationship(back_populates="samples")
+    project: "Project" = Relationship(
+        back_populates="samples",
+        sa_relationship_kwargs={"lazy": "joined"}
+    )
+
+    owner_id: int = Field(nullable=False, foreign_key="user.id")
+    owner: "User" = Relationship(
+        back_populates="samples", sa_relationship_kwargs={"lazy": "joined"}
+    )
 
     libraries: List["Library"] = Relationship(
         back_populates="samples",

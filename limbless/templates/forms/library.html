@@ -1,15 +1,33 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, switch_input %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 <form id="library-form">
     {{ library_form.csrf_token }}
     {{ form_group(library_form.name) }}
     {{ form_group(library_form.library_type) }}
+
+    {{ switch_input(library_form.is_raw_library) }}
+
     {{ 
         search_select_field(
             library_form.index_kit,
             url=url_for('indices_htmx.query_index_kits'),
             results=index_kit_results,
             selected=selected_kit.name if selected_kit is defined,
+            disabled=library_form.is_raw_library.data
         )
     }}
 </form>
+<script>
+    $("#is_raw_library").on("change", function() {
+        if ($(this).is(":checked")) {
+            $("#index_kit-search").addClass("disabled");
+            $("#index_kit-search").prop("readonly", true);
+            $("#index_kit-search").val("");
+            $("#index_kit").val("");
+
+        } else {
+            $("#index_kit-search").removeClass("disabled");
+            $("#index_kit-search").prop("readonly", false);
+        }
+    });
+</script>

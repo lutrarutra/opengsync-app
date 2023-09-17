@@ -32,7 +32,7 @@ class OrganismCategory(Enum, metaclass=ExtendedEnumMeta):
 
 
 class AccessType(Enum, metaclass=ExtendedEnumMeta):
-    WRITE = DescriptiveEnum(1, "Write")
+    READWRITE = DescriptiveEnum(1, "Read/Write")
     READ = DescriptiveEnum(2, "Read")
 
 

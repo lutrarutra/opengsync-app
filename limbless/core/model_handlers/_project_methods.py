@@ -4,8 +4,6 @@ from ... import models, logger
 from .. import exceptions
 from ...categories import UserResourceRelation
 
-from ._link_methods import link_project_user
-
 
 def create_project(
     self, name: str, description: str, owner_id: int
@@ -27,15 +25,9 @@ def create_project(
     self._session.commit()
     self._session.refresh(project)
 
-    link_project_user(
-        self, project_id=project.id, user_id=owner_id,
-        relation=UserResourceRelation.OWNER
-    )
-
-    self._session.refresh(project)
-
     if not persist_session:
         self.close_session()
+        
     return project
 
 
@@ -61,11 +53,8 @@ def get_projects(
     query = self._session.query(models.Project).order_by(models.Project.id.desc())
 
     if user_id is not None:
-        query = query.join(
-            models.ProjectUserLink,
-            models.ProjectUserLink.project_id == models.Project.id
-        ).where(
-            models.ProjectUserLink.user_id == user_id
+        query = query.where(
+            models.Project.owner_id == user_id
         )
 
     if offset is not None:
@@ -89,12 +78,13 @@ def get_num_projects(self, user_id: Optional[int] = None) -> int:
     if not self._session:
         self.open_session()
 
-    if user_id is None:
-        res = self._session.query(models.Project).count()
-    else:
-        res = self._session.query(models.ProjectUserLink).where(
-            models.ProjectUserLink.user_id == user_id
-        ).count()
+    query = self._session.query(models.Project)
+    if user_id is not None:
+        query = query.where(
+            models.Project.owner_id == user_id
+        )
+
+    res = query.count()
 
     if not persist_session:
         self.close_session()

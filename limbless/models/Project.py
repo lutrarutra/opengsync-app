@@ -3,8 +3,6 @@ from typing import Optional, List, TYPE_CHECKING
 from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import ProjectUserLink
-
 if TYPE_CHECKING:
     from .Sample import Sample
     from .User import User
@@ -21,11 +19,8 @@ class Project(SQLModel, table=True):
 
     owner_id: int = Field(nullable=False, foreign_key="user.id")
     owner: "User" = Relationship(
+        back_populates="projects",
         sa_relationship_kwargs={"lazy": "joined"}
-    )
-
-    users: List["User"] = Relationship(
-        back_populates="projects", link_model=ProjectUserLink
     )
 
     _num_samples: int = PrivateAttr(0)

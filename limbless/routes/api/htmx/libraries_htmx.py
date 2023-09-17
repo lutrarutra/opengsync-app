@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, url_for, render_template, flash, request
+from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
@@ -66,12 +66,11 @@ def create():
     )
 
 
-@ login_required
-@ libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
+@login_required
+@libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
 def edit(library_id):
-    library = db.db_handler.get_library(library_id)
-    if not library:
-        return redirect("/libraries")
+    if (library := db.db_handler.get_library(library_id)) is None:
+        return abort(404)
 
     library_form = forms.LibraryForm()
 
@@ -141,9 +140,9 @@ def query():
 @login_required
 @libraries_htmx.route("<int:library_id>/add_sample", methods=["POST"])
 def add_sample(library_id: int):
-    if (library := db.db_handler.get_library(library_id)) is None:
-        logger.warning(f"Unknown library id '{library_id}'")
-        return redirect("/libraries")
+    with DBSession(db.db_handler) as session:
+        if (library := session.get_library(library_id)) is None:
+            return abort(404)
 
     index_form = forms.IndexForm()
 
@@ -156,15 +155,12 @@ def add_sample(library_id: int):
             logger.warning(f"Unknown sample id '{selected_sample_id}'")
             return make_response(redirect("/libraries"))
 
-    if not index_form.validate_on_submit() or not valid_adapter:
-        if not valid_adapter:
-            index_form.adapter.errors.append("Adapter required.")
-        logger.debug(index_form.errors)
+    if not index_form.validate_on_submit():
         template = render_template(
             "forms/index.html",
             library=library,
             index_form=index_form,
-            available_samples=[sample.to_search_result() for sample in db.db_handler.get_user_samples(2)],
+            available_samples=[sample.to_search_result() for sample in current_user.samples],
             adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
             selected_adapter=selected_adapter,
             selected_sample=selected_sample

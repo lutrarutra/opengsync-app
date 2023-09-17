@@ -21,3 +21,10 @@
     </div>
 </div>
 {%- endmacro %}
+
+{% macro switch_input(field, class='', disabled=false) -%}
+<div class="form-check form-switch">
+    {{ field(class="form-check-input") }}
+    {{ field.label(class="form-check-label") }}
+</div>
+{%- endmacro %}

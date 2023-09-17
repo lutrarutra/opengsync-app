@@ -3,7 +3,7 @@ from typing import Optional, List, TYPE_CHECKING
 from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import LibrarySampleLink, RunLibraryLink, LibraryUserLink, LibrarySeqRequestLink
+from .Links import LibrarySampleLink, RunLibraryLink, LibrarySeqRequestLink
 from ..categories import LibraryType
 
 if TYPE_CHECKING:
@@ -26,6 +26,7 @@ class Library(SQLModel, table=True):
 
     owner_id: int = Field(nullable=False, foreign_key="user.id")
     owner: "User" = Relationship(
+        back_populates="libraries",
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
@@ -35,9 +36,7 @@ class Library(SQLModel, table=True):
     runs: List["Run"] = Relationship(
         back_populates="libraries", link_model=RunLibraryLink
     )
-    users: List["User"] = Relationship(
-        back_populates="libraries", link_model=LibraryUserLink
-    )
+
     seq_requests: List["SeqRequest"] = Relationship(
         back_populates="libraries",
         link_model=LibrarySeqRequestLink

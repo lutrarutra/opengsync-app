@@ -1,11 +1,12 @@
-{% macro search_select_field(field, url, results, selected, include_data_element=True) -%}
+{% macro search_select_field(field, url, results, selected, include_data_element=True, disabled=false) -%}
 {% set field_name = field.name %}
+{% set class_str = "form-control search-component search-select-input" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else "") %}
 <div id="{{field_name}}-select" class="search-select form-group">
     <label for="{{field_name}}">{{ field.label }}</label>
     <div class="input-group">
         <input type="search"
         onclick="this.select();"
-        class="{{'form-control is-invalid search-component search-select-input' if field.errors else 'form-control search-component search-select-input'}}"
+        class="{{ class_str }}"
         autocomplete="off"
         name="{{field_name}}-search"
         id="{{field_name}}-search"
@@ -15,7 +16,8 @@
         hx-target="#{{field_name}}-results"
         hx-trigger="keyup changed delay:500ms, {{field_name}}"
         hx-swap="innerHTML"
-        placeholder="Search">
+        placeholder="Search"
+        readonly=disabled>
     </div>
     <div class="input-group">
         <div id="{{field_name}}-results" class="search-select-results">
@@ -36,6 +38,9 @@
 <script>
     // Shows search results when user focuses on search component
     $("#{{field_name}}-search").on("focus", function() {
+        if ($(this).hasClass("disabled")) {
+            return;
+        }
         $("#{{field_name}}-results").css("display", "block");
     });
 

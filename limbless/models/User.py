@@ -2,7 +2,6 @@ from typing import Optional, List, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import ProjectUserLink, LibraryUserLink
 from .. import serializer
 from ..categories import UserRole
 
@@ -10,6 +9,7 @@ if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
     from .Project import Project
     from .Library import Library
+    from .Sample import Sample
 
 
 class UserMixin:
@@ -68,14 +68,20 @@ class User(UserMixin, SQLModel, table=True):
     role: int = Field(nullable=False)
 
     requests: List["SeqRequest"] = Relationship(
-        back_populates="requestor", sa_relationship_kwargs={"lazy": "joined"}
+        back_populates="requestor",
+        sa_relationship_kwargs={"lazy": "noload"}
     )
-
     projects: List["Project"] = Relationship(
-        back_populates="users", link_model=ProjectUserLink
+        back_populates="owner",
+        sa_relationship_kwargs={"lazy": "noload"}
     )
     libraries: List["Library"] = Relationship(
-        back_populates="users", link_model=LibraryUserLink
+        back_populates="owner",
+        sa_relationship_kwargs={"lazy": "noload"}
+    )
+    samples: List["Sample"] = Relationship(
+        back_populates="owner",
+        sa_relationship_kwargs={"lazy": "noload"}
     )
 
     @staticmethod

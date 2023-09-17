@@ -7,6 +7,7 @@
                 <th scope="col">ID</th>
                 <th scope="col">Name</th>
                 <th scope="col">Organism</th>
+                <th scope="col">Owner</th>
                 {% if show_indices %}
                 <th scope="col">Indices</th>
                 {% endif %}
@@ -15,11 +16,18 @@
         <tbody>
             {% for sample in samples %}
             <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id) }}';">
-                <th scope="row">{{sample.id}}</th>
-                <td>{{sample.name}}</td>
-                <td>{{sample.organism}}</td>
+                <th scope="row">{{ sample.id }}</th>
+                <td>{{ sample.name }}</td>
+                <td>
+                    <span class="organism-col">
+                        <p>{{ sample.organism.scientific_name }}</p>
+                        <p>{{ "[" + sample.organism.tax_id | string + "]" }}</p>
+                        <p>{{ ("(" + sample.organism.common_name + ")" if sample.organism.common_name else "") }}</p>
+                    </span>
+                </td>
+                <td><span class="owner-col"><p>{{ sample.owner.first_name }} {{ sample.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == sample.owner_id }}</p></span></td>
                 {% if show_indices %}
-                <td>{{sample.indices}}</td>
+                <td>{{ sample.indices }}</td>
                 {% endif %}
             </tr>
             {% endfor %}

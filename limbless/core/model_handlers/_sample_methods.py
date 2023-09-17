@@ -11,6 +11,7 @@ from ...tools import SearchResult
 def create_sample(
     self, name: str,
     organism_tax_id: int,
+    owner_id: int,
     project_id: int,
     commit: bool = True
 ) -> models.Sample:
@@ -19,19 +20,20 @@ def create_sample(
     if not self._session:
         self.open_session()
 
-    if (project := self._session.get(models.Project, project_id)) is None:
+    if (_ := self._session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id '{project_id}', not found.")
 
     if (organism := self._session.get(models.Organism, organism_tax_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Organism with tax_id '{organism_tax_id}', not found.")
-
-    if name in [sample.name for sample in project.samples]:
-        raise exceptions.ElementAlreadyExists(f"Sample with name '{name}' already exists in project '{project.name}'")
+    
+    if (_ := self._session.get(models.User, owner_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"User with id '{owner_id}', not found.")
 
     sample = models.Sample(
         name=name,
         organism_id=organism.tax_id,
-        project_id=project_id
+        project_id=project_id,
+        owner_id=owner_id
     )
 
     self._session.add(sample)
@@ -61,18 +63,13 @@ def get_num_samples(self, user_id: Optional[int] = None) -> int:
     if not self._session:
         self.open_session()
 
-    if user_id is None:
-        res = self._session.query(models.Sample).count()
-    else:
-        res = self._session.query(models.Sample).order_by(models.Sample.id.desc()).join(
-            models.Project, models.Project.id == models.Sample.project_id
-        ).join(
-            models.ProjectUserLink,
-            and_(
-                models.ProjectUserLink.project_id == models.Project.id,
-                models.ProjectUserLink.user_id == user_id
-            )
-        ).count()
+    query = self._session.query(models.Sample)
+    if user_id is not None:
+        query = query.where(
+            models.Sample.owner_id == user_id
+        )
+
+    res = query.count()
 
     if not persist_session:
         self.close_session()
@@ -89,14 +86,8 @@ def get_samples(
 
     query = self._session.query(models.Sample).order_by(models.Sample.id.desc())
     if user_id is not None:
-        query = query.join(
-            models.Project, models.Project.id == models.Sample.project_id
-        ).join(
-            models.ProjectUserLink,
-            and_(
-                models.ProjectUserLink.project_id == models.Project.id,
-                models.ProjectUserLink.user_id == user_id
-            )
+        query = query.where(
+            models.Sample.owner_id == user_id
         )
 
     if offset is not None:
@@ -225,22 +216,18 @@ def query_samples_for_library(
             sample.id, sample.name, project.name as project_name,
             similarity(lower(sample.name), lower(%(word)s)) as sml
         FROM
-            projectuserlink
+            sample
         JOIN
             project
-        ON
-            projectuserlink.project_id = project.id
-        JOIN
-            sample
         ON
             sample.project_id = project.id
         LEFT JOIN
             librarysamplelink
         ON
-            librarysamplelink.sample_id = sample.id
+            sample.id = librarysamplelink.sample_id
         WHERE
-            projectuserlink.user_id = 2
-            AND
+            sample.owner_id = %(user_id)s
+        AND
             (
                 librarysamplelink.library_id != %(library_id)s
                 OR
@@ -251,31 +238,33 @@ def query_samples_for_library(
         """
     else:
         q = """
-            SELECT
-                sample.id, sample.name, project.name as project_name,
-                similarity(lower(sample.name), lower(%(word)s)) as sml
-            FROM
-                sample
-            LEFT JOIN
-                librarysamplelink
-            ON
-                sample.id = librarysamplelink.sample_id
-            JOIN
-                project
-            ON
-                sample.project_id = project.id
-            WHERE
+        SELECT
+            sample.id, sample.name, project.name as project_name,
+            similarity(lower(sample.name), lower(%(word)s)) as sml
+        FROM
+            sample
+        JOIN
+            project
+        ON
+            sample.project_id = project.id
+        LEFT JOIN
+            librarysamplelink
+        ON
+            sample.id = librarysamplelink.sample_id
+        WHERE
+            (
                 librarysamplelink.library_id != %(library_id)s
-            OR
+                OR
                 librarysamplelink.library_id IS NULL
-            ORDER BY
-                sml DESC
-            """
+            )
+        ORDER BY
+            sml DESC
+        """
 
     if limit is not None:
         q += f"LIMIT {limit};"
 
-    res = pd.read_sql(q, self._engine, params={"word": word, "library_id": exclude_library_id})
+    res = pd.read_sql(q, self._engine, params={"word": word, "library_id": exclude_library_id, "user_id": user_id})
 
     if not persist_session:
         self.close_session()

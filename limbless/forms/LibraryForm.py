@@ -1,8 +1,8 @@
 from typing import Literal
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, IntegerField
-from wtforms.validators import DataRequired, Length, ValidationError, Optional, StopValidation
+from wtforms import StringField, SelectField, IntegerField, BooleanField
+from wtforms.validators import DataRequired, Length, Optional
 
 from .. import logger
 from ..categories import LibraryType
@@ -18,6 +18,11 @@ class LibraryForm(FlaskForm):
     library_type = SelectField(
         "Library Type", choices=_choises,
         validators=[DataRequired()]
+    )
+
+    is_raw_library = BooleanField(
+        "Is raw library", default=True,
+        description="Check this if this if the library is not sequencing ready."
     )
 
     index_kit = IntegerField("Index Kit", validators=[Optional()])
@@ -53,6 +58,15 @@ class LibraryForm(FlaskForm):
                     if library.id != library_id and library.owner_id == user_id:
                         self.name.errors = ("You already have a library with this name.",)
                         validated = False
+
+        if self.is_raw_library.data:
+            if self.index_kit.data is not None:
+                self.index_kit.errors = ("Index kit should not be selected for raw libraries.",)
+                validated = False
+        else:
+            if self.index_kit.data is None:
+                self.index_kit.errors = ("Index kit is required for non raw libraries.",)
+                validated = False
 
         db_handler.close_session()
 

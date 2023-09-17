@@ -32,22 +32,23 @@ def libraries_page():
 @login_required
 def library_page(library_id):
     with DBSession(db.db_handler) as session:
-        if (library := session.get_library(library_id)) is None:
-            return abort(404)
-
         access = session.get_user_library_access(current_user.id, library_id)
         if access is None:
             return abort(403)
 
-        library.samples = session.get_library_samples(library.id)
+        if (library := session.get_library(library_id)) is None:
+            return abort(404)
+
+        library.samples = library.samples
 
     library_form = forms.LibraryForm()
     library_form.name.data = library.name
     library_form.library_type.data = str(library.library_type_id)
     library_form.index_kit.data = library.index_kit_id
+    library_form.is_raw_library.data = library.index_kit_id is None
 
     library_sample_ids = [s.id for s in library.samples]
-    available_samples = [sample.to_search_result() for sample in db.db_handler.get_user_samples(2) if sample.id not in library_sample_ids]
+    available_samples = [sample.to_search_result() for sample in current_user.samples if sample.id not in library_sample_ids]
 
     index_form = forms.create_index_form(library.library_type)
     index_form_html = render_template(

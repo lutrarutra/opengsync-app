@@ -8,6 +8,7 @@
                 <th scope="col">Owner</th>
                 <th scope="col">Type</th>
                 <th scope="col">Index Kit</th>
+                <th scope="col"># Samples</th>
             </tr>
         </thead>
         <tbody>
@@ -18,6 +19,7 @@
                 <td class="owner-col">{{ library.owner.first_name }} {{ library.owner.last_name }} <p>{{ "(me)" if current_user.id == library.owner_id }}</p></td>
                 <td>{{ library.library_type.value.name }}</td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>
+                <td>{{ library._num_samples }}</td>
             </tr>
             {% endfor %}
         </tbody>

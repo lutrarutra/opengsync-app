@@ -343,6 +343,7 @@ def add_samples_from_table(project_id: int):
                 name=row["sample_name"],
                 organism_tax_id=row["organism_id"],
                 project_id=project_id,
+                owner_id=current_user.id
             )
             n_added += 1
 

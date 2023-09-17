@@ -22,9 +22,9 @@ def get_user_project_access(
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
     if user.role_type == UserRole.ADMIN:
-        access = [AccessType.READ, AccessType.WRITE]
+        access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.BIOINFORMATICIAN:
-        access = [AccessType.READ, AccessType.WRITE]
+        access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.TECHNICIAN:
         access = [AccessType.READ]
     elif user.role_type == UserRole.CLIENT:
@@ -32,7 +32,7 @@ def get_user_project_access(
             raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
         if user.id == project.owner_id:
-            access = [AccessType.READ, AccessType.WRITE]
+            access = [AccessType.READ, AccessType.READWRITE]
         else:
             res: models.ProjectUserLink = self._session.query(models.ProjectUserLink).where(
                 models.ProjectUserLink.project_id == project_id,
@@ -66,9 +66,9 @@ def get_user_experiment_access(
         self.close_session()
 
     if user.role_type == UserRole.ADMIN:
-        access = [AccessType.READ, AccessType.WRITE]
+        access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.BIOINFORMATICIAN:
-        access = [AccessType.READ, AccessType.WRITE]
+        access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.TECHNICIAN:
         access = [AccessType.READ]
     elif user.role_type == UserRole.CLIENT:
@@ -92,14 +92,14 @@ def get_user_library_access(
 
     logger.debug(user.role_type)
     if user.role_type == UserRole.ADMIN:
-        access = [AccessType.READ, AccessType.WRITE]
+        access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.BIOINFORMATICIAN:
-        access = [AccessType.READ, AccessType.WRITE]
+        access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.TECHNICIAN:
         access = [AccessType.READ]
     elif user.role_type == UserRole.CLIENT:
         if library.owner_id == user_id:
-            access = [AccessType.READ, AccessType.WRITE]
+            access = [AccessType.READ, AccessType.READWRITE]
         else:
             res: models.LibraryUserLink = self._session.query(models.LibraryUserLink).where(
                 models.LibraryUserLink.library_id == library_id,
@@ -131,9 +131,9 @@ def get_user_sample_access(
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
     if user.role_type == UserRole.ADMIN:
-        access = [AccessType.READ, AccessType.WRITE]
+        access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.BIOINFORMATICIAN:
-        access = [AccessType.READ, AccessType.WRITE]
+        access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.TECHNICIAN:
         access = [AccessType.READ]
     elif user.role_type == UserRole.CLIENT:

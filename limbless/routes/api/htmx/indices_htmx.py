@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from .... import db, logger, forms
 from ....core import DBSession
@@ -50,26 +50,34 @@ def query_seq_adapters(index_kit_id: int):
 @login_required
 @indices_htmx.route("select_indices/<int:library_id>", methods=["POST"])
 def select_indices(library_id: int):
-    library = db.db_handler.get_library(library_id)
+    with DBSession(db.db_handler) as session:
+        if (library := session.get_library(library_id)) is None:
+            return abort(404)
+        if (user := session.get_user(current_user.id)) is None:
+            return abort(404)
+        
+        user.samples = user.samples
 
     index_form = forms.IndexForm()
     selected_adapter = index_form.adapter.data
     selected_sample_id = index_form.sample.data
 
-    with DBSession(db.db_handler) as session:
-        indices = session.get_seqindices_by_adapter(selected_adapter)
-        selected_sample = session.get_sample(selected_sample_id)
+    indices = session.get_seqindices_by_adapter(selected_adapter)
+    selected_sample = db.db_handler.get_sample(selected_sample_id)
+
 
     for i, entry in enumerate(index_form.indices.entries):
         entry.index_seq_id.data = indices[i].id
         entry.sequence.data = indices[i].sequence
+
+
 
     return make_response(
         render_template(
             "forms/index.html",
             library=library,
             index_form=index_form,
-            available_samples=[sample.to_search_result() for sample in db.db_handler.get_user_samples(2)],
+            available_samples=user.samples,
             adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
             selected_adapter=selected_adapter,
             selected_sample=selected_sample

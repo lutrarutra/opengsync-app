@@ -304,73 +304,73 @@ def get_project_data(
     return project_data
 
 
-def link_library_user(
-    self, library_id: int, user_id: int,
-    relation: categories.UserResourceRelation
-) -> models.LibraryUserLink:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
+# def link_library_user(
+#     self, library_id: int, user_id: int,
+#     relation: categories.UserResourceRelation
+# ) -> models.LibraryUserLink:
+#     persist_session = self._session is not None
+#     if not self._session:
+#         self.open_session()
 
-    if (_ := self._session.get(models.User, user_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-    if (_ := self._session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+#     if (_ := self._session.get(models.User, user_id)) is None:
+#         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+#     if (_ := self._session.get(models.Library, library_id)) is None:
+#         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
-    if self._session.query(models.LibraryUserLink).where(
-        models.LibraryUserLink.library_id == library_id,
-        models.LibraryUserLink.user_id == user_id
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"User with id {user_id} and library with id {library_id} are already linked")
+#     if self._session.query(models.LibraryUserLink).where(
+#         models.LibraryUserLink.library_id == library_id,
+#         models.LibraryUserLink.user_id == user_id
+#     ).first():
+#         raise exceptions.LinkAlreadyExists(f"User with id {user_id} and library with id {library_id} are already linked")
 
-    library_user_link = models.LibraryUserLink(
-        library_id=library_id, user_id=user_id,
-        relation_id=relation.value.id
-    )
-    self._session.add(library_user_link)
+#     library_user_link = models.LibraryUserLink(
+#         library_id=library_id, user_id=user_id,
+#         relation_id=relation.value.id
+#     )
+#     self._session.add(library_user_link)
 
-    self._session.commit()
-    self._session.refresh(library_user_link)
+#     self._session.commit()
+#     self._session.refresh(library_user_link)
 
-    if not persist_session:
-        self.close_session()
-    return library_user_link
+#     if not persist_session:
+#         self.close_session()
+#     return library_user_link
 
 
-def link_project_user(
-    self, project_id: int, user_id: int,
-    relation: categories.UserResourceRelation,
-    commit: bool = True
-) -> models.ProjectUserLink:
+# def link_project_user(
+#     self, project_id: int, user_id: int,
+#     relation: categories.UserResourceRelation,
+#     commit: bool = True
+# ) -> models.ProjectUserLink:
 
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
+#     persist_session = self._session is not None
+#     if not self._session:
+#         self.open_session()
 
-    if (_ := self._session.get(models.User, user_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-    if (_ := self._session.get(models.Project, project_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
+#     if (_ := self._session.get(models.User, user_id)) is None:
+#         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+#     if (_ := self._session.get(models.Project, project_id)) is None:
+#         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
-    if self._session.query(models.ProjectUserLink).where(
-        models.ProjectUserLink.project_id == project_id,
-        models.ProjectUserLink.user_id == user_id
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"User with id {user_id} and project with id {project_id} are already linked")
+#     if self._session.query(models.ProjectUserLink).where(
+#         models.ProjectUserLink.project_id == project_id,
+#         models.ProjectUserLink.user_id == user_id
+#     ).first():
+#         raise exceptions.LinkAlreadyExists(f"User with id {user_id} and project with id {project_id} are already linked")
 
-    project_user_link = models.ProjectUserLink(
-        project_id=project_id, user_id=user_id,
-        relation_id=relation.value.id
-    )
-    self._session.add(project_user_link)
+#     project_user_link = models.ProjectUserLink(
+#         project_id=project_id, user_id=user_id,
+#         relation_id=relation.value.id
+#     )
+#     self._session.add(project_user_link)
 
-    if commit:
-        self._session.commit()
-        self._session.refresh(project_user_link)
+#     if commit:
+#         self._session.commit()
+#         self._session.refresh(project_user_link)
 
-    if not persist_session:
-        self.close_session()
-    return project_user_link
+#     if not persist_session:
+#         self.close_session()
+#     return project_user_link
 
 
 def unlink_project_user(
@@ -560,42 +560,6 @@ def unlink_library_sample(
 
     if not persist_session:
         self.close_session()
-
-
-def get_user_samples(
-    self, user_id: int,
-    limit: Optional[int] = None,
-) -> list[models.Sample]:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    res = self._session.query(models.Sample).join(
-        models.Project,
-        models.Sample.project_id == models.Project.id
-    ).join(
-        models.ProjectUserLink,
-        and_(
-            models.ProjectUserLink.project_id == models.Project.id,
-            models.ProjectUserLink.user_id == user_id,
-        )
-    ).options(
-        selectinload(models.Sample.project)
-    ).where(
-        models.User.id == user_id
-    )
-
-    if limit is not None:
-        res = res.limit(limit)
-    res = res.all()
-
-    # res = [SearchResult(sample.id, sample.name, sample.project.name) for sample in res]
-
-    if not persist_session:
-        self.close_session()
-
-    return res
 
 
 def link_library_seq_request(

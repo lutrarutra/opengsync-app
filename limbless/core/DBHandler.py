@@ -102,16 +102,13 @@ class DBHandler():
         get_library_samples,
         get_library_runs,
         get_user_projects,
-        get_user_samples,
         get_sample_libraries,
         get_experiment_data,
         get_run_data,
         get_experiment_runs,
 
-        link_project_user,
         link_library_sample,
         link_run_library,
-        link_library_user,
         link_library_seq_request,
 
         unlink_library_sample,
