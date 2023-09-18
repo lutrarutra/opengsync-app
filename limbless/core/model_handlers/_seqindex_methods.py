@@ -3,7 +3,7 @@ from typing import Optional
 from sqlmodel import and_
 import pandas as pd
 
-from ... import models
+from ... import models, logger
 from .. import exceptions
 from ...tools import SearchResult
 
@@ -76,41 +76,62 @@ def get_num_seqindices(self) -> int:
 
 
 def query_adapters(
-    self, query: str, index_kit_id: Optional[int] = None,
-    limit: Optional[int] = 20,
+    self, query: str, seq_kit_id: Optional[int] = None,
+    limit: Optional[int] = 10,
 ) -> list[SearchResult]:
+    
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if index_kit_id is None:
-        q = f"""
-        SELECT
-            adapter,
-            similarity(lower(adapter), lower(%(word)s)) AS sml
-        FROM
-            seqindex
-        ORDER BY
-            sml DESC
-        {f'LIMIT {limit}' if limit is not None else ''};
-        """
-        res = pd.read_sql(q, self._engine, params={"word": query, "seq_kit_id": index_kit_id})
-    else:
-        q = f"""
-        SELECT
-            adapter, seq_kit_id,
-            similarity(lower(adapter), lower(%(word)s)) AS sml
-        FROM
-            seqindex
-        WHERE
-            seq_kit_id = %(seq_kit_id)s
-        ORDER BY
-            sml DESC
-        {f'LIMIT {limit}' if limit is not None else ''};
-        """
-        res = pd.read_sql(q, self._engine, params={"word": query, "seq_kit_id": index_kit_id})
+    params: dict[str, str | int] = {"word": query}    
 
-    res = [SearchResult(row["adapter"], row["adapter"]) for _, row in res.iterrows()]
+    q = """
+SELECT seqindex.adapter, seqindex.id, seqindex.sequence, seqindex.type, sml
+	FROM (
+		SELECT
+			DISTINCT adapter,
+			similarity(lower(adapter), lower(%(word)s)) AS sml
+		FROM
+			seqindex"""
+    if seq_kit_id is not None:
+        q += """
+    WHERE
+        seq_kit_id = %(seq_kit_id)s"""
+        params["seq_kit_id"] = seq_kit_id
+    q += """
+    ORDER BY
+        sml DESC"""
+    
+    if limit is not None:
+        q += """
+    LIMIT %(limit)s"""
+        params["limit"] = limit
+
+    q += """
+    ) AS other
+INNER JOIN
+    seqindex
+ON
+    other.adapter = seqindex.adapter
+ORDER BY sml DESC;"""
+    res = pd.read_sql(q, self._engine, params=params)
+
+    logger.debug(res)
+
+    adapters = {}
+    for _, row in res.iterrows():
+        if row["adapter"] not in adapters.keys():
+            adapters[row["adapter"]] = []
+
+        adapters[row["adapter"]].append((row["sequence"], row["type"]))
+
+    res = []
+    for adapter, sequences in adapters.items():
+        res.append(SearchResult(
+            adapter, adapter,
+            description=", ".join([f"{s[0]} [{s[1]}]" for s in sequences])
+        ))
 
     if not persist_session:
         self.close_session()

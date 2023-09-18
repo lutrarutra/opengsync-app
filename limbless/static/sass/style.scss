@@ -336,6 +336,9 @@ input.disabled:focus {
                 background-color: $gray-100;
             }
             .list-group-item {
+                height: 40px;
+                white-space: nowrap;
+                overflow: hidden;
                 .search-select-name {
                     font-weight: 600;
                     min-width: 120px;
@@ -343,6 +346,8 @@ input.disabled:focus {
                 .search-select-desc {
                     color: $gray-500;
                     padding-left: 10px;
+                    white-space: nowrap;
+                    overflow: hidden;
                 }
                 height: 40px;
                 width: 100%;

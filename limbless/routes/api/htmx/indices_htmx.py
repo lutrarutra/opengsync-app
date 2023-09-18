@@ -50,16 +50,19 @@ def query_index_kits():
 
 
 @login_required
-@indices_htmx.route("query_seq_adapters/<int:index_kit_id>", methods=["POST"])
-def query_seq_adapters(index_kit_id: int):
+@indices_htmx.route("query/<int:index_kit_id>", methods=["POST"], defaults={"exclude_library_id": None})
+@indices_htmx.route("query_seq_adapters/<int:index_kit_id>/<int:exclude_library_id>", methods=["POST"])
+def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = None):
     field_name = next(iter(request.form.keys()))
     word = request.form.get(field_name)
 
     if word is None:
         return abort(400)
 
+    # TODO: fix index_kit_id/seq_kit_id confusion
+    # TODO: add exclude_library_id to query_adapters
     results = db.db_handler.query_adapters(
-        word, index_kit_id=index_kit_id
+        word, seq_kit_id=index_kit_id
     )
 
     return make_response(

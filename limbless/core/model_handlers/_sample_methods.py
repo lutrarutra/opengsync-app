@@ -3,7 +3,7 @@ from typing import Optional
 import pandas as pd
 from sqlmodel import and_
 
-from ... import models
+from ... import models, logger
 from .. import exceptions
 from ...tools import SearchResult
 
@@ -209,62 +209,67 @@ def query_samples_for_library(
 
     if self._session.get(models.Library, exclude_library_id) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {exclude_library_id} does not exist")
+    
+    params: dict[str, str | int] = {"word": word}
+
+    if exclude_library_id is not None:
+        params["library_id"] = exclude_library_id
+
+    q = """
+SELECT
+    sample.id, sample.name, project.name as project_name, librarysamplelink.library_id,
+    similarity(lower(sample.name), lower(%(word)s)) as sml
+FROM
+    sample
+JOIN
+    project
+ON
+    sample.project_id = project.id
+LEFT JOIN
+    librarysamplelink
+ON
+    sample.id = librarysamplelink.sample_id
+"""
+    if exclude_library_id is not None:
+        q += """
+AND
+    librarysamplelink.library_id = %(library_id)s"""
 
     if user_id is not None:
-        q = """
-        SELECT
-            sample.id, sample.name, project.name as project_name,
-            similarity(lower(sample.name), lower(%(word)s)) as sml
-        FROM
-            sample
-        JOIN
-            project
-        ON
-            sample.project_id = project.id
-        LEFT JOIN
-            librarysamplelink
-        ON
-            sample.id = librarysamplelink.sample_id
-        WHERE
-            sample.owner_id = %(user_id)s
-        AND
-            (
-                librarysamplelink.library_id != %(library_id)s
-                OR
-                librarysamplelink.library_id IS NULL
-            )
-        ORDER BY
-            sml DESC
-        """
+        params["user_id"] = user_id
+        q += """
+WHERE
+    sample.owner_id = %(user_id)s"""
+
+        if exclude_library_id is not None:
+            q += """
+AND
+    (
+    librarysamplelink.library_id != %(library_id)s
+        OR
+    librarysamplelink.library_id IS NULL
+    )"""
+    
     else:
-        q = """
-        SELECT
-            sample.id, sample.name, project.name as project_name,
-            similarity(lower(sample.name), lower(%(word)s)) as sml
-        FROM
-            sample
-        JOIN
-            project
-        ON
-            sample.project_id = project.id
-        LEFT JOIN
-            librarysamplelink
-        ON
-            sample.id = librarysamplelink.sample_id
-        WHERE
-            (
-                librarysamplelink.library_id != %(library_id)s
-                OR
-                librarysamplelink.library_id IS NULL
-            )
-        ORDER BY
-            sml DESC
-        """
+        if exclude_library_id is not None:
+            q += """
+WHERE
+    librarysamplelink.library_id != %(library_id)s
+        OR
+    librarysamplelink.library_id IS NULL"""
+
+    q += """
+ORDER BY sml DESC"""
 
     if limit is not None:
-        q += f"LIMIT {limit};"
+        params["limit"] = limit
+        q += """
+LIMIT %(limit)s;"""
 
-    res = pd.read_sql(q, self._engine, params={"word": word, "library_id": exclude_library_id, "user_id": user_id})
+    else:
+        q += ";"
+
+    res = pd.read_sql(q, self._engine, params=params)
 
     if not persist_session:
         self.close_session()
