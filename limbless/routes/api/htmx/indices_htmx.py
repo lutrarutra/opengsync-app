@@ -36,8 +36,6 @@ def query_index_kits():
     else:
         library_type = None
 
-    logger.debug(library_type)
-
     results = db.db_handler.query_indexkit(word, library_type=library_type)
 
     return make_response(
@@ -59,10 +57,9 @@ def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = No
     if word is None:
         return abort(400)
 
-    # TODO: fix index_kit_id/seq_kit_id confusion
     # TODO: add exclude_library_id to query_adapters
     results = db.db_handler.query_adapters(
-        word, seq_kit_id=index_kit_id
+        word, index_kit_id=index_kit_id
     )
 
     return make_response(

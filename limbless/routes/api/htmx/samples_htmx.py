@@ -414,8 +414,6 @@ def query(exclude_library_id: Optional[int] = None):
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 
-    logger.debug(exclude_library_id)
-
     if query is None:
         return abort(400)
     

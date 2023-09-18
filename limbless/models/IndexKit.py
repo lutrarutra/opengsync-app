@@ -13,7 +13,7 @@ class IndexKit(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True, unique=True)
 
-    seq_indices: List["SeqIndex"] = Relationship(back_populates="seq_kit")
+    seq_indices: List["SeqIndex"] = Relationship(back_populates="index_kit")
     # library_type_ids: List[LibraryType] = Relationship(
     #     sa_relationship_kwargs={"lazy": "joined"},
     # )

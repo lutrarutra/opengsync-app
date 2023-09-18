@@ -90,7 +90,6 @@ def get_user_library_access(
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
-    logger.debug(user.role_type)
     if user.role_type == UserRole.ADMIN:
         access = [AccessType.READ, AccessType.READWRITE]
     elif user.role_type == UserRole.BIOINFORMATICIAN:

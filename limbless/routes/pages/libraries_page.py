@@ -32,13 +32,13 @@ def libraries_page():
 @login_required
 def library_page(library_id):
     with DBSession(db.db_handler) as session:
+        if (library := session.get_library(library_id)) is None:
+            return abort(404)
+        
         access = session.get_user_library_access(current_user.id, library_id)
         if access is None:
             return abort(403)
-
-        if (library := session.get_library(library_id)) is None:
-            return abort(404)
-
+        
         library.samples = library.samples
 
     library_form = forms.LibraryForm()

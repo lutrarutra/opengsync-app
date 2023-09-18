@@ -27,7 +27,10 @@ class IndexForm(FlaskForm):
     ) -> tuple[bool, "IndexForm"]:
 
         validated = self.validate()
+
         if not validated:
+            if "indices" in self.errors.keys():
+                self.adapter.errors = ("Adapter is required",)
             return False, self
 
         with DBSession(db_handler) as session:
@@ -35,15 +38,15 @@ class IndexForm(FlaskForm):
                 logger.error(f"Library with id {library_id} does not exist.")
                 return False, self
             
-            if (user := session.get_user(user_id)) is None:
-                logger.error(f"User with id {user_id} does not exist.")
-                return False, self
-            
             library_samples = library.samples
             ids = [sample.id for sample in library_samples]
             if int(self.sample.data) in ids:
                 self.sample.errors = ("Sample already in library",)
                 validated = False
+
+            # TODO: check that seq_index_id is not used in the library
+            for sample in library_samples:
+                logger.debug(sample.indices)
 
         return validated, self
 

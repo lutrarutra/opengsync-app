@@ -13,7 +13,7 @@ def create_seqindex(
     sequence: str,
     adapter: str,
     type: str,
-    seq_kit_id: int,
+    index_kit_id: int,
     commit: bool = True
 ) -> models.SeqIndex:
 
@@ -21,15 +21,14 @@ def create_seqindex(
     if not self._session:
         self.open_session()
 
-    seq_kit = self._session.get(models.IndexKit, seq_kit_id)
-    if not seq_kit:
-        raise exceptions.ElementDoesNotExist(f"IndexKit with id '{seq_kit_id}', not found.")
+    if (index_kit := self._session.get(models.IndexKit, index_kit_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"IndexKit with id '{index_kit_id}', not found.")
 
     seq_index = models.SeqIndex(
         sequence=sequence,
         adapter=adapter,
         type=type,
-        seq_kit_id=seq_kit.id
+        index_kit_id=index_kit.id
     )
 
     self._session.add(seq_index)
@@ -76,7 +75,7 @@ def get_num_seqindices(self) -> int:
 
 
 def query_adapters(
-    self, query: str, seq_kit_id: Optional[int] = None,
+    self, query: str, index_kit_id: Optional[int] = None,
     limit: Optional[int] = 10,
 ) -> list[SearchResult]:
     
@@ -94,11 +93,11 @@ SELECT seqindex.adapter, seqindex.id, seqindex.sequence, seqindex.type, sml
 			similarity(lower(adapter), lower(%(word)s)) AS sml
 		FROM
 			seqindex"""
-    if seq_kit_id is not None:
+    if index_kit_id is not None:
         q += """
     WHERE
-        seq_kit_id = %(seq_kit_id)s"""
-        params["seq_kit_id"] = seq_kit_id
+        index_kit_id = %(index_kit_id)s"""
+        params["index_kit_id"] = index_kit_id
     q += """
     ORDER BY
         sml DESC"""
@@ -116,8 +115,6 @@ ON
     other.adapter = seqindex.adapter
 ORDER BY sml DESC;"""
     res = pd.read_sql(q, self._engine, params=params)
-
-    logger.debug(res)
 
     adapters = {}
     for _, row in res.iterrows():
@@ -146,7 +143,7 @@ def get_adapters_from_kit(
         self.open_session()
 
     res = self._session.query(models.SeqIndex.adapter).where(
-        models.SeqIndex.seq_kit_id == index_kit_id
+        models.SeqIndex.index_kit_id == index_kit_id
     ).distinct()
 
     if limit is not None:
