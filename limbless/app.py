@@ -30,7 +30,8 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id: int) -> models.User:
-        return db.db_handler.get_user(user_id)
+        user = db.db_handler.get_user(user_id)
+        return user
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)

@@ -43,13 +43,16 @@ def create_user(
 
 
 def get_user(self, user_id: int) -> models.User:
+    
     persist_session = self._session is not None
-    if not self._session:
+    if self._session is None:
         self.open_session()
 
     res = self._session.get(models.User, user_id)
+
     if not persist_session:
         self.close_session()
+        
     return res
 
 

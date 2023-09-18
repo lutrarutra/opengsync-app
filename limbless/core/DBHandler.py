@@ -20,11 +20,13 @@ class DBHandler():
         SQLModel.metadata.create_all(self._engine)
 
     def open_session(self) -> None:
-        self._session = Session(self._engine, expire_on_commit=False)
+        if self._session is None:
+            self._session = Session(self._engine, expire_on_commit=False)
 
     def close_session(self) -> None:
-        self._session.close()
-        self._session = None
+        if self._session is not None:
+            self._session.close()
+            self._session = None
 
     from .model_handlers._auth_methods import (
         get_user_project_access, get_user_experiment_access,
