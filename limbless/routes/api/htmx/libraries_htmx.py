@@ -159,7 +159,7 @@ def add_sample(library_id: int):
             library=library,
             index_form=index_form,
             available_samples=[sample.to_search_result() for sample in current_user.samples],
-            adapters=db.db_handler.get_adapters_from_kit(library.index_kit_id),
+            available_adapters=db.db_handler.query_adapters(word="", index_kit_id=library.index_kit_id),
             selected_adapter=selected_adapter,
             selected_sample=db.db_handler.get_sample(selected_sample_id)
         )

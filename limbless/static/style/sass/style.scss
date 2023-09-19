@@ -30,6 +30,8 @@ $danger:        $red;
 $light:         $gray-100;
 $dark:          $gray-900;
 
+@import "/static/style/css/scrollbar.css";
+
 body {
     background-color: $light;
     font-family: 'Roboto', sans-serif;

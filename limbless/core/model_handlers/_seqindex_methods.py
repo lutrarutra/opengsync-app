@@ -75,7 +75,7 @@ def get_num_seqindices(self) -> int:
 
 
 def query_adapters(
-    self, query: str, index_kit_id: Optional[int] = None,
+    self, word: str, index_kit_id: Optional[int] = None,
     limit: Optional[int] = 10,
 ) -> list[SearchResult]:
     
@@ -83,7 +83,7 @@ def query_adapters(
     if not self._session:
         self.open_session()
 
-    params: dict[str, str | int] = {"word": query}    
+    params: dict[str, str | int] = {"word": word}    
 
     q = """
 SELECT seqindex.adapter, seqindex.id, seqindex.sequence, seqindex.type, sml
@@ -135,24 +135,24 @@ ORDER BY sml DESC;"""
     return res
 
 
-def get_adapters_from_kit(
-    self, index_kit_id: int, limit: Optional[int] = None
-) -> list[SearchResult]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
+# def get_adapters_from_kit(
+#     self, index_kit_id: int, limit: Optional[int] = None
+# ) -> list[SearchResult]:
+#     persist_session = self._session is not None
+#     if not self._session:
+#         self.open_session()
 
-    res = self._session.query(models.SeqIndex.adapter).where(
-        models.SeqIndex.index_kit_id == index_kit_id
-    ).distinct()
+#     res = self._session.query(models.SeqIndex.adapter).where(
+#         models.SeqIndex.index_kit_id == index_kit_id
+#     ).distinct()
 
-    if limit is not None:
-        res = res.limit(limit)
+#     if limit is not None:
+#         res = res.limit(limit)
 
-    res = res.all()
+#     res = res.all()
 
-    res = [SearchResult(a[0], a[0]) for a in res]
+#     res = [SearchResult(a[0], a[0]) for a in res]
 
-    if not persist_session:
-        self.close_session()
-    return res
+#     if not persist_session:
+#         self.close_session()
+#     return res

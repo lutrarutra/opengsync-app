@@ -36,7 +36,7 @@ def create_app():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
         app.wsgi_app = SassMiddleware(app.wsgi_app, {
-            "limbless": ("static/sass", "static/css", "/static/css")
+            "limbless": ("static/style/sass", "static/style/css", "/static/style/css")
         })
 
     @app.route("/index_page")

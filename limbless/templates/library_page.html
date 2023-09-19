@@ -1,4 +1,4 @@
-{% extends "template.html" %}
+{% extends "base.html" %}
 {% set active_page = "libraries-page" %}
 {% block content %}
 <div class="container">
@@ -57,7 +57,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {{ index_form | safe }}
+                {% include "forms/index.html" %}
             </div>
             <div class="modal-footer" id="popup-footer">
                 <button class="btn btn-primary"

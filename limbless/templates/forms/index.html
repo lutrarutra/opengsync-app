@@ -5,7 +5,8 @@
     {{
         search_select_field(
             index_form.sample,
-            url_for('samples_htmx.query', exclude_library_id=library.id),
+            results=available_samples,
+            url=url_for('samples_htmx.query', exclude_library_id=library.id),
             selected=selected_sample.name if selected_sample is defined,
         )
     }}
@@ -15,6 +16,7 @@
             index_form.adapter,
             url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
             selected=selected_adapter,
+            results=available_adapters,
             include_data_element=False,
         )
     }}
@@ -28,7 +30,12 @@
         {% for index_seq_form in index_form.indices %}
             <div class="form-group">
                 {{ index_seq_form.sequence.label }}
-                {{ index_seq_form.index_seq_id(value=index_seq_form.index_seq_id.data, readonly=True, hidden=False) }}
+                {{ 
+                    index_seq_form.index_seq_id(
+                        value=index_seq_form.index_seq_id.data if index_seq_form.index_seq_id.data else '',
+                        readonly=True, hidden=False
+                    ) 
+                }}
                 {{ index_seq_form.sequence(class="form-control", readonly=True) }}
                 {{ index_seq_form.csrf_token() }}
             </div>

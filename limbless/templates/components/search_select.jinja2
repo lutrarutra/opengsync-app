@@ -1,4 +1,4 @@
-{% macro search_select_field(field, url, selected, include_data_element=True, disabled=false, include_field=none) -%}
+{% macro search_select_field(field, url, selected=None, results=None, include_data_element=True, disabled=false, include_field=None) -%}
 {% set field_name = field.name %}
 {% set class_str = "form-control search-component search-select-input" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else "") %}
 <div id="{{field_name}}-select" class="search-select form-group">
@@ -11,12 +11,12 @@
         name="{{field_name}}-search"
         id="{{field_name}}-search"
         aria-controls="#{{field_name}}-results"
-        value="{{ selected }}"
+        value="{{ selected if selected else '' }}"
         hx-post="{{ url }}"
         hx-include="[name='{{field_name}}-search'],[name='library_type']"
         hx-params="{{field_name}}-search{{ ',' + include_field if include_field else ''}}"
         hx-target="#{{field_name}}-results"
-        hx-trigger="load, keyup changed delay:500ms, {{field_name}},change" 
+        hx-trigger="keyup changed delay:500ms, {{field_name}}, change{{ ', load' if not results else '' }}" 
         hx-swap="innerHTML"
         placeholder="Search"
         {{ "readonly" if disabled }}>
