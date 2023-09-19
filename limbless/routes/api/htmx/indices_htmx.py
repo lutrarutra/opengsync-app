@@ -12,6 +12,22 @@ indices_htmx = Blueprint("indices_htmx", __name__, url_prefix="/api/indices/")
 
 
 @login_required
+@indices_htmx.route("get/<int:page>", methods=["GET"])
+def get(page):
+    with DBSession(db.db_handler) as session:
+        n_pages = int(session.get_num_seqindices() / 20)
+        page = min(page, n_pages)
+        indices = session.get_seqindices(limit=20, offset=20 * page)
+
+    return make_response(
+        render_template(
+            "components/tables/index.html", indices=indices,
+            n_pages=n_pages, active_page=page
+        ), push_url=False
+    )
+
+
+@login_required
 @indices_htmx.route("query_index_kits", methods=["POST"])
 def query_index_kits():
     library_type_id: Optional[int] = None
@@ -24,7 +40,7 @@ def query_index_kits():
     except ValueError:
         logger.debug(f"Invalid library type '{raw_library_type_id}' id provided with POST request")
         return abort(400)
-    
+
     field_name = next(iter(request.form.keys()))
     word = request.form.get(field_name)
 
@@ -79,7 +95,7 @@ def select_indices(library_id: int):
             return abort(404)
         if (user := session.get_user(current_user.id)) is None:
             return abort(404)
-        
+
         user.samples = user.samples
 
     index_form = forms.IndexForm()
@@ -89,12 +105,9 @@ def select_indices(library_id: int):
     indices = session.get_seqindices_by_adapter(selected_adapter)
     selected_sample = db.db_handler.get_sample(selected_sample_id)
 
-
     for i, entry in enumerate(index_form.indices.entries):
         entry.index_seq_id.data = indices[i].id
         entry.sequence.data = indices[i].sequence
-
-
 
     return make_response(
         render_template(

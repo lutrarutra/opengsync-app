@@ -50,6 +50,9 @@
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'seq_requests-page' else ''}}" id="seq_requests-page" href="{{ url_for('seq_requests_page.seq_requests_page') }}">Requests</a>
             </div>
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'indices-page' else ''}}" id="indices-page" href="{{ url_for('indices_page.indices_page') }}">Indices</a>
+            </div>
             {% if (role_name != "Client" and role_name != "Quest") %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" id="experiments-page" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>

@@ -1,5 +1,5 @@
 {
-    "python.defaultInterpreterPath": "/home/lutrarutra/.cache/pypoetry/virtualenvs/limbless-T3Q5fbE5-py3.11",
+    "python.defaultInterpreterPath": "~/.pyenv/shims/python",
     "python.testing.pytestArgs": [
         "tests"
     ],

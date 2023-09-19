@@ -52,6 +52,30 @@ def get_seqindex(self, id: int) -> models.SeqIndex:
     return res
 
 
+def get_seqindices(
+    self, limit: Optional[int] = 20, offset: Optional[int] = None
+) -> list[models.SeqIndex]:
+
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.SeqIndex).order_by(models.SeqIndex.id.desc())
+
+    if offset is not None:
+        query = query.offset(offset)
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    indices = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return indices
+
+
 def get_seqindices_by_adapter(self, adapter: str) -> list[models.SeqIndex]:
     persist_session = self._session is not None
     if not self._session:
@@ -78,12 +102,12 @@ def query_adapters(
     self, word: str, index_kit_id: Optional[int] = None,
     limit: Optional[int] = 10,
 ) -> list[SearchResult]:
-    
+
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    params: dict[str, str | int] = {"word": word}    
+    params: dict[str, str | int] = {"word": word}
 
     q = """
 SELECT seqindex.adapter, seqindex.id, seqindex.sequence, seqindex.type, sml
@@ -101,7 +125,7 @@ SELECT seqindex.adapter, seqindex.id, seqindex.sequence, seqindex.type, sml
     q += """
     ORDER BY
         sml DESC"""
-    
+
     if limit is not None:
         q += """
     LIMIT %(limit)s"""

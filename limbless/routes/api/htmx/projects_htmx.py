@@ -12,9 +12,10 @@ projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/"
 @login_required
 @projects_htmx.route("get/<int:page>", methods=["GET"])
 def get(page):
-    n_pages = int(db.db_handler.get_num_projects() / 20)
-    page = min(page, n_pages)
-    projects = db.db_handler.get_projects(limit=20, offset=20 * page)
+    with DBSession(db.db_handler) as session:
+        n_pages = int(session.get_num_projects() / 20)
+        page = min(page, n_pages)
+        projects = session.get_projects(limit=20, offset=20 * page)
 
     return make_response(
         render_template(

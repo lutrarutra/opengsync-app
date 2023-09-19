@@ -235,7 +235,6 @@ def map_organisms(project_id: int):
     category_mapping_form = forms.CategoricalMappingForm()
     organisms = sorted(df["organism"].unique())
 
-
     if not category_mapping_form.validate_on_submit():
         selected = []
         with DBSession(db.db_handler) as session:
@@ -246,7 +245,7 @@ def map_organisms(project_id: int):
                     selected.append(str(selected_organism))
                 else:
                     selected.append("")
-                    
+
         return make_response(
             render_template(
                 "components/popups/sample_organism_map.html",
@@ -416,7 +415,7 @@ def query(exclude_library_id: Optional[int] = None):
 
     if query is None:
         return abort(400)
-    
+
     user = current_user
     if user.role_type == UserRole.CLIENT:
         _user_id = user.id

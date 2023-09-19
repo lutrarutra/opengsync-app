@@ -1,0 +1,25 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tables/table_col.jinja2" import table_col %}
+<div id="index-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Sequence</th>
+                <th scope="col">Type</th>
+                <th scope="col">Adapter</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for index in indices %}
+            <tr>
+                <th scope="row">{{ index.id }}</th>
+                <td>{{ index.sequence }}</td>
+                <td>{{ index.type }}</td>
+                <td>{{ index.adapter }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("index-table", "indices_htmx.get", n_pages, active_page) }}
+</div>

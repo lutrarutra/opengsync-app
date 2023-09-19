@@ -11,7 +11,9 @@ from .routes import api, pages
 def create_app():
     app = Flask(__name__)
 
-    app.debug = os.getenv("FLASK_DEBUG") == "1"
+    app.debug = os.getenv("DEBUG") == "1"
+
+    logger.info(f"Debug mode: {app.debug}")
 
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAIL_SERVER"] = "smtp-relay.sendinblue.com"
@@ -76,6 +78,7 @@ def create_app():
     app.register_blueprint(pages.auth_page_bp)
     app.register_blueprint(pages.user_page_bp)
     app.register_blueprint(pages.seq_requests_page_bp)
+    app.register_blueprint(pages.indices_page_bp)
     app.register_blueprint(pages.errors_bp)
 
     return app
