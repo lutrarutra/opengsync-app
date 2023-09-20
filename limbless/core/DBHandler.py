@@ -76,14 +76,14 @@ class DBHandler():
         get_num_organisms
     )
 
-    from .model_handlers._seqindex_methods import (
-        create_seqindex, get_seqindex, get_seqindices_by_adapter,
-        get_num_seqindices, query_adapters, get_seqindices
+    from .model_handlers._seq_index_methods import (
+        create_seq_index, get_seqindex, get_seqindices_by_adapter,
+        get_num_seqindices, get_seqindices
     )
 
-    from .model_handlers._indexkit_methods import (
-        create_indexkit, get_indexkit, get_indexkit_by_name,
-        query_indexkit
+    from .model_handlers._index_kit_methods import (
+        create_index_kit, get_index_kit, get_index_kit_by_name,
+        query_index_kit, get_num_index_kits
     )
 
     from .model_handlers._seq_request_methods import (
@@ -93,6 +93,11 @@ class DBHandler():
 
     from .model_handlers._contact_methods import (
         create_contact
+    )
+
+    from .model_handlers._seq_adapter_methods import (
+        create_seq_adapter, get_adapter, get_adapter_by_name,
+        query_adapters
     )
 
     from .model_handlers._link_methods import (
@@ -109,7 +114,7 @@ class DBHandler():
         get_sample_indices_from_library,
 
         link_library_sample,
-        link_indexkit_library_type,
+        link_index_kit_library_type,
         link_run_library,
         link_library_seq_request,
 

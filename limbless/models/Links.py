@@ -38,9 +38,9 @@ class RunLibraryLink(SQLModel, table=True):
     )
 
 
-class IndexKitLibraryType(SQLModel, table=True):
+class index_kitLibraryType(SQLModel, table=True):
     index_kit_id: int = Field(
-        foreign_key="indexkit.id", primary_key=True
+        foreign_key="index_kit.id", primary_key=True
     )
     library_type_id: int = Field(primary_key=True)
 

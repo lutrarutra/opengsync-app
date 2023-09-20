@@ -19,8 +19,8 @@ def create_library(
         self.open_session()
 
     if index_kit_id is not None:
-        if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"IndexKit with id {index_kit_id} does not exist")
+        if (_ := self._session.get(models.index_kit, index_kit_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"index_kit with id {index_kit_id} does not exist")
 
     if self._session.get(models.User, owner_id) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
@@ -148,8 +148,8 @@ def update_library(
     if library_type is not None:
         library.library_type_id = library_type.value.id
     if index_kit_id is not None:
-        if self._session.get(models.IndexKit, index_kit_id) is None:
-            raise exceptions.ElementDoesNotExist(f"IndexKit with id {index_kit_id} does not exist")
+        if self._session.get(models.index_kit, index_kit_id) is None:
+            raise exceptions.ElementDoesNotExist(f"index_kit with id {index_kit_id} does not exist")
         library.index_kit_id = index_kit_id
     else:
         library.index_kit_id = None

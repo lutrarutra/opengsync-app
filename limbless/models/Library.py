@@ -7,7 +7,7 @@ from .Links import LibrarySampleLink, RunLibraryLink, LibrarySeqRequestLink
 from ..categories import LibraryType
 
 if TYPE_CHECKING:
-    from .IndexKit import IndexKit
+    from .index_kit import index_kit
     from .Sample import Sample
     from .Run import Run
     from .User import User
@@ -19,8 +19,8 @@ class Library(SQLModel, table=True):
     name: str = Field(nullable=False, max_length=64, index=True)
     library_type_id: int = Field(nullable=False)
     
-    index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
-    index_kit: Optional["IndexKit"] = Relationship(
+    index_kit_id: Optional[int] = Field(nullable=True, foreign_key="index_kit.id")
+    index_kit: Optional["index_kit"] = Relationship(
         sa_relationship_kwargs={"lazy": "joined"}
     )
 

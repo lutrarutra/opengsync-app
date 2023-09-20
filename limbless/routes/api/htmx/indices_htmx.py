@@ -52,7 +52,7 @@ def query_index_kits():
     else:
         library_type = None
 
-    results = db.db_handler.query_indexkit(word, library_type=library_type)
+    results = db.db_handler.query_index_kit(word, library_type=library_type)
 
     return make_response(
         render_template(

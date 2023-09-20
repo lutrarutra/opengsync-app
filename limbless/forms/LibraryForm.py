@@ -68,7 +68,7 @@ class LibraryForm(FlaskForm):
                     self.index_kit.errors = ("Index kit is required for non raw libraries.",)
                     validated = False
                 else:
-                    index_kit = session.get_indexkit(self.index_kit.data)
+                    index_kit = session.get_index_kit(self.index_kit.data)
                     if (raw_library_type_id := self.library_type.data) is None:
                         self.library_type.errors = ("Library type is required.",)
                         validated = False

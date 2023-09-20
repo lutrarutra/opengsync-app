@@ -27,12 +27,12 @@ common_organisms = [
 common_organisms = [SearchResult(organism.id, str(organism)) for organism in common_organisms if organism is not None]
 
 common_kits = [
-    db_handler.get_indexkit_by_name("10x Dual Index Kit NN Set A"),
-    db_handler.get_indexkit_by_name("10x Dual Index Kit NT Set A"),
-    db_handler.get_indexkit_by_name("10x Dual Index Kit TN Seq A"),
-    db_handler.get_indexkit_by_name("10x Dual Index Kit TT Seq A"),
-    db_handler.get_indexkit_by_name("10x Single Index Kit N Seq A"),
-    db_handler.get_indexkit_by_name("10x Single Index Kit T Seq A"),
+    db_handler.get_index_kit_by_name("10x Dual Index Kit NN Set A"),
+    db_handler.get_index_kit_by_name("10x Dual Index Kit NT Set A"),
+    db_handler.get_index_kit_by_name("10x Dual Index Kit TN Seq A"),
+    db_handler.get_index_kit_by_name("10x Dual Index Kit TT Seq A"),
+    db_handler.get_index_kit_by_name("10x Single Index Kit N Seq A"),
+    db_handler.get_index_kit_by_name("10x Single Index Kit T Seq A"),
 ]
 
 common_kits = [SearchResult(kit.id, kit.name) for kit in common_kits if kit is not None]
