@@ -15,8 +15,8 @@ from ....categories import UserRole
 samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/samples/")
 
 
-@login_required
 @samples_htmx.route("get/<int:page>", methods=["GET"])
+@login_required
 def get(page):
     n_pages = int(db.db_handler.get_num_samples() / 20)
     page = min(page, n_pages)
@@ -29,8 +29,8 @@ def get(page):
     )
 
 
-@login_required
 @samples_htmx.route("create/<int:project_id>", methods=["POST"])
+@login_required
 def create(project_id):
     sample_form = forms.SampleForm()
     name = sample_form.name.data
@@ -88,8 +88,8 @@ def create(project_id):
     )
 
 
-@login_required
 @samples_htmx.route("<int:sample_id>/delete", methods=["GET"])
+@login_required
 def delete(sample_id: int):
     sample = db.db_handler.get_sample(sample_id)
     if sample is None:
@@ -108,8 +108,8 @@ def delete(sample_id: int):
     )
 
 
-@login_required
 @samples_htmx.route("parse_table/<int:project_id>", methods=["POST"])
+@login_required
 def parse_table(project_id: int):
     table_input_form = forms.TableForm()
     sample_table_form = forms.SampleTableForm()
@@ -178,8 +178,8 @@ def parse_table(project_id: int):
     )
 
 
-@login_required
 @samples_htmx.route("map_columns/<int:project_id>", methods=["POST"])
+@login_required
 def map_columns(project_id: int):
     sample_table_form = forms.SampleTableForm()
 
@@ -226,8 +226,8 @@ def map_columns(project_id: int):
     )
 
 
-@login_required
 @samples_htmx.route("map_organisms/<int:project_id>", methods=["POST"])
+@login_required
 def map_organisms(project_id: int):
     category_mapping_form = forms.CategoricalMappingForm()
 
@@ -297,8 +297,8 @@ def map_organisms(project_id: int):
     )
 
 
-@login_required
 @samples_htmx.route("table/<int:project_id>", methods=["POST"])
+@login_required
 def add_samples_from_table(project_id: int):
     sample_table_confirm_form = forms.SampleTableConfirmForm()
     df = pd.read_csv(StringIO(sample_table_confirm_form.data.data), sep="\t", index_col=False, header=0)
@@ -353,8 +353,8 @@ def add_samples_from_table(project_id: int):
     )
 
 
-@login_required
 @samples_htmx.route("restart_form/<int:project_id>", methods=["GET"])
+@login_required
 def restart_form(project_id: int):
     sample_table_form = forms.TableForm()
     return make_response(
@@ -366,8 +366,8 @@ def restart_form(project_id: int):
     )
 
 
-@login_required
 @samples_htmx.route("<int:sample_id>/edit", methods=["POST"])
+@login_required
 def edit(sample_id):
     sample = db.db_handler.get_sample(sample_id)
     if not sample:
@@ -406,9 +406,9 @@ def edit(sample_id):
     )
 
 
-@login_required
 @samples_htmx.route("query", methods=["POST"], defaults={"exclude_library_id": None})
 @samples_htmx.route("query/<int:exclude_library_id>", methods=["POST"])
+@login_required
 def query(exclude_library_id: Optional[int] = None):
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)

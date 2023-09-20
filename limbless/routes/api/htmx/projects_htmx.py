@@ -9,8 +9,8 @@ from ....core import DBSession
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/")
 
 
-@login_required
 @projects_htmx.route("get/<int:page>", methods=["GET"])
+@login_required
 def get(page):
     with DBSession(db.db_handler) as session:
         n_pages = int(session.get_num_projects() / 20)
@@ -25,8 +25,8 @@ def get(page):
     )
 
 
-@login_required
 @projects_htmx.route("create", methods=["POST"])
+@login_required
 def create():
     project_form = forms.ProjectForm()
     validated, project_form = project_form.custom_validate(db.db_handler, current_user.id)

@@ -8,3 +8,4 @@ from .htmx.auth_htmx import auth_htmx
 from .htmx.organisms_htmx import organisms_htmx
 from .htmx.indices_htmx import indices_htmx
 from .htmx.seq_request_htmx import seq_requests_htmx
+from .htmx.adapters_htmx import adapters_htmx

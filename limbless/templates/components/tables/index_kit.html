@@ -1,0 +1,29 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tables/table_col.jinja2" import table_col %}
+<div id="index_kit-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Library Types</th>
+                <th scope="col"># Adapters</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for index_kit in index_kits %}
+            <tr onclick="window.location.href='{{ url_for('index_kits_page.index_kit_page', index_kit_id=index_kit.id) }}';">
+                <th scope="row">{{ index_kit.id }}</th>
+                <td>{{ index_kit.name }}</td>
+                <td>
+                    {% for library_type in index_kit.library_types %}
+                        {{ library_type.value.name }},
+                    {% endfor %}
+                </td>
+                <td>{{ index_kit._num_adapters }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("index_kit-table", "indices_htmx.get", n_pages, active_page) }}
+</div>

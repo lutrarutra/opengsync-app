@@ -8,4 +8,4 @@ from .auth_page import auth_page_bp
 from .user_page import user_page_bp
 from .error_pages import errors_bp
 from .seq_requests_page import seq_requests_page_bp
-from .indices_page import indices_page_bp
+from .index_kits_page import index_kits_page_bp

@@ -11,8 +11,8 @@ from ....categories import UserRole
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/libraries/")
 
 
-@login_required
 @libraries_htmx.route("get/<int:page>", methods=["GET"])
+@login_required
 def get(page):
     n_pages = int(db.db_handler.get_num_libraries() / 20)
 
@@ -29,8 +29,8 @@ def get(page):
     )
 
 
-@login_required
 @libraries_htmx.route("create", methods=["POST"])
+@login_required
 def create():
     library_form = forms.LibraryForm()
 
@@ -65,8 +65,8 @@ def create():
     )
 
 
-@login_required
 @libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
+@login_required
 def edit(library_id):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
@@ -111,8 +111,8 @@ def edit(library_id):
     )
 
 
-@login_required
 @libraries_htmx.route("query", methods=["GET"])
+@login_required
 def query():
     field_name = next(iter(request.args.keys()))
     query = request.args.get(field_name)
@@ -139,8 +139,8 @@ def query():
     )
 
 
-@login_required
 @libraries_htmx.route("<int:library_id>/add_sample", methods=["POST"])
+@login_required
 def add_sample(library_id: int):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:

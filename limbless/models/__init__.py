@@ -8,9 +8,9 @@ from .Sample import Sample
 from .Run import Run
 from .User import User
 from .Experiment import Experiment
-from .Library import Library
+from .Library import Library, LibraryTypeId
 from .Organism import Organism
-from .Links import LibrarySampleLink, RunLibraryLink, LibrarySeqRequestLink, index_kitLibraryType
+from .Links import LibrarySampleLink, RunLibraryLink, LibrarySeqRequestLink, IndexKitLibraryType
 from .SeqIndex import SeqIndex
 from .IndexKit import IndexKit
 from .SeqRequest import SeqRequest

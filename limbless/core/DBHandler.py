@@ -61,7 +61,8 @@ class DBHandler():
     from .model_handlers._library_methods import (
         create_library, get_library, get_libraries,
         delete_library, update_library,
-        get_num_libraries, query_libraries
+        get_num_libraries, query_libraries,
+        create_library_type
     )
 
     from .model_handlers._user_methods import (
@@ -82,8 +83,9 @@ class DBHandler():
     )
 
     from .model_handlers._index_kit_methods import (
-        create_index_kit, get_index_kit, get_index_kit_by_name,
-        query_index_kit, get_num_index_kits
+        create_index_kit, get_index_kit, get_index_kits,
+        get_index_kit_by_name, query_index_kit,
+        get_num_index_kits
     )
 
     from .model_handlers._seq_request_methods import (
@@ -96,8 +98,8 @@ class DBHandler():
     )
 
     from .model_handlers._seq_adapter_methods import (
-        create_seq_adapter, get_adapter, get_adapter_by_name,
-        query_adapters
+        create_seq_adapter, get_adapter, get_adapters,
+        get_adapter_by_name, query_adapters, get_num_adapters
     )
 
     from .model_handlers._link_methods import (

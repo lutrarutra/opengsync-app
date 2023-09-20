@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
-    from .index_kit import index_kit
+    from .IndexKit import IndexKit
     from .SeqAdapter import SeqAdapter
 
 
@@ -18,8 +18,8 @@ class SeqIndex(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
-    index_kit_id: int = Field(nullable=False, foreign_key="index_kit.id")
-    index_kit: "index_kit" = Relationship(
+    index_kit_id: int = Field(nullable=False, foreign_key="indexkit.id")
+    index_kit: "IndexKit" = Relationship(
         sa_relationship_kwargs={"lazy": "joined"},
     )
 

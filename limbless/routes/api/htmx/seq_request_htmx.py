@@ -9,8 +9,8 @@ from ....categories import UserRole
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/seq_requests/")
 
 
-@login_required
 @seq_requests_htmx.route("create", methods=["GET"])
+@login_required
 def get(page: int):
     with DBSession(db.db_handler) as session:
         if current_user.role_type == UserRole.CLIENT:
@@ -30,8 +30,8 @@ def get(page: int):
     )
 
 
-@login_required
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["POST"])
+@login_required
 def edit(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(404)
@@ -55,8 +55,8 @@ def edit(seq_request_id: int):
     )
 
 
-@login_required
 @seq_requests_htmx.route("<int:seq_request_id>/delete", methods=["GET"])
+@login_required
 def delete(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(404)
@@ -75,8 +75,8 @@ def delete(seq_request_id: int):
     )
 
 
-@login_required
 @seq_requests_htmx.route("create", methods=["POST"])
+@login_required
 def create():
     seq_request_form = forms.SeqRequestForm()
 
@@ -139,8 +139,8 @@ def create():
     )
 
 
-@login_required
 @seq_requests_htmx.route("<int:seq_request_id>/add_library", methods=["POST"])
+@login_required
 def add_library(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(404)

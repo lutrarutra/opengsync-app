@@ -21,7 +21,7 @@ def create_seq_index(
     if not self._session:
         self.open_session()
 
-    if (index_kit := self._session.get(models.index_kit, index_kit_id)) is None:
+    if (index_kit := self._session.get(models.IndexKit, index_kit_id)) is None:
         raise exceptions.ElementDoesNotExist(f"index_kit with id '{index_kit_id}', not found.")
 
     if (seq_adapter := get_adapter_by_name(self, index_kit_id, adapter)) is None:

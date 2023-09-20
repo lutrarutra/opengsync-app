@@ -3,10 +3,10 @@ from pydantic import PrivateAttr
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..categories import LibraryType
+from .Links import IndexKitLibraryType
+from .Library import LibraryTypeId
 
 if TYPE_CHECKING:
-    from .SeqIndex import SeqIndex
     from .SeqAdapter import SeqAdapter
 
 
@@ -18,11 +18,16 @@ class IndexKit(SQLModel, table=True):
         back_populates="index_kit"
     )
 
-    # library_type_ids: List[LibraryType] = Relationship(
-    #     sa_relationship_kwargs={"lazy": "joined"},
-    # )
+    library_type_ids: List[LibraryTypeId] = Relationship(
+        link_model=IndexKitLibraryType,
+        sa_relationship_kwargs={"lazy": "joined"},
+    )
 
-    _library_types: list[LibraryType] = PrivateAttr()
+    _num_adapters: int = PrivateAttr()
 
     def __str__(self):
         return self.name
+    
+    @property
+    def library_types(self):
+        return [library_type.library_type for library_type in self.library_type_ids]

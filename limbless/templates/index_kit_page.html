@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% set active_page = "indices-page" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between">
+        <h1>
+            {{ index_kit.name }}
+        </h1>
+        <div>
+            <button type="button" id="open-sample-form-popup" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#sample-form-popup">
+                Add Adapter
+            </button>
+            <button type="button" id="open-sample-table-form-popup" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#sample-table-form-popup">
+                Add Adapters from Table
+            </button>
+        </div>
+    </div>
+    {% set index_kit_id = index_kit.id %}
+    {% include "components/tables/adapter.html" %}
+</div>
+{% endblock content %}

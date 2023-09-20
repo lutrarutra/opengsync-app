@@ -1,0 +1,27 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tables/table_col.jinja2" import table_col %}
+<div id="adapter-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Indices</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for adapter in adapters %}
+            <tr>
+                <th scope="row">{{ adapter.id }}</th>
+                <td>{{ adapter.name }}</td>
+                <td>
+                    {% for index in adapter.indices %}
+                        {{ index.sequence }}, {{ index.type }}
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("adapter-table", "adapters_htmx.get", n_pages, active_page, url_args={"index_kit_id":index_kit_id}) }}
+</div>

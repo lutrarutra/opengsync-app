@@ -559,25 +559,25 @@ def link_library_sample(
 
 def link_index_kit_library_type(
     self, index_kit_id: int, library_type_id: int,
-) -> models.index_kitLibraryType:
+) -> models.IndexKitLibraryType:
 
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.index_kit, index_kit_id)) is None:
+    if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
         raise exceptions.ElementDoesNotExist(f"index_kit with id {index_kit_id} does not exist")
 
     if not categories.LibraryType.is_valid(library_type_id):
         raise exceptions.ElementDoesNotExist(f"LibraryType with id {library_type_id} is not valid")
 
-    if self._session.query(models.index_kitLibraryType).where(
-        models.index_kitLibraryType.index_kit_id == index_kit_id,
-        models.index_kitLibraryType.library_type_id == library_type_id,
+    if self._session.query(models.IndexKitLibraryType).where(
+        models.IndexKitLibraryType.index_kit_id == index_kit_id,
+        models.IndexKitLibraryType.library_type_id == library_type_id,
     ).first():
         raise exceptions.LinkAlreadyExists(f"index_kit with id {index_kit_id} and LibraryType with id {library_type_id} are already linked")
 
-    index_kit_library_type_link = models.index_kitLibraryType(
+    index_kit_library_type_link = models.IndexKitLibraryType(
         index_kit_id=index_kit_id, library_type_id=library_type_id,
     )
     self._session.add(index_kit_library_type_link)

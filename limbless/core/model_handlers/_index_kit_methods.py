@@ -1,5 +1,6 @@
 from typing import Optional, Union
 
+from sqlmodel import func, and_
 import pandas as pd
 
 from ... import models, logger
@@ -13,15 +14,15 @@ def create_index_kit(
     self,
     name: str,
     allowed_library_types: list[LibraryType]
-) -> models.index_kit:
+) -> models.IndexKit:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if self._session.query(models.index_kit).where(models.index_kit.name == name).first():
+    if self._session.query(models.IndexKit).where(models.IndexKit.name == name).first():
         raise exceptions.NotUniqueValue(f"index_kit with name '{name}', already exists.")
 
-    seq_kit = models.index_kit(
+    seq_kit = models.IndexKit(
         name=name
     )
     self._session.add(seq_kit)
@@ -36,23 +37,12 @@ def create_index_kit(
     return seq_kit
 
 
-def get_index_kit(self, id: int) -> models.index_kit:
+def get_index_kit(self, id: int) -> models.IndexKit:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.get(models.index_kit, id)
-    library_types_ids = self._session.query(models.index_kitLibraryType.library_type_id).where(
-        models.index_kitLibraryType.index_kit_id == id
-    ).all()
-
-    library_types_ids, *_ = zip(*library_types_ids)
-
-    res._library_types = []
-    for library_type_id in library_types_ids:
-        logger.debug(library_type_id)
-        logger.debug(type(library_type_id))
-        res._library_types.append(LibraryType.get(library_type_id))
+    res = self._session.get(models.IndexKit, id)
 
     if not persist_session:
         self.close_session()
@@ -60,12 +50,12 @@ def get_index_kit(self, id: int) -> models.index_kit:
     return res
 
 
-def get_index_kit_by_name(self, name: str) -> models.index_kit:
+def get_index_kit_by_name(self, name: str) -> models.IndexKit:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.index_kit).where(models.index_kit.name == name).first()
+    res = self._session.query(models.IndexKit).where(models.IndexKit.name == name).first()
     if not persist_session:
         self.close_session()
     return res
@@ -82,42 +72,60 @@ def get_num_index_kits(self) -> int:
     return res
 
 
+def get_index_kits(
+    self, limit: Optional[int] = 20, offset: Optional[int] = 0
+) -> list[models.IndexKit]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.IndexKit).order_by(models.IndexKit.id.desc())
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    if offset is not None:
+        query = query.offset(offset)
+
+    res = query.all()
+
+    for index_kit in res:
+        index_kit._num_adapters = self._session.query(models.SeqAdapter).where(
+            models.SeqAdapter.index_kit_id == index_kit.id
+        ).count()
+
+    if not persist_session:
+        self.close_session()
+
+    return res
+
+
 def query_index_kit(
-    self, query: str, library_type: Optional[LibraryType] = None, limit: Optional[int] = 20
+    self, word: str, library_type: Optional[LibraryType] = None, limit: Optional[int] = 20
 ) -> list[SearchResult]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    q = """
-    SELECT
-        *,
-        similarity(lower(name), lower(%(word)s)) as sml
-    FROM
-        index_kit
-    JOIN
-        index_kitlibrarytype
-    ON
-        index_kit.id = index_kitlibrarytype.index_kit_id
-    """
+    query = self._session.query(models.IndexKit)
+
     if library_type is not None:
-        q += """WHERE
-        index_kitlibrarytype.library_type_id = %(library_type_id)s"""
+        query = query.join(
+            models.IndexKitLibraryType,
+            and_(
+                models.IndexKitLibraryType.index_kit_id == models.IndexKit.id,
+                models.IndexKitLibraryType.library_type_id == library_type.value.id
+            )
+        )
 
-    q += """
-    ORDER BY
-        sml DESC
-    LIMIT %(limit)s;
-    """
+    query = query.order_by(func.similarity(models.IndexKit.name, word).desc())
 
-    res = pd.read_sql(
-        q, self._engine,
-        params={
-            "word": query,
-            "limit": str(limit),
-        } | ({"library_type_id": library_type.value.id} if library_type is not None else {})
-    )
-    res = [SearchResult(int(row["id"]), row["name"]) for _, row in res.iterrows()]
+    if limit is not None:
+        query = query.limit(limit)
+
+    res = query.all()
+
+    res = [SearchResult(index_kit.id, index_kit.name) for index_kit in res]
 
     if not persist_session:
         self.close_session()

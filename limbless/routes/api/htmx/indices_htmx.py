@@ -11,8 +11,8 @@ from ....categories import LibraryType
 indices_htmx = Blueprint("indices_htmx", __name__, url_prefix="/api/indices/")
 
 
-@login_required
 @indices_htmx.route("get/<int:page>", methods=["GET"])
+@login_required
 def get(page):
     with DBSession(db.db_handler) as session:
         n_pages = int(session.get_num_seqindices() / 20)
@@ -27,8 +27,8 @@ def get(page):
     )
 
 
-@login_required
 @indices_htmx.route("query_index_kits", methods=["POST"])
+@login_required
 def query_index_kits():
     library_type_id: Optional[int] = None
     raw_library_type_id = request.form.get("library_type")
@@ -63,9 +63,9 @@ def query_index_kits():
     )
 
 
-@login_required
 @indices_htmx.route("query/<int:index_kit_id>", methods=["POST"], defaults={"exclude_library_id": None})
 @indices_htmx.route("query_seq_adapters/<int:index_kit_id>/<int:exclude_library_id>", methods=["POST"])
+@login_required
 def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = None):
     field_name = next(iter(request.form.keys()))
     word = request.form.get(field_name)
@@ -87,8 +87,8 @@ def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = No
     )
 
 
-@login_required
 @indices_htmx.route("select_indices/<int:library_id>", methods=["POST"])
+@login_required
 def select_indices(library_id: int):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:

@@ -9,6 +9,7 @@ flask-htmx==0.3.1
 Flask-Login==0.6.2
 Flask-Mail==0.9.1
 Flask-WTF==1.1.1
+greenlet==2.0.2
 idna==3.4
 iniconfig==2.0.0
 itsdangerous==2.1.2

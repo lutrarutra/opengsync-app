@@ -7,8 +7,8 @@ from .... import db, logger, forms
 runs_htmx = Blueprint("runs_htmx", __name__, url_prefix="/api/runs/")
 
 
-@login_required
 @runs_htmx.route("get/<int:page>", methods=["GET"])
+@login_required
 def get(page):
     n_pages = int(db.db_handler.get_num_runs() / 20)
     page = min(page, n_pages)
@@ -22,8 +22,8 @@ def get(page):
     )
 
 
-@login_required
 @runs_htmx.route("create/<int:experiment_id>", methods=["POST"])
+@login_required
 def create(experiment_id: int):
     run_form = forms.RunForm()
 
@@ -62,8 +62,8 @@ def create(experiment_id: int):
     )
 
 
-@login_required
 @runs_htmx.route("<int:run_id>/edit", methods=["POST"])
+@login_required
 def edit(run_id):
     run = db.db_handler.get_run(run_id)
     if not run:

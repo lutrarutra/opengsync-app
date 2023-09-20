@@ -8,8 +8,8 @@ from .... import db, logger
 organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism/")
 
 
-@login_required
 @organisms_htmx.route("query", methods=["POST"])
+@login_required
 def query():
     field_name = next(iter(request.form.keys()))
     word = request.form.get(field_name)

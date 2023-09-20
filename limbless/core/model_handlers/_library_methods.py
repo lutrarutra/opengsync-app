@@ -19,7 +19,7 @@ def create_library(
         self.open_session()
 
     if index_kit_id is not None:
-        if (_ := self._session.get(models.index_kit, index_kit_id)) is None:
+        if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
             raise exceptions.ElementDoesNotExist(f"index_kit with id {index_kit_id} does not exist")
 
     if self._session.get(models.User, owner_id) is None:
@@ -148,7 +148,7 @@ def update_library(
     if library_type is not None:
         library.library_type_id = library_type.value.id
     if index_kit_id is not None:
-        if self._session.get(models.index_kit, index_kit_id) is None:
+        if self._session.get(models.IndexKit, index_kit_id) is None:
             raise exceptions.ElementDoesNotExist(f"index_kit with id {index_kit_id} does not exist")
         library.index_kit_id = index_kit_id
     else:
@@ -213,3 +213,29 @@ def query_libraries(
         self.close_session()
 
     return res
+
+
+def create_library_type(
+    self, type: LibraryType
+) -> models.LibraryTypeId:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if self._session.query(models.LibraryTypeId).where(
+        models.LibraryTypeId.id == type.value.id
+    ).first() is not None:
+        raise exceptions.NotUniqueValue(f"LibraryType with id {type.value.id} already exists")
+
+    lib_type = models.LibraryTypeId(
+        id=type.value.id
+    )
+
+    self._session.add(lib_type)
+    self._session.commit()
+
+    if not persist_session:
+        self.close_session()
+
+    return lib_type
