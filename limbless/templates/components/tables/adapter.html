@@ -4,7 +4,6 @@
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                <th scope="col">ID</th>
                 <th scope="col">Name</th>
                 <th scope="col">Indices</th>
             </tr>
@@ -12,11 +11,10 @@
         <tbody>
             {% for adapter in adapters %}
             <tr>
-                <th scope="row">{{ adapter.id }}</th>
-                <td>{{ adapter.name }}</td>
-                <td>
+                <th scope="row">{{ adapter.name }}</th>
+                <td class="adapter-col">
                     {% for index in adapter.indices %}
-                        {{ index.sequence }}, {{ index.type }}
+                        <span class="comma"><p>{{ index.sequence }}</p><p>{{ index.type }}</p></span>
                     {% endfor %}
                 </td>
             </tr>
