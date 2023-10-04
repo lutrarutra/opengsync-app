@@ -6,6 +6,7 @@ from .. import logger
 from ..core.DBHandler import DBHandler
 from ..core.DBSession import DBSession
 
+
 class SampleForm(FlaskForm):
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
     organism = IntegerField("Organism", validators=[DataRequired()])

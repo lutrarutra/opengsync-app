@@ -130,7 +130,17 @@ def parse_table(project_id: int):
         filename = secure_filename(table_input_form.file.data.filename)
         table_input_form.file.data.save("data/uploads/" + filename)
         logger.debug(f"Saved file to data/uploads/{filename}")
-        raw_text = open("data/uploads/" + filename).read()
+        try:
+            raw_text = open("data/uploads/" + filename).read()
+        except UnicodeDecodeError:
+            flash("Could not read file.", "error")
+            return make_response(
+                render_template(
+                    "components/popups/sample_table.html",
+                    table_form=table_input_form,
+                    project_id=project_id,
+                ), push_url=False
+            )
         sep = "\t" if filename.split(".")[-1] == "tsv" else ","
     else:
         table_input_form.text.errors.append("Please enter text or upload a file.")
