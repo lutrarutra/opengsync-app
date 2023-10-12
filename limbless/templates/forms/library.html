@@ -5,21 +5,21 @@
     {{ form_group(library_form.name) }}
     {{ form_group(library_form.library_type, trigger_dest_id="index_kit-search") }}
 
-    {{ switch_input(library_form.is_raw_library) }}
+    {{ switch_input(library_form.is_premade_library) }}
 
     {{ 
         search_select_field(
             library_form.index_kit,
             url=url_for('indices_htmx.query_index_kits'),
             selected=selected_kit_id,
-            disabled=library_form.is_raw_library.data,
+            disabled=not library_form.is_premade_library.data,
             include_field="library_type"
         )
     }}
 </form>
 <script>
-    $("#is_raw_library").on("change", function() {
-        if ($(this).is(":checked")) {
+    $("#is_premade_library").on("change", function() {
+        if (!$(this).is(":checked")) {
             $("#index_kit-search").addClass("disabled");
             $("#index_kit-search").prop("readonly", true);
             $("#index_kit-search").val("");

@@ -21,9 +21,9 @@ class LibraryForm(FlaskForm):
         validators=[DataRequired()]
     )
 
-    is_raw_library = BooleanField(
-        "Is raw library", default=True,
-        description="Check this if this if the library is not sequencing ready."
+    is_premade_library = BooleanField(
+        "Is premade library", default=False,
+        description="Check this if this if the library is premade library."
     )
 
     index_kit = IntegerField("Index Kit", validators=[Optional()])
@@ -59,7 +59,7 @@ class LibraryForm(FlaskForm):
                             self.name.errors = ("You already have a library with this name.",)
                             validated = False
 
-            if self.is_raw_library.data:
+            if not self.is_premade_library.data:
                 if self.index_kit.data is not None:
                     self.index_kit.errors = ("Index kit should not be selected for raw libraries.",)
                     validated = False
@@ -84,7 +84,10 @@ class LibraryForm(FlaskForm):
                             self.library_type.errors = ("Invalid library type.",)
                             return False, self
 
-                        if library_type not in index_kit._library_types:
+                        _library_types_ids = [library_type.id for library_type in index_kit.library_type_ids]
+                        logger.debug(_library_types_ids)
+                        logger.debug(library_type_id)
+                        if library_type_id not in _library_types_ids:
                             self.library_type.errors = (
                                 f"Library type '{library_type.name}' is not supported by the selected index kit.",
                             )

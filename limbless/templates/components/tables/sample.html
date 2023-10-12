@@ -10,6 +10,7 @@
                 <th scope="col">Owner</th>
                 {% if show_indices %}
                 <th scope="col">Adapter</th>
+                <th scope="col">Indices</th>
                 {% endif %}
             </tr>
         </thead>
@@ -27,13 +28,14 @@
                 </td>
                 <td><span class="owner-col"><p>{{ sample.owner.first_name }} {{ sample.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == sample.owner_id }}</p></span></td>
                 {% if show_indices %}
+                {% set adapter = (sample.indices | first).adapter %}
                 <td>
-                <span class="index-col">
-                <a data-bs-toggle="tooltip"
-                data-bs-title="<div class='tooltip-row'>{% for index in sample.indices %}{{ '<span>' + index.type + ': ' + '<br><b>' + index.sequence + '</b>' + '<br></span>' }}{% endfor %}</div>"
-                data-bs-html="true"
-                data-bs-custom-class="custom-tooltip">{{ (sample.indices | first).adapter }}</a>
-                </span>
+                    {{ adapter.name }}
+                </td>
+                <td class="adapter-col">
+                    {% for index in sample.indices %}
+                        <span class="comma"><p>{{ index.sequence }}</p><p>{{ index.type }}</p></span>
+                    {% endfor %}
                 </td>
                 {% endif %}
             </tr>

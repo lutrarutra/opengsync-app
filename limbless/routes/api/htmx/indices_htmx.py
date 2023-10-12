@@ -1,6 +1,6 @@
 from typing import Optional
 
-from flask import Blueprint, render_template, request, abort, url_for
+from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
@@ -31,12 +31,13 @@ def get(page):
 @login_required
 def query_index_kits():
     library_type_id: Optional[int] = None
-    raw_library_type_id = request.form.get("library_type")
+    
+    if (raw_library_type_id := request.form.get("library_type")) is None:
+        logger.debug("No library type id provided with POST request")
+        return abort(400)
 
     try:
         library_type_id = int(raw_library_type_id)
-    except KeyError:
-        logger.debug("No library type id provided with POST request")
     except ValueError:
         logger.debug(f"Invalid library type '{raw_library_type_id}' id provided with POST request")
         return abort(400)
@@ -68,9 +69,8 @@ def query_index_kits():
 @login_required
 def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = None):
     field_name = next(iter(request.form.keys()))
-    word = request.form.get(field_name)
-
-    if word is None:
+    
+    if (word := request.form.get(field_name)) is None:
         return abort(400)
 
     # TODO: add exclude_library_id to query_adapters
@@ -99,15 +99,18 @@ def select_indices(library_id: int):
         user.samples = user.samples
 
     index_form = forms.IndexForm()
-    selected_adapter = index_form.adapter.data
-    selected_sample_id = index_form.sample.data
+    if (selected_adapter_id := index_form.adapter.data) is None:
+        return abort(400)
 
-    indices = session.get_seqindices_by_adapter(selected_adapter)
+    if (selected_sample_id := index_form.sample.data) is None:
+        return abort(400)
+
+    selected_adapter = db.db_handler.get_adapter(selected_adapter_id)
     selected_sample = db.db_handler.get_sample(selected_sample_id)
 
     for i, entry in enumerate(index_form.indices.entries):
-        entry.index_seq_id.data = indices[i].id
-        entry.sequence.data = indices[i].sequence
+        entry.index_seq_id.data = selected_adapter.indices[i].id
+        entry.sequence.data = selected_adapter.indices[i].sequence
 
     return make_response(
         render_template(

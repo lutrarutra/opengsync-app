@@ -14,6 +14,7 @@ class SampleForm(FlaskForm):
     def custom_validate(
         self,
         db_handler: DBHandler, user_id: int,
+        project_id: int,
         sample_id: int | None = None,
     ) -> tuple[bool, "SampleForm"]:
 
@@ -25,22 +26,18 @@ class SampleForm(FlaskForm):
             if (user := session.get_user(user_id)) is None:
                 logger.error(f"User with id {user_id} does not exist.")
                 return False, self
-
-            user_projects = user.projects
+            
+            if (project := session.get_project(project_id)) is None:
+                logger.error(f"Project with id {project_id} does not exist.")
+                return False, self
+            
+            project_samples = project.samples
 
             # Creating new sample
             if sample_id is None:
-                if self.name.data in [project.name for project in user_projects]:
-                    self.name.errors = ("You already have a project with this name.",)
+                if self.name.data in [sample.name for sample in project_samples]:
+                    self.name.errors = ("This project already has a sample with this name.",)
                     validated = False
-
-            # Editing existing project
-            else:
-                for project in user_projects:
-                    if project.name == self.name.data:
-                        if project.id != project_id and project.owner_id == user_id:
-                            self.name.errors = ("You already have a library with this name.",)
-                            validated = False
 
         return validated, self
 

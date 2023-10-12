@@ -34,19 +34,6 @@ class SeqRequestForm(FlaskForm):
         description="Phone number of primary contact (optional)."
     )
 
-    organization_name = StringField(
-        "Organization Name", validators=[DataRequired(), Length(max=64)],
-        description="Name of the organization."
-    )
-    organization_department = StringField(
-        "Organization Department", validators=[Length(max=64)],
-        description="Department of the organization."
-    )
-    organization_address = StringField(
-        "Organization Address", validators=[DataRequired(), Length(max=128)],
-        description="Address of the organization."
-    )
-
     bioinformatician_name = StringField(
         "Bioinformatician Name", validators=[Length(max=128)],
         description="Name of the bioinformatician."
@@ -60,6 +47,34 @@ class SeqRequestForm(FlaskForm):
     bioinformatician_phone = StringField(
         "Bioinformatician Phone", validators=[Length(max=16)],
         description="Phone number of the bioinformatician (optional)."
+    )
+
+    library_contact_name = StringField(
+        "Library Contact Person Name", validators=[Optional(), Length(max=128)],
+        description="Name of the library contact person (optional)."
+    )
+
+    library_contact_email = EmailField(
+        "Library Contact Person Email", validators=[Optional(), Email(), Length(max=128)],
+        description="E-Mail address of the library contact person (optional)."
+    )
+
+    library_contact_phone = StringField(
+        "Library Contact Person Phone", validators=[Length(max=16)],
+        description="Phone number of the library contact person (optional)."
+    )
+
+    organization_name = StringField(
+        "Organization Name", validators=[DataRequired(), Length(max=64)],
+        description="Name of the organization."
+    )
+    organization_department = StringField(
+        "Organization Department", validators=[Length(max=64)],
+        description="Department of the organization."
+    )
+    organization_address = StringField(
+        "Organization Address", validators=[DataRequired(), Length(max=128)],
+        description="Address of the organization."
     )
 
     billing_is_organization = BooleanField(

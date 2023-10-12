@@ -17,7 +17,7 @@ class IndexSeqForm(FlaskForm):
 
 class IndexForm(FlaskForm):
     sample = IntegerField("Sample", validators=[DataRequired()])
-    adapter = StringField("Adapter", validators=[Optional()])
+    adapter = IntegerField("Adapter", validators=[Optional()])
     indices = FieldList(FormField(IndexSeqForm), min_entries=0)
 
     def custom_validate(
@@ -40,9 +40,13 @@ class IndexForm(FlaskForm):
             
             library_samples = library.samples
             ids = [sample.id for sample in library_samples]
-            if int(self.sample.data) in ids:
-                self.sample.errors = ("Sample already in library",)
+            if self.sample.data is None:
+                self.sample.errors = ("Sample is required",)
                 validated = False
+            else:
+                if self.sample.data in ids:
+                    self.sample.errors = ("Sample already in library",)
+                    validated = False
 
             # TODO: check that seq_index_id is not used in the library
             for sample in library_samples:

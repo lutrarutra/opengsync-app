@@ -3,7 +3,6 @@ from flask_htmx import make_response
 from flask_login import login_required, current_user
 
 from .... import db, forms, logger
-from ....categories import UserResourceRelation
 from ....core import DBSession
 
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/")

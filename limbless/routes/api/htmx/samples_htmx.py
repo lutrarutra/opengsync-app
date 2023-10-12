@@ -35,29 +35,13 @@ def create(project_id):
     sample_form = forms.SampleForm()
     name = sample_form.name.data
 
-    with DBSession(db.db_handler) as session:
-        if (project := session.get_project(project_id)) is None:
-            return abort(404)
+    if (project := db.db_handler.get_project(project_id)) is None:
+        return abort(404)
 
-        sample_name_taken = name in [sample.name for sample in project.samples]
-
-    if not sample_form.validate_on_submit() or sample_name_taken:
-        if sample_name_taken:
-            sample_form.name.errors.append("Sample name already exists.")
-
-        # query = sample_form.organism_search.data
-        # if query == "" or query is None:
-        #     q_organisms = db.common_organisms
-        # else:
-        #     try:
-        #         query = int(query)
-        #         if res := db.db_handler.get_organism(query):
-        #             q_organisms = [res]
-        #         else:
-        #             q_organisms = []
-        #     except ValueError:
-        #         q_organisms = db.db_handler.query_organisms(query)
-
+    validated, sample_form = sample_form.custom_validate(
+        db.db_handler, current_user.id, project_id
+    )
+    if not validated:
         selected_organism = db.db_handler.get_organism(sample_form.organism.data)
 
         logger.debug(sample_form.errors)
@@ -76,7 +60,8 @@ def create(project_id):
         sample = session.create_sample(
             name=name,
             organism_tax_id=sample_form.organism.data,
-            project_id=project_id
+            project_id=project_id,
+            owner_id=current_user.id
         )
 
     logger.info(f"Added sample {sample.name} (id: {sample.id}) to project {project.name} (id: {project.id})")

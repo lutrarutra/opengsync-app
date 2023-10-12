@@ -15,14 +15,14 @@
         search_select_field(
             index_form.adapter,
             url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
-            selected=selected_adapter,
+            selected=selected_adapter.name if selected_adapter is defined,
             results=available_adapters,
             include_data_element=False,
         )
     }}
     <input id="adapter" name="adapter" hx-target="#index-form" hx-swap="outerHTML" hx-include="#index-form"
         hx-trigger="change" hx-post="{{ url_for('indices_htmx.select_indices', library_id=library.id) }}"
-        value="{{ selected_adapter }}">
+        value="{{ selected_adapter.id if selected_adapter is defined }}" type="number">
     {% endif %}
 
 
