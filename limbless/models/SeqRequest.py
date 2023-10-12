@@ -24,6 +24,7 @@ class SeqRequest(SQLModel, table=True):
     person_contact_id: int = Field(nullable=False, foreign_key="contact.id")
     billing_contact_id: int = Field(nullable=False, foreign_key="contact.id")
     bioinformatician_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")
+    library_person_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")
 
     libraries: List["Library"] = Relationship(
         back_populates="seq_requests",
@@ -49,6 +50,13 @@ class SeqRequest(SQLModel, table=True):
         sa_relationship_kwargs={
             "lazy": "joined",
             "foreign_keys": "[SeqRequest.bioinformatician_contact_id]"
+        },
+    )
+
+    library_person_contact: "Contact" = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "foreign_keys": "[SeqRequest.library_person_contact_id]"
         },
     )
 

@@ -61,9 +61,15 @@ def seq_request_page(seq_request_id: int):
     seq_request_form.organization_name.data = organization_name
     seq_request_form.organization_address.data = seq_request.contact_person.address
 
-    seq_request_form.bioinformatician_name.data = seq_request.bioinformatician_contact.name
-    seq_request_form.bioinformatician_email.data = seq_request.bioinformatician_contact.email
-    seq_request_form.bioinformatician_phone.data = seq_request.bioinformatician_contact.phone
+    if seq_request.bioinformatician_contact is not None:
+        seq_request_form.bioinformatician_name.data = seq_request.bioinformatician_contact.name
+        seq_request_form.bioinformatician_email.data = seq_request.bioinformatician_contact.email
+        seq_request_form.bioinformatician_phone.data = seq_request.bioinformatician_contact.phone
+
+    if seq_request.library_person_contact_id is not None:
+        seq_request_form.library_contact_name.data = seq_request.library_person_contact.name
+        seq_request_form.library_contact_email.data = seq_request.library_person_contact.email
+        seq_request_form.library_contact_phone.data = seq_request.library_person_contact.phone
 
     seq_request_form.billing_contact.data = seq_request.billing_contact.name
     seq_request_form.billing_address.data = seq_request.billing_contact.address

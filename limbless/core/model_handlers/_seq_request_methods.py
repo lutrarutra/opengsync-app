@@ -39,7 +39,7 @@ def create_seq_request(
         billing_contact_id=billing_contact_id,
         person_contact_id=person_contact_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
-        status=SeqRequestStatus.CREATED.id
+        status=SeqRequestStatus.CREATED.value.id
     )
 
     self._session.add(seq_request)
