@@ -298,7 +298,10 @@ def add_samples_from_table(project_id: int):
     sample_table_confirm_form = forms.SampleTableConfirmForm()
     df = pd.read_csv(StringIO(sample_table_confirm_form.data.data), sep="\t", index_col=False, header=0)
 
-    selected_samples_ids = sample_table_confirm_form.selected_samples.data.removeprefix(",").split(",")
+    if (selected_samples_str := sample_table_confirm_form.selected_samples.data) is None:
+        return abort(400)
+    
+    selected_samples_ids = selected_samples_str.removeprefix(",").split(",")
     selected_samples_ids = [int(i) for i in selected_samples_ids if i != ""]
 
     if not sample_table_confirm_form.validate_on_submit():
