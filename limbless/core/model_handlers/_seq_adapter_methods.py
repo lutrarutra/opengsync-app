@@ -120,6 +120,7 @@ def get_adapter_by_name(self, index_kit_id: int, name: str) -> models.SeqAdapter
 
 def query_adapters(
     self, word: str, index_kit_id: Optional[int] = None,
+    exclude_adapters_from_library_id: Optional[int] = None,
     limit: Optional[int] = 10,
 ) -> list[SearchResult]:
 

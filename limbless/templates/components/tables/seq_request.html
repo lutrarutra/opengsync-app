@@ -9,9 +9,7 @@
                 <th scope="col">Requestor</th>
                 <th scope="col">Requestor Email</th>
                 <th scope="col">Contact Name</th>
-                <th scope="col">Contact Email</th>
                 <th scope="col">Billing</th>
-                <th scope="col">Billing Email</th>
             </tr>
         </thead>
         <tbody>
@@ -19,13 +17,11 @@
             <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
-                <td>{{ seq_request.status_type.name }}</td>
+                <td>{{ seq_request.status_type.name }} {{ seq_request.status_type.description | safe }}</td>
                 <td>{{ seq_request.requestor.first_name }} {{ seq_request.requestor.last_name }}</td>
                 <td>{{ seq_request.requestor.email }}</td>
                 <td>{{ seq_request.contact_person.name }}</td>
-                <td>{{ seq_request.contact_person.email }}</td>
                 <td>{{ seq_request.billing_contact.name }}</td>
-                <td>{{ seq_request.billing_contact.email }}</td>
             </tr>
             {% endfor %}
         </tbody>

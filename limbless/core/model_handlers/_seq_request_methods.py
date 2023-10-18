@@ -69,6 +69,7 @@ def get_seq_request(
 
 def get_seq_requests(
     self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    with_statuses: Optional[list[SeqRequestStatus]] = None,
     user_id: Optional[int] = None
 ) -> list[models.SeqRequest]:
 
@@ -76,12 +77,20 @@ def get_seq_requests(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.SeqRequest).order_by(models.SeqRequest.id.desc())
+    query = self._session.query(models.SeqRequest)
 
     if user_id is not None:
         query = query.where(
             models.SeqRequest.requestor_id == user_id
         )
+
+    if with_statuses is not None:
+        status_ids = [status.value.id for status in with_statuses]
+        query = query.where(
+            models.SeqRequest.status.in_(status_ids)
+        )
+
+    query = query.order_by(models.SeqRequest.id.desc())
 
     if offset is not None:
         query = query.offset(offset)
@@ -98,7 +107,8 @@ def get_seq_requests(
 
 
 def get_num_seq_requests(
-    self, user_id: Optional[int] = None
+    self, user_id: Optional[int] = None,
+    with_statuses: Optional[list[SeqRequestStatus]] = None,
 ) -> int:
 
     persist_session = self._session is not None
@@ -112,6 +122,12 @@ def get_num_seq_requests(
             models.SeqRequest.requestor_id == user_id
         )
 
+    if with_statuses is not None:
+        status_ids = [status.value.id for status in with_statuses]
+        query = query.where(
+            models.SeqRequest.status.in_(status_ids)
+        )
+
     num_seq_requests = query.count()
 
     if not persist_session:
@@ -120,16 +136,17 @@ def get_num_seq_requests(
 
 
 def update_seq_request(
-    self, seq_request: int,
+    self, seq_request_id: int,
     name: Optional[str] = None,
     description: Optional[str] = None,
+    status: Optional[SeqRequestStatus] = None,
     commit: bool = True
 ) -> models.SeqRequest:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (seq_request := self._session.get(models.SeqRequest, seq_request)) is None:
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
     if name is not None:
@@ -137,6 +154,9 @@ def update_seq_request(
 
     if description is not None:
         seq_request.description = description
+
+    if status is not None:
+        seq_request.status = status.value.id
 
     if commit:
         self._session.commit()

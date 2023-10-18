@@ -17,9 +17,9 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
 
     for adapter_name, row in df.iterrows():
         for i, seq in enumerate(row.values):
-            if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
-                if seq in [i.sequence for i in adapter.indices]:
-                    continue
+            # if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
+            #     if seq in [i.sequence for i in adapter.indices]:
+            #         continue
 
             db_handler.create_seq_index(
                 sequence=seq,
@@ -38,9 +38,9 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
 
     for adapter_name, row in df.iterrows():
         for i, seq in enumerate(row.values):
-            if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
-                if seq in [i.sequence for i in adapter.indices]:
-                    continue
+            # if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
+            #     if seq in [i.sequence for i in adapter.indices]:
+            #         continue
 
             db_handler.create_seq_index(
                 sequence=seq,
@@ -59,9 +59,9 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
 
     for adapter_name, row in df.iterrows():
         for i, seq in enumerate(row.values):
-            if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
-                if seq in [i.sequence for i in adapter.indices]:
-                    continue
+            # if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
+            #     if seq in [i.sequence for i in adapter.indices]:
+            #         continue
 
             db_handler.create_seq_index(
                 sequence=seq,
@@ -80,9 +80,9 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
 
     for adapter_name, row in df.iterrows():
         for i, seq in enumerate(row.values):
-            if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
-                if seq in [i.sequence for i in adapter.indices]:
-                    continue
+            # if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
+            #     if seq in [i.sequence for i in adapter.indices]:
+            #         continue
 
             db_handler.create_seq_index(
                 sequence=seq,
@@ -102,9 +102,9 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     for adapter_name, row in df.iterrows():
         cols = [f"Index {i}" for i in range(1, 5)]
         for i, seq in enumerate(row.values):
-            if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
-                if seq in [i.sequence for i in adapter.indices]:
-                    continue
+            # if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
+            #     if seq in [i.sequence for i in adapter.indices]:
+            #         continue
 
             db_handler.create_seq_index(
                 sequence=seq,
@@ -124,9 +124,9 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     for adapter_name, row in df.iterrows():
         cols = [f"Index {i}" for i in range(1, 5)]
         for i, seq in enumerate(row.values):
-            if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
-                if seq in [i.sequence for i in adapter.indices]:
-                    continue
+            # if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is not None:
+            #     if seq in [i.sequence for i in adapter.indices]:
+            #         continue
 
             db_handler.create_seq_index(
                 sequence=seq,

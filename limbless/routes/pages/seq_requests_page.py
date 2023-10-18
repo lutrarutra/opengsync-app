@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 from ... import forms, db, logger
 from ...tools import SearchResult
 from ...core import DBSession
-from ...categories import UserRole
+from ...categories import UserRole, SeqRequestStatus
 
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 
@@ -20,9 +20,12 @@ def seq_requests_page():
         if current_user.role_type == UserRole.CLIENT:
             seq_requests = session.get_seq_requests(limit=20, user_id=current_user.id)
             n_pages = int(session.get_num_seq_requests(user_id=current_user.id) / 20)
-        else:
+        elif current_user.role_type == UserRole.ADMIN:
             seq_requests = session.get_seq_requests(limit=20, user_id=None)
             n_pages = int(session.get_num_seq_requests(user_id=None) / 20)
+        else:
+            seq_requests = session.get_seq_requests(limit=20, user_id=None, with_statuses=[SeqRequestStatus.FINISHED, SeqRequestStatus.SUBMITTED])
+            n_pages = int(session.get_num_seq_requests(user_id=None, with_statuses=[SeqRequestStatus.FINISHED, SeqRequestStatus.SUBMITTED]) / 20)
 
     return render_template(
         "seq_requests_page.html",

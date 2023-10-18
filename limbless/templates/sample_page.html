@@ -14,7 +14,16 @@
             <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
             {% if sample.libraries|length == 0 %}
             <button hx-get="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
-             hx-confirm="Are you sure?">
+                _="on htmx:confirm(issueRequest)
+                halt the event
+                call Swal.fire({
+                    title: 'Delete sample \'{{ sample.name }}\'',
+                    showDenyButton: true,
+                    text: 'Proceed?',
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'No'
+                })
+                if result.isConfirmed issueRequest()">
                 Delete Sample
             </button>
             {% endif %}

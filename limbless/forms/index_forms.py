@@ -45,15 +45,15 @@ class IndexForm(FlaskForm):
                 validated = False
             else:
                 if self.sample.data in ids:
-                    self.sample.errors = ("Sample already in library",)
+                    self.sample.errors = ("Sample is already in this library",)
                     validated = False
 
             # TODO: check that seq_index_id is not used in the library
             for sample in library_samples:
-                logger.debug(sample.indices)
+                logger.debug(sample.indices)                                            
 
         return validated, self
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
 def __crete_dual_index_form() -> IndexForm:
     form = IndexForm()

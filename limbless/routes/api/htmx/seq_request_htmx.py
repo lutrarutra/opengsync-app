@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 
 from .... import db, forms, logger
 from ....core import DBSession
-from ....categories import UserRole
+from ....categories import UserRole, SeqRequestStatus
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/seq_requests/")
 
@@ -68,10 +68,36 @@ def delete(seq_request_id: int):
     db.db_handler.delete_seq_request(seq_request_id)
 
     flash(f"Deleted sequencing request '{seq_request.name}'", "success")
-    logger.info(f"Deleted sequencing request '{seq_request.name}'")
+    logger.debug(f"Deleted sequencing request '{seq_request.name}'")
 
     return make_response(
         redirect=url_for("seq_requests_page.seq_requests_page"),
+    )
+
+@seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["GET"])
+@login_required
+def submit(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(404)
+    
+    if seq_request.status_type != SeqRequestStatus.CREATED.value:
+        logger.debug(seq_request.status_type)
+        return abort(403)
+
+    if current_user.role_type == UserRole.CLIENT:
+        if seq_request.requestor_id != current_user.id:
+            return abort(401)
+        
+    db.db_handler.update_seq_request(
+        seq_request_id=seq_request_id,
+        status=SeqRequestStatus.SUBMITTED,
+    )
+
+    flash(f"Submitted sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Submitted sequencing request '{seq_request.name}'")
+
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
     )
 
 
