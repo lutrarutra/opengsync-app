@@ -17,7 +17,7 @@ samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/samples/")
 
 @samples_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
-def get(page):
+def get(page: int):
     n_pages = int(db.db_handler.get_num_samples() / 20)
     page = min(page, n_pages)
     samples = db.db_handler.get_samples(limit=20, offset=20 * page)
@@ -31,7 +31,7 @@ def get(page):
 
 @samples_htmx.route("create/<int:project_id>", methods=["POST"])
 @login_required
-def create(project_id):
+def create(project_id: int):
     sample_form = forms.SampleForm()
     name = sample_form.name.data
 

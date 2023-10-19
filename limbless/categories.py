@@ -45,3 +45,14 @@ class SeqRequestStatus(Enum, metaclass=ExtendedEnumMeta):
     FINISHED = DescriptiveEnum(5, "Finished", description="✅")
     ARCHIVED = DescriptiveEnum(6, "Archived", description="🗃️")
     FAILED = DescriptiveEnum(7, "Failed", description="❌")
+
+
+class HttpResponse(Enum, metaclass=ExtendedEnumMeta):
+    OK = DescriptiveEnum(200, "OK")
+    BAD_REQUEST = DescriptiveEnum(400, "Bad Request")
+    UNAUTHORIZED = DescriptiveEnum(401, "Unauthorized")
+    FORBIDDEN = DescriptiveEnum(403, "Forbidden")
+    NOT_FOUND = DescriptiveEnum(404, "Not Found")
+    METHOD_NOT_ALLOWED = DescriptiveEnum(405, "Method Not Allowed")
+    INTERNAL_SERVER_ERROR = DescriptiveEnum(500, "Internal Server Error")
+    

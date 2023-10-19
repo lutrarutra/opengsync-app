@@ -83,6 +83,9 @@ def submit(seq_request_id: int):
     if seq_request.status_type != SeqRequestStatus.CREATED.value:
         logger.debug(seq_request.status_type)
         return abort(403)
+    
+    if len(seq_request.libraries) == 0:
+        return abort(403)
 
     if current_user.role_type == UserRole.CLIENT:
         if seq_request.requestor_id != current_user.id:

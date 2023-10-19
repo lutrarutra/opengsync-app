@@ -69,6 +69,7 @@ def create_app():
     app.register_blueprint(api.indices_htmx)
     app.register_blueprint(api.seq_requests_htmx)
     app.register_blueprint(api.adapters_htmx)
+    app.register_blueprint(api.sequencers_htmx)
 
     app.register_blueprint(pages.runs_page_bp)
     app.register_blueprint(pages.samples_page_bp)
@@ -81,5 +82,6 @@ def create_app():
     app.register_blueprint(pages.seq_requests_page_bp)
     app.register_blueprint(pages.index_kits_page_bp)
     app.register_blueprint(pages.errors_bp)
+    app.register_blueprint(pages.devices_page_bp)
 
     return app

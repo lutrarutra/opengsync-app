@@ -1,0 +1,7 @@
+{% from 'components/form_group.jinja2' import form_group %}
+<form id="sequencer-form">
+    {{ sequencer_form.csrf_token }}
+    {{ form_group(sequencer_form.name) }}
+    {{ form_group(sequencer_form.ip_address) }}
+</form>
+

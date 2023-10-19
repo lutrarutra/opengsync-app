@@ -33,6 +33,12 @@ class DBHandler():
         get_user_library_access, get_user_sample_access
     )
 
+    from .model_handlers._sequencer_methods import (
+        create_sequencer, get_sequencer, get_sequencers,
+        get_num_sequencers, delete_sequencer, get_sequencer_by_name,
+        update_sequencer
+    )
+
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
         update_project, delete_project,

@@ -1,0 +1,111 @@
+from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
+from flask_htmx import make_response
+from flask_login import login_required, current_user
+
+from .... import db, forms, logger, models
+from ....core import DBSession
+from ....categories import HttpResponse, UserRole
+
+sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/sequencers/")
+
+
+@sequencers_htmx.route("get/<int:page>", methods=["GET"])
+@login_required
+def get(page: int):
+    if current_user.role_type != UserRole.ADMIN:
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    with DBSession(db.db_handler) as session:
+        sequencers = session.get_sequencers(page=page)
+        n_pages = int(session.get_num_sequencers() / 20)
+    
+    return make_response(
+        render_template(
+            "components/tables/device.html",
+            sequencers=sequencers,
+            n_pages=n_pages, active_page=page
+        ), push_url=False
+    )
+
+@sequencers_htmx.route("create", methods=["POST"])
+@login_required
+def create():
+    if current_user.role_type != UserRole.ADMIN:
+        return abort(HttpResponse.FORBIDDEN.value.id)
+
+    sequencer_form = forms.SequencerForm()
+
+    validated, sequencer_form = sequencer_form.custom_validate(db.db_handler)
+
+    if not validated:
+        return make_response(
+            render_template(
+                "forms/sequencer.html",
+                sequencer_form=sequencer_form
+            ), push_url=False
+        )
+    
+    with DBSession(db.db_handler) as session:
+        sequencer = session.create_sequencer(
+            name=sequencer_form.name.data,
+            ip=sequencer_form.ip_address.data,
+        )
+
+    flash("Sequencer created.", "success")
+
+    return make_response(
+        redirect=url_for("devices_page.devices_page")
+    )
+
+
+@sequencers_htmx.route("update/<int:sequencer_id>", methods=["POST"])
+@login_required
+def update(sequencer_id: int):
+    if current_user.role_type != UserRole.ADMIN:
+        return abort(HttpResponse.FORBIDDEN.value.id)
+
+    sequencer_form = forms.SequencerForm()
+
+    validated, sequencer_form = sequencer_form.custom_validate(db.db_handler, sequencer_id=sequencer_id)
+
+    if not validated:
+        return make_response(
+            render_template(
+                "forms/sequencer.html",
+                sequencer_form=sequencer_form
+            ), push_url=False
+        )
+    
+    with DBSession(db.db_handler) as session:
+        if session.get_sequencer(sequencer_id) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        session.update_sequencer(
+            sequencer_id=sequencer_id,
+            name=sequencer_form.name.data,
+            ip=sequencer_form.ip_address.data,
+        )
+
+    flash("Sequencer updated.", "success")
+
+    return make_response(
+        redirect=url_for("devices_page.sequencer_page", sequencer_id=sequencer_id)
+    )
+
+
+@sequencers_htmx.route("delete/<int:sequencer_id>", methods=["GET"])
+@login_required
+def delete(sequencer_id: int):
+    if current_user.role_type != UserRole.ADMIN:
+        return abort(HttpResponse.FORBIDDEN.value.id)
+
+    with DBSession(db.db_handler) as session:
+        if session.get_sequencer(sequencer_id) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        session.delete_sequencer(sequencer_id)
+
+    flash("Sequencer deleted.", "success")
+    return make_response(
+        redirect=url_for("devices_page.devices_page")
+    )

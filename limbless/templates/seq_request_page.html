@@ -9,19 +9,29 @@
         </div>
         <div>
             {% if seq_request.status_type.name == "Created" %}
-            <button hx-get="{{ url_for('seq_requests_htmx.submit', seq_request_id=seq_request.id) }}" class="btn btn-success"
-                _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Submit request \'{{ seq_request.name }}\'',
-                    showDenyButton: true,
-                    text: 'You can no longer edit the sequencing request after it is submitted. Do you want to proceed?',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()">
-                Submit Request
-            </button>
+            <span
+            {% if seq_request.is_submittable() %}
+            data-bs-toggle="tooltip" data-bs-placement="bottom"
+            data-bs-custom-class="custom-tooltip"
+            data-bs-title="You must add at least one library to submit the request."
+            {% endif %}>
+                <button hx-get="{{ url_for('seq_requests_htmx.submit', seq_request_id=seq_request.id) }}" class="btn btn-success"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Submit request \'{{ seq_request.name }}\'',
+                        showDenyButton: true,
+                        text: 'You can no longer edit the sequencing request after it is submitted. Do you want to proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                    {% if seq_request.is_submittable() %}
+                        disabled
+                    {% endif %}>
+                    Submit Request
+                </button>
+            </span>
             <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#seq_request-form-popup">
                 Edit Request

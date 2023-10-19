@@ -1,0 +1,23 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tables/table_col.jinja2" import table_col %}
+<div id="index-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">name</th>
+                <th scope="col">ip</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sequencer in sequencers %}
+            <tr onclick="window.location.href='{{ url_for('devices_page.sequencer_page', sequencer_id=sequencer.id) }}';">
+                <th scope="row">{{ sequencer.id }}</th>
+                <td>{{ sequencer.name }}</td>
+                <td>{{ sequencer.ip }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("index-table", "sequencers_htmx.get", n_pages, active_page) }}
+</div>

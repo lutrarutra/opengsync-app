@@ -63,3 +63,6 @@ class SeqRequest(SQLModel, table=True):
     @property
     def status_type(self) -> SeqRequestStatus:
         return SeqRequestStatus.as_dict()[self.status]
+    
+    def is_submittable(self) -> bool:
+        return self.status_type == SeqRequestStatus.CREATED and len(self.libraries) > 0

@@ -16,3 +16,4 @@ from .IndexKit import IndexKit
 from .SeqRequest import SeqRequest
 from .Contact import Contact
 from .SeqAdapter import SeqAdapter
+from .Sequencer import Sequencer

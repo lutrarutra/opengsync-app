@@ -54,7 +54,7 @@ def create_seq_request(
 
 def get_seq_request(
     self, seq_request_id: int,
-) -> Optional[models.SeqRequest]:
+) -> models.SeqRequest:
 
     persist_session = self._session is not None
     if not self._session:

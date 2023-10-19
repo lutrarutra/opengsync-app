@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% set active_page = "devices-page" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Sequencer: {{ sequencer.name }}</h1>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sequencer-form-popup">
+                Edit
+            </button>
+            <button type="button"class="btn btn-danger"
+                hx-get="{{ url_for('sequencers_htmx.delete', sequencer_id=sequencer.id) }}"
+                _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Delete Sequencer \'{{ sequencer.name }}\'',
+                        showDenyButton: true,
+                        text: 'Do you want to proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()">
+                Delete
+            </button>
+        </div>
+    </div>
+    <div class="modal fade" id="sequencer-form-popup" aria-hidden="true" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Edit Sequencer</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {% include "forms/sequencer.html" %}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" hx-include="#sequencer-form" hx-target="#sequencer-form"
+                    hx-swap="outerHTML" hx-post="{{ url_for('sequencers_htmx.update', sequencer_id=sequencer.id) }}">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

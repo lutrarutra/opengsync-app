@@ -10,5 +10,6 @@ from .index_forms import IndexForm, create_index_form
 from .TableForm import TableForm
 from .SeqRequestForm import SeqRequestForm
 from .select_forms import SelectLibraryForm
+from .SequencerForm import SequencerForm
 
 from .categorical_mapping import CategoricalMappingField, CategoricalMappingForm
