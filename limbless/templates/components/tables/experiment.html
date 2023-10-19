@@ -4,6 +4,8 @@
         <thead>
             <tr>
                 <th scope="col">ID</th>
+                <th scope="col">Status</th>
+                <th scope="col">Sequencer</th>
                 <th scope="col">Flowcell</th>
                 <th scope="col">Created</th>
             </tr>
@@ -12,6 +14,8 @@
             {% for experiment in experiments %}
             <tr onclick="window.location.href='{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}';">
                 <th scope="row">{{ experiment.id }}</th>
+                <td>{{ experiment.status_type.name }} {{ experiment.status_type.description | safe }}</td>
+                <td>{{ experiment.sequencer.name }}</td>
                 <td>{{ experiment.flowcell }}</td>
                 <td>{{ experiment.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
             </tr>

@@ -1,7 +1,10 @@
 from typing import Optional
 
+from sqlmodel import func
+
 from ... import models
 from .. import exceptions
+from ...tools import SearchResult
 
 
 def create_sequencer(
@@ -148,4 +151,33 @@ def delete_sequencer(
 
     if not persist_session:
         self.close_session()
+    
+
+def query_sequencers(
+    self, word: str, limit: Optional[int] = 20
+) -> list[SearchResult]:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.Sequencer).order_by(
+        func.similarity(
+            models.Sequencer.name, word
+        ).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    res = query.all()
+
+    res = [SearchResult(sequencer.id, sequencer.name, sequencer.ip) for sequencer in res]
+
+    if not persist_session:
+        self.close_session()
+
+    return res
+
+
     

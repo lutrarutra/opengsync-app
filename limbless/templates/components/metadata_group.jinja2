@@ -1,0 +1,6 @@
+{% macro metadata_group(label, value) -%}
+<div class="form-group">
+    <label>{{ label }}</label>
+    <input class="form-control" readonly type="text" value="{{ value }}">
+</div>
+{%- endmacro %}

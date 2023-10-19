@@ -3,9 +3,11 @@ from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, TIMESTAMP, text, Column, Relationship
 from datetime import datetime
 
+from ..categories import ExperimentStatus
+
 if TYPE_CHECKING:
     from .Run import Run
-
+    from .Sequencer import Sequencer
 
 class Experiment(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
@@ -19,4 +21,13 @@ class Experiment(SQLModel, table=True):
         server_onupdate=text("CURRENT_TIMESTAMP"),
     ))
 
+    status: int = Field(nullable=False, default=0)
+
+    sequencer_id: int = Field(nullable=False, foreign_key="sequencer.id")
+    sequencer: "Sequencer" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
+
     runs: List["Run"] = Relationship(back_populates="experiment")
+
+    @property
+    def status_type(self) -> ExperimentStatus:
+        return ExperimentStatus.as_dict()[self.status]

@@ -169,7 +169,7 @@ def delete_sample(
 
 
 def query_samples(
-    self, query: str,
+    self, word: str,
     user_id: Optional[int] = None,  # TODO: query from only user owned samples
     limit: Optional[int] = 20
 ) -> list[SearchResult]:
@@ -178,14 +178,14 @@ def query_samples(
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.Sample).where(
-        models.Sample.name.contains(query)
+    query = self._session.query(models.Sample).where(
+        models.Sample.name.contains(word)
     )
 
     if limit is not None:
-        res = res.limit(limit)
+        query = query.limit(limit)
 
-    res = res.all()
+    res = query.all()
     res = [sample.to_search_result() for sample in res]
 
     if not persist_session:

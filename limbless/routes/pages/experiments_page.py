@@ -39,6 +39,10 @@ def experiment_page(experiment_id):
     experiment = db.db_handler.get_experiment(experiment_id)
     if not experiment:
         return redirect(url_for("experiments_page.experiments_page"))
+    
+    experiment_form = forms.ExperimentForm()
+    experiment_form.flowcell.data = experiment.flowcell
+    experiment_form.sequencer.data = experiment.sequencer.id
 
     with DBSession(db.db_handler) as session:
         runs = session.get_experiment_data(experiment_id)
@@ -51,4 +55,8 @@ def experiment_page(experiment_id):
     lanes = [run.lane for run in runs]
     run_form.lane.data = next(i for i in range(1, len(lanes) + 2) if i not in lanes)
 
-    return render_template("experiment_page.html", run_form=run_form, experiment=experiment, runs=runs)
+    return render_template(
+        "experiment_page.html", run_form=run_form, experiment=experiment, runs=runs,
+        experiment_form=experiment_form,
+        selected_sequencer=experiment.sequencer.name,
+    )

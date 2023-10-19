@@ -38,7 +38,8 @@ def create():
         )
 
     experiment = db.db_handler.create_experiment(
-        flowcell=experiment_form.flowcell.data
+        flowcell=experiment_form.flowcell.data,
+        sequencer_id=experiment_form.sequencer.data,
     )
 
     logger.debug(f"Created experiment on flowcell '{experiment.flowcell}'")

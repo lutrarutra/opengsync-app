@@ -25,7 +25,7 @@ class ExtendedEnumMeta(EnumMeta):
                 return member
         raise ValueError(f"No member with id '{id}' (type: {type(id)}) found.")
 
-    def as_dict(cls: Type[T]) -> dict[int, DescriptiveEnum]:
+    def as_dict(cls: Type[T]) -> dict[int, T]:
         return {c.value.id: c.value for c in cls}
 
     def is_valid(cls: Type[T], id: int) -> bool:

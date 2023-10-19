@@ -36,7 +36,7 @@ class DBHandler():
     from .model_handlers._sequencer_methods import (
         create_sequencer, get_sequencer, get_sequencers,
         get_num_sequencers, delete_sequencer, get_sequencer_by_name,
-        update_sequencer
+        update_sequencer, query_sequencers
     )
 
     from .model_handlers._project_methods import (

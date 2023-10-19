@@ -47,6 +47,15 @@ class SeqRequestStatus(Enum, metaclass=ExtendedEnumMeta):
     FAILED = DescriptiveEnum(7, "Failed", description="❌")
 
 
+class ExperimentStatus(Enum, metaclass=ExtendedEnumMeta):
+    CREATED = DescriptiveEnum(0, "Created", description="✍🏼")
+    SUBMITTED = DescriptiveEnum(1, "Submitted", description="⏳")
+    SEQUENCING = DescriptiveEnum(2, "Sequencing", description="🧬")
+    FINISHED = DescriptiveEnum(3, "Finished", description="✅")
+    ARCHIVED = DescriptiveEnum(4, "Archived", description="🗃️")
+    FAILED = DescriptiveEnum(5, "Failed", description="❌")
+
+
 class HttpResponse(Enum, metaclass=ExtendedEnumMeta):
     OK = DescriptiveEnum(200, "OK")
     BAD_REQUEST = DescriptiveEnum(400, "Bad Request")

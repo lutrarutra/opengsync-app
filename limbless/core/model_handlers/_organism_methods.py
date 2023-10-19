@@ -95,7 +95,7 @@ def get_organisms_by_name(self, name: str) -> list[models.Organism]:
     return organism
 
 
-def query_organisms(self, query: str, limit: Optional[int] = 20) -> list[SearchResult]:
+def query_organisms(self, word: str, limit: Optional[int] = 20) -> list[SearchResult]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -114,7 +114,7 @@ def query_organisms(self, query: str, limit: Optional[int] = 20) -> list[SearchR
         score DESC
     LIMIT {limit};
     """
-    res = pd.read_sql(q, self._engine, params={"word": query})
+    res = pd.read_sql(q, self._engine, params={"word": word})
     res = [
         SearchResult(
             value=int(row["tax_id"]),

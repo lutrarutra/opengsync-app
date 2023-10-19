@@ -1,18 +1,23 @@
-from typing import Optional, Union
+from typing import Optional
 
 from ... import models
 from .. import exceptions
 
 
 def create_experiment(
-    self, flowcell: str, commit: bool = True
+    self, flowcell: str, sequencer_id: int,
+    commit: bool = True
 ) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
+    if self._session.get(models.Sequencer, sequencer_id) is None:
+        raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
+
     experiment = models.Experiment(
-        flowcell=flowcell, timestamp=None
+        flowcell=flowcell, timestamp=None,
+        sequencer_id=sequencer_id
     )
 
     self._session.add(experiment)
@@ -35,8 +40,6 @@ def get_experiment(self, experiment_id: int) -> models.Experiment:
     if not persist_session:
         self.close_session()
     return res
-
-# TODO: testing
 
 
 def get_experiment_by_name(self, experiment_name) -> models.Experiment:
