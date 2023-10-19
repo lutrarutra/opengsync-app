@@ -3,7 +3,7 @@ from flask_htmx import make_response
 from flask_login import login_required, current_user
 
 from .... import db, forms, logger, models
-from ....core import DBSession
+from ....core import DBSession, exceptions
 from ....categories import HttpResponse, UserRole
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/sequencers/")
@@ -103,7 +103,13 @@ def delete(sequencer_id: int):
         if session.get_sequencer(sequencer_id) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
-        session.delete_sequencer(sequencer_id)
+        try:
+            session.delete_sequencer(sequencer_id)
+        except exceptions.ElementIsReferenced:
+            flash("Sequencer is referenced by experiment(s) and cannot be deleted.", "error")
+            return make_response(
+                redirect=url_for("devices_page.sequencer_page", sequencer_id=sequencer_id)
+            )
 
     flash("Sequencer deleted.", "success")
     return make_response(

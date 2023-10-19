@@ -1,26 +1,25 @@
 class LinkDoesNotExist(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    pass
 
 
 class ElementDoesNotExist(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    pass
 
 
 class LinkAlreadyExists(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    pass
 
 
 class InvalidRole(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    pass
 
 
 class NotUniqueValue(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    pass
+
+
+class ElementIsReferenced(Exception):
+    pass
 
 
 class FileExistsException(Exception):

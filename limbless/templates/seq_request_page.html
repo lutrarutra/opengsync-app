@@ -10,7 +10,7 @@
         <div>
             {% if seq_request.status_type.name == "Created" %}
             <span
-            {% if seq_request.is_submittable() %}
+            {% if not seq_request.is_submittable() %}
             data-bs-toggle="tooltip" data-bs-placement="bottom"
             data-bs-custom-class="custom-tooltip"
             data-bs-title="You must add at least one library to submit the request."
@@ -26,7 +26,7 @@
                         denyButtonText: 'No'
                     })
                     if result.isConfirmed issueRequest()"
-                    {% if seq_request.is_submittable() %}
+                    {% if not seq_request.is_submittable() %}
                         disabled
                     {% endif %}>
                     Submit Request

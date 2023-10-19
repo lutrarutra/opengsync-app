@@ -220,55 +220,6 @@ def get_experiment_runs(self, experiment_id: int) -> list[models.Run]:
         self.close_session()
     return experiment_runs
 
-# TODO: testing
-
-
-def get_experiment_data(
-    self, experiment_id: int,
-    unraveled: bool = False
-) -> Union[list[models.Run], list[tuple[models.Run, models.Library, models.Sample]]]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Experiment, experiment_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-
-    if not unraveled:
-        experiment_data = self._session.query(models.Run).join(
-            models.RunLibraryLink, models.Run.id == models.RunLibraryLink.run_id
-        ).join(
-            models.Library, models.RunLibraryLink.library_id == models.Library.id
-        ).join(
-            models.Experiment, models.Run.experiment_id == models.Experiment.id
-        ).filter(
-            models.Experiment.id == experiment_id
-        ).options(
-            selectinload(models.Run.libraries).selectinload(models.Library.samples)
-        ).all()
-    else:
-        experiment_data = self._session.query(
-            models.Run, models.Library, models.Sample
-        ).join(
-            models.RunLibraryLink, models.Library.id == models.RunLibraryLink.library_id
-        ).join(
-            models.Run, models.RunLibraryLink.run_id == models.Run.id
-        ).join(
-            models.Experiment, models.Run.experiment_id == models.Experiment.id
-        ).join(
-            models.LibrarySampleLink, models.Library.id == models.LibrarySampleLink.library_id
-        ).join(
-            models.Sample, models.LibrarySampleLink.sample_id == models.Sample.id
-        ).where(
-            models.Experiment.id == experiment_id
-        ).all()
-
-    if not persist_session:
-        self.close_session()
-    return experiment_data
-
-# TODO: testing
-
 
 def get_run_data(
     self, run_id: int,

@@ -144,7 +144,12 @@ def delete_sequencer(
     sequencer = self._session.get(models.Sequencer, sequencer_id)
     if not sequencer:
         raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
-
+    
+    if self._session.query(models.Experiment).where(
+        models.Experiment.sequencer_id == sequencer_id
+    ).first() is not None:
+        raise exceptions.ElementIsReferenced(f"Sequencer with id {sequencer_id} is referenced by an experiment.")
+    
     self._session.delete(sequencer)
     if commit:
         self._session.commit()

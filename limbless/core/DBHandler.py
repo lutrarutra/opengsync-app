@@ -74,7 +74,7 @@ class DBHandler():
     from .model_handlers._user_methods import (
         create_user, get_user, get_users,
         delete_user, update_user,
-        get_user_by_email
+        get_user_by_email, get_num_users
     )
 
     from .model_handlers._organism_methods import (
@@ -116,7 +116,6 @@ class DBHandler():
         get_library_runs,
         get_user_projects,
         get_sample_libraries,
-        get_experiment_data,
         get_run_data,
         get_experiment_runs,
         get_sample_indices_from_library,

@@ -75,9 +75,9 @@ def get_organisms(
         query = query.offset(offset)
 
     if limit is not None:
-        organisms = query.limit(limit).all()
-    else:
-        organisms = query.all()
+        query = query.limit(limit)
+
+    organisms = query.all()
 
     if not persist_session:
         self.close_session()

@@ -69,15 +69,35 @@ def get_user_by_email(self, email: str) -> models.User:
     return user
 
 
-def get_users(self) -> list[models.User]:
+def get_users(self, limit: Optional[int] = 20, offset: Optional[int] = None) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    users = self._session.query(models.User).all()
+    query = self._session.query(models.User)
+    if offset is not None:
+        query = query.offset(offset)
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    users = query.all()
+
     if not persist_session:
         self.close_session()
     return users
+
+
+def get_num_users(self) -> int:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    res = self._session.query(models.User).count()
+    
+    if not persist_session:
+        self.close_session()
+    return res
 
 
 def update_user(

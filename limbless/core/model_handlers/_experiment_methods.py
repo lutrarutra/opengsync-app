@@ -91,7 +91,10 @@ def delete_experiment(
     if not experiment:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
+    for run in experiment.runs:
+        self._session.delete(run)
     self._session.delete(experiment)
+    
     if commit:
         self._session.commit()
 

@@ -30,4 +30,7 @@ class Experiment(SQLModel, table=True):
 
     @property
     def status_type(self) -> ExperimentStatus:
-        return ExperimentStatus.as_dict()[self.status]
+        return ExperimentStatus.get(self.status)
+    
+    def is_deleteable(self) -> bool:
+        return self.status_type == ExperimentStatus.CREATED

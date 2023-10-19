@@ -59,6 +59,9 @@
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" id="experiments-page" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>
             </div>
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'users-page' else ''}}" id="users-page" href="{{ url_for('user_page.users_page') }}">Users</a>
+            </div>
             {% endif %}
             {% if role_name == "Admin" %}
             <div class="nav-item">
