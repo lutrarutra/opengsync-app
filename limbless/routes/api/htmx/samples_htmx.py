@@ -10,7 +10,7 @@ import pandas as pd
 
 from .... import db, logger, forms, tools, models
 from ....core import DBSession
-from ....categories import UserRole
+from ....categories import UserRole, HttpResponse
 
 samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/samples/")
 
@@ -18,15 +18,25 @@ samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/samples/")
 @samples_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
-    n_pages = int(db.db_handler.get_num_samples() / 20)
-    page = min(page, n_pages)
-    samples = db.db_handler.get_samples(limit=20, offset=20 * page)
-    return make_response(
-        render_template(
-            "components/tables/sample.html", samples=samples,
-            n_pages=n_pages, active_page=page
-        ), push_url=False
-    )
+    sort_by = request.args.get("sort_by")
+    order = request.args.get("order", "inc")
+    reversed = order == "desc"
+
+    if sort_by not in models.Sample.sortable_fields:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    with DBSession(db.db_handler) as session:
+        n_pages = int(session.get_num_samples() / 20)
+        page = min(page, n_pages)
+        samples = session.get_samples(limit=20, offset=20 * page, sort_by=sort_by, reversed=reversed)
+    
+        return make_response(
+            render_template(
+                "components/tables/sample.html", samples=samples,
+                n_pages=n_pages, active_page=page,
+                current_sort=sort_by, current_sort_order=order
+            ), push_url=False
+        )
 
 
 @samples_htmx.route("create/<int:project_id>", methods=["POST"])

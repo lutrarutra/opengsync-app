@@ -78,13 +78,20 @@ def get_num_samples(self, user_id: Optional[int] = None) -> int:
 
 def get_samples(
     self, limit: Optional[int] = 20, offset: Optional[int] = None,
-    user_id: Optional[int] = None
+    user_id: Optional[int] = None, sort_by: Optional[str] = None, reversed: bool = False
 ) -> list[models.Sample]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.Sample).order_by(models.Sample.id.desc())
+    query = self._session.query(models.Sample)
+
+    if sort_by is not None:
+        attr = getattr(models.Sample, sort_by)
+        if reversed:
+            attr = attr.desc()
+        query = query.order_by(attr)
+
     if user_id is not None:
         query = query.where(
             models.Sample.owner_id == user_id

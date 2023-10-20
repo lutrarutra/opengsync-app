@@ -1,4 +1,4 @@
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING, ClassVar
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -39,6 +39,8 @@ class Sample(SQLModel, table=True):
         link_model=LibrarySampleLink,
         sa_relationship_kwargs={"lazy": "noload", "viewonly": True}
     )
+
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id"]
 
     def to_dict(self):
         return {
