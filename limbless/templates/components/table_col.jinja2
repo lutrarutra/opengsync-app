@@ -1,0 +1,18 @@
+{% macro table_col(target_id, column_name, column_var, url, current_sort, current_sort_order) -%}
+<th scope="col" class="sortable-col {{ current_sort_order }}"
+hx-target="#{{ target_id }}" hx-swap="outerHTML"
+hx-get={% if current_sort_order == 'inc' %}
+    "{{ url_for(url, page=0, sort_by=column_var, order='desc') }}"
+{% else %}
+   "{{ url_for(url, page=0, sort_by=column_var, order='inc') }}"
+{% endif %}>
+{{ column_name }}
+{% if column_var == current_sort %}
+    {% if current_sort_order == 'desc' %}
+        <img src="{{ url_for('static', filename='images/sort_decreasing.svg') }}">
+    {% else %}
+        <img src="{{ url_for('static', filename='images/sort_increasing.svg') }}">
+    {% endif %}
+{% endif %}
+</th>
+{%- endmacro %}

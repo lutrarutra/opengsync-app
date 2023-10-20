@@ -69,12 +69,22 @@ def get_user_by_email(self, email: str) -> models.User:
     return user
 
 
-def get_users(self, limit: Optional[int] = 20, offset: Optional[int] = None) -> list[models.User]:
+def get_users(
+    self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, reversed: bool = False
+) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.User)
+
+    if sort_by is not None:
+        attr = getattr(models.User, sort_by)
+        if reversed:
+            attr = attr.desc()
+        query = query.order_by(attr)
+
     if offset is not None:
         query = query.offset(offset)
 

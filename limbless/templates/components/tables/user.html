@@ -1,12 +1,19 @@
 {% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
 <div id="user-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Email</th>
+                {# <th scope="col"
+                hx-target="#user-table" hx-swap="outerHTML"
+                hx-get="{{ url_for('users_htmx.get', page=0, sort_by='id') }}">ID</th> #}
+                {{ table_col('user-table', 'ID', 'id', 'users_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('user-table', 'Email', 'email', 'users_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('user-table', 'Role', 'role', 'users_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('user-table', 'Name', 'last_name', 'users_htmx.get', current_sort, current_sort_order) }}
+                {# <th scope="col">Email</th>
                 <th scope="col">Role</th>
-                <th scope="col">Name</th>
+                <th scope="col">Name</th> #}
                 <th scope="col"># Requests</th>
                 <th scope="col"># Projects</th>
             </tr>

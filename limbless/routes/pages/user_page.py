@@ -20,7 +20,8 @@ def users_page():
     return render_template(
         "users_page.html",
         users=users,
-        page=0, n_pages=n_pages
+        page=0, n_pages=n_pages,
+        current_sort="id", current_sort_order="inc"
     )
 
 

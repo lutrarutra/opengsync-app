@@ -1,4 +1,4 @@
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING, ClassVar
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -83,6 +83,8 @@ class User(UserMixin, SQLModel, table=True):
         back_populates="owner",
         sa_relationship_kwargs={"lazy": "noload"}
     )
+
+    sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role"]
 
     @staticmethod
     def generate_registration_token(email: str):
