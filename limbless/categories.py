@@ -9,7 +9,7 @@ class UserResourceRelation(Enum, metaclass=ExtendedEnumMeta):
 
 
 class UserRole(Enum, metaclass=ExtendedEnumMeta):
-    ADMIN = DescriptiveEnum(1, "Admin", "⚙️")
+    ADMIN = DescriptiveEnum(1, "Admin", "🤓")
     BIOINFORMATICIAN = DescriptiveEnum(2, "Bioinformatician", "👨🏾‍💻")
     TECHNICIAN = DescriptiveEnum(3, "Technician", "🧑🏽‍🔬")
     CLIENT = DescriptiveEnum(4, "Client", "👶🏾")

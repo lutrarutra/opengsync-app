@@ -76,6 +76,7 @@ def get_seq_request(
 def get_seq_requests(
     self, limit: Optional[int] = 20, offset: Optional[int] = None,
     with_statuses: Optional[list[SeqRequestStatus]] = None,
+    sort_by: Optional[str] = None, reversed: bool = False,
     user_id: Optional[int] = None
 ) -> list[models.SeqRequest]:
 
@@ -96,7 +97,11 @@ def get_seq_requests(
             models.SeqRequest.status.in_(status_ids)
         )
 
-    query = query.order_by(models.SeqRequest.id.desc())
+    if sort_by is not None:
+        attr = getattr(models.SeqRequest, sort_by)
+        if reversed:
+            attr = attr.desc()
+        query = query.order_by(attr)
 
     if offset is not None:
         query = query.offset(offset)

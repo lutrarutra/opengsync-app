@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING, List
+from typing import Optional, TYPE_CHECKING, List, ClassVar
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -59,6 +59,8 @@ class SeqRequest(SQLModel, table=True):
             "foreign_keys": "[SeqRequest.library_person_contact_id]"
         },
     )
+
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "status", "requestor_id"]
 
     @property
     def status_type(self) -> SeqRequestStatus:

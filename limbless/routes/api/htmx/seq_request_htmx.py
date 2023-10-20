@@ -1,33 +1,41 @@
-from flask import Blueprint, url_for, render_template, flash, abort
+from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, forms, logger
+from .... import db, forms, logger, models
 from ....core import DBSession
-from ....categories import UserRole, SeqRequestStatus
+from ....categories import UserRole, SeqRequestStatus, HttpResponse
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/seq_requests/")
 
 
-@seq_requests_htmx.route("create", methods=["GET"])
+@seq_requests_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
+    sort_by = request.args.get("sort_by")
+    order = request.args.get("order", "inc")
+    reversed = order == "desc"
+
+    if sort_by not in models.SeqRequest.sortable_fields:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
     with DBSession(db.db_handler) as session:
         if current_user.role_type == UserRole.CLIENT:
-            seq_requests = session.get_seq_requests(limit=20, offset=20 * page, user_id=current_user.id)
+            seq_requests = session.get_seq_requests(limit=20, offset=20 * page, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
             n_pages = int(session.get_num_seq_requests(user_id=current_user.id) / 20)
         else:
-            seq_requests = session.get_seq_requests(limit=20, offset=20 * page, user_id=None)
+            seq_requests = session.get_seq_requests(limit=20, offset=20 * page, user_id=None, sort_by=sort_by, reversed=reversed)
             n_pages = int(session.get_num_seq_requests(user_id=None) / 20)
 
-    page = min(page, n_pages)
+        page = min(page, n_pages)
 
-    return make_response(
-        render_template(
-            "components/tables/seq_request.html", seq_requests=seq_requests,
-            n_pages=n_pages, active_page=page
-        ), push_url=False
-    )
+        return make_response(
+            render_template(
+                "components/tables/seq_request.html", seq_requests=seq_requests,
+                n_pages=n_pages, active_page=page,
+                current_sort=sort_by, current_sort_order=order
+            ), push_url=False
+        )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["POST"])

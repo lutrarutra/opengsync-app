@@ -9,10 +9,12 @@ hx-get={% if current_sort_order == 'inc' %}
 {{ column_name }}
 {% if column_var == current_sort %}
     {% if current_sort_order == 'desc' %}
-        <img height="25px" style="padding-bottom: 3px;" src="{{ url_for('static', filename='images/sort_decreasing.svg') }}">
+        <img height="22px" style="padding-bottom: 3px;" src="{{ url_for('static', filename='images/sort_decreasing.svg') }}">
     {% else %}
-        <img height="25px" style="padding-bottom: 3px;" src="{{ url_for('static', filename='images/sort_increasing.svg') }}">
+        <img height="22px" style="padding-bottom: 3px;" src="{{ url_for('static', filename='images/sort_increasing.svg') }}">
     {% endif %}
+{% else %}
+    <img height="22px" style="padding-bottom: 3px;" src="{{ url_for('static', filename='images/funnel.svg') }}">
 {% endif %}
 </th>
 {%- endmacro %}

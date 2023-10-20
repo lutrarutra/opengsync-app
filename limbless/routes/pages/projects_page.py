@@ -15,16 +15,17 @@ def projects_page():
 
     with DBSession(db.db_handler) as session:
         if current_user.role_type == UserRole.CLIENT:
-            projects = session.get_projects(limit=20, user_id=current_user.id)
+            projects = session.get_projects(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
             n_pages = int(session.get_num_projects(user_id=current_user.id) / 20)
         else:
-            projects = session.get_projects(limit=20, user_id=None)
+            projects = session.get_projects(limit=20, user_id=None, sort_by="id", reversed=True)
             n_pages = int(session.get_num_projects(user_id=None) / 20)
 
-    return render_template(
-        "projects_page.html", project_form=project_form,
-        projects=projects, n_pages=n_pages, active_page=0
-    )
+        return render_template(
+            "projects_page.html", project_form=project_form,
+            projects=projects, n_pages=n_pages, active_page=0,
+            current_sort="id", current_sort_order="inc"
+        )
 
 
 @projects_page_bp.route("/projects/<project_id>")

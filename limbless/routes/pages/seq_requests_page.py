@@ -31,7 +31,8 @@ def seq_requests_page():
         "seq_requests_page.html",
         seq_request_form=seq_request_form,
         seq_requests=seq_requests,
-        n_pages=n_pages, active_page=0
+        n_pages=n_pages, active_page=0,
+        current_sort="id", current_sort_order="inc"
     )
 
 

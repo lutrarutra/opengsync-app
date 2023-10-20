@@ -1,4 +1,4 @@
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING, ClassVar
 
 from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
@@ -24,3 +24,5 @@ class Project(SQLModel, table=True):
     )
 
     _num_samples: int = PrivateAttr(0)
+
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "owner_id"]
