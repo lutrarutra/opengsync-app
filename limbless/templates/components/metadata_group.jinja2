@@ -4,3 +4,50 @@
     <input class="form-control" readonly type="text" value="{{ value }}">
 </div>
 {%- endmacro %}
+
+{% macro metadata_group_select(label, value, options, class="") -%}
+<div class="{{class}} form-group">
+    <label>{{ label }}</label>
+    <select class="form-control" readonly>
+        {% for option in options %}
+        <option {% if option == value %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+    </select>
+</div>
+{%- endmacro %}
+
+{% macro metadata_group_textarea(label, value, class="") -%}
+<div class="{{class}} form-group">
+    <label>{{ label }}</label>
+    <textarea class="form-control" readonly>{{ value }}</textarea>
+</div>
+{%- endmacro %}
+
+{% macro metadata_group_link(label, value, url, class="") -%}
+<div class="{{class}} form-group">
+    <label>{{ label }}</label>
+    <a href="{{ url }}" style="text-decoration: none;">
+        <input class="form-control" style="cursor: pointer; color: #0d6efd;" readonly type="text" value="{{ value }}">
+    </a>
+</div>
+{%- endmacro %}
+
+{% macro metadata_group_email_link(label, email, class="") -%}
+<div class="{{class}} form-group">
+    <label>{{ label }}</label>
+    <a style="text-decoration: none;"
+    onclick="Swal.fire({
+        title: 'Send email to {{ email }}',
+        showDenyButton: true,
+        text: 'Open default email app?',
+        confirmButtonText: 'Yes',
+        denyButtonText: 'No'
+    }).then(function(e) {
+        if (e.isConfirmed) {
+            window.location.href = 'mailto:{{ email }}';
+        }
+    });">
+        <input class="form-control" style="cursor: pointer; color: #0d6efd;" readonly type="text" value="{{ email }}">
+    </a>
+</div>
+{%- endmacro %}

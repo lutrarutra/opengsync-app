@@ -10,3 +10,4 @@ from .htmx.indices_htmx import indices_htmx
 from .htmx.seq_request_htmx import seq_requests_htmx
 from .htmx.adapters_htmx import adapters_htmx
 from .htmx.sequencers_htmx import sequencers_htmx
+from .htmx.users_htmx import users_htmx

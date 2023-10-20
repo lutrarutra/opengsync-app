@@ -4,17 +4,25 @@
         <thead>
             <tr>
                 <th scope="col">ID</th>
-                <th scope="col">Lane</th>
+                <th scope="col">Email</th>
+                <th scope="col">Role</th>
+                <th scope="col">Name</th>
+                <th scope="col"># Requests</th>
+                <th scope="col"># Projects</th>
             </tr>
         </thead>
         <tbody>
-            {% for run in runs %}
-            <tr onclick="window.location.href='{{ url_for('runs_page.run_page', run_id=run.id) }}';">
-                <th scope="row">{{ run.id }}</th>
-                <td>{{ run.lane }}</td>
+            {% for user in users %}
+            <tr onclick="window.location.href='{{ url_for('user_page.user_page', user_id=user.id) }}';">
+                <th scope="row">{{ user.id }}</th>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role_type.value.description }} {{ user.role_type.value.name }}</td>
+                <td><span class="owner-col"><p>{{ user.first_name }} {{ user.last_name }}</p> <p>{{ "(me)" if current_user.id == user.id }}</td>
+                <td>{{ user.requests | length }}</td>
+                <td>{{ user.projects | length }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("run-table", "runs_htmx.get", n_pages, active_page) }}
+    {{ pagination("user-table", "users_htmx.get", n_pages, active_page) }}
 </div>

@@ -70,6 +70,7 @@ def create_app():
     app.register_blueprint(api.seq_requests_htmx)
     app.register_blueprint(api.adapters_htmx)
     app.register_blueprint(api.sequencers_htmx)
+    app.register_blueprint(api.users_htmx)
 
     app.register_blueprint(pages.runs_page_bp)
     app.register_blueprint(pages.samples_page_bp)

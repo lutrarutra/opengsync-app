@@ -46,14 +46,14 @@ class SeqRequest(SQLModel, table=True):
         },
     )
 
-    bioinformatician_contact: "Contact" = Relationship(
+    bioinformatician_contact: Optional["Contact"] = Relationship(
         sa_relationship_kwargs={
             "lazy": "joined",
             "foreign_keys": "[SeqRequest.bioinformatician_contact_id]"
         },
     )
 
-    library_person_contact: "Contact" = Relationship(
+    library_person_contact: Optional["Contact"] = Relationship(
         sa_relationship_kwargs={
             "lazy": "joined",
             "foreign_keys": "[SeqRequest.library_person_contact_id]"

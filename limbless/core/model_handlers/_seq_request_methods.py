@@ -12,6 +12,7 @@ def create_seq_request(
     person_contact_id: int,
     billing_contact_id: int,
     bioinformatician_contact_id: Optional[int] = None,
+    library_person_contact_id: Optional[int] = None,
     commit: bool = True
 ) -> models.SeqRequest:
 
@@ -31,6 +32,10 @@ def create_seq_request(
     if bioinformatician_contact_id is not None:
         if self._session.get(models.Contact, bioinformatician_contact_id) is None:
             raise exceptions.ElementDoesNotExist(f"Contact with id '{bioinformatician_contact_id}', not found.")
+        
+    if library_person_contact_id is not None:
+        if self._session.get(models.Contact, library_person_contact_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Contact with id '{library_person_contact_id}', not found.")
 
     seq_request = models.SeqRequest(
         name=name,
@@ -39,6 +44,7 @@ def create_seq_request(
         billing_contact_id=billing_contact_id,
         person_contact_id=person_contact_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
+        library_person_contact_id=library_person_contact_id,
         status=SeqRequestStatus.CREATED.value.id
     )
 
