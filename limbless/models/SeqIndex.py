@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, ClassVar, List
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -22,6 +22,8 @@ class SeqIndex(SQLModel, table=True):
     index_kit: "IndexKit" = Relationship(
         sa_relationship_kwargs={"lazy": "joined"},
     )
+
+    sortable_fields: ClassVar[List[str]] = ["id", "sequence", "type", "adapter_id", "index_kit_id"]
 
     def __str__(self):
         return f"SeqIndex('{self.sequence}', {self.type})"

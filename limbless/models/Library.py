@@ -1,4 +1,4 @@
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING, ClassVar
 
 from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
@@ -42,13 +42,16 @@ class Library(SQLModel, table=True):
         back_populates="libraries", link_model=LibrarySampleLink,
     )
     runs: List["Run"] = Relationship(
-        back_populates="libraries", link_model=RunLibraryLink
+        back_populates="libraries", link_model=RunLibraryLink,
+        sa_relationship_kwargs={"lazy": "joined"}
     )
 
     seq_requests: List["SeqRequest"] = Relationship(
         back_populates="libraries",
         link_model=LibrarySeqRequestLink
     )
+
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "library_type_id", "owner_id"]
 
     _num_samples: int = PrivateAttr(0)
     _sample_path: str = PrivateAttr("")

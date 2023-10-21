@@ -1,12 +1,13 @@
 {% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
 <div id="library-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Name</th>
-                <th scope="col">Owner</th>
-                <th scope="col">Type</th>
+                {{ table_col('library-table', 'ID', 'id', 'libraries_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('library-table', 'Name', 'name', 'libraries_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('library-table', 'Type', 'library_type_id', 'libraries_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('library-table', 'Owner', 'owner_id', 'libraries_htmx.get', current_sort, current_sort_order) }}
                 <th scope="col">Index Kit</th>
                 <th scope="col"># Samples</th>
             </tr>

@@ -14,23 +14,23 @@ indices_htmx = Blueprint("indices_htmx", __name__, url_prefix="/api/indices/")
 @indices_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page):
-    sort_by = request.args.get("sort_by")
+    sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "inc")
     reversed = order == "desc"
 
-    if sort_by not in models.User.sortable_fields:
+    if sort_by not in models.SeqIndex.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
-
 
     with DBSession(db.db_handler) as session:
         n_pages = int(session.get_num_seqindices() / 20)
         page = min(page, n_pages)
-        indices = session.get_seqindices(limit=20, offset=20 * page)
+        indices = session.get_seqindices(limit=20, offset=20 * page, sort_by=sort_by, reversed=reversed)
 
     return make_response(
         render_template(
             "components/tables/index.html", indices=indices,
-            n_pages=n_pages, active_page=page
+            n_pages=n_pages, active_page=page,
+            current_sort=sort_by, current_sort_order=order
         ), push_url=False
     )
 

@@ -18,7 +18,7 @@ samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/samples/")
 @samples_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
-    sort_by = request.args.get("sort_by")
+    sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "inc")
     reversed = order == "desc"
 

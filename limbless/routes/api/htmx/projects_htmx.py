@@ -12,7 +12,7 @@ projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/"
 @projects_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page):
-    sort_by = request.args.get("sort_by")
+    sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "inc")
     reversed = order == "desc"
 

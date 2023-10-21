@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, ClassVar, List
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -21,3 +21,5 @@ class SeqAdapter(SQLModel, table=True):
         back_populates="adapter",
         sa_relationship_kwargs={"lazy": "joined"},
     )
+
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "index_kit_id"]

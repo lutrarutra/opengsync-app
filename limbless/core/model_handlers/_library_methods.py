@@ -54,17 +54,24 @@ def get_library(self, library_id: int) -> models.Library:
 
 def get_libraries(
     self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, reversed: bool = False,
     user_id: Optional[int] = None
 ) -> list[models.Library]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.Library).order_by(models.Library.id.desc())
+    query = self._session.query(models.Library)
     if user_id is not None:
         query = query.where(
             models.Library.owner_id == user_id
         )
+
+    if sort_by is not None:
+        attr = getattr(models.Library, sort_by)
+        if reversed:
+            attr = attr.desc()
+        query = query.order_by(attr)
 
     if offset is not None:
         query = query.offset(offset)
@@ -73,9 +80,6 @@ def get_libraries(
         query = query.limit(limit)
 
     libraries = query.all()
-
-    for library in libraries:
-        library._num_samples = len(library.samples)
 
     if not persist_session:
         self.close_session()

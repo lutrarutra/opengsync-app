@@ -12,7 +12,7 @@ seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/se
 @seq_requests_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
-    sort_by = request.args.get("sort_by")
+    sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "inc")
     reversed = order == "desc"
 

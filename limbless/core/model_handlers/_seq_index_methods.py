@@ -66,14 +66,21 @@ def get_seqindex(self, id: int) -> models.SeqIndex:
 
 
 def get_seqindices(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None
+    self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, reversed: bool = False
 ) -> list[models.SeqIndex]:
 
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.SeqIndex).order_by(models.SeqIndex.id.desc())
+    query = self._session.query(models.SeqIndex)
+
+    if sort_by is not None:
+        attr = getattr(models.SeqIndex, sort_by)
+        if reversed:
+            attr = attr.desc()
+        query = query.order_by(attr)
 
     if offset is not None:
         query = query.offset(offset)

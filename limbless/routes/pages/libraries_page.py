@@ -13,10 +13,10 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 def libraries_page():
     with DBSession(db.db_handler) as session:
         if current_user.role_type == UserRole.CLIENT:
-            libraries = session.get_libraries(limit=20, user_id=current_user.id)
+            libraries = session.get_libraries(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
             n_pages = int(session.get_num_libraries(user_id=current_user.id) / 20)
         else:
-            libraries = session.get_libraries(limit=20, user_id=None)
+            libraries = session.get_libraries(limit=20, user_id=None, sort_by="id", reversed=True)
             n_pages = int(session.get_num_libraries(user_id=None) / 20)
 
     return render_template(
@@ -24,7 +24,8 @@ def libraries_page():
         libraries=libraries,
         index_kit_results=db.common_kits,
         library_form=forms.LibraryForm(),
-        n_pages=n_pages, active_page=0
+        n_pages=n_pages, active_page=0,
+        current_sort="id", current_sort_order="desc"
     )
 
 

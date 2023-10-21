@@ -50,8 +50,9 @@ def get_adapter(self, id: int) -> models.SeqAdapter:
 
 
 def get_adapters(
-    self, index_kit_id: Optional[int] = None, offset: Optional[int] = None,
-    limit: Optional[int] = 20,
+    self, index_kit_id: Optional[int] = None,
+    offset: Optional[int] = None, limit: Optional[int] = 20,
+    sort_by: Optional[str] = None, reversed: bool = False,
 ) -> list[SearchResult]:
 
     persist_session = self._session is not None
@@ -64,7 +65,11 @@ def get_adapters(
             models.SeqAdapter.index_kit_id == index_kit_id
         )
 
-    query = query.order_by(models.IndexKit.id.desc())
+    if sort_by is not None:
+        attr = getattr(models.SeqAdapter, sort_by)
+        if reversed:
+            attr = attr.desc()
+        query = query.order_by(attr)
 
     if offset is not None:
         query = query.offset(offset)

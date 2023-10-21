@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 
 from .... import db, logger, forms, LibraryType, models
 from ....core import DBSession, exceptions
-from ....categories import UserRole
+from ....categories import UserRole, HttpResponse
 
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/libraries/")
 
@@ -14,17 +14,24 @@ libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/librarie
 @libraries_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page):
-    n_pages = int(db.db_handler.get_num_libraries() / 20)
+    sort_by = request.args.get("sort_by", "id")
+    order = request.args.get("order", "inc")
+    reversed = order == "desc"
 
-    page = min(page, n_pages)
+    if sort_by not in models.Library.sortable_fields:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
-    libraries = db.db_handler.get_libraries(limit=20, offset=20 * page)
+    with DBSession(db.db_handler) as session:
+        n_pages = int(session.get_num_libraries() / 20)
+        page = min(page, n_pages)
+        libraries = session.get_libraries(limit=20, offset=20 * page, sort_by=sort_by, reversed=reversed)
 
     return make_response(
         render_template(
             "components/tables/library.html",
             libraries=libraries,
-            n_pages=n_pages, active_page=page
+            n_pages=n_pages, active_page=page,
+            current_sort=sort_by, current_sort_order=order
         ), push_url=False
     )
 
