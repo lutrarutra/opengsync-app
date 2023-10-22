@@ -56,14 +56,33 @@ def get_experiment_by_name(self, experiment_name) -> models.Experiment:
     return res
 
 
-def get_experiments(self) -> list[models.Experiment]:
+def get_experiments(
+    self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, reversed: bool = False
+) -> list[models.Experiment]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    experiments = self._session.query(models.Experiment).all()
+    query = self._session.query(models.Experiment)
+
+    if sort_by is not None:
+        attr = getattr(models.Experiment, sort_by)
+        if reversed:
+            attr = attr.desc()
+        query = query.order_by(attr)
+
+    if offset is not None:
+        query = query.offset(offset)
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    experiments = query.all()
+
     if not persist_session:
         self.close_session()
+
     return experiments
 
 

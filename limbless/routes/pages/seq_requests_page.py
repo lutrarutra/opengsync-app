@@ -32,7 +32,7 @@ def seq_requests_page():
         seq_request_form=seq_request_form,
         seq_requests=seq_requests,
         n_pages=n_pages, active_page=0,
-        current_sort="id", current_sort_order="inc"
+        current_sort="id", current_sort_order="asc"
     )
 
 
@@ -40,11 +40,11 @@ def seq_requests_page():
 @login_required
 def seq_request_page(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
-        return abort(404)
+        return abort(HttpResponse.NOT_FOUND.value.id)
 
     if current_user.role_type == UserRole.CLIENT:
         if seq_request.requestor_id != current_user.id:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
     seq_request_form = forms.SeqRequestForm()
     seq_request_form.current_user_is_contact.data = False

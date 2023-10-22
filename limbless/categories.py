@@ -37,7 +37,7 @@ class AccessType(Enum, metaclass=ExtendedEnumMeta):
 
 
 class SeqRequestStatus(Enum, metaclass=ExtendedEnumMeta):
-    CREATED = DescriptiveEnum(0, "Created", description="✍🏼")
+    DRAFT = DescriptiveEnum(0, "Draft", description="✍🏼")
     SUBMITTED = DescriptiveEnum(1, "Submitted", description="⏳")
     LIBRARY_PREP = DescriptiveEnum(2, "Library Preparation", description="🧪")
     SEQUENCING = DescriptiveEnum(3, "Sequencing", description="🧬")
@@ -48,7 +48,7 @@ class SeqRequestStatus(Enum, metaclass=ExtendedEnumMeta):
 
 
 class ExperimentStatus(Enum, metaclass=ExtendedEnumMeta):
-    CREATED = DescriptiveEnum(0, "Created", description="✍🏼")
+    DRAFT = DescriptiveEnum(0, "Draft", description="✍🏼")
     SUBMITTED = DescriptiveEnum(1, "Submitted", description="⏳")
     SEQUENCING = DescriptiveEnum(2, "Sequencing", description="🧬")
     FINISHED = DescriptiveEnum(3, "Finished", description="✅")

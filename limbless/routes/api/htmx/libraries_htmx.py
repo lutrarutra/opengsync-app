@@ -15,7 +15,7 @@ libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/librarie
 @login_required
 def get(page):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "inc")
+    order = request.args.get("order", "asc")
     reversed = order == "desc"
 
     if sort_by not in models.Library.sortable_fields:
@@ -77,9 +77,9 @@ def create():
 def edit(library_id):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(404)
+            return abort(HttpResponse.NOT_FOUND.value.id)
         if not library.is_editable:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
     library_form = forms.LibraryForm()
 
@@ -151,7 +151,7 @@ def query():
 def add_sample(library_id: int):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(404)
+            return abort(HttpResponse.NOT_FOUND.value.id)
 
     index_form = forms.IndexForm()
 
@@ -175,7 +175,7 @@ def add_sample(library_id: int):
     
     if (selected_sample := db.db_handler.get_sample(selected_sample_id)) is None:
         logger.error(f"Unknown sample id '{selected_sample_id}'")
-        return abort(403)
+        return abort(HttpResponse.FORBIDDEN.value.id)
 
     with DBSession(db.db_handler) as session:
         if library.is_raw_library:

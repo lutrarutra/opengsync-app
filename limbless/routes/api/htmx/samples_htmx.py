@@ -19,7 +19,7 @@ samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/samples/")
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "inc")
+    order = request.args.get("order", "asc")
     reversed = order == "desc"
 
     if sort_by not in models.Sample.sortable_fields:
@@ -46,7 +46,7 @@ def create(project_id: int):
     name = sample_form.name.data
 
     if (project := db.db_handler.get_project(project_id)) is None:
-        return abort(404)
+        return abort(HttpResponse.NOT_FOUND.value.id)
 
     validated, sample_form = sample_form.custom_validate(
         db.db_handler, current_user.id, project_id
@@ -309,7 +309,7 @@ def add_samples_from_table(project_id: int):
     df = pd.read_csv(StringIO(sample_table_confirm_form.data.data), sep="\t", index_col=False, header=0)
 
     if (selected_samples_str := sample_table_confirm_form.selected_samples.data) is None:
-        return abort(400)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
     
     selected_samples_ids = selected_samples_str.removeprefix(",").split(",")
     selected_samples_ids = [int(i) for i in selected_samples_ids if i != ""]
@@ -422,7 +422,7 @@ def query(exclude_library_id: Optional[int] = None):
     query = request.form.get(field_name)
 
     if query is None:
-        return abort(400)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     user = current_user
     if user.role_type == UserRole.CLIENT:

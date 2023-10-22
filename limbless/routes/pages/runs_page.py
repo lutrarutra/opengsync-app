@@ -12,7 +12,7 @@ runs_page_bp = Blueprint("runs_page", __name__)
 @login_required
 def runs_page():
     if current_user.role_type == UserRole.CLIENT:
-        return abort(403)
+        return abort(HttpResponse.FORBIDDEN.value.id)
     
     with DBSession(db.db_handler) as session:
         runs = session.get_runs()
@@ -28,7 +28,7 @@ def runs_page():
 @login_required
 def run_page(run_id):
     if current_user.role_type == UserRole.CLIENT:
-        return abort(403)
+        return abort(HttpResponse.FORBIDDEN.value.id)
     
     with DBSession(db.db_handler) as session:
         run = session.get_run(run_id)

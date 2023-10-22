@@ -1,4 +1,4 @@
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING, ClassVar
 
 from sqlmodel import Field, SQLModel, TIMESTAMP, text, Column, Relationship
 from datetime import datetime
@@ -8,6 +8,7 @@ from ..categories import ExperimentStatus
 if TYPE_CHECKING:
     from .Run import Run
     from .Sequencer import Sequencer
+
 
 class Experiment(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
@@ -28,9 +29,11 @@ class Experiment(SQLModel, table=True):
 
     runs: List["Run"] = Relationship(back_populates="experiment")
 
+    sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id"]
+
     @property
     def status_type(self) -> ExperimentStatus:
         return ExperimentStatus.get(self.status)
     
     def is_deleteable(self) -> bool:
-        return self.status_type == ExperimentStatus.CREATED
+        return self.status_type == ExperimentStatus.DRAFT

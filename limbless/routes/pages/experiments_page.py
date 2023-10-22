@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 
 from ...core import DBSession
 from ... import forms, db
-from ...categories import UserRole
+from ...categories import UserRole, HttpResponse
 
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
@@ -12,7 +12,7 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 @login_required
 def experiments_page():
     if current_user.role_type == UserRole.CLIENT:
-        return abort(403)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
     
     experiment_form = forms.ExperimentForm()
     with DBSession(db.db_handler) as session:
@@ -22,7 +22,8 @@ def experiments_page():
     return render_template(
         "experiments_page.html", experiment_form=experiment_form,
         experiments=experiments,
-        n_pages=n_pages, active_page=0
+        n_pages=n_pages, active_page=0,
+        current_sort="id", current_sort_order="asc"
     )
 
 
@@ -31,10 +32,10 @@ def experiments_page():
 def experiment_page(experiment_id):
     with DBSession(db.db_handler) as session:
         if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(404)
+            return abort(HttpResponse.NOT_FOUND.value.id)
         access = session.get_user_experiment_access(current_user.id, experiment_id)
         if access is None:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
     with DBSession(db.db_handler) as session:
         experiment = db.db_handler.get_experiment(experiment_id)

@@ -31,11 +31,11 @@ def samples_page():
 def sample_page(sample_id):
     with DBSession(db.db_handler) as session:
         if (sample := session.get_sample(sample_id)) is None:
-            return abort(404)
+            return abort(HttpResponse.NOT_FOUND.value.id)
 
         access = session.get_user_sample_access(current_user.id, sample_id)
         if access is None:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
     sample_form = forms.SampleForm()
 

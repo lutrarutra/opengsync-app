@@ -63,6 +63,12 @@ body {
     .container {
         padding-bottom: 50px;
     }
+    h1 {
+        font-size: 2rem;
+        font-weight: 500;
+        line-height: 1.2;
+    
+    }
 }
 
 .pagination .page-item {
@@ -127,7 +133,7 @@ body {
 .table-cursor {
     thead {
         tr {
-            th.sortable-col.inc { cursor: n-resize; }
+            th.sortable-col.asc { cursor: n-resize; }
             th.sortable-col.desc { cursor: s-resize; }
             th.sortable-col:hover { background-color: $gray-300; }
             th { cursor: default; }

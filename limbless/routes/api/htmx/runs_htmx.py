@@ -1,8 +1,9 @@
-from flask import Blueprint, redirect, url_for, render_template, flash
+from flask import Blueprint, redirect, url_for, render_template, flash, abort
 from flask_htmx import make_response
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from .... import db, logger, forms
+from ....categories import HttpResponse, UserRole
 
 runs_htmx = Blueprint("runs_htmx", __name__, url_prefix="/api/runs/")
 
@@ -26,6 +27,9 @@ def get(page):
 @login_required
 def create(experiment_id: int):
     run_form = forms.RunForm()
+
+    if current_user.role_type not in [UserRole.ADMIN, UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN]:
+        return abort(HttpResponse.FORBIDDEN.value.id)
 
     if not run_form.validate_on_submit():
         template = render_template(

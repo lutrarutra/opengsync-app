@@ -21,7 +21,7 @@ def users_page():
         "users_page.html",
         users=users,
         page=0, n_pages=n_pages,
-        current_sort="id", current_sort_order="inc"
+        current_sort="id", current_sort_order="asc"
     )
 
 

@@ -1,10 +1,10 @@
 {% macro table_col(target_id, column_name, column_var, url, current_sort, current_sort_order, url_args={}) -%}
 <th scope="col" class="sortable-col {{ current_sort_order }}"
 hx-target="#{{ target_id }}" hx-swap="outerHTML"
-hx-get={% if current_sort_order == 'inc' %}
+hx-get={% if current_sort_order == 'asc' %}
     "{{ url_for(url, page=0, sort_by=column_var, order='desc', **url_args) }}"
 {% else %}
-   "{{ url_for(url, page=0, sort_by=column_var, order='inc', **url_args) }}"
+   "{{ url_for(url, page=0, sort_by=column_var, order='asc', **url_args) }}"
 {% endif %}>
 {{ column_name }}
 {% if column_var == current_sort %}

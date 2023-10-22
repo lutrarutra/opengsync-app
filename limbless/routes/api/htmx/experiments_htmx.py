@@ -1,9 +1,10 @@
-from flask import Blueprint, url_for, render_template, flash, abort
+from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, forms, logger
+from .... import db, forms, logger, models
 from ....categories import UserRole, HttpResponse
+from ....core.DBSession import DBSession
 
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/experiments/")
 
@@ -11,24 +12,44 @@ experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/expe
 @experiments_htmx.route("get/<int:page>")
 @login_required
 def get(page: int):
-    n_pages = int(db.db_handler.get_num_experiments() / 20)
-    page = min(page, n_pages)
-    experiments = db.db_handler.get_experiments(limit=20, offset=20 * page)
+    sort_by = request.args.get("sort_by", "id")
+    order = request.args.get("order", "asc")
+    reversed = order == "desc"
+
+    if sort_by not in models.Experiment.sortable_fields:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    with DBSession(db.db_handler) as session:
+        n_pages = int(session.get_num_experiments() / 20)
+        page = min(page, n_pages)
+        experiments = session.get_experiments(
+            limit=20, offset=20 * page, sort_by=sort_by, reversed=reversed
+        )
 
     return make_response(
         render_template(
             "components/tables/experiment.html",
             experiments=experiments,
-            n_pages=n_pages, active_page=page
+            n_pages=n_pages, active_page=page,
+            current_sort=sort_by, current_sort_order=order
         ), push_url=False
     )
+
 
 @experiments_htmx.route("create", methods=["POST"])
 @login_required
 def create():
+    if current_user.role_type not in [UserRole.ADMIN, UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN]:
+        return abort(HttpResponse.FORBIDDEN.value.id)
+
     experiment_form = forms.ExperimentForm()
 
-    if not experiment_form.validate_on_submit():
+    validated, experiment_form = experiment_form.custom_validate(
+        db_handler=db.db_handler,
+        user_id=current_user.id,
+    )
+
+    if not validated:
         template = render_template(
             "forms/experiment.html",
             experiment_form=experiment_form

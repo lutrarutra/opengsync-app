@@ -13,7 +13,7 @@ seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/se
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "inc")
+    order = request.args.get("order", "asc")
     reversed = order == "desc"
 
     if sort_by not in models.SeqRequest.sortable_fields:
@@ -42,11 +42,11 @@ def get(page: int):
 @login_required
 def edit(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
-        return abort(404)
+        return abort(HttpResponse.NOT_FOUND.value.id)
 
     if current_user.role_type == UserRole.CLIENT:
         if seq_request.requestor_id != current_user.id:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
     seq_request_form = forms.SeqRequestForm()
     db.db_handler.update_seq_request(
@@ -67,11 +67,11 @@ def edit(seq_request_id: int):
 @login_required
 def delete(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
-        return abort(404)
+        return abort(HttpResponse.NOT_FOUND.value.id)
 
     if current_user.role_type == UserRole.CLIENT:
         if seq_request.requestor_id != current_user.id:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
     db.db_handler.delete_seq_request(seq_request_id)
 
@@ -82,22 +82,23 @@ def delete(seq_request_id: int):
         redirect=url_for("seq_requests_page.seq_requests_page"),
     )
 
+
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["GET"])
 @login_required
 def submit(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
-        return abort(404)
+        return abort(HttpResponse.NOT_FOUND.value.id)
     
-    if seq_request.status_type != SeqRequestStatus.CREATED.value:
+    if seq_request.status_type != SeqRequestStatus.DRAFT.value:
         logger.debug(seq_request.status_type)
-        return abort(403)
+        return abort(HttpResponse.FORBIDDEN.value.id)
     
     if len(seq_request.libraries) == 0:
-        return abort(403)
+        return abort(HttpResponse.FORBIDDEN.value.id)
 
     if current_user.role_type == UserRole.CLIENT:
         if seq_request.requestor_id != current_user.id:
-            return abort(401)
+            return abort(HttpResponse.FORBIDDEN.value.id)
         
     db.db_handler.update_seq_request(
         seq_request_id=seq_request_id,
@@ -193,11 +194,11 @@ def create():
 @login_required
 def add_library(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
-        return abort(404)
+        return abort(HttpResponse.NOT_FOUND.value.id)
 
     if seq_request.requestor_id != current_user.id:
         if current_user.role_type != UserRole.ADMIN:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
     select_library_form = forms.SelectLibraryForm()
 
@@ -212,7 +213,7 @@ def add_library(seq_request_id: int):
     
     library_id = select_library_form.library.data
     if (library := db.db_handler.get_library(library_id)) is None:
-        return abort(404)
+        return abort(HttpResponse.NOT_FOUND.value.id)
     
     _ = db.db_handler.link_library_seq_request(library_id, seq_request_id)
 

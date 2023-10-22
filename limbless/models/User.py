@@ -1,6 +1,7 @@
 from typing import Optional, List, TYPE_CHECKING, ClassVar
 
 from sqlmodel import Field, SQLModel, Relationship
+from itsdangerous import SignatureExpired, BadSignature
 
 from .. import serializer
 from ..categories import UserRole
@@ -94,7 +95,9 @@ class User(UserMixin, SQLModel, table=True):
     def verify_registration_token(token: str):
         try:
             email = serializer.loads(token, max_age=3600)["email"]
-        except:  # FIXME: Specify exception
+        except SignatureExpired:
+            return None
+        except BadSignature:
             return None
         return email
 

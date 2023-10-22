@@ -15,7 +15,7 @@ indices_htmx = Blueprint("indices_htmx", __name__, url_prefix="/api/indices/")
 @login_required
 def get(page):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "inc")
+    order = request.args.get("order", "asc")
     reversed = order == "desc"
 
     if sort_by not in models.SeqIndex.sortable_fields:
@@ -42,19 +42,19 @@ def query_index_kits():
     
     if (raw_library_type_id := request.form.get("library_type")) is None:
         logger.debug("No library type id provided with POST request")
-        return abort(400)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     try:
         library_type_id = int(raw_library_type_id)
     except ValueError:
         logger.debug(f"Invalid library type '{raw_library_type_id}' id provided with POST request")
-        return abort(400)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     field_name = next(iter(request.form.keys()))
     word = request.form.get(field_name)
 
     if word is None:
-        return abort(400)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     if library_type_id is not None:
         library_type = LibraryType.get(library_type_id)
@@ -79,7 +79,7 @@ def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = No
     field_name = next(iter(request.form.keys()))
     
     if (word := request.form.get(field_name)) is None:
-        return abort(400)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     # TODO: add exclude_library_id to query_adapters
     results = db.db_handler.query_adapters(
@@ -100,18 +100,18 @@ def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = No
 def select_indices(library_id: int):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(404)
+            return abort(HttpResponse.NOT_FOUND.value.id)
         if (user := session.get_user(current_user.id)) is None:
-            return abort(404)
+            return abort(HttpResponse.NOT_FOUND.value.id)
 
         user.samples = user.samples
 
     index_form = forms.IndexForm()
     if (selected_adapter_id := index_form.adapter.data) is None:
-        return abort(400)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     if (selected_sample_id := index_form.sample.data) is None:
-        return abort(400)
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     selected_adapter = db.db_handler.get_adapter(selected_adapter_id)
     selected_sample = db.db_handler.get_sample(selected_sample_id)

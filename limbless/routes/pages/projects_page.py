@@ -24,7 +24,7 @@ def projects_page():
         return render_template(
             "projects_page.html", project_form=project_form,
             projects=projects, n_pages=n_pages, active_page=0,
-            current_sort="id", current_sort_order="inc"
+            current_sort="id", current_sort_order="asc"
         )
 
 
@@ -33,10 +33,10 @@ def projects_page():
 def project_page(project_id):
     with DBSession(db.db_handler) as session:
         if (project := session.get_project(project_id)) is None:
-            return abort(404)
+            return abort(HttpResponse.NOT_FOUND.value.id)
         access = session.get_user_project_access(current_user.id, project_id)
         if access is None:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
         samples = session.get_project_samples(project_id)
 

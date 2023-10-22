@@ -67,4 +67,4 @@ class SeqRequest(SQLModel, table=True):
         return SeqRequestStatus.as_dict()[self.status]
     
     def is_submittable(self) -> bool:
-        return self.status_type == SeqRequestStatus.CREATED and len(self.libraries) > 0
+        return self.status_type == SeqRequestStatus.DRAFT and len(self.libraries) > 0

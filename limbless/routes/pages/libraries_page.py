@@ -34,11 +34,11 @@ def libraries_page():
 def library_page(library_id):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(404)
+            return abort(HttpResponse.NOT_FOUND.value.id)
         
         access = session.get_user_library_access(current_user.id, library_id)
         if access is None:
-            return abort(403)
+            return abort(HttpResponse.FORBIDDEN.value.id)
         
         library.samples = library.samples
 

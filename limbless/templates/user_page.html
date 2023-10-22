@@ -5,7 +5,7 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center">
         <div>
-            <h2>User: {{ user.email }} ({{ user.role_type.value.name }} {{ user.role_type.value.description }})</h2>
+            <h1>User: {{ user.email }} ({{ user.role_type.value.name }} {{ user.role_type.value.description }})</h1>
         </div>
         {% if current_user.id == user.id %}
         <div>

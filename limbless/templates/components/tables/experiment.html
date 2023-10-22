@@ -1,20 +1,21 @@
 {% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
 <div id="experiment-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Status</th>
-                <th scope="col">Sequencer</th>
-                <th scope="col">Flowcell</th>
-                <th scope="col">Created</th>
+                {{ table_col('experiment-table', 'ID', 'id', 'experiments_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('experiment-table', 'Status', 'status', 'experiments_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('experiment-table', 'Sequencer', 'sequencer_id', 'experiments_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('experiment-table', 'Flowcell', 'flowcell', 'experiments_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('experiment-table', 'Created', 'timestamp', 'experiments_htmx.get', current_sort, current_sort_order) }}
             </tr>
         </thead>
         <tbody>
             {% for experiment in experiments %}
             <tr onclick="window.location.href='{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}';">
                 <th scope="row">{{ experiment.id }}</th>
-                <td>{{ experiment.status_type.name }} {{ experiment.status_type.description | safe }}</td>
+                <td>{{ experiment.status_type.value.name }} {{ experiment.status_type.value.description | safe }}</td>
                 <td>{{ experiment.sequencer.name }}</td>
                 <td>{{ experiment.flowcell }}</td>
                 <td>{{ experiment.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
