@@ -1,9 +1,11 @@
 {% from 'components/form_group.jinja2' import form_group %}
 <form id="login-form">
-    {{ login_form.csrf_token }}
-    {{ form_group(login_form.email) }}
+    {{ login_form.csrf_token(id="login_csrf_token") }}
+    {{ form_group(login_form.email, id="login_email") }}
     {{ form_group(login_form.password) }}
     <button id="login-btn" class="btn btn-primary"
     hx-include="#login-form" hx-target="#login-form" hx-swap="outerHTML"
-    hx-post="{{ url_for('auth_htmx.login', next=next) }}">Login</button>
+    hx-post="{{ url_for('auth_htmx.login', next=next if next else '/') }}">
+        Login
+    </button>
 </form>

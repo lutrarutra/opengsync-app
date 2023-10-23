@@ -13,7 +13,7 @@ projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/"
 @login_required
 def get(page):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "asc")
+    order = request.args.get("order", "desc")
     reversed = order == "desc"
 
     if sort_by not in models.Project.sortable_fields:

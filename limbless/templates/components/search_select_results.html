@@ -7,9 +7,12 @@
         value="{{ res.value }}"
         onclick="select_option('{{ res.name }}', '{{ res.value }}', '{{ field_name }}');"
         aria-controls="{{ field_name }}">
-            <span class="search-select-name">{{ res.name }}</span>
+            <span class="search-select-name {{ res.name_class }}">{{ res.name }}</span>
+            {% if res.show_value %}
+            <span class="search-select-value">[{{ res.value }}]</span>
+            {% endif %}
             {% if res.description %}
-            <span class="search-select-desc">({{ res.description }})</span>
+            <span class="search-select-desc {{ res.description_class }}">({{ res.description }})</span>
             {% endif %}
         </a>
     </li>

@@ -96,6 +96,10 @@ body {
     }
 }
 
+.htmx-request:hover {
+    cursor: wait;
+}
+
 .alert {
     position: fixed;
     width: 50%;
@@ -319,12 +323,16 @@ input.disabled:focus {
                 white-space: nowrap;
                 overflow: hidden;
                 .search-select-name {
+                    font-weight: 500;
+                }
+                .latin {
+                    font-style: italic;
+                }
+                .search-select-value {
                     font-weight: 600;
-                    min-width: 120px;
                 }
                 .search-select-desc {
                     color: $gray-500;
-                    padding-left: 10px;
                     white-space: nowrap;
                     overflow: hidden;
                 }

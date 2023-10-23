@@ -9,7 +9,7 @@
             <h2>Sequencing Request: {{ seq_request.name }} ({{ seq_request.status_type.name }} {{ seq_request.status_type.description | safe }})</h2>
         </div>
         <div>
-            {% if seq_request.status_type.name == "Created" %}
+            {% if seq_request.status_type.name == "Draft" %}
             <span
             {% if not seq_request.is_submittable() %}
             data-bs-toggle="tooltip" data-bs-placement="bottom"
@@ -74,7 +74,7 @@
                         <h2>Libraries</h2>
                     </div>
                     <div>
-                        {% if seq_request.status_type.name == "Created" %}
+                        {% if seq_request.status_type.name == "Draft" %}
                         <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal"
                             data-bs-target="#add_library-form-popup">
                             Add Library
@@ -96,7 +96,12 @@
                     <h4>Requestor</h4>
                     <div class="row">
                         {{ metadata_group_link("Name", seq_request.requestor.first_name + " " + seq_request.requestor.last_name, url_for("user_page.user_page", user_id=seq_request.requestor.id), class="col") }}
-                        {{ metadata_group_email_link("Email", seq_request.requestor.email, class="col") }}
+                        {{ 
+                            metadata_group_email_link(
+                                "Email", seq_request.requestor.email, class="col",
+                                subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                            ) 
+                        }}
                     </div>
                     <br>
 
@@ -111,9 +116,8 @@
                         }}
                         {{ 
                             metadata_group_email_link(
-                                "Contact Person Email",
-                                seq_request.contact_person.email,
-                                class="col-6 col-xl-5"
+                                "Contact Person Email", seq_request.contact_person.email, class="col-6 col-xl-5",
+                                subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
                             )
                         }}
                         {{ 
@@ -134,7 +138,12 @@
                     <h4>Bioinformatician Contact</h4>
                     <div class="row">
                         {{ metadata_group("Name", seq_request.bioinformatician_contact.name, class="col-6 col-xl-3") }}
-                        {{ metadata_group_email_link("Email", seq_request.bioinformatician_contact.email, class="col-6 col-xl-5") }}
+                        {{ 
+                            metadata_group_email_link(
+                                "Email", seq_request.bioinformatician_contact.email, class="col-6 col-xl-5",
+                                subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                            )
+                        }}
                         {{ metadata_group("Phone", seq_request.bioinformatician_contact.phone, class="col-6 col-xl-4") }}
                     </div>
                     {% endif %}
@@ -144,7 +153,12 @@
                     <h4>Library Person Contact</h4>
                     <div class="row">
                         {{ metadata_group("Name", seq_request.library_person_contact.name, class="col-6 col-xl-3") }}
-                        {{ metadata_group_email_link("Email", seq_request.library_person_contact.email, class="col-6 col-xl-5") }}
+                        {{ 
+                            metadata_group_email_link(
+                                "Email", seq_request.library_person_contact.email, class="col-6 col-xl-5",
+                                subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                            )
+                        }}
                         {{ metadata_group("Phone", seq_request.library_person_contact.phone, class="col-6 col-xl-4") }}
                     </div>
                     {% endif %}
@@ -157,7 +171,12 @@
                         {{ metadata_group("Billing Code", seq_request.billing_contact.billing_code, class="col-6 col-xl-4") }}
                     </div>
                     <div class="row">
-                        {{ metadata_group_email_link("Email", seq_request.billing_contact.email, class="col") }}
+                        {{ 
+                            metadata_group_email_link(
+                                "Email", seq_request.billing_contact.email, class="col",
+                                subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                            )
+                        }}
                         {{ metadata_group("Phone", seq_request.billing_contact.phone, class="col") }}
                     </div>
                 </div>

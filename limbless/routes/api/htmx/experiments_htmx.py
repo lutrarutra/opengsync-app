@@ -13,7 +13,7 @@ experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/expe
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "asc")
+    order = request.args.get("order", "desc")
     reversed = order == "desc"
 
     if sort_by not in models.Experiment.sortable_fields:

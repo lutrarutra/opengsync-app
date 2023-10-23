@@ -16,7 +16,7 @@ adapters_htmx = Blueprint("adapters_htmx", __name__, url_prefix="/api/adapters/"
 @login_required
 def get(page: int, index_kit_id: Optional[int]):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "asc")
+    order = request.args.get("order", "desc")
     reversed = order == "desc"
 
     if sort_by not in models.SeqAdapter.sortable_fields:

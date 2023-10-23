@@ -25,7 +25,9 @@ common_organisms = [
     db_handler.get_organism(5833),
 ]
 
-common_organisms = [SearchResult(organism.id, str(organism)) for organism in common_organisms if organism is not None]
+common_organisms = [
+    organism.to_search_result() for organism in common_organisms
+]
 
 common_kits = [
     # db_handler.get_index_kit_by_name("10x Dual Index Kit NN Set A"),

@@ -5,6 +5,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import LibrarySampleLink, RunLibraryLink, LibrarySeqRequestLink
 from ..categories import LibraryType
+from ..tools.SearchResult import SearchResult
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
@@ -74,3 +75,10 @@ class Library(SQLModel, table=True):
     @property
     def is_editable(self) -> bool:
         return len(self.samples) == 0
+    
+    def to_search_result(self) -> SearchResult:
+        return SearchResult(
+            value=self.id,
+            name=self.name,
+            description=self.library_type.value.name,
+        )

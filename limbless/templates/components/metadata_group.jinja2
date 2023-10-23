@@ -32,7 +32,7 @@
 </div>
 {%- endmacro %}
 
-{% macro metadata_group_email_link(label, email, class="") -%}
+{% macro metadata_group_email_link(label, email, class="", subject="") -%}
 <div class="{{class}} form-group">
     <label>{{ label }}</label>
     <a style="text-decoration: none;"
@@ -44,7 +44,7 @@
         denyButtonText: 'No'
     }).then(function(e) {
         if (e.isConfirmed) {
-            window.location.href = 'mailto:{{ email }}';
+            window.location.href = 'mailto:{{ email }}?subject={{ subject }}';
         }
     });">
         <input class="form-control" style="cursor: pointer; color: #0d6efd;" readonly type="text" value="{{ email }}">

@@ -1,6 +1,7 @@
 from typing import Optional
 
 import pandas as pd
+from sqlmodel import func
 
 from ... import models
 from ...categories import LibraryType, UserResourceRelation
@@ -178,39 +179,26 @@ def query_libraries(
     if not self._session:
         self.open_session()
 
-    q = """
-    SELECT
-        id, name,
-        similarity(lower(library.name), lower(%(word)s)) as sml
-    FROM
-        library
-    """
+    query = self._session.query(models.Library)
+
     if user_id is not None:
         if self._session.get(models.User, user_id) is None:
             raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-        q += """
-            JOIN
-                libraryuserlink
-            ON
-                library.id = libraryuserlink.library_id
-            WHERE
-                libraryuserlink.user_id = %(user_id)s
-            """
-    q += """
-        ORDER BY
-            sml DESC
-    """
+        query = query.where(
+            models.Library.owner_id == user_id
+        )
+
+    query = query.order_by(
+        func.similarity(models.Library.name, word)
+    )
+
     if limit is not None:
-        q += """
-            LIMIT
-                %(limit)s;
-            """
-    res = pd.read_sql(q, self._engine, params={"word": word, "user_id": user_id, "limit": limit})
+        query = query.limit(limit)
+
+    libraries = query.all()
+
     res = [
-        SearchResult(
-            value=row["id"],
-            name=row["name"],
-        ) for _, row in res.iterrows()
+        library.to_search_result() for library in libraries
     ]
 
     if not persist_session:

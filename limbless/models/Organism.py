@@ -2,6 +2,8 @@ from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
+from ..tools.SearchResult import SearchResult
+
 
 class Organism(SQLModel, table=True):
     tax_id: int = Field(default=None, primary_key=True)
@@ -18,3 +20,12 @@ class Organism(SQLModel, table=True):
     @property
     def id(self):
         return self.tax_id
+    
+    def to_search_result(self) -> SearchResult:
+        return SearchResult(
+            value=self.tax_id,
+            name=self.scientific_name,
+            description=self.common_name,
+            show_value=True,
+            name_class="latin",
+        )

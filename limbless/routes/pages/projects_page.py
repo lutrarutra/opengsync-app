@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 
 from ... import db, forms, logger
 from ...core import DBSession
-from ...categories import UserRole
+from ...categories import UserRole, HttpResponse
 
 projects_page_bp = Blueprint("projects_page", __name__)
 

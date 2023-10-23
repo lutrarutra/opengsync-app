@@ -15,16 +15,19 @@ libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/librarie
 @login_required
 def get(page):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "asc")
+    order = request.args.get("order", "desc")
     reversed = order == "desc"
 
     if sort_by not in models.Library.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
-
+    
     with DBSession(db.db_handler) as session:
-        n_pages = int(session.get_num_libraries() / 20)
-        page = min(page, n_pages)
-        libraries = session.get_libraries(limit=20, offset=20 * page, sort_by=sort_by, reversed=reversed)
+        if current_user.role_type == UserRole.CLIENT:
+            libraries = session.get_libraries(limit=20, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
+            n_pages = int(session.get_num_libraries(user_id=current_user.id) / 20)
+        else:
+            libraries = session.get_libraries(limit=20, user_id=None, sort_by=sort_by, reversed=reversed)
+            n_pages = int(session.get_num_libraries(user_id=None) / 20)
 
     return make_response(
         render_template(
@@ -118,30 +121,21 @@ def edit(library_id):
     )
 
 
-@libraries_htmx.route("query", methods=["GET"])
+@libraries_htmx.route("query", methods=["POST"])
 @login_required
 def query():
-    field_name = next(iter(request.args.keys()))
-    query = request.args.get(field_name)
-    assert query is not None
+    field_name = next(iter(request.args.keys()), None)
+    query = request.args.get(field_name, "")
 
     if current_user.role_type == UserRole.CLIENT:
         results = db.db_handler.query_libraries(query, current_user.id)
     else:
         results = db.db_handler.query_libraries(query)
 
-    if not query:
-        return make_response(
-            render_template(
-                "components/tables/library.html"
-            ), push_url=False
-        )
-
     return make_response(
         render_template(
             "components/search_select_results.html",
-            results=results,
-            field_name=field_name
+            results=results, field_name=field_name,
         ), push_url=False
     )
 

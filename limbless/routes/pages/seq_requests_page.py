@@ -24,8 +24,14 @@ def seq_requests_page():
             seq_requests = session.get_seq_requests(limit=20, user_id=None)
             n_pages = int(session.get_num_seq_requests(user_id=None) / 20)
         else:
-            seq_requests = session.get_seq_requests(limit=20, user_id=None, with_statuses=[SeqRequestStatus.FINISHED, SeqRequestStatus.SUBMITTED])
-            n_pages = int(session.get_num_seq_requests(user_id=None, with_statuses=[SeqRequestStatus.FINISHED, SeqRequestStatus.SUBMITTED]) / 20)
+            seq_request_statuses = [
+                SeqRequestStatus.FINISHED, SeqRequestStatus.SUBMITTED,
+                SeqRequestStatus.LIBRARY_PREP, SeqRequestStatus.SEQUENCING,
+                SeqRequestStatus.DATA_PROCESSING, SeqRequestStatus.ARCHIVED,
+                SeqRequestStatus.FAILED,
+            ]
+            seq_requests = session.get_seq_requests(limit=20, user_id=None, with_statuses=seq_request_statuses)
+            n_pages = int(session.get_num_seq_requests(user_id=None, with_statuses=seq_request_statuses) / 20)
 
     return render_template(
         "seq_requests_page.html",
@@ -82,7 +88,7 @@ def seq_request_page(seq_request_id: int):
     seq_request_form.billing_code.data = seq_request.billing_contact.billing_code
 
     library_results = db.db_handler.get_libraries(user_id=current_user.id)
-    library_results = [SearchResult(library.id, library.name) for library in library_results]
+    library_results = [library.to_search_result() for library in library_results]
 
     return render_template(
         "seq_request_page.html",

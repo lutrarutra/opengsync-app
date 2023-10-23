@@ -1,4 +1,4 @@
-{% macro form_group(field, class='', disabled=false, trigger_dest_id=none) -%}
+{% macro form_group(field, class='', id=none, disabled=false, trigger_dest_id=none) -%}
 <div class="{{class}} form-group">
     <a data-bs-toggle="{{ 'tooltip' if field.description else '' }}"
     data-bs-title="{{ field.description if field.description }}"
@@ -10,7 +10,8 @@
             class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else ""), 
             placeholder=("" if disabled else ("Required" if field.flags.required else "Optional")),
             readonly=disabled, value=field.data if field.data else "",
-            onchange="htmx.trigger('#" + trigger_dest_id + "', 'change');" if trigger_dest_id else ""
+            onchange="htmx.trigger('#" + trigger_dest_id + "', 'change');" if trigger_dest_id else "",
+            id=(id if id else field.name)
         ) 
     }}
     <div class="invalid-feedback-container">

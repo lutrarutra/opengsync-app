@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, abort
 
 from flask_htmx import make_response
 from flask_login import login_required
 
 from .... import db, logger
+from ....categories import HttpResponse
 
 organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism/")
 
@@ -11,11 +12,10 @@ organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism
 @organisms_htmx.route("query", methods=["POST"])
 @login_required
 def query():
-    field_name = next(iter(request.form.keys()))
-    word = request.form.get(field_name)
-    assert word is not None
+    field_name = next(iter(request.form.keys()), None)
+    word = request.form.get(field_name, default="")
 
-    if word == "" or word == " ":
+    if word.strip() == "":
         q_organisms = db.common_organisms
     else:
         try:

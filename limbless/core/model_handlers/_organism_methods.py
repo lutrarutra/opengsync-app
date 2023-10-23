@@ -1,8 +1,9 @@
 from typing import Optional
 
+from sqlmodel import func
 import pandas as pd
 
-from ... import models
+from ... import models, logger
 from .. import exceptions
 from ... import categories
 from ...tools import SearchResult
@@ -100,26 +101,22 @@ def query_organisms(self, word: str, limit: Optional[int] = 20) -> list[SearchRe
     if not self._session:
         self.open_session()
 
-    q = f"""
-    SELECT
-        *,
-        greatest(similarity(common_name, %(word)s), similarity(scientific_name, %(word)s)) AS score
-    FROM
-        organism
-    WHERE
-        common_name %% %(word)s
-    OR
-        scientific_name %% %(word)s
-    ORDER BY
-        score DESC
-    LIMIT {limit};
-    """
-    res = pd.read_sql(q, self._engine, params={"word": word})
+    query = self._session.query(models.Organism)
+
+    query = query.order_by(
+        func.greatest(
+            func.similarity(models.Organism.scientific_name, word),
+            func.similarity(models.Organism.common_name, word),
+        ).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    organisms = query.all()
+
     res = [
-        SearchResult(
-            value=int(row["tax_id"]),
-            name=f"{row['scientific_name']} [{row['tax_id']}] {'(' + row['common_name'] + ')' if row['common_name'] else ''}"
-        ) for _, row in res.iterrows()
+        organism.to_search_result() for organism in organisms
     ]
 
     if not persist_session:

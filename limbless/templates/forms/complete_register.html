@@ -1,11 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group %}
 <form id="complete-register-form">
     {{ register_form.csrf_token }}
-    <div class="form-group pb-3">
-        <label for="password">Email</label>
-        <span class="input-group-text" id="basic-addon2">{{ register_form.email.data }}</span>
-    </div>
-    {{ form_group(register_form.email) }}
+    {{ form_group(register_form.email, disabled=True) }}
     <div class="row">
         {{ form_group(register_form.first_name, class="col") }}
         {{ form_group(register_form.last_name, class="col") }}

@@ -12,8 +12,7 @@ auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/auth/")
 @auth_htmx.route("/login", methods=["POST"])
 def login():
     login_form = forms.LoginForm()
-    if (dest := request.args.get("next")) is None:
-        dest = "index_page"
+    dest = request.args.get("next", "/")
 
     if not login_form.validate_on_submit():
         template = render_template(
@@ -29,33 +28,27 @@ def login():
     # invalid email
     if not user:
         print(login_form.errors)
-        login_form.email.errors.append("Invalid email or password.")
-        login_form.password.errors.append("Invalid email or password.")
-        template = render_template(
-            "forms/login.html",
-            login_form=login_form
-        )
+        login_form.email.errors = ("Invalid email or password.",)
+        login_form.password.errors = ("Invalid email or password.",)
         return make_response(
-            template, push_url=False
+            render_template(
+                "forms/login.html", login_form=login_form, next=dest
+            ), push_url=False
         )
 
     # invalid password
     if not bcrypt.check_password_hash(user.password, login_form.password.data):
-        login_form.email.errors.append("Invalid email or password.")
-        login_form.password.errors.append("Invalid email or password.")
-        template = render_template(
-            "forms/login.html",
-            login_form=login_form
-        )
+        login_form.email.errors = ("Invalid email or password.",)
+        login_form.password.errors = ("Invalid email or password.",)
         return make_response(
-            template, push_url=False
+            render_template(
+                "forms/login.html", login_form=login_form, next=dest
+            ), push_url=False
         )
 
     login_user(user)
     flash("Logged in.", "success")
-    return make_response(
-        redirect=dest,
-    )
+    return make_response(redirect=dest)
 
 
 @auth_htmx.route("/logout", methods=["GET"])
@@ -131,7 +124,9 @@ def complete_registration(token):
     user = db.db_handler.create_user(
         email=register_form.email.data,
         password=register_form.password.data,
-        role=categories.UserRole.CLIENT
+        first_name=register_form.first_name.data,
+        last_name=register_form.last_name.data,
+        role=categories.UserRole.CLIENT,
     )
 
     flash("Registration completed!", "success")
