@@ -1,0 +1,22 @@
+<div id="library-col-mapping-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Add Samples from Table</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help">
+            <p><b>Required columns: <i>Sample Name</i> and <i>Sample Organism</i></b></p>
+            <p id="missing-col-list" class="requirement-list"></p>
+            <p id="duplicate-col-list" class="requirement-list"></p>
+        </div>
+        {% include "forms/library/col_mapping.html" %}
+    </div>
+    <div class="modal-footer">
+        <button type="button" id="library-col-mapping-submit-btn" class="btn btn-primary"
+            hx-target="#library-col-mapping-container" hx-swap="outerHTML"
+            hx-include="#library-col-mapping-form" hx-post="{{ url_for('libraries_htmx.map_columns', library_id=library.id) }}">Check Columns</button>
+        <button type="button"class="btn btn-danger"
+            hx-target="#library-col-mapping-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('libraries_htmx.restart_form', library_id=library.id) }}">Cancel</button>
+    </div>
+</div>

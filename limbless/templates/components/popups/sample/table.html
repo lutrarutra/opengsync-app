@@ -1,3 +1,4 @@
+{% from "components/table_input.jinja2" import table_input %}
 <div id="sample-table-submission-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">Add Samples from Table</h1>
@@ -11,7 +12,7 @@
             </p>
             <p><b>Required columns: <i>Sample Name</i> and <i>Sample Organism</i></b></p>
         </div>
-        {% include "forms/sample_table_input.html" %}
+        {{ table_input(table_form, id="sample-table-input-form") }}
     </div>
     <div class="modal-footer">
         <button type="button" id="parse-table-btn" class="btn btn-primary" hx-target="#sample-table-submission-container"

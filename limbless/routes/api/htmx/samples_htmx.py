@@ -49,7 +49,7 @@ def create(project_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     validated, sample_form = sample_form.custom_validate(
-        db.db_handler, current_user.id, project_id
+        db_handler=db.db_handler, user_id=current_user.id
     )
     if not validated:
         selected_organism = db.db_handler.get_organism(sample_form.organism.data)
@@ -58,7 +58,7 @@ def create(project_id: int):
         logger.debug(selected_organism)
 
         template = render_template(
-            "forms/sample.html",
+            "forms/sample/sample.html",
             sample_form=sample_form, project=project,
             selected_organism=str(selected_organism) if selected_organism else ""
         )
@@ -106,55 +106,29 @@ def delete(sample_id: int):
 @samples_htmx.route("parse_table/<int:project_id>", methods=["POST"])
 @login_required
 def parse_table(project_id: int):
+    if (project := db.db_handler.get_project(project_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
     table_input_form = forms.TableForm()
-    sample_table_form = forms.SampleTableForm()
+    validated, table_input_form = table_input_form.custom_validate()
 
-    if not table_input_form.validate_on_submit():
+    if not validated:
         return make_response(
             render_template(
-                "components/popups/sample_table.html",
+                "components/popups/sample/table.html",
                 table_form=table_input_form,
                 project_id=project_id,
             ), push_url=False
         )
-
-    if table_input_form.data.data:
-        raw_text = table_input_form.data.data
-        sep = "\t" if raw_text.count("\t") > raw_text.count(",") else ","
-    elif table_input_form.file.data:
-        filename = secure_filename(table_input_form.file.data.filename)
-        table_input_form.file.data.save("data/uploads/" + filename)
-        logger.debug(f"Saved file to data/uploads/{filename}")
-        try:
-            raw_text = open("data/uploads/" + filename).read()
-        except UnicodeDecodeError:
-            flash("Could not read file.", "error")
-            return make_response(
-                render_template(
-                    "components/popups/sample_table.html",
-                    table_form=table_input_form,
-                    project_id=project_id,
-                ), push_url=False
-            )
-        sep = "\t" if filename.split(".")[-1] == "tsv" else ","
-    else:
-        table_input_form.text.errors.append("Please enter text or upload a file.")
-        table_input_form.file.errors.append("Please enter text or upload a file.")
-        logger.debug(table_input_form.errors)
-        return make_response(
-            render_template(
-                "components/popups/sample_table.html",
-                table_form=table_input_form,
-                project_id=project_id,
-            ), push_url=False
-        )
+    
+    raw_text, sep = table_input_form.get_data()
 
     df = pd.read_csv(
-        StringIO(raw_text.rstrip()), sep=sep,
-        index_col=False, header=0
+        StringIO(raw_text.rstrip()), sep=sep, index_col=False, header=0
     )
 
-    sample_table_form.data.data = raw_text
+    sample_table_form = forms.SampleTableForm()
+    sample_table_form.data.data = df.to_csv(sep="\t", index=False, header=True)
 
     columns = df.columns.tolist()
     refs = [key for key, _ in forms.SampleColSelectForm._sample_fields if key]
@@ -173,7 +147,7 @@ def parse_table(project_id: int):
 
     return make_response(
         render_template(
-            "components/popups/sample_col.html",
+            "components/popups/sample/col_mapping.html",
             columns=columns, sample_table_form=sample_table_form,
             matches=matches, data=df.values.tolist(),
             required_fields=refs,
@@ -191,7 +165,7 @@ def map_columns(project_id: int):
     if not sample_table_form.validate_on_submit():
         return make_response(
             render_template(
-                "components/popups/sample_col.html",
+                "components/popups/sample/col_mapping.html",
                 sample_table_form=sample_table_form,
                 project_id=project_id,
             ),
@@ -222,7 +196,7 @@ def map_columns(project_id: int):
 
     return make_response(
         render_template(
-            "components/popups/sample_organism_map.html",
+            "components/popups/sample/organism_map.html",
             category_mapping_form=category_mapping_form,
             categories=organisms,
             selected=selected,
@@ -253,51 +227,25 @@ def map_organisms(project_id: int):
 
         return make_response(
             render_template(
-                "components/popups/sample_organism_map.html",
+                "components/popups/sample/organism_map.html",
                 category_mapping_form=category_mapping_form,
-                categories=organisms,
-                selected=selected,
-                project_id=project_id,
+                categories=organisms, selected=selected, project_id=project_id,
             ), push_url=False
         )
 
     organism_id_mapping = {}
-
     for i, organism in enumerate(organisms):
         organism_id_mapping[organism] = category_mapping_form.fields.entries[i].category.data
-
     df["organism_id"] = df["organism"].map(organism_id_mapping)
 
-    sample_table_confirm_form = forms.SampleTableConfirmForm()
-    sample_table_confirm_form.data.data = df.to_csv(sep="\t", index=False)
-    new_samples = [
-        models.Sample(id=i + 1, name=row["sample_name"], organism=row["organism"], organism_id=row["organism_id"])
-        for i, row in df.iterrows()
-    ]
-
-    # Check if sample names are unique in project
-    errors = []
-    with DBSession(db.db_handler) as session:
-        project = session.get_project(project_id)
-        project_names = [sample.name for sample in project.samples]
-
-    selected_samples = []
-    for sample in new_samples:
-        if sample.name in project_names:
-            errors.append(f"Sample name {sample.name} already exists.")
-        else:
-            errors.append(None)
-            selected_samples.append(str(sample.id))
-
-    sample_table_confirm_form.selected_samples.data = ",".join(selected_samples)
+    project_sample_select_form = forms.ProjectSampleSelectForm()
+    project_samples, errors = project_sample_select_form.parse_project_samples(project_id, df)
 
     return make_response(
         render_template(
-            "components/popups/sample_table_confirm.html",
-            sample_table_confirm_form=sample_table_confirm_form,
-            new_samples=new_samples,
-            project_id=project_id,
-            errors=errors
+            "components/popups/sample/project_sample_select.html",
+            project_sample_select_form=project_sample_select_form,
+            project_samples=project_samples, project_id=project_id, errors=errors
         ), push_url=False
     )
 
@@ -305,36 +253,34 @@ def map_organisms(project_id: int):
 @samples_htmx.route("table/<int:project_id>", methods=["POST"])
 @login_required
 def add_samples_from_table(project_id: int):
-    sample_table_confirm_form = forms.SampleTableConfirmForm()
-    df = pd.read_csv(StringIO(sample_table_confirm_form.data.data), sep="\t", index_col=False, header=0)
-
-    if (selected_samples_str := sample_table_confirm_form.selected_samples.data) is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+    if (project := db.db_handler.get_project(project_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
     
-    selected_samples_ids = selected_samples_str.removeprefix(",").split(",")
-    selected_samples_ids = [int(i) for i in selected_samples_ids if i != ""]
+    project_sample_select_form = forms.ProjectSampleSelectForm()
+    project_samples, errors = project_sample_select_form.parse_project_samples(project_id)
+    validated, project_sample_select_form = project_sample_select_form.custom_validate()
 
-    if not sample_table_confirm_form.validate_on_submit():
-        new_samples = [
-            models.Sample(id=i + 1, name=row["sample_name"], organism=row["organism"], organism_id=row["organism_id"])
-            for i, row in df.iterrows()
-        ]
+    if not validated:
         return make_response(
             render_template(
-                "components/popups/sample_table_confirm.html",
-                sample_table_confirm_form=sample_table_confirm_form,
-                new_samples=new_samples,
-                project_id=project_id,
-            ), push_url=False
+                "components/popups/sample/project_sample_select.html",
+                project_sample_select_form=project_sample_select_form,
+                project_samples=project_samples, project_id=project_id, errors=errors
+            )
         )
 
-    if (project := db.db_handler.get_project(project_id)) is None:
-        return redirect("/projects")
+    df = pd.read_csv(StringIO(project_sample_select_form.data.data), sep="\t", index_col=False, header=0)
+
+    if project_sample_select_form.selected_samples.data is None:
+        assert False    # This should never happen because its checked in custom_validate()
+
+    selected_samples_ids = project_sample_select_form.selected_samples.data.removeprefix(",").split(",")
+    selected_samples_ids = [int(i) for i in selected_samples_ids if i != ""]
 
     n_added = 0
     with DBSession(db.db_handler) as session:
         for i, row in df.iterrows():
-            if i + 1 not in selected_samples_ids:
+            if i not in selected_samples_ids:
                 continue
 
             session.create_sample(
@@ -367,7 +313,7 @@ def restart_form(project_id: int):
     sample_table_form = forms.TableForm()
     return make_response(
         render_template(
-            "components/popups/sample_table.html",
+            "components/popups/sample/table.html",
             table_form=sample_table_form,
             project_id=project_id,
         ), push_url=False
@@ -391,7 +337,7 @@ def edit(sample_id):
             sample_form.name.errors.remove("Sample name already exists.")
         else:
             template = render_template(
-                "forms/sample.html",
+                "forms/sample/sample.html",
                 sample_form=sample_form,
                 sample=sample
             )

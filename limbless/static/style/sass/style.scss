@@ -145,8 +145,16 @@ body {
     }
     tbody {
         tr { cursor: pointer; }
+        tr.disabled { cursor: not-allowed; }
     }
-    
+}
+
+.table tbody {
+    .disabled td, .disabled th {
+        background-color: $gray-200;
+        opacity: 0.7;
+        border: 0;
+    }
 }
 
 input.disabled {
@@ -178,6 +186,7 @@ input.disabled:focus {
     }
 
     table {
+
         width: 100%;
         * {
             margin: 0 !important;
@@ -254,16 +263,6 @@ input.disabled:focus {
             :nth-child(3) {
                 color: $gray-500;
             }
-        }
-        tbody .disabled {
-            cursor: not-allowed;
-        }
-        tbody .disabled td,
-
-        tbody .disabled th {
-            background-color: $gray-200;
-            opacity: 0.7;
-            border: 0;
         }
     }
 }

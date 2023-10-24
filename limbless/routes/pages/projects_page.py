@@ -40,12 +40,10 @@ def project_page(project_id):
 
         samples = session.get_project_samples(project_id)
 
-    table_form = forms.TableForm()
-
     return render_template(
         "project_page.html", project=project,
         sample_form=forms.SampleForm(),
         samples=samples,
-        table_form=table_form,
+        table_form=forms.TableForm(),
         common_organisms=db.common_organisms,
     )

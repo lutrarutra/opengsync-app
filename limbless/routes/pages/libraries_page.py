@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 
 from ... import db, forms, logger
 from ...core import DBSession
-from ...categories import UserRole
+from ...categories import UserRole, HttpResponse
 
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
@@ -66,4 +66,5 @@ def library_page(library_id):
         available_adapters=db.db_handler.query_adapters(word="", index_kit_id=library.index_kit_id),
         selected_kit=library.index_kit,
         library_form=library_form,
+        table_form=forms.TableForm(),
     )

@@ -53,7 +53,7 @@ class DBHandler():
 
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
-        delete_sample, update_sample, get_sample_by_name,
+        delete_sample, update_sample, get_user_sample_by_name,
         get_num_samples, query_samples, query_samples_for_library
     )
 

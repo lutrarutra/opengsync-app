@@ -1,4 +1,4 @@
-<div id="confirm-sample-table-container" class="modal-content">
+<div id="project-sample-select-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">Confirm Samples</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -17,41 +17,44 @@
                     <th scope="col">Name</th>
                     <th scope="col">Organism</th>
                     <th scope="col">Organism ID</th>
+                    <th scope="col">Error</th>
                 </tr>
             </thead>
             <tbody>
-                {% for sample in new_samples %}
-                <tr class="{{ 'disabled' if errors[loop.index-1] }} sample-check" onclick="select_row('{{ sample.id }}')">
-                    <th scope="row">{{sample.id}}</th>
+                {% for sample_data in project_samples %}
+                {% set sample_id = sample_data["id"] %}
+                <tr class="{{ 'disabled' if errors[loop.index-1] }} sample-check" onclick="select_row('{{ sample_id }}')">
+                    <th scope="row">{{ sample_id }}</th>
                     <td>
                         <input  type="checkbox"
                         class="form-check-input sample-checkbox {{'disabled' if errors[loop.index-1] else '' }}"
                         {{ "checked" if not errors[loop.index-1] }}
                         {{ "disabled" if errors[loop.index-1] }}
-                        id="sample-select-{{ sample.id }}" readonly>
+                        id="sample-select-{{ sample_id }}" readonly>
                     </td>
-                    <td>{{sample.name}}</td>
-                    <td>{{sample.organism}}</td>
-                    <td>{{sample.organism_id}}</td>
+                    <td>{{ sample_data["name"] }}</td>
+                    <td>{{ sample_data["organism"] }}</td>
+                    <td>{{ sample_data["organism_id"] }}</td>
+                    <td>{{ errors[loop.index-1] if errors[loop.index-1] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-        <form id="confirm-sample-table-form">
-            {{ sample_table_confirm_form.csrf_token() }}
-            {{ sample_table_confirm_form.data(hidden=True, readonly=True) }}
-            {{ sample_table_confirm_form.selected_samples(hidden=False, readonly=True) }}
+        <form id="project-sample-select-form">
+            {{ project_sample_select_form.csrf_token() }}
+            {{ project_sample_select_form.data(hidden=True, readonly=True) }}
+            {{ project_sample_select_form.selected_samples(hidden=False, readonly=True) }}
         </form>
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-primary" onclick="select_all()">Select All</button>
         <button type="button" class="btn btn-primary" onclick="deselect_all()">Remove All</button>
-        <button type="button" class="btn btn-primary" hx-target="#confirm-sample-table-container" hx-swap="outerHTML"
-            hx-include="#confirm-sample-table-form" id="confirm-sample-table-form-btn"
+        <button type="button" class="btn btn-primary" hx-target="#project-sample-select-container" hx-swap="outerHTML"
+            hx-include="#project-sample-select-form" id="project-sample-select-form-btn"
             hx-post="{{ url_for('samples_htmx.add_samples_from_table', project_id=project_id) }}">Add Selected
             Samples</button>
 
-        <button type="button" class="btn btn-danger" hx-target="#confirm-sample-table-container" hx-swap="outerHTML"
+        <button type="button" class="btn btn-danger" hx-target="#project-sample-select-container" hx-swap="outerHTML"
             hx-get="{{ url_for('samples_htmx.restart_form', project_id=project_id) }}">Cancel</button>
     </div>
 </div>
@@ -85,9 +88,9 @@
         $("#selected_samples").val(selected.join(","));
 
         if (selected.length === 0 || (selected[0] === "" && selected.length === 1)) {
-            $("#confirm-sample-table-form-btn").prop("disabled", true);
+            $("#project-sample-select-form-btn").prop("disabled", true);
         } else {
-            $("#confirm-sample-table-form-btn").prop("disabled", false);
+            $("#project-sample-select-form-btn").prop("disabled", false);
         }
     }
     
@@ -97,7 +100,7 @@
             $(this).prop("checked", false);
         });
         $("#selected_samples").val("");
-        $("#confirm-sample-table-form-btn").prop("disabled", true);
+        $("#project-sample-select-form-btn").prop("disabled", true);
 
     }
 
@@ -112,7 +115,7 @@
         console.log(selected);
         $("#selected_samples").val(selected.join(","));
         if (selected.length > 0) {
-            $("#confirm-sample-table-form-btn").prop("disabled", false);
+            $("#project-sample-select-form-btn").prop("disabled", false);
         }
     }
 </script>

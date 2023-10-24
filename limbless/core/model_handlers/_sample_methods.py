@@ -110,12 +110,20 @@ def get_samples(
     return samples
 
 
-def get_sample_by_name(self, name: str) -> models.Sample:
+def get_user_sample_by_name(self, sample_name: str, user_id: int) -> models.Sample:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    sample = self._session.query(models.Sample).filter_by(name=name).first()
+    if self._session.get(models.User, user_id) is None:
+        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+
+    sample = self._session.query(models.Sample).filter_by(
+        and_(
+            name=sample_name,
+            owner_id=user_id
+        )
+    ).first()
     if not persist_session:
         self.close_session()
     return sample

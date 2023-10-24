@@ -1,10 +1,12 @@
 from typing import Optional
+from io import StringIO
 
+import pandas as pd
 from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, logger, forms, LibraryType, models
+from .... import db, logger, forms, LibraryType, models, tools
 from ....core import DBSession, exceptions
 from ....categories import UserRole, HttpResponse
 
@@ -198,4 +200,187 @@ def add_sample(library_id: int):
         redirect=url_for(
             "libraries_page.library_page", library_id=library.id
         )
+    )
+
+
+@libraries_htmx.route("<int:library_id>/parse_table", methods=["POST"])
+@login_required
+def parse_table(library_id: int):
+    if (library := db.db_handler.get_library(library_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    table_input_form = forms.TableForm()
+    validated, table_input_form = table_input_form.custom_validate()
+
+    if not validated:
+        return make_response(
+            render_template(
+                "components/popups/library/table.html",
+                table_form=table_input_form,
+                library=library,
+            ), push_url=False
+        )
+
+    raw_text, sep = table_input_form.get_data()
+
+    df = pd.read_csv(
+        StringIO(raw_text.rstrip()), sep=sep,
+        index_col=False, header=0
+    )
+
+    library_col_mapping_form = forms.LibraryColMappingForm()
+    library_col_mapping_form.data.data = df.to_csv(sep="\t", index=False, header=True)
+
+    columns = df.columns.tolist()
+    refs = [key for key, _ in forms.LibraryColSelectForm._fields if key]
+    matches = tools.connect_similar_strings(forms.LibraryColSelectForm._fields, columns)
+
+    for i, col in enumerate(columns):
+        select_form = forms.LibraryColSelectForm()
+        select_form.select_field.label.text = col
+        library_col_mapping_form.fields.append_entry(select_form)
+        library_col_mapping_form.fields.entries[i].select_field.data = col
+        if col in matches.keys():
+            library_col_mapping_form.fields.entries[i].select_field.data = matches[col]
+
+    submittable: bool = set(matches.values()) == set(refs)
+    
+    return make_response(
+        render_template(
+            "components/popups/library/col_mapping.html",
+            columns=columns, submittable=submittable, library=library,
+            library_col_mapping_form=library_col_mapping_form,
+            data=df.values.tolist(), required_fields=refs,
+        )
+    )
+
+
+@libraries_htmx.route("<int:library_id>/map_columns", methods=["POST"])
+@login_required
+def map_columns(library_id: int):
+    if (library := db.db_handler.get_library(library_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
+    library_col_mapping_form = forms.LibraryColMappingForm()
+    validated, library_col_mapping_form = library_col_mapping_form.custom_validate()
+
+    if not validated:
+        return make_response(
+            render_template(
+                "components/popups/library/col_mapping.html",
+                library_col_mapping_form=library_col_mapping_form,
+                library=library
+            )
+        )
+    
+    df = pd.read_csv(StringIO(library_col_mapping_form.data.data), sep="\t", index_col=False, header=0)
+    for i, entry in enumerate(library_col_mapping_form.fields.entries):
+        val = entry.select_field.data.strip()
+        if not val:
+            continue
+        df.rename(columns={df.columns[i]: val}, inplace=True)
+
+    refs = [key for key, _ in forms.LibraryColSelectForm._fields if key]
+    df = df.loc[:, refs]
+
+    library_sample_select_form = forms.LibrarySampleSelectForm()
+    library_samples, errors = library_sample_select_form.parse_library_samples(library_id=library_id, df=df)
+    
+    return make_response(
+        render_template(
+            "components/popups/library/library_sample_select.html",
+            library_sample_select_form=library_sample_select_form,
+            library=library, errors=errors,
+            library_samples=library_samples,
+        )
+    )
+
+
+@libraries_htmx.route("<int:library_id>/add_samples", methods=["POST"])
+@login_required
+def add_library_samples_from_table(library_id: int):
+    if (library := db.db_handler.get_library(library_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    library_sample_select_form = forms.LibrarySampleSelectForm()
+    library_samples, errors = library_sample_select_form.parse_library_samples(library_id=library_id)
+    validated, library_sample_select_form = library_sample_select_form.custom_validate()
+
+    if not validated:
+        return make_response(
+            render_template(
+                "components/popups/library/library_sample_select.html",
+                library_sample_select_form=library_sample_select_form,
+                library=library, errors=errors,
+                library_samples=library_samples,
+            ), push_url=False
+        )
+    
+    df = pd.read_csv(StringIO(library_sample_select_form.data.data), sep="\t", index_col=False, header=0)
+
+    if library_sample_select_form.selected_samples.data is None:
+        assert False    # This should never happen because of custom validation
+
+    selected_samples_ids = library_sample_select_form.selected_samples.data.removeprefix(",").split(",")
+    selected_samples_ids = [int(i) for i in selected_samples_ids if i != ""]
+    
+    n_added = 0
+    with DBSession(db.db_handler) as session:
+        for _, row in df.iterrows():
+            if row["id"] not in selected_samples_ids:
+                continue
+            
+            sample_id = int(row["id"])
+            adapter = row["adapter"]
+
+            if (sample := session.get_sample(sample_id)) is None:
+                logger.error(f"Unknown sample id '{sample_id}'")
+                continue
+            
+            if library.is_raw_library:
+                session.link_library_sample(
+                    library_id=library.id,
+                    sample_id=sample.id,
+                    seq_index_id=None,
+                )
+            else:
+                indices = db.db_handler.get_seqindices_by_adapter(
+                    adapter=adapter, index_kit_id=library.index_kit_id
+                )
+                for index in indices:
+                    session.link_library_sample(
+                        library_id=library.id,
+                        sample_id=sample.id,
+                        seq_index_id=index.id,
+                    )
+            n_added += 1
+
+    logger.info(f"Added samples from table to library {library.name} (id: {library.id})")
+    if n_added == 0:
+        flash("No samples added.", "warning")
+    elif n_added == len(selected_samples_ids):
+        flash(f"Added all ({n_added}) samples to library succesfully.", "success")
+    elif n_added < len(selected_samples_ids):
+        flash(f"Some samples ({len(selected_samples_ids) - n_added}) could not be added.", "warning")
+
+    return make_response(
+        redirect=url_for(
+            "libraries_page.library_page",
+            library_id=library.id
+        )
+    )
+
+
+@libraries_htmx.route("<int:library_id>/restart_form", methods=["GET"])
+@login_required
+def restart_form(library_id: int):
+    if (library := db.db_handler.get_library(library_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
+    return make_response(
+        render_template(
+            "components/popups/library/table.html",
+            table_form=forms.TableForm(),
+            library=library
+        ), push_url=False
     )

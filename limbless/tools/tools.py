@@ -1,7 +1,7 @@
 import difflib
 
 
-def connect_similar_strings(refs: tuple[str, str], data: list[str]) -> dict[str, str]:
+def connect_similar_strings(refs: list[tuple[str, str]], data: list[str]) -> dict[str, str]:
     matches = {}
     _refs = [val.lower() for _, val in refs]
     _keys = dict([(val.lower(), key) for key, val in refs])

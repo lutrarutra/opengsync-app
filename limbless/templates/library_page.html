@@ -21,6 +21,9 @@
             <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-form-popup">
                 Add Sample
             </button>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-table-form-popup">
+                Add Table
+            </button>
         </div>
     </div>
     {% set samples = library.samples %}
@@ -67,6 +70,11 @@
                 hx-post="{{ url_for('libraries_htmx.add_sample', library_id=library.id) }}">Submit</button>
             </div>
           </div>
+        </div>
+    </div>
+    <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+        {% include "components/popups/library/table.html" %}
         </div>
     </div>
 

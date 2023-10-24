@@ -9,14 +9,14 @@
 
     <div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
-            {% include "components/popups/sample.html" %}
+            {% include "components/popups/sample/add.html" %}
         </div>
     </div>
 
     <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             {% set project_id = project.id %}
-            {% include "components/popups/sample_table.html" %}
+            {% include "components/popups/sample/table.html" %}
         </div>
     </div>
 

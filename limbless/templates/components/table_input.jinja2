@@ -1,7 +1,10 @@
 {% from 'components/form_group.jinja2' import form_group %}
-<form id="sample-table-input-form" hx-swap="outerHTML" enctype="multipart/form-data">
+{% macro table_input(table_form, id) -%}
+<form id="{{ id }}" enctype="multipart/form-data">
     {{ table_form.csrf_token }}
+    {{ form_group(table_form.separator) }}
     {{ form_group(table_form.data) }}
     <p>or</p>
     {{ form_group(table_form.file) }}
 </form>
+{%- endmacro %}

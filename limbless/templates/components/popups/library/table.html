@@ -1,0 +1,24 @@
+{% from "components/table_input.jinja2" import table_input %}
+<div id="library-table-submission-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Add Libraries from Table</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help">
+            <p>
+                Enter a table in the text box below or upload a file containing a table.
+                Supported file types are .csv (separated by ','), .tsv (separated by '\t').
+            </p>
+            <p><b>Required columns: <i>Sample Name</i> and <i>Adapter</i></b></p>
+        </div>
+        {{ table_input(table_form, id="library-table-input-form") }}
+    </div>
+    <div class="modal-footer">
+        <button type="button" id="parse-table-btn" class="btn btn-primary" hx-target="#library-table-submission-container"
+            hx-swap="outerHTML" hx-include="#library-table-input-form" hx-encoding="multipart/form-data"
+            hx-post="{{ url_for('libraries_htmx.parse_table', library_id=library.id) }}">Parse Table</button>
+
+        <button type="button" id="clear-table-btn" class="btn btn-danger disabled" style="display: none;">ClearTable</button>
+    </div>
+</div>

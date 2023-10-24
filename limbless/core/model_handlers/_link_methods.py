@@ -6,6 +6,7 @@ from sqlmodel import and_
 from ... import models, logger, categories
 from .. import exceptions
 
+
 def get_sample_indices_from_library(
     self, sample_id: int, library_id: int
 ) -> list[models.SeqIndex]:
@@ -473,16 +474,6 @@ def link_library_sample(
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     if (_ := self._session.get(models.SeqIndex, seq_index_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")
-
-    logger.debug(
-        self._session.query(models.LibrarySampleLink).where(
-            and_(
-                models.LibrarySampleLink.library_id == library_id,
-                models.LibrarySampleLink.sample_id == sample_id,
-                models.LibrarySampleLink.seq_index_id == seq_index_id,
-            )
-        ).first()
-    )
 
     if self._session.query(models.LibrarySampleLink).where(
         and_(
