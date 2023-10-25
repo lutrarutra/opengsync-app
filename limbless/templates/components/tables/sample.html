@@ -29,7 +29,10 @@
                 <td><span class="owner-col"><p>{{ sample.owner.first_name }} {{ sample.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == sample.owner_id }}</p></span></td>
                 {% if show_indices %}
                 {% set adapter = (sample.indices | first).adapter %}
-                <td>
+                <td class="sample-adapter" id="sample-adapter-col-{{sample.id}}"
+                    hx-get="{{ url_for('libraries_htmx.get_edit_library_sample_adapter_form', library_id=library.id, sample_id=sample.id) }}"
+                    hx-trigger="sample-adapter-edit-{{ sample.id }} from:body"
+                    hx-target="#index-form" hx-swap="outerHTML">
                     {{ adapter.name }}
                 </td>
                 <td class="adapter-col">
@@ -44,3 +47,61 @@
     </table>
     {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page) }}
 </div>
+
+{# index edit popup form #}
+<div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h1 class="modal-title fs-5" id="">Add Sample</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            {% include "forms/index.html" %}
+        </div>
+        <div class="modal-footer" id="popup-footer">
+            <button class="btn btn-primary"
+            hx-include="#index-form"
+            hx-target="#index-form"
+            hx-swap="outerHTML"
+            hx-post="{{ url_for('libraries_htmx.add_sample', library_id=library.id) }}">Submit</button>
+        </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var selected_sample_id = null;
+    function edit_sample_adapter() {
+        $("#sample-form-popup").modal("show");
+        htmx.trigger("#sample-adapter-col-" + selected_sample_id, "sample-adapter-edit-" + selected_sample_id);
+    }
+
+    $(document).on("contextmenu", ".sample-adapter", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_sample_id = e.target.id.split("-")[3];
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).append([
+            "<li><a class='dropdown-item' href='#'>Copy</a></li>",
+            "<li><a class='dropdown-item' onclick='edit_sample_adapter()'>Edit</a></li>"
+        ]);
+
+        const val = e.target.textContent;
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
+    $(document).on("click", "#right-click-bg", function(e) {
+        $("#copy-edit-menu").css({
+            display: "none"
+        }).children().remove();
+        $("#right-click-bg").css({
+            display: "none"
+        });
+    });
+</script>

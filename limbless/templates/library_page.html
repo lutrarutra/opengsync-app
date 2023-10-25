@@ -1,3 +1,4 @@
+{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% extends "base.html" %}
 {% set active_page = "libraries-page" %}
 {% block content %}
@@ -20,26 +21,66 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h2>Samples</h2>
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#library-samples-tab" type="button" role="tab"
+            aria-controls="library-samples-tab" aria-selected="true">
+            Samples</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#library-metadata-tab" type="button" role="tab"
+            aria-controls="library-metadata-tab" aria-selected="false">
+            Metadata</button>
+        </li>
+    </ul>
+    <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="library-samples-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h2>Samples</h2>
+                </div>
+                <div>
+                    <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-form-popup">
+                        Add Sample
+                    </button>
+                    <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-table-form-popup">
+                        Add Table
+                    </button>
+                </div>
+            </div>
+            {% set samples = library.samples %}
+            {% if not library.is_raw_library %}
+                {% set show_indices = true %}
+            {% else %}
+                {% set show_indices = false %}
+            {% endif %}
+            {% include "components/tables/sample.html" %}
         </div>
-        <div>
-            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-form-popup">
-                Add Sample
-            </button>
-            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-table-form-popup">
-                Add Table
-            </button>
+        <div class="tab-pane fade show" id="library-metadata-tab" role="tabpanel" tabindex="1">
+            <div class="row">
+                {{ metadata_group("Name", library.name, class="col") }}
+                {{ metadata_group("Type", library.library_type.value.name, class="col") }}
+            </div>
+            <div class="row">
+                {{ 
+                    metadata_group_link(
+                        "Owner Name",
+                        library.owner.first_name + " " + library.owner.last_name,
+                        url_for("user_page.user_page", user_id=library.owner.id),
+                        class="col"
+                    )
+                }}
+                {{
+                    metadata_group_email_link(
+                        "Owner Email", library.owner.email, class="col",
+                        subject="BSF Library: " + library.name + " (" + library.id | string + ")"
+                    )
+                }}
+            </div>
         </div>
     </div>
-    {% set samples = library.samples %}
-    {% if not library.is_raw_library %}
-        {% set show_indices = true %}
-    {% else %}
-        {% set show_indices = false %}
-    {% endif %}
-    {% include "components/tables/sample.html" %}
 
     <div class="modal fade" id="library-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">

@@ -2,6 +2,17 @@
 {% set active_page = "samples-page" %}
 {% block content %}
 <div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Samples</h1>
+        </div>
+        <div>
+            <a class="btn btn-primary"
+            href="{{ url_for('samples_htmx.download') }}">
+            Download Data
+            </a>
+        </div>
+    </div>
     {% include "components/tables/sample.html" %}
 </div>
 {% endblock content %}

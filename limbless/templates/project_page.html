@@ -26,7 +26,7 @@
                 <button class="nav-link active" data-bs-toggle="tab"
                 data-bs-target="#project-samples-tab" type="button" role="tab"
                 aria-controls="project-samples-tab" aria-selected="true">
-                User Data</button>
+                Samples</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
@@ -56,7 +56,14 @@
             </div>
             <div class="tab-pane fade show" id="project-data-tab" role="tabpanel" tabindex="1">
                 <div class="row">
-                    {{ metadata_group_link("Owner Name", project.owner.first_name + " " + project.owner.last_name, url_for("user_page.user_page", user_id=project.owner.id), class="col") }}
+                    {{ 
+                        metadata_group_link(
+                            "Owner Name",
+                            project.owner.first_name + " " + project.owner.last_name,
+                            url_for("user_page.user_page", user_id=project.owner.id),
+                            class="col"
+                        )
+                    }}
                     {{
                         metadata_group_email_link(
                             "Owner Email", project.owner.email, class="col",

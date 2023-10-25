@@ -1,7 +1,7 @@
 from io import StringIO
 from typing import Optional
 
-from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
+from flask import Blueprint, redirect, url_for, render_template, flash, request, abort, Response
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
@@ -24,11 +24,14 @@ def get(page: int):
 
     if sort_by not in models.Sample.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
-
+    
     with DBSession(db.db_handler) as session:
-        n_pages = int(session.get_num_samples() / 20)
-        page = min(page, n_pages)
-        samples = session.get_samples(limit=20, offset=20 * page, sort_by=sort_by, reversed=reversed)
+        if current_user.role_type == UserRole.CLIENT:
+            samples = session.get_samples(limit=20, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
+            n_pages = int(session.get_num_samples(user_id=current_user.id) / 20)
+        else:
+            samples = session.get_samples(limit=20, user_id=None, sort_by=sort_by, reversed=reversed)
+            n_pages = int(session.get_num_samples(user_id=None) / 20)
     
         return make_response(
             render_template(
@@ -100,6 +103,24 @@ def delete(sample_id: int):
         redirect=url_for(
             "samples_page.samples_page"
         ),
+    )
+
+
+@samples_htmx.route("download", methods=["GET"])
+@login_required
+def download():
+    logger.debug("HELLO")
+    with DBSession(db.db_handler) as session:
+        if current_user.role_type == UserRole.CLIENT:
+            samples = session.get_samples(limit=None, user_id=current_user.id)
+        else:
+            samples = session.get_samples(limit=None, user_id=None)
+
+    df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
+    logger.debug(df.columns)
+    return Response(
+        df.to_csv(sep="\t", index=False), mimetype="text/csv",
+        headers={"Content-disposition": "attachment; filename=samples.tsv"}
     )
 
 

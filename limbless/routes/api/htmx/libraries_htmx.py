@@ -123,6 +123,48 @@ def edit(library_id):
     )
 
 
+@libraries_htmx.route("<int:library_id>/edit-adapter-form/<int:sample_id>", methods=["GET"])
+@login_required
+def get_edit_library_sample_adapter_form(library_id: int, sample_id: int):
+    logger.debug(sample_id)
+
+    with DBSession(db.db_handler) as session:
+        if (library := session.get_library(library_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        if (sample := session.get_sample(sample_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+    
+        if sample_id not in [s.id for s in library.samples]:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        seq_indices = db.db_handler.get_sample_indices_from_library(
+            sample_id=sample_id, library_id=library_id
+        )
+        
+    index_form = forms.create_index_form(library)
+    index_form.adapter.data = seq_indices[0].adapter.name
+    
+    for i, index in enumerate(seq_indices):
+        if i < len(index_form.indices.entries):
+            index_form.indices.entries[i].sequence.data = index.sequence
+            index_form.indices.entries[i].index_seq_id.data = index.id
+
+    return make_response(
+        render_template(
+            "forms/index.html",
+            index_form=index_form,
+            library=library,
+        ), push_url=False
+    )
+
+
+@libraries_htmx.route("<int:library_id>/edit-adapter/<int:sample_id>", methods=["POST"])
+@login_required
+def edit_adapter(library_id: int, sample_id: int):
+    pass
+
+
 @libraries_htmx.route("query", methods=["POST"])
 @login_required
 def query():
