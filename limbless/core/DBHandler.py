@@ -84,7 +84,7 @@ class DBHandler():
     )
 
     from .model_handlers._seq_index_methods import (
-        create_seq_index, get_seqindex, get_seqindices_by_adapter,
+        create_seq_index, get_seqindex,
         get_num_seqindices, get_seqindices
     )
 

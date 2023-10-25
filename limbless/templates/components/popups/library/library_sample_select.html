@@ -51,7 +51,8 @@
         <button type="button" class="btn btn-primary" onclick="deselect_all()">Remove All</button>
         <button type="button" class="btn btn-primary" hx-target="#library-sample-select-container" hx-swap="outerHTML"
             hx-include="#library-sample-select-form" id="library-sample-select-form-btn"
-            hx-post="{{ url_for('libraries_htmx.add_library_samples_from_table', library_id=library.id) }}">Add Selected
+            hx-post="{{ url_for('libraries_htmx.add_library_samples_from_table', library_id=library.id) }}"
+            {% if not library_sample_select_form.selected_samples.data %} disabled {% endif %}>Add Selected
             Samples</button>
 
         <button type="button" class="btn btn-danger" hx-target="#library-sample-select-container" hx-swap="outerHTML"

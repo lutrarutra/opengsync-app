@@ -36,6 +36,18 @@ class SampleForm(FlaskForm):
                 if self.name.data in [sample.name for sample in user_samples]:
                     self.name.errors = ("You already have a sample with this name.",)
                     validated = False
+            # Editing existing sample
+            else:
+                if (sample := session.get_sample(sample_id)) is None:
+                    logger.error(f"Sample with id {sample_id} does not exist.")
+                    return False, self
+
+                for user_sample in user_samples:
+                    if self.name.data == user_sample.name:
+                        if sample_id != user_sample.id:
+                            self.name.errors = ("You already have a sample with this name.",)
+                            validated = False
+                            break
 
         return validated, self
 

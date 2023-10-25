@@ -45,14 +45,10 @@ class LibrarySampleSelectForm(FlaskForm):
 
         df["id"] = None
 
-        logger.debug(library.is_raw_library)
-        logger.debug(library.index_kit_id)
-
         for i, row in df.iterrows():
             sample_name = row["sample_name"].strip()
             if sample_name in user_sample_names:
                 user_sample = user_samples[user_sample_names.index(sample_name)]
-                logger.debug(db.db_handler.get_adapter_by_name(library.index_kit_id, row["adapter"].strip()))
                 # Check if sample is already in library
                 if user_sample.id in library_samples_ids:
                     library_samples.append({

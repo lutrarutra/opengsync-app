@@ -7,9 +7,16 @@
             <h1>Library: {{ library.name }}</h1>
         </div>
         <div>
-            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup" {{ "disabled" if not library.is_editable }}>
-                Edit Library
-            </button>
+            <span
+                {% if not library.is_editable() %}
+                data-bs-toggle="tooltip" data-bs-placement="bottom"
+                data-bs-custom-class="custom-tooltip"
+                data-bs-title="Library cannot be edited after samples have been added."
+                {% endif %}>
+                <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup" {{ "disabled" if not library.is_editable() }}>
+                    Edit Library
+                </button>
+            </span>
         </div>
     </div>
 

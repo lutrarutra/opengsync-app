@@ -7,12 +7,25 @@
             <h1>Sample: {{ sample.name }}</h1>
         </div>
         <div>
+            <span
+            {% if not sample.is_editable() %}
+            data-bs-toggle="tooltip" data-bs-placement="bottom"
+            data-bs-custom-class="custom-tooltip"
+            data-bs-title="Sample is not editable after it is added to library."
+            {% endif %}>
             <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#sample-form-popup">
+                data-bs-target="#sample-form-popup"
+                {% if not sample.is_editable() %}disabled{% endif %}>
                 Edit Sample
             </button>
-            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-            {% if sample.libraries|length == 0 %}
+            </span>
+            
+            <span
+            {% if not sample.is_editable() %}
+            data-bs-toggle="tooltip" data-bs-placement="bottom"
+            data-bs-custom-class="custom-tooltip"
+            data-bs-title="Sample is not editable after it is added to library."
+            {% endif %}>
             <button hx-get="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
                 _="on htmx:confirm(issueRequest)
                 halt the event
@@ -23,10 +36,11 @@
                     confirmButtonText: 'Yes',
                     denyButtonText: 'No'
                 })
-                if result.isConfirmed issueRequest()">
+                if result.isConfirmed issueRequest()"
+                {% if not sample.is_editable() %}disabled{% endif %}>
                 Delete Sample
             </button>
-            {% endif %}
+            </span>
         </div>
     </div>
     <h2>Libraries</h2>

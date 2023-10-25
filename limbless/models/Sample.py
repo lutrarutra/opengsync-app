@@ -54,3 +54,6 @@ class Sample(SQLModel, table=True):
 
     def to_search_result(self) -> SearchResult:
         return SearchResult(self.id, self.name, self.project.name)
+    
+    def is_editable(self) -> bool:
+        return len(self.libraries) == 0

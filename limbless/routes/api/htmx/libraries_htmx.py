@@ -83,7 +83,7 @@ def edit(library_id):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
-        if not library.is_editable:
+        if not library.is_editable():
             return abort(HttpResponse.FORBIDDEN.value.id)
 
     library_form = forms.LibraryForm()
@@ -344,10 +344,12 @@ def add_library_samples_from_table(library_id: int):
                     seq_index_id=None,
                 )
             else:
-                indices = db.db_handler.get_seqindices_by_adapter(
-                    adapter=adapter, index_kit_id=library.index_kit_id
+                adapter = db.db_handler.get_adapter_by_name(
+                    index_kit_id=library.index_kit_id,
+                    name=adapter
                 )
-                for index in indices:
+
+                for index in adapter.indices:
                     session.link_library_sample(
                         library_id=library.id,
                         sample_id=sample.id,

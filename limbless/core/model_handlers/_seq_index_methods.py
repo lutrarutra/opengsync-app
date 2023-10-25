@@ -96,26 +96,6 @@ def get_seqindices(
     return indices
 
 
-def get_seqindices_by_adapter(self, adapter: str, index_kit_id: int) -> list[models.SeqIndex]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.IndexKit, index_kit_id) is None:
-        raise exceptions.ElementDoesNotExist(f"IndexKit with id '{index_kit_id}', not found.")
-
-    res = self._session.query(models.SeqIndex).where(
-        and_(
-            models.SeqIndex.adapter == adapter,
-            models.SeqIndex.index_kit_id == index_kit_id
-        )
-    ).all()
-
-    if not persist_session:
-        self.close_session()
-    return res
-
-
 def get_num_seqindices(self) -> int:
     persist_session = self._session is not None
     if not self._session:

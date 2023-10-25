@@ -323,29 +323,27 @@ def restart_form(project_id: int):
 @samples_htmx.route("<int:sample_id>/edit", methods=["POST"])
 @login_required
 def edit(sample_id):
-    sample = db.db_handler.get_sample(sample_id)
-    if not sample:
-        return redirect("/projects")
+    if (sample := db.db_handler.get_sample(sample_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
+    if not sample.is_editable():
+        return abort(HttpResponse.FORBIDDEN.value.id)
 
     sample_form = forms.SampleForm()
+    validated, sample_form = sample_form.custom_validate(
+        db_handler=db.db_handler,
+        user_id=current_user.id,
+        sample_id=sample_id
+    )
 
-    if not sample_form.validate_on_submit():
-        if (
-            "Sample name already exists." in sample_form.name.errors and
-            sample_form.name.data == sample.name
-        ):
-            sample_form.name.errors.remove("Sample name already exists.")
-        else:
-            template = render_template(
+    if not validated:
+        return make_response(
+            render_template(
                 "forms/sample/sample.html",
-                sample_form=sample_form,
-                sample=sample
-            )
-            return make_response(
-                template, push_url=False
-            )
+                sample_form=sample_form, sample=sample
+            ), push_url=False
+        )
 
-    print(sample_form.organism.data)
     db.db_handler.update_sample(
         sample_id,
         name=sample_form.name.data,
@@ -360,7 +358,7 @@ def edit(sample_id):
     )
 
 
-@samples_htmx.route("query", methods=["POST"], defaults={"exclude_library_id": None})
+@samples_htmx.route("query", methods= ["POST"], defaults={"exclude_library_id": None})
 @samples_htmx.route("query/<int:exclude_library_id>", methods=["POST"])
 @login_required
 def query(exclude_library_id: Optional[int] = None):

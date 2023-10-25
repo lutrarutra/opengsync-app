@@ -11,38 +11,26 @@ auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/auth/")
 
 @auth_htmx.route("/login", methods=["POST"])
 def login():
-    login_form = forms.LoginForm()
     dest = request.args.get("next", "/")
+    login_form = forms.LoginForm()
+    validated, login_form = login_form.custom_validate()
 
-    if not login_form.validate_on_submit():
-        template = render_template(
-            "forms/login.html",
-            login_form=login_form,
-            next=dest
-        )
-        return make_response(
-            template, push_url=False
-        )
-
-    user = db.db_handler.get_user_by_email(login_form.email.data)
-    # invalid email
-    if not user:
-        print(login_form.errors)
-        login_form.email.errors = ("Invalid email or password.",)
-        login_form.password.errors = ("Invalid email or password.",)
+    if not validated:
         return make_response(
             render_template(
-                "forms/login.html", login_form=login_form, next=dest
+                "forms/login.html",
+                login_form=login_form,
+                next=dest
             ), push_url=False
         )
+    
+    user, login_form = login_form.login()
 
-    # invalid password
-    if not bcrypt.check_password_hash(user.password, login_form.password.data):
-        login_form.email.errors = ("Invalid email or password.",)
-        login_form.password.errors = ("Invalid email or password.",)
+    if user is None:
         return make_response(
             render_template(
-                "forms/login.html", login_form=login_form, next=dest
+                "forms/login.html",
+                login_form=login_form, next=dest
             ), push_url=False
         )
 
