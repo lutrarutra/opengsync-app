@@ -60,7 +60,7 @@ class LibrarySampleSelectForm(FlaskForm):
                     errors.append(f"Duplicate sample '{sample_name}' in this library")
                 # Check if there exists adapter in library's indexkit
 
-                elif (not library.is_raw_library) and db.db_handler.get_adapter_by_name(library.index_kit_id, row["adapter"].strip()) is None:
+                elif (not library.is_raw_library()) and db.db_handler.get_adapter_by_name(library.index_kit_id, row["adapter"].strip()) is None:
                     library_samples.append({
                         "id": None,
                         "name": sample_name,

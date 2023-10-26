@@ -1,0 +1,104 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+<div id="sample-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{ table_col('sample-table', 'ID', 'id', 'samples_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('sample-table', 'Name', 'name', 'samples_htmx.get', current_sort, current_sort_order) }}
+                {% if not library.is_raw_library() %}
+                <th scope="col">Adapter</th>
+                <th scope="col">Indices</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for sample in samples %}
+            <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id) }}';">
+                <th scope="row">{{ sample.id }}</th>
+                <td>{{ sample.name }}</td>
+                {% if not library.is_raw_library() %}
+                {% set adapter = (sample.indices | first).adapter %}
+                <td class="sample-adapter" id="sample-adapter-col-{{sample.id}}"
+                    hx-get="{{ url_for('libraries_htmx.get_edit_library_sample_adapter_form', library_id=library.id, sample_id=sample.id) }}"
+                    hx-trigger="sample-adapter-edit-{{ sample.id }} from:body"
+                    hx-target="#edit-index-form" hx-swap="outerHTML">
+                    {{ adapter.name }}
+                </td>
+                <td class="adapter-col">
+                    {% for index in sample.indices %}
+                        <span class="comma"><p>{{ index.sequence }}</p><p>{{ index.type }}</p></span>
+                    {% endfor %}
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page) }}
+</div>
+
+{# index edit popup form #}
+{% if not library.is_raw_library() %}
+<div class="modal fade" id="library-sample-edit-adapter-form" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h1 class="modal-title fs-5" id="">Add Sample</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            {% include "forms/edit-index.html" %}
+        </div>
+        <div class="modal-footer" id="popup-footer">
+            <button class="btn btn-primary"
+            hx-include="#edit-index-form"
+            hx-target="#edit-index-form"
+            hx-swap="outerHTML"
+            hx-post="{{ url_for('libraries_htmx.edit_adapter', library_id=library.id) }}">Submit</button>
+        </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    var selected_sample_id = null;
+    function edit_sample_adapter() {
+        $("#library-sample-edit-adapter-form").modal("show");
+        htmx.trigger("#sample-adapter-col-" + selected_sample_id, "sample-adapter-edit-" + selected_sample_id);
+    }
+
+    function copy_adapter_to_clipboard() {
+        const content = $("#sample-adapter-col-" + selected_sample_id).text();
+        navigator.clipboard.writeText(content);
+    }
+
+    $(document).on("contextmenu", ".sample-adapter", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_sample_id = e.target.id.split("-")[3];
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).append([
+            "<li><a class='dropdown-item' onclick='copy_adapter_to_clipboard()'>Copy</a></li>",
+            "<li><a class='dropdown-item' onclick='edit_sample_adapter()'>Edit</a></li>"
+        ]);
+
+        const val = e.target.textContent;
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
+    $(document).on("click", "#right-click-bg", function(e) {
+        $("#copy-edit-menu").css({
+            display: "none"
+        }).children().remove();
+        $("#right-click-bg").css({
+            display: "none"
+        });
+    });
+</script>

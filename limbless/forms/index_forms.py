@@ -1,6 +1,7 @@
+from typing import Literal
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, FieldList, FormField
-
 from wtforms.validators import DataRequired, Optional
 
 from ..models import Library
@@ -24,9 +25,12 @@ class IndexForm(FlaskForm):
         self,
         library_id: int, user_id: int,
         db_handler: DBHandler,
+        action: Literal["create", "update"] = "create",
     ) -> tuple[bool, "IndexForm"]:
 
         validated = self.validate()
+
+        logger.debug(f"Validated: {validated}")
 
         if not validated:
             if "indices" in self.errors.keys():
@@ -44,13 +48,18 @@ class IndexForm(FlaskForm):
                 self.sample.errors = ("Sample is required",)
                 validated = False
             else:
-                if self.sample.data in ids:
-                    self.sample.errors = ("Sample is already in this library",)
-                    validated = False
+                if action == "create":
+                    if self.sample.data in ids:
+                        self.sample.errors = ("Sample is already in this library",)
+                        validated = False
+                elif action == "update":
+                    if self.sample.data not in ids:
+                        self.sample.errors = ("Sample is not in this library",)
+                        validated = False
 
             # TODO: check that seq_index_id is not used in the library
             for sample in library_samples:
-                logger.debug(sample.indices)                                            
+                logger.debug(sample.indices)
 
         return validated, self
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
@@ -78,7 +87,7 @@ def __create_atac_index_form() -> IndexForm:
 
 
 def create_index_form(library: Library) -> IndexForm:
-    if library.is_raw_library:
+    if library.is_raw_library():
         return IndexForm()
     if library.library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
         return __crete_dual_index_form()

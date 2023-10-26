@@ -126,8 +126,6 @@ def edit(library_id):
 @libraries_htmx.route("<int:library_id>/edit-adapter-form/<int:sample_id>", methods=["GET"])
 @login_required
 def get_edit_library_sample_adapter_form(library_id: int, sample_id: int):
-    logger.debug(sample_id)
-
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
@@ -143,6 +141,7 @@ def get_edit_library_sample_adapter_form(library_id: int, sample_id: int):
         )
         
     index_form = forms.create_index_form(library)
+    index_form.sample.data = sample_id
     index_form.adapter.data = seq_indices[0].adapter.name
     
     for i, index in enumerate(seq_indices):
@@ -152,17 +151,66 @@ def get_edit_library_sample_adapter_form(library_id: int, sample_id: int):
 
     return make_response(
         render_template(
-            "forms/index.html",
+            "forms/edit-index.html",
             index_form=index_form,
-            library=library,
+            library=library, sample=sample,
+            selected_adapter=seq_indices[0].adapter,
         ), push_url=False
     )
 
 
-@libraries_htmx.route("<int:library_id>/edit-adapter/<int:sample_id>", methods=["POST"])
+@libraries_htmx.route("<int:library_id>/edit-adapter", methods=["POST"])
 @login_required
-def edit_adapter(library_id: int, sample_id: int):
-    pass
+def edit_adapter(library_id: int):
+    if (library := db.db_handler.get_library(library_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    index_form = forms.IndexForm()
+    sample_id = index_form.sample.data
+
+    if sample_id is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    if (sample := db.db_handler.get_sample(sample_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    validated, index_form = index_form.custom_validate(library_id, current_user.id, db.db_handler, action="update")
+
+    if (adapter_id := index_form.adapter.data) is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    if (adapter := db.db_handler.get_adapter(adapter_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if not validated:
+        logger.debug("Not valid")
+        return make_response(
+            render_template(
+                "forms/edit-index.html",
+                index_form=index_form,
+                library=library, sample=sample,
+                selected_adapter=adapter
+            ), push_url=False
+        )
+    
+    db.db_handler.unlink_library_sample(library_id=library_id, sample_id=sample_id)
+
+    with DBSession(db.db_handler) as session:
+        for index in adapter.indices:
+            session.link_library_sample(
+                library_id=library.id,
+                sample_id=sample.id,
+                seq_index_id=index.id,
+            )
+
+    logger.debug(f"Edited adapter for sample '{sample.name}' in library '{library.name}'")
+    flash(f"Edited adapter for sample '{sample.name}' in library '{library.name}'", "success")
+
+    return make_response(
+        redirect=url_for(
+            "libraries_page.library_page", library_id=library.id
+        )
+    )
 
 
 @libraries_htmx.route("query", methods=["POST"])
@@ -216,7 +264,7 @@ def add_sample(library_id: int):
         return abort(HttpResponse.FORBIDDEN.value.id)
 
     with DBSession(db.db_handler) as session:
-        if library.is_raw_library:
+        if library.is_raw_library():
             session.link_library_sample(
                 library_id=library.id,
                 sample_id=selected_sample.id,
@@ -379,7 +427,7 @@ def add_library_samples_from_table(library_id: int):
                 logger.error(f"Unknown sample id '{sample_id}'")
                 continue
             
-            if library.is_raw_library:
+            if library.is_raw_library():
                 session.link_library_sample(
                     library_id=library.id,
                     sample_id=sample.id,

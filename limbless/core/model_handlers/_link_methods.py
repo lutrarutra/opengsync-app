@@ -541,21 +541,20 @@ def unlink_library_sample(
     if not self._session:
         self.open_session()
 
-    library = self._session.get(models.Library, library_id)
-    sample = self._session.get(models.Sample, sample_id)
-
-    if not library:
+    if (_ := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    if not sample:
+    
+    if (_ := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
 
-    if not self._session.query(models.LibrarySampleLink).where(
+    if (links := self._session.query(models.LibrarySampleLink).where(
         models.LibrarySampleLink.library_id == library_id,
         models.LibrarySampleLink.sample_id == sample_id
-    ).first():
+    ).all()) is None:
         raise exceptions.LinkDoesNotExist(f"Library with id {library_id} and sample with id {sample_id} are not linked")
-
-    library.samples.remove(sample)
+    
+    for link in links:
+        self._session.delete(link)
 
     if commit:
         self._session.commit()

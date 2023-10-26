@@ -11,9 +11,9 @@ from ._seq_adapter_methods import get_adapter_by_name, create_seq_adapter
 
 
 def create_seq_index(
-    self,
-    sequence: str, adapter: str,
+    self, sequence: str, adapter: str,
     type: str, index_kit_id: int,
+    workflow: Optional[str],
     commit: bool = True
 ) -> models.SeqIndex:
 
@@ -32,7 +32,8 @@ def create_seq_index(
             models.SeqIndex.sequence == sequence,
             models.SeqIndex.adapter_id == seq_adapter.id,
             models.SeqIndex.type == type,
-            models.SeqIndex.index_kit_id == index_kit.id
+            models.SeqIndex.index_kit_id == index_kit.id,
+            models.SeqIndex.workflow == workflow
         )
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"SeqIndex with sequence '{sequence}', already exists in index-kit '{index_kit.name}'.")
@@ -41,6 +42,7 @@ def create_seq_index(
         sequence=sequence,
         adapter_id=seq_adapter.id,
         type=type,
+        workflow=workflow,
         index_kit_id=index_kit.id
     )
 

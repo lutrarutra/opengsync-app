@@ -10,7 +10,8 @@ if TYPE_CHECKING:
 class SeqIndex(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     sequence: str = Field(nullable=False, max_length=128, index=True)
-    type: str = Field(nullable=False, max_length=64, index=True)
+    workflow: Optional[str] = Field(nullable=True, max_length=16)
+    type: str = Field(nullable=False, max_length=16, index=True)
 
     adapter_id: int = Field(nullable=False, foreign_key="seqadapter.id")
     adapter: "SeqAdapter" = Relationship(

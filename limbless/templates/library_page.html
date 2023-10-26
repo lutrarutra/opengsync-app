@@ -51,12 +51,7 @@
                 </div>
             </div>
             {% set samples = library.samples %}
-            {% if not library.is_raw_library %}
-                {% set show_indices = true %}
-            {% else %}
-                {% set show_indices = false %}
-            {% endif %}
-            {% include "components/tables/sample.html" %}
+            {% include "components/tables/library-sample.html" %}
         </div>
         <div class="tab-pane fade show" id="library-metadata-tab" role="tabpanel" tabindex="1">
             <div class="row">

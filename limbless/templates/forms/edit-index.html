@@ -1,0 +1,39 @@
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+<form id="edit-index-form">
+    {{ index_form.csrf_token }}
+    {{ metadata_group("Sample", sample.name if sample) }}
+    {{ index_form.sample(readonly=True) }}
+    {% if library.index_kit_id %}
+    {{
+        search_select_field(
+            index_form.adapter,
+            url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
+            selected=selected_adapter.name if selected_adapter is defined,
+            results=available_adapters,
+            include_data_element=False,
+        )
+    }}
+    <input id="adapter" name="adapter" hx-target="#index-form" hx-swap="outerHTML" hx-include="#index-form"
+        hx-trigger="change" hx-post="{{ url_for('indices_htmx.select_indices', library_id=library.id) }}"
+        value="{{ selected_adapter.id if selected_adapter is defined }}" type="number">
+    {% endif %}
+
+
+    <div class="indices-container">
+        {% for index_seq_form in index_form.indices %}
+            <div class="form-group">
+                {{ index_seq_form.sequence.label }}
+                {{ 
+                    index_seq_form.index_seq_id(
+                        value=index_seq_form.index_seq_id.data if index_seq_form.index_seq_id.data else '',
+                        readonly=True, hidden=False
+                    ) 
+                }}
+                {{ index_seq_form.sequence(class="form-control", readonly=True) }}
+                {{ index_seq_form.csrf_token() }}
+            </div>
+        {% endfor %}
+    </div>
+</form>
