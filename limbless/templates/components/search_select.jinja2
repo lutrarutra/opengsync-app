@@ -1,32 +1,35 @@
-{% macro search_select_field(field, url, selected=None, results=None, include_data_element=True, disabled=false, include_field=None) -%}
+{% macro search_select_field(field, url, selected=None, results=None, include_data_element=True, disabled=false, include_field=None, custom_id=None) -%}
 {% set field_name = field.name %}
+{% if not custom_id %}
+    {% set custom_id = field_name %}
+{% endif %}
 {% set class_str = "form-control search-component search-select-input" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else "") %}
-<div id="{{field_name}}-select" class="search-select form-group">
-    <label for="{{field_name}}">{{ field.label }}</label>
+<div id="{{ custom_id }}-select" class="search-select form-group">
+    <label for="{{ custom_id }}">{{ field.label }}</label>
     <div class="input-group">
         <input type="search"
         onclick="this.select();"
         class="{{ class_str }}"
         autocomplete="off"
-        name="{{field_name}}-search"
-        id="{{field_name}}-search"
-        aria-controls="#{{field_name}}-results"
+        name="{{ custom_id }}-search"
+        id="{{ custom_id }}-search"
+        aria-controls="#{{ custom_id }}-results"
         value="{{ selected if selected else '' }}"
         hx-post="{{ url }}"
-        hx-include="[name='{{field_name}}-search'],[name='library_type']"
-        hx-params="{{field_name}}-search{{ ',' + include_field if include_field else ''}}"
-        hx-target="#{{field_name}}-results"
-        hx-trigger="keyup changed delay:500ms, {{field_name}}, change{{ ', load' if not results else '' }}" 
+        hx-include="[name='{{ custom_id }}-search'],[name='library_type']"
+        hx-params="{{ custom_id }}-search{{ ',' + include_field if include_field else ''}}"
+        hx-target="#{{ custom_id }}-results"
+        hx-trigger="keyup changed delay:500ms, {{ custom_id }}, change{{ ', load' if not results else '' }}" 
         hx-swap="innerHTML"
         placeholder="Search"
         {{ "readonly" if disabled }}>
     </div>
     <div class="input-group">
-        <div id="{{field_name}}-results" class="search-select-results">
+        <div id="{{ custom_id }}-results" class="search-select-results">
             {% include "components/search_select_results.html" %}
         </div>
     </div>
-    <div class="invalid-feedback-container" id="{{field_name}}-invalid-container">
+    <div class="invalid-feedback-container" id="{{ custom_id }}-invalid-container">
     {% if field.errors %}
             {% for error in field.errors %}
             <p>{{ error }}</p>
@@ -35,20 +38,20 @@
     </div>
 </div>
 {% if include_data_element %}
-    {{ field(hidden=False, readonly=True) }}
+    {{ field(hidden=False, readonly=True, id=custom_id) }}
 {% endif %}
 <script>
     // Shows search results when user focuses on search component
-    $("#{{field_name}}-search").on("focus", function() {
+    $("#{{ custom_id }}-search").on("focus", function() {
         if ($(this).hasClass("disabled")) {
             return;
         }
-        $("#{{field_name}}-results").css("display", "block");
+        $("#{{ custom_id }}-results").css("display", "block");
     });
 
-    $("#{{field_name}}-search").on("change", function() {
+    $("#{{ custom_id }}-search").on("change", function() {
         if ($(this).val() === "") {
-            $("#{{field_name}}").val("");
+            $("#{{ custom_id }}").val("");
         }
     });
 </script>

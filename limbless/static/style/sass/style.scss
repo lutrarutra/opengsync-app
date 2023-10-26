@@ -227,11 +227,14 @@ input.disabled:focus {
             span {
                 gap: 7px;
                 display: flex;
-                :nth-child(even) {
+                :nth-child(1) {
+                    font-weight:500;
+                }
+                :nth-child(2) {
                     color: $gray-500;
                 }
-                :nth-child(odd) {
-                    font-weight: 500;
+                :nth-child(3) {
+                    color: $gray-500;
                 }
             }
         }

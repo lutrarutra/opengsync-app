@@ -453,6 +453,27 @@ def unlink_run_library(
         self.close_session()
 
 
+def is_sample_in_library(
+    self, sample_id: int, library_id: int
+) -> bool:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    res = self._session.query(models.LibrarySampleLink).where(
+        models.LibrarySampleLink.library_id == library_id,
+        models.LibrarySampleLink.sample_id == sample_id
+    ).first()
+
+    logger.debug(res)
+
+    if not persist_session:
+        self.close_session()
+
+    return res is not None
+    
+
 def link_library_sample(
     self,
     library_id: int,

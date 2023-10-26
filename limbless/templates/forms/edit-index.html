@@ -4,20 +4,20 @@
 <form id="edit-index-form">
     {{ index_form.csrf_token }}
     {{ metadata_group("Sample", sample.name if sample) }}
-    {{ index_form.sample(readonly=True) }}
-    {% if library.index_kit_id %}
+    {{ index_form.sample(readonly=True, id="library-sample-edit") }}
+    {% if not library.is_raw_library() %}
     {{
         search_select_field(
             index_form.adapter,
             url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
             selected=selected_adapter.name if selected_adapter is defined,
-            results=available_adapters,
-            include_data_element=False,
+            results=available_adapters, include_data_element=False,
+            custom_id="edit-adapter"
         )
     }}
-    <input id="adapter" name="adapter" hx-target="#index-form" hx-swap="outerHTML" hx-include="#index-form"
+    <input id="edit-adapter" name="adapter" hx-target="#edit-index-form" hx-swap="outerHTML" hx-include="#index-form"
         hx-trigger="change" hx-post="{{ url_for('indices_htmx.select_indices', library_id=library.id) }}"
-        value="{{ selected_adapter.id if selected_adapter is defined }}" type="number">
+        value="{{ selected_adapter.id if selected_adapter is defined }}" type="number" readonly=true>
     {% endif %}
 
 

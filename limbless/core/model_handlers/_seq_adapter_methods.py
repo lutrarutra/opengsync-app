@@ -125,7 +125,7 @@ def get_adapter_by_name(self, index_kit_id: int, name: str) -> models.SeqAdapter
 
 def query_adapters(
     self, word: str, index_kit_id: Optional[int] = None,
-    exclude_adapters_from_library_id: Optional[int] = None,
+    exclude_adapters_from_library_id: Optional[int] = None,  # TODO: exlcude adapters from library
     limit: Optional[int] = 10,
 ) -> list[SearchResult]:
 
@@ -146,13 +146,10 @@ def query_adapters(
     if limit is not None:
         query = query.limit(limit)
 
-    res = query.all()
+    adapters = query.all()
 
     search_res = [
-        SearchResult(
-            adapter.id, adapter.name,
-            description=", ".join([f"{index.sequence} [{index.type}]" for index in adapter.indices])
-        ) for adapter in res
+        adapter.to_search_result() for adapter in adapters
     ]
 
     if not persist_session:

@@ -27,7 +27,11 @@
                 </td>
                 <td class="adapter-col">
                     {% for index in sample.indices %}
-                        <span class="comma"><p>{{ index.sequence }}</p><p>{{ index.type }}</p></span>
+                        <span class="comma">
+                            <p>{{ index.sequence }}</p>
+                            <p>{{ index.type }}</p>
+                            <p>{{ "(" + index.workflow + ")" if index.workflow else "" }}</p>
+                        </span>
                     {% endfor %}
                 </td>
                 {% endif %}

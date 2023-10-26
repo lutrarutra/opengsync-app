@@ -383,6 +383,7 @@ def edit(sample_id):
 @samples_htmx.route("query/<int:exclude_library_id>", methods=["POST"])
 @login_required
 def query(exclude_library_id: Optional[int] = None):
+    logger.debug(request.form.keys())
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 

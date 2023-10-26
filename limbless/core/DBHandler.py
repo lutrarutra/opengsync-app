@@ -127,5 +127,7 @@ class DBHandler():
 
         unlink_library_sample,
         unlink_run_library,
-        unlink_project_user
+        unlink_project_user,
+
+        is_sample_in_library,
     )
