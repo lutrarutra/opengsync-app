@@ -26,7 +26,7 @@ common_organisms = [
 ]
 
 common_organisms = [
-    organism.to_search_result() for organism in common_organisms if organism is not None
+    organism for organism in common_organisms if organism is not None
 ]
 
 common_kits = [

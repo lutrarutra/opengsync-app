@@ -1,7 +1,7 @@
 from typing import Optional
 
 import pandas as pd
-from sqlmodel import and_
+from sqlmodel import and_, func
 
 from ... import models, logger
 from .. import exceptions
@@ -185,7 +185,7 @@ def delete_sample(
 
 def query_samples(
     self, word: str,
-    user_id: Optional[int] = None,  # TODO: query from only user owned samples
+    user_id: Optional[int] = None,
     limit: Optional[int] = 20
 ) -> list[SearchResult]:
 
@@ -193,15 +193,21 @@ def query_samples(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.Sample).where(
-        models.Sample.name.contains(word)
+    query = self._session.query(models.Sample)
+    
+    if user_id is not None:
+        query = query.where(
+            models.Sample.owner_id == user_id
+        )
+
+    query = query.order_by(
+        func.similarity(models.Sample.name, word).desc()
     )
 
     if limit is not None:
         query = query.limit(limit)
 
     res = query.all()
-    res = [sample.to_search_result() for sample in res]
 
     if not persist_session:
         self.close_session()

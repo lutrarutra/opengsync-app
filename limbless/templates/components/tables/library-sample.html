@@ -93,7 +93,6 @@
             display: "block"
         });
     });
-
     
     function copy_sample_name_to_clipboard() {
         const content = $("#sample-name-cell-" + selected_sample_id).text().trim();
@@ -163,14 +162,6 @@
 
         $("#right-click-bg").css({
             display: "block"
-        });
-    });
-    $(document).on("click", "#right-click-bg", function(e) {
-        $("#copy-edit-menu").css({
-            display: "none"
-        }).children().remove();
-        $("#right-click-bg").css({
-            display: "none"
         });
     });
 </script>

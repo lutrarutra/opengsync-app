@@ -379,7 +379,7 @@ def edit(sample_id):
     )
 
 
-@samples_htmx.route("query", methods= ["POST"], defaults={"exclude_library_id": None})
+@samples_htmx.route("query", methods=["POST"], defaults={"exclude_library_id": None})
 @samples_htmx.route("query/<int:exclude_library_id>", methods=["POST"])
 @login_required
 def query(exclude_library_id: Optional[int] = None):
@@ -406,6 +406,49 @@ def query(exclude_library_id: Optional[int] = None):
         render_template(
             "components/search_select_results.html",
             results=results,
+            field_name=field_name
+        ), push_url=False
+    )
+
+
+@samples_htmx.route("table_query", methods=["POST"])
+@login_required
+def table_query():
+    if (word := request.form.get("name", None)) is not None:
+        field_name = "name"
+    elif (word := request.form.get("id", None)) is not None:
+        field_name = "id"
+    else:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    if word is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    user = current_user
+    if user.role_type == UserRole.CLIENT:
+        _user_id = user.id
+    else:
+        _user_id = None
+
+    if field_name == "name":
+        samples = db.db_handler.query_samples(word, user_id=_user_id)
+    elif field_name == "id":
+        try:
+            word = int(word)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        if (sample := db.db_handler.get_sample(word)) is None:
+            samples = []
+        else:
+            samples = [sample]
+    else:
+        assert False  # This should never happen
+
+    return make_response(
+        render_template(
+            "components/tables/sample.html",
+            current_query=word,
+            samples=samples,
             field_name=field_name
         ), push_url=False
     )

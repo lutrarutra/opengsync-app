@@ -1,10 +1,13 @@
-{% macro table_col(target_id, column_name, column_var, url, current_sort, current_sort_order, url_args={}) -%}
-<th scope="col" class="sortable-col {{ current_sort_order }}"
+{% macro table_col(target_id, column_name, column_var, url, current_sort, current_sort_order, url_args={}, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1) -%}
+<th scope="col" class="col-{{ col_size}} sortable-col {{ current_sort_order }} {{ 'query-col' if query_url else '' }}" id="table-col-{{ column_var }}"
 hx-target="#{{ target_id }}" hx-swap="outerHTML"
 hx-get={% if current_sort_order == 'asc' %}
     "{{ url_for(url, page=0, sort_by=column_var, order='desc', **url_args) }}"
 {% else %}
    "{{ url_for(url, page=0, sort_by=column_var, order='asc', **url_args) }}"
+{% endif %}
+{% if (current_query and column_var == field_name) %}
+style="display: none;"
 {% endif %}>
 {{ column_name }}
 {% if column_var == current_sort %}
@@ -22,5 +25,24 @@ hx-get={% if current_sort_order == 'asc' %}
         <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
     </svg>
 {% endif %}
+{% if query_url %}
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+</svg>
+{% endif %}
 </th>
+{% if query_url %}
+<th th scopy='col' class='temp-query-input' id='table-col-{{ column_var }}-temp'
+    {% if not (current_query and column_var == field_name) %}
+    style="display: none; height: 25px;"
+    {% else %}
+    style="height: 25px;"
+    {% endif %}>
+    <input type='{{ query_type }}' class='form-control' placeholder='{{ column_name }}'
+    id='{{ column_var }}-query-input' role='presentation' autocomplete='off' type='search'
+    hx-post='{{ query_url }}' hx-trigger='keyup changed delay:500ms, search' name="{{ column_var }}"
+    hx-target='#{{ target_id }}' hx-swap='outerHTML' value="{{ current_query }}"
+    style="height: 25px;">
+</th>
+{% endif %}
 {%- endmacro %}

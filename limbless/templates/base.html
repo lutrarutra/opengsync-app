@@ -123,6 +123,28 @@
         $("tr[data-href]").on("click", function(event) {
             window.location.href = this.dataset.href;
         });
+
+        $(document).on("click", "#right-click-bg", function(e) {
+            $("#copy-edit-menu").css({
+                display: "none"
+            }).children().remove();
+            $("#right-click-bg").css({
+                display: "none"
+            });
+        });
+
+        $(document).keyup(function(e) {
+            if (e.key === "Escape") {
+                $("#copy-edit-menu").css({
+                    display: "none"
+                }).empty();
+                $("#right-click-bg").css({
+                    display: "none"
+                });
+            }
+        });
+
+        
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
     </script>

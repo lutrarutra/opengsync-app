@@ -1,14 +1,24 @@
 from typing import Union, Optional
 
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 
-@dataclass
-class SearchResult():
-    value: Union[int, str]
-    name: str
-    description: Optional[str] = None
-    show_value: bool = False
+class SearchResult(ABC):
+    __config__ = None
+    
+    def __init__(self, show_value: bool = False, name_class: str = "", description_class: str = ""):
+        self.show_value = show_value
+        self.name_class = name_class
+        self.description_class = description_class
 
-    name_class: str = ""
-    description_class: str = ""
+    @abstractmethod
+    def search_value(self) -> Union[int, str]:
+        ...
+    
+    @abstractmethod
+    def search_name(self) -> str:
+        ...
+    
+    @abstractmethod
+    def search_description(self) -> Optional[str]:
+        ...

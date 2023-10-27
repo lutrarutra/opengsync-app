@@ -1,4 +1,5 @@
 {% from "components/pagination.jinja2" import pagination %}
+{% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col %}
 <div id="seq_request-table" class="table-container">
     <table class="table table-hover table-cursor">
@@ -8,9 +9,9 @@
                 {{ table_col('seq_request-table', 'Name', 'name', 'seq_requests_htmx.get', current_sort, current_sort_order) }}
                 {{ table_col('seq_request-table', 'Status', 'status', 'seq_requests_htmx.get', current_sort, current_sort_order) }}
                 {{ table_col('seq_request-table', 'Requestor', 'requestor_id', 'seq_requests_htmx.get', current_sort, current_sort_order) }}
-                <th scope="col">Requestor Email</th>
                 <th scope="col">Contact Name</th>
                 <th scope="col">Billing</th>
+                {# <th scope="col"><span class="d-flex justify-content-between align-items-center" style="width: 100%;">Billing <input type="text" class="form-control" style="height: 25px;"></span></th> #}
             </tr>
         </thead>
         <tbody>
@@ -19,10 +20,9 @@
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
                 <td>{{ seq_request.status_type.name }} {{ seq_request.status_type.description | safe }}</td>
-                <td>{{ seq_request.requestor.first_name }} {{ seq_request.requestor.last_name }}</td>
-                <td>{{ seq_request.requestor.email }}</td>
-                <td>{{ seq_request.contact_person.name }}</td>
-                <td>{{ seq_request.billing_contact.name }}</td>
+                <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.first_name }} {{ seq_request.requestor.last_name }}</td>
+                <td {{ tooltip("email: " + seq_request.contact_person.email + (" phone: " + seq_request.contact_person.phone if seq_request.contact_person.phone else "")) }}>{{ seq_request.contact_person.name }}</td>
+                <td {{ tooltip("email: " + seq_request.billing_contact.email + (" phone: " + seq_request.billing_contact.phone if seq_request.billing_contact.phone else "")) }}>{{ seq_request.billing_contact.name }}</td>
             </tr>
             {% endfor %}
         </tbody>

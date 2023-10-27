@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .User import User
 
 
-class Sample(SQLModel, table=True):
+class Sample(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
 
@@ -52,8 +52,14 @@ class Sample(SQLModel, table=True):
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name}, organism:{self.organism})"
 
-    def to_search_result(self) -> SearchResult:
-        return SearchResult(self.id, self.name, self.project.name)
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.name
+    
+    def search_description(self) -> Optional[str]:
+        return f"({self.project.name})"
     
     def is_editable(self) -> bool:
         return len(self.libraries) == 0

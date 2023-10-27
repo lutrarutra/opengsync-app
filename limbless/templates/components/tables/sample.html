@@ -4,10 +4,38 @@
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                {{ table_col('sample-table', 'ID', 'id', 'samples_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('sample-table', 'Name', 'name', 'samples_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('sample-table', 'Organism', 'organism_id', 'samples_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('sample-table', 'Owner', 'owner_id', 'samples_htmx.get', current_sort, current_sort_order) }}
+                {{
+                    table_col(
+                        'sample-table', 'ID', 'id', 'samples_htmx.get',
+                        current_sort, current_sort_order,
+                        query_url=url_for('samples_htmx.table_query'),
+                        current_query=current_query,
+                        field_name=field_name,
+                        query_type="number",
+                    )
+                }}
+                {{
+                    table_col(
+                        'sample-table', 'Name', 'name', 'samples_htmx.get',
+                        current_sort, current_sort_order,
+                        query_url=url_for('samples_htmx.table_query'),
+                        current_query=current_query,
+                        field_name=field_name,
+                        col_size=4
+                    )
+                }}
+                {{
+                    table_col(
+                        'sample-table', 'Organism', 'organism_id', 'samples_htmx.get',
+                        current_sort, current_sort_order, col_size=5
+                    )
+                }}
+                {{
+                    table_col(
+                        'sample-table', 'Owner', 'owner_id', 'samples_htmx.get',
+                        current_sort, current_sort_order, col_size=2
+                    )
+                }}
             </tr>
         </thead>
         <tbody>
@@ -28,4 +56,47 @@
         </tbody>
     </table>
     {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page) }}
+    <script>
+        var selected_column_var = null;
+
+        function show_query_col() {
+            const w = $(`#table-col-${selected_column_var}`).width();
+            const h = $(`#table-col-${selected_column_var}`).height();
+            $(".temp-query-input").hide();
+            $(".query-col").show();
+            $(`#table-col-${selected_column_var}`).hide();
+            $(`#table-col-${selected_column_var}-temp`).show().css({
+                "width": `${w}px`,
+            }).children("input").css({
+                "width": `${w}px`,
+                "height": `${h}px`,
+            }).focus();
+        }
+
+        $(document).off("contextmenu", ".query-col").on("contextmenu", ".query-col", function(e) {
+            e.preventDefault();
+            const x = e.pageX;
+            const y = e.pageY;
+            selected_column_var = e.target.id.split("-")[2];
+            console.log(selected_column_var);
+            $("#copy-edit-menu").css({
+                display: "block",
+                left: x + 8, top: y + 8
+            }).append([
+                `<li><a class='dropdown-item' onclick='show_query_col()'>Query</a></li>`,
+            ]);
+
+            $("#right-click-bg").css({
+                display: "block"
+            });
+        });
+
+        $(document).keyup(function(e) {
+            if (e.key === "Escape") {
+                $(".temp-query-input").hide();
+                $(".query-col").show();
+            }
+        });
+    </script>
 </div>
+
