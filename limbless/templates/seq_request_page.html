@@ -1,3 +1,4 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/form_group.jinja2' import form_group %}
 {% extends "base.html" %}
@@ -6,15 +7,13 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center">
         <div>
-            <h2>Sequencing Request: {{ seq_request.name }} ({{ seq_request.status_type.name }} {{ seq_request.status_type.description | safe }})</h2>
+            <h2>{{ seq_request.name }} ({{ seq_request.status_type.name }} {{ seq_request.status_type.description | safe }})</h2>
         </div>
         <div>
             {% if seq_request.status_type.name == "Draft" %}
             <span
             {% if not seq_request.is_submittable() %}
-            data-bs-toggle="tooltip" data-bs-placement="bottom"
-            data-bs-custom-class="custom-tooltip"
-            data-bs-title="You must add at least one library to submit the request."
+            {{ tooltip('You must add at least one library to submit the request.') }}
             {% endif %}>
                 <button hx-get="{{ url_for('seq_requests_htmx.submit', seq_request_id=seq_request.id) }}" class="btn btn-success"
                     _="on htmx:confirm(issueRequest)

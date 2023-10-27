@@ -1,5 +1,6 @@
 import os
 import warnings
+from uuid import uuid4
 
 from flask import Flask, render_template, redirect, request, url_for
 from sassutils.wsgi import SassMiddleware
@@ -57,6 +58,10 @@ def create_app():
     @app.context_processor
     def inject_debug():
         return dict(debug=app.debug)
+    
+    @app.context_processor
+    def inject_uuid():
+        return dict(uuid=uuid4)
 
     # app.register_blueprint(api.jobs_bp)
     app.register_blueprint(api.samples_htmx)

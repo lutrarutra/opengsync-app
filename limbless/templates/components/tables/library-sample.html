@@ -30,7 +30,7 @@
                 <td class="adapter-col">
                     {% for index in sample.indices %}
                         <span class="comma">
-                            <p>{{ index.sequence }}</p>
+                            <p class="sample-index-cell" id="sample-index-cell-{{uuid()}}">{{ index.sequence }}</p>
                             <p>{{ index.type }}</p>
                             <p>{{ "(" + index.workflow + ")" if index.workflow else "" }}</p>
                         </span>
@@ -70,6 +70,30 @@
 
 <script>
     var selected_sample_id = null;
+    var selected_index_element_id = null;
+
+    function copy_index_to_clipboard() {
+        const content = $("#" + selected_index_element_id).text().trim();
+        navigator.clipboard.writeText(content);
+    }
+
+    $(document).on("contextmenu", ".sample-index-cell", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_index_element_id = e.target.id;
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).append([
+            `<li><a class='dropdown-item' onclick='copy_index_to_clipboard()'>Copy</a></li>`,
+        ]);
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
+
     
     function copy_sample_name_to_clipboard() {
         const content = $("#sample-name-cell-" + selected_sample_id).text().trim();
@@ -77,15 +101,23 @@
     }
 
     function remove_sample() {
-        htmx.ajax(
-            "DELETE", "{{ url_for('libraries_htmx.remove_sample', library_id=library.id) }}?sample_id=" + selected_sample_id,
-            null, {
-                target: "#sample-table",
-                swapStyle: "outerHTML"
+        Swal.fire({
+            title: `Remove sample (id='${selected_sample_id}') from '{{library.name}}'-library ?`,
+            showDenyButton: true,
+            text: 'Are you sure?',
+            confirmButtonText: 'Yes',
+            denyButtonText: 'No'
+        }).then(function(e) {
+            if (e.isConfirmed) {
+                htmx.ajax(
+                "DELETE", "{{ url_for('libraries_htmx.remove_sample', library_id=library.id) }}?sample_id=" + selected_sample_id,
+                null, {
+                    target: "#sample-table",
+                    swapStyle: "outerHTML"
+                });
             }
-        ).then(() => {
-            console.log("sample removed");
         });
+        
     }
 
     $(document).on("contextmenu", ".sample-name-cell", function(e) {

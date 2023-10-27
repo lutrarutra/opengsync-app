@@ -1,3 +1,4 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
 {% extends "base.html" %}
 {% set active_page = "samples-page" %}
 {% block content %}
@@ -9,9 +10,7 @@
         <div>
             <span
             {% if not sample.is_editable() %}
-            data-bs-toggle="tooltip" data-bs-placement="bottom"
-            data-bs-custom-class="custom-tooltip"
-            data-bs-title="Sample is not editable after it is added to library."
+            {{ tooltip('Sample is not editable after it is added to library.') }}
             {% endif %}>
             <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#sample-form-popup"
@@ -21,9 +20,7 @@
             </span>
             <span
             {% if not sample.is_editable() %}
-            data-bs-toggle="tooltip" data-bs-placement="bottom"
-            data-bs-custom-class="custom-tooltip"
-            data-bs-title="Sample is not editable after it is added to library."
+            {{ tooltip('Sample is not editable after it is added to library.') }}
             {% endif %}>
             <button hx-get="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
                 _="on htmx:confirm(issueRequest)

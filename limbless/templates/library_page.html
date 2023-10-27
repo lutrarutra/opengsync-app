@@ -1,4 +1,5 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+{% from 'components/tooltip.jinja2' import tooltip %}
 {% extends "base.html" %}
 {% set active_page = "libraries-page" %}
 {% block content %}
@@ -10,9 +11,7 @@
         <div>
             <span
                 {% if not library.is_editable() %}
-                data-bs-toggle="tooltip" data-bs-placement="bottom"
-                data-bs-custom-class="custom-tooltip"
-                data-bs-title="Library cannot be edited after samples have been added."
+                {{ tooltip('Library cannot be edited after samples have been added.') }}
                 {% endif %}>
                 <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup" {{ "disabled" if not library.is_editable() }}>
                     Edit Library
@@ -39,7 +38,7 @@
         <div class="tab-pane fade show active" id="library-samples-tab" role="tabpanel" tabindex="0">
             <div class="d-flex justify-content-between">
                 <div>
-                    <h2>Samples</h2>
+                    <h2>Samples <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
                     <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-form-popup">
