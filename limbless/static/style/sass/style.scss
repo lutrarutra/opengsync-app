@@ -66,6 +66,9 @@ body {
     background-color: transparent;
     top: 0;
     z-index: 16;
+    .dropdown-item:hover {
+        cursor: pointer;
+    }
 }
 
 #main {

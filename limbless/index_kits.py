@@ -14,8 +14,8 @@ def add_dual_indexes(db_handler: DBHandler, df, index_kit):
                 _type = "i7"
             else:
                 _type = "i5"
-                workflow = " ".join(df.columns[i].split("_")[1:])
-                workflow = workflow.removesuffix("(i5)")
+                workflow = " ".join(df.columns[i].split(" ")[1:])
+                workflow = workflow.removesuffix("(i5)").strip()
 
             db_handler.create_seq_index(
                 sequence=seq,

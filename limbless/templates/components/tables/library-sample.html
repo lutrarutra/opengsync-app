@@ -13,13 +13,15 @@
             </tr>
         </thead>
         <tbody>
-            {% for sample in samples %}
+            {% for sample in library.samples %}
             <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id) }}';">
                 <th scope="row">{{ sample.id }}</th>
-                <td>{{ sample.name }}</td>
+
+                <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
+                
                 {% if not library.is_raw_library() %}
                 {% set adapter = (sample.indices | first).adapter %}
-                <td class="sample-adapter" id="sample-adapter-col-{{sample.id}}"
+                <td class="sample-adapter-cell" id="sample-adapter-cell-{{sample.id}}"
                     hx-get="{{ url_for('libraries_htmx.get_edit_library_sample_adapter_form', library_id=library.id, sample_id=sample.id) }}"
                     hx-trigger="sample-adapter-edit-{{ sample.id }} from:body"
                     hx-target="#edit-index-form" hx-swap="outerHTML">
@@ -68,17 +70,53 @@
 
 <script>
     var selected_sample_id = null;
-    function edit_sample_adapter() {
-        $("#library-sample-edit-adapter-form").modal("show");
-        htmx.trigger("#sample-adapter-col-" + selected_sample_id, "sample-adapter-edit-" + selected_sample_id);
-    }
-
-    function copy_adapter_to_clipboard() {
-        const content = $("#sample-adapter-col-" + selected_sample_id).text();
+    
+    function copy_sample_name_to_clipboard() {
+        const content = $("#sample-name-cell-" + selected_sample_id).text().trim();
         navigator.clipboard.writeText(content);
     }
 
-    $(document).on("contextmenu", ".sample-adapter", function(e) {
+    function remove_sample() {
+        htmx.ajax(
+            "DELETE", "{{ url_for('libraries_htmx.remove_sample', library_id=library.id) }}?sample_id=" + selected_sample_id,
+            null, {
+                target: "#sample-table",
+                swapStyle: "outerHTML"
+            }
+        ).then(() => {
+            console.log("sample removed");
+        });
+    }
+
+    $(document).on("contextmenu", ".sample-name-cell", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_sample_id = e.target.id.split("-")[3];
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).append([
+            `<li><a class='dropdown-item' onclick='copy_sample_name_to_clipboard()'>Copy</a></li>`,
+            `<li><a class='dropdown-item' onclick='remove_sample()'>Remove</a></li>`
+        ]);
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
+    
+    function edit_sample_adapter() {
+        $("#library-sample-edit-adapter-form").modal("show");
+        htmx.trigger("#sample-adapter-cell-" + selected_sample_id, "sample-adapter-edit-" + selected_sample_id);
+    }
+
+    function copy_adapter_to_clipboard() {
+        const content = $("#sample-adapter-cell-" + selected_sample_id).text().trim();
+        navigator.clipboard.writeText(content);
+    }
+
+    $(document).on("contextmenu", ".sample-adapter-cell", function(e) {
         e.preventDefault();
         const x = e.pageX;
         const y = e.pageY;
@@ -90,8 +128,6 @@
             "<li><a class='dropdown-item' onclick='copy_adapter_to_clipboard()'>Copy</a></li>",
             "<li><a class='dropdown-item' onclick='edit_sample_adapter()'>Edit</a></li>"
         ]);
-
-        const val = e.target.textContent;
 
         $("#right-click-bg").css({
             display: "block"

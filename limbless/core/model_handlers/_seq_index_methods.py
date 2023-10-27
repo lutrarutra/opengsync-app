@@ -36,7 +36,7 @@ def create_seq_index(
             models.SeqIndex.workflow == workflow
         )
     ).first() is not None:
-        raise exceptions.NotUniqueValue(f"SeqIndex with sequence '{sequence}', already exists in index-kit '{index_kit.name}'.")
+        raise exceptions.NotUniqueValue(f"SeqIndex with sequence '{sequence} ({type} [{workflow}])', already exists in index-kit '{index_kit.name}'.")
 
     seq_index = models.SeqIndex(
         sequence=sequence,

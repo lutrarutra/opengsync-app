@@ -293,6 +293,34 @@ def add_sample(library_id: int):
     )
 
 
+@libraries_htmx.route("<int:library_id>/remove_sample", methods=["DELETE"])
+@login_required
+def remove_sample(library_id: int):
+    if (sample_id := request.args.get("sample_id")) is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    try:
+        sample_id = int(sample_id)
+    except ValueError:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    with DBSession(db.db_handler) as session:
+        if (library := session.get_library(library_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        if (sample := session.get_sample(sample_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        session.unlink_library_sample(library_id=library_id, sample_id=sample_id)
+
+    logger.debug(f"Removed sample '{sample.name}' from library '{library.name}'")
+    flash(f"Removed sample '{sample.name}' from library '{library.name}'.", "success")
+
+    return make_response(
+        redirect=url_for("libraries_page.library_page", library_id=library.id)
+    )
+
+
 @libraries_htmx.route("<int:library_id>/parse_table", methods=["POST"])
 @login_required
 def parse_table(library_id: int):
