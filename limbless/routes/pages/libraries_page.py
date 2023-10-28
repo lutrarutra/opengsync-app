@@ -48,7 +48,7 @@ def library_page(library_id):
     library_form.index_kit.data = library.index_kit_id
     library_form.is_premade_library.data = not library.is_raw_library()
 
-    available_samples = db.db_handler.query_samples_for_library(
+    available_samples = db.db_handler.query_samples(
         word="", exclude_library_id=library_id, user_id=current_user.id
     )
 

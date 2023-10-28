@@ -38,7 +38,7 @@ def project_page(project_id):
         if access is None:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-        samples = session.get_project_samples(project_id)
+        samples = project.samples
 
     return render_template(
         "project_page.html", project=project,
@@ -46,4 +46,5 @@ def project_page(project_id):
         samples=samples,
         table_form=forms.TableForm(),
         common_organisms=db.common_organisms,
+        active_page=0,
     )

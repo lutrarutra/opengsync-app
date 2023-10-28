@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .SeqAdapter import SeqAdapter
 
 
-class IndexKit(SQLModel, table=True):
+class IndexKit(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True, unique=True)
 

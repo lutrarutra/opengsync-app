@@ -1,5 +1,8 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% if not active_page %}
+{% set active_page = 0 %}
+{% endif %}
 <div id="sample-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -7,7 +10,7 @@
                 {{
                     table_col(
                         target_id='sample-table', column_name='ID', column_var='id',
-                        sort_url='samples_htmx.get',
+                        sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         query_url=url_for('samples_htmx.table_query'), current_query=current_query,
                         field_name=field_name, query_type="number",
@@ -16,7 +19,7 @@
                 {{
                     table_col(
                         target_id='sample-table', column_name='Name', column_var='name',
-                        sort_url='samples_htmx.get',
+                        sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         query_url=url_for('samples_htmx.table_query'), current_query=current_query,
                         field_name=field_name, col_size=4
@@ -25,7 +28,7 @@
                 {{
                     table_col(
                         target_id='sample-table', column_name='Organism', column_var='organism_id',
-                        sort_url='samples_htmx.get',
+                        sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         col_size=5
                     )
@@ -33,7 +36,7 @@
                 {{
                     table_col(
                         target_id='sample-table', column_name='Owner', column_var='owner_id',
-                        sort_url='samples_htmx.get',
+                        sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         col_size=2
                     )

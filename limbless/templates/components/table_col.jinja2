@@ -1,10 +1,13 @@
-{% macro table_col(target_id, column_name, column_var, url, current_sort, current_sort_order, url_args={}, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1) -%}
+{% macro table_col(target_id, column_name, column_var, sort_url=none, current_sort=none, current_sort_order=none, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1, sort_url_args={}, active_page=0) -%}
 <th scope="col" class="col-{{ col_size}} sortable-col {{ current_sort_order }} {{ 'query-col' if query_url else '' }}" id="table-col-{{ column_var }}"
 hx-target="#{{ target_id }}" hx-swap="outerHTML"
-hx-get={% if current_sort_order == 'asc' %}
-    "{{ url_for(url, page=0, sort_by=column_var, order='desc', **url_args) }}"
-{% else %}
-   "{{ url_for(url, page=0, sort_by=column_var, order='asc', **url_args) }}"
+{% if sort_url %}
+hx-get="{{
+    url_for(
+        sort_url, page=active_page | float | int, sort_by=column_var,
+        order='asc' if current_sort_order == 'desc' else 'desc', **sort_url_args
+    )
+}}"
 {% endif %}
 {% if (current_query and column_var == field_name) %}
 style="display: none;"

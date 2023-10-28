@@ -100,7 +100,7 @@ def get_index_kits(
 
 def query_index_kit(
     self, word: str, library_type: Optional[LibraryType] = None, limit: Optional[int] = 20
-) -> list[SearchResult]:
+) -> list[models.IndexKit]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

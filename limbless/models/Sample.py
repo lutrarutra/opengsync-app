@@ -59,7 +59,7 @@ class Sample(SQLModel, SearchResult, table=True):
         return self.name
     
     def search_description(self) -> Optional[str]:
-        return f"({self.project.name})"
+        return self.project.name
     
     def is_editable(self) -> bool:
         return len(self.libraries) == 0

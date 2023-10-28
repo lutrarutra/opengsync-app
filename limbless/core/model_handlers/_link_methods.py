@@ -76,37 +76,6 @@ def get_project_users(self, project_id: int) -> list[models.User]:
     return project_users
 
 
-def get_project_samples(
-    self, project_id: int, limit: Optional[int] = None, offset: Optional[int] = None
-) -> list[models.Sample]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Project, project_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
-
-    query = self._session.query(models.Sample).join(
-        models.Organism, models.Sample.organism_id == models.Organism.tax_id
-    ).options(
-        selectinload(models.Sample.organism),
-    ).where(
-        models.Sample.project_id == project_id
-    ).order_by(models.Sample.id.desc())
-
-    if offset is not None:
-        query = query.offset(offset)
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    project_samples = query.all()
-
-    if not persist_session:
-        self.close_session()
-    return project_samples
-
-
 def get_run_libraries(self, run_id: int) -> list[models.Library]:
     persist_session = self._session is not None
     if not self._session:

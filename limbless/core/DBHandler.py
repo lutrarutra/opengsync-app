@@ -110,7 +110,6 @@ class DBHandler():
     )
 
     from .model_handlers._link_methods import (
-        get_project_samples,
         get_project_users,
         get_run_libraries,
         get_library_samples,

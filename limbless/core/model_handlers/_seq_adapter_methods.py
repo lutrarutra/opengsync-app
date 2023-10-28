@@ -148,11 +148,7 @@ def query_adapters(
 
     adapters = query.all()
 
-    search_res = [
-        adapter.to_search_result() for adapter in adapters
-    ]
-
     if not persist_session:
         self.close_session()
 
-    return search_res
+    return adapters

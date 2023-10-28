@@ -1,7 +1,7 @@
 from typing import Optional
 
 import pandas as pd
-from sqlmodel import and_, func
+from sqlmodel import and_, func, or_
 
 from ... import models, logger
 from .. import exceptions
@@ -58,15 +58,23 @@ def get_sample(self, sample_id: int) -> models.Sample:
     return res
 
 
-def get_num_samples(self, user_id: Optional[int] = None) -> int:
+def get_num_samples(
+    self, user_id: Optional[int] = None, project_id: Optional[int] = None
+) -> int:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.Sample)
+
     if user_id is not None:
         query = query.where(
             models.Sample.owner_id == user_id
+        )
+
+    if project_id is not None:
+        query = query.where(
+            models.Sample.project_id == project_id
         )
 
     res = query.count()
@@ -77,8 +85,9 @@ def get_num_samples(self, user_id: Optional[int] = None) -> int:
 
 
 def get_samples(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None,
-    user_id: Optional[int] = None, sort_by: Optional[str] = None, reversed: bool = False
+    self, user_id: Optional[int] = None, project_id: Optional[int] = None,
+    limit: Optional[int] = 20, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, reversed: bool = False,
 ) -> list[models.Sample]:
     persist_session = self._session is not None
     if not self._session:
@@ -95,6 +104,11 @@ def get_samples(
     if user_id is not None:
         query = query.where(
             models.Sample.owner_id == user_id
+        )
+
+    if project_id is not None:
+        query = query.where(
+            models.Sample.project_id == project_id
         )
 
     if offset is not None:
@@ -186,6 +200,7 @@ def delete_sample(
 def query_samples(
     self, word: str,
     user_id: Optional[int] = None,
+    exclude_library_id: Optional[int] = None,
     limit: Optional[int] = 20
 ) -> list[models.Sample]:
 
@@ -200,6 +215,18 @@ def query_samples(
             models.Sample.owner_id == user_id
         )
 
+    if exclude_library_id is not None:
+        query = query.join(
+            models.LibrarySampleLink,
+            models.Sample.id == models.LibrarySampleLink.sample_id,
+            isouter=True
+        ).where(
+            or_(
+                models.LibrarySampleLink.library_id != exclude_library_id,
+                models.LibrarySampleLink.library_id == None
+            )
+        )
+
     query = query.order_by(
         func.similarity(models.Sample.name, word).desc()
     )
@@ -211,96 +238,5 @@ def query_samples(
 
     if not persist_session:
         self.close_session()
-
-    return res
-
-# This excludes samples already existing in the library
-
-
-def query_samples_for_library(
-    self, word: str,
-    exclude_library_id: int,
-    user_id: Optional[int] = None,
-    limit: Optional[int] = 20
-) -> list[SearchResult]:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Library, exclude_library_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {exclude_library_id} does not exist")
-    
-    params: dict[str, str | int] = {"word": word}
-
-    if exclude_library_id is not None:
-        params["library_id"] = exclude_library_id
-
-    q = """
-SELECT
-    sample.id, sample.name, project.name as project_name, librarysamplelink.library_id,
-    similarity(lower(sample.name), lower(%(word)s)) as sml
-FROM
-    sample
-JOIN
-    project
-ON
-    sample.project_id = project.id
-LEFT JOIN
-    librarysamplelink
-ON
-    sample.id = librarysamplelink.sample_id
-"""
-    if exclude_library_id is not None:
-        q += """
-AND
-    librarysamplelink.library_id = %(library_id)s"""
-
-    if user_id is not None:
-        params["user_id"] = user_id
-        q += """
-WHERE
-    sample.owner_id = %(user_id)s"""
-
-        if exclude_library_id is not None:
-            q += """
-AND
-    (
-    librarysamplelink.library_id != %(library_id)s
-        OR
-    librarysamplelink.library_id IS NULL
-    )"""
-    
-    else:
-        if exclude_library_id is not None:
-            q += """
-WHERE
-    librarysamplelink.library_id != %(library_id)s
-        OR
-    librarysamplelink.library_id IS NULL"""
-
-    q += """
-ORDER BY sml DESC"""
-
-    if limit is not None:
-        params["limit"] = limit
-        q += """
-LIMIT %(limit)s;"""
-
-    else:
-        q += ";"
-
-    res = pd.read_sql(q, self._engine, params=params)
-
-    if not persist_session:
-        self.close_session()
-
-    res = [
-        SearchResult(
-            value=sample["id"],
-            name=sample["name"],
-            description=sample["project_name"]
-        ) for _, sample in res.iterrows()
-    ]
 
     return res

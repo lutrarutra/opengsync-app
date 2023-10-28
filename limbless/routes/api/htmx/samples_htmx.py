@@ -22,22 +22,50 @@ def get(page: int):
     order = request.args.get("order", "desc")
     reversed = order == "desc"
 
+    logger.debug(request.args)
+    logger.debug(sort_by)
+
     if sort_by not in models.Sample.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
+    template = "components/tables/sample.html"
+    
+    if (project_id := request.args.get("project_id", None)) is not None:
+        try:
+            project_id = int(project_id)
+            if (project := db.db_handler.get_project(project_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        template = "components/tables/project-sample.html"
+    else:
+        project = None
+
+    if (library_id := request.args.get("library_id", None)) is not None:
+        try:
+            library_id = int(library_id)
+            if (library := db.db_handler.get_library(library_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        template = "components/tables/library-sample.html"
+    else:
+        library = None
+    
     with DBSession(db.db_handler) as session:
         if current_user.role_type == UserRole.CLIENT:
-            samples = session.get_samples(limit=20, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
-            n_pages = int(session.get_num_samples(user_id=current_user.id) / 20)
+            samples = session.get_samples(limit=20, project_id=project_id, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
+            n_pages = int(session.get_num_samples(user_id=current_user.id, project_id=project_id) / 20)
         else:
-            samples = session.get_samples(limit=20, user_id=None, sort_by=sort_by, reversed=reversed)
-            n_pages = int(session.get_num_samples(user_id=None) / 20)
+            samples = session.get_samples(limit=20, project_id=project_id, sort_by=sort_by, reversed=reversed)
+            n_pages = int(session.get_num_samples(project_id=project_id) / 20)
     
         return make_response(
             render_template(
-                "components/tables/sample.html", samples=samples,
+                template, samples=samples,
                 n_pages=n_pages, active_page=page,
-                current_sort=sort_by, current_sort_order=order
+                current_sort=sort_by, current_sort_order=order,
+                project=project, library=library
             ), push_url=False
         )
 
@@ -402,7 +430,7 @@ def query(exclude_library_id: Optional[int] = None):
     if exclude_library_id is None:
         results = db.db_handler.query_samples(query, user_id=_user_id)
     else:
-        results = db.db_handler.query_samples_for_library(
+        results = db.db_handler.query_samples(
             query, exclude_library_id=exclude_library_id, user_id=_user_id
         )
 
