@@ -12,6 +12,7 @@ class DescriptiveEnum():
     name: str
     description: str | None = None
 
+
 class ExtendedEnumMeta(EnumMeta):
     def as_tuples(cls: Type[T]) -> list[Tuple[int, DescriptiveEnum]]:
         return [(c.value.id, c.value) for c in cls]

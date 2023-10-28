@@ -96,7 +96,7 @@ def get_organisms_by_name(self, name: str) -> list[models.Organism]:
     return organism
 
 
-def query_organisms(self, word: str, limit: Optional[int] = 20) -> list[SearchResult]:
+def query_organisms(self, word: str, limit: Optional[int] = 20) -> list[models.Organism]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -115,10 +115,7 @@ def query_organisms(self, word: str, limit: Optional[int] = 20) -> list[SearchRe
 
     organisms = query.all()
 
-    res = [
-        organism.to_search_result() for organism in organisms
-    ]
-
     if not persist_session:
         self.close_session()
-    return res
+
+    return organisms

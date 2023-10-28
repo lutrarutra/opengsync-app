@@ -22,7 +22,7 @@
             {% if not sample.is_editable() %}
             {{ tooltip('Sample is not editable after it is added to library.') }}
             {% endif %}>
-            <button hx-get="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
+            <button hx-delete="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
                 _="on htmx:confirm(issueRequest)
                 halt the event
                 call Swal.fire({

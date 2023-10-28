@@ -5,9 +5,9 @@
         <thead>
             <tr>
                 {{ table_col('project-table', 'ID', 'id', 'projects_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('project-table', 'Name', 'name', 'projects_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('project-table', 'Owner', 'owner_id', 'projects_htmx.get', current_sort, current_sort_order) }}
-                <th scope="col"># Samples</th>
+                {{ table_col('project-table', 'Name', 'name', 'projects_htmx.get', current_sort, current_sort_order, col_size=3) }}
+                {{ table_col('project-table', 'Owner', 'owner_id', 'projects_htmx.get', current_sort, current_sort_order, col_size=2) }}
+                <th scope="col col-1"># Samples</th>
             </tr>
         </thead>
         <tbody>

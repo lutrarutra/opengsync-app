@@ -86,15 +86,17 @@ def create(project_id: int):
     )
 
 
-@samples_htmx.route("<int:sample_id>/delete", methods=["GET"])
+@samples_htmx.route("<int:sample_id>/delete", methods=["DELETE"])
 @login_required
 def delete(sample_id: int):
-    sample = db.db_handler.get_sample(sample_id)
-    if sample is None:
-        return redirect("/projects")
+    logger.debug(sample_id)
+    if (sample := db.db_handler.get_sample(sample_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if not sample.is_editable():
+        return abort(HttpResponse.FORBIDDEN.value.id)
 
-    with DBSession(db.db_handler) as session:
-        session.delete_sample(sample_id)
+    db.db_handler.delete_sample(sample_id)
 
     logger.info(f"Deleted sample {sample.name} (id: {sample.id})")
     flash(f"Deleted sample {sample.name} (id: {sample.id})", "success")
@@ -344,11 +346,12 @@ def restart_form(project_id: int):
 @samples_htmx.route("<int:sample_id>/edit", methods=["POST"])
 @login_required
 def edit(sample_id):
-    if (sample := db.db_handler.get_sample(sample_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+    with DBSession(db.db_handler) as session:
+        if (sample := session.get_sample(sample_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
 
-    if not sample.is_editable():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        if not sample.is_editable():
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
     sample_form = forms.SampleForm()
     validated, sample_form = sample_form.custom_validate(
@@ -361,6 +364,7 @@ def edit(sample_id):
         return make_response(
             render_template(
                 "forms/sample/sample.html",
+                selected_organism=sample.organism,
                 sample_form=sample_form, sample=sample
             ), push_url=False
         )

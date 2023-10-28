@@ -5,7 +5,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import LibrarySampleLink, RunLibraryLink, LibrarySeqRequestLink
 from ..categories import LibraryType
-from ..tools.SearchResult import SearchResult
+from ..tools import SearchResult
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
@@ -23,7 +23,7 @@ class LibraryTypeId(SQLModel, table=True):
         return LibraryType.get(self.id)
 
 
-class Library(SQLModel, table=True):
+class Library(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
     library_type_id: int = Field(nullable=False)
@@ -54,7 +54,6 @@ class Library(SQLModel, table=True):
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "library_type_id", "owner_id"]
 
-    _num_samples: int = PrivateAttr(0)
     _sample_path: str = PrivateAttr("")
 
     def to_dict(self):
@@ -74,9 +73,11 @@ class Library(SQLModel, table=True):
     def is_editable(self) -> bool:
         return len(self.samples) == 0
     
-    def to_search_result(self) -> SearchResult:
-        return SearchResult(
-            value=self.id,
-            name=self.name,
-            description=self.library_type.value.name,
-        )
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.name
+    
+    def search_description(self) -> Optional[str]:
+        return self.library_type.value.name

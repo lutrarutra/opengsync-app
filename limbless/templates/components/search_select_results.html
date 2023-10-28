@@ -4,15 +4,15 @@
     <li>
         <a id="option-{{ field_name}}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
-        value="{{ res.value }}"
-        onclick="select_option('{{ res.name }}', '{{ res.value }}', '{{ field_name }}');"
+        value="{{ res.search_value() }}"
+        onclick="select_option('{{ res.search_name() }}', '{{ res.search_value() }}', '{{ field_name }}');"
         aria-controls="{{ field_name }}">
-            <span class="search-select-name {{ res.name_class }}">{{ res.name }}</span>
-            {% if res.show_value %}
-            <span class="search-select-value">[{{ res.value }}]</span>
+            <span class="search-select-name {{ res.name_class() }}">{{ res.search_name() }}</span>
+            {% if res.show_value() %}
+            <span class="search-select-value">[{{ res.search_value() }}]</span>
             {% endif %}
-            {% if res.description %}
-            <span class="search-select-desc {{ res.description_class }}">({{ res.description }})</span>
+            {% if res.search_description() %}
+            <span class="search-select-desc {{ res.description_class() }}">({{ res.search_description() }})</span>
             {% endif %}
         </a>
     </li>

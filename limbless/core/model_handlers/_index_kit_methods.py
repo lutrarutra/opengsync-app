@@ -11,9 +11,7 @@ from ._link_methods import link_index_kit_library_type
 
 
 def create_index_kit(
-    self,
-    name: str,
-    allowed_library_types: list[LibraryType]
+    self, name: str, allowed_library_types: list[LibraryType]
 ) -> models.IndexKit:
     persist_session = self._session is not None
     if not self._session:
@@ -124,8 +122,6 @@ def query_index_kit(
         query = query.limit(limit)
 
     res = query.all()
-
-    res = [SearchResult(index_kit.id, index_kit.name) for index_kit in res]
 
     if not persist_session:
         self.close_session()

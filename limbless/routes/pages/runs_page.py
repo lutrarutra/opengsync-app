@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from ... import db, forms
 from ...core import DBSession
 from ...categories import UserRole
+from ...categories import HttpResponse
 
 runs_page_bp = Blueprint("runs_page", __name__)
 
@@ -46,10 +47,10 @@ def run_page(run_id):
 
     with DBSession(db.db_handler) as session:
         run = session.get_run(run_id)
-        run.libraries = session.get_run_libraries(run_id)
-        for library in run.libraries:
-            library.samples = session.get_library_samples(library.id)
-            library._num_samples = len(library.samples)
+        # run.libraries = session.get_run_libraries(run_id)
+        # for library in run.libraries:
+        #     library.samples = session.get_library_samples(library.id)
+        #     library._num_samples = len(library.samples)
 
     return render_template(
         "run_page.html", run=run,

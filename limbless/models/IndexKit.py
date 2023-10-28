@@ -5,6 +5,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import IndexKitLibraryType
 from .Library import LibraryTypeId
+from ..tools import SearchResult
 
 if TYPE_CHECKING:
     from .SeqAdapter import SeqAdapter
@@ -31,3 +32,12 @@ class IndexKit(SQLModel, table=True):
     @property
     def library_types(self):
         return [library_type.library_type for library_type in self.library_type_ids]
+    
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.name
+    
+    def search_description(self) -> Optional[str]:
+        return None

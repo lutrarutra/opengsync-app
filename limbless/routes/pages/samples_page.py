@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 
 from ... import db, forms, logger
 from ...core import DBSession
-from ...categories import UserRole
+from ...categories import UserRole, HttpResponse
 
 samples_page_bp = Blueprint("samples_page", __name__)
 
@@ -38,9 +38,8 @@ def sample_page(sample_id):
             return abort(HttpResponse.FORBIDDEN.value.id)
 
     sample_form = forms.SampleForm()
-
     sample_form.name.data = sample.name
-    sample_form.organism.data = sample.organism
+    sample_form.organism.data = sample.organism.tax_id
 
     with DBSession(db.db_handler) as session:
         sample = session.get_sample(sample_id)
@@ -52,6 +51,5 @@ def sample_page(sample_id):
     return render_template(
         "sample_page.html", sample_form=sample_form,
         sample=sample, libraries=libraries,
-        runs=runs,
-        selected_organism=sample.organism
+        runs=runs, selected_organism=sample.organism
     )

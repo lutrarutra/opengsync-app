@@ -5,7 +5,7 @@ from sqlmodel import Field, SQLModel
 from ..tools.SearchResult import SearchResult
 
 
-class Organism(SQLModel, table=True):
+class Organism(SQLModel, SearchResult, table=True):
     tax_id: int = Field(default=None, primary_key=True)
     scientific_name: str = Field(nullable=False, max_length=128, index=True)
     common_name: Optional[str] = Field(nullable=True, max_length=128, index=True)
@@ -21,11 +21,17 @@ class Organism(SQLModel, table=True):
     def id(self):
         return self.tax_id
     
-    def to_search_result(self) -> SearchResult:
-        return SearchResult(
-            value=self.tax_id,
-            name=self.scientific_name,
-            description=self.common_name,
-            show_value=True,
-            name_class="latin",
-        )
+    def show_value(self) -> bool:
+        return True
+    
+    def name_class(self) -> str:
+        return "latin"
+    
+    def search_value(self) -> int:
+        return self.tax_id
+    
+    def search_name(self) -> str:
+        return self.scientific_name
+    
+    def search_description(self) -> Optional[str]:
+        return self.common_name

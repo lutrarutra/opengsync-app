@@ -5,11 +5,10 @@
         <thead>
             <tr>
                 {{ table_col('library-table', 'ID', 'id', 'libraries_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('library-table', 'Name', 'name', 'libraries_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('library-table', 'Type', 'library_type_id', 'libraries_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('library-table', 'Owner', 'owner_id', 'libraries_htmx.get', current_sort, current_sort_order) }}
-                <th scope="col">Index Kit</th>
-                <th scope="col"># Samples</th>
+                {{ table_col('library-table', 'Name', 'name', 'libraries_htmx.get', current_sort, current_sort_order, col_size=3) }}
+                {{ table_col('library-table', 'Type', 'library_type_id', 'libraries_htmx.get', current_sort, current_sort_order, col_size=3) }}
+                {{ table_col('library-table', 'Owner', 'owner_id', 'libraries_htmx.get', current_sort, current_sort_order, col_size=2) }}
+                <th scope="col" class="col-3">Index Kit</th>
             </tr>
         </thead>
         <tbody>
@@ -20,7 +19,6 @@
                 <td>{{ library.library_type.value.name }}</td>
                 <td><span class="owner-col"><p>{{ library.owner.first_name }} {{ library.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>
-                <td>{{ library._num_samples }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -5,9 +5,23 @@
         <thead>
             <tr>
                 {{ table_col('user-table', 'ID', 'id', 'users_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('user-table', 'Email', 'email', 'users_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('user-table', 'Role', 'role', 'users_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('user-table', 'Name', 'last_name', 'users_htmx.get', current_sort, current_sort_order) }}
+                {{
+                    table_col(
+                        'user-table', 'Name', 'last_name', 'users_htmx.get',
+                        current_sort, current_sort_order, col_size=3,
+                        query_url=url_for('users_htmx.table_query'), current_query=current_query,
+                        field_name=field_name
+                    )
+                }}
+                {{
+                    table_col(
+                        'user-table', 'Email', 'email', 'users_htmx.get',
+                        current_sort, current_sort_order, col_size=3,
+                        query_url=url_for('users_htmx.table_query'), current_query=current_query,
+                        field_name=field_name
+                    )
+                }}
+                {{ table_col('user-table', 'Role', 'role', 'users_htmx.get', current_sort, current_sort_order, col_size=2) }}
                 <th scope="col"># Requests</th>
                 <th scope="col"># Projects</th>
             </tr>
@@ -16,9 +30,9 @@
             {% for user in users %}
             <tr onclick="window.location.href='{{ url_for('user_page.user_page', user_id=user.id) }}';">
                 <th scope="row">{{ user.id }}</th>
+                <td><span class="owner-col"><p>{{ user.first_name }} {{ user.last_name }}</p> <p>{{ "(me)" if current_user.id == user.id }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.role_type.value.description }} {{ user.role_type.value.name }}</td>
-                <td><span class="owner-col"><p>{{ user.first_name }} {{ user.last_name }}</p> <p>{{ "(me)" if current_user.id == user.id }}</td>
                 <td>{{ user.requests | length }}</td>
                 <td>{{ user.projects | length }}</td>
             </tr>

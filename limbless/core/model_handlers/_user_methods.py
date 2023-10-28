@@ -1,5 +1,7 @@
 from typing import Optional
 
+from sqlmodel import func
+
 from ... import models, bcrypt
 from .. import exceptions
 from ...categories import UserRole
@@ -159,3 +161,50 @@ def delete_user(self, user_id: int, commit: bool = True) -> None:
 
     if not persist_session:
         self.close_session()
+
+
+def query_users(self, word: str, limit: Optional[int] = 20) -> list[models.User]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.User)
+
+    query = query.order_by(
+        func.sum(
+            func.similarity(models.User.first_name, word),
+            func.similarity(models.User.last_name, word),
+        ).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    users = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return users
+
+
+def query_users_by_email(self, word: str, limit: Optional[int] = 20) -> list[models.User]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.User)
+
+    query = query.order_by(
+        func.similarity(models.User.email, word).desc(),
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    users = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return users

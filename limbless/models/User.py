@@ -82,7 +82,6 @@ class User(UserMixin, SQLModel, table=True):
     )
     samples: List["Sample"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "noload"}
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role"]

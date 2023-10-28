@@ -5,11 +5,15 @@ from abc import ABC, abstractmethod
 
 class SearchResult(ABC):
     __config__ = None
+
+    def show_value(self) -> bool:
+        return False
     
-    def __init__(self, show_value: bool = False, name_class: str = "", description_class: str = ""):
-        self.show_value = show_value
-        self.name_class = name_class
-        self.description_class = description_class
+    def name_class(self) -> str:
+        return ""
+    
+    def description_class(self) -> str:
+        return ""
 
     @abstractmethod
     def search_value(self) -> Union[int, str]:

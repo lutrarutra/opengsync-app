@@ -6,7 +6,7 @@ from flask_login import current_user, login_required
 
 from .... import db, forms, logger, models
 from ....core import DBSession
-from ....categories import HttpResponse
+from ....categories import HttpResponse, UserRole
 
 users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/users/")
 
@@ -43,4 +43,38 @@ def email(user_id: int):
     
     return make_response(
         redirect="mailto:" + user.email
+    )
+
+@users_htmx.route("table_query", methods=["POST"])
+@login_required
+def table_query():
+    if current_user.role_type not in [UserRole.ADMIN, UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN]:
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    if (word := request.form.get("first_name", None)) is not None:
+        field_name = "first_name"
+    elif (word := request.form.get("last_name", None)) is not None:
+        field_name = "last_name"
+    elif (word := request.form.get("email", None)) is not None:
+        field_name = "email"
+    else:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    if word is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    if field_name == "first_name" or field_name == "last_name":
+        users = db.db_handler.query_users(word)
+    elif field_name == "email":
+        users = db.db_handler.query_users_by_email(word)
+    else:
+        assert False  # This should never happen
+
+    return make_response(
+        render_template(
+            "components/tables/user.html",
+            current_query=word,
+            users=users,
+            field_name=field_name
+        ), push_url=False
     )

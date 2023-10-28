@@ -41,7 +41,7 @@ class SampleForm(FlaskForm):
                 if (sample := session.get_sample(sample_id)) is None:
                     logger.error(f"Sample with id {sample_id} does not exist.")
                     return False, self
-
+                
                 for user_sample in user_samples:
                     if self.name.data == user_sample.name:
                         if sample_id != user_sample.id:
