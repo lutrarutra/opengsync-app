@@ -28,46 +28,59 @@ def get(page: int):
     if sort_by not in models.Sample.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    template = "components/tables/sample.html"
-    
+    samples: Optional[list[models.Sample]] = None
+    project = None
+    library = None
     if (project_id := request.args.get("project_id", None)) is not None:
+        template = "components/tables/project-sample.html"
         try:
             project_id = int(project_id)
-            if (project := db.db_handler.get_project(project_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+            with DBSession(db.db_handler) as session:
+                if (project := session.get_project(project_id)) is None:
+                    return abort(HttpResponse.NOT_FOUND.value.id)
+                samples = session.get_samples(
+                    limit=20, project_id=project_id, sort_by=sort_by, reversed=reversed
+                )
+                n_pages = int(session.get_num_samples(project_id=project_id) / 20)
         except (ValueError, TypeError):
             return abort(HttpResponse.BAD_REQUEST.value.id)
-        template = "components/tables/project-sample.html"
-    else:
-        project = None
 
-    if (library_id := request.args.get("library_id", None)) is not None:
+    elif (library_id := request.args.get("library_id", None)) is not None:
+        template = "components/tables/library-sample.html"
         try:
             library_id = int(library_id)
-            if (library := db.db_handler.get_library(library_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+            with DBSession(db.db_handler) as session:
+                if (library := session.get_library(library_id)) is None:
+                    return abort(HttpResponse.NOT_FOUND.value.id)
+                samples = session.get_samples(
+                    limit=20, library_id=library_id, sort_by=sort_by, reversed=reversed
+                )
+                for sample in samples:
+                    sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
+
+                n_pages = int(session.get_num_samples(library_id=library_id) / 20)
         except (ValueError, TypeError):
             return abort(HttpResponse.BAD_REQUEST.value.id)
-        template = "components/tables/library-sample.html"
+
     else:
-        library = None
+        template = "components/tables/sample.html"
+        with DBSession(db.db_handler) as session:
+            if current_user.role_type == UserRole.CLIENT:
+                samples = session.get_samples(limit=20, project_id=project_id, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
+                n_pages = int(session.get_num_samples(user_id=current_user.id, project_id=project_id) / 20)
+            else:
+                samples = session.get_samples(limit=20, project_id=project_id, sort_by=sort_by, reversed=reversed)
+                n_pages = int(session.get_num_samples(project_id=project_id) / 20)
     
-    with DBSession(db.db_handler) as session:
-        if current_user.role_type == UserRole.CLIENT:
-            samples = session.get_samples(limit=20, project_id=project_id, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
-            n_pages = int(session.get_num_samples(user_id=current_user.id, project_id=project_id) / 20)
-        else:
-            samples = session.get_samples(limit=20, project_id=project_id, sort_by=sort_by, reversed=reversed)
-            n_pages = int(session.get_num_samples(project_id=project_id) / 20)
-    
-        return make_response(
-            render_template(
-                template, samples=samples,
-                n_pages=n_pages, active_page=page,
-                current_sort=sort_by, current_sort_order=order,
-                project=project, library=library
-            ), push_url=False
-        )
+    return make_response(
+        render_template(
+            template, samples=samples,
+            n_pages=n_pages, active_page=page,
+            current_sort=sort_by, current_sort_order=order,
+            project=project, library=library,
+            index_form=forms.IndexForm()
+        ), push_url=False
+    )
 
 
 @samples_htmx.route("create/<int:project_id>", methods=["POST"])
@@ -452,35 +465,80 @@ def table_query():
         field_name = "id"
     else:
         return abort(HttpResponse.BAD_REQUEST.value.id)
-
+    
     if word is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
-
-    user = current_user
-    if user.role_type == UserRole.CLIENT:
-        _user_id = user.id
+    
+    if current_user.role_type == UserRole.CLIENT:
+        _user_id = current_user.id
     else:
         _user_id = None
-
-    if field_name == "name":
-        samples = db.db_handler.query_samples(word, user_id=_user_id)
-    elif field_name == "id":
-        try:
-            word = int(word)
-        except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-        if (sample := db.db_handler.get_sample(word)) is None:
-            samples = []
+    
+    def __get_samples(
+        session, word: str | int, field_name: str,
+        library_id: Optional[int], project_id: Optional[int]
+    ) -> list[models.Sample]:
+        samples: list[models.Sample] = []
+        if field_name == "name":
+            samples = session.query_samples(
+                str(word), library_id=library_id,
+                project_id=project_id, user_id=_user_id
+            )
+        elif field_name == "id":
+            try:
+                _id = int(word)
+                if (sample := session.get_sample(_id)) is not None:
+                    samples = [sample]
+            except ValueError:
+                pass
         else:
-            samples = [sample]
+            assert False    # This should never happen
+
+        return samples
+
+    context = {}
+    if (project_id := request.args.get("project_id", None)) is not None:
+        template = "components/tables/project-sample.html"
+        try:
+            project_id = int(project_id)
+            with DBSession(db.db_handler) as session:
+                if (project := session.get_project(project_id)) is None:
+                    return abort(HttpResponse.NOT_FOUND.value.id)
+                    
+                samples = __get_samples(session, word, field_name, library_id=None, project_id=project_id)
+                context["project"] = project
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    elif (library_id := request.args.get("library_id", None)) is not None:
+        template = "components/tables/library-sample.html"
+        try:
+            library_id = int(library_id)
+            with DBSession(db.db_handler) as session:
+                if (library := session.get_library(library_id)) is None:
+                    return abort(HttpResponse.NOT_FOUND.value.id)
+                
+                samples = __get_samples(session, word, field_name, library_id=library_id, project_id=None)
+                for sample in samples:
+                    sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
+
+                context["library"] = library
+                context["index_form"] = forms.IndexForm()
+
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+
     else:
-        assert False  # This should never happen
+        template = "components/tables/sample.html"
+        with DBSession(db.db_handler) as session:
+            samples = __get_samples(session, word, field_name, library_id=None, project_id=None) 
 
     return make_response(
         render_template(
-            "components/tables/sample.html",
+            template,
             current_query=word,
             samples=samples,
-            field_name=field_name
+            field_name=field_name,
+            **context
         ), push_url=False
     )

@@ -9,7 +9,7 @@
                         target_id='sample-table', column_name='ID', column_var='id',
                         sort_url='samples_htmx.get', sort_url_args={'library_id': library.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('samples_htmx.table_query'), current_query=current_query,
+                        query_url=url_for('samples_htmx.table_query', library_id=library.id), current_query=current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
@@ -18,7 +18,7 @@
                         target_id='sample-table', column_name='Name', column_var='name',
                         sort_url='samples_htmx.get', sort_url_args={'library_id': library.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('samples_htmx.table_query'), current_query=current_query,
+                        query_url=url_for('samples_htmx.table_query', library_id=library.id), current_query=current_query,
                         field_name=field_name, col_size=4
                     )
                 }}
@@ -29,7 +29,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for sample in library.samples %}
+            {% for sample in samples %}
             <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id) }}';">
                 <th scope="row">{{ sample.id }}</th>
 
@@ -93,7 +93,7 @@
         navigator.clipboard.writeText(content);
     }
 
-    $(document).on("contextmenu", ".sample-index-cell", function(e) {
+    $(document).off("contextmenu", ".sample-index-cell").on("contextmenu", ".sample-index-cell", function(e) {
         e.preventDefault();
         const x = e.pageX;
         const y = e.pageY;
@@ -101,7 +101,7 @@
         $("#copy-edit-menu").css({
             display: "block",
             left: x + 8, top: y + 8
-        }).append([
+        }).empty().append([
             `<li><a class='dropdown-item' onclick='copy_index_to_clipboard()'>Copy</a></li>`,
         ]);
 
@@ -135,7 +135,7 @@
         
     }
 
-    $(document).on("contextmenu", ".sample-name-cell", function(e) {
+    $(document).off("contextmenu", ".sample-name-cell").on("contextmenu", ".sample-name-cell", function(e) {
         e.preventDefault();
         const x = e.pageX;
         const y = e.pageY;
@@ -143,7 +143,7 @@
         $("#copy-edit-menu").css({
             display: "block",
             left: x + 8, top: y + 8
-        }).append([
+        }).empty().append([
             `<li><a class='dropdown-item' onclick='copy_sample_name_to_clipboard()'>Copy</a></li>`,
             `<li><a class='dropdown-item' onclick='remove_sample()'>Remove</a></li>`
         ]);
@@ -163,7 +163,7 @@
         navigator.clipboard.writeText(content);
     }
 
-    $(document).on("contextmenu", ".sample-adapter-cell", function(e) {
+    $(document).off("contextmenu", ".sample-adapter-cell").on("contextmenu", ".sample-adapter-cell", function(e) {
         e.preventDefault();
         const x = e.pageX;
         const y = e.pageY;
@@ -171,7 +171,7 @@
         $("#copy-edit-menu").css({
             display: "block",
             left: x + 8, top: y + 8
-        }).append([
+        }).empty().append([
             "<li><a class='dropdown-item' onclick='copy_adapter_to_clipboard()'>Copy</a></li>",
             "<li><a class='dropdown-item' onclick='edit_sample_adapter()'>Edit</a></li>"
         ]);

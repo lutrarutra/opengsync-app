@@ -1,6 +1,5 @@
 from typing import Optional
 
-import pandas as pd
 from sqlmodel import and_, func, or_
 
 from ... import models, logger
@@ -59,7 +58,8 @@ def get_sample(self, sample_id: int) -> models.Sample:
 
 
 def get_num_samples(
-    self, user_id: Optional[int] = None, project_id: Optional[int] = None
+    self, user_id: Optional[int] = None,
+    project_id: Optional[int] = None, library_id: Optional[int] = None
 ) -> int:
     persist_session = self._session is not None
     if not self._session:
@@ -77,6 +77,15 @@ def get_num_samples(
             models.Sample.project_id == project_id
         )
 
+    if library_id is not None:
+        query = query.join(
+            models.LibrarySampleLink,
+            models.Sample.id == models.LibrarySampleLink.sample_id,
+            isouter=True
+        ).where(
+            models.LibrarySampleLink.library_id == library_id
+        )
+
     res = query.count()
 
     if not persist_session:
@@ -85,7 +94,8 @@ def get_num_samples(
 
 
 def get_samples(
-    self, user_id: Optional[int] = None, project_id: Optional[int] = None,
+    self, user_id: Optional[int] = None,
+    project_id: Optional[int] = None, library_id: Optional[int] = None,
     limit: Optional[int] = 20, offset: Optional[int] = None,
     sort_by: Optional[str] = None, reversed: bool = False,
 ) -> list[models.Sample]:
@@ -109,6 +119,15 @@ def get_samples(
     if project_id is not None:
         query = query.where(
             models.Sample.project_id == project_id
+        )
+
+    if library_id is not None:
+        query = query.join(
+            models.LibrarySampleLink,
+            models.Sample.id == models.LibrarySampleLink.sample_id,
+            isouter=True
+        ).where(
+            models.LibrarySampleLink.library_id == library_id
         )
 
     if offset is not None:
@@ -200,6 +219,8 @@ def delete_sample(
 def query_samples(
     self, word: str,
     user_id: Optional[int] = None,
+    project_id: Optional[int] = None,
+    library_id: Optional[int] = None,
     exclude_library_id: Optional[int] = None,
     limit: Optional[int] = 20
 ) -> list[models.Sample]:
@@ -213,6 +234,20 @@ def query_samples(
     if user_id is not None:
         query = query.where(
             models.Sample.owner_id == user_id
+        )
+
+    if project_id is not None:
+        query = query.where(
+            models.Sample.project_id == project_id
+        )
+
+    if library_id is not None:
+        query = query.join(
+            models.LibrarySampleLink,
+            models.Sample.id == models.LibrarySampleLink.sample_id,
+            isouter=True
+        ).where(
+            models.LibrarySampleLink.library_id == library_id
         )
 
     if exclude_library_id is not None:

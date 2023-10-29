@@ -35,17 +35,22 @@ style="display: none;"
 {% endif %}
 </th>
 {% if query_url %}
-<th th scopy='col' class='temp-query-input' id='table-col-{{ column_var }}-temp'
-    {% if not (current_query and column_var == field_name) %}
-    style="display: none; height: 25px;"
-    {% else %}
-    style="height: 25px;"
-    {% endif %}>
-    <input type='{{ query_type }}' class='form-control' placeholder='{{ column_name }}'
-    id='{{ column_var }}-query-input' role='presentation' autocomplete='off' type='search'
-    hx-post='{{ query_url }}' hx-trigger='keyup changed delay:500ms, search' name="{{ column_var }}"
-    hx-target='#{{ target_id }}' hx-swap='outerHTML' value="{{ current_query }}"
-    style="height: 25px;">
-</th>
+    <th th scopy='col' class='temp-query-input' id='table-col-{{ column_var }}-temp'
+        {% if not (current_query and column_var == field_name) %}
+        style="display: none; height: 25px;"
+        {% else %}
+        style="height: 25px;"
+        {% endif %}>
+        <input type='{{ query_type }}' class='form-control' placeholder='{{ column_name }}'
+        id='{{ column_var }}-query-input' role='presentation' autocomplete='off' type='search'
+        hx-post='{{ query_url }}' hx-trigger='keyup[target.value.length > 0] changed delay:500ms, search' name="{{ column_var }}"
+        hx-target='#{{ target_id }}' hx-swap='outerHTML' value="{{ current_query }}"
+        style="height: 25px;">
+    </th>
+    {% if (current_query and column_var == field_name) %}
+    <script>
+        $("#{{ column_var }}-query-input").focus();
+    </script>
+    {% endif %}
 {% endif %}
 {%- endmacro %}

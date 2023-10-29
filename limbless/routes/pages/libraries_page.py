@@ -62,6 +62,7 @@ def library_page(library_id):
         "library_page.html",
         available_samples=available_samples,
         library=library,
+        samples=library.samples,
         index_form=index_form,
         available_adapters=db.db_handler.query_adapters(word="", index_kit_id=library.index_kit_id),
         selected_kit=library.index_kit,
