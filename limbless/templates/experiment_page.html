@@ -92,8 +92,6 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {% set selectable_table = true %}
-                {% set libraries = available_libraries %}
                 {% include "forms/library/select_experiment-library.html" %}
             </div>
             <div class="modal-footer" id="popup-footer">

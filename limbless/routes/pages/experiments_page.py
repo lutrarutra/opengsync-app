@@ -48,6 +48,9 @@ def experiment_page(experiment_id):
         libraries, n_pages = session.get_libraries(
             experiment_id=experiment_id, limit=20
         )
+        available_libraries, _ = session.get_libraries(
+            user_id=None, limit=20
+        )
         
         experiment_form = forms.ExperimentForm()
         experiment_form.flowcell.data = experiment.flowcell
@@ -58,6 +61,6 @@ def experiment_page(experiment_id):
         experiment_form=experiment_form,
         select_libraries_form=forms.SelectLibrariesForm(),
         libaries=libraries,
-        available_libraries=libraries,
+        available_libraries=available_libraries,
         selected_sequencer=experiment.sequencer.name,
     )
