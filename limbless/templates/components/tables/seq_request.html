@@ -19,7 +19,7 @@
             <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
-                <td>{{ seq_request.status_type.name }} {{ seq_request.status_type.description | safe }}</td>
+                <td>{{ seq_request.status_type.value.name }} {{ seq_request.status_type.value.description | safe }}</td>
                 <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.first_name }} {{ seq_request.requestor.last_name }}</td>
                 <td {{ tooltip("email: " + seq_request.contact_person.email + (" phone: " + seq_request.contact_person.phone if seq_request.contact_person.phone else "")) }}>{{ seq_request.contact_person.name }}</td>
                 <td {{ tooltip("email: " + seq_request.billing_contact.email + (" phone: " + seq_request.billing_contact.phone if seq_request.billing_contact.phone else "")) }}>{{ seq_request.billing_contact.name }}</td>

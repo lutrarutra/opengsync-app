@@ -7,44 +7,49 @@
                 {{
                     table_col(
                         target_id='library-table', column_name='ID', column_var='id',
-                        sort_url='libraries_htmx.get', sort_url_args={},
+                        sort_url='libraries_htmx.get', sort_url_args={"experiment_id":experiment.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query'), current_query=current_query,
-                        field_name=field_name, query_type="number",
+                        query_url=url_for('libraries_htmx.table_query', experiment_id=experiment.id), current_query=current_query,
+                        field_name=field_name, query_type="number"
                     )
                 }}
+                {% if selectable_table %}
+                <th scope="col" class="col">Selected</th>
+                {% endif %}
                 {{
                     table_col(
                         target_id='library-table', column_name='Name', column_var='name',
-                        sort_url='libraries_htmx.get', sort_url_args={},
+                        sort_url='libraries_htmx.get', sort_url_args={"experiment_id":experiment.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query'), current_query=current_query,
+                        query_url=url_for('libraries_htmx.table_query', experiment_id=experiment.id), current_query=current_query,
                         field_name=field_name, query_type="text", col_size=3,
                     )
                 }}
                 {{
                     table_col(
                         target_id='library-table', column_name='Type', column_var='library_type_id',
-                        sort_url='libraries_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        col_size=3,
+                        sort_url='libraries_htmx.get', sort_url_args={"experiment_id":experiment.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='library-table', column_name='Owner', column_var='owner_id',
-                        sort_url='libraries_htmx.get', sort_url_args={},
+                        sort_url='libraries_htmx.get', sort_url_args={"experiment_id":experiment.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         col_size=2,
                     )
                 }}
-                <th scope="col" class="col-3">Index Kit</th>
+                <th scope="col" class="col-2">Index Kit</th>
             </tr>
         </thead>
         <tbody>
             {% for library in libraries %}
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
                 <th scope="row">{{ library.id }}</th>
+                {% if selectable_table %}
+                <td>selected</td>
+                {% endif %}
                 <td>{{ library.name }}</td>
                 <td>{{ library.library_type.value.name }}</td>
                 <td><span class="owner-col"><p>{{ library.owner.first_name }} {{ library.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>

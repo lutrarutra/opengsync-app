@@ -8,6 +8,7 @@ from flask_login import login_required, current_user
 
 from .... import db, logger, forms, LibraryType, models, tools
 from ....core import DBSession, exceptions
+from ....core.DBHandler import DBHandler
 from ....categories import UserRole, HttpResponse
 
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/libraries/")
@@ -527,3 +528,93 @@ def restart_form(library_id: int):
             library=library
         ), push_url=False
     )
+
+
+@libraries_htmx.route("table_query", methods=["POST"])
+@login_required
+def table_query():
+    if (word := request.form.get("name", None)) is not None:
+        field_name = "name"
+    elif (word := request.form.get("id", None)) is not None:
+        field_name = "id"
+    else:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    if word is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    if current_user.role_type == UserRole.CLIENT:
+        _user_id = current_user.id
+    else:
+        _user_id = None
+
+    def __get_libraries(
+        session: DBHandler, word: str | int, field_name: str,
+        seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None
+    ) -> list[models.Library]:
+        libraries: list[models.Library] = []
+        if field_name == "name":
+            libraries = session.query_libraries(
+                str(word), user_id=_user_id, seq_request_id=seq_request_id, experiment_id=experiment_id
+            )
+        elif field_name == "id":
+            try:
+                _id = int(word)
+                if (library := session.get_library(_id)) is not None:
+                    if seq_request_id is not None:
+                        if seq_request_id in [sr.id for sr in library.seq_requests]:
+                            libraries = [library]
+                    elif experiment_id is not None:
+                        if experiment_id in [e.id for e in library.experiments]:
+                            libraries = [library]
+                    elif _user_id is not None:
+                        if library.owner_id == _user_id:
+                            libraries = [library]
+                    else:
+                        libraries = [library]
+            except ValueError:
+                pass
+        else:
+            assert False    # This should never happen
+
+        return libraries
+    
+    context = {}
+    if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
+        template = "components/tables/seq_request-library.html"
+        try:
+            seq_request_id = int(seq_request_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        with DBSession(db.db_handler) as session:
+            if (seq_request := session.get_library(seq_request_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+                
+            libraries = __get_libraries(session, word, field_name, seq_request_id=seq_request_id)
+        context["seq_request"] = seq_request
+    elif (seq_request_id := request.args.get("experiment_id", None)) is not None:
+        template = "components/tables/experiment-library.html"
+        try:
+            experiment_id = int(seq_request_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        with DBSession(db.db_handler) as session:
+            if (experiment := session.get_experiment(experiment_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+                
+            libraries = __get_libraries(session, word, field_name, experiment_id=experiment_id)
+            context["experiment"] = experiment
+    else:
+        template = "components/tables/library.html"
+
+        with DBSession(db.db_handler) as session:
+            libraries = __get_libraries(session, word, field_name)
+
+    return make_response(
+        render_template(
+            template,
+            current_query=word, field_name=field_name,
+            libraries=libraries, **context
+        ), push_url=False
+    )
+        

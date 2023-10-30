@@ -29,13 +29,14 @@ class LibrarySampleLink(SQLModel, table=True):
     # seq_index_type: int = Field(nullable=False, primary_key=True)
 
 
-class RunLibraryLink(SQLModel, table=True):
-    run_id: int = Field(
-        foreign_key="run.id", primary_key=True
+class ExperimentLibraryLink(SQLModel, table=True):
+    experiment_id: int = Field(
+        foreign_key="experiment.id", primary_key=True
     )
     library_id: int = Field(
         foreign_key="library.id", primary_key=True
     )
+    lane: int = Field(nullable=False, primary_key=True)
 
 
 class IndexKitLibraryType(SQLModel, table=True):

@@ -30,6 +30,9 @@ def experiments_page():
 @experiments_page_bp.route("/experiments/<experiment_id>")
 @login_required
 def experiment_page(experiment_id):
+    if current_user.role_type not in UserRole.insiders:
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
     with DBSession(db.db_handler) as session:
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
@@ -42,16 +45,19 @@ def experiment_page(experiment_id):
         if not experiment:
             return redirect(url_for("experiments_page.experiments_page"))
         
+        libraries, n_pages = session.get_libraries(
+            experiment_id=experiment_id, limit=20
+        )
+        
         experiment_form = forms.ExperimentForm()
         experiment_form.flowcell.data = experiment.flowcell
         experiment_form.sequencer.data = experiment.sequencer.id
 
-        run_form = forms.RunForm()
-        lanes = [run.lane for run in experiment.runs]
-        run_form.lane.data = next(i for i in range(1, len(lanes) + 2) if i not in lanes)
-
     return render_template(
-        "experiment_page.html", run_form=run_form, experiment=experiment,
+        "experiment_page.html", experiment=experiment,
         experiment_form=experiment_form,
+        select_libraries_form=forms.SelectLibrariesForm(),
+        libaries=libraries,
+        available_libraries=libraries,
         selected_sequencer=experiment.sequencer.name,
     )

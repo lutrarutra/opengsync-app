@@ -14,6 +14,11 @@ class UserRole(Enum, metaclass=ExtendedEnumMeta):
     TECHNICIAN = DescriptiveEnum(3, "Technician", "🧑🏽‍🔬")
     CLIENT = DescriptiveEnum(4, "Client", "👶🏾")
 
+    @classmethod
+    @property
+    def insiders(cls):
+        return [cls.ADMIN, cls.BIOINFORMATICIAN, cls.TECHNICIAN]
+
 
 class LibraryType(Enum, metaclass=ExtendedEnumMeta):
     SC_RNA = DescriptiveEnum(1, "Single-cell RNA-Seq")

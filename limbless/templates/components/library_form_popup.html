@@ -1,4 +1,3 @@
-{% from 'components/search.jinja2' import searchbar %}
 <div class="modal fade" id="library-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
@@ -7,53 +6,13 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <ul class="nav nav-tabs" id="myTab" role="tablist">
-                <li class="nav-item" role="presentation">
-                  <button class="nav-link active" id="existing-library-tab-btn" data-bs-toggle="tab"
-                  data-bs-target="#existing-library-tab" type="button" role="tab"
-                  aria-controls="existing-library-tab" aria-selected="true">
-                    Existing Library
-                  </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                  <button class="nav-link" id="new-library-tab-btn" data-bs-toggle="tab"
-                  data-bs-target="#new-library-tab" type="button" role="tab"
-                  aria-controls="new-library-tab" aria-selected="false">
-                    New Library
-                  </button>
-                </li>
-            </ul>
-            <div class="tab-content pt-3" id="myTabContent">
-                <div class="tab-pane fade show active" id="existing-library-tab" role="tabpanel" aria-labelledby="existing-library-tab-btn" tabindex="0">
-                    {{ searchbar("library") }}
-                </div>
-                <div class="tab-pane fade" id="new-library-tab" role="tabpanel" aria-labelledby="new-library-tab-btn" tabindex="0">
-                    {% include "forms/library.html" %}
-                </div>
-            </div>
+            {% include "forms/library/select_experiment-library.html" %}
         </div>
         <div class="modal-footer" id="">
             <button id="submit-existing-library-form-btn" class="btn btn-primary"
             hx-include="" hx-target="" hx-swap="outerHTML"
             hx-post="">Submit</button>
-            
-            <button id="submit-new-library-form-btn" class="btn btn-primary"
-            style="display: none;"
-            hx-include="#library-form" hx-target="#library-form" hx-swap="outerHTML"
-            hx-post="{{ url_for('libraries_htmx.create', run_id=run.id) }}">Submit</button>
         </div>
       </div>
     </div>
 </div>
-
-<script>
-    $("#existing-library-tab-btn").on("click", function() {
-        $("#submit-existing-library-form-btn").show();
-        $("#submit-new-library-form-btn").hide();
-    });
-
-    $("#new-library-tab-btn").on("click", function() {
-        $("#submit-new-library-form-btn").show();
-        $("#submit-existing-library-form-btn").hide();
-    });
-</script>

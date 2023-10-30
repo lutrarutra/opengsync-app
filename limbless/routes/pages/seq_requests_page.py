@@ -44,8 +44,14 @@ def seq_requests_page():
 @seq_requests_page_bp.route("/seq_request/<int:seq_request_id>")
 @login_required
 def seq_request_page(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+    with DBSession(db.db_handler) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        if seq_request.requestor_id != current_user.id:
+            if current_user.role_type not in [UserRole.ADMIN, UserRole.TECHNICIAN, UserRole.BIOINFORMATICIAN]:
+                return abort(HttpResponse.FORBIDDEN.value.id)
+            
+        libraries = seq_request.libraries
 
     if current_user.role_type == UserRole.CLIENT:
         if seq_request.requestor_id != current_user.id:
@@ -88,9 +94,12 @@ def seq_request_page(seq_request_id: int):
 
     library_results, _ = db.db_handler.get_libraries(user_id=current_user.id)
 
+    logger.debug(seq_request.libraries)
+
     return render_template(
         "seq_request_page.html",
         seq_request=seq_request,
+        libraries=libraries,
         select_library_form=forms.SelectLibraryForm(),
         library_results=library_results,
         seq_request_form=seq_request_form

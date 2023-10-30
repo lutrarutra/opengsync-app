@@ -1,4 +1,3 @@
-from .runs_page import runs_page_bp
 from .samples_page import samples_page_bp
 from .projects_page import projects_page_bp
 from .jobs_page import jobs_page_bp

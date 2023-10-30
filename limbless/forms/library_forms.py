@@ -1,13 +1,21 @@
 from typing import Literal
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, IntegerField, BooleanField
+from wtforms import StringField, SelectField, IntegerField, BooleanField, FieldList, FormField
 from wtforms.validators import DataRequired, Length, Optional
 
 from .. import logger
 from ..categories import LibraryType
 from ..core.DBHandler import DBHandler
 from ..core.DBSession import DBSession
+
+
+class SelectLibraryForm(FlaskForm):
+    library = IntegerField("Library", validators=[DataRequired()])
+
+
+class SelectLibrariesForm(FlaskForm):
+    libraries = FieldList(FormField(SelectLibraryForm))
 
 
 class LibraryForm(FlaskForm):

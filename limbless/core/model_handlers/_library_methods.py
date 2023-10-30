@@ -55,7 +55,8 @@ def get_library(self, library_id: int) -> models.Library:
 
 def get_libraries(
     self,
-    user_id: Optional[int] = None, seq_request_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+    experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     sort_by: Optional[str] = None, reversed: bool = False,
     limit: Optional[int] = 20, offset: Optional[int] = None,
 ) -> tuple[list[models.Library], int]:
@@ -71,9 +72,20 @@ def get_libraries(
 
     if seq_request_id is not None:
         query = query.join(
-            models.Library.seq_requests
+            models.LibrarySeqRequestLink,
+            models.LibrarySeqRequestLink.library_id == models.Library.id,
+            isouter=True
         ).where(
             models.LibrarySeqRequestLink.seq_request_id == seq_request_id
+        )
+
+    if experiment_id is not None:
+        query = query.join(
+            models.ExperimentLibraryLink,
+            models.ExperimentLibraryLink.library_id == models.Library.id,
+            isouter=True
+        ).where(
+            models.ExperimentLibraryLink.experiment_id == experiment_id
         )
 
     if sort_by is not None:
@@ -181,6 +193,7 @@ def update_library(
 def query_libraries(
     self, word: str,
     user_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
     limit: Optional[int] = 20,
 ) -> list[models.Library]:
 
@@ -197,8 +210,26 @@ def query_libraries(
             models.Library.owner_id == user_id
         )
 
+    if seq_request_id is not None:
+        query = query.join(
+            models.LibrarySeqRequestLink,
+            models.LibrarySeqRequestLink.library_id == models.Library.id,
+            isouter=True
+        ).where(
+            models.LibrarySeqRequestLink.seq_request_id == seq_request_id
+        )
+
+    if experiment_id is not None:
+        query = query.join(
+            models.ExperimentLibraryLink,
+            models.ExperimentLibraryLink.library_id == models.Library.id,
+            isouter=True
+        ).where(
+            models.ExperimentLibraryLink.experiment_id == experiment_id
+        )
+
     query = query.order_by(
-        func.similarity(models.Library.name, word)
+        func.similarity(models.Library.name, word).desc()
     )
 
     if limit is not None:

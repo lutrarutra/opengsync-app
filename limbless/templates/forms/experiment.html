@@ -1,8 +1,10 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 <form id="experiment-form">
-    {{ experiment_form.csrf_token }}
-    {{ form_group(experiment_form.flowcell) }}
+    {{ experiment_form.csrf_token() }}
+    <div class="row">
+        {{ form_group(experiment_form.flowcell, class="col") }}
+    </div>
     {{ 
         search_select_field(
             experiment_form.sequencer,
@@ -10,4 +12,11 @@
             selected=selected_sequencer,
         ) 
     }}
+    <div class="row">
+        {{ form_group(experiment_form.r1_cycles, class="col") }}
+        {{ form_group(experiment_form.i1_cycles, class="col") }}
+        {{ form_group(experiment_form.i2_cycles, class="col") }}
+        {{ form_group(experiment_form.r2_cycles, class="col") }}
+    </div>
+    
 </form>

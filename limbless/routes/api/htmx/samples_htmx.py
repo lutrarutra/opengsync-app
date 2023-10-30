@@ -445,13 +445,18 @@ def edit(sample_id):
     )
 
 
-@samples_htmx.route("query", methods=["POST"], defaults={"exclude_library_id": None})
-@samples_htmx.route("query/<int:exclude_library_id>", methods=["POST"])
+@samples_htmx.route("query", methods=["POST"])
 @login_required
-def query(exclude_library_id: Optional[int] = None):
+def query():
     logger.debug(request.form.keys())
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
+
+    if (exclude_library_id := request.args.get("exclude_library_id", None)) is not None:
+        try:
+            exclude_library_id = int(exclude_library_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
 
     if query is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
@@ -509,7 +514,9 @@ def table_query():
             try:
                 _id = int(word)
                 if (sample := session.get_sample(_id)) is not None:
-                    samples = [sample]
+                    if _user_id is not None:
+                        if sample.owner_id == _user_id:
+                            samples = [sample]
             except ValueError:
                 pass
         else:

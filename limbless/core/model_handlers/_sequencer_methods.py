@@ -160,7 +160,7 @@ def delete_sequencer(
 
 def query_sequencers(
     self, word: str, limit: Optional[int] = 20
-) -> list[SearchResult]:
+) -> list[models.Sequencer]:
     
     persist_session = self._session is not None
     if not self._session:
@@ -176,8 +176,6 @@ def query_sequencers(
         query = query.limit(limit)
 
     res = query.all()
-
-    res = [SearchResult(sequencer.id, sequencer.name, sequencer.ip) for sequencer in res]
 
     if not persist_session:
         self.close_session()

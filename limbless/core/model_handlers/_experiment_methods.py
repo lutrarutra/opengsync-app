@@ -6,6 +6,8 @@ from .. import exceptions
 
 def create_experiment(
     self, flowcell: str, sequencer_id: int,
+    r1_cycles: int, i1_cycles: int,
+    r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None,
     commit: bool = True
 ) -> models.Experiment:
     persist_session = self._session is not None
@@ -17,7 +19,11 @@ def create_experiment(
 
     experiment = models.Experiment(
         flowcell=flowcell, timestamp=None,
-        sequencer_id=sequencer_id
+        sequencer_id=sequencer_id,
+        r1_cycles=r1_cycles,
+        r2_cycles=r2_cycles,
+        i1_cycles=i1_cycles,
+        i2_cycles=i2_cycles,
     )
 
     self._session.add(experiment)

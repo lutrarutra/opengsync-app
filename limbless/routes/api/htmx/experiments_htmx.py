@@ -39,7 +39,7 @@ def get(page: int):
 @experiments_htmx.route("create", methods=["POST"])
 @login_required
 def create():
-    if current_user.role_type not in [UserRole.ADMIN, UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN]:
+    if current_user.role_type not in UserRole.insiders:
         return abort(HttpResponse.FORBIDDEN.value.id)
 
     experiment_form = forms.ExperimentForm()
@@ -61,6 +61,10 @@ def create():
     experiment = db.db_handler.create_experiment(
         flowcell=experiment_form.flowcell.data,
         sequencer_id=experiment_form.sequencer.data,
+        r1_cycles=experiment_form.r1_cycles.data,
+        r2_cycles=experiment_form.r2_cycles.data,
+        i1_cycles=experiment_form.i1_cycles.data,
+        i2_cycles=experiment_form.i2_cycles.data,
     )
 
     logger.debug(f"Created experiment on flowcell '{experiment.flowcell}'")
@@ -74,7 +78,7 @@ def create():
 @experiments_htmx.route("delete/<int:experiment_id>", methods=["GET"])
 @login_required
 def delete(experiment_id: int):
-    if current_user.role_type not in [UserRole.ADMIN, UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN]:
+    if current_user.role_type not in UserRole.insiders:
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     if (experiment := db.db_handler.get_experiment(experiment_id)) is None:

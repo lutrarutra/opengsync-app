@@ -4,9 +4,10 @@ from sqlmodel import Field, SQLModel, TIMESTAMP, text, Column, Relationship
 from datetime import datetime
 
 from ..categories import ExperimentStatus
+from .Links import ExperimentLibraryLink
 
 if TYPE_CHECKING:
-    from .Run import Run
+    from .Library import Library
     from .Sequencer import Sequencer
 
 
@@ -14,6 +15,10 @@ class Experiment(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     
     flowcell: str = Field(nullable=False, max_length=64)
+    r1_cycles: int = Field(nullable=False)
+    r2_cycles: Optional[int] = Field(nullable=True)
+    i1_cycles: int = Field(nullable=False)
+    i2_cycles: Optional[int] = Field(nullable=True)
 
     timestamp: datetime = Field(sa_column=Column(
         TIMESTAMP(timezone=True),
@@ -27,7 +32,9 @@ class Experiment(SQLModel, table=True):
     sequencer_id: int = Field(nullable=False, foreign_key="sequencer.id")
     sequencer: "Sequencer" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
 
-    runs: List["Run"] = Relationship(back_populates="experiment")
+    libraries: List["Library"] = Relationship(
+        back_populates="experiments", link_model=ExperimentLibraryLink
+    )
 
     sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id"]
 

@@ -86,24 +86,25 @@ def delete(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["GET"])
 @login_required
 def submit(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
-    
-    if seq_request.status_type != SeqRequestStatus.DRAFT.value:
-        logger.debug(seq_request.status_type)
-        return abort(HttpResponse.FORBIDDEN.value.id)
-    
-    if len(seq_request.libraries) == 0:
-        return abort(HttpResponse.FORBIDDEN.value.id)
-
-    if current_user.role_type == UserRole.CLIENT:
+    with DBSession(db.db_handler) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
         if seq_request.requestor_id != current_user.id:
+            if seq_request.requestor.role_type not in [UserRole.ADMIN]:
+                return abort(HttpResponse.FORBIDDEN.value.id)
+        
+        if seq_request.status_type != SeqRequestStatus.DRAFT:
+            logger.debug(seq_request.status_type)
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        if len(seq_request.libraries) == 0:
             return abort(HttpResponse.FORBIDDEN.value.id)
         
-    db.db_handler.update_seq_request(
-        seq_request_id=seq_request_id,
-        status=SeqRequestStatus.SUBMITTED,
-    )
+        session.update_seq_request(
+            seq_request_id=seq_request_id,
+            status=SeqRequestStatus.SUBMITTED,
+        )
 
     flash(f"Submitted sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Submitted sequencing request '{seq_request.name}'")
@@ -244,7 +245,7 @@ def remove_library(seq_request_id: int):
             return abort(HttpResponse.NOT_FOUND.value.id)
         
         if seq_request.requestor_id != current_user.id:
-            if current_user.role_type not in [UserRole.ADMIN, UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN]:
+            if current_user.role_type not in UserRole.insiders:
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
         session.unlink_library_seq_request(library_id, seq_request_id)

@@ -57,13 +57,6 @@ class DBHandler():
         get_num_samples, query_samples
     )
 
-    from .model_handlers._run_methods import (
-        create_run, get_run, get_runs,
-        update_run, delete_run,
-        get_run_num_samples,
-        get_num_runs
-    )
-
     from .model_handlers._library_methods import (
         create_library, get_library, get_libraries,
         delete_library, update_library,
@@ -111,22 +104,16 @@ class DBHandler():
 
     from .model_handlers._link_methods import (
         get_project_users,
-        get_run_libraries,
         get_library_samples,
-        get_library_runs,
         get_user_projects,
         get_sample_libraries,
-        get_run_data,
-        get_experiment_runs,
         get_sample_indices_from_library,
 
         link_library_sample,
         link_index_kit_library_type,
-        link_run_library,
         link_library_seq_request,
 
         unlink_library_sample,
-        unlink_run_library,
         unlink_project_user,
         unlink_library_seq_request,
 

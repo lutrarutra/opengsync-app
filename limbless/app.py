@@ -67,7 +67,6 @@ def create_app():
     app.register_blueprint(api.samples_htmx)
     app.register_blueprint(api.projects_htmx)
     app.register_blueprint(api.experiments_htmx)
-    app.register_blueprint(api.runs_htmx)
     app.register_blueprint(api.libraries_htmx)
     app.register_blueprint(api.auth_htmx)
     app.register_blueprint(api.organisms_htmx)
@@ -77,7 +76,6 @@ def create_app():
     app.register_blueprint(api.sequencers_htmx)
     app.register_blueprint(api.users_htmx)
 
-    app.register_blueprint(pages.runs_page_bp)
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)
     app.register_blueprint(pages.jobs_page_bp)

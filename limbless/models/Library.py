@@ -3,16 +3,16 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 from pydantic import PrivateAttr
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import LibrarySampleLink, RunLibraryLink, LibrarySeqRequestLink
+from .Links import LibrarySampleLink, ExperimentLibraryLink, LibrarySeqRequestLink
 from ..categories import LibraryType
 from ..tools import SearchResult
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
     from .Sample import Sample
-    from .Run import Run
     from .User import User
     from .SeqRequest import SeqRequest
+    from .Experiment import Experiment
 
 
 class LibraryTypeId(SQLModel, table=True):
@@ -42,9 +42,8 @@ class Library(SQLModel, SearchResult, table=True):
     samples: List["Sample"] = Relationship(
         back_populates="libraries", link_model=LibrarySampleLink,
     )
-    runs: List["Run"] = Relationship(
-        back_populates="libraries", link_model=RunLibraryLink,
-        sa_relationship_kwargs={"lazy": "joined"}
+    experiments: List["Experiment"] = Relationship(
+        back_populates="libraries", link_model=ExperimentLibraryLink,
     )
 
     seq_requests: List["SeqRequest"] = Relationship(

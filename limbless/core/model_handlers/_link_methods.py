@@ -76,46 +76,6 @@ def get_project_users(self, project_id: int) -> list[models.User]:
     return project_users
 
 
-def get_run_libraries(self, run_id: int) -> list[models.Library]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Run, run_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Run with id {run_id} does not exist")
-
-    run_libraries = self._session.query(models.Library).join(
-        models.RunLibraryLink,
-        models.RunLibraryLink.library_id == models.Library.id
-    ).where(
-        models.RunLibraryLink.run_id == run_id
-    ).all()
-
-    if not persist_session:
-        self.close_session()
-    return run_libraries
-
-
-def get_library_runs(self, library_id: int) -> list[models.Run]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Library, library_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-
-    library_runs = self._session.query(models.Run).join(
-        models.RunLibraryLink,
-        models.RunLibraryLink.run_id == models.Run.id
-    ).where(
-        models.RunLibraryLink.library_id == library_id
-    ).all()
-
-    if not persist_session:
-        self.close_session()
-    return library_runs
-
-
 def get_library_samples(self, library_id: int) -> list[models.Sample]:
     persist_session = self._session is not None
     if not self._session:
@@ -170,58 +130,6 @@ def get_sample_libraries(self, sample_id: int) -> list[models.Library]:
     if not persist_session:
         self.close_session()
     return sample_libraries
-
-# TODO: testing
-
-
-def get_experiment_runs(self, experiment_id: int) -> list[models.Run]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Experiment, experiment_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-
-    experiment_runs = self._session.query(models.Run).where(
-        models.Run.experiment_id == experiment_id
-    ).all()
-
-    if not persist_session:
-        self.close_session()
-    return experiment_runs
-
-
-def get_run_data(
-    self, run_id: int,
-    unraveled: bool = False
-) -> Union[list[models.Library], list[tuple[models.Library, models.Sample]]]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Run, run_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Run with id {run_id} does not exist")
-
-    if not unraveled:
-        run_data = self._session.query(models.Library).join(
-            models.RunLibraryLink, models.Library.id == models.RunLibraryLink.library_id
-        ).filter(
-            models.RunLibraryLink.run_id == run_id
-        ).options(selectinload(models.Library.samples)).all()
-    else:
-        run_data = self._session.query(models.Library, models.Sample).join(
-            models.LibrarySampleLink, models.Sample.id == models.LibrarySampleLink.sample_id
-        ).join(
-            models.Library, models.LibrarySampleLink.library_id == models.Library.id
-        ).join(
-            models.RunLibraryLink, models.Library.id == models.RunLibraryLink.library_id
-        ).filter(
-            models.RunLibraryLink.run_id == run_id
-        ).all()
-
-    if not persist_session:
-        self.close_session()
-    return run_data
 
 
 def get_project_data(
@@ -345,75 +253,6 @@ def unlink_project_user(
         raise exceptions.LinkDoesNotExist(f"User with id {user_id} and project with id {project_id} are already linked")
 
     project.users.remove(user)
-
-    if commit:
-        self._session.commit()
-
-    if not persist_session:
-        self.close_session()
-
-
-def link_run_library(
-    self, run_id: int, library_id: int,
-    commit: bool = True
-) -> models.RunLibraryLink:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    run = self._session.get(models.Run, run_id)
-    library = self._session.get(models.Library, library_id)
-
-    if not run:
-        raise exceptions.ElementDoesNotExist(f"Run with id {run_id} does not exist")
-    if not library:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-
-    if self._session.query(models.RunLibraryLink).where(
-        models.RunLibraryLink.run_id == run_id,
-        models.RunLibraryLink.library_id == library_id
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"Run with id {run_id} and library with id {library_id} are already linked")
-
-    run_library_link = models.RunLibraryLink(
-        run_id=run_id, library_id=library_id
-    )
-    self._session.add(run_library_link)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(run_library_link)
-
-    if not persist_session:
-        self.close_session()
-    return run_library_link
-
-
-def unlink_run_library(
-    self, run_id: int, library_id: int,
-    commit: bool = True
-) -> None:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    run = self._session.get(models.Run, run_id)
-    library = self._session.get(models.Library, library_id)
-
-    if not run:
-        raise exceptions.ElementDoesNotExist(f"Run with id {run_id} does not exist")
-    if not library:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-
-    if not self._session.query(models.RunLibraryLink).where(
-        models.RunLibraryLink.run_id == run_id,
-        models.RunLibraryLink.library_id == library_id
-    ).first():
-        raise exceptions.LinkDoesNotExist(f"Run with id {run_id} and library with id {library_id} are already linked")
-
-    run.libraries.remove(library)
 
     if commit:
         self._session.commit()
