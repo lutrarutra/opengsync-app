@@ -13,11 +13,9 @@ samples_page_bp = Blueprint("samples_page", __name__)
 def samples_page():
     with DBSession(db.db_handler) as session:
         if current_user.role_type == UserRole.CLIENT:
-            samples = session.get_samples(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
-            n_pages = int(session.get_num_samples(user_id=current_user.id) / 20)
+            samples, n_pages = session.get_samples(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
         else:
-            samples = session.get_samples(limit=20, user_id=None, sort_by="id", reversed=True)
-            n_pages = int(session.get_num_samples(user_id=None) / 20)
+            samples, n_pages = session.get_samples(limit=20, user_id=None, sort_by="id", reversed=True)
 
     return render_template(
         "samples_page.html", samples=samples,

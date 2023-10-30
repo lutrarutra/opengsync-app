@@ -223,3 +223,39 @@ def add_library(seq_request_id: int):
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
     )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/remove_library", methods=["DELETE"])
+@login_required
+def remove_library(seq_request_id: int):
+    if (library_id := request.args.get("library_id")) is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    try:
+        library_id = int(library_id)
+    except ValueError:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    with DBSession(db.db_handler) as session:
+        if (library := session.get_library(library_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        if seq_request.requestor_id != current_user.id:
+            if current_user.role_type not in [UserRole.ADMIN, UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN]:
+                return abort(HttpResponse.FORBIDDEN.value.id)
+            
+        session.unlink_library_seq_request(library_id, seq_request_id)
+
+    flash(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'")
+
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
+    )
+        
+
+            
+        

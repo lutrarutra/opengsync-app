@@ -13,11 +13,9 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 def libraries_page():
     with DBSession(db.db_handler) as session:
         if current_user.role_type == UserRole.CLIENT:
-            libraries = session.get_libraries(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
-            n_pages = int(session.get_num_libraries(user_id=current_user.id) / 20)
+            libraries, n_pages = session.get_libraries(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
         else:
-            libraries = session.get_libraries(limit=20, user_id=None, sort_by="id", reversed=True)
-            n_pages = int(session.get_num_libraries(user_id=None) / 20)
+            libraries, n_pages = session.get_libraries(limit=20, user_id=None, sort_by="id", reversed=True)
 
     return render_template(
         "libraries_page.html",
@@ -40,7 +38,10 @@ def library_page(library_id):
         if access is None:
             return abort(HttpResponse.FORBIDDEN.value.id)
         
-        library.samples = library.samples
+        samples = library.samples
+        if not library.is_raw_library():
+            for sample in samples:
+                sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
 
     library_form = forms.LibraryForm()
     library_form.name.data = library.name
@@ -53,10 +54,6 @@ def library_page(library_id):
     )
 
     index_form = forms.create_index_form(library)
-
-    with DBSession(db.db_handler) as session:
-        for sample in library.samples:
-            sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
 
     return render_template(
         "library_page.html",

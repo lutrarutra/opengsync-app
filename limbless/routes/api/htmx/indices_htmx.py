@@ -107,6 +107,8 @@ def select_indices(library_id: int):
     index_form = forms.IndexForm()
     if (selected_adapter_id := index_form.adapter.data) is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    logger.debug(selected_adapter_id)
 
     if (selected_sample_id := index_form.sample.data) is not None:
         with DBSession(db.db_handler) as session:
@@ -114,17 +116,14 @@ def select_indices(library_id: int):
             logger.debug(selected_sample_id)
             logger.debug(library_id)
             if session.is_sample_in_library(selected_sample_id, library.id):
-                form = "forms/edit-index.html"
+                form_template = "forms/edit-index.html"
             else:
-                form = "forms/index.html"
+                form_template = "forms/index.html"
     else:
         selected_sample = None
-        form = "forms/index.html"
-
-    logger.debug(form)
+        form_template = "forms/index.html"
 
     selected_adapter = db.db_handler.get_adapter(selected_adapter_id)
-    index_form.adapter.data = selected_adapter_id
 
     for i, entry in enumerate(index_form.indices.entries):
         entry.index_seq_id.data = selected_adapter.indices[i].id
@@ -132,7 +131,7 @@ def select_indices(library_id: int):
 
     return make_response(
         render_template(
-            form,
+            form_template,
             library=library, sample=selected_sample,
             index_form=index_form,
             selected_adapter=selected_adapter,

@@ -17,7 +17,7 @@ def test_create_library(db_handler):
     assert library.name == "library"
     assert library.library_type == models.LibraryType.TRANSCRIPTOME
 
-    libraries = db_handler.get_libraries()
+    libraries, _ = db_handler.get_libraries()
     assert len(libraries) == 1
     assert libraries[0] == library
 

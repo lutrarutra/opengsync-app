@@ -586,3 +586,33 @@ def link_library_seq_request(
         self.close_session()
 
     return library_seq_request_link
+
+
+def unlink_library_seq_request(
+    self, library_id: int, seq_request_id: int,
+    commit: bool = True
+) -> None:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    if (_ := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
+    
+    if (links := self._session.query(models.LibrarySeqRequestLink).where(
+        models.LibrarySeqRequestLink.library_id == library_id,
+        models.LibrarySeqRequestLink.seq_request_id == seq_request_id,
+    ).all()) is None:
+        raise exceptions.LinkDoesNotExist(f"Library with id {library_id} and SeqRequest with id {seq_request_id} are not linked")
+    
+    for link in links:
+        self._session.delete(link)
+
+    if commit:
+        self._session.commit()
+
+    if not persist_session:
+        self.close_session()

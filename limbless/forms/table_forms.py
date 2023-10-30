@@ -33,14 +33,14 @@ class LibrarySampleSelectForm(FlaskForm):
         if df is None:
             df = pd.read_csv(StringIO(self.data.data), sep="\t", index_col=False, header=0)
 
-        user_samples = db.db_handler.get_samples(user_id=current_user.id, limit=None)
+        user_samples, _ = db.db_handler.get_samples(user_id=current_user.id, limit=None)
         user_sample_names = [sample.name for sample in user_samples]
 
         library_samples: list[Optional[dict[str, str | int | None]]] = []
         errors: list[Optional[str]] = []
 
         with DBSession(db.db_handler) as session:
-            library = db.db_handler.get_library(library_id=library_id)
+            library = session.get_library(library_id=library_id)
             library_samples_ids: list[int] = [sample.id for sample in library.samples]
 
         df["id"] = None

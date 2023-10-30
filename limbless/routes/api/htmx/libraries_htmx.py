@@ -23,20 +23,36 @@ def get(page):
     if sort_by not in models.Library.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    with DBSession(db.db_handler) as session:
-        if current_user.role_type == UserRole.CLIENT:
-            libraries = session.get_libraries(limit=20, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
-            n_pages = int(session.get_num_libraries(user_id=current_user.id) / 20)
-        else:
-            libraries = session.get_libraries(limit=20, user_id=None, sort_by=sort_by, reversed=reversed)
-            n_pages = int(session.get_num_libraries(user_id=None) / 20)
+    libraries: list[models.Library] = []
+    context = {}
+
+    if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
+        template = "components/tables/seq_request-library.html"
+        try:
+            seq_request_id = int(seq_request_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        with DBSession(db.db_handler) as session:
+            if (seq_request := session.get_seq_request(seq_request_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            if current_user.id != seq_request.requestor_id:
+                return abort(HttpResponse.FORBIDDEN.value.id)
+            libraries, n_pages = session.get_libraries(limit=20, seq_request_id=seq_request_id, sort_by=sort_by, reversed=reversed)
+            context["seq_request"] = seq_request
+    else:
+        template = "components/tables/library.html"
+        with DBSession(db.db_handler) as session:
+            if current_user.role_type == UserRole.CLIENT:
+                libraries, n_pages = session.get_libraries(limit=20, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
+            else:
+                libraries, n_pages = session.get_libraries(limit=20, user_id=None, sort_by=sort_by, reversed=reversed)
 
     return make_response(
         render_template(
-            "components/tables/library.html",
-            libraries=libraries,
+            template, libraries=libraries,
             n_pages=n_pages, active_page=page,
-            current_sort=sort_by, current_sort_order=order
+            current_sort=sort_by, current_sort_order=order,
+            **context
         ), push_url=False
     )
 
@@ -241,20 +257,27 @@ def add_sample(library_id: int):
 
     index_form = forms.IndexForm()
 
-    selected_adapter = index_form.adapter.data
-    selected_sample_id = index_form.sample.data
+    if (selected_adapter_id := index_form.adapter.data) is not None:
+        selected_adapter = db.db_handler.get_adapter(selected_adapter_id)
+    else:
+        selected_adapter = None
+        
+    if (selected_sample_id := index_form.sample.data) is not None:
+        selected_sample = db.db_handler.get_sample(selected_sample_id)
+    else:
+        selected_sample = None
         
     validated, index_form = index_form.custom_validate(library_id, current_user.id, db.db_handler)
-
+    available_samples, _ = db.db_handler.get_samples(user_id=current_user.id)
     if not validated:
         template = render_template(
             "forms/index.html",
             library=library,
             index_form=index_form,
-            available_samples=[sample.to_search_result() for sample in current_user.samples],
+            available_samples=available_samples,
             available_adapters=db.db_handler.query_adapters(word="", index_kit_id=library.index_kit_id),
             selected_adapter=selected_adapter,
-            selected_sample=db.db_handler.get_sample(selected_sample_id)
+            selected_sample=selected_sample
         )
 
         return make_response(template)

@@ -1,0 +1,91 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+<div id="library-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='library-table', column_name='ID', column_var='id',
+                        sort_url='libraries_htmx.get', sort_url_args={'seq_request_id': seq_request.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='Name', column_var='name',
+                        sort_url='libraries_htmx.get', sort_url_args={'seq_request_id': seq_request.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=3
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='Type', column_var='library_type_id',
+                        sort_url='libraries_htmx.get', sort_url_args={'seq_request_id': seq_request.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=3
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='Owner', column_var='owner_id',
+                        sort_url='libraries_htmx.get', sort_url_args={'seq_request_id': seq_request.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        col_size=2,
+                    )
+                }}
+                <th scope="col" class="col-3">Index Kit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for library in libraries %}
+            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+                <th scope="row">{{ library.id }}</th>
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
+                <td>{{ library.library_type.value.name }}</td>
+                <td><span class="owner-col"><p>{{ library.owner.first_name }} {{ library.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
+                <td>{{ library.index_kit.name if library.index_kit }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("library-table", "libraries_htmx.get", n_pages, active_page, url_args={"seq_request_id": seq_request.id}) }}
+</div>
+<script>
+    var selected_library_id = null;
+
+    function remove_library() {
+        Swal.fire({
+            title: `Remove library (id='${selected_library_id}') from '{{seq_request.name}}'-request ?`,
+            showDenyButton: true,
+            text: 'Are you sure?',
+            confirmButtonText: 'Yes',
+            denyButtonText: 'No'
+        }).then(function(e) {
+            if (e.isConfirmed) {
+                htmx.ajax(
+                "DELETE", "{{ url_for('seq_requests_htmx.remove_library', seq_request_id=seq_request.id) }}?library_id=" + selected_library_id,
+                null, {
+                    target: "#library-table",
+                    swapStyle: "outerHTML"
+                });
+            }
+        });
+    }
+
+    $(document).off("contextmenu", ".library-name-cell").on("contextmenu", ".library-name-cell", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_library_id = e.target.id.split("-")[3];
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).empty().append([
+            `<li><a class='dropdown-item' onclick='remove_library()'>Remove</a></li>`
+        ]);
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
+</script>

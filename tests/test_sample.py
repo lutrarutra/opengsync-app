@@ -27,7 +27,7 @@ def test_create_sample(db_handler, project):
     assert sample.index1 == "index1"
     assert sample.index2 == "index2"
 
-    samples = db_handler.get_samples()
+    samples, _ = db_handler.get_samples()
     assert len(samples) == 1
     assert samples[0] == sample
 

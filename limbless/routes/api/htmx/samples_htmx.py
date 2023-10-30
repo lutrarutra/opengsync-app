@@ -28,7 +28,7 @@ def get(page: int):
     if sort_by not in models.Sample.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    samples: Optional[list[models.Sample]] = None
+    samples: list[models.Sample] = []
     project = None
     library = None
     if (project_id := request.args.get("project_id", None)) is not None:
@@ -38,10 +38,9 @@ def get(page: int):
             with DBSession(db.db_handler) as session:
                 if (project := session.get_project(project_id)) is None:
                     return abort(HttpResponse.NOT_FOUND.value.id)
-                samples = session.get_samples(
+                samples, n_pages = session.get_samples(
                     limit=20, project_id=project_id, sort_by=sort_by, reversed=reversed
                 )
-                n_pages = int(session.get_num_samples(project_id=project_id) / 20)
         except (ValueError, TypeError):
             return abort(HttpResponse.BAD_REQUEST.value.id)
 
@@ -52,7 +51,7 @@ def get(page: int):
             with DBSession(db.db_handler) as session:
                 if (library := session.get_library(library_id)) is None:
                     return abort(HttpResponse.NOT_FOUND.value.id)
-                samples = session.get_samples(
+                samples, n_pages = session.get_samples(
                     limit=20, library_id=library_id, sort_by=sort_by, reversed=reversed
                 )
                 for sample in samples:
@@ -66,11 +65,9 @@ def get(page: int):
         template = "components/tables/sample.html"
         with DBSession(db.db_handler) as session:
             if current_user.role_type == UserRole.CLIENT:
-                samples = session.get_samples(limit=20, project_id=project_id, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
-                n_pages = int(session.get_num_samples(user_id=current_user.id, project_id=project_id) / 20)
+                samples, n_pages = session.get_samples(limit=20, project_id=project_id, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
             else:
-                samples = session.get_samples(limit=20, project_id=project_id, sort_by=sort_by, reversed=reversed)
-                n_pages = int(session.get_num_samples(project_id=project_id) / 20)
+                samples, n_pages = session.get_samples(limit=20, project_id=project_id, sort_by=sort_by, reversed=reversed)
     
     return make_response(
         render_template(
@@ -177,8 +174,8 @@ def download():
                 sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
             file_name = f"{library.name}_library_samples.tsv"
             samples = library.samples
-    else:    
-        samples = db.db_handler.get_samples(
+    else:
+        samples, _ = db.db_handler.get_samples(
             limit=None, user_id=_user_id
         )
 

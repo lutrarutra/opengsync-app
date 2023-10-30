@@ -54,10 +54,11 @@ def get_library(self, library_id: int) -> models.Library:
 
 
 def get_libraries(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    self,
+    user_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     sort_by: Optional[str] = None, reversed: bool = False,
-    user_id: Optional[int] = None
-) -> list[models.Library]:
+    limit: Optional[int] = 20, offset: Optional[int] = None,
+) -> tuple[list[models.Library], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -66,6 +67,13 @@ def get_libraries(
     if user_id is not None:
         query = query.where(
             models.Library.owner_id == user_id
+        )
+
+    if seq_request_id is not None:
+        query = query.join(
+            models.Library.seq_requests
+        ).where(
+            models.LibrarySeqRequestLink.seq_request_id == seq_request_id
         )
 
     if sort_by is not None:
@@ -80,12 +88,13 @@ def get_libraries(
     if limit is not None:
         query = query.limit(limit)
 
+    n_pages: int = query.count() // limit if limit is not None else 1
     libraries = query.all()
 
     if not persist_session:
         self.close_session()
 
-    return libraries
+    return libraries, n_pages
 
 
 def get_num_libraries(self, user_id: Optional[int] = None) -> int:
@@ -173,7 +182,7 @@ def query_libraries(
     self, word: str,
     user_id: Optional[int] = None,
     limit: Optional[int] = 20,
-) -> list[SearchResult]:
+) -> list[models.Library]:
 
     persist_session = self._session is not None
     if not self._session:
@@ -197,14 +206,10 @@ def query_libraries(
 
     libraries = query.all()
 
-    res = [
-        library.to_search_result() for library in libraries
-    ]
-
     if not persist_session:
         self.close_session()
 
-    return res
+    return libraries
 
 
 def create_library_type(

@@ -2,9 +2,8 @@ from flask import Blueprint, render_template, abort
 from flask_login import current_user, login_required
 
 from ... import forms, db, logger
-from ...tools import SearchResult
 from ...core import DBSession
-from ...categories import UserRole, SeqRequestStatus
+from ...categories import UserRole, SeqRequestStatus, HttpResponse
 
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 
@@ -87,8 +86,7 @@ def seq_request_page(seq_request_id: int):
     seq_request_form.billing_phone.data = seq_request.billing_contact.phone
     seq_request_form.billing_code.data = seq_request.billing_contact.billing_code
 
-    library_results = db.db_handler.get_libraries(user_id=current_user.id)
-    library_results = [library.to_search_result() for library in library_results]
+    library_results, _ = db.db_handler.get_libraries(user_id=current_user.id)
 
     return render_template(
         "seq_request_page.html",

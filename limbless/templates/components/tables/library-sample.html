@@ -57,7 +57,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page) }}
+    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page, url_args={"library_id":library.id}) }}
 </div>
 
 {# index edit popup form #}
@@ -132,7 +132,6 @@
                 });
             }
         });
-        
     }
 
     $(document).off("contextmenu", ".sample-name-cell").on("contextmenu", ".sample-name-cell", function(e) {

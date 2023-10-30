@@ -98,7 +98,7 @@ def get_samples(
     project_id: Optional[int] = None, library_id: Optional[int] = None,
     limit: Optional[int] = 20, offset: Optional[int] = None,
     sort_by: Optional[str] = None, reversed: bool = False,
-) -> list[models.Sample]:
+) -> tuple[list[models.Sample], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -136,11 +136,13 @@ def get_samples(
     if limit is not None:
         query = query.limit(limit)
 
+    n_pages: int = query.count() // limit if limit is not None else 1
     samples = query.all()
 
     if not persist_session:
         self.close_session()
-    return samples
+        
+    return samples, n_pages
 
 
 def get_user_sample_by_name(self, sample_name: str, user_id: int) -> models.Sample:
