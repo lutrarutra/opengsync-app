@@ -50,6 +50,9 @@
                             data-bs-target="#sample-table-form-popup">
                             Add Sample Table
                         </button>
+                        <a class="btn btn-primary" href="{{ url_for('samples_htmx.download', project_id=project.id) }}">
+                            Download
+                        </a>
                     </div>
                 </div>
                 {% include "components/tables/project-sample.html" %}

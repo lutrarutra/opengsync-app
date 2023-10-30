@@ -43,11 +43,16 @@ class Sample(SQLModel, SearchResult, table=True):
     sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id"]
 
     def to_dict(self):
-        return {
+        data = {
             "id": self.id,
             "name": self.name,
-            "organism": self.organism,
+            "organism": self.organism.scientific_name,
+            "organism_tax_id": self.organism.tax_id,
         }
+        if len(self.indices) > 0:
+            data["indices"] = [index.sequence for index in self.indices]
+            data["adapter"] = self.indices[0].adapter.name
+        return data
 
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name}, organism:{self.organism})"

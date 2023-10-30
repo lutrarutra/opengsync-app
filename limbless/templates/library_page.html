@@ -47,6 +47,9 @@
                     <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-table-form-popup">
                         Add Table
                     </button>
+                    <a class="btn btn-primary" href="{{ url_for('samples_htmx.download', library_id=library.id) }}">
+                        Download
+                    </a>
                 </div>
             </div>
             {% include "components/tables/library-sample.html" %}

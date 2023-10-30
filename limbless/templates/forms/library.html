@@ -11,7 +11,7 @@
         search_select_field(
             library_form.index_kit,
             url=url_for('indices_htmx.query_index_kits'),
-            selected=selected_kit_id,
+            selected=selected_kit,
             disabled=not library_form.is_premade_library.data,
             include_field="library_type"
         )

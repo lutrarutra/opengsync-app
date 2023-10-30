@@ -152,18 +152,42 @@ def delete(sample_id: int):
 @samples_htmx.route("download", methods=["GET"])
 @login_required
 def download():
-    logger.debug("HELLO")
-    with DBSession(db.db_handler) as session:
-        if current_user.role_type == UserRole.CLIENT:
-            samples = session.get_samples(limit=None, user_id=current_user.id)
-        else:
-            samples = session.get_samples(limit=None, user_id=None)
+    if current_user.role_type == UserRole.CLIENT:
+        _user_id = current_user.id
+    else:
+        _user_id = None
+    
+    file_name = f"{current_user.last_name}_samples.tsv"
+    if (project_id := request.args.get("project_id", None)) is not None:
+        try:
+            project_id = int(project_id)
+            with DBSession(db.db_handler) as session:
+                if (project := session.get_project(project_id)) is None:
+                    return abort(HttpResponse.NOT_FOUND.value.id)
+                file_name = f"{project.name}_project_samples.tsv"
+                samples = project.samples
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    elif (library_id := request.args.get("library_id", None)) is not None:
+        with DBSession(db.db_handler) as session:
+            if (library := session.get_library(library_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            for sample in library.samples:
+                sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
+            file_name = f"{library.name}_library_samples.tsv"
+            samples = library.samples
+    else:    
+        samples = db.db_handler.get_samples(
+            limit=None, user_id=_user_id
+        )
+
+    file_name = secure_filename(file_name)
 
     df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
-    logger.debug(df.columns)
     return Response(
         df.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=samples.tsv"}
+        headers={"Content-disposition": f"attachment; filename={file_name}"}
     )
 
 
