@@ -6,12 +6,13 @@ from flask_login import current_user, login_required
 from ... import logger, db
 from ...categories import UserRole, HttpResponse
 
-user_page_bp = Blueprint("user_page", __name__)
+users_page_bp = Blueprint("users_page", __name__)
 
-@user_page_bp.route("/users")
+
+@users_page_bp.route("/users")
 @login_required
 def users_page():
-    if current_user.role_type not in [UserRole.ADMIN, UserRole.TECHNICIAN, UserRole.BIOINFORMATICIAN]:
+    if current_user.role_type not in UserRole.insiders:
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     users = db.db_handler.get_users(limit=20)
@@ -25,8 +26,8 @@ def users_page():
     )
 
 
-@user_page_bp.route("/user", defaults={"user_id": None})
-@user_page_bp.route("/user/<int:user_id>")
+@users_page_bp.route("/user", defaults={"user_id": None})
+@users_page_bp.route("/user/<int:user_id>")
 @login_required
 def user_page(user_id: Optional[int]):
     if user_id is None:
@@ -39,6 +40,10 @@ def user_page(user_id: Optional[int]):
     if (user := db.db_handler.get_user(user_id)) is None:
         return abort(HttpResponse.FORBIDDEN.value.id)
 
+    path_list = [
+        ("Users", url_for("users_page.users_page")),
+        (f"{user_id}", ""),
+    ]
     return render_template(
-        "user_page.html", user=user
+        "user_page.html", user=user, path_list=path_list
     )

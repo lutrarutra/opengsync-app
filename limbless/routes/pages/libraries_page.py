@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, url_for
 from flask_login import login_required, current_user
 
 from ... import db, forms, logger
@@ -55,11 +55,17 @@ def library_page(library_id):
 
     index_form = forms.create_index_form(library)
 
+    path_list = [
+        ("Libraries", url_for("libraries_page.libraries_page")),
+        (f"{library.id}", ""),
+    ]
+
     return render_template(
         "library_page.html",
         available_samples=available_samples,
         library=library,
         samples=library.samples,
+        path_list=path_list,
         index_form=index_form,
         available_adapters=db.db_handler.query_adapters(word="", index_kit_id=library.index_kit_id),
         selected_kit=library.index_kit,

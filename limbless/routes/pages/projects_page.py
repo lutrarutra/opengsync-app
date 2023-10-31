@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, abort
+from flask import Blueprint, render_template, redirect, abort, url_for
 from flask_login import login_required, current_user
 
 from ... import db, forms, logger
@@ -40,10 +40,16 @@ def project_page(project_id):
 
         samples = project.samples
 
+    path_list = [
+        ("Projects", url_for("projects_page.projects_page")),
+        (f"{project_id}", ""),
+    ]
+
     return render_template(
         "project_page.html", project=project,
         sample_form=forms.SampleForm(),
         samples=samples,
+        path_list=path_list,
         table_form=forms.TableForm(),
         common_organisms=db.common_organisms,
         active_page=0,

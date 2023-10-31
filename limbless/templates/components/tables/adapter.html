@@ -4,7 +4,7 @@
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                {{ table_col('adapter-table', 'Name', 'name', 'adapters_htmx.get', current_sort, current_sort_order, url_args={"index_kit_id":index_kit_id}) }}
+                {{ table_col('adapter-table', 'Name', 'name', 'adapters_htmx.get', current_sort, current_sort_order, sort_url_args={"index_kit_id":index_kit_id}) }}
                 <th scope="col">Indices</th>
             </tr>
         </thead>
@@ -14,7 +14,11 @@
                 <th scope="row">{{ adapter.name }}</th>
                 <td class="adapter-col">
                     {% for index in adapter.indices %}
-                        <span class="comma"><p>{{ index.sequence }}</p><p>{{ index.type }}</p></span>
+                        <span class="comma">
+                            <p>{{ index.sequence }}</p>
+                            <p>{{ index.type }}</p>
+                            <p>{{ ("(" + index.workflow + ")") if index.workflow else "" }}</p>
+                        </span>
                     {% endfor %}
                 </td>
             </tr>

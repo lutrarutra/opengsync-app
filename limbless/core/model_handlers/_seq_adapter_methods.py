@@ -53,7 +53,7 @@ def get_adapters(
     self, index_kit_id: Optional[int] = None,
     offset: Optional[int] = None, limit: Optional[int] = 20,
     sort_by: Optional[str] = None, reversed: bool = False,
-) -> list[SearchResult]:
+) -> tuple[list[SearchResult], int]:
 
     persist_session = self._session is not None
     if not self._session:
@@ -78,11 +78,12 @@ def get_adapters(
         query = query.limit(limit)
 
     res = query.all()
+    n_pages: int = query.count() // limit if limit is not None else 1
 
     if not persist_session:
         self.close_session()
 
-    return res
+    return res, n_pages
 
 
 def get_num_adapters(

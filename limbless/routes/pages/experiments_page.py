@@ -53,12 +53,18 @@ def experiment_page(experiment_id):
         experiment_form.i2_cycles.data = experiment.i2_cycles
         experiment_form.num_lanes.data = experiment.num_lanes
 
+    path_list = [
+        ("Experiments", url_for("experiments_page.experiments_page")),
+        (f"{experiment_id}", ""),
+    ]
+
     return render_template(
         "experiment_page.html",
         experiment=experiment,
         experiment_form=experiment_form,
         experiment_lanes=experiment_lanes,
         libraries=libraries,
+        path_list=path_list,
         available_libraries=available_libraries,
         selected_sequencer=experiment.sequencer.name,
         n_pages=n_pages, active_page=0,

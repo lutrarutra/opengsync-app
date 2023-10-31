@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, url_for
 from flask_login import current_user, login_required
 
 from ... import forms, db, logger
@@ -48,7 +48,7 @@ def seq_request_page(seq_request_id: int):
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         if seq_request.requestor_id != current_user.id:
-            if current_user.role_type not in [UserRole.ADMIN, UserRole.TECHNICIAN, UserRole.BIOINFORMATICIAN]:
+            if current_user.role_type not in UserRole.insiders:
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
         libraries = seq_request.libraries
@@ -94,12 +94,16 @@ def seq_request_page(seq_request_id: int):
 
     library_results, _ = db.db_handler.get_libraries(user_id=current_user.id)
 
-    logger.debug(seq_request.libraries)
+    path_list = [
+        ("Requests", url_for("seq_requests_page.seq_requests_page")),
+        (f"{seq_request_id}", ""),
+    ]
 
     return render_template(
         "seq_request_page.html",
         seq_request=seq_request,
         libraries=libraries,
+        path_list=path_list,
         select_library_form=forms.SelectLibraryForm(),
         library_results=library_results,
         seq_request_form=seq_request_form

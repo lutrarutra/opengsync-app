@@ -25,6 +25,7 @@ def devices_page():
         n_pages=n_pages, active_page=0
     )
 
+
 @devices_page_bp.route("/sequencers/<int:sequencer_id>", methods=["GET"])
 @login_required
 def sequencer_page(sequencer_id: int):
@@ -38,7 +39,11 @@ def sequencer_page(sequencer_id: int):
     sequencer_form.name.data = sequencer.name
     sequencer_form.ip_address.data = sequencer.ip
 
+    path_list = [
+        ("Devices", url_for("devices_page.devices_page")),
+        (f"{sequencer.id}", ""),
+    ]
     return render_template(
         "device_page.html", sequencer_form=sequencer_form,
-        sequencer=sequencer,
+        sequencer=sequencer, path_list=path_list
     )

@@ -11,7 +11,7 @@ def auth_page():
     dest = request.args.get("next")
 
     if current_user.is_authenticated:
-        return redirect(url_for("user_page.user_page"))
+        return redirect(url_for("users_page.user_page"))
 
     login_form = forms.LoginForm()
     register_form = forms.RegisterForm()

@@ -21,6 +21,7 @@ class IndexKit(SQLModel, SearchResult, table=True):
 
     library_type_ids: List[LibraryTypeId] = Relationship(
         link_model=IndexKitLibraryType,
+        sa_relationship_kwargs={"lazy": "joined"},
     )
 
     _num_adapters: int = PrivateAttr()

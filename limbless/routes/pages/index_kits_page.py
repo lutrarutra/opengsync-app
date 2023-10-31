@@ -26,11 +26,16 @@ def index_kits_page():
 def index_kit_page(index_kit_id: int):
     with DBSession(db.db_handler) as session:
         index_kit = session.get_index_kit(index_kit_id)
-        adapters = session.get_adapters(index_kit_id=index_kit_id)
-        n_pages = int(session.get_num_adapters(index_kit_id=index_kit_id) / 20)
+        adapters, n_pages = session.get_adapters(index_kit_id=index_kit_id)
+
+    path_list = [
+        ("Index Kits", url_for("index_kits_page.index_kits_page")),
+        (f"{index_kit_id}", ""),
+    ]
 
     return render_template(
         "index_kit_page.html",
         n_pages=n_pages, active_page=0,
+        path_list=path_list,
         index_kit=index_kit, adapters=adapters
     )

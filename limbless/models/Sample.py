@@ -49,6 +49,7 @@ class Sample(SQLModel, SearchResult, table=True):
             "organism": self.organism.scientific_name,
             "organism_tax_id": self.organism.tax_id,
         }
+
         if len(self.indices) > 0:
             data["indices"] = [index.sequence for index in self.indices]
             data["adapter"] = self.indices[0].adapter.name

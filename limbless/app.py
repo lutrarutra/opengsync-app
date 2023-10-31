@@ -2,7 +2,7 @@ import os
 import warnings
 from uuid import uuid4
 
-from flask import Flask, render_template, redirect, request, url_for
+from flask import Flask, render_template, redirect, request, url_for, session
 from sassutils.wsgi import SassMiddleware
 
 from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, models
@@ -62,6 +62,10 @@ def create_app():
     @app.context_processor
     def inject_uuid():
         return dict(uuid=uuid4)
+    
+    @app.before_request
+    def before_request():
+        session["from_url"] = request.referrer
 
     # app.register_blueprint(api.jobs_bp)
     app.register_blueprint(api.samples_htmx)
@@ -82,7 +86,7 @@ def create_app():
     app.register_blueprint(pages.experiments_page_bp)
     app.register_blueprint(pages.libraries_page_bp)
     app.register_blueprint(pages.auth_page_bp)
-    app.register_blueprint(pages.user_page_bp)
+    app.register_blueprint(pages.users_page_bp)
     app.register_blueprint(pages.seq_requests_page_bp)
     app.register_blueprint(pages.index_kits_page_bp)
     app.register_blueprint(pages.errors_bp)

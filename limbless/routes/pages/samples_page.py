@@ -42,12 +42,15 @@ def sample_page(sample_id):
     with DBSession(db.db_handler) as session:
         sample = session.get_sample(sample_id)
         libraries = session.get_sample_libraries(sample.id)
-        runs = []
-        for library in sample.libraries:
-            runs.extend(session.get_library_runs(library.id))
+        sample.libraries = libraries
 
+    path_list = [
+        ("Samples", url_for("samples_page.samples_page")),
+        (f"{sample_id}", ""),
+    ]
+    
     return render_template(
         "sample_page.html", sample_form=sample_form,
-        sample=sample, libraries=libraries,
-        runs=runs, selected_organism=sample.organism
+        path_list=path_list, sample=sample, libraries=libraries,
+        selected_organism=sample.organism
     )
