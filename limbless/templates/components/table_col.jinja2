@@ -1,6 +1,6 @@
 {% macro table_col(target_id, column_name, column_var, sort_url=none, current_sort=none, current_sort_order=none, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1, sort_url_args={}, active_page=0) -%}
-<th scope="col" class="col-{{ col_size}} sortable-col {{ current_sort_order }} {{ 'query-col' if query_url else '' }}"
-id="{{ target_id }}-{{ column_var }}"
+<th scope="col" class="col-{{col_size}} sortable-col {{ current_sort_order }} {{ 'query-col' if query_url else '' }}"
+id="{{ target_id }}+{{ column_var }}"
 hx-target="#{{ target_id }}" hx-swap="outerHTML"
 {% if sort_url %}
 hx-get="{{
@@ -36,9 +36,9 @@ style="display: none;"
     {% endif %}
 </th>
 {% if query_url %}
-    <th th scopy='col' class='temp-query-input' id='{{ target_id }}-{{ column_var }}-temp'
+    <th th scopy='col' class='temp-query-input' id='{{ target_id }}+{{ column_var }}-temp'
         {% if not (current_query and column_var == field_name) %}
-        style="display: none; height: 25px;"
+        style="display: block; height: 25px;"
         {% else %}
         style="height: 25px;"
         {% endif %}>
