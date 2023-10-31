@@ -70,11 +70,11 @@ class User(UserMixin, SQLModel, table=True):
 
     requests: List["SeqRequest"] = Relationship(
         back_populates="requestor",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "noload"}
     )
     projects: List["Project"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "noload"}
     )
     libraries: List["Library"] = Relationship(
         back_populates="owner",

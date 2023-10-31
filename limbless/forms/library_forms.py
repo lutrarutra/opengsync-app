@@ -14,10 +14,6 @@ class SelectLibraryForm(FlaskForm):
     library = IntegerField("Library", validators=[DataRequired()])
 
 
-class SelectLibrariesForm(FlaskForm):
-    libraries = FieldList(FormField(SelectLibraryForm))
-
-
 class LibraryForm(FlaskForm):
     _choises = LibraryType.as_selectable()
     name = StringField("Library Name", validators=[

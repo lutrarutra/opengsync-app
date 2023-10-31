@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, abort
 from flask_login import login_required, current_user
 
 from ...core import DBSession
-from ... import forms, db
+from ... import forms, db, logger
 from ...categories import UserRole, HttpResponse
 
 experiments_page_bp = Blueprint("experiments_page", __name__)
@@ -40,27 +40,26 @@ def experiment_page(experiment_id):
         if access is None:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    with DBSession(db.db_handler) as session:
-        experiment = db.db_handler.get_experiment(experiment_id)
-        if not experiment:
-            return redirect(url_for("experiments_page.experiments_page"))
-        
-        libraries, n_pages = session.get_libraries(
-            experiment_id=experiment_id, limit=20
-        )
-        available_libraries, _ = session.get_libraries(
-            user_id=None, limit=20
-        )
-        
+        libraries = experiment.libraries
+        available_libraries, n_pages = session.get_libraries(limit=20)
+        experiment_lanes = session.get_lanes_in_experiment(experiment_id)
+
         experiment_form = forms.ExperimentForm()
         experiment_form.flowcell.data = experiment.flowcell
         experiment_form.sequencer.data = experiment.sequencer.id
+        experiment_form.r1_cycles.data = experiment.r1_cycles
+        experiment_form.r2_cycles.data = experiment.r2_cycles
+        experiment_form.i1_cycles.data = experiment.i1_cycles
+        experiment_form.i2_cycles.data = experiment.i2_cycles
+        experiment_form.num_lanes.data = experiment.num_lanes
 
     return render_template(
-        "experiment_page.html", experiment=experiment,
+        "experiment_page.html",
+        experiment=experiment,
         experiment_form=experiment_form,
-        select_libraries_form=forms.SelectLibrariesForm(),
-        libaries=libraries,
+        experiment_lanes=experiment_lanes,
+        libraries=libraries,
         available_libraries=available_libraries,
         selected_sequencer=experiment.sequencer.name,
+        n_pages=n_pages, active_page=0,
     )

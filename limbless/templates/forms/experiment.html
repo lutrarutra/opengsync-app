@@ -4,6 +4,7 @@
     {{ experiment_form.csrf_token() }}
     <div class="row">
         {{ form_group(experiment_form.flowcell, class="col") }}
+        {{ form_group(experiment_form.num_lanes, class="col") }}
     </div>
     {{ 
         search_select_field(

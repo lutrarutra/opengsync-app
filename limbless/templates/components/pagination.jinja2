@@ -1,4 +1,4 @@
-{% macro pagination(target_id, url, n_pages, active_page, url_args=None) -%}
+{% macro pagination(target_id, url, n_pages, active_page, url_args={}) -%}
     {% if n_pages %}
     <ul class="pagination">
         <li class="page-item">

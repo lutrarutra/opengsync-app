@@ -5,7 +5,7 @@ from .. import exceptions
 
 
 def create_experiment(
-    self, flowcell: str, sequencer_id: int,
+    self, flowcell: str, sequencer_id: int, num_lanes: int,
     r1_cycles: int, i1_cycles: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None,
     commit: bool = True
@@ -24,6 +24,7 @@ def create_experiment(
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
+        num_lanes=num_lanes
     )
 
     self._session.add(experiment)
@@ -116,8 +117,6 @@ def delete_experiment(
     if not experiment:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
-    for run in experiment.runs:
-        self._session.delete(run)
     self._session.delete(experiment)
     
     if commit:
@@ -131,6 +130,12 @@ def update_experiment(
     self, experiment_id: int,
     name: Optional[str] = None,
     flowcell: Optional[str] = None,
+    r1_cycles: Optional[int] = None,
+    r2_cycles: Optional[int] = None,
+    i1_cycles: Optional[int] = None,
+    i2_cycles: Optional[int] = None,
+    num_lanes: Optional[int] = None,
+    sequencer_id: Optional[int] = None,
     commit: bool = True
 ) -> models.Experiment:
     persist_session = self._session is not None
@@ -151,6 +156,16 @@ def update_experiment(
         experiment.name = name
     if flowcell is not None:
         experiment.flowcell = flowcell
+    if r1_cycles is not None:
+        experiment.r1_cycles = r1_cycles
+    if i1_cycles is not None:
+        experiment.i1_cycles = i1_cycles
+    if num_lanes is not None:
+        experiment.num_lanes = num_lanes
+        
+    experiment.r2_cycles = r2_cycles
+    experiment.i2_cycles = i2_cycles
+    experiment.sequencer_id = sequencer_id
 
     self._session.add(experiment)
     if commit:

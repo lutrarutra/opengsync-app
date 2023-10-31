@@ -19,6 +19,7 @@ class Experiment(SQLModel, table=True):
     r2_cycles: Optional[int] = Field(nullable=True)
     i1_cycles: int = Field(nullable=False)
     i2_cycles: Optional[int] = Field(nullable=True)
+    num_lanes: int = Field(nullable=False, default=1)
 
     timestamp: datetime = Field(sa_column=Column(
         TIMESTAMP(timezone=True),
@@ -43,4 +44,7 @@ class Experiment(SQLModel, table=True):
         return ExperimentStatus.get(self.status)
     
     def is_deleteable(self) -> bool:
+        return self.status_type == ExperimentStatus.DRAFT
+    
+    def is_editable(self) -> bool:
         return self.status_type == ExperimentStatus.DRAFT

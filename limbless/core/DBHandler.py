@@ -108,13 +108,15 @@ class DBHandler():
         get_user_projects,
         get_sample_libraries,
         get_sample_indices_from_library,
+        get_lanes_in_experiment,
 
         link_library_sample,
+        link_experiment_library,
         link_index_kit_library_type,
         link_library_seq_request,
 
         unlink_library_sample,
-        unlink_project_user,
+        unlink_experiment_library,
         unlink_library_seq_request,
 
         is_sample_in_library,

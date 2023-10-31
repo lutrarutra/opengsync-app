@@ -2,7 +2,7 @@ from .JobForm import JobForm
 from .sample_forms import SampleSelectForm, SampleForm, SampleTableForm, SampleColSelectForm, ProjectSampleSelectForm
 from .ProjectForm import ProjectForm
 from .ExperimentForm import ExperimentForm
-from .library_forms import LibraryForm, SelectLibraryForm, SelectLibrariesForm
+from .library_forms import LibraryForm, SelectLibraryForm
 from .SearchForm import SearchForm
 from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm
 from .index_forms import IndexForm, create_index_form

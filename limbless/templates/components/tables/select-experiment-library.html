@@ -1,7 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 <div id="select-experiment-library-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -13,7 +13,7 @@
                         field_name=field_name, query_type="number"
                     )
                 }}
-                <th scope="col" class="col-1"></th>
+                <th scope="col" class="col-2">Add to Lane</th>
                 {{
                     table_col(
                         target_id='select-experiment-library-table', column_name='Name', column_var='name',
@@ -43,9 +43,25 @@
         </thead>
         <tbody>
             {% for library in available_libraries %}
-            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+            <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td><button>Add</button></td>
+                <td>
+                    <div class="btn-group">
+                    {% for lane in range(1, experiment.num_lanes+1) %}
+                        {% if lane in experiment_lanes[library.id] %}
+                            <button type="button" class="btn btn-primary table-btn"
+                            hx-delete="{{ url_for('experiments_htmx.remove_library', experiment_id=experiment.id, library_id=library.id, lane=lane) }}">
+                                {{ lane }}
+                            </button>
+                        {% else %}
+                            <button type="button" class="btn btn-outline-primary table-btn"
+                            hx-post="{{ url_for('experiments_htmx.add_library', experiment_id=experiment.id, library_id=library.id, lane=lane) }}">
+                                {{ lane }}
+                            </button>
+                        {% endif %}
+                    {% endfor %}
+                    </div>
+                </td>
                 <td>{{ library.name }}</td>
                 <td>{{ library.library_type.value.name }}</td>
                 <td><span class="owner-col"><p>{{ library.owner.first_name }} {{ library.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>

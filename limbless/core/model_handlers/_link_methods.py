@@ -160,106 +160,6 @@ def get_project_data(
         self.close_session()
     return project_data
 
-# def link_library_user(
-#     self, library_id: int, user_id: int,
-#     relation: categories.UserResourceRelation
-# ) -> models.LibraryUserLink:
-#     persist_session = self._session is not None
-#     if not self._session:
-#         self.open_session()
-
-#     if (_ := self._session.get(models.User, user_id)) is None:
-#         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-#     if (_ := self._session.get(models.Library, library_id)) is None:
-#         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-
-#     if self._session.query(models.LibraryUserLink).where(
-#         models.LibraryUserLink.library_id == library_id,
-#         models.LibraryUserLink.user_id == user_id
-#     ).first():
-#         raise exceptions.LinkAlreadyExists(f"User with id {user_id} and library with id {library_id} are already linked")
-
-#     library_user_link = models.LibraryUserLink(
-#         library_id=library_id, user_id=user_id,
-#         relation_id=relation.value.id
-#     )
-#     self._session.add(library_user_link)
-
-#     self._session.commit()
-#     self._session.refresh(library_user_link)
-
-#     if not persist_session:
-#         self.close_session()
-#     return library_user_link
-
-
-# def link_project_user(
-#     self, project_id: int, user_id: int,
-#     relation: categories.UserResourceRelation,
-#     commit: bool = True
-# ) -> models.ProjectUserLink:
-
-#     persist_session = self._session is not None
-#     if not self._session:
-#         self.open_session()
-
-#     if (_ := self._session.get(models.User, user_id)) is None:
-#         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-#     if (_ := self._session.get(models.Project, project_id)) is None:
-#         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
-
-#     if self._session.query(models.ProjectUserLink).where(
-#         models.ProjectUserLink.project_id == project_id,
-#         models.ProjectUserLink.user_id == user_id
-#     ).first():
-#         raise exceptions.LinkAlreadyExists(f"User with id {user_id} and project with id {project_id} are already linked")
-
-#     project_user_link = models.ProjectUserLink(
-#         project_id=project_id, user_id=user_id,
-#         relation_id=relation.value.id
-#     )
-#     self._session.add(project_user_link)
-
-#     if commit:
-#         self._session.commit()
-#         self._session.refresh(project_user_link)
-
-#     if not persist_session:
-#         self.close_session()
-#     return project_user_link
-
-
-def unlink_project_user(
-    self, project_id: int, user_id: int,
-    commit: bool = True
-) -> None:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    user = self._session.get(models.User, user_id)
-    project = self._session.get(models.Project, project_id)
-
-    if not user:
-        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-    if not project:
-        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
-
-    if not self._session.query(models.ProjectUserLink).where(
-        models.ProjectUserLink.project_id == project_id,
-        models.ProjectUserLink.user_id == user_id
-    ).first():
-        raise exceptions.LinkDoesNotExist(f"User with id {user_id} and project with id {project_id} are already linked")
-
-    project.users.remove(user)
-
-    if commit:
-        self._session.commit()
-
-    if not persist_session:
-        self.close_session()
-
 
 def is_sample_in_library(
     self, sample_id: int, library_id: int
@@ -450,6 +350,103 @@ def unlink_library_seq_request(
     for link in links:
         self._session.delete(link)
 
+    if commit:
+        self._session.commit()
+
+    if not persist_session:
+        self.close_session()
+
+
+def link_experiment_library(
+    self, experiment_id: int, library_id: int,
+    lane: int, commit: bool = True
+) -> models.ExperimentLibraryLink:
+
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+    if lane > experiment.num_lanes:
+        raise exceptions.InvalidValue(f"Experiment with id {experiment_id} has only {experiment.num_lanes} lanes")
+    if (_ := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    if self._session.query(models.ExperimentLibraryLink).where(
+        models.ExperimentLibraryLink.experiment_id == experiment_id,
+        models.ExperimentLibraryLink.library_id == library_id,
+        models.ExperimentLibraryLink.lane == lane,
+    ).first():
+        raise exceptions.LinkAlreadyExists(f"Experiment with id {experiment_id} and Library with id {library_id} are already linked")
+
+    experiment_library_link = models.ExperimentLibraryLink(
+        experiment_id=experiment_id, library_id=library_id, lane=lane,
+    )
+    self._session.add(experiment_library_link)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(experiment_library_link)
+
+    if not persist_session:
+        self.close_session()
+
+    return experiment_library_link
+
+
+def get_lanes_in_experiment(
+    self, experiment_id: int
+) -> dict[int, list[int]]:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+    
+    data = self._session.query(
+        models.ExperimentLibraryLink.library_id,
+        models.ExperimentLibraryLink.lane
+    ).where(
+        models.ExperimentLibraryLink.experiment_id == experiment_id
+    ).order_by(models.ExperimentLibraryLink.lane).all()
+
+    lanes: dict[int, list[int]] = {}
+    for library_id, lane in data:
+        if library_id not in lanes:
+            lanes[library_id] = []
+        lanes[library_id].append(lane)
+    
+    if not persist_session:
+        self.close_session()
+
+    return lanes
+
+
+def unlink_experiment_library(
+    self, experiment_id: int, library_id: int, lane: int,
+    commit: bool = True
+):
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+    if (_ := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    if (link := self._session.query(models.ExperimentLibraryLink).where(
+        models.ExperimentLibraryLink.experiment_id == experiment_id,
+        models.ExperimentLibraryLink.library_id == library_id,
+        models.ExperimentLibraryLink.lane == lane,
+    ).first()) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} and Library with id {library_id} are not linked")
+
+    self._session.delete(link)
     if commit:
         self._session.commit()
 
