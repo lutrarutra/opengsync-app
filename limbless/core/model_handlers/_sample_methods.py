@@ -130,13 +130,14 @@ def get_samples(
             models.LibrarySampleLink.library_id == library_id
         )
 
+    n_pages: int = query.count() // limit if limit is not None else 1
+    
     if offset is not None:
         query = query.offset(offset)
 
     if limit is not None:
         query = query.limit(limit)
 
-    n_pages: int = query.count() // limit if limit is not None else 1
     samples = query.all()
 
     if not persist_session:

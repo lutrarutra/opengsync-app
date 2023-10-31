@@ -1,9 +1,11 @@
+from typing import Optional
+
 from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
 from .... import db, forms, logger, models
-from ....core import DBSession
+from ....core import DBSession, DBHandler
 from ....categories import UserRole, SeqRequestStatus, HttpResponse
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/seq_requests/")
@@ -15,27 +17,46 @@ def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
     reversed = order == "desc"
+    offset = 20 * page
 
     if sort_by not in models.SeqRequest.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    seq_requests: list[models.SeqRequest] = []
+    context = {}
 
-    with DBSession(db.db_handler) as session:
-        if current_user.role_type == UserRole.CLIENT:
-            seq_requests = session.get_seq_requests(limit=20, offset=20 * page, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
-            n_pages = int(session.get_num_seq_requests(user_id=current_user.id) / 20)
-        else:
-            seq_requests = session.get_seq_requests(limit=20, offset=20 * page, user_id=None, sort_by=sort_by, reversed=reversed)
-            n_pages = int(session.get_num_seq_requests(user_id=None) / 20)
+    if (user_id := request.args.get("user_id")) is not None:
+        template = "components/tables/user-seq_request.html"
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        if user_id != current_user.id and current_user.role_type not in UserRole.insiders:
+            return abort(HttpResponse.FORBIDDEN.value.id)
+        
+        if (user := db.db_handler.get_user(user_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
 
-        page = min(page, n_pages)
+        seq_requests, n_pages = db.db_handler.get_seq_requests(limit=20, offset=offset, user_id=user_id, sort_by=sort_by, reversed=reversed)
+        context["user"] = user
+    else:
+        template = "components/tables/seq_request.html"
+        with DBSession(db.db_handler) as session:
+            if current_user.role_type not in UserRole.insiders:
+                user_id = current_user.id
+            else:
+                user_id = None
+            seq_requests, n_pages = session.get_seq_requests(limit=20, offset=offset, user_id=user_id, sort_by=sort_by, reversed=reversed)
 
-        return make_response(
-            render_template(
-                "components/tables/seq_request.html", seq_requests=seq_requests,
-                n_pages=n_pages, active_page=page,
-                current_sort=sort_by, current_sort_order=order
-            ), push_url=False
-        )
+    return make_response(
+        render_template(
+            template, seq_requests=seq_requests,
+            n_pages=n_pages, active_page=page,
+            current_sort=sort_by, current_sort_order=order,
+            **context
+        ), push_url=False
+    )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["POST"])
@@ -256,7 +277,74 @@ def remove_library(seq_request_id: int):
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
     )
-        
 
+
+@seq_requests_htmx.route("table_query", methods=["POST"])
+@login_required
+def table_query():
+    if (word := request.form.get("name", None)) is not None:
+        field_name = "name"
+    elif (word := request.form.get("id", None)) is not None:
+        field_name = "id"
+    else:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    if word is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    def __get_seq_requests(
+        session: DBHandler, word: str | int, field_name: str,
+        user_id: Optional[int] = None
+    ) -> list[models.SeqRequest]:
+        seq_requests: list[models.SeqRequest] = []
+        if field_name == "name":
+            seq_requests = session.query_seq_requests(
+                str(word), user_id=user_id
+            )
+        elif field_name == "id":
+            try:
+                _id = int(word)
+                if (seq_request := session.get_seq_request(_id)) is not None:
+                    if user_id is not None:
+                        if seq_request.requestor_id == user_id:
+                            seq_requests = [seq_request]
+                    else:
+                        seq_requests = [seq_request]
+            except ValueError:
+                pass
+        else:
+            assert False    # This should never happen
+
+        return seq_requests
+    
+    context = {}
+    if (user_id := request.args.get("user_id", None)) is not None:
+        template = "components/tables/user-seq_request.html"
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        with DBSession(db.db_handler) as session:
+            if (user := session.get_user(user_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
             
+            seq_requests = __get_seq_requests(session, word, field_name, user_id=user_id)
+            context["user"] = user
+    else:
+        template = "components/tables/seq_request.html"
+
+        with DBSession(db.db_handler) as session:
+            if current_user.role_type not in UserRole.insiders:
+                user_id = current_user.id
+            else:
+                user_id = None
+            seq_requests = __get_seq_requests(session, word, field_name, user_id=user_id)
+
+    return make_response(
+        render_template(
+            template,
+            current_query=word, field_name=field_name,
+            seq_requests=seq_requests, **context
+        ), push_url=False
+    )
         

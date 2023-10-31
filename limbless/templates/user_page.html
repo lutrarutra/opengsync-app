@@ -57,12 +57,10 @@
                 {{ metadata_group_email_link("Email", user.email) }}
             </div>
             <div class="tab-pane fade show" id="user-projects-tab" role="tabpanel" tabindex="1">
-            {% set projects = user.projects %}
-            {% include "components/tables/project.html" %}
+            {% include "components/tables/user-project.html" %}
             </div>
             <div class="tab-pane fade show" id="user-requests-tab" role="tabpanel" tabindex="2">
-            {% set seq_requests = user.requests %}
-            {% include "components/tables/seq_request.html" %}
+            {% include "components/tables/user-seq_request.html" %}
             </div>
         </div>
     </div>

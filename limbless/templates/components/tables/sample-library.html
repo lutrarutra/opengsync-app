@@ -1,0 +1,57 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+<div id="library-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='library-table', column_name='ID', column_var='id',
+                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', sample_id=sample.id), current_query=current_query,
+                        field_name=field_name, query_type="number",
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='Name', column_var='name',
+                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', sample_id=sample.id), current_query=current_query,
+                        field_name=field_name, query_type="text", col_size=3,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='Type', column_var='library_type_id',
+                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        col_size=3,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='Owner', column_var='owner_id',
+                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        col_size=2,
+                    )
+                }}
+                <th scope="col" class="col-3">Index Kit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for library in libraries %}
+            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+                <th scope="row">{{ library.id }}</th>
+                <td>{{ library.name }}</td>
+                <td>{{ library.library_type.value.name }}</td>
+                <td><span class="owner-col"><p>{{ library.owner.first_name }} {{ library.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
+                <td>{{ library.index_kit.name if library.index_kit }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("library-table", "libraries_htmx.get", n_pages, active_page) }}
+</div>

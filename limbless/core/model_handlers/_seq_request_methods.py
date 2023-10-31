@@ -1,5 +1,7 @@
 from typing import Optional
 
+from sqlmodel import func
+
 from ... import models
 from ...categories import SeqRequestStatus
 from .. import exceptions
@@ -78,7 +80,7 @@ def get_seq_requests(
     with_statuses: Optional[list[SeqRequestStatus]] = None,
     sort_by: Optional[str] = None, reversed: bool = False,
     user_id: Optional[int] = None
-) -> list[models.SeqRequest]:
+) -> tuple[list[models.SeqRequest], int]:
 
     persist_session = self._session is not None
     if not self._session:
@@ -103,6 +105,8 @@ def get_seq_requests(
             attr = attr.desc()
         query = query.order_by(attr)
 
+    n_pages: int = query.count() // limit if limit is not None else 1
+
     if offset is not None:
         query = query.offset(offset)
 
@@ -114,7 +118,7 @@ def get_seq_requests(
     if not persist_session:
         self.close_session()
 
-    return seq_requests
+    return seq_requests, n_pages
 
 
 def get_num_seq_requests(
@@ -199,3 +203,33 @@ def delete_seq_request(
 
     if not persist_session:
         self.close_session()
+
+
+def query_seq_requests(
+    self, word: str,
+    user_id: Optional[int] = None,
+    limit: Optional[int] = 20,
+) -> list[models.SeqRequest]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.SeqRequest)
+
+    if user_id is not None:
+        query = query.where(
+            models.SeqRequest.requestor_id == user_id
+        )
+
+    query = query.where(
+        func.similarity(models.Project.name, word).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    seq_requests = query.all()
+
+    if not persist_session:
+        self.close_session()
+    return seq_requests

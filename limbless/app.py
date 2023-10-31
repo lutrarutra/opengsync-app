@@ -61,7 +61,7 @@ def create_app():
     
     @app.context_processor
     def inject_uuid():
-        return dict(uuid=uuid4)
+        return dict(uuid4=uuid4)
     
     @app.before_request
     def before_request():

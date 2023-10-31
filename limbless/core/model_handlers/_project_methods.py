@@ -1,5 +1,7 @@
 from typing import Optional, Union
 
+from sqlmodel import func
+
 from ... import models, logger
 from .. import exceptions
 from ...categories import UserResourceRelation
@@ -46,7 +48,7 @@ def get_projects(
     self, limit: Optional[int] = 20, offset: Optional[int] = None,
     sort_by: Optional[str] = None, reversed: bool = False,
     user_id: Optional[int] = None
-) -> list[models.Project]:
+) -> tuple[list[models.Project], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -64,6 +66,8 @@ def get_projects(
             attr = attr.desc()
         query = query.order_by(attr)
 
+    n_pages: int = query.count() // limit if limit is not None else 1
+
     if offset is not None:
         query = query.offset(offset)
 
@@ -72,12 +76,9 @@ def get_projects(
 
     projects = query.all()
 
-    for project in projects:
-        project._num_samples = len(project.samples)
-
     if not persist_session:
         self.close_session()
-    return projects
+    return projects, n_pages
 
 
 def get_num_projects(self, user_id: Optional[int] = None) -> int:
@@ -162,6 +163,36 @@ def project_contains_sample_with_name(
     ).where(
         models.Sample.project_id == project_id
     ).first() is not None
+
+    if not persist_session:
+        self.close_session()
+    return res
+
+
+def query_projects(
+    self, word: str,
+    user_id: Optional[int] = None,
+    limit: Optional[int] = 20,
+) -> list[models.Project]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.Project)
+
+    if user_id is not None:
+        query = query.where(
+            models.Project.owner_id == user_id
+        )
+
+    query = query.order_by(
+        func.similarity(models.Project.name, word).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    res = query.all()
 
     if not persist_session:
         self.close_session()

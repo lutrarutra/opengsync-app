@@ -55,7 +55,7 @@ def get_library(self, library_id: int) -> models.Library:
 
 def get_libraries(
     self,
-    user_id: Optional[int] = None,
+    user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     sort_by: Optional[str] = None, reversed: bool = False,
     limit: Optional[int] = 20, offset: Optional[int] = None,
@@ -79,6 +79,15 @@ def get_libraries(
             models.LibrarySeqRequestLink.seq_request_id == seq_request_id
         )
 
+    if sample_id is not None:
+        query = query.join(
+            models.LibrarySampleLink,
+            models.LibrarySampleLink.library_id == models.Library.id,
+            isouter=True
+        ).where(
+            models.LibrarySampleLink.sample_id == sample_id
+        )
+
     if experiment_id is not None:
         query = query.join(
             models.ExperimentLibraryLink,
@@ -94,13 +103,14 @@ def get_libraries(
             attr = attr.desc()
         query = query.order_by(attr)
 
+    n_pages: int = query.count() // limit if limit is not None else 1
+    
     if offset is not None:
         query = query.offset(offset)
 
     if limit is not None:
         query = query.limit(limit)
 
-    n_pages: int = query.count() // limit if limit is not None else 1
     libraries = query.all()
 
     if not persist_session:
@@ -192,7 +202,7 @@ def update_library(
 
 def query_libraries(
     self, word: str,
-    user_id: Optional[int] = None,
+    user_id: Optional[int] = None, sample_id: Optional[int] = None,
     seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
     limit: Optional[int] = 20,
 ) -> list[models.Library]:
@@ -217,6 +227,15 @@ def query_libraries(
             isouter=True
         ).where(
             models.LibrarySeqRequestLink.seq_request_id == seq_request_id
+        )
+
+    if sample_id is not None:
+        query = query.join(
+            models.LibrarySampleLink,
+            models.LibrarySampleLink.library_id == models.Library.id,
+            isouter=True
+        ).where(
+            models.LibrarySampleLink.sample_id == sample_id
         )
 
     if experiment_id is not None:

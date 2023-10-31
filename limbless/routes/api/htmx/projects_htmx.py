@@ -1,9 +1,11 @@
+from typing import Optional
+
 from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
 from .... import db, forms, logger, models
-from ....core import DBSession
+from ....core import DBSession, DBHandler
 from ....categories import UserRole, HttpResponse
 
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/")
@@ -18,20 +20,41 @@ def get(page):
 
     if sort_by not in models.Project.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    projects: list[models.Project] = []
+    context = {}
 
-    with DBSession(db.db_handler) as session:
-        if current_user.role_type == UserRole.CLIENT:
-            projects = session.get_projects(limit=20, user_id=current_user.id, sort_by="id", reversed=reversed)
-            n_pages = int(session.get_num_projects(user_id=current_user.id) / 20)
-        else:
-            projects = session.get_projects(limit=20, user_id=None, sort_by="id", reversed=reversed)
-            n_pages = int(session.get_num_projects(user_id=None) / 20)
+    if (user_id := request.args.get("user_id", None)) is not None:
+        template = "components/tables/user-project.html"
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        if user_id != current_user.id and current_user.role_type not in UserRole.insiders:
+            return abort(HttpResponse.FORBIDDEN.value.id)
+        
+        with DBSession(db.db_handler) as session:
+            if (user := session.get_user(user_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            
+            projects, n_pages = session.get_projects(limit=20, user_id=user_id, sort_by=sort_by, reversed=reversed)
+            context["user"] = user
+    else:
+        template = "components/tables/project.html"
+        with DBSession(db.db_handler) as session:
+            if current_user.role_type not in UserRole.insiders:
+                user_id = current_user.id
+            else:
+                user_id = None
+            projects, n_pages = session.get_projects(limit=20, user_id=user_id, sort_by="id", reversed=reversed)
 
     return make_response(
         render_template(
-            "components/tables/project.html", projects=projects,
+            template, projects=projects,
             n_pages=n_pages, active_page=page,
-            current_sort=sort_by, current_sort_order=order
+            current_sort=sort_by, current_sort_order=order,
+            **context
         ), push_url=False
     )
 
@@ -66,3 +89,73 @@ def create():
     )
 
 # TODO: edit project
+
+
+@projects_htmx.route("table_query", methods=["POST"])
+@login_required
+def table_query():
+    if (word := request.form.get("name", None)) is not None:
+        field_name = "name"
+    elif (word := request.form.get("id", None)) is not None:
+        field_name = "id"
+    else:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    if word is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    def __get_projects(
+        session: DBHandler, word: str | int, field_name: str,
+        user_id: Optional[int] = None
+    ) -> list[models.Project]:
+        projects: list[models.Project] = []
+        if field_name == "name":
+            projects = session.query_projects(
+                str(word), user_id=user_id
+            )
+        elif field_name == "id":
+            try:
+                _id = int(word)
+                if (project := session.get_project(_id)) is not None:
+                    if user_id is not None:
+                        if project.owner_id == user_id:
+                            projects = [project]
+                    else:
+                        projects = [project]
+            except ValueError:
+                pass
+        else:
+            assert False    # This should never happen
+
+        return projects
+    
+    context = {}
+    if (user_id := request.args.get("user_id", None)) is not None:
+        template = "components/tables/user-project.html"
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        with DBSession(db.db_handler) as session:
+            if (user := session.get_user(user_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            
+            projects = __get_projects(session, word, field_name, user_id=user_id)
+            context["user"] = user
+    else:
+        template = "components/tables/project.html"
+
+        with DBSession(db.db_handler) as session:
+            if current_user.role_type not in UserRole.insiders:
+                user_id = current_user.id
+            else:
+                user_id = None
+            projects = __get_projects(session, word, field_name, user_id=user_id)
+
+    return make_response(
+        render_template(
+            template, current_query=word, field_name=field_name,
+            projects=projects, **context
+        ), push_url=False
+    )
+        

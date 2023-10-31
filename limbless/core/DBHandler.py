@@ -42,7 +42,8 @@ class DBHandler():
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
         update_project, delete_project,
-        get_num_projects, project_contains_sample_with_name
+        get_num_projects, project_contains_sample_with_name,
+        query_projects
     )
 
     from .model_handlers._experiment_methods import (
@@ -90,7 +91,8 @@ class DBHandler():
 
     from .model_handlers._seq_request_methods import (
         create_seq_request, get_seq_request, get_num_seq_requests,
-        get_seq_requests, delete_seq_request, update_seq_request
+        get_seq_requests, delete_seq_request, update_seq_request,
+        query_seq_requests,
     )
 
     from .model_handlers._contact_methods import (

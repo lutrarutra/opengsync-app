@@ -115,7 +115,7 @@
     {% include "components/alerts.html" %}
     <div id="main">
         <div class="row">
-            <div class="col-1">
+            <div class="col-lg-1 margin left-margin">
                 <nav id="breadcrumb" aria-label="breadcrumb">
                     <ol class="breadcrumb">
                     {% for name, url in path_list %}
@@ -128,10 +128,10 @@
                     </ol>
                 </nav>
             </div>
-            <div class="col-10">
+            <div class="col-lg-10 col-md-12">
             {% block content %}{% endblock %}
             </div>
-            <div class="col-1">
+            <div class="col-lg-1 margin right-margin">
             </div>
         </div>
     </div>

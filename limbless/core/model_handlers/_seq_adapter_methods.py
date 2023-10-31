@@ -71,6 +71,8 @@ def get_adapters(
             attr = attr.desc()
         query = query.order_by(attr)
 
+    n_pages: int = query.count() // limit if limit is not None else 1
+    
     if offset is not None:
         query = query.offset(offset)
 
@@ -78,7 +80,6 @@ def get_adapters(
         query = query.limit(limit)
 
     res = query.all()
-    n_pages: int = query.count() // limit if limit is not None else 1
 
     if not persist_session:
         self.close_session()

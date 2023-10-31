@@ -32,6 +32,7 @@ $dark:          $gray-900;
 
 @import "../css/scrollbar.css";
 @import "./navbar.scss";
+@import "./responsive.scss";
 
 body {
     background-color: $light;
@@ -82,7 +83,7 @@ body {
         }
     }
     .container {
-        width: 100%;
+        max-width: 100%;
         padding-bottom: 50px;
     }
     h1 {

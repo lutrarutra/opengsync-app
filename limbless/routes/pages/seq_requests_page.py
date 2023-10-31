@@ -17,11 +17,9 @@ def seq_requests_page():
 
     with DBSession(db.db_handler) as session:
         if current_user.role_type == UserRole.CLIENT:
-            seq_requests = session.get_seq_requests(limit=20, user_id=current_user.id)
-            n_pages = int(session.get_num_seq_requests(user_id=current_user.id) / 20)
+            seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=current_user.id)
         elif current_user.role_type == UserRole.ADMIN:
-            seq_requests = session.get_seq_requests(limit=20, user_id=None)
-            n_pages = int(session.get_num_seq_requests(user_id=None) / 20)
+            seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=None)
         else:
             seq_request_statuses = [
                 SeqRequestStatus.FINISHED, SeqRequestStatus.SUBMITTED,
@@ -29,8 +27,7 @@ def seq_requests_page():
                 SeqRequestStatus.DATA_PROCESSING, SeqRequestStatus.ARCHIVED,
                 SeqRequestStatus.FAILED,
             ]
-            seq_requests = session.get_seq_requests(limit=20, user_id=None, with_statuses=seq_request_statuses)
-            n_pages = int(session.get_num_seq_requests(user_id=None, with_statuses=seq_request_statuses) / 20)
+            seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=None, with_statuses=seq_request_statuses)
 
     return render_template(
         "seq_requests_page.html",

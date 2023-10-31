@@ -44,6 +44,10 @@ def user_page(user_id: Optional[int]):
         ("Users", url_for("users_page.users_page")),
         (f"{user_id}", ""),
     ]
+
+    projects, _ = db.db_handler.get_projects(user_id=user_id, limit=None)
+    seq_requests, _ = db.db_handler.get_seq_requests(user_id=user_id, limit=None)
     return render_template(
-        "user_page.html", user=user, path_list=path_list
+        "user_page.html", user=user, path_list=path_list,
+        projects=projects, seq_requests=seq_requests
     )

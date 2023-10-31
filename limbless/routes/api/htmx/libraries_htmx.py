@@ -20,12 +20,14 @@ def get(page):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
     reversed = order == "desc"
+    offset = page * 20
 
     if sort_by not in models.Library.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     libraries: list[models.Library] = []
     context = {}
+
 
     if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
         template = "components/tables/seq_request-library.html"
@@ -38,7 +40,7 @@ def get(page):
                 return abort(HttpResponse.NOT_FOUND.value.id)
             if current_user.id != seq_request.requestor_id:
                 return abort(HttpResponse.FORBIDDEN.value.id)
-            libraries, n_pages = session.get_libraries(limit=20, seq_request_id=seq_request_id, sort_by=sort_by, reversed=reversed)
+            libraries, n_pages = session.get_libraries(limit=20, offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, reversed=reversed)
             context["seq_request"] = seq_request
     elif (experiment_id := request.args.get("experiment_id", None)) is not None:
         template = "components/tables/experiment-library.html"
@@ -49,15 +51,26 @@ def get(page):
         with DBSession(db.db_handler) as session:
             if (experiment := session.get_experiment(experiment_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
-            libraries, n_pages = session.get_libraries(limit=20, experiment_id=experiment_id, sort_by=sort_by, reversed=reversed)
+            libraries, n_pages = session.get_libraries(limit=20, offset=offset, experiment_id=experiment_id, sort_by=sort_by, reversed=reversed)
             context["experiment"] = experiment
+    elif (sample_id := request.args.get("sample_id", None)) is not None:
+        template = "components/tables/sample-library.html"
+        try:
+            sample_id = int(sample_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        with DBSession(db.db_handler) as session:
+            if (sample := session.get_sample(sample_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            libraries, n_pages = session.get_libraries(limit=20, offset=offset, sample_id=sample_id, sort_by=sort_by, reversed=reversed)
+            context["sample"] = sample
     else:
         template = "components/tables/library.html"
         with DBSession(db.db_handler) as session:
             if current_user.role_type == UserRole.CLIENT:
-                libraries, n_pages = session.get_libraries(limit=20, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
+                libraries, n_pages = session.get_libraries(limit=20, offset=offset, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
             else:
-                libraries, n_pages = session.get_libraries(limit=20, user_id=None, sort_by=sort_by, reversed=reversed)
+                libraries, n_pages = session.get_libraries(limit=20, offset=offset, user_id=None, sort_by=sort_by, reversed=reversed)
 
     return make_response(
         render_template(
@@ -553,20 +566,16 @@ def table_query():
     
     if word is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
-    
-    if current_user.role_type == UserRole.CLIENT:
-        _user_id = current_user.id
-    else:
-        _user_id = None
 
     def __get_libraries(
-        session: DBHandler, word: str | int, field_name: str,
-        seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None
+        session: DBHandler, word: str | int, field_name: str, sample_id: Optional[int] = None,
+        seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None, user_id: Optional[int] = None
     ) -> list[models.Library]:
         libraries: list[models.Library] = []
         if field_name == "name":
             libraries = session.query_libraries(
-                str(word), user_id=_user_id, seq_request_id=seq_request_id, experiment_id=experiment_id
+                str(word), user_id=user_id, seq_request_id=seq_request_id,
+                experiment_id=experiment_id, sample_id=sample_id
             )
         elif field_name == "id":
             try:
@@ -578,8 +587,11 @@ def table_query():
                     elif experiment_id is not None:
                         if experiment_id in [e.id for e in library.experiments]:
                             libraries = [library]
-                    elif _user_id is not None:
-                        if library.owner_id == _user_id:
+                    elif sample_id is not None:
+                        if sample_id in [s.id for s in library.samples]:
+                            libraries = [library]
+                    elif user_id is not None:
+                        if library.owner_id == user_id:
                             libraries = [library]
                     else:
                         libraries = [library]
@@ -615,11 +627,27 @@ def table_query():
                 
             libraries = __get_libraries(session, word, field_name, experiment_id=experiment_id)
             context["experiment"] = experiment
+    elif (sample_id := request.args.get("sample_id", None)) is not None:
+        template = "components/tables/sample-library.html"
+        try:
+            sample_id = int(sample_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        with DBSession(db.db_handler) as session:
+            if (sample := session.get_sample(sample_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+                
+            libraries = __get_libraries(session, word, field_name, sample_id=sample_id)
+            context["sample"] = sample
     else:
         template = "components/tables/library.html"
 
         with DBSession(db.db_handler) as session:
-            libraries = __get_libraries(session, word, field_name)
+            if current_user.role_type not in UserRole.insiders:
+                user_id = current_user.id
+            else:
+                user_id = None
+            libraries = __get_libraries(session, word, field_name, user_id=user_id)
 
     return make_response(
         render_template(

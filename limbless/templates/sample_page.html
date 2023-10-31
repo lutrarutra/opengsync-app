@@ -1,3 +1,4 @@
+{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% extends "base.html" %}
 {% set active_page = "samples-page" %}
@@ -39,8 +40,59 @@
             </span>
         </div>
     </div>
-    <h2>Libraries</h2>
-    {% include "components/tables/library.html" %}
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#sample-libraries-tab" type="button" role="tab"
+            aria-controls="sample-libraries-tab" aria-selected="true">
+            Libraries</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#sample-metadata-tab" type="button" role="tab"
+            aria-controls="sample-metadata-tab" aria-selected="false">
+            Metadata</button>
+        </li>
+    </ul>
+    <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="sample-libraries-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h2>Libraries <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+            </div>
+            {% include "components/tables/sample-library.html" %}
+        </div>
+        <div class="tab-pane fade show" id="sample-metadata-tab" role="tabpanel" tabindex="1">
+            <div class="row">
+                {{ metadata_group("Name", sample.name, class="col") }}
+                {{ metadata_group("Organism", sample.organism, class="col") }}
+            </div>
+            <div class="row">
+                {{
+                    metadata_group_link(
+                        "Project", sample.project.name,
+                        url_for("projects_page.project_page", project_id=sample.project_id),
+                        class="col"
+                    )
+                }}
+                {{ 
+                    metadata_group_link(
+                        "Owner Name",
+                        sample.owner.first_name + " " + sample.owner.last_name,
+                        url_for("users_page.user_page", user_id=sample.owner_id),
+                        class="col"
+                    )
+                }}
+                {{
+                    metadata_group_email_link(
+                        "Owner Email", sample.owner.email, class="col",
+                        subject="BSF Sample: " + sample.name + " (" + sample.id | string + ")"
+                    )
+                }}
+            </div>
+        </div>
+    </div>
 </div>
 <div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">

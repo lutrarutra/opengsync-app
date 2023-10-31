@@ -149,12 +149,8 @@ def delete(sample_id: int):
 @samples_htmx.route("download", methods=["GET"])
 @login_required
 def download():
-    if current_user.role_type == UserRole.CLIENT:
-        _user_id = current_user.id
-    else:
-        _user_id = None
-    
     file_name = f"{current_user.last_name}_samples.tsv"
+    
     if (project_id := request.args.get("project_id", None)) is not None:
         try:
             project_id = int(project_id)
@@ -176,7 +172,7 @@ def download():
             samples = library.samples
     else:
         samples, _ = db.db_handler.get_samples(
-            limit=None, user_id=_user_id
+            limit=None, user_id=current_user.id
         )
 
     file_name = secure_filename(file_name)

@@ -16,7 +16,7 @@ def test_create_project(db_handler):
     assert project.name == "project"
     assert project.description == "description"
 
-    projects = db_handler.get_projects()
+    projects, _ = db_handler.get_projects()
     assert len(projects) == 1
     assert projects[0] == project
 
