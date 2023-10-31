@@ -28,7 +28,6 @@ def get(page):
     libraries: list[models.Library] = []
     context = {}
 
-
     if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
         template = "components/tables/seq_request-library.html"
         try:

@@ -1,3 +1,4 @@
+import math
 from typing import Optional
 
 from sqlmodel import and_, func, or_
@@ -130,7 +131,7 @@ def get_samples(
             models.LibrarySampleLink.library_id == library_id
         )
 
-    n_pages: int = query.count() // limit if limit is not None else 1
+    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
     
     if offset is not None:
         query = query.offset(offset)

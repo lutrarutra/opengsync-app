@@ -43,5 +43,5 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("user-project-table", "projects_htmx.getprojects", n_pages, active_page) }}
+    {{ pagination("user-project-table", "projects_htmx.get", n_pages, active_page, url_args={"user_id": user.id, "sort_by": current_sort, "order": current_sort_order}) }}
 </div>

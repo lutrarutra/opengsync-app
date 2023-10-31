@@ -60,7 +60,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page, url_args={"project_id":project.id}) }}
+    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page, url_args={"project_id":project.id, "sort_by": current_sort, "order": current_sort_order}) }}
 </div>
 
 <script>

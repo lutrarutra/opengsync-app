@@ -1,7 +1,6 @@
 from .core import DBHandler
 from .tools import SearchResult
 from .index_kits import add_index_kits
-from .sample_experiment import create_sample_experiment
 
 db_url = "data/sample_experiment.db"
 # db_url = "postgresql://postgres:limbless@localhost/limbless_db"

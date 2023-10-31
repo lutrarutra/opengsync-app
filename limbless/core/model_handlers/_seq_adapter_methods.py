@@ -1,3 +1,4 @@
+import math
 from typing import Optional
 
 from sqlmodel import and_, func
@@ -71,7 +72,7 @@ def get_adapters(
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages: int = query.count() // limit if limit is not None else 1
+    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
     
     if offset is not None:
         query = query.offset(offset)

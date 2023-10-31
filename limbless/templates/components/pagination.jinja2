@@ -1,5 +1,5 @@
 {% macro pagination(target_id, url, n_pages, active_page, url_args={}) -%}
-    {% if n_pages %}
+    {% if (n_pages and n_pages > 1)  %}
     <ul class="pagination">
         <li class="page-item">
             <a class="page-link" hx-include="#{{target_id}}"

@@ -1,3 +1,4 @@
+import math
 from typing import Optional, Union
 
 from sqlmodel import func
@@ -66,7 +67,7 @@ def get_projects(
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages: int = query.count() // limit if limit is not None else 1
+    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
 
     if offset is not None:
         query = query.offset(offset)

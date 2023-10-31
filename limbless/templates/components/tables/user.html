@@ -39,5 +39,5 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("user-table", "users_htmx.get", n_pages, active_page) }}
+    {{ pagination("user-table", "users_htmx.get", n_pages, active_page, url_args={"sort_by": current_sort, "order": current_sort_order}) }}
 </div>
