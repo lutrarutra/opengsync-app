@@ -8,6 +8,12 @@ nav#navbar {
     position: fixed;
     top: 0;
     z-index: 15;
+
+    span.logo {
+        margin: 0 15px 0 15px;
+        font-size: 25px;
+        color: $gray-100;
+    }
     
     #navbar-container {
         width: 70vw;
@@ -69,5 +75,71 @@ nav#navbar {
         align-items: center;
         justify-content: start;
         padding-left: 15px;
+    }
+}
+
+#burger {
+    cursor: pointer;
+    display: none;
+    div {
+        width: 20px;
+        height: 3px;
+        background-color: white;
+        border-radius: 1px;
+        margin: 5px;
+        transition: all 0.3s ease;
+    }
+}
+
+#burger.toggle {
+    .line1 {
+        transform: rotate(-45deg) translate(-5px, 6px);
+    }
+
+    .line2 {
+        opacity: 0;
+    }
+
+    .line3 {
+        transform: rotate(45deg) translate(-5px, -6px);
+    }
+}
+
+@media screen and (max-width: 992px) {
+    nav#navbar {
+        #burger {
+            display: block;
+        }
+        #navbar-container {
+            position: absolute;
+            left: 0px;
+            height: calc(100vh - 60px);
+            top: 60px;
+            width: 100%;
+            background-color: $dark;
+            opacity: 0.95;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: translateX(-100%);
+            transition: transform 0.5s ease-in;
+        }
+        #navbar-container.nav-active {
+            transform: translateX(0%);
+            .nav-item {
+                opacity: 0;
+            }
+        }
+    }
+}
+
+@keyframes navLinkFade {
+    from {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
     }
 }
