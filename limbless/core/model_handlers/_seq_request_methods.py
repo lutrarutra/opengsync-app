@@ -23,7 +23,7 @@ def create_seq_request(
     if not self._session:
         self.open_session()
 
-    if self._session.get(models.User, requestor_id) is None:
+    if (requestor := self._session.get(models.User, requestor_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{requestor_id}', not found.")
 
     if self._session.get(models.Contact, billing_contact_id) is None:
@@ -51,6 +51,7 @@ def create_seq_request(
         status=SeqRequestStatus.DRAFT.value.id
     )
 
+    requestor.num_seq_requests += 1
     self._session.add(seq_request)
     if commit:
         self._session.commit()

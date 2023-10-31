@@ -19,17 +19,17 @@
                         sort_url='projects_htmx.get', sort_url_args={},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         query_url=url_for('projects_htmx.table_query'), current_query=current_query,
-                        field_name=field_name, query_type="text", col_size=3
+                        field_name=field_name, query_type="text", col_size=4
                     )
                 }}
                 {{
                     table_col(
                         target_id='project-table', column_name='Owner', column_var='owner',
                         sort_url='projects_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=2
+                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=4
                     )
                 }}
-                <th scope="col col-1"># Samples</th>
+                <th scope="col-1"># Samples</th>
             </tr>
         </thead>
         <tbody>
@@ -38,7 +38,7 @@
                 <th scope="row">{{ project.id }}</th>
                 <td>{{ project.name }}</td>
                 <td><span class="owner-col"><p>{{ project.owner.first_name }} {{ project.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == project.owner_id }}</p></span></td>
-                <td>{{ project._num_samples }}</td>
+                <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}
         </tbody>

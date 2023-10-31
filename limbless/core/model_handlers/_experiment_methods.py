@@ -167,7 +167,6 @@ def update_experiment(
     experiment.i2_cycles = i2_cycles
     experiment.sequencer_id = sequencer_id
 
-    self._session.add(experiment)
     if commit:
         self._session.commit()
         self._session.refresh(experiment)

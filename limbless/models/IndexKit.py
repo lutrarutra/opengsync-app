@@ -15,6 +15,8 @@ class IndexKit(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True, unique=True)
 
+    num_adapters: int = Field(nullable=False, default=0)
+
     adapters: list["SeqAdapter"] = Relationship(
         back_populates="index_kit"
     )
@@ -23,8 +25,6 @@ class IndexKit(SQLModel, SearchResult, table=True):
         link_model=IndexKitLibraryType,
         sa_relationship_kwargs={"lazy": "joined"},
     )
-
-    _num_adapters: int = PrivateAttr()
 
     def __str__(self):
         return self.name

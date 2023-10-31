@@ -13,6 +13,8 @@ class SeqAdapter(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=128, index=True)
 
+    num_indices: int = Field(nullable=False, default=0)
+
     index_kit_id: int = Field(nullable=False, foreign_key="indexkit.id")
     index_kit: "IndexKit" = Relationship(
         back_populates="adapters",

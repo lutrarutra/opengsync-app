@@ -123,8 +123,7 @@ def update_user(
     if not self._session:
         self.open_session()
 
-    user = self._session.get(models.User, user_id)
-    if not user:
+    if (user := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
     if email is not None:

@@ -9,13 +9,14 @@ from ...categories import UserResourceRelation
 
 
 def create_project(
-    self, name: str, description: str, owner_id: int
+    self, name: str, description: str, owner_id: int,
+    commit: bool = True
 ) -> models.Project:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if self._session.get(models.User, owner_id) is None:
+    if (owner := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
 
     project = models.Project(
@@ -25,8 +26,11 @@ def create_project(
     )
 
     self._session.add(project)
-    self._session.commit()
-    self._session.refresh(project)
+    owner.num_projects += 1
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(project)
 
     if not persist_session:
         self.close_session()
@@ -108,10 +112,10 @@ def delete_project(
     if not self._session:
         self.open_session()
 
-    project = self._session.get(models.Project, project_id)
-    if not project:
+    if (project := self._session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
+    project.owner.num_projects -= 1
     self._session.delete(project)
     if commit:
         self._session.commit()

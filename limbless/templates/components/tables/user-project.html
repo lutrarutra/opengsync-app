@@ -38,7 +38,7 @@
                 <th scope="row">{{ project.id }}</th>
                 <td>{{ project.name }}</td>
                 <td><span class="owner-col"><p>{{ project.owner.first_name }} {{ project.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == project.owner_id }}</p></span></td>
-                <td>{{ project._num_samples }}</td>
+                <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -18,6 +18,8 @@ class SeqRequest(SQLModel, table=True):
     description: Optional[str] = Field(nullable=True, max_length=1024)
     status: int = Field(nullable=False, default=0)
 
+    num_libraries: int = Field(nullable=False, default=0)
+
     requestor_id: int = Field(nullable=False, foreign_key="user.id")
     requestor: "User" = Relationship(back_populates="requests", sa_relationship_kwargs={"lazy": "joined"})
 

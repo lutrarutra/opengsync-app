@@ -33,8 +33,8 @@
                 <td><span class="owner-col"><p>{{ user.first_name }} {{ user.last_name }}</p> <p>{{ "(me)" if current_user.id == user.id }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.role_type.value.description }} {{ user.role_type.value.name }}</td>
-                <td>{{ user.requests | length }}</td>
-                <td>{{ user.projects | length }}</td>
+                <td>{{ user.num_seq_requests }}</td>
+                <td>{{ user.num_projects }}</td>
             </tr>
             {% endfor %}
         </tbody>

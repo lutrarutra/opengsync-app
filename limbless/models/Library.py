@@ -27,6 +27,10 @@ class Library(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
     library_type_id: int = Field(nullable=False)
+    
+    num_samples: int = Field(nullable=False, default=0)
+    num_experiments: int = Field(nullable=False, default=0)
+    num_seq_requests: int = Field(nullable=False, default=0)
 
     index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
     index_kit: Optional["IndexKit"] = Relationship(
@@ -70,7 +74,7 @@ class Library(SQLModel, SearchResult, table=True):
         return self.index_kit_id is None
 
     def is_editable(self) -> bool:
-        return len(self.samples) == 0
+        return self.num_samples == 0
     
     def search_value(self) -> int:
         return self.id

@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 class Project(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
+    num_samples: int = Field(nullable=False, default=0)
     description: str = Field(default="", max_length=1024)
 
     samples: List["Sample"] = Relationship(
@@ -22,7 +23,5 @@ class Project(SQLModel, table=True):
         back_populates="projects",
         sa_relationship_kwargs={"lazy": "joined"}
     )
-
-    _num_samples: int = PrivateAttr(0)
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "owner_id"]

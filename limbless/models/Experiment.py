@@ -19,7 +19,9 @@ class Experiment(SQLModel, table=True):
     r2_cycles: Optional[int] = Field(nullable=True)
     i1_cycles: int = Field(nullable=False)
     i2_cycles: Optional[int] = Field(nullable=True)
+    
     num_lanes: int = Field(nullable=False, default=1)
+    num_libraries: int = Field(nullable=False, default=0)
 
     timestamp: datetime = Field(sa_column=Column(
         TIMESTAMP(timezone=True),

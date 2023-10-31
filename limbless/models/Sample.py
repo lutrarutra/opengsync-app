@@ -20,6 +20,8 @@ class Sample(SQLModel, SearchResult, table=True):
     organism_id: int = Field(nullable=False, foreign_key="organism.tax_id")
     organism: "Organism" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
 
+    num_libraries: int = Field(nullable=False, default=0)
+
     project_id: int = Field(nullable=False, foreign_key="project.id")
     project: "Project" = Relationship(
         back_populates="samples",

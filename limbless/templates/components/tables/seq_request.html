@@ -38,7 +38,8 @@
                     )
                 }}
                 <th scope="col-2">Contact Name</th>
-                <th scope="col-2">Billing</th>
+                <th scope="col-1">Billing</th>
+                <th scope="col-1"># Libraries</th>
                 {# <th scope="col"><span class="d-flex justify-content-between align-items-center" style="width: 100%;">Billing <input type="text" class="form-control" style="height: 25px;"></span></th> #}
             </tr>
         </thead>
@@ -51,6 +52,7 @@
                 <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.first_name }} {{ seq_request.requestor.last_name }}</td>
                 <td {{ tooltip("email: " + seq_request.contact_person.email + (" phone: " + seq_request.contact_person.phone if seq_request.contact_person.phone else "")) }}>{{ seq_request.contact_person.name }}</td>
                 <td {{ tooltip("email: " + seq_request.billing_contact.email + (" phone: " + seq_request.billing_contact.phone if seq_request.billing_contact.phone else "")) }}>{{ seq_request.billing_contact.name }}</td>
+                <td>{{ seq_request.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>

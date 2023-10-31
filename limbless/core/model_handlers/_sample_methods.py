@@ -20,13 +20,13 @@ def create_sample(
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.Project, project_id)) is None:
+    if (project := self._session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id '{project_id}', not found.")
 
     if (organism := self._session.get(models.Organism, organism_tax_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Organism with tax_id '{organism_tax_id}', not found.")
     
-    if (_ := self._session.get(models.User, owner_id)) is None:
+    if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{owner_id}', not found.")
 
     sample = models.Sample(
@@ -37,6 +37,9 @@ def create_sample(
     )
 
     self._session.add(sample)
+    project.num_samples += 1
+    user.num_samples += 1
+    
     if commit:
         self._session.commit()
         self._session.refresh(sample)
@@ -207,12 +210,13 @@ def delete_sample(
     if not self._session:
         self.open_session()
 
-    sample = self._session.get(models.Sample, sample_id)
-    if not sample:
+    if (sample := self._session.get(models.Sample, sample_id)):
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-
-    self._session.query(models.LibrarySampleLink).filter_by(sample_id=sample_id).delete()
+    
+    sample.user.num_samples -= 1
+    sample.project.num_samples -= 1
     self._session.delete(sample)
+
     if commit:
         self._session.commit()
 
