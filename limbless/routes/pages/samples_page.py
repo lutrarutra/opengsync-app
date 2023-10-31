@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, abort
+from flask import Blueprint, render_template, redirect, url_for, abort, request
 from flask_login import login_required, current_user
 
 from ... import db, forms, logger
@@ -46,9 +46,23 @@ def sample_page(sample_id):
 
     path_list = [
         ("Samples", url_for("samples_page.samples_page")),
-        (f"{sample_id}", ""),
+        (f"Sample {sample_id}", ""),
     ]
-    
+    if (_from := request.args.get("from", None)) is not None:
+        page, id = _from.split("@")
+        if page == "library":
+            path_list = [
+                ("Libraries", url_for("libraries_page.libraries_page")),
+                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                (f"Sample {sample_id}", ""),
+            ]
+        elif page == "project":
+            path_list = [
+                ("Projects", url_for("projects_page.projects_page")),
+                (f"Project {id}", url_for("projects_page.project_page", project_id=id)),
+                (f"Sample {sample_id}", ""),
+            ]
+
     return render_template(
         "sample_page.html", sample_form=sample_form,
         path_list=path_list, sample=sample, libraries=libraries,

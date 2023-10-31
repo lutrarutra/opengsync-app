@@ -30,7 +30,7 @@
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id) }}';">
+            <tr onclick="window.location.href=`{{ url_for('samples_page.sample_page', sample_id=sample.id, from='library@' + library.id | string) }}`;">
                 <th scope="row">{{ sample.id }}</th>
 
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>

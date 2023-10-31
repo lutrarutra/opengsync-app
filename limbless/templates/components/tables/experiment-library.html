@@ -43,7 +43,7 @@
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+            <tr onclick="window.location.href=`{{ url_for('libraries_page.library_page', library_id=library.id, from='experiment@' + experiment.id | string) }}`;">
                 <th scope="row">{{ library.id }}</th>
                 <td>
                     <div class="btn-group">

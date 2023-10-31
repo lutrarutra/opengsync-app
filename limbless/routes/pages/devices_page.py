@@ -41,7 +41,7 @@ def sequencer_page(sequencer_id: int):
 
     path_list = [
         ("Devices", url_for("devices_page.devices_page")),
-        (f"{sequencer.id}", ""),
+        (f"Device {sequencer.id}", ""),
     ]
     return render_template(
         "device_page.html", sequencer_form=sequencer_form,

@@ -42,7 +42,7 @@ def project_page(project_id):
 
     path_list = [
         ("Projects", url_for("projects_page.projects_page")),
-        (f"{project_id}", ""),
+        (f"Project {project_id}", ""),
     ]
 
     return render_template(
