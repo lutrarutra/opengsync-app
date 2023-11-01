@@ -1,18 +1,18 @@
 {% macro seq_request_status_bar(seq_request) -%}
 {% if seq_request.status_type.value.name == 'Draft' %}
-<div class="progress" role="progressbar" aria-label="Danger example" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
-    <div class="progress-bar" style="width: 0%">
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress-bar bg-transparent" style="width: 100%; color: black;">
         {{ SeqRequestStatus.DRAFT.value.name }} {{ SeqRequestStatus.DRAFT.value.description | safe }}
     </div>
 </div>
 {% elif seq_request.status_type.value.name == 'Archived' %}
-<div class="progress" role="progressbar" aria-label="Info example" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
-    <div class="progress-bar bg-info text-dark" style="width: 100%">
-        {{ SeqRequestStatus.ARCHIVED.value.name }} {{ SeqRequestStatus.ARCHIVED.value.description | safe }}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+<div class="progress-bar bg-info text-dark" style="width: 100%">
+        {{ SeqRequestStatus.ARCHIVED.value.name }} {{ SeqRequestStatus.ARCHIVED.value.descriion | safe }}
     </div>
 </div>
 {% elif seq_request.status_type.value.name == 'Failed' %}
-<div class="progress" role="progressbar" aria-label="Danger example" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
     <div class="progress-bar bg-danger" style="width: 100%">
         {{ SeqRequestStatus.FAILED.value.name }} {{ SeqRequestStatus.FAILED.value.description | safe }}
     </div>
@@ -41,14 +41,14 @@
     </div>
     {% endif %}
     {% if seq_request.status > 3 %}
-            <div class="progress" role="progressbar" aria-label="Segment three" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100" style="width: 20%">
+            <div class="progress" role="progressbar" aria-label="Segment four" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100" style="width: 20%">
         <div class="progress-bar bg-tab-10-5">
         {{ SeqRequestStatus.DATA_PROCESSING.value.name }} {{ SeqRequestStatus.DATA_PROCESSING.value.description | safe }}
         </div>
     </div>
     {% endif %}
     {% if seq_request.status > 4 %}
-    <div class="progress" role="progressbar" aria-label="Segment three" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 20%">
+    <div class="progress" role="progressbar" aria-label="Segment five" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 20%">
         <div class="progress-bar bg-tab-10-3">
         {{ SeqRequestStatus.FINISHED.value.name }} {{ SeqRequestStatus.FINISHED.value.description | safe }}
         </div>

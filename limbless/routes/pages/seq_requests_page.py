@@ -16,18 +16,12 @@ def seq_requests_page():
     seq_request_form.contact_person_email.data = current_user.email
 
     with DBSession(db.db_handler) as session:
-        if current_user.role_type not in UserRole.insiders:
+        if not current_user.is_insider():
             seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=current_user.id)
         elif current_user.role_type == UserRole.ADMIN:
             seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=None)
         else:
-            seq_request_statuses = [
-                SeqRequestStatus.FINISHED, SeqRequestStatus.SUBMITTED,
-                SeqRequestStatus.LIBRARY_PREP, SeqRequestStatus.SEQUENCING,
-                SeqRequestStatus.DATA_PROCESSING, SeqRequestStatus.ARCHIVED,
-                SeqRequestStatus.FAILED,
-            ]
-            seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=None, with_statuses=seq_request_statuses)
+            seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=None, show_drafts=False)
 
     return render_template(
         "seq_requests_page.html",
@@ -45,12 +39,12 @@ def seq_request_page(seq_request_id: int):
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         if seq_request.requestor_id != current_user.id:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
         libraries = seq_request.libraries
 
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
 

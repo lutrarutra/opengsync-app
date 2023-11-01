@@ -14,7 +14,7 @@ def projects_page():
     project_form = forms.ProjectForm()
 
     with DBSession(db.db_handler) as session:
-        if current_user.role_type not in UserRole.insiders:
+        if not current_user.is_insider():
             projects, n_pages = session.get_projects(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
         else:
             projects, n_pages = session.get_projects(limit=20, user_id=None, sort_by="id", reversed=True)

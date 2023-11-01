@@ -12,7 +12,7 @@ users_page_bp = Blueprint("users_page", __name__)
 @users_page_bp.route("/users")
 @login_required
 def users_page():
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     users = db.db_handler.get_users(limit=20)
@@ -33,7 +33,7 @@ def user_page(user_id: Optional[int]):
     if user_id is None:
         user_id = current_user.id
 
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         if user_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
         

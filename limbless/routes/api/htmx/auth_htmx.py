@@ -87,7 +87,7 @@ def register():
 @auth_htmx.route("custom_register/", methods=["POST"])
 @login_required
 def custom_register():
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     user_form = forms.UserForm()

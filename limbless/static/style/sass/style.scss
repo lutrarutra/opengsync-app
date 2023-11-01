@@ -113,18 +113,26 @@ body {
 
 #main {
     margin-top: 60px;
-    #breadcrumb {
-        width: 100%;
+    width: 100%;
+    .left-margin, .right-margin {
+        padding: 0;
         margin-left: 20px;
-        padding-top: 20px;
+    }
+
+    #middle-container {
+        padding: 0;
+        .container {
+            max-width: 100%;
+            padding-bottom: 50px;
+        }
+    }
+    #breadcrumb {
+        word-wrap: break-word;
         a {
             text-decoration: none;
         }
     }
-    .container {
-        max-width: 100%;
-        padding-bottom: 50px;
-    }
+
     h1 {
         font-size: 2rem;
         font-weight: 500;

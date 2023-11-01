@@ -31,7 +31,7 @@ def get(page):
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
         
-        if user_id != current_user.id and current_user.role_type not in UserRole.insiders:
+        if user_id != current_user.id and not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
         
         with DBSession(db.db_handler) as session:
@@ -43,7 +43,7 @@ def get(page):
     else:
         template = "components/tables/project.html"
         with DBSession(db.db_handler) as session:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 user_id = current_user.id
             else:
                 user_id = None
@@ -146,7 +146,7 @@ def table_query():
         template = "components/tables/project.html"
 
         with DBSession(db.db_handler) as session:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 user_id = current_user.id
             else:
                 user_id = None

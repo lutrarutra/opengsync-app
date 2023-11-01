@@ -7,9 +7,9 @@
 {% set active_page = "seq_requests-page" %}
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center pt-1">
         <div>
-            <h2>{{ seq_request.name }} ({{ seq_request.status_type.value.name }} {{ seq_request.status_type.value.description | safe }})</h2>
+            <h1 style="height: 100%; padding: 0; margin: 0;">{{ seq_request.name }}</h1>
         </div>
         <div>
             {% if seq_request.status_type.value.name == "Draft" %}
@@ -53,7 +53,7 @@
         </div>
     </div>
 
-    <div class="pb-3">
+    <div class="pb-2 pt-2">
         {{ seq_request_status_bar(seq_request) }}
     </div>
 

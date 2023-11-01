@@ -49,7 +49,7 @@ def email(user_id: int):
 @users_htmx.route("table_query", methods=["POST"])
 @login_required
 def table_query():
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     if (word := request.form.get("first_name", None)) is not None:

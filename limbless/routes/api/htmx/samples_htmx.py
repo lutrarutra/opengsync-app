@@ -64,7 +64,7 @@ def get(page: int):
     else:
         template = "components/tables/sample.html"
         with DBSession(db.db_handler) as session:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 samples, n_pages = session.get_samples(limit=20, offset=offset, project_id=project_id, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
             else:
                 samples, n_pages = session.get_samples(limit=20, offset=offset, project_id=project_id, sort_by=sort_by, reversed=reversed)
@@ -491,7 +491,7 @@ def table_query():
     if word is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         _user_id = current_user.id
     else:
         _user_id = None

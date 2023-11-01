@@ -32,7 +32,7 @@ def get(page: int):
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
         
-        if user_id != current_user.id and current_user.role_type not in UserRole.insiders:
+        if user_id != current_user.id and not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
         
         if (user := db.db_handler.get_user(user_id)) is None:
@@ -43,7 +43,7 @@ def get(page: int):
     else:
         template = "components/tables/seq_request.html"
         with DBSession(db.db_handler) as session:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 user_id = current_user.id
             else:
                 user_id = None
@@ -65,7 +65,7 @@ def edit(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
@@ -90,7 +90,7 @@ def delete(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
@@ -266,7 +266,7 @@ def remove_library(seq_request_id: int):
             return abort(HttpResponse.NOT_FOUND.value.id)
         
         if seq_request.requestor_id != current_user.id:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
         session.unlink_library_seq_request(library_id, seq_request_id)
@@ -334,7 +334,7 @@ def table_query():
         template = "components/tables/seq_request.html"
 
         with DBSession(db.db_handler) as session:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 user_id = current_user.id
             else:
                 user_id = None

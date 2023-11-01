@@ -38,7 +38,7 @@ def get(page: int):
 @experiments_htmx.route("create", methods=["POST"])
 @login_required
 def create():
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
 
     experiment_form = forms.ExperimentForm()
@@ -76,7 +76,7 @@ def create():
 @experiments_htmx.route("<int:experiment_id>/edit", methods=["POST"])
 @login_required
 def edit(experiment_id: int):
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
@@ -118,7 +118,7 @@ def edit(experiment_id: int):
 @experiments_htmx.route("delete/<int:experiment_id>", methods=["POST"])
 @login_required
 def delete(experiment_id: int):
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
@@ -140,7 +140,7 @@ def delete(experiment_id: int):
 @experiments_htmx.route("<int:experiment_id>/add_library/<int:library_id>/<int:lane>", methods=["POST"])
 @login_required
 def add_library(experiment_id: int, library_id: int, lane: int):
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
@@ -173,7 +173,7 @@ def add_library(experiment_id: int, library_id: int, lane: int):
 @experiments_htmx.route("<int:experiment_id>/remove_library/<int:library_id>/<int:lane>", methods=["DELETE"])
 @login_required
 def remove_library(experiment_id: int, library_id: int, lane: int):
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     if (experiment := db.db_handler.get_experiment(experiment_id)) is None:

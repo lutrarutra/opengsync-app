@@ -11,7 +11,7 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 @experiments_page_bp.route("/experiments")
 @login_required
 def experiments_page():
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     experiments, n_pages = db.db_handler.get_experiments()
@@ -27,7 +27,7 @@ def experiments_page():
 @experiments_page_bp.route("/experiments/<experiment_id>")
 @login_required
 def experiment_page(experiment_id):
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     with DBSession(db.db_handler) as session:

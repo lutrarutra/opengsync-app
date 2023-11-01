@@ -66,7 +66,7 @@ def get(page):
     else:
         template = "components/tables/library.html"
         with DBSession(db.db_handler) as session:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 libraries, n_pages = session.get_libraries(limit=20, offset=offset, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
             else:
                 libraries, n_pages = session.get_libraries(limit=20, offset=offset, user_id=None, sort_by=sort_by, reversed=reversed)
@@ -259,7 +259,7 @@ def query():
     field_name = next(iter(request.args.keys()), None)
     query = request.args.get(field_name, "")
 
-    if current_user.role_type not in UserRole.insiders:
+    if not current_user.is_insider():
         results = db.db_handler.query_libraries(query, current_user.id)
     else:
         results = db.db_handler.query_libraries(query)
@@ -642,7 +642,7 @@ def table_query():
         template = "components/tables/library.html"
 
         with DBSession(db.db_handler) as session:
-            if current_user.role_type not in UserRole.insiders:
+            if not current_user.is_insider():
                 user_id = current_user.id
             else:
                 user_id = None
