@@ -170,10 +170,7 @@ def query_users(self, word: str, limit: Optional[int] = 20) -> list[models.User]
     query = self._session.query(models.User)
 
     query = query.order_by(
-        func.sum(
-            func.similarity(models.User.first_name, word),
-            func.similarity(models.User.last_name, word),
-        ).desc()
+        func.similarity(models.User.first_name + ' ' + models.User.last_name, word).desc()
     )
 
     if limit is not None:
