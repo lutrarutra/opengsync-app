@@ -9,7 +9,7 @@
     <div class="input-group">
         <input type="search"
         onclick="this.select();"
-        class="{{ class_str }}"
+        class="{{ class_str }} search-select-input"
         autocomplete="off"
         name="{{ custom_id }}-search"
         id="{{ custom_id }}-search"
@@ -23,8 +23,6 @@
         hx-swap="innerHTML"
         placeholder="Search"
         {{ "readonly" if disabled }}>
-    </div>
-    <div class="input-group">
         <div id="{{ custom_id }}-results" class="search-select-results">
             {% include "components/search_select_results.html" %}
         </div>

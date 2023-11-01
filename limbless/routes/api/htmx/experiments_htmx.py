@@ -15,15 +15,14 @@ def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
     reversed = order == "desc"
+    offset = page * 20
 
     if sort_by not in models.Experiment.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     with DBSession(db.db_handler) as session:
-        n_pages = int(session.get_num_experiments() / 20)
-        page = min(page, n_pages)
-        experiments = session.get_experiments(
-            limit=20, offset=20 * page, sort_by=sort_by, reversed=reversed
+        experiments, n_pages = session.get_experiments(
+            limit=20, offset=offset, sort_by=sort_by, reversed=reversed
         )
 
     return make_response(
@@ -45,17 +44,15 @@ def create():
     experiment_form = forms.ExperimentForm()
 
     validated, experiment_form = experiment_form.custom_validate(
-        db_handler=db.db_handler,
-        user_id=current_user.id,
+        db_handler=db.db_handler, user_id=current_user.id,
     )
 
     if not validated:
-        template = render_template(
-            "forms/experiment.html",
-            experiment_form=experiment_form
-        )
         return make_response(
-            template, push_url=False
+            render_template(
+                "forms/experiment.html",
+                experiment_form=experiment_form
+            ), push_url=False
         )
 
     experiment = db.db_handler.create_experiment(

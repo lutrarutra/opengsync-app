@@ -3,6 +3,35 @@
 {% set active_page = "users-page" %}
 {% block content %}
 <div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Users</h1>
+        </div>
+        <div>
+            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#new-user-popup">
+                New User
+            </button>
+        </div>
+    </div>
     {% include "components/tables/user.html" %}
+
+    <div class="modal fade" id="new-user-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="">New User</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include "forms/user.html" %}
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button class="btn btn-primary"
+                hx-include="#user-form" hx-target="#user-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('auth_htmx.custom_register') }}">Submit</button>
+            </div>
+          </div>
+        </div>
+    </div>
 </div>
 {% endblock content %}

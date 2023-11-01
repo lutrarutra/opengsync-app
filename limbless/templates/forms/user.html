@@ -1,0 +1,6 @@
+{% from 'components/form_group.jinja2' import form_group %}
+<form id="user-form">
+    {{ user_form.csrf_token() }}
+    {{ form_group(user_form.email) }}
+    {{ form_group(user_form.role) }}
+</form>

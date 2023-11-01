@@ -87,11 +87,6 @@ def get_index_kits(
 
     res = query.all()
 
-    for index_kit in res:
-        index_kit._num_adapters = self._session.query(models.SeqAdapter).where(
-            models.SeqAdapter.index_kit_id == index_kit.id
-        ).count()
-
     if not persist_session:
         self.close_session()
 

@@ -18,6 +18,7 @@ def get(page: int, index_kit_id: Optional[int]):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
     reversed = order == "desc"
+    offset = page * 20
 
     if sort_by not in models.SeqAdapter.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
@@ -28,8 +29,7 @@ def get(page: int, index_kit_id: Optional[int]):
             if index_kit is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
 
-        adapters = session.get_adapters(index_kit_id=index_kit_id, offset=page * 20, sort_by=sort_by, reversed=reversed)
-        n_pages = int(session.get_num_adapters(index_kit_id=index_kit_id) / 20)
+        adapters, n_pages = session.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, reversed=reversed)
 
     return make_response(
         render_template(

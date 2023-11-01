@@ -14,7 +14,7 @@ def projects_page():
     project_form = forms.ProjectForm()
 
     with DBSession(db.db_handler) as session:
-        if current_user.role_type == UserRole.CLIENT:
+        if current_user.role_type not in UserRole.insiders:
             projects, n_pages = session.get_projects(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
         else:
             projects, n_pages = session.get_projects(limit=20, user_id=None, sort_by="id", reversed=True)
@@ -22,7 +22,7 @@ def projects_page():
         return render_template(
             "projects_page.html", project_form=project_form,
             projects=projects, n_pages=n_pages, active_page=0,
-            current_sort="id", current_sort_order="asc"
+            current_sort="id", current_sort_order="desc"
         )
 
 

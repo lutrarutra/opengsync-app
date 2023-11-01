@@ -3,7 +3,7 @@ from typing import Optional
 from flask import Blueprint, render_template, redirect, url_for, abort
 from flask_login import current_user, login_required
 
-from ... import logger, db
+from ... import logger, db, forms
 from ...categories import UserRole, HttpResponse
 
 users_page_bp = Blueprint("users_page", __name__)
@@ -21,7 +21,7 @@ def users_page():
     return render_template(
         "users_page.html",
         users=users,
-        page=0, n_pages=n_pages,
+        page=0, n_pages=n_pages, user_form=forms.UserForm(),
         current_sort="id", current_sort_order="asc"
     )
 
@@ -33,7 +33,7 @@ def user_page(user_id: Optional[int]):
     if user_id is None:
         user_id = current_user.id
 
-    if current_user.role_type == UserRole.CLIENT:
+    if current_user.role_type not in UserRole.insiders:
         if user_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
         

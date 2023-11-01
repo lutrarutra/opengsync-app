@@ -1,5 +1,5 @@
 {% macro form_group(field, class='', id=none, disabled=false, trigger_dest_id=none) -%}
-<div class="{{class}} form-group">
+<div class="{{class}} form-group pb-1">
     <a data-bs-toggle="{{ 'tooltip' if field.description else '' }}"
     data-bs-title="{{ field.description if field.description }}"
     data-bs-custom-class="custom-tooltip">

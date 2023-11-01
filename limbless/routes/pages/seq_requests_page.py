@@ -16,7 +16,7 @@ def seq_requests_page():
     seq_request_form.contact_person_email.data = current_user.email
 
     with DBSession(db.db_handler) as session:
-        if current_user.role_type == UserRole.CLIENT:
+        if current_user.role_type not in UserRole.insiders:
             seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=current_user.id)
         elif current_user.role_type == UserRole.ADMIN:
             seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=None)
@@ -34,7 +34,7 @@ def seq_requests_page():
         seq_request_form=seq_request_form,
         seq_requests=seq_requests,
         n_pages=n_pages, active_page=0,
-        current_sort="id", current_sort_order="asc"
+        current_sort="id", current_sort_order="desc"
     )
 
 
@@ -50,7 +50,7 @@ def seq_request_page(seq_request_id: int):
             
         libraries = seq_request.libraries
 
-    if current_user.role_type == UserRole.CLIENT:
+    if current_user.role_type not in UserRole.insiders:
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
@@ -78,7 +78,7 @@ def seq_request_page(seq_request_id: int):
         seq_request_form.bioinformatician_email.data = seq_request.bioinformatician_contact.email
         seq_request_form.bioinformatician_phone.data = seq_request.bioinformatician_contact.phone
 
-    if seq_request.library_person_contact_id is not None:
+    if seq_request.library_person_contact is not None:
         seq_request_form.library_contact_name.data = seq_request.library_person_contact.name
         seq_request_form.library_contact_email.data = seq_request.library_person_contact.email
         seq_request_form.library_contact_phone.data = seq_request.library_person_contact.phone

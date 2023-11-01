@@ -3,7 +3,7 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 from sqlmodel import Field, SQLModel, Relationship
 from itsdangerous import SignatureExpired, BadSignature
 
-from .. import serializer
+from .. import serializer, models
 from ..categories import UserRole
 
 if TYPE_CHECKING:
@@ -91,19 +91,37 @@ class User(UserMixin, SQLModel, table=True):
 
     sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role"]
 
-    @staticmethod
-    def generate_registration_token(email: str):
-        return serializer.dumps({"email": email})
+    def generate_reset_token(self):
+        return serializer.dumps({"id": self.id, "email": self.email, "hash": self.password})
 
     @staticmethod
-    def verify_registration_token(token: str):
+    def generate_registration_token(email: str, role: UserRole = UserRole.CLIENT):
+        return serializer.dumps({"email": email, "role": role.value.id})
+
+    @staticmethod
+    def verify_registration_token(token: str) -> Optional[tuple[str, UserRole]]:
         try:
-            email = serializer.loads(token, max_age=3600)["email"]
+            data = serializer.loads(token, max_age=3600)
+            email = data["email"]
+            role = UserRole.get(data.get("role", UserRole.CLIENT.value.id))
         except SignatureExpired:
             return None
         except BadSignature:
             return None
-        return email
+        return email, role
+    
+    @staticmethod
+    def verify_reset_token(token: str) -> Optional[tuple[int, str, str]]:
+        try:
+            data = serializer.loads(token, max_age=3600)
+            id = data["id"]
+            email = data["email"]
+            hash = data["hash"]
+        except SignatureExpired:
+            return None
+        except BadSignature:
+            return None
+        return id, email, hash
 
     @property
     def role_type(self) -> UserRole:

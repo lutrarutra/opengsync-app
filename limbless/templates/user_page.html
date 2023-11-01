@@ -7,8 +7,24 @@
         <div>
             <h1>User: {{ user.email }} ({{ user.role_type.value.name }} {{ user.role_type.value.description }})</h1>
         </div>
-        {% if current_user.id == user.id %}
         <div>
+            {% if current_user.role_type.value.name == "Admin" %}
+            <button id="reset-btn" class="btn btn-warning"
+            hx-get="{{ url_for('auth_htmx.reset_password_email', user_id=user.id) }}"
+            _="on htmx:confirm(issueRequest)
+                halt the event
+                call Swal.fire({
+                    title: 'Send Reset Password Email to \'{{ user.email }}\'?',
+                    showDenyButton: true,
+                    text: 'Proceed?',
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'No'
+                })
+                if result.isConfirmed issueRequest()">
+                Reset Password
+            </button>
+            {% endif %}
+            {% if current_user.id == user.id %}
             <button id="logout-btn" class="btn btn-danger"
             hx-get="{{ url_for('auth_htmx.logout') }}"
             _="on htmx:confirm(issueRequest)
@@ -23,8 +39,8 @@
                 if result.isConfirmed issueRequest()">
                 Logout
             </button>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
     
     <div>

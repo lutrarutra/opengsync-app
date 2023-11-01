@@ -1,3 +1,4 @@
+import math
 from typing import Optional
 
 from ... import models
@@ -66,7 +67,7 @@ def get_experiment_by_name(self, experiment_name) -> models.Experiment:
 def get_experiments(
     self, limit: Optional[int] = 20, offset: Optional[int] = None,
     sort_by: Optional[str] = None, reversed: bool = False
-) -> list[models.Experiment]:
+) -> tuple[list[models.Experiment], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -79,6 +80,8 @@ def get_experiments(
             attr = attr.desc()
         query = query.order_by(attr)
 
+    n_pages = math.ceil(query.count() / limit)
+
     if offset is not None:
         query = query.offset(offset)
 
@@ -90,7 +93,7 @@ def get_experiments(
     if not persist_session:
         self.close_session()
 
-    return experiments
+    return experiments, n_pages
 
 
 def get_num_experiments(self) -> int:

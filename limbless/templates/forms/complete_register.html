@@ -1,7 +1,11 @@
 {% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
 <form id="complete-register-form">
-    {{ register_form.csrf_token }}
-    {{ form_group(register_form.email, disabled=True) }}
+    {{ register_form.csrf_token() }}
+    <div class="row">
+        {{ metadata_group("Email", email, class="col") }}
+        {{ metadata_group("Role", user_role.value, class="col") }}
+    </div>
     <div class="row">
         {{ form_group(register_form.first_name, class="col") }}
         {{ form_group(register_form.last_name, class="col") }}

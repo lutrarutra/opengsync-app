@@ -1,13 +1,56 @@
 from typing import Optional
 
 from flask_wtf import FlaskForm
-from wtforms import EmailField, PasswordField, StringField
+from wtforms import EmailField, PasswordField, StringField, SelectField
 from wtforms.validators import DataRequired, Length, ValidationError, Email, EqualTo
 
 from .. import bcrypt, db, models
-from ..db import db_handler
+from ..categories import UserRole
 from ..core.DBSession import DBSession
 from ..core.DBHandler import DBHandler
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField("Password", validators=[DataRequired(), Length(min=8)])
+    confirm = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", "Passwords must match.")])
+
+    def custom_validate(self):
+        validated = self.validate()
+        if not validated:
+            return False, self
+        
+        return validated, self
+    
+
+class UserForm(FlaskForm):
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=128)])
+    role = SelectField("Role", choices=UserRole.as_tuples(), default=UserRole.CLIENT, validators=[DataRequired(), Length(max=64)])
+
+    _role_id: int = -1
+
+    def custom_validate(self, db_handler: DBHandler, current_user: models.User) -> tuple[bool, "UserForm"]:
+        validated = self.validate()
+        if not validated:
+            return False, self
+        
+        if db_handler.get_user_by_email(self.email.data):
+            self.email.errors = ("Email already registered.",)
+            validated = False
+
+        try:
+            self._role_id = int(self.role.data)
+            if (user_role := UserRole.get(self._role_id)) is None:
+                self.role.errors = ("Invalid role.",)
+                validated = False
+
+            elif current_user.role_type != UserRole.ADMIN and user_role == UserRole.ADMIN:
+                self.role.errors = ("Only an admin can create another admin.",)
+                validated = False
+        except ValueError:
+            self.role.errors = ("Invalid role.",)
+            validated = False
+            
+        return validated, self
 
 
 class LoginForm(FlaskForm):
@@ -34,33 +77,39 @@ class LoginForm(FlaskForm):
         
         return user, self
 
+
 class RegisterForm(FlaskForm):
     email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=128)])
-
-    def validate_email(self, email):
-        if db_handler.get_user_by_email(email.data):
-            raise ValidationError("Email already registered.")
+        
+    def custom_validate(self, db_handler: DBHandler) -> tuple[bool, "RegisterForm"]:
+        validated = self.validate()
+        if not validated:
+            return False, self
+        
+        domain = self.email.data.split("@")[-1]
+        if domain not in {"cemm.at", "cemm.oeaw.ac.at"}:
+            self.email.errors = ("Specified email domain is not white-listed. Please contact us at bsf@cemm.at to register.",)
+            validated = False
+        
+        elif db_handler.get_user_by_email(self.email.data):
+            self.email.errors = ("Email already registered.",)
+            validated = False
+            
+        return validated, self
 
 
 class CompleteRegistrationForm(FlaskForm):
-    email = EmailField("Email", validators=[DataRequired(), Email()])
     first_name = StringField("First Name", validators=[DataRequired(), Length(max=64)])
     last_name = StringField("Last Name", validators=[DataRequired(), Length(max=64)])
     password = PasswordField("Password", validators=[DataRequired(), Length(min=8)])
     confirm = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", "Passwords must match.")])
 
     def custom_validate(
-        self, db_handler: DBHandler, user_id: int,
-        library_id: int | None = None,
+        self, db_handler: DBHandler
     ) -> tuple[bool, "CompleteRegistrationForm"]:
         
         validated = self.validate()
         if not validated:
             return False, self
-
-        with DBSession(db_handler) as session:
-            if session.get_user_by_email(self.email.data):
-                self.email.errors = ("Email already registered.",)
-                validated = False
 
         return validated, self

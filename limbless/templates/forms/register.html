@@ -1,6 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group %}
 <form id="register-form">
-    {{ register_form.csrf_token }}
+    {{ register_form.csrf_token() }}
     {{ form_group(register_form.email) }}
     <button type="button" id="register-btn" class="btn btn-primary"
     hx-include="#register-form"

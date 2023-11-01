@@ -129,7 +129,7 @@ def update_user(
     if email is not None:
         user.email = email
     if password is not None:
-        user.password = password
+        user.password = bcrypt.generate_password_hash(password).decode("utf-8")
     if role is not None:
         if not models.UserRole.is_valid(role):
             raise exceptions.InvalidRole(f"Invalid role {role}")

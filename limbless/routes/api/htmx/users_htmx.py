@@ -45,6 +45,7 @@ def email(user_id: int):
         redirect="mailto:" + user.email
     )
 
+
 @users_htmx.route("table_query", methods=["POST"])
 @login_required
 def table_query():

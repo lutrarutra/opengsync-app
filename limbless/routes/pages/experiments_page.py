@@ -11,19 +11,16 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 @experiments_page_bp.route("/experiments")
 @login_required
 def experiments_page():
-    if current_user.role_type == UserRole.CLIENT:
+    if current_user.role_type not in UserRole.insiders:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    experiment_form = forms.ExperimentForm()
-    with DBSession(db.db_handler) as session:
-        experiments = session.get_experiments()
-        n_pages = int(session.get_num_experiments() / 20)
+    experiments, n_pages = db.db_handler.get_experiments()
 
     return render_template(
-        "experiments_page.html", experiment_form=experiment_form,
+        "experiments_page.html", experiment_form=forms.ExperimentForm(),
         experiments=experiments,
         n_pages=n_pages, active_page=0,
-        current_sort="id", current_sort_order="asc"
+        current_sort="id", current_sort_order="desc"
     )
 
 

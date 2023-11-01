@@ -65,7 +65,7 @@ def edit(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    if current_user.role_type == UserRole.CLIENT:
+    if current_user.role_type not in UserRole.insiders:
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
@@ -90,7 +90,7 @@ def delete(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    if current_user.role_type == UserRole.CLIENT:
+    if current_user.role_type not in UserRole.insiders:
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
