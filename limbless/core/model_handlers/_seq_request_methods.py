@@ -80,6 +80,7 @@ def get_seq_request(
 def get_seq_requests(
     self, limit: Optional[int] = 20, offset: Optional[int] = None,
     with_statuses: Optional[list[SeqRequestStatus]] = None,
+    show_drafts: bool = True,
     sort_by: Optional[str] = None, reversed: bool = False,
     user_id: Optional[int] = None
 ) -> tuple[list[models.SeqRequest], int]:
@@ -99,6 +100,11 @@ def get_seq_requests(
         status_ids = [status.value.id for status in with_statuses]
         query = query.where(
             models.SeqRequest.status.in_(status_ids)
+        )
+
+    if not show_drafts:
+        query = query.where(
+            models.SeqRequest.status != SeqRequestStatus.DRAFT.value.id
         )
 
     if sort_by is not None:

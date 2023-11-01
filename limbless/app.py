@@ -3,11 +3,11 @@ import warnings
 from uuid import uuid4
 
 from flask import Flask, render_template, redirect, request, url_for, session
+from flask_login import current_user
 from sassutils.wsgi import SassMiddleware
 
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, models
+from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, models, categories
 from .routes import api, pages
-
 
 def create_app():
     app = Flask(__name__)
@@ -48,7 +48,25 @@ def create_app():
 
     @app.route("/")
     def index_page():
-        return render_template("index.html")
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))
+            
+        if current_user.is_insider():
+            show_drafts = False
+            _user_id = None
+            recent_experiments, _ = db.db_handler.get_experiments(limit=20, sort_by="id", reversed=True)
+        else:
+            show_drafts = True
+            _user_id = current_user.id
+            recent_experiments = None
+
+        recent_seq_requests, _ = db.db_handler.get_seq_requests(limit=20, user_id=_user_id, sort_by="id", reversed=True, show_drafts=show_drafts)
+
+        return render_template(
+            "index.html",
+            recent_seq_requests=recent_seq_requests,
+            recent_experiments=recent_experiments
+        )
 
     @login_manager.unauthorized_handler
     def unauthorized():
@@ -62,6 +80,13 @@ def create_app():
     @app.context_processor
     def inject_uuid():
         return dict(uuid4=uuid4)
+    
+    @app.context_processor
+    def inject_categories():
+        return dict(
+            ExperimentStatus=categories.ExperimentStatus,
+            SeqRequestStatus=categories.SeqRequestStatus,
+        )
     
     @app.before_request
     def before_request():

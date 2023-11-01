@@ -91,6 +91,9 @@ class User(UserMixin, SQLModel, table=True):
 
     sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role"]
 
+    def is_insider(self) -> bool:
+        return self.role_type in UserRole.insiders
+
     def generate_reset_token(self):
         return serializer.dumps({"id": self.id, "email": self.email, "hash": self.password})
 

@@ -6,6 +6,7 @@ logs/
 .env
 .snakemake/
 containers/images/
+*/static/style/bootstrap/
 *.scss.css
 *.scss.css.map
 poetry.lock

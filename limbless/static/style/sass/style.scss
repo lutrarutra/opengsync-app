@@ -30,9 +30,14 @@ $danger:        $red;
 $light:         $gray-100;
 $dark:          $gray-900;
 
+$progress-height: 1.3rem !default;
+
+@import "../bootstrap/scss/bootstrap.scss";
 @import "../css/scrollbar.css";
 @import "./navbar.scss";
 @import "./responsive.scss";
+@import "./colors.scss";
+
 
 body {
     background-color: $light;
@@ -43,6 +48,40 @@ body {
     padding: 0;
     overflow-x: hidden;
 }
+
+.banner-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .seq_request-banner {
+        border: 1px solid #ccc;
+        border-radius: 5px;
+
+        a {
+            color: $black;
+            text-decoration: none;
+            padding: 0;
+        }
+        .banner-title {
+            display: flex;
+            gap: 10px;
+            p {
+                font-size: 1rem;
+                margin-bottom: 3px;
+            }
+            p.description {
+                color: $gray-700;
+            }
+        }
+    }
+
+    .seq_request-banner:hover {
+        background-color: $gray-300;
+    }
+}
+
+
 
 .custom-tooltip {
   --bs-tooltip-bg: #222529;

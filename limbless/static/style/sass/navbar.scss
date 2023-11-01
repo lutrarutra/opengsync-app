@@ -9,10 +9,11 @@ nav#navbar {
     top: 0;
     z-index: 15;
 
-    span.logo {
+    a#bsf-banner {
         margin: 0 15px 0 15px;
         font-size: 25px;
         color: $gray-100;
+        text-decoration: none;
     }
     
     #navbar-container {

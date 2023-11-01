@@ -1,6 +1,8 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/form_group.jinja2' import form_group %}
+{% from "components/seq_request_status_bar.jinja2" import seq_request_status_bar with context %}
+
 {% extends "base.html" %}
 {% set active_page = "seq_requests-page" %}
 {% block content %}
@@ -49,6 +51,10 @@
             </button>
             {% endif %}
         </div>
+    </div>
+
+    <div class="pb-3">
+        {{ seq_request_status_bar(seq_request) }}
     </div>
 
     <div>
