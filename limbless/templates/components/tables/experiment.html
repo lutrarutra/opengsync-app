@@ -39,6 +39,20 @@
                         current_sort=current_sort, current_sort_order=current_sort_order,
                     )
                 }}
+                {{
+                    table_col(
+                        target_id='experiment-table', column_name='# Lanes', column_var='num_lanes',
+                        sort_url='experiments_htmx.get', sort_url_args={},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='experiment-table', column_name='# Libraries', column_var='num_libraries',
+                        sort_url='experiments_htmx.get', sort_url_args={},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                    )
+                }}
             </tr>
         </thead>
         <tbody>
@@ -48,6 +62,8 @@
                 <td>{{ experiment.status_type.value.name }} {{ experiment.status_type.value.description | safe }}</td>
                 <td>{{ experiment.sequencer.name }}</td>
                 <td>{{ experiment.flowcell }}</td>
+                <td>{{ experiment.num_lanes }}</td>
+                <td>{{ experiment.num_libraries }}</td>
                 <td>{{ experiment.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
             </tr>
             {% endfor %}

@@ -89,7 +89,7 @@ class User(UserMixin, SQLModel, table=True):
         back_populates="owner",
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role"]
+    sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role", "num_projects", "num_libraries", "num_samples", "num_seq_requests"]
 
     def is_insider(self) -> bool:
         return self.role_type in UserRole.insiders

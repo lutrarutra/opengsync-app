@@ -55,7 +55,7 @@ class Library(SQLModel, SearchResult, table=True):
         link_model=LibrarySeqRequestLink
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "library_type_id", "owner_id"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "library_type_id", "owner_id", "num_samples", "num_experiments", "num_seq_requests"]
 
     _sample_path: str = PrivateAttr("")
 

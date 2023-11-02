@@ -35,7 +35,7 @@ class Experiment(SQLModel, table=True):
         back_populates="experiments", link_model=ExperimentLibraryLink
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id"]
+    sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
 
     @property
     def status_type(self) -> ExperimentStatus:

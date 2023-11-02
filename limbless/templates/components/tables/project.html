@@ -19,17 +19,23 @@
                         sort_url='projects_htmx.get', sort_url_args={},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         query_url=url_for('projects_htmx.table_query'), current_query=current_query,
-                        field_name=field_name, query_type="text", col_size=4
+                        field_name=field_name, query_type="text", col_size=3
                     )
                 }}
                 {{
                     table_col(
                         target_id='project-table', column_name='Owner', column_var='owner',
                         sort_url='projects_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=4
+                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=2
                     )
                 }}
-                <th scope="col-1"># Samples</th>
+                {{
+                    table_col(
+                        target_id='project-table', column_name='# Samples', column_var='num_samples',
+                        sort_url='projects_htmx.get', sort_url_args={},
+                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=1
+                    )
+                }}
             </tr>
         </thead>
         <tbody>

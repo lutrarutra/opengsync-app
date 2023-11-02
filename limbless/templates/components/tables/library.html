@@ -27,7 +27,7 @@
                         target_id='library-table', column_name='Type', column_var='library_type_id',
                         sort_url='libraries_htmx.get', sort_url_args={},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        col_size=3,
+                        col_size=2,
                     )
                 }}
                 {{
@@ -39,7 +39,22 @@
                     )
                 }}
                 <th scope="col" class="col-2">Index Kit</th>
-                <th scope="col" class="col-1"># Samples</th>
+                {{
+                    table_col(
+                        target_id='library-table', column_name='# Samples', column_var='num_samples',
+                        sort_url='libraries_htmx.get', sort_url_args={},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='# Requests', column_var='num_seq_requests',
+                        sort_url='libraries_htmx.get', sort_url_args={},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        col_size=1,
+                    )
+                }}
             </tr>
         </thead>
         <tbody>
@@ -51,6 +66,7 @@
                 <td><span class="owner-col"><p>{{ library.owner.first_name }} {{ library.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>
                 <td>{{library.num_samples}}</td>
+                <td>{{library.num_seq_requests}}</td>
             </tr>
             {% endfor %}
         </tbody>
