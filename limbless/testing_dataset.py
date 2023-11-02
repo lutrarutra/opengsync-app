@@ -1,5 +1,5 @@
 from limbless.core import DBHandler
-from limbless.categories import UserRole, LibraryType
+from limbless.categories import UserRole, LibraryType, SeqRequestStatus
 from limbless import models
 
 
@@ -58,3 +58,49 @@ def create_sample_data(db_handler: DBHandler):
                 seq_index_id=None
             )
 
+    contact_person = db_handler.create_contact(
+        name="Default Contact",
+        organization="CeMM (BSF)",
+        email="contact@person.com",
+    )
+
+    billing_contact = db_handler.create_contact(
+        name="CeMM Billing",
+        address="Cemmgasse 14",
+        email="billing@person.com",
+    )
+
+    for i in range(30):
+        _client_id = clients[i % len(clients)].id
+        seq_request = db_handler.create_seq_request(
+            name=f"Seq Request {i+1}",
+            description=f"Description {i}",
+            requestor_id=_client_id,
+            person_contact_id=contact_person.id,
+            billing_contact_id=billing_contact.id,
+        )
+
+        if i > 5:
+            for j in range(3):
+                db_handler.link_library_seq_request(
+                    library_id=libraries[_client_id][j].id,
+                    seq_request_id=seq_request.id
+                )
+
+            if i > 10:
+                if i > 28:
+                    status = SeqRequestStatus.ARCHIVED
+                elif i > 25:
+                    status = SeqRequestStatus.FAILED
+                elif i > 22:
+                    status = SeqRequestStatus.FINISHED
+                elif i > 19:
+                    status = SeqRequestStatus.DATA_PROCESSING
+                elif i > 16:
+                    status = SeqRequestStatus.SEQUENCING
+                elif i > 13:
+                    status = SeqRequestStatus.LIBRARY_PREP
+                else:
+                    status = SeqRequestStatus.SUBMITTED
+
+                db_handler.update_seq_request(seq_request_id=seq_request.id, status=status)

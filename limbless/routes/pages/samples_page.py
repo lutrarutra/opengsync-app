@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, abort, request
 from flask_login import login_required, current_user
 
-from ... import db, forms, logger
+from ... import db, forms, logger, PAGE_LIMIT
 from ...core import DBSession
 from ...categories import UserRole, HttpResponse
 
@@ -13,9 +13,9 @@ samples_page_bp = Blueprint("samples_page", __name__)
 def samples_page():
     with DBSession(db.db_handler) as session:
         if not current_user.is_insider():
-            samples, n_pages = session.get_samples(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
+            samples, n_pages = session.get_samples(limit=PAGE_LIMIT, user_id=current_user.id, sort_by="id", descending=True)
         else:
-            samples, n_pages = session.get_samples(limit=20, user_id=None, sort_by="id", reversed=True)
+            samples, n_pages = session.get_samples(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
     return render_template(
         "samples_page.html", samples=samples,

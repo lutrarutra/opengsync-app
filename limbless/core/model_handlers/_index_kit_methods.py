@@ -1,11 +1,11 @@
+import math
 from typing import Optional, Union
 
 from sqlmodel import func, and_
 import pandas as pd
 
-from ... import models, logger
+from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
-from ...tools import SearchResult
 from ...categories import LibraryType
 from ._link_methods import link_index_kit_library_type
 
@@ -71,13 +71,15 @@ def get_num_index_kits(self) -> int:
 
 
 def get_index_kits(
-    self, limit: Optional[int] = 20, offset: Optional[int] = 0
-) -> list[models.IndexKit]:
+    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0
+) -> tuple[list[models.IndexKit], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.IndexKit).order_by(models.IndexKit.id.desc())
+
+    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
 
     if limit is not None:
         query = query.limit(limit)
@@ -90,11 +92,11 @@ def get_index_kits(
     if not persist_session:
         self.close_session()
 
-    return res
+    return res, n_pages
 
 
 def query_index_kit(
-    self, word: str, library_type: Optional[LibraryType] = None, limit: Optional[int] = 20
+    self, word: str, library_type: Optional[LibraryType] = None, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.IndexKit]:
     persist_session = self._session is not None
     if not self._session:

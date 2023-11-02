@@ -6,8 +6,9 @@ from flask import Flask, render_template, redirect, request, url_for, session
 from flask_login import current_user
 from sassutils.wsgi import SassMiddleware
 
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, models, categories
+from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, models, categories, PAGE_LIMIT
 from .routes import api, pages
+
 
 def create_app():
     app = Flask(__name__)
@@ -54,13 +55,13 @@ def create_app():
         if current_user.is_insider():
             show_drafts = False
             _user_id = None
-            recent_experiments, _ = db.db_handler.get_experiments(limit=20, sort_by="id", reversed=True)
+            recent_experiments, _ = db.db_handler.get_experiments(limit=PAGE_LIMIT, sort_by="id", descending=True)
         else:
             show_drafts = True
             _user_id = current_user.id
             recent_experiments = None
 
-        recent_seq_requests, _ = db.db_handler.get_seq_requests(limit=20, user_id=_user_id, sort_by="id", reversed=True, show_drafts=show_drafts)
+        recent_seq_requests, _ = db.db_handler.get_seq_requests(limit=PAGE_LIMIT, user_id=_user_id, sort_by="submitted_time", descending=True, show_drafts=show_drafts)
 
         return render_template(
             "index.html",
@@ -107,7 +108,6 @@ def create_app():
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)
-    app.register_blueprint(pages.jobs_page_bp)
     app.register_blueprint(pages.experiments_page_bp)
     app.register_blueprint(pages.libraries_page_bp)
     app.register_blueprint(pages.auth_page_bp)

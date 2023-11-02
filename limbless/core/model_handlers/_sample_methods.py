@@ -3,9 +3,8 @@ from typing import Optional
 
 from sqlmodel import and_, func, or_
 
-from ... import models, logger
+from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
-from ...tools import SearchResult
 
 
 def create_sample(
@@ -100,8 +99,8 @@ def get_num_samples(
 def get_samples(
     self, user_id: Optional[int] = None,
     project_id: Optional[int] = None, library_id: Optional[int] = None,
-    limit: Optional[int] = 20, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, reversed: bool = False,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Sample], int]:
     persist_session = self._session is not None
     if not self._session:
@@ -111,7 +110,7 @@ def get_samples(
 
     if sort_by is not None:
         attr = getattr(models.Sample, sort_by)
-        if reversed:
+        if descending:
             attr = attr.desc()
         query = query.order_by(attr)
 
@@ -230,7 +229,7 @@ def query_samples(
     project_id: Optional[int] = None,
     library_id: Optional[int] = None,
     exclude_library_id: Optional[int] = None,
-    limit: Optional[int] = 20
+    limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Sample]:
 
     persist_session = self._session is not None

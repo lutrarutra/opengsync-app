@@ -1,10 +1,10 @@
+import math
 from typing import Optional
 
 from sqlmodel import func
 
-from ... import models
+from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...tools import SearchResult
 
 
 def create_sequencer(
@@ -53,13 +53,15 @@ def get_sequencer(
 
 def get_sequencers(
     self, limit: Optional[int] = None, offset: Optional[int] = None
-) -> list[models.Sequencer]:
+) -> tuple[list[models.Sequencer], int]:
     
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.Sequencer)
+
+    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
 
     if offset is not None:
         query = query.offset(offset)
@@ -72,7 +74,7 @@ def get_sequencers(
     if not persist_session:
         self.close_session()
 
-    return sequencers
+    return sequencers, n_pages
 
 
 def get_num_sequencers(self) -> int:
@@ -159,7 +161,7 @@ def delete_sequencer(
     
 
 def query_sequencers(
-    self, word: str, limit: Optional[int] = 20
+    self, word: str, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Sequencer]:
     
     persist_session = self._session is not None

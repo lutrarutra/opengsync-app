@@ -2,7 +2,7 @@ from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, forms, logger, models
+from .... import db, forms, logger, models, PAGE_LIMIT
 from ....categories import UserRole, HttpResponse
 from ....core.DBSession import DBSession
 
@@ -14,15 +14,15 @@ experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/expe
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
-    reversed = order == "desc"
-    offset = page * 20
+    descending = order == "desc"
+    offset = PAGE_LIMIT * page
 
     if sort_by not in models.Experiment.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     with DBSession(db.db_handler) as session:
         experiments, n_pages = session.get_experiments(
-            limit=20, offset=offset, sort_by=sort_by, reversed=reversed
+            limit=PAGE_LIMIT, offset=offset, sort_by=sort_by, descending=descending
         )
 
     return make_response(

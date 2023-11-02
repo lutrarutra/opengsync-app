@@ -1,7 +1,8 @@
+from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING, ClassVar
 
-from sqlmodel import Field, SQLModel, TIMESTAMP, text, Column, Relationship
-from datetime import datetime
+import sqlalchemy as sa
+from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import ExperimentStatus
 from .Links import ExperimentLibraryLink
@@ -23,12 +24,7 @@ class Experiment(SQLModel, table=True):
     num_lanes: int = Field(nullable=False, default=1)
     num_libraries: int = Field(nullable=False, default=0)
 
-    timestamp: datetime = Field(sa_column=Column(
-        TIMESTAMP(timezone=True),
-        nullable=False,
-        server_default=text("CURRENT_TIMESTAMP"),
-        server_onupdate=text("CURRENT_TIMESTAMP"),
-    ))
+    timestamp: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
 
     status: int = Field(nullable=False, default=0)
 

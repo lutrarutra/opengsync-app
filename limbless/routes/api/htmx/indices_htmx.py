@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, logger, forms, models
+from .... import db, logger, forms, models, PAGE_LIMIT
 from ....core import DBSession
 from ....categories import LibraryType, HttpResponse
 
@@ -16,15 +16,13 @@ indices_htmx = Blueprint("indices_htmx", __name__, url_prefix="/api/indices/")
 def get(page):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
-    reversed = order == "desc"
+    descending = order == "desc"
 
     if sort_by not in models.SeqIndex.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
     with DBSession(db.db_handler) as session:
-        n_pages = int(session.get_num_seqindices() / 20)
-        page = min(page, n_pages)
-        indices = session.get_seqindices(limit=20, offset=20 * page, sort_by=sort_by, reversed=reversed)
+        indices, n_pages = session.get_seqindices(limit=PAGE_LIMIT, offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
 
     return make_response(
         render_template(

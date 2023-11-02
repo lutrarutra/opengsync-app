@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required, current_user
 
-from ... import db, forms, logger
+from ... import db, forms, logger, PAGE_LIMIT
 from ...core import DBSession
 from ...categories import UserRole, HttpResponse
 
@@ -13,9 +13,9 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 def libraries_page():
     with DBSession(db.db_handler) as session:
         if not current_user.is_insider():
-            libraries, n_pages = session.get_libraries(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
+            libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, user_id=current_user.id, sort_by="id", descending=True)
         else:
-            libraries, n_pages = session.get_libraries(limit=20, user_id=None, sort_by="id", reversed=True)
+            libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
     return render_template(
         "libraries_page.html",

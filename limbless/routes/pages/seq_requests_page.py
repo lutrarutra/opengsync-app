@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, abort, url_for
 from flask_login import current_user, login_required
 
-from ... import forms, db, logger
+from ... import forms, db, logger, PAGE_LIMIT
 from ...core import DBSession
 from ...categories import UserRole, SeqRequestStatus, HttpResponse
 
@@ -17,11 +17,11 @@ def seq_requests_page():
 
     with DBSession(db.db_handler) as session:
         if not current_user.is_insider():
-            seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=current_user.id)
+            seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, user_id=current_user.id)
         elif current_user.role_type == UserRole.ADMIN:
-            seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=None)
+            seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, user_id=None)
         else:
-            seq_requests, n_pages = session.get_seq_requests(limit=20, user_id=None, show_drafts=False)
+            seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, user_id=None, show_drafts=False)
 
     return render_template(
         "seq_requests_page.html",

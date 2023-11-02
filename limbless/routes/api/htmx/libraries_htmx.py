@@ -6,7 +6,7 @@ from flask import Blueprint, redirect, url_for, render_template, flash, request,
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, logger, forms, LibraryType, models, tools
+from .... import db, logger, forms, LibraryType, models, tools, PAGE_LIMIT
 from ....core import DBSession, exceptions
 from ....core.DBHandler import DBHandler
 from ....categories import UserRole, HttpResponse
@@ -19,8 +19,8 @@ libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/librarie
 def get(page):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
-    reversed = order == "desc"
-    offset = page * 20
+    descending = order == "desc"
+    offset = PAGE_LIMIT * page
 
     if sort_by not in models.Library.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
@@ -39,7 +39,7 @@ def get(page):
                 return abort(HttpResponse.NOT_FOUND.value.id)
             if current_user.id != seq_request.requestor_id:
                 return abort(HttpResponse.FORBIDDEN.value.id)
-            libraries, n_pages = session.get_libraries(limit=20, offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, reversed=reversed)
+            libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
             context["seq_request"] = seq_request
     elif (experiment_id := request.args.get("experiment_id", None)) is not None:
         template = "components/tables/experiment-library.html"
@@ -50,7 +50,7 @@ def get(page):
         with DBSession(db.db_handler) as session:
             if (experiment := session.get_experiment(experiment_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
-            libraries, n_pages = session.get_libraries(limit=20, offset=offset, experiment_id=experiment_id, sort_by=sort_by, reversed=reversed)
+            libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending)
             context["experiment"] = experiment
     elif (sample_id := request.args.get("sample_id", None)) is not None:
         template = "components/tables/sample-library.html"
@@ -61,15 +61,15 @@ def get(page):
         with DBSession(db.db_handler) as session:
             if (sample := session.get_sample(sample_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
-            libraries, n_pages = session.get_libraries(limit=20, offset=offset, sample_id=sample_id, sort_by=sort_by, reversed=reversed)
+            libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending)
             context["sample"] = sample
     else:
         template = "components/tables/library.html"
         with DBSession(db.db_handler) as session:
             if not current_user.is_insider():
-                libraries, n_pages = session.get_libraries(limit=20, offset=offset, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
+                libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, user_id=current_user.id, sort_by=sort_by, descending=descending)
             else:
-                libraries, n_pages = session.get_libraries(limit=20, offset=offset, user_id=None, sort_by=sort_by, reversed=reversed)
+                libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, user_id=None, sort_by=sort_by, descending=descending)
 
     return make_response(
         render_template(

@@ -3,7 +3,7 @@ from typing import Optional
 from flask import Blueprint, render_template, redirect, url_for, abort
 from flask_login import current_user, login_required
 
-from ... import logger, db, forms
+from ... import logger, db, forms, PAGE_LIMIT
 from ...categories import UserRole, HttpResponse
 
 users_page_bp = Blueprint("users_page", __name__)
@@ -15,8 +15,7 @@ def users_page():
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    users = db.db_handler.get_users(limit=20)
-    n_pages = int(db.db_handler.get_num_users() / 20)
+    users, n_pages = db.db_handler.get_users(limit=PAGE_LIMIT)
 
     return render_template(
         "users_page.html",

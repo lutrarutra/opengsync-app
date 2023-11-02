@@ -2,7 +2,7 @@ from flask import Blueprint, redirect, url_for, render_template, flash, request,
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, forms, logger, models
+from .... import db, forms, logger, models, PAGE_LIMIT
 from ....core import DBSession, exceptions
 from ....categories import HttpResponse, UserRole
 
@@ -16,8 +16,7 @@ def get(page: int):
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     with DBSession(db.db_handler) as session:
-        sequencers = session.get_sequencers(page=page)
-        n_pages = int(session.get_num_sequencers() / 20)
+        sequencers, n_pages = session.get_sequencers(offset=PAGE_LIMIT * page)
     
     return make_response(
         render_template(

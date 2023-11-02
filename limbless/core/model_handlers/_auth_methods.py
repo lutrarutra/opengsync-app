@@ -73,6 +73,8 @@ def get_user_experiment_access(
         access = [AccessType.READ]
     elif user.role_type == UserRole.CLIENT:
         access = None
+    else:
+        access = None
 
     return access
 
@@ -140,6 +142,8 @@ def get_user_sample_access(
             raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
 
         access = self.get_user_project_access(user_id, sample.project_id)
+    else:
+        access = None
 
     if not persist_session:
         self.close_session()

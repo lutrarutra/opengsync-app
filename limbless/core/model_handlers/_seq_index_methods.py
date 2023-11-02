@@ -1,9 +1,10 @@
+import math
 from typing import Optional
 
 from sqlmodel import and_
 import pandas as pd
 
-from ... import models, logger
+from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
 from ...tools import SearchResult
 
@@ -68,9 +69,9 @@ def get_seqindex(self, id: int) -> models.SeqIndex:
 
 
 def get_seqindices(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, reversed: bool = False
-) -> list[models.SeqIndex]:
+    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False
+) -> tuple[list[models.SeqIndex], int]:
 
     persist_session = self._session is not None
     if not self._session:
@@ -80,9 +81,11 @@ def get_seqindices(
 
     if sort_by is not None:
         attr = getattr(models.SeqIndex, sort_by)
-        if reversed:
+        if descending:
             attr = attr.desc()
         query = query.order_by(attr)
+
+    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
 
     if offset is not None:
         query = query.offset(offset)
@@ -95,7 +98,7 @@ def get_seqindices(
     if not persist_session:
         self.close_session()
 
-    return indices
+    return indices, n_pages
 
 
 def get_num_seqindices(self) -> int:

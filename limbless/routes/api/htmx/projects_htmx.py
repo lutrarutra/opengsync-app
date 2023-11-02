@@ -4,7 +4,7 @@ from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, forms, logger, models
+from .... import db, forms, logger, models, PAGE_LIMIT
 from ....core import DBSession, DBHandler
 from ....categories import UserRole, HttpResponse
 
@@ -16,7 +16,7 @@ projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/"
 def get(page):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
-    reversed = order == "desc"
+    descending = order == "desc"
 
     if sort_by not in models.Project.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
@@ -38,7 +38,7 @@ def get(page):
             if (user := session.get_user(user_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             
-            projects, n_pages = session.get_projects(limit=20, user_id=user_id, sort_by=sort_by, reversed=reversed)
+            projects, n_pages = session.get_projects(limit=PAGE_LIMIT, user_id=user_id, sort_by=sort_by, descending=descending)
             context["user"] = user
     else:
         template = "components/tables/project.html"
@@ -47,7 +47,7 @@ def get(page):
                 user_id = current_user.id
             else:
                 user_id = None
-            projects, n_pages = session.get_projects(limit=20, user_id=user_id, sort_by="id", reversed=reversed)
+            projects, n_pages = session.get_projects(limit=PAGE_LIMIT, user_id=user_id, sort_by="id", descending=descending)
 
     return make_response(
         render_template(

@@ -4,7 +4,7 @@ from typing import Optional
 from sqlmodel import and_, func
 import pandas as pd
 
-from ... import models, logger
+from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
 from ...tools import SearchResult
 
@@ -52,8 +52,8 @@ def get_adapter(self, id: int) -> models.SeqAdapter:
 
 def get_adapters(
     self, index_kit_id: Optional[int] = None,
-    offset: Optional[int] = None, limit: Optional[int] = 20,
-    sort_by: Optional[str] = None, reversed: bool = False,
+    offset: Optional[int] = None, limit: Optional[int] = PAGE_LIMIT,
+    sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[SearchResult], int]:
 
     persist_session = self._session is not None
@@ -68,7 +68,7 @@ def get_adapters(
 
     if sort_by is not None:
         attr = getattr(models.SeqAdapter, sort_by)
-        if reversed:
+        if descending:
             attr = attr.desc()
         query = query.order_by(attr)
 

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, request, url_for, flash
 from flask_login import current_user, login_required
 
-from ... import forms, models, db, logger
+from ... import forms, models, db, logger, PAGE_LIMIT
 from ...core import DBSession
 
 index_kit_page_bp = Blueprint("index_kit_page", __name__)
@@ -11,8 +11,7 @@ index_kit_page_bp = Blueprint("index_kit_page", __name__)
 @index_kit_page_bp.route("/index_kit")
 def index_kit_page():
     with DBSession(db.db_handler) as session:
-        index_kit = session.get_index_kits(limit=20)
-        n_pages = int(session.get_num_index_kits() / 20)
+        index_kit, n_pages = session.get_index_kits(limit=PAGE_LIMIT)
 
     logger.debug(index_kit)
 

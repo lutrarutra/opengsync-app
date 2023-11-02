@@ -1,8 +1,9 @@
+import math
 from typing import Optional
 
 from sqlmodel import func
 
-from ... import models, bcrypt
+from ... import models, bcrypt, PAGE_LIMIT
 from .. import exceptions
 from ...categories import UserRole
 
@@ -72,9 +73,9 @@ def get_user_by_email(self, email: str) -> models.User:
 
 
 def get_users(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, reversed: bool = False
-) -> list[models.User]:
+    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False
+) -> tuple[list[models.User], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -83,9 +84,11 @@ def get_users(
 
     if sort_by is not None:
         attr = getattr(models.User, sort_by)
-        if reversed:
+        if descending:
             attr = attr.desc()
         query = query.order_by(attr)
+
+    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
 
     if offset is not None:
         query = query.offset(offset)
@@ -97,7 +100,7 @@ def get_users(
 
     if not persist_session:
         self.close_session()
-    return users
+    return users, n_pages
 
 
 def get_num_users(self) -> int:
@@ -162,7 +165,7 @@ def delete_user(self, user_id: int, commit: bool = True) -> None:
         self.close_session()
 
 
-def query_users(self, word: str, limit: Optional[int] = 20) -> list[models.User]:
+def query_users(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -184,7 +187,7 @@ def query_users(self, word: str, limit: Optional[int] = 20) -> list[models.User]
     return users
 
 
-def query_users_by_email(self, word: str, limit: Optional[int] = 20) -> list[models.User]:
+def query_users_by_email(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

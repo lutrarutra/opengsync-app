@@ -1,19 +1,19 @@
 {% macro seq_request_status_bar(seq_request) -%}
 {% if seq_request.status_type.value.name == 'Draft' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
-    <div class="progress-bar bg-transparent" style="width: 100%; color: black;">
+    <div class="progress-bar progress-bar-striped bg-transparent" style="width: 100%; color: black;">
         {{ SeqRequestStatus.DRAFT.value.name }} {{ SeqRequestStatus.DRAFT.value.description | safe }}
     </div>
 </div>
 {% elif seq_request.status_type.value.name == 'Archived' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
-<div class="progress-bar bg-info text-dark" style="width: 100%">
-        {{ SeqRequestStatus.ARCHIVED.value.name }} {{ SeqRequestStatus.ARCHIVED.value.descriion | safe }}
+<div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
+        {{ SeqRequestStatus.ARCHIVED.value.name }} {{ SeqRequestStatus.ARCHIVED.value.description | safe }}
     </div>
 </div>
 {% elif seq_request.status_type.value.name == 'Failed' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
-    <div class="progress-bar bg-danger" style="width: 100%">
+    <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
         {{ SeqRequestStatus.FAILED.value.name }} {{ SeqRequestStatus.FAILED.value.description | safe }}
     </div>
 </div>

@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, abort, url_for
 from flask_htmx import make_response
 from flask_login import login_required, current_user
 
-from .... import db, logger, forms, models
+from .... import db, logger, forms, models, PAGE_LIMIT
 from ....core import DBSession
 from ....categories import HttpResponse
 
@@ -17,8 +17,8 @@ adapters_htmx = Blueprint("adapters_htmx", __name__, url_prefix="/api/adapters/"
 def get(page: int, index_kit_id: Optional[int]):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
-    reversed = order == "desc"
-    offset = page * 20
+    descending = order == "desc"
+    offset = PAGE_LIMIT * page
 
     if sort_by not in models.SeqAdapter.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
@@ -29,7 +29,7 @@ def get(page: int, index_kit_id: Optional[int]):
             if index_kit is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
 
-        adapters, n_pages = session.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, reversed=reversed)
+        adapters, n_pages = session.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending)
 
     return make_response(
         render_template(

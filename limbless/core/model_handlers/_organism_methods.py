@@ -3,17 +3,16 @@ from typing import Optional
 from sqlmodel import func
 import pandas as pd
 
-from ... import models, logger
+from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
-from ... import categories
-from ...tools import SearchResult
+from ...categories import OrganismCategory
 
 
 def create_organism(
     self,
     tax_id: int,
     scientific_name: str,
-    category: categories.OrganismCategory,
+    category: OrganismCategory,
     common_name: Optional[str] = None,
     commit: bool = True
 ) -> models.Organism:
@@ -65,7 +64,7 @@ def get_num_organisms(self) -> int:
 
 
 def get_organisms(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None
+    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None
 ) -> list[models.Organism]:
     persist_session = self._session is not None
     if not self._session:
@@ -96,7 +95,7 @@ def get_organisms_by_name(self, name: str) -> list[models.Organism]:
     return organism
 
 
-def query_organisms(self, word: str, limit: Optional[int] = 20) -> list[models.Organism]:
+def query_organisms(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.Organism]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

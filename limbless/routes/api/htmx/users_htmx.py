@@ -4,7 +4,7 @@ from flask import Blueprint, url_for, render_template, flash, request, abort, re
 from flask_htmx import make_response
 from flask_login import current_user, login_required
 
-from .... import db, forms, logger, models
+from .... import db, forms, logger, models, PAGE_LIMIT
 from ....core import DBSession
 from ....categories import HttpResponse, UserRole
 
@@ -16,15 +16,13 @@ users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/users/")
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
-    reversed = order == "desc"
+    descending = order == "desc"
 
     if sort_by not in models.User.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
     with DBSession(db.db_handler) as session:
-        n_pages = int(session.get_num_users() / 20)
-        page = min(page, n_pages)
-        users = session.get_users(limit=20, offset=page * 20, sort_by=sort_by, reversed=reversed)
+        users, n_pages = session.get_users(limit=PAGE_LIMIT, offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
         
         return make_response(
             render_template(

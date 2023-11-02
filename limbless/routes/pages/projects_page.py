@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, abort, url_for
 from flask_login import login_required, current_user
 
-from ... import db, forms, logger
+from ... import db, forms, logger, PAGE_LIMIT
 from ...core import DBSession
 from ...categories import UserRole, HttpResponse
 
@@ -15,9 +15,9 @@ def projects_page():
 
     with DBSession(db.db_handler) as session:
         if not current_user.is_insider():
-            projects, n_pages = session.get_projects(limit=20, user_id=current_user.id, sort_by="id", reversed=True)
+            projects, n_pages = session.get_projects(limit=PAGE_LIMIT, user_id=current_user.id, sort_by="id", descending=True)
         else:
-            projects, n_pages = session.get_projects(limit=20, user_id=None, sort_by="id", reversed=True)
+            projects, n_pages = session.get_projects(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
         return render_template(
             "projects_page.html", project_form=project_form,

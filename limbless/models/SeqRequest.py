@@ -1,5 +1,7 @@
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING, List, ClassVar
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import SeqRequestStatus
@@ -17,6 +19,7 @@ class SeqRequest(SQLModel, table=True):
     name: str = Field(nullable=False, max_length=128)
     description: Optional[str] = Field(nullable=True, max_length=1024)
     status: int = Field(nullable=False, default=0)
+    submitted_time: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
 
     num_libraries: int = Field(nullable=False, default=0)
 
@@ -62,7 +65,7 @@ class SeqRequest(SQLModel, table=True):
         },
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "status", "requestor_id"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "status", "requestor_id", "submitted_time"]
 
     @property
     def status_type(self) -> SeqRequestStatus:

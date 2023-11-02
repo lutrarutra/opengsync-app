@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, abort
 from flask_login import login_required, current_user
 
 from ...core import DBSession
-from ... import forms, db, logger
+from ... import forms, db, logger, PAGE_LIMIT
 from ...categories import UserRole, HttpResponse
 
 devices_page_bp = Blueprint("devices_page", __name__)
@@ -16,8 +16,7 @@ def devices_page():
     
     sequencer_form = forms.SequencerForm()
     with DBSession(db.db_handler) as session:
-        sequencers = session.get_sequencers()
-        n_pages = int(session.get_num_sequencers() / 20)
+        sequencers, n_pages = session.get_sequencers(limit=PAGE_LIMIT)
 
     return render_template(
         "devices_page.html", sequencer_form=sequencer_form,

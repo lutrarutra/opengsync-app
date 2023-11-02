@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from sqlmodel import func
 
-from ... import models, logger
+from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
 from ...categories import UserResourceRelation
 
@@ -50,8 +50,8 @@ def get_project(self, project_id: int) -> models.Project:
 
 
 def get_projects(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, reversed: bool = False,
+    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None
 ) -> tuple[list[models.Project], int]:
     persist_session = self._session is not None
@@ -67,7 +67,7 @@ def get_projects(
 
     if sort_by is not None:
         attr = getattr(models.Project, sort_by)
-        if reversed:
+        if descending:
             attr = attr.desc()
         query = query.order_by(attr)
 
@@ -177,7 +177,7 @@ def project_contains_sample_with_name(
 def query_projects(
     self, word: str,
     user_id: Optional[int] = None,
-    limit: Optional[int] = 20,
+    limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Project]:
     persist_session = self._session is not None
     if not self._session:

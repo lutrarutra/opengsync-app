@@ -1,7 +1,8 @@
 import math
+from datetime import datetime
 from typing import Optional
 
-from ... import models
+from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
@@ -19,7 +20,8 @@ def create_experiment(
         raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
 
     experiment = models.Experiment(
-        flowcell=flowcell, timestamp=None,
+        flowcell=flowcell,
+        timestamp=datetime.now(),
         sequencer_id=sequencer_id,
         r1_cycles=r1_cycles,
         r2_cycles=r2_cycles,
@@ -65,8 +67,8 @@ def get_experiment_by_name(self, experiment_name) -> models.Experiment:
 
 
 def get_experiments(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, reversed: bool = False
+    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False
 ) -> tuple[list[models.Experiment], int]:
     persist_session = self._session is not None
     if not self._session:
@@ -76,7 +78,7 @@ def get_experiments(
 
     if sort_by is not None:
         attr = getattr(models.Experiment, sort_by)
-        if reversed:
+        if descending:
             attr = attr.desc()
         query = query.order_by(attr)
 

@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 
 import pandas as pd
 
-from .... import db, logger, forms, tools, models
+from .... import db, logger, forms, tools, models, PAGE_LIMIT
 from ....core import DBSession
 from ....categories import UserRole, HttpResponse
 
@@ -20,8 +20,8 @@ samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/samples/")
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
-    reversed = order == "desc"
-    offset = page * 20
+    descending = order == "desc"
+    offset = PAGE_LIMIT * page
 
     logger.debug(offset)
     logger.debug(page)
@@ -40,7 +40,7 @@ def get(page: int):
                 if (project := session.get_project(project_id)) is None:
                     return abort(HttpResponse.NOT_FOUND.value.id)
                 samples, n_pages = session.get_samples(
-                    limit=20, offset=offset, project_id=project_id, sort_by=sort_by, reversed=reversed
+                    limit=PAGE_LIMIT, offset=offset, project_id=project_id, sort_by=sort_by, descending=descending
                 )
         except (ValueError, TypeError):
             return abort(HttpResponse.BAD_REQUEST.value.id)
@@ -53,7 +53,7 @@ def get(page: int):
                 if (library := session.get_library(library_id)) is None:
                     return abort(HttpResponse.NOT_FOUND.value.id)
                 samples, n_pages = session.get_samples(
-                    limit=20, offset=offset, library_id=library_id, sort_by=sort_by, reversed=reversed
+                    limit=PAGE_LIMIT, offset=offset, library_id=library_id, sort_by=sort_by, descending=descending
                 )
                 for sample in samples:
                     sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
@@ -65,9 +65,9 @@ def get(page: int):
         template = "components/tables/sample.html"
         with DBSession(db.db_handler) as session:
             if not current_user.is_insider():
-                samples, n_pages = session.get_samples(limit=20, offset=offset, project_id=project_id, user_id=current_user.id, sort_by=sort_by, reversed=reversed)
+                samples, n_pages = session.get_samples(limit=PAGE_LIMIT, offset=offset, project_id=project_id, user_id=current_user.id, sort_by=sort_by, descending=descending)
             else:
-                samples, n_pages = session.get_samples(limit=20, offset=offset, project_id=project_id, sort_by=sort_by, reversed=reversed)
+                samples, n_pages = session.get_samples(limit=PAGE_LIMIT, offset=offset, project_id=project_id, sort_by=sort_by, descending=descending)
     
     return make_response(
         render_template(

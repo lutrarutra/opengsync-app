@@ -1,9 +1,10 @@
 import math
+from datetime import datetime
 from typing import Optional
 
 from sqlmodel import func
 
-from ... import models
+from ... import models, PAGE_LIMIT
 from ...categories import SeqRequestStatus
 from .. import exceptions
 
@@ -48,7 +49,8 @@ def create_seq_request(
         person_contact_id=person_contact_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
         library_person_contact_id=library_person_contact_id,
-        status=SeqRequestStatus.DRAFT.value.id
+        status=SeqRequestStatus.DRAFT.value.id,
+        submitted_time=datetime.now()
     )
 
     requestor.num_seq_requests += 1
@@ -78,10 +80,10 @@ def get_seq_request(
 
 
 def get_seq_requests(
-    self, limit: Optional[int] = 20, offset: Optional[int] = None,
+    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     with_statuses: Optional[list[SeqRequestStatus]] = None,
     show_drafts: bool = True,
-    sort_by: Optional[str] = None, reversed: bool = False,
+    sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None
 ) -> tuple[list[models.SeqRequest], int]:
 
@@ -109,7 +111,7 @@ def get_seq_requests(
 
     if sort_by is not None:
         attr = getattr(models.SeqRequest, sort_by)
-        if reversed:
+        if descending:
             attr = attr.desc()
         query = query.order_by(attr)
 
@@ -216,7 +218,7 @@ def delete_seq_request(
 def query_seq_requests(
     self, word: str,
     user_id: Optional[int] = None,
-    limit: Optional[int] = 20,
+    limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.SeqRequest]:
     persist_session = self._session is not None
     if not self._session:
@@ -229,8 +231,8 @@ def query_seq_requests(
             models.SeqRequest.requestor_id == user_id
         )
 
-    query = query.where(
-        func.similarity(models.Project.name, word).desc()
+    query = query.order_by(
+        func.similarity(models.SeqRequest.name, word).desc()
     )
 
     if limit is not None:

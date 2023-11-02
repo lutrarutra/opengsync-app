@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, abort
 from flask_login import login_required, current_user
 
 from ...core import DBSession
-from ... import forms, db, logger
+from ... import forms, db, logger, PAGE_LIMIT
 from ...categories import UserRole, HttpResponse
 
 experiments_page_bp = Blueprint("experiments_page", __name__)
@@ -38,7 +38,7 @@ def experiment_page(experiment_id):
             return abort(HttpResponse.FORBIDDEN.value.id)
 
         libraries = experiment.libraries
-        available_libraries, n_pages = session.get_libraries(limit=20)
+        available_libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT)
         experiment_lanes = session.get_lanes_in_experiment(experiment_id)
 
         experiment_form = forms.ExperimentForm()
