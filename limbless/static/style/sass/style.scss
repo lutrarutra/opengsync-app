@@ -30,6 +30,8 @@ $danger:        $red;
 $light:         $gray-100;
 $dark:          $gray-900;
 
+$cemm-blue:     #00aecc;
+
 $progress-height: 1.3rem !default;
 
 @import "../bootstrap/scss/bootstrap.scss";
@@ -113,17 +115,31 @@ body {
 #main {
     margin-top: 60px;
     width: 100%;
-    padding: 5px;
-    .left-margin, .right-margin {
-        padding: 0;
-        margin-left: 20px;
+    padding: 0;
+    display: flex;
+    width: 100%;
+    min-height: calc(100vh - 60px);
+    overflow-y: auto;
+    background-color: $gray-200;
+
+    #left-margin, #right-margin {
+        padding: 5px;
+        width: 150px;
+        margin: 0;
+        position: sticky;
     }
 
     #middle-container {
-        padding: 0;
+        padding-top: 5px;
+        width: 100%;
+        min-height: calc(100vh - 60px);
+        background-color: $gray-100;
+
         .container {
             max-width: 100%;
-            padding-bottom: 50px;
+            .status_bar {
+                padding-bottom: 5px;
+            }
             .page-header {
                 padding-bottom: 5px;
                 display: flex;

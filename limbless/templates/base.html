@@ -116,8 +116,8 @@
     </nav>
     {% include "components/right_click_menu.html" %}
     {% include "components/alerts.html" %}
-    <div id="main" class="row">
-            <div class="col-lg-1 left-margin">
+    <div id="main">
+            <div id="left-margin">
                 <nav id="breadcrumb" aria-label="breadcrumb">
                     <ol class="breadcrumb">
                     {% for name, url in path_list %}
@@ -130,10 +130,10 @@
                     </ol>
                 </nav>
             </div>
-            <div class="col-lg-10 col-md-12" id="middle-container">
+            <div id="middle-container">
             {% block content %}{% endblock %}
             </div>
-            <div class="col-lg-1 right-margin">
+            <div id="right-margin">
             </div>
     </div>
 
