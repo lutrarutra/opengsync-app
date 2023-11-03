@@ -53,7 +53,22 @@ def query():
     if query is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    results = db.db_handler.query_users(query)
+    if (raw_roles := request.args.get("roles", None)) is not None:
+        logger.debug(raw_roles)
+        raw_roles = raw_roles.split(",")
+        with_roles = []
+        for raw_role in raw_roles:
+            try:
+                role_id = int(raw_role)
+            except ValueError:
+                continue
+            with_roles.append(UserRole.get(role_id))
+    else:
+        with_roles = None
+
+    only_insiders = request.args.get("only_insiders", None) == "True"
+    
+    results = db.db_handler.query_users(query, with_roles=with_roles, only_insiders=only_insiders)
     
     return make_response(
         render_template(

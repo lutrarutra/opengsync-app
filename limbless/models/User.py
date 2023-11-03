@@ -130,6 +130,10 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
     @property
     def role_type(self) -> UserRole:
         return UserRole.get(self.role)
+    
+    @property
+    def name(self) -> str:
+        return self.first_name + " " + self.last_name
 
     def search_value(self) -> int:
         return self.id

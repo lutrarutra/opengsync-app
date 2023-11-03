@@ -31,7 +31,7 @@ class LibraryForm(FlaskForm):
     )
 
     current_user_is_library_contact = BooleanField(
-        "Current User is Library Contact", default=True,
+        "I prepared the libraries", default=True,
     )
 
     library_contact_name = StringField(
@@ -45,9 +45,11 @@ class LibraryForm(FlaskForm):
     )
 
     library_contact_phone = StringField(
-        "Library Contact Person Phone", validators=[Length(max=16)],
+        "Library Contact Person Phone", validators=[Optional(), Length(max=16)],
         description="Phone number of the library contact person"
     )
+
+    library_contact_insider = IntegerField("Select Technician", validators=[Optional()])
 
     index_kit = IntegerField("Index Kit", validators=[Optional()])
 
@@ -58,9 +60,20 @@ class LibraryForm(FlaskForm):
     ) -> tuple[bool, "LibraryForm"]:
 
         validated = self.validate()
+        if self.is_premade_library.data:
+            if not self.index_kit.data:
+                self.index_kit.errors = ("Index kit is required for premade libraries.",)
+                validated = False
+            if not self.library_contact_email.data:
+                self.library_contact_email.errors = ("Library contact email is required.",)
+                validated = False
+            if not self.library_contact_name.data:
+                self.library_contact_name.errors = ("Library contact name is required.",)
+                validated = False
+
         if not validated:
             return False, self
-
+        
         with DBSession(db_handler) as session:
             if (user := session.get_user(user_id)) is None:
                 logger.error(f"User with id {user_id} does not exist.")

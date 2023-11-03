@@ -42,7 +42,7 @@
             {% for user in users %}
             <tr onclick="window.location.href='{{ url_for('users_page.user_page', user_id=user.id) }}';">
                 <th scope="row">{{ user.id }}</th>
-                <td><span class="owner-col"><p>{{ user.first_name }} {{ user.last_name }}</p> <p>{{ "(me)" if current_user.id == user.id }}</td>
+                <td><span class="owner-col"><p>{{ user.name }}</p> <p>{{ "(me)" if current_user.id == user.id }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.role_type.value.description }} {{ user.role_type.value.name }}</td>
                 <td>{{ user.num_seq_requests }}</td>

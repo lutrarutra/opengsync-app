@@ -2,39 +2,56 @@
 {% from 'components/search_select.jinja2' import search_select_field %}
 <form id="library-form">
     {{ library_form.csrf_token }}
-    {{ form_group(library_form.name) }}
-    {{ form_group(library_form.library_type, trigger_dest_id="index_kit-search") }}
+    <div class="row">
+        {{ form_group(library_form.name, class="col") }}
+        {{ form_group(library_form.library_type, trigger_dest_id="index_kit-search", class="col") }}
+    </div>
 
-    {{ switch_input(library_form.is_premade_library) }}
+    {{ switch_input(library_form.is_premade_library, collapse_element_id="librarycontact-collapse-section") }}
 
-
-    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#librarycontact-collapse-section" aria-expanded="false" aria-controls="librarycontact-collapse-section">
-        Add Library Contact Person
-    </button>
-    <br>
-
-    <div class="collapse {{ 'show' if seq_request_form.library_contact_name.data else ''}}" id="librarycontact-collapse-section">
+    <div class="collapse {{ 'show' if library_form.is_premade_library.data else ''}}" id="librarycontact-collapse-section">
         <div class="card-body pt-3">
-            {{ switch_input(library_form.current_user_is_library_contact) }}
             <h4>Library Contact Person</h4>
+            {{ switch_input(library_form.current_user_is_library_contact) }}
+            {% if current_user.is_insider() %}
+            {{ 
+                search_select_field(
+                    library_form.library_contact_insider,
+                    url=url_for('users_htmx.query', only_insiders=True),
+                    include_data_element=False
+                )
+            }}
+            <input id="library_contact_insider" name="library_contact_insider" hx-target="#library-form" hx-swap="outerHTML" hx-include="#library-form"
+            hx-trigger="change" hx-post="{{ url_for('libraries_htmx.select_library_contact') }}"
+            type="number" readonly=true value="">
+            {% endif %}
             <div class="row">
-                {{ form_group(library_form.library_contact_name, class="col-6 col-xl-3") }}
-                {{ form_group(library_form.library_contact_email, class="col-6 col-xl-5") }}
+                {{
+                    form_group(
+                        library_form.library_contact_name, class="col-6 col-xl-3",
+                        disabled=library_form.current_user_is_library_contact.data
+                    )
+                }}
+                {{
+                    form_group(
+                        library_form.library_contact_email, class="col-6 col-xl-5",
+                        disabled=library_form.current_user_is_library_contact.data
+                    )
+                }}
                 {{ form_group(library_form.library_contact_phone, class="col-6 col-xl-4") }}
             </div>
+            <h4>Index Kit</h4>
+            {{ 
+                search_select_field(
+                    library_form.index_kit,
+                    url=url_for('indices_htmx.query_index_kits'),
+                    selected=selected_kit.name if selected_kit,
+                    disabled=not library_form.is_premade_library.data,
+                    include_field="library_type"
+                )
+            }}
         </div>
     </div>
-    <br>
-
-    {{ 
-        search_select_field(
-            library_form.index_kit,
-            url=url_for('indices_htmx.query_index_kits'),
-            selected=selected_kit,
-            disabled=not library_form.is_premade_library.data,
-            include_field="library_type"
-        )
-    }}
 </form>
 <script>
     $("#is_premade_library").on("change", function() {
@@ -47,6 +64,29 @@
         } else {
             $("#index_kit-search").removeClass("disabled");
             $("#index_kit-search").prop("readonly", false);
+        }
+    });
+
+    $("#current_user_is_library_contact").on("click", function(){
+        const checked = $(this).is(":checked");
+        if (checked){
+            $("#library_contact_name").addClass("disabled");
+            $("#library_contact_name").prop("readonly", true);
+            $("#library_contact_name").val("{{ current_user.first_name }} {{ current_user.last_name }}");
+
+            $("#library_contact_email").addClass("disabled");
+            $("#library_contact_email").prop("readonly", true);
+            $("#library_contact_email").val("{{ current_user.email }}");
+
+            $("#library_contact_insider").val("{{ current_user.id }}");
+        } else {
+            $("#library_contact_name").removeClass("disabled");
+            $("#library_contact_name").prop("readonly", false);
+            $("#library_contact_name").val("");
+
+            $("#library_contact_email").removeClass("disabled");
+            $("#library_contact_email").prop("readonly", false);
+            $("#library_contact_email").val("");
         }
     });
 </script>

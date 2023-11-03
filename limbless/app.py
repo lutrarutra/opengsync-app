@@ -87,6 +87,7 @@ def create_app():
         return dict(
             ExperimentStatus=categories.ExperimentStatus,
             SeqRequestStatus=categories.SeqRequestStatus,
+            UserRole=categories.UserRole,
         )
     
     @app.before_request

@@ -88,25 +88,46 @@ def create():
 
     validated, library_form = library_form.custom_validate(db.db_handler, current_user.id)
 
+    if (index_kit_id := library_form.index_kit.data) is not None:
+        if (index_kit := db.db_handler.get_index_kit(index_kit_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+    else:
+        index_kit = None
+
     if not validated:
-        template = render_template(
-            "forms/library.html",
-            library_form=library_form,
-            index_kit_results=db.common_kits,
-            selected_kit_id=library_form.index_kit.data,
-        )
         return make_response(
-            template, push_url=False
+            render_template(
+                "forms/library.html",
+                library_form=library_form,
+                index_kit_results=db.common_kits,
+                selected_kit=index_kit,
+            ), push_url=False
         )
 
     library_type = LibraryType.get(int(library_form.library_type.data))
 
-    logger.debug(library_form.index_kit.data)
+    if library_form.is_premade_library.data:
+        if library_form.current_user_is_library_contact:
+            contact = db.db_handler.create_contact(
+                name=current_user.name,
+                email=current_user.email,
+                phone=library_form.library_contact_phone.data,
+            )
+        else:
+            contact = db.db_handler.create_contact(
+                name=library_form.library_contact_name.data,
+                email=library_form.library_contact_email.data,
+                phone=library_form.library_contact_phone.data,
+            )
+    else:
+        contact = None
+
     library = db.db_handler.create_library(
         name=library_form.name.data,
         library_type=library_type,
-        index_kit_id=library_form.index_kit.data,
+        index_kit_id=index_kit_id,
         owner_id=current_user.id,
+        contact_id=contact.id if contact is not None else None,
     )
 
     logger.debug(f"Created library '{library.name}'.")
@@ -655,4 +676,38 @@ def table_query():
             libraries=libraries, **context
         ), push_url=False
     )
+
+
+@libraries_htmx.route("select_library_contact", methods=["POST"])
+@login_required
+def select_library_contact():
+    library_form = forms.LibraryForm()
+
+    if (library_contact_insider_user_id := library_form.library_contact_insider.data) is not None:
+        if (user := db.db_handler.get_user(library_contact_insider_user_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        library_form.current_user_is_library_contact.data = False
+    elif library_form.current_user_is_library_contact.data:
+        user = current_user
+    else:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
         
+    library_form.library_contact_name.data = user.name
+    library_form.library_contact_email.data = user.email
+    library_form.current_user_is_library_contact.data = current_user.id == user.id
+
+    if (index_kit_id := library_form.index_kit.data) is not None:
+        if (index_kit := db.db_handler.get_index_kit(index_kit_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+    else:
+        index_kit = None
+
+    return make_response(
+        render_template(
+            "forms/library.html",
+            library_form=library_form,
+            index_kit_results=db.common_kits,
+            selected_kit=index_kit,
+            selected_user=user
+        ), push_url=False
+    )

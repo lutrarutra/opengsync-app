@@ -75,6 +75,21 @@
                     )
                 }}
             </div>
+            
+            {% if library.contact_id %}
+            <br>
+            <h4>Library Preparer</h4>
+            <div class="row">
+                {{ metadata_group("Name", library.contact.name, class="col-6 col-xl-3") }}
+                {{ 
+                    metadata_group_email_link(
+                        "Email", library.contact.email, class="col-6 col-xl-5",
+                        subject="Library: " + library.name + " (" + library.id | string + ")"
+                    )
+                }}
+                {{ metadata_group("Phone", library.contact.phone, class="col-6 col-xl-4") }}
+            </div>
+            {% endif %}
         </div>
     </div>
 

@@ -19,7 +19,7 @@
                         sort_url='libraries_htmx.get', sort_url_args={},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         query_url=url_for('libraries_htmx.table_query'), current_query=current_query,
-                        field_name=field_name, query_type="text", col_size=3,
+                        field_name=field_name, query_type="text", col_size=2,
                     )
                 }}
                 {{
@@ -30,6 +30,7 @@
                         col_size=2,
                     )
                 }}
+                <th scope="col" class="col-1">Preparer</th>
                 {{
                     table_col(
                         target_id='library-table', column_name='Owner', column_var='owner_id',
@@ -63,10 +64,11 @@
                 <th scope="row">{{ library.id }}</th>
                 <td>{{ library.name }}</td>
                 <td>{{ library.library_type.value.name }}</td>
-                <td><span class="owner-col"><p>{{ library.owner.first_name }} {{ library.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
+                <td>{{ library.contact.name }}</td>
+                <td><span class="owner-col"><p>{{ library.owner.name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>
-                <td>{{library.num_samples}}</td>
-                <td>{{library.num_seq_requests}}</td>
+                <td>{{ library.num_samples }}</td>
+                <td>{{ library.num_seq_requests }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -184,17 +184,6 @@ def create():
     else:
         bioinformatician_contact_id = None
 
-    # Create library person contact if needed
-    if seq_request_form.library_contact_name.data:
-        library_person = db.db_handler.create_contact(
-            name=seq_request_form.library_contact_name.data,
-            email=seq_request_form.library_contact_email.data,
-            phone=seq_request_form.library_contact_phone.data,
-        )
-        library_person_id = library_person.id
-    else:
-        library_person_id = None
-
     seq_request = db.db_handler.create_seq_request(
         name=seq_request_form.name.data,
         description=seq_request_form.description.data,
@@ -202,7 +191,6 @@ def create():
         person_contact_id=contact_person.id,
         billing_contact_id=billing_contact.id,
         bioinformatician_contact_id=bioinformatician_contact_id,
-        library_person_contact_id=library_person_id,
     )
 
     flash(f"Created new sequencing request '{seq_request.name}'", "success")

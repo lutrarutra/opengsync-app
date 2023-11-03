@@ -17,11 +17,15 @@ def libraries_page():
         else:
             libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
+    library_form = forms.LibraryForm()
+    library_form.library_contact_email.data = current_user.email
+    library_form.library_contact_name.data = current_user.name
+
     return render_template(
         "libraries_page.html",
         libraries=libraries,
         index_kit_results=db.common_kits,
-        library_form=forms.LibraryForm(),
+        library_form=library_form,
         n_pages=n_pages, active_page=0,
         current_sort="id", current_sort_order="desc"
     )

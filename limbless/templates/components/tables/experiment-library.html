@@ -64,7 +64,7 @@
                 </td>
                 <td>{{ library.name }}</td>
                 <td>{{ library.library_type.value.name }}</td>
-                <td><span class="owner-col"><p>{{ library.owner.first_name }} {{ library.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
+                <td><span class="owner-col"><p>{{ library.owner.name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>
             </tr>
             {% endfor %}

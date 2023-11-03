@@ -32,7 +32,7 @@ def create_user(
         first_name=first_name,
         last_name=last_name,
         password=hashed_password,
-        role=role.value.id
+        role=role.value.id,
     )
 
     self._session.add(user)
@@ -165,7 +165,10 @@ def delete_user(self, user_id: int, commit: bool = True) -> None:
         self.close_session()
 
 
-def query_users(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.User]:
+def query_users(
+    self, word: str, with_roles: Optional[list[UserRole]] = None,
+    only_insiders: bool = False, limit: Optional[int] = PAGE_LIMIT
+) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -175,6 +178,17 @@ def query_users(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[mode
     query = query.order_by(
         func.similarity(models.User.first_name + ' ' + models.User.last_name, word).desc()
     )
+
+    if only_insiders:
+        query = query.where(
+            models.User.role != UserRole.CLIENT.value.id
+        )
+
+    if with_roles is not None:
+        status_ids = [role.value.id for role in with_roles]
+        query = query.where(
+            models.User.role.in_(status_ids)
+        )
 
     if limit is not None:
         query = query.limit(limit)

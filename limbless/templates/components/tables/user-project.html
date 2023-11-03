@@ -37,7 +37,7 @@
             <tr onclick="window.location.href='{{ url_for('projects_page.project_page', project_id=project.id) }}';">
                 <th scope="row">{{ project.id }}</th>
                 <td>{{ project.name }}</td>
-                <td><span class="owner-col"><p>{{ project.owner.first_name }} {{ project.owner.last_name }}</p> <p>{{ "(me)" if current_user.id == project.owner_id }}</p></span></td>
+                <td><span class="owner-col"><p>{{ project.owner.name }}</p> <p>{{ "(me)" if current_user.id == project.owner_id }}</p></span></td>
                 <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}

@@ -149,21 +149,6 @@
                         {{ metadata_group("Phone", seq_request.bioinformatician_contact.phone, class="col-6 col-xl-4") }}
                     </div>
                     {% endif %}
-
-                    {% if seq_request.library_person_contact_id %}
-                    <br>
-                    <h4>Library Person Contact</h4>
-                    <div class="row">
-                        {{ metadata_group("Name", seq_request.library_person_contact.name, class="col-6 col-xl-3") }}
-                        {{ 
-                            metadata_group_email_link(
-                                "Email", seq_request.library_person_contact.email, class="col-6 col-xl-5",
-                                subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
-                            )
-                        }}
-                        {{ metadata_group("Phone", seq_request.library_person_contact.phone, class="col-6 col-xl-4") }}
-                    </div>
-                    {% endif %}
                 
                     <br>
                     <h4>Billing Info</h4>

@@ -14,6 +14,7 @@ def create_library(
     self, name: str,
     library_type: LibraryType,
     index_kit_id: Optional[int],
+    contact_id: Optional[int],
     owner_id: int, commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
@@ -26,12 +27,17 @@ def create_library(
 
     if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
+    
+    if contact_id is not None:
+        if self._session.get(models.Contact, contact_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Contact with id {contact_id} does not exist")
 
     library = models.Library(
         name=name,
         library_type_id=library_type.value.id,
         index_kit_id=index_kit_id,
-        owner_id=owner_id
+        owner_id=owner_id,
+        contact_id=contact_id
     )
     self._session.add(library)
     user.num_libraries += 1

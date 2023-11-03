@@ -41,7 +41,7 @@
                     <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
                         <div class="banner-title">
                             <p class="title">{{ seq_request.id }}. {{ seq_request.name }}</p>
-                            <p class="description"> {{ seq_request.requestor.first_name }} {{ seq_request.requestor.last_name }} {{ seq_request.requestor.email }}</p>
+                            <p class="description"> {{ seq_request.requestor.name }} {{ seq_request.requestor.email }}</p>
                             <p class="submitted-time">{{ seq_request.submitted_time_to_str() }} </p>
                         </div>
                         {{ seq_request_status_bar(seq_request) }}
