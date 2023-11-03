@@ -50,3 +50,6 @@ class Experiment(SQLModel, table=True):
     
     def is_editable(self) -> bool:
         return self.status_type == ExperimentStatus.DRAFT
+    
+    def timestamp_to_str(self) -> str:
+        return self.timestamp.strftime('%Y-%m-%d %H:%M')

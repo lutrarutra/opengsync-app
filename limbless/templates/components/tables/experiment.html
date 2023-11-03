@@ -18,6 +18,7 @@
                         current_sort=current_sort, current_sort_order=current_sort_order,
                     )
                 }}
+                <th class="col-2" scope="col">Sequencing Person</th>
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Sequencer', column_var='sequencer_id',
@@ -60,11 +61,17 @@
             <tr onclick="window.location.href='{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}';">
                 <th scope="row">{{ experiment.id }}</th>
                 <td>{{ experiment.status_type.value.name }} {{ experiment.status_type.value.description | safe }}</td>
+                <td>
+                    <span class="user-name-col">
+                    <p>{{ experiment.sequencing_person.name }}</p> <p>{{ "(me)" if current_user.id == experiment.sequencing_person.id }}</p>
+                    </span>
+                </td>
+                
                 <td>{{ experiment.sequencer.name }}</td>
                 <td>{{ experiment.flowcell }}</td>
+                <td>{{ experiment.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>{{ experiment.num_lanes }}</td>
                 <td>{{ experiment.num_libraries }}</td>
-                <td>{{ experiment.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
             </tr>
             {% endfor %}
         </tbody>

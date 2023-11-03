@@ -1,4 +1,4 @@
-{% from "components/seq_request_status_bar.jinja2" import seq_request_status_bar with context %}
+{% from "components/status_bar.jinja2" import seq_request_status_bar, experiment_status_bar with context %}
 
 {% extends "base.html" %}
 {% set active_page = "" %}
@@ -57,6 +57,18 @@
                 </div>
             </div>
             <div class="banner-container">
+            {% for experiment in recent_experiments %}
+                <div class="p-2 seq_request-banner">
+                    <a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
+                        <div class="banner-title">
+                            <p class="title">{{ experiment.id }}.</p>
+                            <p class="description"> {{ experiment.sequencing_person.name }} {{ experiment.sequencing_person.email }}</p>
+                            <p class="submitted-time">{{ experiment.timestamp_to_str() }} </p>
+                        </div>
+                        {{ experiment_status_bar(experiment) }}
+                    </a>
+                </div>
+            {% endfor %}
             </div>
         </div>
     </div>

@@ -1,18 +1,18 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/form_group.jinja2' import form_group %}
-{% from "components/seq_request_status_bar.jinja2" import seq_request_status_bar with context %}
+{% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
 
 {% extends "base.html" %}
 {% set active_page = "seq_requests-page" %}
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center pt-1">
+    <div class="page-header">
         <div>
-            <h1 style="height: 100%; padding: 0; margin: 0;">{{ seq_request.name }}</h1>
+            <h1>{{ seq_request.name }}</h1>
         </div>
         <div>
-            {% if seq_request.status_type.value.name == "Draft" %}
+{% if seq_request.status_type.value.name == "Draft" %}
             <span
             {% if not seq_request.is_submittable() %}
             {{ tooltip('You must add at least one library to submit the request.') }}
@@ -53,7 +53,7 @@
         </div>
     </div>
 
-    <div class="pb-2 pt-2">
+    <div class="pb-1">
         {{ seq_request_status_bar(seq_request) }}
     </div>
 

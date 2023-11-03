@@ -1,12 +1,14 @@
-{% from 'components/metadata_group.jinja2' import metadata_group %}
+{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
+{% from "components/status_bar.jinja2" import experiment_status_bar with context %}
+
 {% extends "base.html" %}
 {% set active_page = "experiments-page" %}
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="page-header">
         <div>
-            <h2>Experiment ({{ experiment.status_type.value.name }} {{ experiment.status_type.value.description | safe }})</h2>
+            <h1>Experiment {{ experiment.status_type.value.name }}</h1>
         </div>
         <div>
             <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#experiment-form-popup">
@@ -27,6 +29,10 @@
                 Delete Experiment
             </button>
         </div>
+    </div>
+
+    <div class="pb-1">
+        {{ experiment_status_bar(experiment) }}
     </div>
     
     <div>
@@ -59,6 +65,21 @@
                 {% include "components/tables/experiment-library.html" %}
             </div>
             <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="1">
+                <div class="row">
+                    {{ 
+                        metadata_group_link(
+                            "Sequencing Person Name", experiment.sequencing_person.name,
+                            url_for("users_page.user_page", user_id=experiment.sequencing_person.id),
+                            class="col"
+                        )
+                    }}
+                    {{
+                        metadata_group_email_link(
+                            "Sequencing Person Email", experiment.sequencing_person.email, class="col",
+                            subject="BSF Sequencing Experiment: " + experiment.id | string
+                        )
+                    }}
+                </div>
                 <div class="row">
                     {{ metadata_group("Sequencer", experiment.sequencer.name, class="col") }}
                     {{ metadata_group("Sequencer IP", experiment.sequencer.ip, class="col") }}

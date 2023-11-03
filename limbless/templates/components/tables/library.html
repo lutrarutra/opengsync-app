@@ -65,7 +65,7 @@
                 <td>{{ library.name }}</td>
                 <td>{{ library.library_type.value.name }}</td>
                 <td>{{ library.contact.name }}</td>
-                <td><span class="owner-col"><p>{{ library.owner.name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
+                <td><span class="user-name-col"><p>{{ library.owner.name }}</p> <p>{{ "(me)" if current_user.id == library.owner_id }}</p></span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>
                 <td>{{ library.num_samples }}</td>
                 <td>{{ library.num_seq_requests }}</td>

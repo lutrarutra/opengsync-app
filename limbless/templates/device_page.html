@@ -2,7 +2,7 @@
 {% set active_page = "devices-page" %}
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="page-header">
         <div>
             <h1>Sequencer: {{ sequencer.name }}</h1>
         </div>
@@ -26,6 +26,7 @@
             </button>
         </div>
     </div>
+
     <div class="modal fade" id="sequencer-form-popup" aria-hidden="true" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content">

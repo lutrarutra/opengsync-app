@@ -8,7 +8,7 @@ from .. import exceptions
 
 def create_experiment(
     self, flowcell: str, sequencer_id: int, num_lanes: int,
-    r1_cycles: int, i1_cycles: int,
+    r1_cycles: int, i1_cycles: int, sequencing_person_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None,
     commit: bool = True
 ) -> models.Experiment:
@@ -27,7 +27,8 @@ def create_experiment(
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
-        num_lanes=num_lanes
+        num_lanes=num_lanes,
+        sequencing_person_id=sequencing_person_id
     )
 
     self._session.add(experiment)
@@ -141,6 +142,7 @@ def update_experiment(
     i2_cycles: Optional[int] = None,
     num_lanes: Optional[int] = None,
     sequencer_id: Optional[int] = None,
+    sequencing_person_id: Optional[int] = None,
     commit: bool = True
 ) -> models.Experiment:
     persist_session = self._session is not None
@@ -167,6 +169,8 @@ def update_experiment(
         experiment.i1_cycles = i1_cycles
     if num_lanes is not None:
         experiment.num_lanes = num_lanes
+    if sequencing_person_id is not None:
+        experiment.sequencing_person_id = sequencing_person_id
         
     experiment.r2_cycles = r2_cycles
     experiment.i2_cycles = i2_cycles

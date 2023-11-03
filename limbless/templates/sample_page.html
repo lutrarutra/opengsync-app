@@ -4,7 +4,7 @@
 {% set active_page = "samples-page" %}
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="page-header">
         <div>
             <h1>Sample: {{ sample.name }}</h1>
         </div>
@@ -13,33 +13,34 @@
             {% if not sample.is_editable() %}
             {{ tooltip('Sample is not editable after it is added to library.') }}
             {% endif %}>
-            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#sample-form-popup"
-                {% if not sample.is_editable() %}disabled{% endif %}>
-                Edit Sample
-            </button>
+                <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#sample-form-popup"
+                    {% if not sample.is_editable() %}disabled{% endif %}>
+                    Edit Sample
+                </button>
             </span>
             <span
             {% if not sample.is_editable() %}
             {{ tooltip('Sample is not editable after it is added to library.') }}
             {% endif %}>
-            <button hx-delete="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
-                _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Delete sample \'{{ sample.name }}\'',
-                    showDenyButton: true,
-                    text: 'Proceed?',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()"
-                {% if not sample.is_editable() %}disabled{% endif %}>
-                Delete Sample
-            </button>
+                <button hx-delete="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Delete sample \'{{ sample.name }}\'',
+                        showDenyButton: true,
+                        text: 'Proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                    {% if not sample.is_editable() %}disabled{% endif %}>
+                    Delete Sample
+                </button>
             </span>
         </div>
     </div>
+
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"

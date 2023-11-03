@@ -52,6 +52,7 @@ def experiment_page(experiment_id):
         experiment_form.i1_cycles.data = experiment.i1_cycles
         experiment_form.i2_cycles.data = experiment.i2_cycles
         experiment_form.num_lanes.data = experiment.num_lanes
+        experiment_form.sequencing_person.data = experiment.sequencing_person_id
 
     path_list = [
         ("Experiments", url_for("experiments_page.experiments_page")),
@@ -67,5 +68,6 @@ def experiment_page(experiment_id):
         path_list=path_list,
         available_libraries=available_libraries,
         selected_sequencer=experiment.sequencer.name,
+        selected_user=experiment.sequencing_person,
         n_pages=n_pages, active_page=0,
     )

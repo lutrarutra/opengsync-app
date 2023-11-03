@@ -2,10 +2,10 @@
 {% set active_page = "indices-page" %}
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center">
-        <h1>
-            {{ index_kit.name }}
-        </h1>
+    <div class="page-header">
+        <div>
+            <h1>{{ index_kit.name }}</h1>
+        </div>
         <div>
             <button type="button" id="open-sample-form-popup" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#sample-form-popup">

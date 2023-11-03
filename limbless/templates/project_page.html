@@ -3,9 +3,13 @@
 {% set active_page = "projects-page" %}
 {% block content %}
 <div class="container">
-    <h2>
-        Project: {{ project.name }}
-    </h2>
+    <div class="page-header">
+        <div>
+            <h1>Project: {{ project.name }}</h1>
+        </div>
+        <div>
+        </div>
+    </div>
 
     <div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -62,7 +66,7 @@
                     {{ 
                         metadata_group_link(
                             "Owner Name",
-                            project.owner.first_name + " " + project.owner.last_name,
+                            project.owner.name,
                             url_for("users_page.user_page", user_id=project.owner.id),
                             class="col"
                         )

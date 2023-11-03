@@ -55,7 +55,7 @@
                         <p>{{ ("(" + sample.organism.common_name + ")" if sample.organism.common_name else "") }}</p>
                     </span>
                 </td>
-                <td><span class="owner-col"><p>{{ sample.owner.name }}</p> <p>{{ "(me)" if current_user.id == sample.owner_id }}</p></span></td>
+                <td><span class="user-name-col"><p>{{ sample.owner.name }}</p> <p>{{ "(me)" if current_user.id == sample.owner_id }}</p></span></td>
             </tr>
             {% endfor %}
         </tbody>

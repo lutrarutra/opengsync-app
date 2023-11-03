@@ -3,7 +3,7 @@
 {% set active_page = "users-page" %}
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="page-header">
         <div>
             <h1>User: {{ user.email }} ({{ user.role_type.value.name }} {{ user.role_type.value.description }})</h1>
         </div>

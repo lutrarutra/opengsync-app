@@ -14,15 +14,14 @@
     {{
         search_select_field(
             experiment_form.sequencing_person,
-            url=url_for('users_htmx.query'),
-            selected=current_user.search_name(),
+            url=url_for('users_htmx.query', only_insiders=True),
+            selected=selected_user.search_name() if selected_user is defined else current_user.search_name(),
             include_data_element=False,
         ) 
     }}
     <input id="sequencing_person" name="sequencing_person" hx-target="#experiment-form" hx-swap="outerHTML" hx-include="#experiment-form"
-        hx-trigger="change" hx-post="{{ url_for('experiments_htmx.select_library_person') }}"
-        value="{{ selected_user.id if selected_user is defined }}" type="number" readonly=true>
-
+        hx-trigger="change" hx-post="{{ url_for('experiments_htmx.select_sequencing_person') }}"
+        value="{{ selected_user.id if selected_user is defined else current_user.id }}" type="number" readonly=true>
     {{ 
         search_select_field(
             experiment_form.sequencer,
@@ -37,3 +36,13 @@
         {{ form_group(experiment_form.r2_cycles, class="col") }}
     </div>
 </form>
+
+<script>
+    $("#current_user_is_seq_person").on("click", function(){
+        const checked = $(this).is(":checked");
+        if (checked){
+            $("#sequencing_person").val("{{ current_user.id }}");
+            $("#sequencing_person-search").val("{{ current_user.name }}");
+        }
+    });
+</script>
