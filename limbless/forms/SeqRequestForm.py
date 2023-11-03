@@ -49,21 +49,6 @@ class SeqRequestForm(FlaskForm):
         description="Phone number of the bioinformatician (optional)."
     )
 
-    library_contact_name = StringField(
-        "Library Contact Person Name", validators=[Optional(), Length(max=128)],
-        description="Name of the library contact person (optional)."
-    )
-
-    library_contact_email = EmailField(
-        "Library Contact Person Email", validators=[Optional(), Email(), Length(max=128)],
-        description="E-Mail address of the library contact person (optional)."
-    )
-
-    library_contact_phone = StringField(
-        "Library Contact Person Phone", validators=[Length(max=16)],
-        description="Phone number of the library contact person (optional)."
-    )
-
     organization_name = StringField(
         "Organization Name", validators=[DataRequired(), Length(max=64)],
         description="Name of the organization."

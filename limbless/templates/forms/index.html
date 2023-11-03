@@ -16,8 +16,7 @@
             index_form.adapter,
             url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
             selected=selected_adapter.name if selected_adapter is defined,
-            results=available_adapters,
-            include_data_element=False,
+            results=available_adapters, include_data_element=False,
         )
     }}
     <input id="adapter" name="adapter" hx-target="#index-form" hx-swap="outerHTML" hx-include="#index-form"

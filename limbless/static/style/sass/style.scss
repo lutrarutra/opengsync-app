@@ -65,13 +65,12 @@ body {
         }
         .banner-title {
             display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 10px;
             p {
                 font-size: 1rem;
                 margin-bottom: 3px;
-            }
-            p.description {
-                color: $gray-700;
             }
         }
     }

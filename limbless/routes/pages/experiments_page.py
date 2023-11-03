@@ -16,8 +16,11 @@ def experiments_page():
     
     experiments, n_pages = db.db_handler.get_experiments()
 
+    experiment_form = forms.ExperimentForm()
+    experiment_form.sequencing_person.data = current_user.id
+
     return render_template(
-        "experiments_page.html", experiment_form=forms.ExperimentForm(),
+        "experiments_page.html", experiment_form=experiment_form,
         experiments=experiments,
         n_pages=n_pages, active_page=0,
         current_sort="id", current_sort_order="desc"

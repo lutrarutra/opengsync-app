@@ -88,6 +88,7 @@ def create_sample_data(db_handler: DBHandler):
                 )
 
             if i > 10:
+                db_handler.update_seq_request(seq_request_id=seq_request.id, status=SeqRequestStatus.SUBMITTED)
                 if i > 28:
                     status = SeqRequestStatus.ARCHIVED
                 elif i > 25:
@@ -101,6 +102,6 @@ def create_sample_data(db_handler: DBHandler):
                 elif i > 13:
                     status = SeqRequestStatus.LIBRARY_PREP
                 else:
-                    status = SeqRequestStatus.SUBMITTED
+                    continue
 
                 db_handler.update_seq_request(seq_request_id=seq_request.id, status=status)

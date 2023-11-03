@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from .User import User
     from .SeqRequest import SeqRequest
     from .Experiment import Experiment
+    from .Contact import Contact
 
 
 class LibraryTypeId(SQLModel, table=True):
@@ -31,6 +32,9 @@ class Library(SQLModel, SearchResult, table=True):
     num_samples: int = Field(nullable=False, default=0)
     num_experiments: int = Field(nullable=False, default=0)
     num_seq_requests: int = Field(nullable=False, default=0)
+
+    library_person_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")
+    library_person_contact: Optional["Contact"] = Relationship(sa_relationship_kwargs={"lazy": "joined"})
 
     index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
     index_kit: Optional["IndexKit"] = Relationship(

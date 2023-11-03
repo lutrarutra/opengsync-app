@@ -3,7 +3,8 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 from sqlmodel import Field, SQLModel, Relationship
 from itsdangerous import SignatureExpired, BadSignature
 
-from .. import serializer, models
+from .. import serializer
+from ..tools import SearchResult
 from ..categories import UserRole
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ class UserMixin:
         return not equal
 
 
-class User(UserMixin, SQLModel, table=True):
+class User(UserMixin, SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     first_name: str = Field(nullable=False, max_length=64)
     last_name: str = Field(nullable=False, max_length=64)
@@ -129,3 +130,12 @@ class User(UserMixin, SQLModel, table=True):
     @property
     def role_type(self) -> UserRole:
         return UserRole.get(self.role)
+
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.first_name + " " + self.last_name
+    
+    def search_description(self) -> Optional[str]:
+        return self.email

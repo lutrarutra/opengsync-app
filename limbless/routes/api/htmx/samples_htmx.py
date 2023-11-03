@@ -444,7 +444,6 @@ def edit(sample_id):
 @samples_htmx.route("query", methods=["POST"])
 @login_required
 def query():
-    logger.debug(request.form.keys())
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 

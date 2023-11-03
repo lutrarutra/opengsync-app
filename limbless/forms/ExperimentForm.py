@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField
+from wtforms import StringField, IntegerField, BooleanField
 from wtforms.validators import DataRequired, Length, ValidationError, NumberRange
 from flask_login import current_user
 
@@ -15,6 +15,9 @@ class ExperimentForm(FlaskForm):
     i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
     i2_cycles = IntegerField("I2 Cycles", validators=[])
     num_lanes = IntegerField("Number of Lanes", default=1, validators=[DataRequired(), NumberRange(min=1, max=8)])
+
+    current_user_is_seq_person = BooleanField("I am the sequencing person", default=True)
+    sequencing_person = IntegerField("Sequencing Person", validators=[DataRequired()])
 
     def custom_validate(
         self,

@@ -7,6 +7,25 @@
 
     {{ switch_input(library_form.is_premade_library) }}
 
+
+    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#librarycontact-collapse-section" aria-expanded="false" aria-controls="librarycontact-collapse-section">
+        Add Library Contact Person
+    </button>
+    <br>
+
+    <div class="collapse {{ 'show' if seq_request_form.library_contact_name.data else ''}}" id="librarycontact-collapse-section">
+        <div class="card-body pt-3">
+            {{ switch_input(library_form.current_user_is_library_contact) }}
+            <h4>Library Contact Person</h4>
+            <div class="row">
+                {{ form_group(library_form.library_contact_name, class="col-6 col-xl-3") }}
+                {{ form_group(library_form.library_contact_email, class="col-6 col-xl-5") }}
+                {{ form_group(library_form.library_contact_phone, class="col-6 col-xl-4") }}
+            </div>
+        </div>
+    </div>
+    <br>
+
     {{ 
         search_select_field(
             library_form.index_kit,

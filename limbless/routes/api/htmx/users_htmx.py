@@ -44,6 +44,25 @@ def email(user_id: int):
     )
 
 
+@users_htmx.route("query", methods=["POST"])
+@login_required
+def query():
+    field_name = next(iter(request.form.keys()))
+    query = request.form.get(field_name)
+
+    if query is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    results = db.db_handler.query_users(query)
+    
+    return make_response(
+        render_template(
+            "components/search_select_results.html",
+            results=results, field_name=field_name
+        ), push_url=False
+    )
+
+
 @users_htmx.route("table_query", methods=["POST"])
 @login_required
 def table_query():

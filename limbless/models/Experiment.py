@@ -10,6 +10,7 @@ from .Links import ExperimentLibraryLink
 if TYPE_CHECKING:
     from .Library import Library
     from .Sequencer import Sequencer
+    from .User import User
 
 
 class Experiment(SQLModel, table=True):
@@ -20,6 +21,9 @@ class Experiment(SQLModel, table=True):
     r2_cycles: Optional[int] = Field(nullable=True)
     i1_cycles: int = Field(nullable=False)
     i2_cycles: Optional[int] = Field(nullable=True)
+
+    sequencing_person_id: int = Field(nullable=False, foreign_key="user.id")
+    sequencing_person: "User" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
     
     num_lanes: int = Field(nullable=False, default=1)
     num_libraries: int = Field(nullable=False, default=0)

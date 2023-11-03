@@ -1,8 +1,8 @@
 from typing import Literal
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, IntegerField, BooleanField, FieldList, FormField
-from wtforms.validators import DataRequired, Length, Optional
+from wtforms import StringField, SelectField, IntegerField, BooleanField, EmailField
+from wtforms.validators import DataRequired, Length, Optional, Email
 
 from .. import logger
 from ..categories import LibraryType
@@ -28,6 +28,25 @@ class LibraryForm(FlaskForm):
     is_premade_library = BooleanField(
         "Is premade library", default=False,
         description="Check this if this if the library is premade library."
+    )
+
+    current_user_is_library_contact = BooleanField(
+        "Current User is Library Contact", default=True,
+    )
+
+    library_contact_name = StringField(
+        "Library Contact Person Name", validators=[Optional(), Length(max=128)],
+        description="Name of the library contact person"
+    )
+
+    library_contact_email = EmailField(
+        "Library Contact Person Email", validators=[Optional(), Email(), Length(max=128)],
+        description="E-Mail address of the library contact person"
+    )
+
+    library_contact_phone = StringField(
+        "Library Contact Person Phone", validators=[Length(max=16)],
+        description="Phone number of the library contact person"
     )
 
     index_kit = IntegerField("Index Kit", validators=[Optional()])

@@ -19,7 +19,7 @@ class SeqRequest(SQLModel, table=True):
     name: str = Field(nullable=False, max_length=128)
     description: Optional[str] = Field(nullable=True, max_length=1024)
     status: int = Field(nullable=False, default=0)
-    submitted_time: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
+    submitted_time: Optional[datetime] = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True))
 
     num_libraries: int = Field(nullable=False, default=0)
 
@@ -73,3 +73,8 @@ class SeqRequest(SQLModel, table=True):
     
     def is_submittable(self) -> bool:
         return self.status_type == SeqRequestStatus.DRAFT and len(self.libraries) > 0
+    
+    def submitted_time_to_str(self) -> str:
+        if self.submitted_time is None:
+            return ""
+        return self.submitted_time.strftime('%Y-%m-%d %H:%M')

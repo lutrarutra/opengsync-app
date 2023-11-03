@@ -50,7 +50,7 @@ def create_seq_request(
         bioinformatician_contact_id=bioinformatician_contact_id,
         library_person_contact_id=library_person_contact_id,
         status=SeqRequestStatus.DRAFT.value.id,
-        submitted_time=datetime.now()
+        submitted_time=None
     )
 
     requestor.num_seq_requests += 1
@@ -181,6 +181,8 @@ def update_seq_request(
         seq_request.description = description
 
     if status is not None:
+        if status == SeqRequestStatus.SUBMITTED:
+            seq_request.submitted_time = datetime.now()
         seq_request.status = status.value.id
 
     if commit:
