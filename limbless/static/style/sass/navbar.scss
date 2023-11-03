@@ -1,7 +1,7 @@
 nav#navbar {
     width: 100vw;
     height: 60px;
-    background-color: $dark;
+    background-color: $navbar-color;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -37,11 +37,11 @@ nav#navbar {
                 text-decoration: none;
             }
             .active {
-                background-color: $gray-800;
+                background-color: $navbar-active-color;
             }
             a:hover {
                 transition: all 0.2s ease-in-out;
-                background-color: $gray-800;
+                background-color: $navbar-active-color;
             }
         }
     }

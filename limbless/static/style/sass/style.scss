@@ -31,11 +31,26 @@ $light:         $gray-100;
 $dark:          $gray-900;
 
 $cemm-blue:     #00aecc;
+$cemm-blue-darker: #0090aa;
+$cemm-blue-dark: #0f5568;
+$cemm-secondary:   #1b88a7;
+$cemm-secondary-darker:   #16748e;
+$cemm-secondary-dark:   #136379;
+$cemm-yellow:   #c6b600;
+$cemm-yellow-darker:   #f1dd00;
+$cemm-yellow-dark:   #ac9e00;
+$cemm-red:   #e95e30;
+$cemm-red-darker:   #d1562d;
+$cemm-red-dark:   #bb4c27;
+$cemm-green: #96c03a;
+$cemm-green-darker: #89af36;
+$cemm-green-dark: #75952f;
 
 $progress-height: 1.3rem !default;
 
 @import "../bootstrap/scss/bootstrap.scss";
 @import "../css/scrollbar.css";
+@import "./theme.scss";
 @import "./navbar.scss";
 @import "./responsive.scss";
 @import "./colors.scss";
