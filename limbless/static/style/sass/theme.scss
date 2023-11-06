@@ -8,8 +8,9 @@
     background-color: $cemm-blue-darker;
 }
 
+.btn-primary:active,
 .btn-primary:hover:active {
-    background-color: $cemm-blue-dark;
+    background-color: $cemm-blue-dark !important;
 }
 
 .btn-primary:disabled {
@@ -95,3 +96,66 @@ $navbar-active-color: $cemm-blue-darker;
 // $navbar-color: $dark;
 // $navbar-active-color: $gray-800;
 
+.page-link {
+    color: $cemm-blue;
+}
+
+.page-link.active,
+.active > .page-link {
+    background-color: $cemm-blue;
+    border-color: $cemm-blue;
+}
+
+.page-link:hover {
+    color: $cemm-blue;
+}
+
+.page-link.active:hover,
+.active > .page-link:hover {
+    color: $white;
+}
+
+a input {
+    color: $cemm-secondary !important;
+}
+
+.nav-link {
+    color: $cemm-secondary;
+}
+
+.nav-link:hover {
+    color: $cemm-secondary-darker;
+}
+
+.breadcrumb a {
+    color: $cemm-secondary;
+}
+
+.form-check-input:checked {
+    background-color: $cemm-blue;
+    border-color: $cemm-blue;
+}
+
+.btn-outline-primary {
+    color: $cemm-blue;
+    border-color: $cemm-blue;
+}
+
+.btn-outline-primary:hover {
+    background-color: $cemm-blue;
+    color: $white;
+    border-color: $cemm-blue;
+}
+
+.swal2-confirm.swal2-styled {
+    background-color: $cemm-blue !important;
+    height: 40px;
+    width: 60px;
+    box-shadow: none !important;
+}
+
+.swal2-deny.swal2-styled {
+    background-color: $cemm-red !important;
+    height: 40px;
+    width: 60px;
+}

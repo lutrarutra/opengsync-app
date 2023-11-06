@@ -35,7 +35,7 @@ else:
         colorize=False, rotation="1 day"
     )
 
-PAGE_LIMIT = 25
+PAGE_LIMIT = 15
 
 SECRET_KEY = "SECRET_KEY"
 EMAIL_SENDER = "noreply@limbless.com"

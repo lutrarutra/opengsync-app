@@ -127,31 +127,37 @@ body {
     }
 }
 
+#main-container {
+    position: absolute;
+    top: 60px;
+    width: 100vw;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+}
+
 #main {
-    margin-top: 60px;
     width: 100%;
     padding: 0;
     display: flex;
-    width: 100%;
-    min-height: calc(100vh - 60px);
-    overflow-y: auto;
+    width: calc(100vw - 10px);
+    overflow-x: hidden;
     background-color: $gray-200;
 
     #left-margin, #right-margin {
+        position: sticky;
         padding: 5px;
         width: 150px;
         margin: 0;
-        position: sticky;
     }
 
     #middle-container {
-        padding-top: 5px;
-        width: 100%;
         min-height: calc(100vh - 60px);
+        width: 100%;
+        padding-top: 5px;
+        padding-bottom: 10px;
         background-color: $gray-100;
-
         .container {
-            max-width: 100%;
+            min-width: 100%;
             .status_bar {
                 padding-bottom: 5px;
             }
@@ -488,4 +494,8 @@ input.disabled:focus {
     .form-group {
         flex: calc(50% - 10px);
     }
+}
+
+.form-group {
+    padding-bottom: 10px;
 }

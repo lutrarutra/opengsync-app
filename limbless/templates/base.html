@@ -116,25 +116,27 @@
     </nav>
     {% include "components/right_click_menu.html" %}
     {% include "components/alerts.html" %}
-    <div id="main">
-            <div id="left-margin">
-                <nav id="breadcrumb" aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                    {% for name, url in path_list %}
-                        {% if loop.last %}
-                            <li  class="breadcrumb-item active" aria-current="page">{{name}}</li>
-                        {% else %}
-                            <li  class="breadcrumb-item"><a href="{{ url }}">{{name}}</a></li>
-                        {% endif %}
-                    {% endfor %}
-                    </ol>
-                </nav>
-            </div>
-            <div id="middle-container">
-            {% block content %}{% endblock %}
-            </div>
-            <div id="right-margin">
-            </div>
+    <div id="main-container">
+        <div id="main">
+                <div id="left-margin">
+                    <nav id="breadcrumb" aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                        {% for name, url in path_list %}
+                            {% if loop.last %}
+                                <li  class="breadcrumb-item active" aria-current="page">{{name}}</li>
+                            {% else %}
+                                <li  class="breadcrumb-item"><a href="{{ url }}">{{name}}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        </ol>
+                    </nav>
+                </div>
+                <div id="middle-container">
+                {% block content %}{% endblock %}
+                </div>
+                <div id="right-margin">
+                </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>

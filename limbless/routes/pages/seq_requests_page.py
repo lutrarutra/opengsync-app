@@ -15,20 +15,22 @@ def seq_requests_page():
     seq_request_form.contact_person_name.data = f"{current_user.first_name} {current_user.last_name}"
     seq_request_form.contact_person_email.data = current_user.email
 
+    current_sort = "submitted_time"
+
     with DBSession(db.db_handler) as session:
         if not current_user.is_insider():
             seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, user_id=current_user.id)
         elif current_user.role_type == UserRole.ADMIN:
             seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, user_id=None)
         else:
-            seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, user_id=None, show_drafts=False)
+            seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, user_id=None, show_drafts=False, sort_by=current_sort, descending=True)
 
     return render_template(
         "seq_requests_page.html",
         seq_request_form=seq_request_form,
         seq_requests=seq_requests,
         n_pages=n_pages, active_page=0,
-        current_sort="id", current_sort_order="desc"
+        current_sort=current_sort, current_sort_order="desc"
     )
 
 

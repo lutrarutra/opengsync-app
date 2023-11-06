@@ -23,9 +23,6 @@ def get(page: int):
     descending = order == "desc"
     offset = PAGE_LIMIT * page
 
-    logger.debug(offset)
-    logger.debug(page)
-
     if sort_by not in models.Sample.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
