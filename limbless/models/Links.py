@@ -1,32 +1,27 @@
-from typing import Optional, List
-from enum import Enum
+from typing import Optional
 
 from sqlmodel import Field, SQLModel
-from sqlalchemy import Column
-
-from ..categories import LibraryType
 
 
-class LibrarySeqRequestLink(SQLModel, table=True):
-    library_id: int = Field(
-        foreign_key="library.id", primary_key=True
+class SeqRequestSampleLink(SQLModel, table=True):
+    sample_id: int = Field(
+        foreign_key="sample.id", primary_key=True
     )
     seq_request_id: int = Field(
         foreign_key="seqrequest.id", primary_key=True
     )
+    library_id: Optional[int] = Field(
+        foreign_key="library.id", nullable=True, default=None
+    )
 
 
-class LibrarySampleLink(SQLModel, table=True):
-    library_id: int = Field(
-        foreign_key="library.id", primary_key=True
+class SamplePoolLink(SQLModel, table=True):
+    pool_id: int = Field(
+        foreign_key="pool.id", primary_key=True
     )
     sample_id: int = Field(
         foreign_key="sample.id", primary_key=True
     )
-    seq_index_id: int = Field(
-        foreign_key="seqindex.id", primary_key=True
-    )
-    # seq_index_type: int = Field(nullable=False, primary_key=True)
 
 
 class ExperimentLibraryLink(SQLModel, table=True):

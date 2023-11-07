@@ -3,7 +3,8 @@ from typing import Optional
 
 from sqlmodel import func
 
-from ... import models, bcrypt, PAGE_LIMIT
+from ... import bcrypt, PAGE_LIMIT
+from ...models import User
 from .. import exceptions
 from ...categories import UserRole
 
@@ -15,19 +16,19 @@ def create_user(
     password: str,
     role: UserRole,
     commit: bool = True
-) -> models.User:
+) -> User:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if self._session.query(models.User).where(
-        models.User.email == email
+    if self._session.query(User).where(
+        User.email == email
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"User with email {email} already exists")
 
     hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
 
-    user = models.User(
+    user = User(
         email=email,
         first_name=first_name,
         last_name=last_name,
@@ -45,13 +46,13 @@ def create_user(
     return user
 
 
-def get_user(self, user_id: int) -> models.User:
+def get_user(self, user_id: int) -> User:
     
     persist_session = self._session is not None
     if self._session is None:
         self.open_session()
 
-    res = self._session.get(models.User, user_id)
+    res = self._session.get(User, user_id)
 
     if not persist_session:
         self.close_session()
@@ -59,13 +60,13 @@ def get_user(self, user_id: int) -> models.User:
     return res
 
 
-def get_user_by_email(self, email: str) -> models.User:
+def get_user_by_email(self, email: str) -> User:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    user = self._session.query(models.User).where(
-        models.User.email == email
+    user = self._session.query(User).where(
+        User.email == email
     ).first()
     if not persist_session:
         self.close_session()
@@ -75,15 +76,15 @@ def get_user_by_email(self, email: str) -> models.User:
 def get_users(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[models.User], int]:
+) -> tuple[list[User], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.User)
+    query = self._session.query(User)
 
     if sort_by is not None:
-        attr = getattr(models.User, sort_by)
+        attr = getattr(User, sort_by)
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)
@@ -108,7 +109,7 @@ def get_num_users(self) -> int:
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.User).count()
+    res = self._session.query(User).count()
     
     if not persist_session:
         self.close_session()
@@ -121,12 +122,12 @@ def update_user(
     password: Optional[str] = None,
     role: Optional[UserRole] = None,
     commit: bool = True
-) -> models.User:
+) -> User:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (user := self._session.get(models.User, user_id)) is None:
+    if (user := self._session.get(User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
     if email is not None:
@@ -134,7 +135,7 @@ def update_user(
     if password is not None:
         user.password = bcrypt.generate_password_hash(password).decode("utf-8")
     if role is not None:
-        if not models.UserRole.is_valid(role):
+        if not UserRole.is_valid(role):
             raise exceptions.InvalidRole(f"Invalid role {role}")
         user.role = role
 
@@ -152,7 +153,7 @@ def delete_user(self, user_id: int, commit: bool = True) -> None:
     if not self._session:
         self.open_session()
 
-    user = self._session.get(models.User, user_id)
+    user = self._session.get(User, user_id)
     if not user:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
@@ -168,26 +169,26 @@ def delete_user(self, user_id: int, commit: bool = True) -> None:
 def query_users(
     self, word: str, with_roles: Optional[list[UserRole]] = None,
     only_insiders: bool = False, limit: Optional[int] = PAGE_LIMIT
-) -> list[models.User]:
+) -> list[User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.User)
+    query = self._session.query(User)
 
     query = query.order_by(
-        func.similarity(models.User.first_name + ' ' + models.User.last_name, word).desc()
+        func.similarity(User.first_name + ' ' + User.last_name, word).desc()
     )
 
     if only_insiders:
         query = query.where(
-            models.User.role != UserRole.CLIENT.value.id
+            User.role != UserRole.CLIENT.value.id
         )
 
     if with_roles is not None:
         status_ids = [role.value.id for role in with_roles]
         query = query.where(
-            models.User.role.in_(status_ids)
+            User.role.in_(status_ids)
         )
 
     if limit is not None:
@@ -201,15 +202,15 @@ def query_users(
     return users
 
 
-def query_users_by_email(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.User]:
+def query_users_by_email(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.User)
+    query = self._session.query(User)
 
     query = query.order_by(
-        func.similarity(models.User.email, word).desc(),
+        func.similarity(User.email, word).desc(),
     )
 
     if limit is not None:

@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, TYPE_CHECKING
 
 from flask import Blueprint, url_for, render_template, flash, request, abort, redirect
 from flask_htmx import make_response
@@ -31,17 +31,6 @@ def get(page: int):
                 current_sort=sort_by, current_sort_order=order
             ), push_url=False
         )
-
-
-@users_htmx.route("email/<int:user_id>", methods=["GET"])
-@login_required
-def email(user_id: int):
-    if (user := models.User.get(user_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
-    
-    return make_response(
-        redirect="mailto:" + user.email
-    )
 
 
 @users_htmx.route("query", methods=["POST"])

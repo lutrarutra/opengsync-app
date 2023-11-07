@@ -2,14 +2,14 @@ from enum import Enum
 
 from typing import Union
 
-from .Job import Job
 from .Project import Project
 from .Sample import Sample
+from .Pool import Pool
 from .User import User
 from .Experiment import Experiment
 from .Library import Library, LibraryTypeId
 from .Organism import Organism
-from .Links import LibrarySampleLink, ExperimentLibraryLink, LibrarySeqRequestLink, IndexKitLibraryType
+from .Links import SamplePoolLink, ExperimentLibraryLink, SeqRequestSampleLink, IndexKitLibraryType
 from .SeqIndex import SeqIndex
 from .IndexKit import IndexKit
 from .SeqRequest import SeqRequest

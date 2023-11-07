@@ -12,7 +12,6 @@ from ...tools import SearchResult
 
 def create_library(
     self, name: str,
-    library_type: LibraryType,
     index_kit_id: Optional[int],
     contact_id: Optional[int],
     owner_id: int, commit: bool = True
@@ -32,15 +31,12 @@ def create_library(
         if self._session.get(models.Contact, contact_id) is None:
             raise exceptions.ElementDoesNotExist(f"Contact with id {contact_id} does not exist")
 
-    library = models.Library(
+    library = models.Pool(
         name=name,
-        library_type_id=library_type.value.id,
-        index_kit_id=index_kit_id,
         owner_id=owner_id,
-        contact_id=contact_id
     )
     self._session.add(library)
-    user.num_libraries += 1
+    user.num_pools += 1
 
     if commit:
         self._session.commit()

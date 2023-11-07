@@ -37,25 +37,22 @@ def create_sample_data(db_handler: DBHandler):
                     samples[client.id] = []
                 samples[client.id].append(sample)
 
-    libraries: dict[int, list[models.Library]] = {}
+    pools: dict[int, list[models.Pool]] = {}
     for client in clients:
-        for library_i in range(5):
-            library = db_handler.create_library(
-                name=f"Library {library_i+1}",
-                library_type=LibraryType.SC_ATAC if library_i % 2 == 0 else LibraryType.SC_RNA,
+        for pool_i in range(5):
+            pool = db_handler.create_pool(
+                name=f"Pool {pool_i+1}",
                 owner_id=client.id,
-                index_kit_id=None
             )
-            if client.id not in libraries.keys():
-                libraries[client.id] = []
-            libraries[client.id].append(library)
+            if client.id not in pools.keys():
+                pools[client.id] = []
+            pools[client.id].append(pool)
 
         for sample in samples[client.id]:
-            library = libraries[client.id][sample.id % 5]
-            db_handler.link_library_sample(
-                library_id=library.id,
+            pool = pools[client.id][sample.id % 5]
+            db_handler.link_sample_pool(
+                pool_id=pool.id,
                 sample_id=sample.id,
-                seq_index_id=None
             )
 
     contact_person = db_handler.create_contact(
@@ -80,28 +77,28 @@ def create_sample_data(db_handler: DBHandler):
             billing_contact_id=billing_contact.id,
         )
 
-        if i > 5:
-            for j in range(3):
-                db_handler.link_library_seq_request(
-                    library_id=libraries[_client_id][j].id,
-                    seq_request_id=seq_request.id
-                )
+        # if i > 5:
+        #     for j in range(3):
+        #         db_handler.link_library_seq_request(
+        #             library_id=libraries[_client_id][j].id,
+        #             seq_request_id=seq_request.id
+        #         )
 
-            if i > 10:
-                db_handler.update_seq_request(seq_request_id=seq_request.id, status=SeqRequestStatus.SUBMITTED)
-                if i > 28:
-                    status = SeqRequestStatus.ARCHIVED
-                elif i > 25:
-                    status = SeqRequestStatus.FAILED
-                elif i > 22:
-                    status = SeqRequestStatus.FINISHED
-                elif i > 19:
-                    status = SeqRequestStatus.DATA_PROCESSING
-                elif i > 16:
-                    status = SeqRequestStatus.SEQUENCING
-                elif i > 13:
-                    status = SeqRequestStatus.LIBRARY_PREP
-                else:
-                    continue
+        #     if i > 10:
+        #         db_handler.update_seq_request(seq_request_id=seq_request.id, status=SeqRequestStatus.SUBMITTED)
+        #         if i > 28:
+        #             status = SeqRequestStatus.ARCHIVED
+        #         elif i > 25:
+        #             status = SeqRequestStatus.FAILED
+        #         elif i > 22:
+        #             status = SeqRequestStatus.FINISHED
+        #         elif i > 19:
+        #             status = SeqRequestStatus.DATA_PROCESSING
+        #         elif i > 16:
+        #             status = SeqRequestStatus.SEQUENCING
+        #         elif i > 13:
+        #             status = SeqRequestStatus.LIBRARY_PREP
+        #         else:
+        #             continue
 
-                db_handler.update_seq_request(seq_request_id=seq_request.id, status=status)
+        #         db_handler.update_seq_request(seq_request_id=seq_request.id, status=status)

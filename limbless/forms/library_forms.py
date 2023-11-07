@@ -79,7 +79,7 @@ class LibraryForm(FlaskForm):
                 logger.error(f"User with id {user_id} does not exist.")
                 return False, self
 
-            user_libraries = user.libraries
+            user_libraries = [] # FIXME: user.libraries
 
             # Creating new library
             if library_id is None:

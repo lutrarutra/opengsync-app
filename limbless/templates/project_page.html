@@ -11,19 +11,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            {% include "components/popups/sample/add.html" %}
-        </div>
-    </div>
-
-    <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            {% set project_id = project.id %}
-            {% include "components/popups/sample/table.html" %}
-        </div>
-    </div>
-
     <div>
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -46,14 +33,6 @@
                         <h2>Samples:</h2>
                     </div>
                     <div>
-                        <button type="button" id="open-sample-form-popup" class="btn btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#sample-form-popup">
-                            Add Sample
-                        </button>
-                        <button type="button" id="open-sample-table-form-popup" class="btn btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#sample-table-form-popup">
-                            Add Sample Table
-                        </button>
                         <a class="btn btn-primary" href="{{ url_for('samples_htmx.download', project_id=project.id) }}">
                             Download
                         </a>

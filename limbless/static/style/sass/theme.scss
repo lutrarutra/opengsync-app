@@ -1,4 +1,5 @@
-.btn-primary {
+.btn-primary,
+.btn-primary.show {
     background-color: $cemm-blue;
     color: $white;
     border: none;
@@ -18,7 +19,8 @@
     opacity: 0.7;
 }
 
-.btn-secondary {
+.btn-secondary,
+.btn-secondary.show {
     background-color: $cemm-secondary;
     border: none;
     color: $white;
@@ -37,7 +39,8 @@
     opacity: 0.7;
 }
 
-.btn-warning {
+.btn-warning,
+.btn-warning.show {
     background-color: $cemm-yellow;
     border: none;
 }
@@ -55,7 +58,8 @@
     opacity: 0.7;
 }
 
-.btn-danger {
+.btn-danger,
+.btn-danger.show {
     background-color: $cemm-red;
     border: none;
 }
@@ -73,7 +77,8 @@
     opacity: 0.7;
 }
 
-.btn-success {
+.btn-success,
+.btn-success.show {
     background-color: $cemm-green;
     border: none;
 }

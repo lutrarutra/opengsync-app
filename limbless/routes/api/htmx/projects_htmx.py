@@ -1,12 +1,17 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from .... import db, forms, logger, models, PAGE_LIMIT
 from ....core import DBSession, DBHandler
 from ....categories import UserRole, HttpResponse
+
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
 
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/projects/")
 
@@ -17,6 +22,7 @@ def get(page):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
     descending = order == "desc"
+    offset = page * PAGE_LIMIT
 
     if sort_by not in models.Project.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
@@ -38,7 +44,7 @@ def get(page):
             if (user := session.get_user(user_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             
-            projects, n_pages = session.get_projects(limit=PAGE_LIMIT, user_id=user_id, sort_by=sort_by, descending=descending)
+            projects, n_pages = session.get_projects(limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
             context["user"] = user
     else:
         template = "components/tables/project.html"
@@ -47,7 +53,8 @@ def get(page):
                 user_id = current_user.id
             else:
                 user_id = None
-            projects, n_pages = session.get_projects(limit=PAGE_LIMIT, user_id=user_id, sort_by="id", descending=descending)
+            projects, n_pages = session.get_projects(limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by="id", descending=descending)
+
 
     return make_response(
         render_template(
@@ -55,6 +62,31 @@ def get(page):
             n_pages=n_pages, active_page=page,
             current_sort=sort_by, current_sort_order=order,
             **context
+        ), push_url=False
+    )
+
+
+@projects_htmx.route("query", methods=["POST"])
+@login_required
+def query():
+    field_name = next(iter(request.form.keys()))
+    word = request.form.get(field_name)
+
+    if word is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    if current_user.role_type == UserRole.CLIENT:
+        _user_id = current_user.id
+    else:
+        _user_id = None
+
+    results = db.db_handler.query_projects(word, user_id=_user_id)
+
+    return make_response(
+        render_template(
+            "components/search_select_results.html",
+            results=results,
+            field_name=field_name
         ), push_url=False
     )
 

@@ -1,9 +1,17 @@
+from typing import TYPE_CHECKING
+
 from flask import Blueprint, render_template, redirect, url_for, abort, request
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from ... import db, forms, logger, PAGE_LIMIT
 from ...core import DBSession
 from ...categories import UserRole, HttpResponse
+from ...models import User
+
+if TYPE_CHECKING:
+    current_user: User = None
+else:
+    from flask_login import current_user
 
 samples_page_bp = Blueprint("samples_page", __name__)
 

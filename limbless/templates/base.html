@@ -47,9 +47,6 @@
                 <a class="nav-link {{'active' if active_page == 'projects-page' else ''}}" id="project-page" href="{{ url_for('projects_page.projects_page') }}">Projects</a>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'libraries-page' else ''}}" id="library-page" href="{{ url_for('libraries_page.libraries_page') }}">Libraries</a>
-            </div>
-            <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'samples-page' else ''}}" id="samples-page" href="{{ url_for('samples_page.samples_page') }}">Samples</a>
             </div>
             <div class="nav-item">
@@ -58,7 +55,10 @@
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'indices-page' else ''}}" id="indices-page" href="{{ url_for('index_kits_page.index_kits_page') }}">Index Kits</a>
             </div>
-            {% if (role_name != "Client" and role_name != "Quest") %}
+            {% if current_user.is_authenticated and current_user.is_insider() %}
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'pools-page' else ''}}" id="pools-page" href="{{ url_for('pools_page.pools_page') }}">Pools</a>
+            </div>
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" id="experiments-page" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>
             </div>

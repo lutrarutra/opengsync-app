@@ -1,12 +1,21 @@
-from typing import Optional
+from io import StringIO, BytesIO
+from typing import Optional, TYPE_CHECKING
 
-from flask import Blueprint, url_for, render_template, flash, abort, request
+from flask import Blueprint, url_for, render_template, flash, abort, request, Response
 from flask_htmx import make_response
-from flask_login import login_required, current_user
+from flask_login import login_required
+from werkzeug.utils import secure_filename
+import pandas as pd
 
-from .... import db, forms, logger, models, PAGE_LIMIT
+from .... import db, forms, logger, models, PAGE_LIMIT, tools
 from ....core import DBSession, DBHandler
 from ....categories import UserRole, SeqRequestStatus, HttpResponse
+
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
+
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/seq_requests/")
 
@@ -56,6 +65,60 @@ def get(page: int):
             current_sort=sort_by, current_sort_order=order,
             **context
         ), push_url=False
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/export", methods=["GET"])
+@login_required
+def export(seq_request_id: int):
+    with DBSession(db.db_handler) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        samples = seq_request.samples
+    
+    if not current_user.is_insider():
+        if seq_request.requestor_id != current_user.id:
+            return abort(HttpResponse.FORBIDDEN.value.id)
+
+    file_name = secure_filename(f"{seq_request.name}_request.xlsx")
+
+    metadata_df = pd.DataFrame.from_records([seq_request.to_dict()]).T
+    samples_df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
+
+    bytes_io = BytesIO()
+    with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:
+        metadata_df.to_excel(writer, sheet_name="metadata", index=True)
+        samples_df.to_excel(writer, sheet_name="samples", index=False)
+
+    bytes_io.seek(0)
+    mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        
+    return Response(
+        bytes_io, mimetype=mimetype,
+        headers={"Content-disposition": f"attachment; filename={file_name}"}
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/export_samples", methods=["GET"])
+@login_required
+def export_samples(seq_request_id: int):
+    with DBSession(db.db_handler) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        samples = seq_request.samples
+
+    if not current_user.is_insider():
+        if seq_request.requestor_id != current_user.id:
+            return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    file_name = secure_filename(f"{seq_request.name}_samples.tsv")
+
+    df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
+
+    return Response(
+        df.to_csv(sep="\t", index=False), mimetype="text/csv",
+        headers={"Content-disposition": f"attachment; filename={file_name}"}
     )
 
 
@@ -235,19 +298,19 @@ def add_library(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/remove_library", methods=["DELETE"])
+@seq_requests_htmx.route("<int:seq_request_id>/remove_sample", methods=["DELETE"])
 @login_required
-def remove_library(seq_request_id: int):
-    if (library_id := request.args.get("library_id")) is None:
+def remove_sample(seq_request_id: int):
+    if (sample_id := request.args.get("sample_id")) is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     try:
-        library_id = int(library_id)
+        sample_id = int(sample_id)
     except ValueError:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     with DBSession(db.db_handler) as session:
-        if (library := session.get_library(library_id)) is None:
+        if (sample := session.get_sample(sample_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
@@ -257,10 +320,10 @@ def remove_library(seq_request_id: int):
             if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
-        session.unlink_library_seq_request(library_id, seq_request_id)
+        session.unlink_sample_seq_request(sample_id, seq_request_id)
 
-    flash(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'", "success")
-    logger.debug(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'")
+    flash(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'")
 
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),

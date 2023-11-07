@@ -80,15 +80,6 @@ def get_num_samples(
             models.Sample.project_id == project_id
         )
 
-    if library_id is not None:
-        query = query.join(
-            models.LibrarySampleLink,
-            models.Sample.id == models.LibrarySampleLink.sample_id,
-            isouter=True
-        ).where(
-            models.LibrarySampleLink.library_id == library_id
-        )
-
     res = query.count()
 
     if not persist_session:
@@ -98,7 +89,7 @@ def get_num_samples(
 
 def get_samples(
     self, user_id: Optional[int] = None,
-    project_id: Optional[int] = None, library_id: Optional[int] = None,
+    project_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Sample], int]:
@@ -124,13 +115,12 @@ def get_samples(
             models.Sample.project_id == project_id
         )
 
-    if library_id is not None:
+    if seq_request_id is not None:
         query = query.join(
-            models.LibrarySampleLink,
-            models.Sample.id == models.LibrarySampleLink.sample_id,
-            isouter=True
+            models.SeqRequestSampleLink,
+            models.Sample.id == models.SeqRequestSampleLink.sample_id
         ).where(
-            models.LibrarySampleLink.library_id == library_id
+            models.SeqRequestSampleLink.seq_request_id == seq_request_id
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1

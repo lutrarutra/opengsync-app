@@ -6,7 +6,8 @@ from flask import Flask, render_template, redirect, request, url_for, session
 from flask_login import current_user
 from sassutils.wsgi import SassMiddleware
 
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, models, categories, PAGE_LIMIT
+from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, categories, PAGE_LIMIT
+from .models import User
 from .routes import api, pages
 
 
@@ -33,7 +34,7 @@ def create_app():
     mail.init_app(app)
 
     @login_manager.user_loader
-    def load_user(user_id: int) -> models.User:
+    def load_user(user_id: int) -> User:
         user = db.db_handler.get_user(user_id)
         return user
 
@@ -98,7 +99,7 @@ def create_app():
     app.register_blueprint(api.samples_htmx)
     app.register_blueprint(api.projects_htmx)
     app.register_blueprint(api.experiments_htmx)
-    app.register_blueprint(api.libraries_htmx)
+    app.register_blueprint(api.pools_htmx)
     app.register_blueprint(api.auth_htmx)
     app.register_blueprint(api.organisms_htmx)
     app.register_blueprint(api.indices_htmx)
@@ -106,6 +107,8 @@ def create_app():
     app.register_blueprint(api.adapters_htmx)
     app.register_blueprint(api.sequencers_htmx)
     app.register_blueprint(api.users_htmx)
+    app.register_blueprint(api.libraries_htmx)
+    app.register_blueprint(api.seq_request_form_htmx)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)
@@ -117,5 +120,6 @@ def create_app():
     app.register_blueprint(pages.index_kits_page_bp)
     app.register_blueprint(pages.errors_bp)
     app.register_blueprint(pages.devices_page_bp)
+    app.register_blueprint(pages.pools_page_bp)
 
     return app

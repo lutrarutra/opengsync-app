@@ -14,10 +14,14 @@
     <div class="modal-footer">
         <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
             hx-target="#sample-table-col-select-container" hx-swap="outerHTML"
-            hx-include="#sample-table-col-select-form" hx-post="{{ url_for('samples_htmx.map_columns', project_id=project_id) }}">Check
-            Columns</button>
+            hx-include="#sample-table-col-select-form"
+            hx-post="{{ url_for('seq_request_form_htmx.map_columns', seq_request_id=seq_request.id) }}">
+            Check Columns
+        </button>
         <button type="button"class="btn btn-danger"
             hx-target="#sample-table-col-select-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('samples_htmx.restart_form', project_id=project_id) }}">Cancel</button>
+            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}">
+            Cancel
+        </button>
     </div>
 </div>

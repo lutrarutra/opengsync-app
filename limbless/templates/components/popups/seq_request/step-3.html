@@ -1,0 +1,38 @@
+{% from "components/search_select.jinja2" import search_select_field %}
+{% from "components/form_group.jinja2" import form_group %}
+
+<div id="project-select-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Select Project</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <form id="project-select-form">
+            {{ project_select_form.csrf_token() }}
+            {{    
+                search_select_field(
+                    field=project_select_form.existing_project,
+                    url=url_for('projects_htmx.query'),
+                    selected=selected,
+                    results=results,
+                )
+            }}
+            {{ form_group(field=project_select_form.new_project) }}
+            {{ project_select_form.data(hidden=True, readonly=True) }}
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
+            hx-target="#project-select-form-container" hx-swap="outerHTML"
+            hx-include="#project-select-form"
+            hx-post="{{ url_for('seq_request_form_htmx.select_project', seq_request_id=seq_request.id) }}">
+            Select Project
+        </button>
+        
+        <button type="button"class="btn btn-danger"
+            hx-target="#project-select-form-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}">
+            Cancel
+        </button>
+    </div>
+</div>

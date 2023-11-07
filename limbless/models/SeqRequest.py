@@ -5,12 +5,12 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import SeqRequestStatus
-from .Links import LibrarySeqRequestLink
+from .Links import SeqRequestSampleLink
 
 if TYPE_CHECKING:
     from .User import User
     from .Contact import Contact
-    from .Library import Library
+    from .Sample import Sample
 
 
 class SeqRequest(SQLModel, table=True):
@@ -21,7 +21,8 @@ class SeqRequest(SQLModel, table=True):
     status: int = Field(nullable=False, default=0)
     submitted_time: Optional[datetime] = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True))
 
-    num_libraries: int = Field(nullable=False, default=0)
+    num_samples: int = Field(nullable=False, default=0)
+    num_pools: int = Field(nullable=False, default=0)
 
     requestor_id: int = Field(nullable=False, foreign_key="user.id")
     requestor: "User" = Relationship(back_populates="requests", sa_relationship_kwargs={"lazy": "joined"})
@@ -30,10 +31,9 @@ class SeqRequest(SQLModel, table=True):
     billing_contact_id: int = Field(nullable=False, foreign_key="contact.id")
     bioinformatician_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")
 
-    libraries: List["Library"] = Relationship(
+    samples: List["Sample"] = Relationship(
         back_populates="seq_requests",
-        link_model=LibrarySeqRequestLink,
-        sa_relationship_kwargs={"lazy": "joined"}
+        link_model=SeqRequestSampleLink,
     )
     
     contact_person: "Contact" = Relationship(
@@ -64,9 +64,25 @@ class SeqRequest(SQLModel, table=True):
         return SeqRequestStatus.get(self.status)
     
     def is_submittable(self) -> bool:
-        return self.status_type == SeqRequestStatus.DRAFT and len(self.libraries) > 0
+        return self.status_type == SeqRequestStatus.DRAFT and self.num_samples > 0
     
     def submitted_time_to_str(self) -> str:
         if self.submitted_time is None:
             return ""
         return self.submitted_time.strftime('%Y-%m-%d %H:%M')
+
+    def to_dict(self):
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "status": self.status_type.name,
+            "submitted_time": self.submitted_time_to_str(),
+            "requestor": self.requestor.name,
+            "person_contact": f"{self.contact_person.name} ({self.contact_person.email})",
+            "billing_contact": f"{self.billing_contact.name} ({self.billing_contact.email})",
+            "bioinformatician_contact": f"{self.bioinformatician_contact.name} ({self.bioinformatician_contact.email})" if self.bioinformatician_contact else None,
+            "num_samples": self.num_samples,
+            "num_pools": self.num_pools,
+        }
+        return data

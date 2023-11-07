@@ -1,17 +1,22 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from io import StringIO
 
 import pandas as pd
 from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
-from flask_login import login_required, current_user
+from flask_login import login_required
 
-from .... import db, logger, forms, LibraryType, models, tools, PAGE_LIMIT
+from .... import db, logger, forms, models, tools, PAGE_LIMIT
 from ....core import DBSession, exceptions
 from ....core.DBHandler import DBHandler
-from ....categories import UserRole, HttpResponse
+from ....categories import UserRole, HttpResponse, LibraryType
 
-libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/libraries/")
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
+
+libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/pools/")
 
 
 @libraries_htmx.route("get/<int:page>", methods=["GET"])
@@ -25,34 +30,10 @@ def get(page):
     if sort_by not in models.Library.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    libraries: list[models.Library] = []
+    pools: list[models.Pool] = []
     context = {}
 
-    if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-        template = "components/tables/seq_request-library.html"
-        try:
-            seq_request_id = int(seq_request_id)
-        except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-        with DBSession(db.db_handler) as session:
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
-            if current_user.id != seq_request.requestor_id:
-                return abort(HttpResponse.FORBIDDEN.value.id)
-            libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
-            context["seq_request"] = seq_request
-    elif (experiment_id := request.args.get("experiment_id", None)) is not None:
-        template = "components/tables/experiment-library.html"
-        try:
-            experiment_id = int(experiment_id)
-        except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-        with DBSession(db.db_handler) as session:
-            if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
-            libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending)
-            context["experiment"] = experiment
-    elif (sample_id := request.args.get("sample_id", None)) is not None:
+    if (sample_id := request.args.get("sample_id", None)) is not None:
         template = "components/tables/sample-library.html"
         try:
             sample_id = int(sample_id)
@@ -61,19 +42,19 @@ def get(page):
         with DBSession(db.db_handler) as session:
             if (sample := session.get_sample(sample_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
-            libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending)
+            pools, n_pages = session.get_pools(limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending)
             context["sample"] = sample
     else:
         template = "components/tables/library.html"
         with DBSession(db.db_handler) as session:
             if not current_user.is_insider():
-                libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, user_id=current_user.id, sort_by=sort_by, descending=descending)
+                pools, n_pages = session.get_pools(limit=PAGE_LIMIT, offset=offset, user_id=current_user.id, sort_by=sort_by, descending=descending)
             else:
-                libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, user_id=None, sort_by=sort_by, descending=descending)
+                pools, n_pages = session.get_pools(limit=PAGE_LIMIT, offset=offset, user_id=None, sort_by=sort_by, descending=descending)
 
     return make_response(
         render_template(
-            template, libraries=libraries,
+            template, pools=pools,
             n_pages=n_pages, active_page=page,
             current_sort=sort_by, current_sort_order=order,
             **context

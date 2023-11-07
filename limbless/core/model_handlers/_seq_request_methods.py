@@ -201,8 +201,18 @@ def delete_seq_request(
     if not seq_request:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {sample_id} does not exist")
 
+    links = self._session.query(models.SeqRequestSampleLink).where(
+        models.SeqRequestSampleLink.seq_request_id == seq_request.id
+    ).all()
+    
+    for link in links:
+        self._session.delete(link)
+
     self._session.delete(seq_request.contact_person)
     self._session.delete(seq_request.billing_contact)
+    if seq_request.bioinformatician_contact_id is not None:
+        self._session.delete(seq_request.bioinformatician_contact)
+
     self._session.delete(seq_request)
     if commit:
         self._session.commit()

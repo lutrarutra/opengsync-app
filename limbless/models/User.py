@@ -10,7 +10,7 @@ from ..categories import UserRole
 if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
     from .Project import Project
-    from .Library import Library
+    from .Pool import Pool
     from .Sample import Sample
 
 
@@ -70,7 +70,7 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
     role: int = Field(nullable=False)
 
     num_projects: int = Field(nullable=False, default=0)
-    num_libraries: int = Field(nullable=False, default=0)
+    num_pools: int = Field(nullable=False, default=0)
     num_samples: int = Field(nullable=False, default=0)
     num_seq_requests: int = Field(nullable=False, default=0)
 
@@ -82,15 +82,16 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
         back_populates="owner",
         sa_relationship_kwargs={"lazy": "noload"}
     )
-    libraries: List["Library"] = Relationship(
+    pools: List["Pool"] = Relationship(
         back_populates="owner",
         sa_relationship_kwargs={"lazy": "noload"}
     )
     samples: List["Sample"] = Relationship(
         back_populates="owner",
+        sa_relationship_kwargs={"lazy": "noload"}
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role", "num_projects", "num_libraries", "num_samples", "num_seq_requests"]
+    sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
 
     def is_insider(self) -> bool:
         return self.role_type in UserRole.insiders

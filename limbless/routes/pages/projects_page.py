@@ -45,10 +45,8 @@ def project_page(project_id):
 
     return render_template(
         "project_page.html", project=project,
-        sample_form=forms.SampleForm(),
         samples=samples,
         path_list=path_list,
-        table_form=forms.TableForm(),
         common_organisms=db.common_organisms,
         active_page=0,
     )

@@ -58,10 +58,12 @@ class DBHandler():
         get_num_samples, query_samples
     )
 
+    from .model_handlers._pool_methods import (
+        create_pool, get_pool, get_pools,
+        delete_pool, update_pool, query_pools
+    )
+
     from .model_handlers._library_methods import (
-        create_library, get_library, get_libraries,
-        delete_library, update_library,
-        get_num_libraries, query_libraries,
         create_library_type
     )
 
@@ -105,21 +107,17 @@ class DBHandler():
     )
 
     from .model_handlers._link_methods import (
-        get_project_users,
-        get_library_samples,
-        get_user_projects,
         get_sample_libraries,
-        get_sample_indices_from_library,
         get_lanes_in_experiment,
 
-        link_library_sample,
+        link_sample_pool,
         link_experiment_library,
         link_index_kit_library_type,
-        link_library_seq_request,
+        link_sample_seq_request,
 
         unlink_library_sample,
         unlink_experiment_library,
-        unlink_library_seq_request,
+        unlink_sample_seq_request,
 
         is_sample_in_library,
     )

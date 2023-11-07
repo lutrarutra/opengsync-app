@@ -21,10 +21,8 @@ class UserRole(Enum, metaclass=ExtendedEnumMeta):
 
 
 class LibraryType(Enum, metaclass=ExtendedEnumMeta):
-    SC_RNA = DescriptiveEnum(1, "Single-cell RNA-Seq")
-    SN_RNA = DescriptiveEnum(2, "Single-nucleus RNA-Seq")
-    SC_ATAC = DescriptiveEnum(3, "Single-cell ATAC-Seq")
-    SC_MULTIOME = DescriptiveEnum(4, "Single-cell Multiome")
+    SINGLE_INDEX = DescriptiveEnum(1, "Single Index")
+    DUAL_INDEX = DescriptiveEnum(2, "Dual Index")
 
 
 class OrganismCategory(Enum, metaclass=ExtendedEnumMeta):

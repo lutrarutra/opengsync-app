@@ -89,7 +89,7 @@ def __create_atac_index_form() -> IndexForm:
 def create_index_form(library: Library) -> IndexForm:
     if library.is_raw_library():
         return IndexForm()
-    if library.library_type in [LibraryType.SC_RNA, LibraryType.SN_RNA]:
+    if library.library_type in [LibraryType.DUAL_INDEX]:
         return __crete_dual_index_form()
     elif library.library_type in [LibraryType.SC_ATAC]:
         return __create_atac_index_form()

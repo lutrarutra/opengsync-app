@@ -44,7 +44,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Dual Index Kit NN Set A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Dual Index Kit NN Set A",
-            allowed_library_types=[LibraryType.SC_RNA, LibraryType.SN_RNA]
+            allowed_library_types=[LibraryType.DUAL_INDEX]
         )
     add_dual_indexes(db_handler, df, index_kit)
 
@@ -52,7 +52,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Dual Index Kit NT Set A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Dual Index Kit NT Set A",
-            allowed_library_types=[LibraryType.SC_RNA, LibraryType.SN_RNA]
+            allowed_library_types=[LibraryType.DUAL_INDEX]
         )
     add_dual_indexes(db_handler, df, index_kit)
 
@@ -60,7 +60,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Dual Index Kit TN Seq A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Dual Index Kit TN Seq A",
-            allowed_library_types=[LibraryType.SC_RNA, LibraryType.SN_RNA]
+            allowed_library_types=[LibraryType.DUAL_INDEX]
         )
     add_dual_indexes(db_handler, df, index_kit)
 
@@ -68,7 +68,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Dual Index Kit TT Seq A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Dual Index Kit TT Seq A",
-            allowed_library_types=[LibraryType.SC_RNA, LibraryType.SN_RNA]
+            allowed_library_types=[LibraryType.DUAL_INDEX]
         )
     add_dual_indexes(db_handler, df, index_kit)
 
@@ -76,7 +76,7 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Single Index Kit N Seq A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Single Index Kit N Seq A",
-            allowed_library_types=[LibraryType.SC_ATAC]
+            allowed_library_types=[LibraryType.SINGLE_INDEX]
         )
     add_single_indexes(db_handler, df, index_kit)
 
@@ -84,6 +84,6 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Single Index Kit T Seq A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Single Index Kit T Seq A",
-            allowed_library_types=[LibraryType.SC_ATAC]
+            allowed_library_types=[LibraryType.SINGLE_INDEX]
         )
     add_single_indexes(db_handler, df, index_kit)

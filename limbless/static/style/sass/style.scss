@@ -309,6 +309,11 @@ input.disabled:focus {
     }
 
     table {
+        .table-select-buttons {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
         .table-btn {
             height: 25px;
             padding: 0px 8px 0px 8px;

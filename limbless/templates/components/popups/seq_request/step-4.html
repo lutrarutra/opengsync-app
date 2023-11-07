@@ -19,10 +19,15 @@
     <div class="modal-footer">
         <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
             hx-target="#sample-table-organism-map-container" hx-swap="outerHTML"
-            hx-include="#sample-organism-category-mapping-form" hx-post="{{ url_for('samples_htmx.map_organisms', project_id=project_id) }}">Map Organisms</button>
+            hx-include="#sample-organism-category-mapping-form"
+            hx-post="{{ url_for('seq_request_form_htmx.map_organisms', seq_request_id=seq_request.id) }}">
+            Map Organisms
+        </button>
         
         <button type="button"class="btn btn-danger"
             hx-target="#sample-table-organism-map-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('samples_htmx.restart_form', project_id=project_id) }}">Cancel</button>
+            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}">
+            Cancel
+        </button>
     </div>
 </div>

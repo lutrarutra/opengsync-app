@@ -12,7 +12,7 @@ seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 @login_required
 def seq_requests_page():
     seq_request_form = forms.SeqRequestForm()
-    seq_request_form.contact_person_name.data = f"{current_user.first_name} {current_user.last_name}"
+    seq_request_form.contact_person_name.data = current_user.name
     seq_request_form.contact_person_email.data = current_user.email
 
     current_sort = "submitted_time"
@@ -44,7 +44,7 @@ def seq_request_page(seq_request_id: int):
             if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
-        libraries = seq_request.libraries
+        samples, n_pages = session.get_samples(seq_request_id=seq_request_id, sort_by="id", descending=True)
 
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
@@ -80,7 +80,7 @@ def seq_request_page(seq_request_id: int):
     seq_request_form.billing_phone.data = seq_request.billing_contact.phone
     seq_request_form.billing_code.data = seq_request.billing_contact.billing_code
 
-    library_results, _ = db.db_handler.get_libraries(user_id=current_user.id)
+    library_results = []
 
     path_list = [
         ("Requests", url_for("seq_requests_page.seq_requests_page")),
@@ -90,9 +90,11 @@ def seq_request_page(seq_request_id: int):
     return render_template(
         "seq_request_page.html",
         seq_request=seq_request,
-        libraries=libraries,
+        samples=samples,
         path_list=path_list,
         select_library_form=forms.SelectLibraryForm(),
         library_results=library_results,
-        seq_request_form=seq_request_form
+        seq_request_form=seq_request_form,
+        table_form=forms.TableForm(),
+        n_pages=n_pages, active_page=0,
     )
