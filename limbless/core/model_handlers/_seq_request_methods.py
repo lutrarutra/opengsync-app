@@ -77,6 +77,7 @@ def get_seq_requests(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     with_statuses: Optional[list[SeqRequestStatus]] = None,
     show_drafts: bool = True,
+    sample_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None
 ) -> tuple[list[models.SeqRequest], int]:
@@ -101,6 +102,15 @@ def get_seq_requests(
     if not show_drafts:
         query = query.where(
             models.SeqRequest.status != SeqRequestStatus.DRAFT.value.id
+        )
+
+    if sample_id is not None:
+        query = query.join(
+            models.SeqRequestSampleLink,
+            models.SeqRequestSampleLink.seq_request_id == models.SeqRequest.id,
+            isouter=True
+        ).where(
+            models.SeqRequestSampleLink.sample_id == sample_id
         )
 
     if sort_by is not None:

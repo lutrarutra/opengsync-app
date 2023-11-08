@@ -1,3 +1,5 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
 <div id="sample-select-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">Confirm Samples</h1>
@@ -14,32 +16,32 @@
                 <tr>
                     <th scope="col" class="col-1">#</th>
                     <th scope="col" class="col-1">Selected</th>
-                    <th scope="col" class="col-2">Name</th>
+                    <th scope="col" class="col-4">Name</th>
                     <th scope="col" class="col-1">Sample ID</th>
-                    <th scope="col" class="col-1">Tax ID</th>
-                    <th scope="col" class="col-1">Project Name</th>
-                    <th scope="col" class="col-2">Info</th>
-                    <th scope="col" class="col-3">Error</th>
+                    <th scope="col" class="col-2">Tax ID</th>
+                    <th scope="col" class="col-3">Project Name</th>
                 </tr>
             </thead>
             <tbody>
                 {% for sample_data in samples %}
                 {% set sample_id = sample_data["id"] %}
-                <tr class="{{ 'disabled' if sample_data['error'] }} sample-check" onclick="select_row('{{ sample_id }}')">
+                <tr {{ tooltip(sample_data["error"] if sample_data["error"] else sample_data["info"]) }}
+                class="{{ 'disabled' if sample_data['error'] }} sample-check" onclick="select_row('{{ sample_id }}');">
                     <th scope="row">{{ sample_id }}</th>
                     <td>
-                        <input  type="checkbox"
-                        class="form-check-input sample-checkbox {{'disabled' if sample_data['error'] else '' }}"
-                        {{ "checked" if not sample_data['error'] }}
-                        {{ "disabled" if sample_data['error'] }}
-                        id="sample-select-{{ sample_id }}" readonly>
+                        {% if sample_data["error"] %}
+                        ❌
+                        <input  type="checkbox" class="form-check-input sample-checkbox" style="display: none;">
+                        {% else %}
+                        <input type="checkbox" class="form-check-input sample-checkbox" checked
+                        id="sample-select-{{ sample_id }}">
+                        {% endif %}
                     </td>
                     <td>{{ sample_data["name"] }}</td>
                     <td>{{ sample_data["sample_id"] if sample_data["sample_id"] }}</td>
                     <td>{{ sample_data["tax_id"] }}</td>
                     <td>{{ sample_data["project_name"] }}</td>
-                    <td>{{ sample_data["info"] }}</td>
-                    <td>{{ sample_data["error"] if sample_data["error"] }}</td>
+                    <td>{{ sample_data["project_id"] if sample_data["project_id"] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -69,6 +71,7 @@
 </div>
 
 <script>
+    init_tooltips();
     $(".sample-checkbox:checkbox").click(function() { return false; });
 
     function select_row(sample_id) {

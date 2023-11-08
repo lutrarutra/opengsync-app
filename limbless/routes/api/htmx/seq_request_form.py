@@ -66,6 +66,7 @@ def parse_table(seq_request_id: int):
     table_col_form.data.data = df.to_csv(sep="\t", index=False, header=True)
     columns = df.columns.tolist()
     refs = [key for key, _ in required_fields if key]
+    opts = [key for key, _ in forms.SampleColSelectForm.optional_fields]
     matches = tools.connect_similar_strings(required_fields, columns)
 
     for i, col in enumerate(columns):
@@ -85,6 +86,7 @@ def parse_table(seq_request_id: int):
             columns=columns, sample_table_form=table_col_form,
             matches=matches, data=df.values.tolist(),
             required_fields=refs,
+            optional_fields=opts,
             submittable=submittable,
             seq_request=seq_request
         ), push_url=False
@@ -97,8 +99,6 @@ def parse_table(seq_request_id: int):
 def map_columns(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
-    
-    required_fields = forms.SampleColSelectForm.required_fields
 
     sample_table_form = forms.SampleColTableForm()
     if not sample_table_form.validate_on_submit():
@@ -112,22 +112,41 @@ def map_columns(seq_request_id: int):
         )
 
     df = pd.read_csv(StringIO(sample_table_form.data.data), sep="\t", index_col=False, header=0)
+    
+    selected_features = []
+    features = forms.SampleColSelectForm.required_fields + forms.SampleColSelectForm.optional_fields
+    features = [key for key, _ in features if key]
+    for feature in features:
+        df[feature] = None
+
     for i, entry in enumerate(sample_table_form.fields.entries):
         val = entry.select_field.data.strip()
         if not val:
             continue
-        df.rename(columns={df.columns[i]: val}, inplace=True)
+        selected_features.append(val)
+        df[val] = df[df.columns[i]]
+    
+    df = df[features]
+    logger.debug(df)
 
-    refs = [key for key, _ in required_fields if key]
-    df = df[refs]
+    project_mapping_form = forms.ProjectMappingForm()
+    project_mapping_form.data.data = df.to_csv(sep="\t", index=False, header=True)
 
-    project_select_form = forms.SampleProjectSelectForm()
-    project_select_form.data.data = df.to_csv(sep="\t", index=False, header=True)
+    projects = sorted(df["project"].unique())
+    selected: list[str] = []
+    for i, project in enumerate(projects):
+        selected.append("")
+        project_mapping_form.fields.append_entry(forms.CategoricalMappingFieldWithNewCategory())
+        project_mapping_form.fields.entries[i].raw_category.data = project
+        project_mapping_form.fields.entries[i].raw_category.label.text = "Project"
+        project_mapping_form.fields.entries[i].category.label.text = "Existing Project"
+        project_mapping_form.fields.entries[i].new_category.label.text = "New Project"
 
     return make_response(
         render_template(
             "components/popups/seq_request/step-3.html",
-            project_select_form=project_select_form,
+            project_mapping_form=project_mapping_form,
+            categories=projects, selected=selected,
             seq_request=seq_request
         ), push_url=False
     )
@@ -140,31 +159,48 @@ def select_project(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    project_select_form = forms.SampleProjectSelectForm()
-    validated, project_select_form = project_select_form.custom_validate(db.db_handler, current_user.id)
+    project_mapping_form = forms.ProjectMappingForm()
+    validated, project_mapping_form = project_mapping_form.custom_validate(db.db_handler, current_user.id)
+
+    df = pd.read_csv(StringIO(project_mapping_form.data.data), sep="\t", index_col=False, header=0)
+    projects = sorted(df["project"].unique())
+    selected: list[str] = []
+    for i, project in enumerate(projects):
+        project_mapping_form.fields.append_entry(forms.CategoricalMappingFieldWithNewCategory())
+        project_mapping_form.fields.entries[i].raw_category.data = project
+        project_mapping_form.fields.entries[i].raw_category.label.text = "Project"
+        project_mapping_form.fields.entries[i].category.label.text = "Existing Project"
+        project_mapping_form.fields.entries[i].new_category.label.text = "New Project"
+        if project_mapping_form.fields.entries[i].category.data:
+            selected_project = db.db_handler.get_project(project_mapping_form.fields.entries[i].category.data)
+            selected.append(str(selected_project.name))
+        else:
+            selected.append("")
 
     if not validated:
         return make_response(
             render_template(
                 "components/popups/seq_request/step-3.html",
-                project_select_form=project_select_form,
-                seq_request=seq_request,
+                project_mapping_form=project_mapping_form,
+                categories=projects, selected=selected,
+                seq_request=seq_request
             ), push_url=False
         )
     
-    df = pd.read_csv(StringIO(project_select_form.data.data), sep="\t", index_col=False, header=0)
-
-    if project_select_form.existing_project.data:
-        if (project := db.db_handler.get_project(project_select_form.existing_project.data)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-        df["project_name"] = project.name
-        df["project_id"] = project.id
-        
-    elif project_select_form.new_project.data:
-        df["project_name"] = project_select_form.new_project.data
-        df["project_id"] = None
-    else:
-        assert False    # This should never happen because its checked in custom_validate()
+    df["project_name"] = None
+    df["project_id"] = None
+    for i, raw_project in enumerate(projects):
+        if (project_id := project_mapping_form.fields.entries[i].category.data) is not None:
+            if (project := db.db_handler.get_project(project_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            
+            df.loc[df["project"] == raw_project, "project_id"] = project.id
+            df.loc[df["project"] == raw_project, "project_name"] = project.name
+        elif project_name := project_mapping_form.fields.entries[i].new_category.data:
+            df.loc[df["project"] == raw_project, "project_id"] = None
+            df.loc[df["project"] == raw_project, "project_name"] = project_name
+        else:
+            return abort(HttpResponse.INTERNAL_SERVER_ERROR.value.id)
 
     category_mapping_form = forms.OrganismMappingForm()
     df = category_mapping_form.prepare(seq_request.id, df)
@@ -179,7 +215,6 @@ def select_project(seq_request_id: int):
             category_mapping_form.fields.entries[i].raw_category.data = organism
             # category_mapping_form.fields.entries[i].category.data = organism
 
-        logger.debug(category_mapping_form)
         return make_response(
             render_template(
                 "components/popups/seq_request/step-4.html",
@@ -192,18 +227,23 @@ def select_project(seq_request_id: int):
     sample_confirm_form = forms.SampleConfirmForm()
     samples = sample_confirm_form.parse_samples(seq_request.id, df)
 
-    if not df["sample_id"].isna().any():
-        return make_response(
-            render_template(
-                "components/popups/seq_request/step-5.html",
-                seq_request=seq_request,
-                sample_confirm_form=sample_confirm_form,
-                samples=samples
-            ), push_url=False
-        )
+    selected_samples = []
+    for sample_data in samples:
+        if sample_data["error"] is None:
+            selected_samples.append(sample_data["id"])
+    sample_confirm_form.selected_samples.data = ",".join([str(i) for i in selected_samples])
+
+    return make_response(
+        render_template(
+            "components/popups/seq_request/step-5.html",
+            seq_request=seq_request,
+            sample_confirm_form=sample_confirm_form,
+            samples=samples
+        ), push_url=False
+    )
 
 
-# Map organisms if new samples
+# 4. Map organisms if new samples
 @seq_request_form_htmx.route("<int:seq_request_id>/map_organisms", methods=["POST"])
 @login_required
 def map_organisms(seq_request_id: int):
@@ -245,6 +285,12 @@ def map_organisms(seq_request_id: int):
     sample_confirm_form = forms.SampleConfirmForm()
     samples = sample_confirm_form.parse_samples(seq_request.id, df)
 
+    selected_samples = []
+    for sample_data in samples:
+        if sample_data["error"] is None:
+            selected_samples.append(sample_data["id"])
+    sample_confirm_form.selected_samples.data = ",".join([str(i) for i in selected_samples])
+
     return make_response(
         render_template(
             "components/popups/seq_request/step-5.html",
@@ -255,6 +301,7 @@ def map_organisms(seq_request_id: int):
     )
 
 
+# 5. Confirm samples
 @seq_request_form_htmx.route("<int:seq_request_id>/confirm", methods=["POST"])
 @login_required
 def confirm(seq_request_id: int):
@@ -296,6 +343,7 @@ def confirm(seq_request_id: int):
         projects: dict[int | str, models.Project] = {}
         for project_id, project_name in df[["project_id", "project_name"]].drop_duplicates().values.tolist():
             if not pd.isnull(project_id):
+                project_id = int(project_id)
                 if (project := session.get_project(project_id)) is None:
                     raise Exception(f"Project with id {project_id} does not exist.")
                 

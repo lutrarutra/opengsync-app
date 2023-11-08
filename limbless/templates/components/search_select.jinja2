@@ -1,10 +1,10 @@
-{% macro search_select_field(field, url, selected=None, results=None, include_data_element=True, disabled=false, include_field=None, custom_id=None) -%}
+{% macro search_select_field(field, url, selected=None, results=None, include_data_element=True, disabled=false, include_field=None, custom_id=None, class="") -%}
 {% set field_name = field.name %}
 {% if not custom_id %}
     {% set custom_id = field_name %}
 {% endif %}
 {% set class_str = "form-control search-component search-select-input" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else "") %}
-<div id="{{ custom_id }}-select" class="search-select form-group">
+<div id="{{ custom_id }}-select" class="search-select form-group {{ class }}">
     <label for="{{ custom_id }}">{{ field.label }}</label>
     <div class="input-group">
         <input type="search"
@@ -34,10 +34,10 @@
             {% endfor %}
     {% endif %}
     </div>
+    {% if include_data_element %}
+        {{ field(hidden=False, readonly=True, id=custom_id) }}
+    {% endif %}
 </div>
-{% if include_data_element %}
-    {{ field(hidden=False, readonly=True, id=custom_id) }}
-{% endif %}
 <script>
     // Shows search results when user focuses on search component
     $("#{{ custom_id }}-search").on("focus", function() {

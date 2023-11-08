@@ -8,45 +8,35 @@
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query'), current_query=current_query,
+                        query_url=url_for('seq_requests_htmx.table_query', sample_id=sample.id), current_query=current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Name', column_var='name',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query'), current_query=current_query,
+                        query_url=url_for('seq_requests_htmx.table_query', sample_id=sample.id), current_query=current_query,
                         field_name=field_name, col_size=2,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Status', column_var='status',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=2,
-                    )
-                }}
-                {{
-                    table_col(
-                        target_id='seq_request-table', column_name='Requestor', column_var='requestor_id',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=current_sort, current_sort_order=current_sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Submitted', column_var='submitted_time',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=current_sort, current_sort_order=current_sort_order, col_size=1,
                     )
                 }}
-                <th class="col-2" scope="col">Contact Name</th>
-                <th class="col-1" scope="col">Billing</th>
-                <th class="col-1" scope="col"># Samples</th>
             </tr>
         </thead>
         <tbody>
@@ -55,15 +45,11 @@
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
                 <td>{{ seq_request.status_type.value.name }} {{ seq_request.status_type.value.description | safe }}</td>
-                <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.name }}</td>
                 <td>{{ seq_request.submitted_time_to_str() }}</td>
-                <td {{ tooltip("email: " + seq_request.contact_person.email + (" phone: " + seq_request.contact_person.phone if seq_request.contact_person.phone else "")) }}>{{ seq_request.contact_person.name }}</td>
-                <td {{ tooltip("email: " + seq_request.billing_contact.email + (" phone: " + seq_request.billing_contact.phone if seq_request.billing_contact.phone else "")) }}>{{ seq_request.billing_contact.name }}</td>
-                <td>{{ seq_request.num_samples }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("seq_request-table", "seq_requests_htmx.get", n_pages, active_page, url_args={"sort_by": current_sort, "order": current_sort_order}) }}
+    {{ pagination("seq_request-table", "seq_requests_htmx.get", n_pages, active_page, url_args={"sort_by": current_sort, "order": current_sort_order, "sample_id": sample.id}) }}
 </div>
 <script>init_tooltips();</script>

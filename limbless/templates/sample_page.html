@@ -50,6 +50,12 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#sample-seq_requests-tab" type="button" role="tab"
+            aria-controls="sample-seq_requests-tab" aria-selected="false">
+            Requests</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#sample-metadata-tab" type="button" role="tab"
             aria-controls="sample-metadata-tab" aria-selected="false">
             Metadata</button>
@@ -92,6 +98,14 @@
                     )
                 }}
             </div>
+        </div>
+        <div class="tab-pane fade show" id="sample-seq_requests-tab" role="tabpanel" tabindex="2">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h2>Requests</h2>
+                </div>
+            </div>
+            {% include "components/tables/sample-seq_request.html" %}
         </div>
     </div>
 </div>

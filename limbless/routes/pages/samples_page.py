@@ -49,8 +49,8 @@ def sample_page(sample_id):
 
     with DBSession(db.db_handler) as session:
         sample = session.get_sample(sample_id)
-        libraries = session.get_sample_libraries(sample.id)
-        sample.libraries = libraries
+        libraries = sample.libraries
+        seq_requests = sample.seq_requests
 
     path_list = [
         ("Samples", url_for("samples_page.samples_page")),
@@ -73,6 +73,7 @@ def sample_page(sample_id):
 
     return render_template(
         "sample_page.html", sample_form=sample_form,
-        path_list=path_list, sample=sample, libraries=libraries,
+        path_list=path_list, sample=sample,
+        libraries=libraries, seq_requests=seq_requests,
         selected_organism=sample.organism
     )

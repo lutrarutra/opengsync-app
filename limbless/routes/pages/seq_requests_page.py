@@ -15,7 +15,7 @@ def seq_requests_page():
     seq_request_form.contact_person_name.data = current_user.name
     seq_request_form.contact_person_email.data = current_user.email
 
-    current_sort = "submitted_time"
+    current_sort = "id"
 
     with DBSession(db.db_handler) as session:
         if not current_user.is_insider():

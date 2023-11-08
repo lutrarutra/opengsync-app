@@ -32,21 +32,22 @@ class Sample(SQLModel, SearchResult, table=True):
 
     seq_requests: list["SeqRequest"] = Relationship(
         back_populates="samples", link_model=SeqRequestSampleLink,
-        sa_relationship_kwargs={"lazy": "noload"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     owner_id: int = Field(nullable=False, foreign_key="user.id")
     owner: "User" = Relationship(
-        back_populates="samples", sa_relationship_kwargs={"lazy": "joined"}
+        back_populates="samples",
+        sa_relationship_kwargs={"lazy": "joined"}
     )
 
     pools: list["Pool"] = Relationship(
-        back_populates="samples",
-        link_model=SamplePoolLink
+        back_populates="samples", link_model=SamplePoolLink,
+        sa_relationship_kwargs={"lazy": "select"}
     )
     libraries: list["Library"] = Relationship(
         back_populates="sample",
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id"]

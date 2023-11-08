@@ -1,5 +1,6 @@
 {% from "components/search_select.jinja2" import search_select_field %}
 {% from "components/form_group.jinja2" import form_group %}
+{% from "components/categorical_mapping.jinja2" import categorical_mapping_with_new_field %}
 
 <div id="project-select-form-container" class="modal-content">
     <div class="modal-header">
@@ -8,17 +9,14 @@
     </div>
     <div class="modal-body">
         <form id="project-select-form">
-            {{ project_select_form.csrf_token() }}
             {{    
-                search_select_field(
-                    field=project_select_form.existing_project,
+                categorical_mapping_with_new_field(
+                    form=project_mapping_form,
+                    categories=categories,
                     url=url_for('projects_htmx.query'),
                     selected=selected,
-                    results=results,
                 )
             }}
-            {{ form_group(field=project_select_form.new_project) }}
-            {{ project_select_form.data(hidden=True, readonly=True) }}
         </form>
     </div>
     <div class="modal-footer">

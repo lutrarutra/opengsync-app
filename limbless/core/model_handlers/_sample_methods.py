@@ -217,8 +217,7 @@ def query_samples(
     self, word: str,
     user_id: Optional[int] = None,
     project_id: Optional[int] = None,
-    library_id: Optional[int] = None,
-    exclude_library_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Sample]:
 
@@ -238,25 +237,12 @@ def query_samples(
             models.Sample.project_id == project_id
         )
 
-    if library_id is not None:
+    if seq_request_id is not None:
         query = query.join(
-            models.LibrarySampleLink,
-            models.Sample.id == models.LibrarySampleLink.sample_id,
-            isouter=True
+            models.SeqRequestSampleLink,
+            models.Sample.id == models.SeqRequestSampleLink.sample_id
         ).where(
-            models.LibrarySampleLink.library_id == library_id
-        )
-
-    if exclude_library_id is not None:
-        query = query.join(
-            models.LibrarySampleLink,
-            models.Sample.id == models.LibrarySampleLink.sample_id,
-            isouter=True
-        ).where(
-            or_(
-                models.LibrarySampleLink.library_id != exclude_library_id,
-                models.LibrarySampleLink.library_id == None
-            )
+            models.SeqRequestSampleLink.seq_request_id == seq_request_id
         )
 
     query = query.order_by(

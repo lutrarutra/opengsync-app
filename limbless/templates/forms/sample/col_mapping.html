@@ -33,6 +33,8 @@
 </form>
 <script>
     var required_fields = {{ required_fields | safe }};
+    var optional_fields = {{ optional_fields | safe }};
+
     function update_missing_list() {
         var selected_fields = [];
         $(".select-field").each(function() {
@@ -80,7 +82,9 @@
     $(".select-field").on("change", function() {
         var array = [];
         $(".select-field").each(function() {
-            array.push($(this).find(":selected").val())
+            if (!optional_fields.includes($(this).find(":selected").val())){
+                array.push($(this).find(":selected").val());
+            }
         });
 
         if (required_fields.sort().join("") === array.sort().join("")) {

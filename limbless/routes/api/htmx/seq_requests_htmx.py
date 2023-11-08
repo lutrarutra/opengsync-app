@@ -49,6 +49,23 @@ def get(page: int):
 
         seq_requests, n_pages = db.db_handler.get_seq_requests(limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
         context["user"] = user
+
+    if (sample_id := request.args.get("sample_id")) is not None:
+        template = "components/tables/sample-seq_request.html"
+        try:
+            sample_id = int(sample_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        if (sample := db.db_handler.get_sample(sample_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        if not current_user.is_insider():
+            if sample.owner_id != current_user.id:
+                return abort(HttpResponse.FORBIDDEN.value.id)
+        
+        seq_requests, n_pages = db.db_handler.get_seq_requests(limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending)
+        context["sample"] = sample
     else:
         template = "components/tables/seq_request.html"
         with DBSession(db.db_handler) as session:
@@ -56,7 +73,7 @@ def get(page: int):
                 user_id = current_user.id
             else:
                 user_id = None
-            seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, show_drafts=False)
+            seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, show_drafts=True)
 
     return make_response(
         render_template(

@@ -1,6 +1,6 @@
 from .JobForm import JobForm
-from .sample_forms import SampleSelectForm, SampleForm, SampleColSelectForm, SampleColTableForm, SampleConfirmForm,\
-    SampleProjectSelectForm, OrganismMappingForm
+from .sample_forms import SampleSelectForm, SampleForm, SampleColSelectForm, SampleColTableForm, SampleConfirmForm, \
+    OrganismMappingForm, ProjectMappingForm
 from .ProjectForm import ProjectForm
 from .ExperimentForm import ExperimentForm
 from .library_forms import LibraryForm, SelectLibraryForm
@@ -13,4 +13,4 @@ from .select_forms import SelectLibraryForm
 from .SequencerForm import SequencerForm
 from .pool_forms import PoolForm
 
-from .categorical_mapping import CategoricalMappingField
+from .categorical_mapping import CategoricalMappingField, CategoricalMappingFieldWithNewCategory

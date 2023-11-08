@@ -1,5 +1,6 @@
 .btn-primary,
-.btn-primary.show {
+.btn-primary.show,
+.btn-primary.disabled {
     background-color: $cemm-blue;
     color: $white;
     border: none;
@@ -20,7 +21,8 @@
 }
 
 .btn-secondary,
-.btn-secondary.show {
+.btn-secondary.show,
+.btn-secondar.disabled {
     background-color: $cemm-secondary;
     border: none;
     color: $white;
@@ -40,7 +42,8 @@
 }
 
 .btn-warning,
-.btn-warning.show {
+.btn-warning.show,
+.btn-warning.disabled {
     background-color: $cemm-yellow;
     border: none;
 }
@@ -59,7 +62,8 @@
 }
 
 .btn-danger,
-.btn-danger.show {
+.btn-danger.show,
+.btn-danger.disabled {
     background-color: $cemm-red;
     border: none;
 }
@@ -78,7 +82,8 @@
 }
 
 .btn-success,
-.btn-success.show {
+.btn-success.show,
+.btn-success.disabled {
     background-color: $cemm-green;
     border: none;
 }

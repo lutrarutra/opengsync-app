@@ -1,4 +1,5 @@
 {% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
 {% macro categorical_mapping(form, categories, url, selected) -%}
@@ -35,5 +36,38 @@
         </td>
     {% endfor %}
     {{ form.data(class="form-control", hidden=True, readonly=True) }}
+    {{ form.csrf_token(hidden=True) }}
+{%- endmacro %}
+
+{% macro categorical_mapping_with_new_field(form, categories, url, selected) -%}
+    {% for category in categories %}
+        {% set sub_form = form.fields.entries[loop.index-1] %}
+        <td>
+            <div class="row">
+                {{ metadata_group(sub_form.raw_category.label.text, sub_form.raw_category.data, class="col-2") }}
+                {{ 
+                    search_select_field(
+                        field=sub_form.category,
+                        url=url,
+                        selected=selected[loop.index-1],
+                        class="col-5"
+                    ) 
+                }}
+                {{  form_group(sub_form.new_category, class="col-5") }}
+            </div>
+            {{ sub_form.category(hidden=true, readonly=True) }}
+            {{ sub_form.csrf_token() }}
+        </td>
+    <script>
+        $("#fields-{{ loop.index0 }}-new_category").on("input", function() {
+            $("#fields-{{ loop.index0 }}-category-search").val(null);
+            $("#fields-{{ loop.index0 }}-category").val(null);
+        });
+        $("#fields-{{ loop.index0 }}-category").on("change", function() {
+            $("#fields-{{ loop.index0 }}-new_category").val(null);
+        });
+    </script>
+    {% endfor %}
+    {{ form.data(class="form-control", hidden=true, readonly=True) }}
     {{ form.csrf_token(hidden=True) }}
 {%- endmacro %}

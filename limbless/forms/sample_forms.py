@@ -11,7 +11,7 @@ from wtforms.validators import Optional as OptionalValidator
 from .. import logger, db, models
 from ..core.DBHandler import DBHandler
 from ..core.DBSession import DBSession
-from .categorical_mapping import CategoricalMappingField
+from .categorical_mapping import CategoricalMappingField, CategoricalMappingFieldWithNewCategory
 
 
 class SampleForm(FlaskForm):
@@ -74,7 +74,7 @@ class SampleColSelectForm(FlaskForm):
         ("project", "Project"),
     ]
     select_field = SelectField(
-        choices=required_fields,
+        choices=required_fields + optional_fields,
     )
 
 
@@ -88,10 +88,9 @@ class SampleColTableForm(FlaskForm):
 ###
 
 
-# 3. Select existing project for samples
-class SampleProjectSelectForm(FlaskForm):
-    existing_project = IntegerField("Project", validators=[OptionalValidator()])
-    new_project = StringField("New Project", validators=[OptionalValidator(), Length(min=6, max=64)])
+# 3. Map sample to existing/new projects
+class ProjectMappingForm(FlaskForm):
+    fields = FieldList(FormField(CategoricalMappingFieldWithNewCategory))
     data = TextAreaField(validators=[DataRequired()])
 
     def custom_validate(self, db_handler: DBHandler, user_id: int):
@@ -100,26 +99,21 @@ class SampleProjectSelectForm(FlaskForm):
             return False, self
         
         with DBSession(db_handler) as session:
-            if (user := session.get_user(user_id)) is None:
-                logger.error(f"User with id {user_id} does not exist.")
-                return False, self
-            if (not self.existing_project.data) and (not self.new_project.data):
-                self.new_project.errors = ("Please select or create a project.",)
-                validated = False
-            if self.existing_project.data and self.new_project.data:
-                self.new_project.errors = ("Please select or create a project, not both.",)
-                validated = False
-            if self.existing_project.data:
-                if (project := session.get_project(self.existing_project.data)) is None:
-                    logger.error(f"Project with id {self.existing_project.data} does not exist.")
-                    return False, self
-                if project.owner_id != user_id:
-                    self.existing_project.errors = ("You do not have access to this project.",)
+            user_projects = session.get_user(user_id).projects
+            user_project_names = [project.name for project in user_projects]
+            for field in self.fields:
+                if field.category.data is None and not field.new_category.data:
+                    field.new_category.errors = ("Please select or create a project.",)
+                    field.category.errors = ("Please select or create a project.",)
                     validated = False
-            if self.new_project.data:
-                if self.new_project.data in [project.name for project in user.projects]:
-                    self.new_project.errors = ("You already have a project with this name.",)
+                if field.category.data and field.new_category.data:
+                    field.new_category.errors = ("Please select or create a project, not both.",)
+                    field.category.errors = ("Please select or create a project, not both.",)
                     validated = False
+                if field.new_category.data:
+                    if field.new_category.data in user_project_names:
+                        field.new_category.errors = ("You already have a project with this name.",)
+                        validated = False
 
         return validated, self
 
@@ -145,6 +139,7 @@ class OrganismMappingForm(FlaskForm):
             project_samples: dict[int, dict[str, models.Sample]] = {}
             for project_id in df["project_id"].unique():
                 if not pd.isnull(project_id):
+                    project_id = int(project_id)
                     if (project := session.get_project(project_id)) is None:
                         raise Exception(f"Project with id {project_id} does not exist.")
                     
@@ -155,17 +150,18 @@ class OrganismMappingForm(FlaskForm):
 
         df["sample_id"] = None
         df["tax_id"] = None
-        df["project_id"] = None
         df["duplicate"] = False
 
         for i, row in df.iterrows():
-            if row["sample_name"] in project_samples.keys():
-                project = projects[row["project_id"]]
+            if row["project_id"] is None:
+                _project_samples = {}
+            else:
                 _project_samples = project_samples[row["project_id"]]
+            if row["sample_name"] in _project_samples.keys():
+                project = projects[row["project_id"]]
 
                 df.at[i, "sample_id"] = _project_samples[row["sample_name"]].id
                 df.at[i, "tax_id"] = _project_samples[row["sample_name"]].organism.tax_id
-                df.at[i, "project_id"] = _project_samples[row["sample_name"]].project_id
 
             if row["sample_name"] in seq_request_samples.keys():
                 df.at[i, "duplicate"] = True
@@ -190,14 +186,14 @@ class SampleConfirmForm(FlaskForm):
 
         return validated, self
     
-    def parse_samples(self, seq_request_id: int, df: Optional[pd.DataFrame] = None) -> list[Optional[dict[str, str | int | None]]]:
+    def parse_samples(self, seq_request_id: int, df: Optional[pd.DataFrame] = None) -> list[dict[str, str | int | None]]:
         if df is None:
             df = pd.read_csv(StringIO(self.data.data), sep="\t", index_col=False, header=0)
 
         idx = df["sample_name"].duplicated(keep=False)
         df.loc[idx, "sample_name"] = df.loc[idx, "sample_name"] + "." + df.loc[idx, :].groupby("sample_name").cumcount().add(1).astype(str)
 
-        samples: list[Optional[dict[str, str | int | None]]] = []
+        samples: list[dict[str, str | int | None]] = []
         
         with DBSession(db.db_handler) as session:
             if (seq_request := session.get_seq_request(seq_request_id)) is None:
@@ -207,6 +203,7 @@ class SampleConfirmForm(FlaskForm):
             project_samples: dict[int, dict[str, models.Sample]] = {}
             for project_id in df["project_id"].unique():
                 if not pd.isnull(project_id):
+                    project_id = int(project_id)
                     if (project := session.get_project(project_id)) is None:
                         raise Exception(f"Project with id {project_id} does not exist.")
                     
@@ -215,7 +212,6 @@ class SampleConfirmForm(FlaskForm):
             
             seq_request_samples = dict([(sample.name, sample) for sample in seq_request.samples])
 
-        selected: list[str] = []
         for i, row in df.iterrows():
             # Check if sample names are unique in project
             data = {
@@ -225,23 +221,22 @@ class SampleConfirmForm(FlaskForm):
                 "tax_id": row["tax_id"],
                 "error": None,
                 "info": "",
-                "sample_id": row["sample_id"],
+                "sample_id": int(row["sample_id"]) if not pd.isnull(row["sample_id"]) else None,
+                "project_id": int(row["project_id"]) if not pd.isnull(row["project_id"]) else None,
                 "project_name": row["project_name"],
             }
 
             _project_sampels = project_samples[row["project_id"]] if row["project_id"] in project_samples.keys() else {}
 
             if row["sample_name"] in seq_request_samples.keys():
-                data["error"] = f"Error: Sample name {row['sample_name']} already exists in seq request."
+                data["error"] = f"Error: Sample name {row['sample_name']} already exists in this request."
             elif row["sample_name"] in _project_sampels.keys():
                 data["info"] = "Existing sample found from project."
-                selected.append(str(int(i) + 1))
             else:
-                selected.append(str(int(i) + 1))
+                data["info"] = "New sample."
 
             samples.append(data)
 
-        self.selected_samples.data = ",".join(selected)
         self.data.data = df.to_csv(sep="\t", index=False, header=True)
 
         return samples

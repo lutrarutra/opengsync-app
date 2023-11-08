@@ -55,7 +55,6 @@ def get(page):
                 user_id = None
             projects, n_pages = session.get_projects(limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by="id", descending=descending)
 
-
     return make_response(
         render_template(
             template, projects=projects,
