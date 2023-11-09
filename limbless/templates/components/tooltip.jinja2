@@ -1,5 +1,5 @@
-{% macro tooltip(text, position="bottom") -%}
+{% macro tooltip(text, position="bottom", category="primary") -%}
 data-bs-toggle="tooltip" data-bs-placement="{{ position }}"
-data-bs-custom-class="custom-tooltip"
+data-bs-custom-class="{{category}}-tooltip"
 data-bs-title="{{ text }}"
 {%- endmacro %}

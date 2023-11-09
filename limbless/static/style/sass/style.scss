@@ -54,6 +54,7 @@ $progress-height: 1.3rem !default;
 @import "./navbar.scss";
 @import "./responsive.scss";
 @import "./colors.scss";
+@import "./tooltip.scss";
 
 
 body {
@@ -95,23 +96,6 @@ body {
     .seq_request-banner:hover {
         background-color: $gray-300;
     }
-}
-
-
-
-.custom-tooltip {
-  --bs-tooltip-bg: #222529;
-  --bs-tooltip-color: #fff;
-  .tooltip-row {
-    display: flex;
-    flex-direction: column;
-    span {
-        display: flex;
-        flex-direction: column;
-        overflow-x: hidden;
-        white-space: nowrap;
-    }
-  }
 }
 
 #right-click-bg {

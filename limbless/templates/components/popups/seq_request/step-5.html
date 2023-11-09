@@ -7,9 +7,7 @@
     </div>
     <div class="modal-body">
         <div class="input-help">
-            <p>
-                Click on row to include/exclude sample.
-            </p>
+            <p>Hover row to see additional info</p>
         </div>
         <table class="table table-hover table-cursor">
             <thead>
@@ -25,7 +23,15 @@
             <tbody>
                 {% for sample_data in samples %}
                 {% set sample_id = sample_data["id"] %}
-                <tr {{ tooltip(sample_data["error"] if sample_data["error"] else sample_data["info"]) }}
+                {% if sample_data["error"] %}
+                <tr {{ tooltip(sample_data["error"], category="error") }}
+                {% elif sample_data["warning"] %}
+                <tr {{ tooltip(sample_data["warning"], category="warning") }}
+                {% elif sample_data["info"] %}
+                <tr {{ tooltip(sample_data["info"]) }}
+                {% else %}
+                <tr
+                {% endif %}
                 class="{{ 'disabled' if sample_data['error'] }} sample-check" onclick="select_row('{{ sample_id }}');">
                     <th scope="row">{{ sample_id }}</th>
                     <td>
@@ -59,7 +65,7 @@
     <div class="modal-footer">
         <button type="button" class="btn btn-success" hx-target="#sample-select-container" hx-swap="outerHTML"
             hx-include="#project-sample-select-form" id="project-sample-select-form-btn"
-            hx-post="{{ url_for('seq_request_form_htmx.confirm', seq_request_id=seq_request.id) }}">
+            hx-post="{{ url_for('seq_request_form_htmx.confirm_samples', seq_request_id=seq_request.id) }}">
             Confirm
         </button>
 

@@ -302,9 +302,9 @@ def map_organisms(seq_request_id: int):
 
 
 # 5. Confirm samples
-@seq_request_form_htmx.route("<int:seq_request_id>/confirm", methods=["POST"])
+@seq_request_form_htmx.route("<int:seq_request_id>/confirm_samples", methods=["POST"])
 @login_required
-def confirm(seq_request_id: int):
+def confirm_samples(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
@@ -330,8 +330,20 @@ def confirm(seq_request_id: int):
     selected_samples_ids = sample_select_form.selected_samples.data.removeprefix(",").split(",")
     selected_samples_ids = [int(i) - 1 for i in selected_samples_ids if i != ""]
 
-    logger.debug(selected_samples_ids)
     df = df.loc[selected_samples_ids, :]
+
+    if not df["index_1"].isna().all():
+        index_check_form = forms.CheckIndexForm()
+        samples_data = index_check_form.init(df)
+        return make_response(
+            render_template(
+                "components/popups/seq_request/step-6.html",
+                seq_request=seq_request,
+                index_check_form=index_check_form,
+                samples_data=samples_data
+            )
+        )
+
     df["sample_id"] = df["sample_id"].astype("Int64")
     df["project_id"] = df["project_id"].astype("Int64")
 
@@ -395,3 +407,12 @@ def confirm(seq_request_id: int):
             seq_request_id=seq_request.id
         ),
     )
+
+
+# 6. Check indices
+@seq_request_form_htmx.route("<int:seq_request_id>/check_indices", methods=["POST"])
+@login_required
+def check_indices(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    

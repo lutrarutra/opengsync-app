@@ -1,0 +1,32 @@
+.primary-tooltip,
+.warning-tooltip,
+.error-tooltip {
+    opacity: 0.95 !important;
+    .tooltip-row {
+        display: flex;
+        flex-direction: column;
+        span {
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+    }
+}
+
+.primary-tooltip {
+  --bs-tooltip-bg: #00aecc;
+  --bs-tooltip-color: #fff;
+}
+
+.warning-tooltip {
+  --bs-tooltip-bg: #ffc107;
+  --bs-tooltip-color: #000;
+
+}
+
+.error-tooltip {
+  --bs-tooltip-bg: #e95e30;
+  --bs-tooltip-color: #fff;
+}
+

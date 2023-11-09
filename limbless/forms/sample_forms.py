@@ -3,7 +3,7 @@ from io import StringIO
 import pandas as pd
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, FieldList, FormField, TextAreaField, IntegerField
+from wtforms import StringField, SelectField, FieldList, FormField, TextAreaField, IntegerField, BooleanField
 from wtforms.validators import DataRequired, Length
 from wtforms.validators import Optional as OptionalValidator
 
@@ -224,6 +224,9 @@ class SampleConfirmForm(FlaskForm):
                 "sample_id": int(row["sample_id"]) if not pd.isnull(row["sample_id"]) else None,
                 "project_id": int(row["project_id"]) if not pd.isnull(row["project_id"]) else None,
                 "project_name": row["project_name"],
+                "index_1": row["index_1"],
+                "index_2": row["index_2"],
+                "adapter": row["adapter"],
             }
 
             _project_sampels = project_samples[row["project_id"]] if row["project_id"] in project_samples.keys() else {}
@@ -240,3 +243,47 @@ class SampleConfirmForm(FlaskForm):
         self.data.data = df.to_csv(sep="\t", index=False, header=True)
 
         return samples
+    
+
+# 6. Check indices
+class CheckIndexForm(FlaskForm):
+    data = TextAreaField(validators=[DataRequired()])
+    reverse_complement_index_1 = BooleanField("Reverse complement index 1")
+    reverse_complement_index_2 = BooleanField("Reverse complement index 2")
+
+    def custom_validate(self):
+        validated = self.validate()
+        if not validated:
+            return False, self
+
+        return validated, self
+    
+    def init(self, df: pd.DataFrame) -> list[dict[str, str | int | None]]:
+        samples_data: list[dict[str, str | int | None]] = []
+        
+        reused_indices = df[["index_1", "index_2"]].duplicated(keep=False).values.tolist()
+
+        for i, row in df.iterrows():
+            # Check if sample names are unique in project
+            data = {
+                "id": int(i) + 1,
+                "name": row["sample_name"],
+                "error": None,
+                "warning": None,
+                "info": "",
+                "index_1": row["index_1"],
+                "index_2": row["index_2"],
+                "adapter": row["adapter"],
+            }
+
+            if data["index_1"] == data["index_2"]:
+                data["warning"] = "Warning: Index 1 and index 2 are the same."
+
+            if reused_indices[i]:
+                data["warning"] = "Index combination is reused in two or more samples."
+
+            samples_data.append(data)
+
+        self.data.data = df.to_csv(sep="\t", index=False, header=True)
+
+        return samples_data

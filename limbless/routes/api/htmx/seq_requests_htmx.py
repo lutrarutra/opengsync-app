@@ -192,14 +192,14 @@ def submit(seq_request_id: int):
             return abort(HttpResponse.NOT_FOUND.value.id)
         
         if seq_request.requestor_id != current_user.id:
-            if seq_request.requestor.role_type not in [UserRole.ADMIN]:
+            if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
         
         if seq_request.status_type != SeqRequestStatus.DRAFT:
             logger.debug(seq_request.status_type)
             return abort(HttpResponse.BAD_REQUEST.value.id)
         
-        if len(seq_request.libraries) == 0:
+        if seq_request.num_samples == 0:
             return abort(HttpResponse.FORBIDDEN.value.id)
         
         session.update_seq_request(
