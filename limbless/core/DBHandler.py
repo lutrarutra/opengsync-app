@@ -80,9 +80,9 @@ class DBHandler():
         get_num_organisms
     )
 
-    from .model_handlers._seq_index_methods import (
-        create_seq_index, get_seqindex,
-        get_num_seqindices, get_seqindices
+    from .model_handlers._barcode_methods import (
+        create_barcode, get_seqindex,
+        get_num_seqbarcodes, get_seqbarcodes
     )
 
     from .model_handlers._index_kit_methods import (
@@ -101,8 +101,8 @@ class DBHandler():
         create_contact
     )
 
-    from .model_handlers._seq_adapter_methods import (
-        create_seq_adapter, get_adapter, get_adapters,
+    from .model_handlers._adapter_methods import (
+        create_adapter, get_adapter, get_adapters,
         get_adapter_by_name, query_adapters, get_num_adapters
     )
 

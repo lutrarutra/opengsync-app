@@ -68,8 +68,8 @@
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-success" hx-target="#index-check-container" hx-swap="outerHTML"
-            hx-include="#project-index-check-form" id="project-index-check-form-btn"
-            hx-post="{{ url_for('seq_request_form_htmx.check_indices', seq_request_id=seq_request.id) }}">
+            hx-include="#index-check-form" id="index-check-form-btn"
+            hx-post="{{ url_for('seq_request_form_htmx.check_barcodes', seq_request_id=seq_request.id) }}">
             Submit
         </button>
 

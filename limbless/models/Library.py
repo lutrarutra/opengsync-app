@@ -4,13 +4,12 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import LibraryType
 from ..tools import SearchResult
-from .Links import ExperimentLibraryLink, SeqRequestSampleLink
+from .Links import ExperimentLibraryLink
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
     from .Sample import Sample
     from .Experiment import Experiment
-    from .SeqRequest import SeqRequest
 
 
 class LibraryTypeId(SQLModel, table=True):
@@ -32,12 +31,12 @@ class Library(SQLModel, SearchResult, table=True):
 
     index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
     index_kit: Optional["IndexKit"] = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     experiments: list["Experiment"] = Relationship(
         back_populates="libraries",
-        sa_relationship_kwargs={"lazy": "noload"},
+        sa_relationship_kwargs={"lazy": "select"},
         link_model=ExperimentLibraryLink
     )
 

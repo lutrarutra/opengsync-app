@@ -19,7 +19,7 @@ class IndexSeqForm(FlaskForm):
 class IndexForm(FlaskForm):
     sample = IntegerField("Sample", validators=[DataRequired()])
     adapter = IntegerField("Adapter", validators=[Optional()])
-    indices = FieldList(FormField(IndexSeqForm), min_entries=0)
+    barcodes = FieldList(FormField(IndexSeqForm), min_entries=0)
 
     def custom_validate(
         self,
@@ -33,7 +33,7 @@ class IndexForm(FlaskForm):
         logger.debug(f"Validated: {validated}")
 
         if not validated:
-            if "indices" in self.errors.keys():
+            if "barcodes" in self.errors.keys():
                 self.adapter.errors = ("Adapter is required",)
             return False, self
 
@@ -57,32 +57,32 @@ class IndexForm(FlaskForm):
                         self.sample.errors = ("Sample is not in this library",)
                         validated = False
 
-            # TODO: check that seq_index_id is not used in the library
+            # TODO: check that barcode_id is not used in the library
             for sample in library_samples:
-                logger.debug(sample.indices)
+                logger.debug(sample.barcodes)
 
         return validated, self
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
 
 def __crete_dual_index_form() -> IndexForm:
     form = IndexForm()
-    form.indices.append_entry()
-    form.indices.entries[-1].sequence.label.text = "Index i7 Sequence"
-    form.indices.append_entry()
-    form.indices.entries[-1].sequence.label.text = "Index i5 Sequence"
+    form.barcodes.append_entry()
+    form.barcodes.entries[-1].sequence.label.text = "Index i7 Sequence"
+    form.barcodes.append_entry()
+    form.barcodes.entries[-1].sequence.label.text = "Index i5 Sequence"
     return form
 
 
 def __create_atac_index_form() -> IndexForm:
     form = IndexForm()
-    form.indices.append_entry()
-    form.indices.entries[-1].sequence.label.text = "Index 1 Sequence"
-    form.indices.append_entry()
-    form.indices.entries[-1].sequence.label.text = "Index 2 Sequence"
-    form.indices.append_entry()
-    form.indices.entries[-1].sequence.label.text = "Index 3 Sequence"
-    form.indices.append_entry()
-    form.indices.entries[-1].sequence.label.text = "Index 4 Sequence"
+    form.barcodes.append_entry()
+    form.barcodes.entries[-1].sequence.label.text = "Index 1 Sequence"
+    form.barcodes.append_entry()
+    form.barcodes.entries[-1].sequence.label.text = "Index 2 Sequence"
+    form.barcodes.append_entry()
+    form.barcodes.entries[-1].sequence.label.text = "Index 3 Sequence"
+    form.barcodes.append_entry()
+    form.barcodes.entries[-1].sequence.label.text = "Index 4 Sequence"
     return form
 
 

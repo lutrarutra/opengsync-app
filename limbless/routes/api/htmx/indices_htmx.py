@@ -1,39 +1,44 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from .... import db, logger, forms, models, PAGE_LIMIT
 from ....core import DBSession
 from ....categories import LibraryType, HttpResponse
 
-indices_htmx = Blueprint("indices_htmx", __name__, url_prefix="/api/indices/")
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
+
+barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/barcodes/")
 
 
-@indices_htmx.route("get/<int:page>", methods=["GET"])
+@barcodes_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
     descending = order == "desc"
 
-    if sort_by not in models.SeqIndex.sortable_fields:
+    if sort_by not in models.Barcode.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
     with DBSession(db.db_handler) as session:
-        indices, n_pages = session.get_seqindices(limit=PAGE_LIMIT, offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
+        barcodes, n_pages = session.get_seqbarcodes(limit=PAGE_LIMIT, offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
 
     return make_response(
         render_template(
-            "components/tables/index.html", indices=indices,
+            "components/tables/index.html", barcodes=barcodes,
             n_pages=n_pages, active_page=page,
             current_sort=sort_by, current_sort_order=order
         ), push_url=False
     )
 
 
-@indices_htmx.route("query_index_kits", methods=["POST"])
+@barcodes_htmx.route("query_index_kits", methods=["POST"])
 @login_required
 def query_index_kits():
     library_type_id: Optional[int] = None
@@ -70,10 +75,10 @@ def query_index_kits():
     )
 
 
-@indices_htmx.route("query/<int:index_kit_id>", methods=["POST"], defaults={"exclude_library_id": None})
-@indices_htmx.route("query_seq_adapters/<int:index_kit_id>/<int:exclude_library_id>", methods=["POST"])
+@barcodes_htmx.route("query/<int:index_kit_id>", methods=["POST"], defaults={"exclude_library_id": None})
+@barcodes_htmx.route("query_adapters/<int:index_kit_id>/<int:exclude_library_id>", methods=["POST"])
 @login_required
-def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = None):
+def query_adapters(index_kit_id: int, exclude_library_id: Optional[int] = None):
     field_name = next(iter(request.form.keys()))
     
     if (word := request.form.get(field_name)) is None:
@@ -93,9 +98,9 @@ def query_seq_adapters(index_kit_id: int, exclude_library_id: Optional[int] = No
     )
 
 
-@indices_htmx.route("select_indices/<int:library_id>", methods=["POST"])
+@barcodes_htmx.route("select_barcodes/<int:library_id>", methods=["POST"])
 @login_required
-def select_indices(library_id: int):
+def select_barcodes(library_id: int):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
@@ -123,9 +128,9 @@ def select_indices(library_id: int):
 
     selected_adapter = db.db_handler.get_adapter(selected_adapter_id)
 
-    for i, entry in enumerate(index_form.indices.entries):
-        entry.index_seq_id.data = selected_adapter.indices[i].id
-        entry.sequence.data = selected_adapter.indices[i].sequence
+    for i, entry in enumerate(index_form.barcodes.entries):
+        entry.index_seq_id.data = selected_adapter.barcodes[i].id
+        entry.sequence.data = selected_adapter.barcodes[i].sequence
 
     return make_response(
         render_template(

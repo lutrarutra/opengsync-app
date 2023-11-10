@@ -6,18 +6,18 @@ from ..tools import SearchResult
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
-    from .SeqAdapter import SeqAdapter
+    from .Adapter import Adapter
 
 
-class SeqIndex(SQLModel, SearchResult, table=True):
+class Barcode(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     sequence: str = Field(nullable=False, max_length=128, index=True)
     workflow: Optional[str] = Field(nullable=True, max_length=16)
     type: str = Field(nullable=False, max_length=16, index=True)
 
-    adapter_id: int = Field(nullable=False, foreign_key="seqadapter.id")
-    adapter: "SeqAdapter" = Relationship(
-        back_populates="indices",
+    adapter_id: int = Field(nullable=False, foreign_key="adapter.id")
+    adapter: "Adapter" = Relationship(
+        back_populates="barcodes",
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
@@ -29,7 +29,7 @@ class SeqIndex(SQLModel, SearchResult, table=True):
     sortable_fields: ClassVar[List[str]] = ["id", "sequence", "type", "adapter_id", "index_kit_id"]
 
     def __str__(self):
-        return f"SeqIndex('{self.sequence}', {self.type})"
+        return f"Barcode('{self.sequence}', {self.type})"
 
     def __repr__(self) -> str:
         return f"{self.sequence} [{self.type}]"

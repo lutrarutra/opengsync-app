@@ -109,7 +109,7 @@ def is_sample_in_library(
 def link_sample_pool(
     self,
     pool_id: int, sample_id: int,
-    seq_index_id: Optional[int] = None,
+    barcode_id: Optional[int] = None,
     commit: bool = True
 ) -> models.SamplePoolLink:
 
@@ -117,15 +117,15 @@ def link_sample_pool(
     if not self._session:
         self.open_session()
 
-    if seq_index_id is None:
-        seq_index_id = 0
+    if barcode_id is None:
+        barcode_id = 0
 
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     if (sample := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    if (_ := self._session.get(models.SeqIndex, seq_index_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqIndex with id {seq_index_id} does not exist")
+    if (_ := self._session.get(models.Barcode, barcode_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqIndex with id {barcode_id} does not exist")
 
     if self._session.query(models.SamplePoolLink).where(
         and_(

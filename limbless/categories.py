@@ -21,8 +21,21 @@ class UserRole(Enum, metaclass=ExtendedEnumMeta):
 
 
 class LibraryType(Enum, metaclass=ExtendedEnumMeta):
-    SINGLE_INDEX = DescriptiveEnum(1, "Single Index")
-    DUAL_INDEX = DescriptiveEnum(2, "Dual Index")
+    CUSTOM = DescriptiveEnum(0, "Custom")
+    GENE_EXPRESSION = DescriptiveEnum(1, "Gene Expression", "GEX")
+    MULTIPLEXING_CAPTURE = DescriptiveEnum(2, "Multiplexing Capture", "HTO")
+    CHROMATIN_ACCESSIBILITY = DescriptiveEnum(3, "Chromatin Accessibility", "ATAC")
+    SPATIAL_TRANSCRIPTOMIC = DescriptiveEnum(4, "Spatial transcriptomic", "VISIUM")
+    VDJ_B = DescriptiveEnum(5, "VDJ-B", "VDJ-B")
+    VDJ_T = DescriptiveEnum(6, "VDJ-T", "VDJ-T")
+    VDJ_T_GD = DescriptiveEnum(7, "VDJ-T-GD", "VDJ-T-GD")
+    ANTIBODY_CAPTURE = DescriptiveEnum(8, "Antibody Capture", "ABC")
+    CRISPR = DescriptiveEnum(9, "CRISPR", "CRISPR")
+
+
+class IndexKitType(Enum, metaclass=ExtendedEnumMeta):
+    CUSTOM = DescriptiveEnum(0, "Custom")
+    TENX = DescriptiveEnum(1, "10x")
 
 
 class OrganismCategory(Enum, metaclass=ExtendedEnumMeta):

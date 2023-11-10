@@ -6,14 +6,14 @@ from ..tools import SearchResult
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
-    from .SeqIndex import SeqIndex
+    from .Barcode import Barcode
 
 
-class SeqAdapter(SQLModel, SearchResult, table=True):
+class Adapter(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=128, index=True)
 
-    num_indices: int = Field(nullable=False, default=0)
+    num_barcodes: int = Field(nullable=False, default=0)
 
     index_kit_id: int = Field(nullable=False, foreign_key="indexkit.id")
     index_kit: "IndexKit" = Relationship(
@@ -21,7 +21,7 @@ class SeqAdapter(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "joined"},
     )
 
-    indices: list["SeqIndex"] = Relationship(
+    barcodes: list["Barcode"] = Relationship(
         back_populates="adapter",
         sa_relationship_kwargs={"lazy": "joined"},
     )

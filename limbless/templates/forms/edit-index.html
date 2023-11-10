@@ -9,20 +9,20 @@
     {{
         search_select_field(
             index_form.adapter,
-            url_for('indices_htmx.query_seq_adapters', index_kit_id=library.index_kit_id),
+            url_for('barcodes_htmx.query_adapters', index_kit_id=library.index_kit_id),
             selected=selected_adapter.name if selected_adapter is defined,
             results=available_adapters, include_data_element=False,
             custom_id="edit-adapter"
         )
     }}
     <input id="edit-adapter" name="adapter" hx-target="#edit-index-form" hx-swap="outerHTML" hx-include="#index-form"
-        hx-trigger="change" hx-post="{{ url_for('indices_htmx.select_indices', library_id=library.id) }}"
+        hx-trigger="change" hx-post="{{ url_for('barcodes_htmx.select_barcodes', library_id=library.id) }}"
         value="{{ selected_adapter.id if selected_adapter is defined }}" type="number" readonly=true>
     {% endif %}
 
 
-    <div class="indices-container">
-        {% for index_seq_form in index_form.indices %}
+    <div class="barcodes-container">
+        {% for index_seq_form in index_form.barcodes %}
             <div class="form-group">
                 {{ index_seq_form.sequence.label }}
                 {{ 

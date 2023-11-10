@@ -330,7 +330,7 @@ def confirm_samples(seq_request_id: int):
     selected_samples_ids = sample_select_form.selected_samples.data.removeprefix(",").split(",")
     selected_samples_ids = [int(i) - 1 for i in selected_samples_ids if i != ""]
 
-    df = df.loc[selected_samples_ids, :]
+    df = df.loc[selected_samples_ids, :].reset_index()
 
     if not df["index_1"].isna().all():
         index_check_form = forms.CheckIndexForm()
@@ -369,9 +369,6 @@ def confirm_samples(seq_request_id: int):
                 projects[project_name] = project
 
         for i, row in df.iterrows():
-            if i not in selected_samples_ids:
-                continue
-
             if pd.isnull(row["sample_id"]):
                 if pd.isnull(row["project_id"]):
                     project = projects[row["project_name"]]
@@ -409,10 +406,74 @@ def confirm_samples(seq_request_id: int):
     )
 
 
-# 6. Check indices
-@seq_request_form_htmx.route("<int:seq_request_id>/check_indices", methods=["POST"])
+# 6. Check barcodes
+@seq_request_form_htmx.route("<int:seq_request_id>/check_barcodes", methods=["POST"])
 @login_required
-def check_indices(seq_request_id: int):
+def check_barcodes(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
+    index_check_form = forms.CheckIndexForm()
+    logger.debug(index_check_form.data.data)
+    df = pd.read_csv(StringIO(index_check_form.data.data), sep="\t", index_col=False, header=0)
+
+    df["sample_id"] = df["sample_id"].astype("Int64")
+    df["project_id"] = df["project_id"].astype("Int64")
+
+    n_added = 0
+    n_new_samples = 0
+    n_new_projects = 0
+
+    with DBSession(db.db_handler) as session:
+        projects: dict[int | str, models.Project] = {}
+        for project_id, project_name in df[["project_id", "project_name"]].drop_duplicates().values.tolist():
+            if not pd.isnull(project_id):
+                project_id = int(project_id)
+                if (project := session.get_project(project_id)) is None:
+                    raise Exception(f"Project with id {project_id} does not exist.")
+                
+                projects[project_id] = project
+            else:
+                project = session.create_project(
+                    name=project_name,
+                    description="",
+                    owner_id=current_user.id
+                )
+                projects[project_name] = project
+
+        for i, row in df.iterrows():
+            if pd.isnull(row["sample_id"]):
+                if pd.isnull(row["project_id"]):
+                    project = projects[row["project_name"]]
+                else:
+                    project = projects[row["project_id"]]
+                sample = session.create_sample(
+                    name=row["sample_name"],
+                    organism_tax_id=row["tax_id"],
+                    project_id=project.id,
+                    owner_id=current_user.id
+                )
+                n_new_samples += 1
+            else:
+                sample = session.get_sample(row["sample_id"])
+            
+            session.link_sample_seq_request(
+                sample.id, seq_request.id
+            )
+
+            n_added += 1
+
+    logger.info(f"Created '{n_new_samples}'-samples and '{n_new_projects}'-projects.")
+    if n_added == 0:
+        flash("No samples added.", "warning")
+    elif n_added == len(df):
+        flash(f"Added all ({n_added}) samples to sequencing request.", "success")
+    elif n_added < len(df):
+        flash(f"Some samples ({len(df) - n_added}) could not be added.", "warning")
+
+    return make_response(
+        redirect=url_for(
+            "seq_requests_page.seq_request_page",
+            seq_request_id=seq_request.id
+        ),
+    )

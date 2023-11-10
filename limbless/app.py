@@ -102,7 +102,7 @@ def create_app():
     app.register_blueprint(api.pools_htmx)
     app.register_blueprint(api.auth_htmx)
     app.register_blueprint(api.organisms_htmx)
-    app.register_blueprint(api.indices_htmx)
+    app.register_blueprint(api.barcodes_htmx)
     app.register_blueprint(api.seq_requests_htmx)
     app.register_blueprint(api.adapters_htmx)
     app.register_blueprint(api.sequencers_htmx)

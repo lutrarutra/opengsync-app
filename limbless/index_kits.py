@@ -17,7 +17,7 @@ def add_dual_indexes(db_handler: DBHandler, df, index_kit):
                 workflow = " ".join(df.columns[i].split("_")[1:])
                 workflow = workflow.removesuffix("(i5)").strip()
 
-            db_handler.create_seq_index(
+            db_handler.create_barcode(
                 sequence=seq,
                 adapter=adapter_name,
                 index_kit_id=index_kit.id,
@@ -30,7 +30,7 @@ def add_single_indexes(db_handler: DBHandler, df, index_kit):
     for adapter_name, row in df.iterrows():
         cols = [f"Index {i}" for i in range(1, 5)]
         for i, seq in enumerate(row.values):
-            db_handler.create_seq_index(
+            db_handler.create_barcode(
                 sequence=seq,
                 adapter=adapter_name,
                 index_kit_id=index_kit.id,

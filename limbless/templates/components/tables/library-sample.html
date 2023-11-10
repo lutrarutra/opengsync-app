@@ -24,7 +24,7 @@
                 }}
                 {% if not library.is_raw_library() %}
                 <th scope="col">Adapter</th>
-                <th scope="col">Indices</th>
+                <th scope="col">barcodes</th>
                 {% endif %}
             </tr>
         </thead>
@@ -36,7 +36,7 @@
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
                 
                 {% if not library.is_raw_library() %}
-                {% set adapter = (sample.indices | first).adapter %}
+                {% set adapter = (sample.barcodes | first).adapter %}
                 <td class="sample-adapter-cell" id="sample-adapter-cell-{{sample.id}}"
                     hx-get="{{ url_for('libraries_htmx.get_edit_library_sample_adapter_form', library_id=library.id, sample_id=sample.id) }}"
                     hx-trigger="sample-adapter-edit-{{ sample.id }} from:body"
@@ -44,7 +44,7 @@
                     {{ adapter.name }}
                 </td>
                 <td class="adapter-col">
-                    {% for index in sample.indices %}
+                    {% for index in sample.barcodes %}
                         <span class="comma">
                             <p class="sample-index-cell" id="sample-index-cell-{{uuid4()}}">{{ index.sequence }}</p>
                             <p>{{ index.type }}</p>

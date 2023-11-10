@@ -1,12 +1,17 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort, url_for
 from flask_htmx import make_response
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from .... import db, logger, forms, models, PAGE_LIMIT
 from ....core import DBSession
 from ....categories import HttpResponse
+
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
 
 adapters_htmx = Blueprint("adapters_htmx", __name__, url_prefix="/api/adapters/")
 
@@ -20,7 +25,7 @@ def get(page: int, index_kit_id: Optional[int]):
     descending = order == "desc"
     offset = PAGE_LIMIT * page
 
-    if sort_by not in models.SeqAdapter.sortable_fields:
+    if sort_by not in models.Adapter.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
     with DBSession(db.db_handler) as session:

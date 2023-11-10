@@ -4,15 +4,15 @@
         <thead>
             <tr>
                 <th scope="col">ID</th>
-                {{ table_col('index-table', 'ID', 'id', 'indices_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('index-table', 'Sequence', 'sequence', 'indices_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('index-table', 'Type', 'sequence', 'indices_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('index-table', 'ID', 'id', 'barcodes_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('index-table', 'Sequence', 'sequence', 'barcodes_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('index-table', 'Type', 'sequence', 'barcodes_htmx.get', current_sort, current_sort_order) }}
                 <th scope="col">Type</th>
                 <th scope="col">Adapter</th>
             </tr>
         </thead>
         <tbody>
-            {% for index in indices %}
+            {% for index in barcodes %}
             <tr>
                 <th scope="row">{{ index.id }}</th>
                 <td>{{ index.sequence }}</td>
@@ -22,5 +22,5 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("index-table", "indices_htmx.get", n_pages, active_page) }}
+    {{ pagination("index-table", "barcodes_htmx.get", n_pages, active_page) }}
 </div>

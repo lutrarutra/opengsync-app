@@ -178,25 +178,25 @@ def get_edit_library_sample_adapter_form(library_id: int, sample_id: int):
         if sample_id not in [s.id for s in library.samples]:
             return abort(HttpResponse.BAD_REQUEST.value.id)
         
-        seq_indices = db.db_handler.get_sample_indices_from_library(
+        seq_barcodes = db.db_handler.get_sample_barcodes_from_library(
             sample_id=sample_id, library_id=library_id
         )
         
     index_form = forms.create_index_form(library)
     index_form.sample.data = sample_id
-    index_form.adapter.data = seq_indices[0].adapter.name
+    index_form.adapter.data = seq_barcodes[0].adapter.name
     
-    for i, index in enumerate(seq_indices):
-        if i < len(index_form.indices.entries):
-            index_form.indices.entries[i].sequence.data = index.sequence
-            index_form.indices.entries[i].index_seq_id.data = index.id
+    for i, index in enumerate(seq_barcodes):
+        if i < len(index_form.barcodes.entries):
+            index_form.barcodes.entries[i].sequence.data = index.sequence
+            index_form.barcodes.entries[i].index_seq_id.data = index.id
 
     return make_response(
         render_template(
             "forms/edit-index.html",
             index_form=index_form,
             library=library, sample=sample,
-            selected_adapter=seq_indices[0].adapter,
+            selected_adapter=seq_barcodes[0].adapter,
         ), push_url=False
     )
 
@@ -238,11 +238,11 @@ def edit_adapter(library_id: int):
     db.db_handler.unlink_library_sample(library_id=library_id, sample_id=sample_id)
 
     with DBSession(db.db_handler) as session:
-        for index in adapter.indices:
+        for index in adapter.barcodes:
             session.link_library_sample(
                 library_id=library.id,
                 sample_id=sample.id,
-                seq_index_id=index.id,
+                barcode_id=index.id,
             )
 
     logger.debug(f"Edited adapter for sample '{sample.name}' in library '{library.name}'")
@@ -317,20 +317,20 @@ def add_sample(library_id: int):
             session.link_library_sample(
                 library_id=library.id,
                 sample_id=selected_sample.id,
-                seq_index_id=None,
+                barcode_id=None,
             )
         else:
-            for entry in index_form.indices.entries:
-                seq_index_id = entry.index_seq_id.data
+            for entry in index_form.barcodes.entries:
+                barcode_id = entry.index_seq_id.data
                 try:
                     session.link_library_sample(
                         library_id=library.id,
                         sample_id=selected_sample.id,
-                        seq_index_id=seq_index_id,
+                        barcode_id=barcode_id,
                     )
                 except exceptions.LinkAlreadyExists:
-                    logger.error(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{seq_index_id}'")
-                    flash(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{seq_index_id}'.", "error")
+                    logger.error(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{barcode_id}'")
+                    flash(f"Sample '{selected_sample}' already linked to library '{library.id}' with index '{barcode_id}'.", "error")
     
     logger.debug(f"Added sample '{selected_sample}' to library '{library_id}'")
     flash(f"Added sample '{selected_sample.name}' to library '{library.name}'.", "success")
@@ -508,7 +508,7 @@ def add_library_samples_from_table(library_id: int):
                 session.link_library_sample(
                     library_id=library.id,
                     sample_id=sample.id,
-                    seq_index_id=None,
+                    barcode_id=None,
                 )
             else:
                 adapter = db.db_handler.get_adapter_by_name(
@@ -516,11 +516,11 @@ def add_library_samples_from_table(library_id: int):
                     name=adapter
                 )
 
-                for index in adapter.indices:
+                for index in adapter.barcodes:
                     session.link_library_sample(
                         library_id=library.id,
                         sample_id=sample.id,
-                        seq_index_id=index.id,
+                        barcode_id=index.id,
                     )
             n_added += 1
 

@@ -1,5 +1,4 @@
 from typing import Optional, List, TYPE_CHECKING
-from pydantic import PrivateAttr
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -8,7 +7,7 @@ from .Library import LibraryTypeId
 from ..tools import SearchResult
 
 if TYPE_CHECKING:
-    from .SeqAdapter import SeqAdapter
+    from .Adapter import Adapter
 
 
 class IndexKit(SQLModel, SearchResult, table=True):
@@ -17,7 +16,7 @@ class IndexKit(SQLModel, SearchResult, table=True):
 
     num_adapters: int = Field(nullable=False, default=0)
 
-    adapters: list["SeqAdapter"] = Relationship(
+    adapters: list["Adapter"] = Relationship(
         back_populates="index_kit"
     )
 

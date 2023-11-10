@@ -9,10 +9,10 @@ from .. import exceptions
 from ...tools import SearchResult
 
 
-def create_seq_adapter(
+def create_adapter(
     self, name: str, index_kit_id: int,
     commit: bool = True
-) -> models.SeqAdapter:
+) -> models.Adapter:
 
     persist_session = self._session is not None
     if not self._session:
@@ -22,28 +22,28 @@ def create_seq_adapter(
         raise exceptions.ElementDoesNotExist(f"index_kit with id '{index_kit_id}', not found.")
 
     if get_adapter_by_name(self, index_kit_id, name) is not None:
-        raise exceptions.NotUniqueValue(f"SeqAdapter with name '{name}', already exists in index-kit '{index_kit.name}'.")
+        raise exceptions.NotUniqueValue(f"Adapter with name '{name}', already exists in index-kit '{index_kit.name}'.")
 
-    seq_adapter = models.SeqAdapter(
+    adapter = models.Adapter(
         name=name, index_kit_id=index_kit.id
     )
 
-    self._session.add(seq_adapter)
+    self._session.add(adapter)
     if commit:
         self._session.commit()
-        self._session.refresh(seq_adapter)
+        self._session.refresh(adapter)
 
     if not persist_session:
         self.close_session()
-    return seq_adapter
+    return adapter
 
 
-def get_adapter(self, id: int) -> models.SeqAdapter:
+def get_adapter(self, id: int) -> models.Adapter:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.get(models.SeqAdapter, id)
+    res = self._session.get(models.Adapter, id)
 
     if not persist_session:
         self.close_session()
@@ -60,14 +60,14 @@ def get_adapters(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.SeqAdapter)
+    query = self._session.query(models.Adapter)
     if index_kit_id is not None:
         query = query.where(
-            models.SeqAdapter.index_kit_id == index_kit_id
+            models.Adapter.index_kit_id == index_kit_id
         )
 
     if sort_by is not None:
-        attr = getattr(models.SeqAdapter, sort_by)
+        attr = getattr(models.Adapter, sort_by)
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)
@@ -96,10 +96,10 @@ def get_num_adapters(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.SeqAdapter)
+    query = self._session.query(models.Adapter)
     if index_kit_id is not None:
         query = query.where(
-            models.SeqAdapter.index_kit_id == index_kit_id
+            models.Adapter.index_kit_id == index_kit_id
         )
 
     res = query.count()
@@ -109,15 +109,15 @@ def get_num_adapters(
     return res
 
 
-def get_adapter_by_name(self, index_kit_id: int, name: str) -> models.SeqAdapter:
+def get_adapter_by_name(self, index_kit_id: int, name: str) -> models.Adapter:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.SeqAdapter).where(
+    res = self._session.query(models.Adapter).where(
         and_(
-            models.SeqAdapter.name == name,
-            models.SeqAdapter.index_kit_id == index_kit_id
+            models.Adapter.name == name,
+            models.Adapter.index_kit_id == index_kit_id
         )
     ).first()
 
@@ -136,14 +136,14 @@ def query_adapters(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.SeqAdapter)
+    query = self._session.query(models.Adapter)
     if index_kit_id is not None:
         query = query.where(
-            models.SeqAdapter.index_kit_id == index_kit_id
+            models.Adapter.index_kit_id == index_kit_id
         )
 
     query = query.order_by(
-        func.similarity(models.SeqAdapter.name, word).desc()
+        func.similarity(models.Adapter.name, word).desc()
     )
 
     if limit is not None:

@@ -1,17 +1,16 @@
 import math
 from typing import Optional
 
-import pandas as pd
 from sqlmodel import func
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryType, UserResourceRelation
+from ...categories import LibraryType
 from .. import exceptions
-from ...tools import SearchResult
 
 
 def create_library(
     self, name: str,
+    sample_id: int,
     index_kit_id: Optional[int],
     contact_id: Optional[int],
     owner_id: int, commit: bool = True
@@ -27,13 +26,17 @@ def create_library(
     if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
     
+    if (sample := self._session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    
     if contact_id is not None:
         if self._session.get(models.Contact, contact_id) is None:
             raise exceptions.ElementDoesNotExist(f"Contact with id {contact_id} does not exist")
 
-    library = models.Pool(
+    library = models.Library(
         name=name,
         owner_id=owner_id,
+        sample_id=sample_id,
     )
     self._session.add(library)
     user.num_pools += 1

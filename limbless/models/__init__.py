@@ -10,9 +10,9 @@ from .Experiment import Experiment
 from .Library import Library, LibraryTypeId
 from .Organism import Organism
 from .Links import SamplePoolLink, ExperimentLibraryLink, SeqRequestSampleLink, IndexKitLibraryType
-from .SeqIndex import SeqIndex
+from .Barcode import Barcode
 from .IndexKit import IndexKit
 from .SeqRequest import SeqRequest
 from .Contact import Contact
-from .SeqAdapter import SeqAdapter
+from .Adapter import Adapter
 from .Sequencer import Sequencer

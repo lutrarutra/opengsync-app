@@ -45,7 +45,7 @@ def library_page(library_id):
         samples = library.samples
         if not library.is_raw_library():
             for sample in samples:
-                sample.indices = session.get_sample_indices_from_library(sample.id, library.id)
+                sample.barcodes = session.get_sample_barcodes_from_library(sample.id, library.id)
 
     library_form = forms.LibraryForm()
     library_form.name.data = library.name

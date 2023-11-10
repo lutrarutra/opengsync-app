@@ -245,7 +245,7 @@ class SampleConfirmForm(FlaskForm):
         return samples
     
 
-# 6. Check indices
+# 6. Check barcodes
 class CheckIndexForm(FlaskForm):
     data = TextAreaField(validators=[DataRequired()])
     reverse_complement_index_1 = BooleanField("Reverse complement index 1")
@@ -261,7 +261,7 @@ class CheckIndexForm(FlaskForm):
     def init(self, df: pd.DataFrame) -> list[dict[str, str | int | None]]:
         samples_data: list[dict[str, str | int | None]] = []
         
-        reused_indices = df[["index_1", "index_2"]].duplicated(keep=False).values.tolist()
+        reused_barcodes = df[["index_1", "index_2"]].duplicated(keep=False).values.tolist()
 
         for i, row in df.iterrows():
             # Check if sample names are unique in project
@@ -279,7 +279,7 @@ class CheckIndexForm(FlaskForm):
             if data["index_1"] == data["index_2"]:
                 data["warning"] = "Warning: Index 1 and index 2 are the same."
 
-            if reused_indices[i]:
+            if reused_barcodes[i]:
                 data["warning"] = "Index combination is reused in two or more samples."
 
             samples_data.append(data)
