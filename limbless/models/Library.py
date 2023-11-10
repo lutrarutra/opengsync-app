@@ -22,16 +22,12 @@ class LibraryTypeId(SQLModel, table=True):
 
 class Library(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
+    workflow: Optional[str] = Field(nullable=True, max_length=16)
     library_type_id: int = Field(nullable=False)
 
     sample_id: int = Field(nullable=False, foreign_key="sample.id")
     sample: "Sample" = Relationship(
         sa_relationship_kwargs={"lazy": "joined"}
-    )
-
-    index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
-    index_kit: Optional["IndexKit"] = Relationship(
-        sa_relationship_kwargs={"lazy": "select"}
     )
 
     experiments: list["Experiment"] = Relationship(
@@ -52,9 +48,6 @@ class Library(SQLModel, SearchResult, table=True):
     @property
     def library_type(self) -> LibraryType:
         return LibraryType.get(self.library_type_id)
-
-    def is_raw_library(self) -> bool:
-        return self.index_kit_id is None
     
     def search_value(self) -> int:
         return self.id

@@ -5,25 +5,17 @@ from sqlmodel import Field, SQLModel, Relationship
 from ..tools import SearchResult
 
 if TYPE_CHECKING:
-    from .IndexKit import IndexKit
     from .Adapter import Adapter
 
 
 class Barcode(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     sequence: str = Field(nullable=False, max_length=128, index=True)
-    workflow: Optional[str] = Field(nullable=True, max_length=16)
-    type: str = Field(nullable=False, max_length=16, index=True)
 
     adapter_id: int = Field(nullable=False, foreign_key="adapter.id")
     adapter: "Adapter" = Relationship(
         back_populates="barcodes",
         sa_relationship_kwargs={"lazy": "joined"}
-    )
-
-    index_kit_id: int = Field(nullable=False, foreign_key="indexkit.id")
-    index_kit: "IndexKit" = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"},
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "sequence", "type", "adapter_id", "index_kit_id"]
