@@ -64,7 +64,7 @@ class DBHandler():
     )
 
     from .model_handlers._library_methods import (
-        create_library_type
+        get_libraries, get_library, create_library,
     )
 
     from .model_handlers._user_methods import (
@@ -81,8 +81,7 @@ class DBHandler():
     )
 
     from .model_handlers._barcode_methods import (
-        create_barcode, get_seqindex,
-        get_num_seqbarcodes, get_seqbarcodes
+        create_barcode, get_num_seqbarcodes, get_seqbarcodes
     )
 
     from .model_handlers._index_kit_methods import (
@@ -110,14 +109,12 @@ class DBHandler():
         get_sample_libraries,
         get_lanes_in_experiment,
 
-        link_sample_pool,
+        link_library_pool,
         link_experiment_library,
-        link_index_kit_library_type,
         link_sample_seq_request,
 
-        unlink_library_sample,
         unlink_experiment_library,
-        unlink_sample_seq_request,
+        unlink_library_seq_request,
 
         is_sample_in_library,
     )

@@ -145,7 +145,7 @@ class TableForm(FlaskForm):
 
         return validated, self
     
-    def get_data(self):
+    def parse(self) -> pd.DataFrame:
         if self.separator.data == "tsv":
             sep = "\t"
         else:
@@ -159,7 +159,9 @@ class TableForm(FlaskForm):
             self.file.data.save("data/uploads/" + filename)
             logger.debug(f"Saved file to data/uploads/{filename}")
             raw_text = open("data/uploads/" + filename).read()
+
+        df = pd.read_csv(StringIO(raw_text.rstrip()), sep=sep, index_col=False, header=0)
         
-        return raw_text, sep
+        return df
 
         

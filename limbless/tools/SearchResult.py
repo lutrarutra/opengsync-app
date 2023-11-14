@@ -14,6 +14,15 @@ class SearchResult(ABC):
     
     def description_class(self) -> str:
         return ""
+    
+    def to_str(self) -> str:
+        res = self.search_name()
+        if self.show_value():
+            res += f" [{self.search_value()}]"
+        if self.search_description():
+            res += f" ({self.search_description()})"
+
+        return res
 
     @abstractmethod
     def search_value(self) -> Union[int, str]:

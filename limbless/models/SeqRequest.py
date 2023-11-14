@@ -5,12 +5,12 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import SeqRequestStatus
-from .Links import SeqRequestSampleLink
+from .Links import SeqRequestLibraryLink
 
 if TYPE_CHECKING:
     from .User import User
     from .Contact import Contact
-    from .Sample import Sample
+    from .Library import Library
 
 
 class SeqRequest(SQLModel, table=True):
@@ -21,8 +21,7 @@ class SeqRequest(SQLModel, table=True):
     status: int = Field(nullable=False, default=0)
     submitted_time: Optional[datetime] = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True))
 
-    num_samples: int = Field(nullable=False, default=0)
-    num_pools: int = Field(nullable=False, default=0)
+    num_libraries: int = Field(nullable=False, default=0)
 
     requestor_id: int = Field(nullable=False, foreign_key="user.id")
     requestor: "User" = Relationship(back_populates="requests", sa_relationship_kwargs={"lazy": "joined"})
@@ -31,9 +30,9 @@ class SeqRequest(SQLModel, table=True):
     billing_contact_id: int = Field(nullable=False, foreign_key="contact.id")
     bioinformatician_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")
 
-    samples: List["Sample"] = Relationship(
+    libraries: List["Library"] = Relationship(
         back_populates="seq_requests",
-        link_model=SeqRequestSampleLink,
+        link_model=SeqRequestLibraryLink,
     )
     
     contact_person: "Contact" = Relationship(
@@ -57,14 +56,14 @@ class SeqRequest(SQLModel, table=True):
         },
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "status", "requestor_id", "submitted_time"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
     @property
     def status_type(self) -> SeqRequestStatus:
         return SeqRequestStatus.get(self.status)
     
     def is_submittable(self) -> bool:
-        return self.status_type == SeqRequestStatus.DRAFT and self.num_samples > 0
+        return self.status_type == SeqRequestStatus.DRAFT and self.num_libraries > 0
     
     def submitted_time_to_str(self) -> str:
         if self.submitted_time is None:
@@ -82,7 +81,6 @@ class SeqRequest(SQLModel, table=True):
             "person_contact": f"{self.contact_person.name} ({self.contact_person.email})",
             "billing_contact": f"{self.billing_contact.name} ({self.billing_contact.email})",
             "bioinformatician_contact": f"{self.bioinformatician_contact.name} ({self.bioinformatician_contact.email})" if self.bioinformatician_contact else None,
-            "num_samples": self.num_samples,
-            "num_pools": self.num_pools,
+            "num_libraries": self.num_libraries,
         }
         return data

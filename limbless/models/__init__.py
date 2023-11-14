@@ -7,9 +7,9 @@ from .Sample import Sample
 from .Pool import Pool
 from .User import User
 from .Experiment import Experiment
-from .Library import Library, LibraryTypeId
+from .Library import Library
 from .Organism import Organism
-from .Links import SamplePoolLink, ExperimentLibraryLink, SeqRequestSampleLink, IndexKitLibraryType
+from .Links import ExperimentLibraryLink, SeqRequestLibraryLink, LibraryBarcodeLink, LibraryPoolLink
 from .Barcode import Barcode
 from .IndexKit import IndexKit
 from .SeqRequest import SeqRequest

@@ -4,30 +4,29 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import LibraryType
 from ..tools import SearchResult
-from .Links import ExperimentLibraryLink
+from .Links import ExperimentLibraryLink, SeqRequestLibraryLink, LibraryBarcodeLink, LibraryPoolLink
 
 if TYPE_CHECKING:
-    from .IndexKit import IndexKit
     from .Sample import Sample
     from .Experiment import Experiment
-
-
-class LibraryTypeId(SQLModel, table=True):
-    id: int = Field(nullable=False, primary_key=True)
-
-    @property
-    def library_type(self) -> LibraryType:
-        return LibraryType.get(self.id)
+    from .SeqRequest import SeqRequest
+    from .Pool import Pool
+    from .Barcode import Barcode
 
 
 class Library(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
-    workflow: Optional[str] = Field(nullable=True, max_length=16)
-    library_type_id: int = Field(nullable=False)
-
+    type_id: int = Field(nullable=False)
+    num_pools: int = Field(nullable=False, default=0)
+    
     sample_id: int = Field(nullable=False, foreign_key="sample.id")
     sample: "Sample" = Relationship(
         sa_relationship_kwargs={"lazy": "joined"}
+    )
+
+    pools: Optional["Pool"] = Relationship(
+        back_populates="libraries", link_model=LibraryPoolLink,
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     experiments: list["Experiment"] = Relationship(
@@ -36,18 +35,28 @@ class Library(SQLModel, SearchResult, table=True):
         link_model=ExperimentLibraryLink
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "library_type_id"]
+    seq_requests: list["SeqRequest"] = Relationship(
+        back_populates="libraries", link_model=SeqRequestLibraryLink,
+        sa_relationship_kwargs={"lazy": "select"}
+    )
+
+    barcodes: list["Barcode"] = Relationship(
+        sa_relationship_kwargs={"lazy": "joined"},
+        link_model=LibraryBarcodeLink
+    )
+
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id"]
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.sample.name,
-            "library_type": self.library_type.value.name,
+            "library_type": self.type.value.name,
         }
 
     @property
-    def library_type(self) -> LibraryType:
-        return LibraryType.get(self.library_type_id)
+    def type(self) -> LibraryType:
+        return LibraryType.get(self.type_id)
     
     def search_value(self) -> int:
         return self.id
@@ -56,4 +65,4 @@ class Library(SQLModel, SearchResult, table=True):
         return self.sample.name
     
     def search_description(self) -> Optional[str]:
-        return self.library_type.value.name
+        return self.type.value.name

@@ -4,7 +4,7 @@ from typing import Optional
 from sqlmodel import func
 
 from ... import PAGE_LIMIT
-from ...models import Pool, User, SamplePoolLink
+from ...models import Pool, User, Library
 from .. import exceptions
 
 
@@ -49,7 +49,8 @@ def get_pool(self, pool_id: int) -> Pool:
 
 def get_pools(
     self,
-    user_id: Optional[int] = None, sample_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+    library_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[Pool], int]:
@@ -63,13 +64,13 @@ def get_pools(
             Pool.owner_id == user_id
         )
 
-    if sample_id is not None:
+    if library_id is not None:
         query = query.join(
-            SamplePoolLink,
-            SamplePoolLink.pool_id == Pool.id,
+            Library,
+            Library.pool_id == Pool.id,
             isouter=True
         ).where(
-            SamplePoolLink.sample_id == sample_id
+            Library.id == library_id
         )
 
     if sort_by is not None:
@@ -151,7 +152,8 @@ def update_pool(
 
 def query_pools(
     self, word: str,
-    user_id: Optional[int] = None, sample_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+    library_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[Pool]:
 
@@ -168,9 +170,9 @@ def query_pools(
             Pool.owner_id == user_id
         )
 
-    if sample_id is not None:
+    if library_id is not None:
         query = query.join(
-            SamplePoolLink,
+            Library,
             SamplePoolLink.pool_id == Pool.id,
             isouter=True
         ).where(

@@ -106,11 +106,11 @@ def get_seq_requests(
 
     if sample_id is not None:
         query = query.join(
-            models.SeqRequestSampleLink,
-            models.SeqRequestSampleLink.seq_request_id == models.SeqRequest.id,
+            models.SeqRequestLibraryLink,
+            models.SeqRequestLibraryLink.seq_request_id == models.SeqRequest.id,
             isouter=True
         ).where(
-            models.SeqRequestSampleLink.sample_id == sample_id
+            models.SeqRequestLibraryLink.library_id == sample_id
         )
 
     if sort_by is not None:
@@ -211,8 +211,8 @@ def delete_seq_request(
     if not seq_request:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {sample_id} does not exist")
 
-    links = self._session.query(models.SeqRequestSampleLink).where(
-        models.SeqRequestSampleLink.seq_request_id == seq_request.id
+    links = self._session.query(models.SeqRequestLibraryLink).where(
+        models.SeqRequestLibraryLink.seq_request_id == seq_request.id
     ).all()
     
     for link in links:

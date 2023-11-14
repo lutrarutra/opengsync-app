@@ -2,8 +2,6 @@ from typing import Optional, List, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from .Links import IndexKitLibraryType
-from .Library import LibraryTypeId
 from ..tools import SearchResult
 
 if TYPE_CHECKING:
@@ -20,17 +18,8 @@ class IndexKit(SQLModel, SearchResult, table=True):
         back_populates="index_kit"
     )
 
-    library_type_ids: List[LibraryTypeId] = Relationship(
-        link_model=IndexKitLibraryType,
-        sa_relationship_kwargs={"lazy": "joined"},
-    )
-
     def __str__(self):
         return self.name
-    
-    @property
-    def library_types(self):
-        return [library_type.library_type for library_type in self.library_type_ids]
     
     def search_value(self) -> int:
         return self.id

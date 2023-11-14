@@ -275,29 +275,3 @@ def query_libraries(
         self.close_session()
 
     return libraries
-
-
-def create_library_type(
-    self, type: LibraryType
-) -> models.LibraryTypeId:
-    
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.query(models.LibraryTypeId).where(
-        models.LibraryTypeId.id == type.value.id
-    ).first() is not None:
-        raise exceptions.NotUniqueValue(f"LibraryType with id {type.value.id} already exists")
-
-    lib_type = models.LibraryTypeId(
-        id=type.value.id
-    )
-
-    self._session.add(lib_type)
-    self._session.commit()
-
-    if not persist_session:
-        self.close_session()
-
-    return lib_type

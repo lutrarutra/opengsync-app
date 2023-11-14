@@ -81,3 +81,11 @@ class HttpResponse(Enum, metaclass=ExtendedEnumMeta):
     METHOD_NOT_ALLOWED = DescriptiveEnum(405, "Method Not Allowed")
     INTERNAL_SERVER_ERROR = DescriptiveEnum(500, "Internal Server Error")
     
+
+class BarcodeType(Enum, metaclass=ExtendedEnumMeta):
+    INDEX_1 = DescriptiveEnum(1, "Index 1")
+    INDEX_2 = DescriptiveEnum(2, "Index 2")
+    INDEX_3 = DescriptiveEnum(3, "Index 3")
+    INDEX_4 = DescriptiveEnum(4, "Index 4")
+    INDEX_I7 = DescriptiveEnum(5, "Index I7")
+    INDEX_I5 = DescriptiveEnum(6, "Index I5")

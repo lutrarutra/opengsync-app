@@ -3,6 +3,7 @@ from typing import Optional, TYPE_CHECKING, ClassVar, List
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..tools import SearchResult
+from ..categories import BarcodeType
 
 if TYPE_CHECKING:
     from .Adapter import Adapter
@@ -18,6 +19,8 @@ class Barcode(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
+    type_id: int = Field(nullable=False)
+
     sortable_fields: ClassVar[List[str]] = ["id", "sequence", "type", "adapter_id", "index_kit_id"]
 
     def __str__(self):
@@ -25,6 +28,10 @@ class Barcode(SQLModel, SearchResult, table=True):
 
     def __repr__(self) -> str:
         return f"{self.sequence} [{self.type}]"
+    
+    @property
+    def type(self) -> BarcodeType:
+        return BarcodeType.get(self.type_id)
     
     def name_class(self) -> str:
         return "latin"
@@ -36,4 +43,4 @@ class Barcode(SQLModel, SearchResult, table=True):
         return self.sequence
     
     def search_description(self) -> Optional[str]:
-        return self.workflow
+        return self.type.value.name

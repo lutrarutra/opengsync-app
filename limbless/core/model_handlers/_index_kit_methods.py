@@ -7,11 +7,10 @@ import pandas as pd
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
 from ...categories import LibraryType
-from ._link_methods import link_index_kit_library_type
 
 
 def create_index_kit(
-    self, name: str, allowed_library_types: list[LibraryType]
+    self, name: str
 ) -> models.IndexKit:
     persist_session = self._session is not None
     if not self._session:
@@ -26,9 +25,6 @@ def create_index_kit(
     self._session.add(seq_kit)
     self._session.commit()
     self._session.refresh(seq_kit)
-
-    for library_type in allowed_library_types:
-        link_index_kit_library_type(self, seq_kit.id, library_type.value.id)
 
     if not persist_session:
         self.close_session()

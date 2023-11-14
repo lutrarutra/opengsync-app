@@ -106,90 +106,53 @@ def is_sample_in_library(
     return res is not None
     
 
-def link_sample_pool(
+def link_library_pool(
     self,
-    pool_id: int, sample_id: int,
-    barcode_id: Optional[int] = None,
+    pool_id: int, library_id: int,
     commit: bool = True
-) -> models.SamplePoolLink:
+) -> models.LibraryPoolLink:
 
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-
-    if barcode_id is None:
-        barcode_id = 0
 
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    if (_ := self._session.get(models.Barcode, barcode_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqIndex with id {barcode_id} does not exist")
-
-    if self._session.query(models.SamplePoolLink).where(
+    if (sample := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    if self._session.query(models.LibraryPoolLink).where(
         and_(
-            models.SamplePoolLink.pool_id == pool_id,
-            models.SamplePoolLink.sample_id == sample_id,
+            models.LibraryPoolLink.pool_id == pool_id,
+            models.LibraryPoolLink.library_id == library_id,
         )
     ).first():
-        raise exceptions.LinkAlreadyExists(f"Library with id {pool_id} and sample with id {sample_id} are already linked")
+        raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and pool with id {pool_id} are already linked")
 
-    sample_pool_link = models.SamplePoolLink(
-        pool_id=pool_id, sample_id=sample_id,
+    library_pool_link = models.LibraryPoolLink(
+        pool_id=pool_id, library_id=library_id,
     )
-    self._session.add(sample_pool_link)
-    sample.num_pools += 1
-    pool.num_samples += 1
+    self._session.add(library_pool_link)
+    library.num_pools += 1
+    pool.num_libraries += 1
 
     if commit:
         self._session.commit()
-        self._session.refresh(sample_pool_link)
+        self._session.refresh(library_pool_link)
 
     if not persist_session:
         self.close_session()
 
-    return sample_pool_link
+    return library_pool_link
 
 
-def link_index_kit_library_type(
-    self, index_kit_id: int, library_type_id: int,
-) -> models.IndexKitLibraryType:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"index_kit with id {index_kit_id} does not exist")
-
-    if not categories.LibraryType.is_valid(library_type_id):
-        raise exceptions.ElementDoesNotExist(f"LibraryType with id {library_type_id} is not valid")
-
-    if self._session.query(models.IndexKitLibraryType).where(
-        models.IndexKitLibraryType.index_kit_id == index_kit_id,
-        models.IndexKitLibraryType.library_type_id == library_type_id,
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"index_kit with id {index_kit_id} and LibraryType with id {library_type_id} are already linked")
-
-    index_kit_library_type_link = models.IndexKitLibraryType(
-        index_kit_id=index_kit_id, library_type_id=library_type_id,
-    )
-    self._session.add(index_kit_library_type_link)
-    self._session.commit()
-    self._session.refresh(index_kit_library_type_link)
-
-    if not persist_session:
-        self.close_session()
-
-    return index_kit_library_type_link
-
-
-def unlink_library_sample(
-    self, library_id: int, sample_id: int,
+def link_library_barcode(
+    self,
+    library_id: int, barcode_id: int,
+    barcode_type: categories.BarcodeType,
     commit: bool = True
-) -> None:
-
+) -> models.LibraryBarcodeLink:
+    
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -197,53 +160,55 @@ def unlink_library_sample(
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    if (barcode := self._session.get(models.Barcode, barcode_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Barcode with id {barcode_id} does not exist")
+    
+    if self._session.query(models.LibraryBarcodeLink).where(
+        models.LibraryBarcodeLink.library_id == library_id,
+        models.LibraryBarcodeLink.barcode_id == barcode_id,
+    ).first():
+        raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and barcode with id {barcode_id} are already linked for barcode type {barcode_type.value.name}")
 
-    if (links := self._session.query(models.LibrarySampleLink).where(
-        models.LibrarySampleLink.library_id == library_id,
-        models.LibrarySampleLink.sample_id == sample_id
-    ).all()) is None:
-        raise exceptions.LinkDoesNotExist(f"Library with id {library_id} and sample with id {sample_id} are not linked")
-    
-    for link in links:
-        self._session.delete(link)
-    
-    sample.num_libraries -= 1
-    library.num_samples -= 1
+    library_barcode_link = models.LibraryBarcodeLink(
+        library_id=library_id, barcode_id=barcode_id,
+    )
+    self._session.add(library_barcode_link)
 
     if commit:
         self._session.commit()
+        self._session.refresh(library_barcode_link)
 
     if not persist_session:
         self.close_session()
 
+    return library_barcode_link
+
 
 def link_sample_seq_request(
-    self, sample_id: int, seq_request_id: int,
+    self, library_id: int, seq_request_id: int,
     commit: bool = True
-) -> models.SeqRequestSampleLink:
+) -> models.SeqRequestLibraryLink:
 
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    if (_ := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
 
-    if self._session.query(models.SeqRequestSampleLink).where(
-        models.SeqRequestSampleLink.sample_id == sample_id,
-        models.SeqRequestSampleLink.seq_request_id == seq_request_id,
+    if self._session.query(models.SeqRequestLibraryLink).where(
+        models.SeqRequestLibraryLink.library_id == library_id,
+        models.SeqRequestLibraryLink.seq_request_id == seq_request_id,
     ).first():
-        raise exceptions.LinkAlreadyExists(f"Sample with id {sample_id} and SeqRequest with id {seq_request_id} are already linked")
+        raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and SeqRequest with id {seq_request_id} are already linked")
 
-    link = models.SeqRequestSampleLink(
-        sample_id=sample_id, seq_request_id=seq_request_id,
+    link = models.SeqRequestLibraryLink(
+        library_id=library_id, seq_request_id=seq_request_id,
     )
     self._session.add(link)
-    seq_request.num_samples += 1
+    seq_request.num_libraries += 1
 
     if commit:
         self._session.commit()
@@ -255,8 +220,8 @@ def link_sample_seq_request(
     return link
 
 
-def unlink_sample_seq_request(
-    self, sample_id: int, seq_request_id: int,
+def unlink_library_seq_request(
+    self, library_id: int, seq_request_id: int,
     commit: bool = True
 ) -> None:
     
@@ -264,16 +229,16 @@ def unlink_sample_seq_request(
     if not self._session:
         self.open_session()
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    if (_ := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
     
-    if (links := self._session.query(models.SeqRequestSampleLink).where(
-        models.SeqRequestSampleLink.sample_id == sample_id,
-        models.SeqRequestSampleLink.seq_request_id == seq_request_id,
+    if (links := self._session.query(models.SeqRequestLibraryLink).where(
+        models.SeqRequestLibraryLink.library_id == library_id,
+        models.SeqRequestLibraryLink.seq_request_id == seq_request_id,
     ).all()) is None:
-        raise exceptions.LinkDoesNotExist(f"Sample with id {sample_id} and SeqRequest with id {seq_request_id} are not linked")
+        raise exceptions.LinkDoesNotExist(f"Library with id {library_id} and SeqRequest with id {seq_request_id} are not linked")
     
     for link in links:
         self._session.delete(link)

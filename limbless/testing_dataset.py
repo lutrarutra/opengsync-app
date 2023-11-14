@@ -50,10 +50,10 @@ def create_sample_data(db_handler: DBHandler):
 
         for sample in samples[client.id]:
             pool = pools[client.id][sample.id % 5]
-            db_handler.link_sample_pool(
-                pool_id=pool.id,
-                sample_id=sample.id,
-            )
+            # db_handler.link_library_pool(
+            #     pool_id=pool.id,
+            #     library_id=sample.id,
+            # )
 
     contact_person = db_handler.create_contact(
         name="Default Contact",

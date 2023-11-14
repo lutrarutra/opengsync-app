@@ -9,6 +9,10 @@
             <p>
                 Enter a table in the text box below or upload a file containing a table.
                 Supported file types are .csv (separated by ','), .tsv (separated by '\t').
+                <br>
+                <a href="{{ url_for('seq_request_form_htmx.download_template') }}">
+                    Download template sample annotation sheet from here.
+                </a>
             </p>
             <p><b>Required columns: <i>Sample Name</i> and <i>Sample Organism</i></b></p>
         </div>

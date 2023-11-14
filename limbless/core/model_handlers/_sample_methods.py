@@ -117,10 +117,10 @@ def get_samples(
 
     if seq_request_id is not None:
         query = query.join(
-            models.SeqRequestSampleLink,
-            models.Sample.id == models.SeqRequestSampleLink.sample_id
+            models.SeqRequestLibraryLink,
+            models.Sample.id == models.SeqRequestLibraryLink.library_id
         ).where(
-            models.SeqRequestSampleLink.seq_request_id == seq_request_id
+            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
@@ -239,10 +239,10 @@ def query_samples(
 
     if seq_request_id is not None:
         query = query.join(
-            models.SeqRequestSampleLink,
-            models.Sample.id == models.SeqRequestSampleLink.sample_id
+            models.SeqRequestLibraryLink,
+            models.Sample.id == models.SeqRequestLibraryLink.library_id
         ).where(
-            models.SeqRequestSampleLink.seq_request_id == seq_request_id
+            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
         )
 
     query = query.order_by(

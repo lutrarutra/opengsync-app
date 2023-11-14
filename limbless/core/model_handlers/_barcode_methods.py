@@ -7,13 +7,14 @@ import pandas as pd
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
 
-from ._adapter_methods import get_adapter_by_name, create_adapter
+from ._adapter_methods import get_adapter
+from ...categories import BarcodeType
 
 
 def create_barcode(
-    self, sequence: str, adapter: str,
-    type: str, index_kit_id: int,
-    workflow: Optional[str],
+    self, sequence: str,
+    adapter_id: int,
+    barcode_type: BarcodeType,
     commit: bool = True
 ) -> models.Barcode:
 
@@ -21,29 +22,22 @@ def create_barcode(
     if not self._session:
         self.open_session()
 
-    if (index_kit := self._session.get(models.IndexKit, index_kit_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"index_kit with id '{index_kit_id}', not found.")
-
-    if (adapter := get_adapter_by_name(self, index_kit_id, adapter)) is None:
-        adapter = create_adapter(self, adapter, index_kit_id, commit=True)
+    if (adapter := get_adapter(self, adapter_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Adapter with id '{adapter_id}', not found.")
 
     if self._session.query(models.Barcode).where(
         and_(
             models.Barcode.sequence == sequence,
-            models.Barcode.adapter_id == adapter.id,
-            models.Barcode.type == type,
-            models.Barcode.index_kit_id == index_kit.id,
-            models.Barcode.workflow == workflow
+            models.Barcode.adapter_id == adapter_id,
+            models.Barcode.type_id == barcode_type.value.id
         )
     ).first() is not None:
-        raise exceptions.NotUniqueValue(f"SeqIndex with sequence '{sequence} ({type} [{workflow}])', already exists in index-kit '{index_kit.name}'.")
+        raise exceptions.NotUniqueValue(f"SeqIndex with sequence '{sequence} ({barcode_type})', already exists for adapter '{adapter.name}'.")
 
     barcode = models.Barcode(
         sequence=sequence,
-        adapter_id=adapter.id,
-        type=type,
-        workflow=workflow,
-        index_kit_id=index_kit.id
+        adapter_id=adapter_id,
+        type_id=barcode_type.value.id
     )
 
     self._session.add(barcode)

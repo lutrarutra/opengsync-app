@@ -3,39 +3,41 @@ import os
 import pandas as pd
 
 from limbless.core import DBHandler
-from limbless.categories import LibraryType
+from limbless.categories import BarcodeType
 
 
 def add_dual_indexes(db_handler: DBHandler, df, index_kit):
     for adapter_name, row in df.iterrows():
+        if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is None:
+            adapter = db_handler.create_adapter(adapter_name, index_kit.id)
         for i, seq in enumerate(row.values):
             if "i7" in df.columns[i]:
                 workflow = None
-                _type = "i7"
+                _type = BarcodeType.INDEX_I7
             else:
-                _type = "i5"
+                _type = BarcodeType.INDEX_I5
                 workflow = " ".join(df.columns[i].split("_")[1:])
                 workflow = workflow.removesuffix("(i5)").strip()
+                if workflow == "2b":
+                    continue
 
             db_handler.create_barcode(
                 sequence=seq,
-                adapter=adapter_name,
-                index_kit_id=index_kit.id,
-                type=_type,
-                workflow=workflow
+                adapter_id=adapter.id,
+                barcode_type=_type,
             )
 
 
 def add_single_indexes(db_handler: DBHandler, df, index_kit):
     for adapter_name, row in df.iterrows():
-        cols = [f"Index {i}" for i in range(1, 5)]
+        if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is None:
+            adapter = db_handler.create_adapter(adapter_name, index_kit.id)
+        types = [BarcodeType.INDEX_1, BarcodeType.INDEX_2, BarcodeType.INDEX_3, BarcodeType.INDEX_4]
         for i, seq in enumerate(row.values):
             db_handler.create_barcode(
                 sequence=seq,
-                adapter=adapter_name,
-                index_kit_id=index_kit.id,
-                type=cols[i],
-                workflow=None
+                adapter_id=adapter.id,
+                barcode_type=types[i],
             )
 
 
@@ -44,7 +46,6 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Dual Index Kit NN Set A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Dual Index Kit NN Set A",
-            allowed_library_types=[LibraryType.DUAL_INDEX]
         )
     add_dual_indexes(db_handler, df, index_kit)
 
@@ -52,7 +53,6 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Dual Index Kit NT Set A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Dual Index Kit NT Set A",
-            allowed_library_types=[LibraryType.DUAL_INDEX]
         )
     add_dual_indexes(db_handler, df, index_kit)
 
@@ -60,7 +60,6 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Dual Index Kit TN Seq A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Dual Index Kit TN Seq A",
-            allowed_library_types=[LibraryType.DUAL_INDEX]
         )
     add_dual_indexes(db_handler, df, index_kit)
 
@@ -68,7 +67,6 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Dual Index Kit TT Seq A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Dual Index Kit TT Seq A",
-            allowed_library_types=[LibraryType.DUAL_INDEX]
         )
     add_dual_indexes(db_handler, df, index_kit)
 
@@ -76,7 +74,6 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Single Index Kit N Seq A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Single Index Kit N Seq A",
-            allowed_library_types=[LibraryType.SINGLE_INDEX]
         )
     add_single_indexes(db_handler, df, index_kit)
 
@@ -84,6 +81,5 @@ def add_index_kits(db_handler: DBHandler, datadir: str = ""):
     if (index_kit := db_handler.get_index_kit_by_name("10x Single Index Kit T Seq A")) is None:
         index_kit = db_handler.create_index_kit(
             name="10x Single Index Kit T Seq A",
-            allowed_library_types=[LibraryType.SINGLE_INDEX]
         )
     add_single_indexes(db_handler, df, index_kit)

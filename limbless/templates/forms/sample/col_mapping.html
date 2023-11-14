@@ -6,8 +6,8 @@
                 <tr>
                     {% for column in columns %}
                     <td>
-                        {{ sample_table_form.fields.entries[loop.index-1].select_field(class="form-control select-field") }}
-                        {{ sample_table_form.fields.entries[loop.index-1].csrf_token() }}
+                        {{ sample_table_form.input_fields.entries[loop.index-1].select_field(class="form-control select-field") }}
+                        {{ sample_table_form.input_fields.entries[loop.index-1].csrf_token() }}
                     </td>
                     {% endfor %}
                 </tr>

@@ -413,9 +413,12 @@ input.disabled:focus {
     .input-group {
         display: flex;
         width: 100%;
+        input {
+            border-radius: 0.375rem !important;
+        }
         input:focus {
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
         }
     }
 
@@ -488,4 +491,14 @@ input.disabled:focus {
 
 .form-group {
     padding-bottom: 10px;
+}
+
+.mapping-arrow {
+    height: 100%;
+    text-align: center;
+    padding-top: 25px;
+    svg {
+        height: 20px;
+        width: 20px;
+    }
 }
