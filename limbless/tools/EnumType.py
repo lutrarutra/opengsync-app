@@ -5,6 +5,8 @@ from typing import TypeVar, Tuple, Type, Union
 
 T = TypeVar('T', bound=Enum)
 
+from .SearchResult import StaticSearchResult
+
 
 @dataclass
 class DescriptiveEnum():
@@ -21,7 +23,7 @@ class ExtendedEnumMeta(EnumMeta):
         return [(c.value.id, c.value) for c in cls]
     
     def as_selectable(cls: Type[T]) -> list[Tuple[int, str]]:
-        return [(c.value.id, c.value.name) for c in cls]
+        return [(c.value.id, c.value.name + (f" ({c.value.description})" if c.value.description else "")) for c in cls]
 
     def get(cls: Type[T], id: int) -> T:
         for member in cls:

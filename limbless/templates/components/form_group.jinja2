@@ -40,3 +40,23 @@
     {{ field.label(class="form-check-label") }}
 </div>
 {%- endmacro %}
+
+{% macro select_input(field, class='', disabled=false) -%}
+<div class="form-group">
+    <a {% if field.description %}
+    {{ tooltip(field.description, "top") }}
+    {% endif %}>
+        {{ field.label }}
+    </a>
+    <select class="form-control select-field" name="{{ field.name }}" id="{{ field.id }}">
+        {% for choice in field.iter_choices() %}
+        <option value="{{ choice[0] }}"
+        {% if field.data == choice[0] %}
+        selected
+        {% endif %}>
+            {{ choice[1] }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{%- endmacro %}

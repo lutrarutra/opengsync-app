@@ -12,7 +12,7 @@ from .TableDataForm import TableDataForm
 
 
 # 5. Confirm samples before creating
-class SampleConfirmForm(TableDataForm):
+class SampleSelectForm(TableDataForm):
     selected_samples = StringField()
 
     def prepare(self, seq_request_id: int, df: Optional[pd.DataFrame] = None) -> dict:

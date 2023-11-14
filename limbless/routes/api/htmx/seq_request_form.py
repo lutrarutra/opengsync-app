@@ -102,7 +102,7 @@ def map_columns(seq_request_id: int):
 
     df = sample_table_form.parse()
     
-    project_mapping_form = forms.ProjectMappingForm()
+    project_mapping_form = forms.ProjectMappingForm(formdata=None)
     context = project_mapping_form.prepare(df)
 
     return make_response(
@@ -149,14 +149,14 @@ def select_project(seq_request_id: int):
             ), push_url=False
         )
 
-    sample_confirm_form = forms.SampleConfirmForm()
-    context = sample_confirm_form.prepare(seq_request.id, df)
+    sample_select_form = forms.SampleSelectForm()
+    context = sample_select_form.prepare(seq_request.id, df)
 
     return make_response(
         render_template(
             "components/popups/seq_request/step-5.html",
             seq_request=seq_request,
-            sample_confirm_form=sample_confirm_form,
+            sample_select_form=sample_select_form,
             **context
         ), push_url=False
     )
@@ -201,14 +201,14 @@ def map_organisms(seq_request_id: int):
     
     df["tax_id"] = df["organism"].map(organism_id_mapping)
 
-    sample_confirm_form = forms.SampleConfirmForm()
-    context = sample_confirm_form.prepare(seq_request.id, df)
+    sample_select_form = forms.SampleSelectForm()
+    context = sample_select_form.prepare(seq_request.id, df)
 
     return make_response(
         render_template(
             "components/popups/seq_request/step-5.html",
             seq_request=seq_request,
-            sample_confirm_form=sample_confirm_form,
+            sample_select_form=sample_select_form,
             **context
         ), push_url=False
     )
@@ -221,23 +221,22 @@ def confirm_samples(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    sample_confirm_form = forms.SampleConfirmForm()
-    context = sample_confirm_form.prepare(seq_request.id)
+    sample_select_form = forms.SampleSelectForm()
+    context = sample_select_form.prepare(seq_request.id)
     
-    validated, sample_select_form = sample_confirm_form.custom_validate()
+    validated, sample_select_form = sample_select_form.custom_validate()
 
     if not validated:
         return make_response(
             render_template(
                 "components/popups/seq_request/step-5.html",
                 seq_request=seq_request,
-                sample_confirm_form=sample_confirm_form,
+                sample_select_form=sample_select_form,
                 **context
             ), push_url=False
         )
     
-    df = sample_confirm_form.parse()
-
+    df = sample_select_form.parse()
     library_mapping_form = forms.LibraryMappingForm()
     context = library_mapping_form.prepare(df)
 
@@ -258,10 +257,9 @@ def map_libraries(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     library_mapping_form = forms.LibraryMappingForm()
-    context = library_mapping_form.prepare()
-
     validated, library_mapping_form = library_mapping_form.custom_validate(db.db_handler)
-    logger.debug(library_mapping_form.errors)
+    
+    context = library_mapping_form.prepare()    # this needs to be after validation
 
     if not validated:
         return make_response(
@@ -295,9 +293,9 @@ def check_barcodes(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    index_check_form = forms.CheckIndexForm()
-    logger.debug(index_check_form.data.data)
-    df = pd.read_csv(StringIO(index_check_form.data.data), sep="\t", index_col=False, header=0)
+    barcode_check_form = forms.BarcodeCheckForm()
+    logger.debug(barcode_check_form.data.data)
+    df = pd.read_csv(StringIO(barcode_check_form.data.data), sep="\t", index_col=False, header=0)
 
     df["sample_id"] = df["sample_id"].astype("Int64")
     df["project_id"] = df["project_id"].astype("Int64")
@@ -338,9 +336,15 @@ def check_barcodes(seq_request_id: int):
                 n_new_samples += 1
             else:
                 sample = session.get_sample(row["sample_id"])
+
+            library = session.create_library(
+                sample_id=sample.id,
+                library_type=LibraryType.get(row["library_type_id"]),
+            )
             
-            session.link_sample_seq_request(
-                sample.id, seq_request.id
+            session.link_library_seq_request(
+                library_id=library.id,
+                seq_request_id=seq_request.id
             )
 
             n_added += 1

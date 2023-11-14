@@ -1,10 +1,10 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, select_input %}
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
 {% macro static_categorical_mapping(form, categories, selected) -%}
     {% for category in categories %}
-        {% set sub_form = form.input_fields[loop.index-1] %}
+        {% set sub_form = form.input_fields[loop.index0] %}
         <td>
             {{ sub_form.csrf_token() }}
             <div class="row">
@@ -19,8 +19,7 @@
                     </svg>
                 </div>
                 <div class="form-group col-8">
-                    {{ sub_form.category.label }}
-                    {{ sub_form.category(class="form-control") }}
+                    {{ select_input(sub_form.category) }}
                 </div>
             </div>
         </td>
@@ -31,7 +30,7 @@
 
 {% macro categorical_mapping(form, categories, url, selected) -%}
     {% for category in categories %}
-        {% set sub_form = form.input_fields[loop.index-1] %}
+        {% set sub_form = form.input_fields[loop.index0] %}
         <td>
             {{ sub_form.csrf_token() }}
             <div class="row">
@@ -49,7 +48,7 @@
                     search_select_field(
                         field=sub_form.category,
                         url=url,
-                        selected=selected[loop.index-1] if selected else None,
+                        selected=selected[loop.index0] if selected else None,
                         class="col-8"
                     ) 
                 }}
@@ -62,7 +61,7 @@
 
 {% macro categorical_mapping_with_new_field(form, categories, url, selected) -%}
     {% for category in categories %}
-        {% set sub_form = form.input_fields[loop.index-1] %}
+        {% set sub_form = form.input_fields[loop.index0] %}
         <td>
             {{ sub_form.csrf_token() }}
             <div class="row">
@@ -76,7 +75,7 @@
                     search_select_field(
                         field=sub_form.category,
                         url=url,
-                        selected=selected[loop.index-1] if selected else None,
+                        selected=selected[loop.index0] if selected else None,
                         class="col-4"
                     ) 
                 }}
@@ -84,12 +83,12 @@
             </div>
         </td>
     <script>
-        $("#fields-{{ loop.index0 }}-new_category").on("input", function() {
-            $("#fields-{{ loop.index0 }}-category-search").val(null);
-            $("#fields-{{ loop.index0 }}-category").val(null);
+        $("#input_fields-{{ loop.index0 }}-new_category").on("input", function() {
+            $("#input_fields-{{ loop.index0 }}-category-search").val(null);
+            $("#input_fields-{{ loop.index0 }}-category").val(null);
         });
-        $("#fields-{{ loop.index0 }}-category").on("change", function() {
-            $("#fields-{{ loop.index0 }}-new_category").val(null);
+        $("#input_fields-{{ loop.index0 }}-category").on("change", function() {
+            $("#input_fields-{{ loop.index0 }}-new_category").val(null);
         });
     </script>
     {% endfor %}

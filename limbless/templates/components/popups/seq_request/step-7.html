@@ -6,9 +6,7 @@
     </div> 
     <div class="modal-body">
         <div class="input-help">
-            <p>
-                Click on row to include/exclude sample.
-            </p>
+            <p>Hover row to see additional info</p>
         </div>
         <form id="index-check-form">
             {{ barcode_check_form.csrf_token() }}
@@ -18,9 +16,9 @@
                     <tr>
                         <th scope="col" class="col-1">#</th>
                         <th scope="col" class="col-1">Status</th>
-                        <th scope="col" class="col-2">Name</th>
+                        <th scope="col" class="col-3">Name</th>
                         <th scope="col" class="col-2">Library Type</th>
-                        <th scope="col" class="col-2">adapter</th>
+                        <th scope="col" class="col-1">adapter</th>
                         <th scope="col" class="col-1">
                             <div class="form-check form-switch">
                                 {{ barcode_check_form.reverse_complement_index_1(class="form-check-input reverse-complement",) }}

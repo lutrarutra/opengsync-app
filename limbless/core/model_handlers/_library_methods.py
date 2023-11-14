@@ -9,37 +9,23 @@ from .. import exceptions
 
 
 def create_library(
-    self, name: str,
+    self,
     sample_id: int,
-    index_kit_id: Optional[int],
-    contact_id: Optional[int],
-    owner_id: int, commit: bool = True
+    library_type: LibraryType,
+    commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if index_kit_id is not None:
-        if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"index_kit with id {index_kit_id} does not exist")
-
-    if (user := self._session.get(models.User, owner_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
-    
     if (sample := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
-    if contact_id is not None:
-        if self._session.get(models.Contact, contact_id) is None:
-            raise exceptions.ElementDoesNotExist(f"Contact with id {contact_id} does not exist")
-
     library = models.Library(
-        name=name,
-        owner_id=owner_id,
         sample_id=sample_id,
+        type_id=library_type.value.id,
     )
     self._session.add(library)
-    user.num_pools += 1
 
     if commit:
         self._session.commit()

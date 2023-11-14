@@ -57,21 +57,25 @@ class OrganismMappingForm(TableDataForm):
 
         self.set_df(df)
         organisms = sorted(df["organism"].unique())
-        selected: list[Optional[str]] = []    # TODO: selected
+        selected: list[Optional[str]] = []
 
-        for i, entry in enumerate(self.input_fields):
+        for i, raw_organism_name in enumerate(organisms):
+            if i > len(self.input_fields.entries) - 1:
+                self.input_fields.append_entry()
+
+            entry = self.input_fields.entries[i]
+            
             if (selected_id := entry.category.data) is not None:
                 selected_organism = db.db_handler.get_organism(selected_id)
             else:
                 if organisms[i] is None:
                     selected_organism = None
                 else:
-                    selected_organism = next(iter(db.db_handler.query_organisms(word=organisms[i], limit=1)), None)
+                    selected_organism = next(iter(db.db_handler.query_organisms(word=raw_organism_name, limit=1)), None)
                     entry.category.data = selected_organism.id if selected_organism is not None else None
 
             selected.append(selected_organism.to_str() if selected_organism is not None else None)
 
-        logger.debug(selected)
         return {
             "categories": organisms,
             "selected": selected,

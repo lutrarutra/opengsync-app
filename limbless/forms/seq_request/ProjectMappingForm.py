@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from io import StringIO
 import pandas as pd
 
@@ -6,15 +6,20 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, FieldList, FormField, TextAreaField, IntegerField, BooleanField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from ... import db
+from ... import db, models, logger
 from .TableDataForm import TableDataForm
 from ...core.DBHandler import DBHandler
 from ...core.DBSession import DBSession
 
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
+
 
 class ProjectSubForm(FlaskForm):
     raw_category = StringField("Raw Label", validators=[OptionalValidator()])
-    category = IntegerField("Project", validators=[OptionalValidator()])
+    category = IntegerField("Select Existing Project", validators=[OptionalValidator()])
 
     new_category = StringField("Create New Project", validators=[OptionalValidator()])
 
@@ -30,7 +35,24 @@ class ProjectMappingForm(TableDataForm):
             self.set_df(df)
         
         projects = sorted(df["project"].unique())
-        selected: list[str] = []    # TODO: get projects for each selected
+        selected: list[Optional[str]] = []    # TODO: get projects for each selected
+
+        for i, raw_project_name in enumerate(projects):
+            if i > len(self.input_fields.entries) - 1:
+                self.input_fields.append_entry()
+
+            entry = self.input_fields.entries[i]
+
+            if (selected_id := entry.category.data) is not None:
+                selected_project = db.db_handler.get_project(selected_id)
+            else:
+                if projects[i] is None:
+                    selected_project = None
+                else:
+                    selected_project = next(iter(db.db_handler.query_projects(word=raw_project_name, limit=1, user_id=current_user.id)), None)
+                    entry.category.data = selected_project.id if selected_project is not None else None
+
+            selected.append(selected_project.search_name() if selected_project is not None else None)
 
         return {
             "categories": projects,

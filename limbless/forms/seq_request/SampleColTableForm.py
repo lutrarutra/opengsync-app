@@ -14,10 +14,10 @@ class SampleColSelectForm(FlaskForm):
     required_fields = [
         ("", "-"),
         ("sample_name", "Sample Name"),
-        ("organism", "Organism"),
-        ("library_type", "Library Type"),
     ]
     optional_fields = [
+        ("organism", "Organism"),
+        ("library_type", "Library Type"),
         ("adapter", "Adapter"),
         ("index_1", "Index 1 (i7)"),
         ("index_2", "Index 2 (i5)"),
@@ -26,6 +26,21 @@ class SampleColSelectForm(FlaskForm):
         ("project", "Project"),
         ("pool", "Pool"),
     ]
+    _similars = {
+        "index1(i7)": "index_1",
+        "index1": "index_1",
+        "i7": "index_1",
+        "barcode": "index_1",
+        "index2(i5)": "index_2",
+        "index2": "index_2",
+        "i5": "index_2",
+        "index3": "index_3",
+        "index4": "index_4",
+        "adapter": "adapter",
+        "organism": "organism",
+        "samplename": "sample_name",
+        "librarytype": "library_type",
+    }
     select_field = SelectField(
         choices=required_fields + optional_fields,
     )
@@ -44,7 +59,7 @@ class SampleColTableForm(FlaskForm):
         columns = df.columns.tolist()
         refs = [key for key, _ in required_fields if key]
         opts = [key for key, _ in optional_fields]
-        matches = tools.connect_similar_strings(required_fields + optional_fields, columns)
+        matches = tools.connect_similar_strings(required_fields + optional_fields, columns, similars=SampleColSelectForm._similars)
 
         for i, col in enumerate(columns):
             select_form = SampleColSelectForm()
@@ -53,12 +68,9 @@ class SampleColTableForm(FlaskForm):
             self.input_fields.entries[i].select_field.label.text = col
             if col in matches.keys():
                 self.input_fields.entries[i].select_field.data = matches[col]
-
-        # Form is submittable if all columns are selected
-        submittable: bool = set(matches.values()) == set(refs)
+            
         return {
             "columns": columns,
-            "submittable": submittable,
             "required_fields": refs,
             "optional_fields": opts,
             "matches": matches,

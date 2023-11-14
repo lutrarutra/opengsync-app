@@ -58,9 +58,9 @@
             <button type="button" class="btn btn-primary col" onclick="deselect_all()">Remove All</button>
         </div>
         <form id="project-sample-select-form">
-            {{ sample_confirm_form.csrf_token() }}
-            {{ sample_confirm_form.data(hidden=True, readonly=True) }}
-            {{ sample_confirm_form.selected_samples(hidden=False, readonly=True) }}
+            {{ sample_select_form.csrf_token() }}
+            {{ sample_select_form.data(hidden=True, readonly=True) }}
+            {{ sample_select_form.selected_samples(hidden=False, readonly=True) }}
         </form>
     </div>
     <div class="modal-footer">

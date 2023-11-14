@@ -35,3 +35,20 @@ class SearchResult(ABC):
     @abstractmethod
     def search_description(self) -> Optional[str]:
         ...
+
+
+class StaticSearchResult(SearchResult):
+    def __init__(self, value: Union[int, str], name: str, description: Optional[str] = None):
+        super().__init__()
+        self.value = value
+        self.name = name
+        self.description = description
+
+    def search_value(self) -> Union[int, str]:
+        return self.value
+    
+    def search_name(self) -> str:
+        return self.name
+    
+    def search_description(self) -> Optional[str]:
+        return self.description

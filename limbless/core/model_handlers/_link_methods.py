@@ -184,7 +184,7 @@ def link_library_barcode(
     return library_barcode_link
 
 
-def link_sample_seq_request(
+def link_library_seq_request(
     self, library_id: int, seq_request_id: int,
     commit: bool = True
 ) -> models.SeqRequestLibraryLink:

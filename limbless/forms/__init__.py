@@ -14,7 +14,7 @@ from .pool_forms import PoolForm
 
 from .seq_request.BarcodeCheckForm import BarcodeCheckForm
 from .seq_request.SampleColTableForm import SampleColTableForm
-from .seq_request.SampleConfirmForm import SampleConfirmForm
+from .seq_request.SampleSelectForm import SampleSelectForm
 from .seq_request.OrganismMappingForm import OrganismMappingForm
 from .seq_request.ProjectMappingForm import ProjectMappingForm
 from .seq_request.LibraryMappingForm import LibraryMappingForm

@@ -473,6 +473,17 @@ input.disabled:focus {
     }
 }
 
+select {
+    .search-select-value {
+        font-weight: 600;
+    }
+    .search-select-desc {
+        color: $gray-500;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+}
+
 .requirement-list {
     color: $danger;
     text-transform: capitalize;
