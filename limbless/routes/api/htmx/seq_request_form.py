@@ -134,7 +134,7 @@ def select_project(seq_request_id: int):
             ), push_url=False
         )
     
-    df = project_mapping_form.parse()
+    df = project_mapping_form.parse(seq_request_id=seq_request_id)
 
     category_mapping_form = forms.OrganismMappingForm(formdata=None)
     context = category_mapping_form.prepare(seq_request.id, df)
@@ -294,8 +294,7 @@ def check_barcodes(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     barcode_check_form = forms.BarcodeCheckForm()
-    logger.debug(barcode_check_form.data.data)
-    df = pd.read_csv(StringIO(barcode_check_form.data.data), sep="\t", index_col=False, header=0)
+    df = barcode_check_form.get_df()
 
     df["sample_id"] = df["sample_id"].astype("Int64")
     df["project_id"] = df["project_id"].astype("Int64")
@@ -319,35 +318,44 @@ def check_barcodes(seq_request_id: int):
                     description="",
                     owner_id=current_user.id
                 )
-                projects[project_name] = project
+                projects[project.id] = project
+                df.loc[df["project_name"] == project_name, "project_id"] = project.id
 
-        for i, row in df.iterrows():
-            if pd.isnull(row["sample_id"]):
-                if pd.isnull(row["project_id"]):
-                    project = projects[row["project_name"]]
-                else:
-                    project = projects[row["project_id"]]
+        if df["project_id"].isna().any():
+            raise Exception("Project id is None (should not be).")
+    
+    df = df.where(pd.notna(df), None)
+    logger.debug(df["sample_id"].unique()[0])
+    logger.debug(pd.isnull(df["sample_id"].unique()[0]))
+    logger.debug(pd.isna(df["sample_id"].unique()[0]))
+    logger.debug(df[["sample_name", "sample_id", "tax_id", "project_name", "project_id"]])
+    with DBSession(db.db_handler) as session:
+        for (_sample_name, _sample_id, _tax_id, _project_name, _project_id), _df in df.groupby(["sample_name", "sample_id", "tax_id", "project_name", "project_id"]):
+            project = projects[_project_id]
+            logger.debug(f"{_sample_name}, {_sample_id}, {_tax_id}, {_project_name}, {_project_id}")
+            if pd.isnull(_sample_id):
                 sample = session.create_sample(
-                    name=row["sample_name"],
-                    organism_tax_id=row["tax_id"],
+                    name=_sample_name,
+                    organism_tax_id=_tax_id,
                     project_id=project.id,
                     owner_id=current_user.id
                 )
                 n_new_samples += 1
             else:
-                sample = session.get_sample(row["sample_id"])
+                sample = session.get_sample(_sample_id)
 
-            library = session.create_library(
-                sample_id=sample.id,
-                library_type=LibraryType.get(row["library_type_id"]),
-            )
-            
-            session.link_library_seq_request(
-                library_id=library.id,
-                seq_request_id=seq_request.id
-            )
+            for i, row in _df.iterrows():
+                library = session.create_library(
+                    sample_id=sample.id,
+                    library_type=LibraryType.get(row["library_type_id"]),
+                )
+                
+                session.link_library_seq_request(
+                    library_id=library.id,
+                    seq_request_id=seq_request.id
+                )
 
-            n_added += 1
+                n_added += 1
 
     logger.info(f"Created '{n_new_samples}'-samples and '{n_new_projects}'-projects.")
     if n_added == 0:

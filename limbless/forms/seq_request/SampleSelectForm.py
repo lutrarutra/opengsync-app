@@ -19,25 +19,7 @@ class SampleSelectForm(TableDataForm):
         if df is None:
             df = self.get_df()
 
-        idx = df["sample_name"].duplicated(keep=False)
-        df.loc[idx, "sample_name"] = df.loc[idx, "sample_name"] + "." + df.loc[idx, :].groupby("sample_name").cumcount().add(1).astype(str)
-
         samples: list[dict[str, str | int | None]] = []
-        
-        with DBSession(db.db_handler) as session:
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                raise Exception(f"Seq request with id {seq_request_id} does not exist.")
-            
-            projects: dict[int, models.Project] = {}
-            project_samples: dict[int, dict[str, models.Sample]] = {}
-            for project_id in df["project_id"].unique():
-                if not pd.isnull(project_id):
-                    project_id = int(project_id)
-                    if (project := session.get_project(project_id)) is None:
-                        raise Exception(f"Project with id {project_id} does not exist.")
-                    
-                    projects[project_id] = project
-                    project_samples[project_id] = dict([(sample.name, sample) for sample in project.samples])
 
         for i, row in df.iterrows():
             # Check if sample names are unique in project
@@ -56,9 +38,7 @@ class SampleSelectForm(TableDataForm):
                 "adapter": row["adapter"],
             }
 
-            _project_sampels = project_samples[row["project_id"]] if row["project_id"] in project_samples.keys() else {}
-
-            if row["sample_name"] in _project_sampels.keys():
+            if row["sample_id"] is not None:
                 data["info"] = "Existing sample found from project."
             else:
                 data["info"] = "New sample."

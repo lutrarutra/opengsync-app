@@ -89,7 +89,7 @@ def get_num_samples(
 
 def get_samples(
     self, user_id: Optional[int] = None,
-    project_id: Optional[int] = None, seq_request_id: Optional[int] = None,
+    project_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Sample], int]:
@@ -113,14 +113,6 @@ def get_samples(
     if project_id is not None:
         query = query.where(
             models.Sample.project_id == project_id
-        )
-
-    if seq_request_id is not None:
-        query = query.join(
-            models.SeqRequestLibraryLink,
-            models.Sample.id == models.SeqRequestLibraryLink.library_id
-        ).where(
-            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
@@ -153,6 +145,29 @@ def get_user_sample_by_name(self, sample_name: str, user_id: int) -> models.Samp
             owner_id=user_id
         )
     ).first()
+    if not persist_session:
+        self.close_session()
+    return sample
+
+
+def get_project_sample_by_name(
+    self, sample_name: str, project_id: int
+) -> Optional[models.Sample]:
+
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if self._session.get(models.Project, project_id) is None:
+        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
+
+    sample = self._session.query(models.Sample).filter_by(
+        and_(
+            models.Sample.name==sample_name,
+            models.Sample.project_id==project_id
+        )
+    ).first()
+
     if not persist_session:
         self.close_session()
     return sample

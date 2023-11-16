@@ -67,20 +67,16 @@ def get_libraries(
 
     if seq_request_id is not None:
         query = query.join(
-            models.LibrarySeqRequestLink,
-            models.LibrarySeqRequestLink.library_id == models.Library.id,
+            models.SeqRequestLibraryLink,
+            models.SeqRequestLibraryLink.library_id == models.Library.id,
             isouter=True
         ).where(
-            models.LibrarySeqRequestLink.seq_request_id == seq_request_id
+            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
         )
 
     if sample_id is not None:
-        query = query.join(
-            models.LibrarySampleLink,
-            models.LibrarySampleLink.library_id == models.Library.id,
-            isouter=True
-        ).where(
-            models.LibrarySampleLink.sample_id == sample_id
+        query = query.where(
+            models.Library.sample_id == sample_id
         )
 
     if experiment_id is not None:

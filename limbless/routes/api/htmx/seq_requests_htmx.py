@@ -315,19 +315,19 @@ def add_library(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/remove_sample", methods=["DELETE"])
+@seq_requests_htmx.route("<int:seq_request_id>/remove_library", methods=["DELETE"])
 @login_required
-def remove_sample(seq_request_id: int):
-    if (sample_id := request.args.get("sample_id")) is None:
+def remove_library(seq_request_id: int):
+    if (library_id := request.args.get("library_id")) is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     try:
-        sample_id = int(sample_id)
+        library_id = int(library_id)
     except ValueError:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     with DBSession(db.db_handler) as session:
-        if (sample := session.get_sample(sample_id)) is None:
+        if (library := session.get_library(library_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
@@ -337,10 +337,12 @@ def remove_sample(seq_request_id: int):
             if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
-        session.unlink_sample_seq_request(sample_id, seq_request_id)
+        session.unlink_library_seq_request(
+            library_id=library_id, seq_request_id=seq_request_id
+        )
 
-    flash(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'", "success")
-    logger.debug(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'")
+    flash(f"Removed library '{library.sample.name}' from sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Removed library '{library.sample.name}' from sequencing request '{seq_request.name}'")
 
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),

@@ -344,13 +344,6 @@ input.disabled:focus {
                 }
             }
         }
-        .user-name-col {
-            display: flex;
-            gap: 7px;
-            :nth-child(2) {
-                color: $gray-500;
-            }
-        }
         .library_type-col {
             display: flex;
         }
@@ -386,6 +379,15 @@ input.disabled:focus {
     }
 }
 
+span.desc {
+    color: $gray-500;    
+}
+span.desc:before {
+    content: "(";
+}
+span.desc:after {
+    content: ")";
+}
 
 .invalid-feedback-container {
     display: flex;

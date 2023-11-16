@@ -24,36 +24,8 @@ class OrganismMappingForm(TableDataForm):
     def prepare(self, seq_request_id: int, df: Optional[pd.DataFrame] = None) -> dict:
         if df is None:
             df = self.get_df()
-
-        with DBSession(db.db_handler) as session:
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                raise Exception(f"Seq request with id {seq_request_id} does not exist.")
             
-            projects: dict[int, models.Project] = {}
-            project_samples: dict[int, dict[str, models.Sample]] = {}
-            for project_id in df["project_id"].unique():
-                if not pd.isnull(project_id):
-                    project_id = int(project_id)
-                    if (project := session.get_project(project_id)) is None:
-                        raise Exception(f"Project with id {project_id} does not exist.")
-                    
-                    projects[project_id] = project
-                    project_samples[project_id] = dict([(sample.name, sample) for sample in project.samples])
-            
-        df["sample_id"] = None
-        df["tax_id"] = None
         df["duplicate"] = False
-
-        for i, row in df.iterrows():
-            if row["project_id"] is None:
-                _project_samples = {}
-            else:
-                _project_samples = project_samples[row["project_id"]]
-            if row["sample_name"] in _project_samples.keys():
-                project = projects[row["project_id"]]
-
-                df.at[i, "sample_id"] = _project_samples[row["sample_name"]].id
-                df.at[i, "tax_id"] = _project_samples[row["sample_name"]].organism.tax_id
 
         self.set_df(df)
         organisms = sorted(df["organism"].unique())

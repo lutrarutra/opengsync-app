@@ -1,39 +1,39 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
-<div id="seq_request-sample-table" class="table-container">
+<div id="seq_request-library-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
                 {{
                     table_col(
-                        target_id='seq_request-sample-table', column_name='ID', column_var='id',
-                        sort_url='samples_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        target_id='seq_request-library-table', column_name='ID', column_var='id',
+                        sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('samples_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
+                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-sample-table', column_name='Name', column_var='name',
-                        sort_url='samples_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        target_id='seq_request-library-table', column_name='Sample Name', column_var='name',
+                        sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('samples_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
+                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
                         field_name=field_name, col_size=4
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-sample-table', column_name='Organism', column_var='organism_id',
-                        sort_url='samples_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        target_id='seq_request-library-table', column_name='Type', column_var='type_id',
+                        sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        col_size=5
+                        col_size=2
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-sample-table', column_name='Owner', column_var='owner_id',
-                        sort_url='samples_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        target_id='seq_request-library-table', column_name='Owner', column_var='owner_id',
+                        sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         col_size=2
                     )
@@ -41,30 +41,24 @@
             </tr>
         </thead>
         <tbody>
-            {% for sample in samples %}
-            <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id) }}';">
-                <th scope="row">{{ sample.id }}</th>
-                <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
-                <td>
-                    <span class="organism-col">
-                        <p>{{ sample.organism.scientific_name }}</p>
-                        <p>{{ "[" + sample.organism.tax_id | string + "]" }}</p>
-                        <p>{{ ("(" + sample.organism.common_name + ")" if sample.organism.common_name else "") }}</p>
-                    </span>
-                </td>
-                <td><span class="user-name-col"><p>{{ sample.owner.name }}</p> <p>{{ "(me)" if current_user.id == sample.owner_id }}</p></span></td>
+            {% for library in libraries %}
+            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+                <th scope="row">{{ library.id }}</th>
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.sample.name }}</td>
+                <td>{{ library.type.value.name }} <span class="desc">{{ library.type.value.description }}</span></td>
+                <td>{{ library.sample.owner.name }} <span class="desc">{{ "me" if current_user.id == library.sample.owner_id }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("seq_request-sample-table", "samples_htmx.get", n_pages, active_page, url_args={"seq_request_id": seq_request.id}) }}
+    {{ pagination("seq_request-library-table", "libraries_htmx.get", n_pages, active_page, url_args={"seq_request_id": seq_request.id}) }}
 </div>
 <script>
-    var selected_sample_id = null;
+    var selected_library_id = null;
 
-    function remove_sample() {
+    function remove_library() {
         Swal.fire({
-            title: `Remove sample (id='${selected_sample_id}') from '{{seq_request.name}}'-request ?`,
+            title: `Remove library (id='${selected_library_id}') from '{{seq_request.name}}'-request ?`,
             showDenyButton: true,
             text: 'Are you sure?',
             confirmButtonText: 'Yes',
@@ -72,25 +66,25 @@
         }).then(function(e) {
             if (e.isConfirmed) {
                 htmx.ajax(
-                "DELETE", "{{ url_for('seq_requests_htmx.remove_sample', seq_request_id=seq_request.id) }}?sample_id=" + selected_sample_id,
+                "DELETE", "{{ url_for('seq_requests_htmx.remove_library', seq_request_id=seq_request.id) }}?library_id=" + selected_library_id,
                 null, {
-                    target: "#seq_request-seq_request-sample-table",
+                    target: "#seq_request-seq_request-library-table",
                     swapStyle: "outerHTML"
                 });
             }
         });
     }
 
-    $(document).off("contextmenu", ".sample-name-cell").on("contextmenu", ".sample-name-cell", function(e) {
+    $(document).off("contextmenu", ".library-name-cell").on("contextmenu", ".library-name-cell", function(e) {
         e.preventDefault();
         const x = e.pageX;
         const y = e.pageY;
-        selected_sample_id = e.target.id.split("-")[3];
+        selected_library_id = e.target.id.split("-")[3];
         $("#copy-edit-menu").css({
             display: "block",
             left: x + 8, top: y + 8
         }).empty().append([
-            `<li><a class='dropdown-item' onclick='remove_sample()'>Remove</a></li>`
+            `<li><a class='dropdown-item' onclick='remove_library()'>Remove</a></li>`
         ]);
 
         $("#right-click-bg").css({

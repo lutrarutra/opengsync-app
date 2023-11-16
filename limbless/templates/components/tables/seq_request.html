@@ -46,7 +46,7 @@
                 }}
                 <th class="col-2" scope="col">Contact Name</th>
                 <th class="col-1" scope="col">Billing</th>
-                <th class="col-1" scope="col"># Samples</th>
+                <th class="col-1" scope="col"># Libraries</th>
             </tr>
         </thead>
         <tbody>
@@ -59,7 +59,7 @@
                 <td>{{ seq_request.submitted_time_to_str() }}</td>
                 <td {{ tooltip("email: " + seq_request.contact_person.email + (" phone: " + seq_request.contact_person.phone if seq_request.contact_person.phone else "")) }}>{{ seq_request.contact_person.name }}</td>
                 <td {{ tooltip("email: " + seq_request.billing_contact.email + (" phone: " + seq_request.billing_contact.phone if seq_request.billing_contact.phone else "")) }}>{{ seq_request.billing_contact.name }}</td>
-                <td>{{ seq_request.num_samples }}</td>
+                <td>{{ seq_request.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>

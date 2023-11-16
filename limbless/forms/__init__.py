@@ -1,5 +1,5 @@
 from .JobForm import JobForm
-from .sample_forms import SampleSelectForm, SampleForm
+from .sample_forms import SampleForm
 from .ProjectForm import ProjectForm
 from .ExperimentForm import ExperimentForm
 from .library_forms import LibraryForm, SelectLibraryForm

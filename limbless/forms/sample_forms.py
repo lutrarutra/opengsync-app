@@ -48,8 +48,3 @@ class SampleForm(FlaskForm):
                             break
 
         return validated, self
-
-
-# Select a single sample for something
-class SampleSelectForm(FlaskForm):
-    query_field = StringField("Search", validators=[DataRequired()])

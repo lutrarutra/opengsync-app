@@ -1,11 +1,18 @@
-from flask import Blueprint, render_template, abort, url_for
-from flask_login import current_user, login_required
+from typing import TYPE_CHECKING
 
-from ... import forms, db, logger, PAGE_LIMIT
+from flask import Blueprint, render_template, abort, url_for
+from flask_login import login_required
+
+from ... import forms, db, logger, PAGE_LIMIT, models
 from ...core import DBSession
 from ...categories import UserRole, SeqRequestStatus, HttpResponse
 
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
+
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
 
 
 @seq_requests_page_bp.route("/seq_request")
@@ -44,7 +51,7 @@ def seq_request_page(seq_request_id: int):
             if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
-        samples, n_pages = session.get_samples(seq_request_id=seq_request_id, sort_by="id", descending=True)
+        libraries, n_pages = session.get_libraries(seq_request_id=seq_request_id, sort_by="id", descending=True)
 
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
@@ -90,7 +97,7 @@ def seq_request_page(seq_request_id: int):
     return render_template(
         "seq_request_page.html",
         seq_request=seq_request,
-        samples=samples,
+        libraries=libraries,
         path_list=path_list,
         select_library_form=forms.SelectLibraryForm(),
         library_results=library_results,
