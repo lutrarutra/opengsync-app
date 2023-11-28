@@ -6,14 +6,11 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Library: {{ library.name }}</h1>
+            <h1>Library: {{ library.sample.name }} <span class="desc">{{ library.type.value.description }}</span></h1>
         </div>
         <div>
             <span
-                {% if not library.is_editable() %}
-                {{ tooltip('Library cannot be edited after samples have been added.') }}
-                {% endif %}>
-                <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup" {{ "disabled" if not library.is_editable() }}>
+                <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup">
                     Edit Library
                 </button>
             </span>
@@ -23,73 +20,63 @@
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
-            data-bs-target="#library-samples-tab" type="button" role="tab"
-            aria-controls="library-samples-tab" aria-selected="true">
-            Samples</button>
+            data-bs-target="#library-barcodes-tab" type="button" role="tab"
+            aria-controls="library-barcodes-tab" aria-selected="true">
+            Barcodes</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-metadata-tab" type="button" role="tab"
-            aria-controls="library-metadata-tab" aria-selected="false">
+            aria-controls="library-metadata-tab" aria-selected="true">
             Metadata</button>
         </li>
     </ul>
     <div class="tab-content pt-3">
-        <div class="tab-pane fade show active" id="library-samples-tab" role="tabpanel" tabindex="0">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h2>Samples <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                </div>
-                <div>
-                    <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-form-popup">
-                        Add Sample
-                    </button>
-                    <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sample-table-form-popup">
-                        Add Table
-                    </button>
-                    <a class="btn btn-primary" href="{{ url_for('samples_htmx.download', library_id=library.id) }}">
-                        Download
-                    </a>
-                </div>
-            </div>
-            {% include "components/tables/library-sample.html" %}
+        <div class="tab-pane fade show active" id="library-barcodes-tab" role="tabpanel" tabindex="0">
+            {% for barcode in library.barcodes %}
+                {% if loop.index0 % 2 == 0 %}
+                    <div class="row">
+                {% endif %}
+                {{
+                    metadata_group(
+                        barcode.type.value.name,
+                        barcode.sequence,
+                        class="col"
+                    )
+                }}
+                {% if loop.index % 2 == 0 %}
+                    </div>
+                {% endif %}
+            {% endfor %}
         </div>
         <div class="tab-pane fade show" id="library-metadata-tab" role="tabpanel" tabindex="1">
             <div class="row">
-                {{ metadata_group("Name", library.name, class="col") }}
-                {{ metadata_group("Type", library.library_type.value.name, class="col") }}
+                {{ 
+                    metadata_group_link(
+                        "Sample",
+                        library.sample.name,
+                        url_for("samples_page.sample_page", sample_id=library.sample.id),
+                        class="col"
+                    )
+                }}
+                {{ metadata_group("Type", library.type.value, class="col") }}
             </div>
             <div class="row">
                 {{ 
                     metadata_group_link(
                         "Owner Name",
-                        library.owner.first_name + " " + library.owner.last_name,
-                        url_for("users_page.user_page", user_id=library.owner.id),
+                        library.sample.owner.first_name + " " + library.sample.owner.last_name,
+                        url_for("users_page.user_page", user_id=library.sample.owner.id),
                         class="col"
                     )
                 }}
                 {{
                     metadata_group_email_link(
-                        "Owner Email", library.owner.email, class="col",
-                        subject="BSF Library: " + library.name + " (" + library.id | string + ")"
+                        "Owner Email", library.sample.owner.email, class="col",
+                        subject="BSF Library: " + library.sample.name + " " + library.type.value.description + " " + " (" + library.id | string + ")"
                     )
                 }}
             </div>
-            
-            {% if library.contact_id %}
-            <br>
-            <h4>Library Preparer</h4>
-            <div class="row">
-                {{ metadata_group("Name", library.contact.name, class="col-6 col-xl-3") }}
-                {{ 
-                    metadata_group_email_link(
-                        "Email", library.contact.email, class="col-6 col-xl-5",
-                        subject="Library: " + library.name + " (" + library.id | string + ")"
-                    )
-                }}
-                {{ metadata_group("Phone", library.contact.phone, class="col-6 col-xl-4") }}
-            </div>
-            {% endif %}
         </div>
     </div>
 
@@ -101,7 +88,6 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {% include "forms/library.html" %}
             </div>
             <div class="modal-footer" id="popup-footer">
                 <button class="btn btn-primary"
@@ -111,26 +97,7 @@
           </div>
         </div>
     </div>
-    <div class="modal fade" id="sample-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5" id="">Add Sample</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                {% include "forms/index.html" %}
-            </div>
-            <div class="modal-footer" id="popup-footer">
-                <button class="btn btn-primary"
-                hx-include="#index-form"
-                hx-target="#index-form"
-                hx-swap="outerHTML"
-                hx-post="{{ url_for('libraries_htmx.add_sample', library_id=library.id) }}">Submit</button>
-            </div>
-          </div>
-        </div>
-    </div>
+
     <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
         {% include "components/popups/library/table.html" %}

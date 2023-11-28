@@ -11,9 +11,9 @@ def add_dual_indexes(db_handler: DBHandler, df, index_kit):
         for i, seq in enumerate(row.values):
             if "i7" in df.columns[i]:
                 workflow = None
-                _type = BarcodeType.INDEX_I7
+                _type = BarcodeType.INDEX_1
             else:
-                _type = BarcodeType.INDEX_I5
+                _type = BarcodeType.INDEX_2
                 workflow = " ".join(df.columns[i].split("_")[1:])
                 workflow = workflow.removesuffix("(i5)").strip()
                 if workflow == "2b":

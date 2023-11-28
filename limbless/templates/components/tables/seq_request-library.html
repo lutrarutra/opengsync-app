@@ -71,15 +71,15 @@
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}';">
                 <th scope="row">{{ library.id }}</th>
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.sample.name }}</td>
+                <td>{{ library.type.value.name }} <span class="desc">{{ library.type.value.description }}</span></td>
                 <td>
                     {% if library.barcodes | length %}
                     <span>{{ (library.barcodes | first).adapter }}</span>
                     {% endif %}
                 </td>
-                <td>{{ library.type.value.name }} <span class="desc">{{ library.type.value.description }}</span></td>
                 <td>
                     {% for barcode in library.barcodes %}
                     {% if barcode.type.value.id == 1 or barcode.type.value.id == 5 %}

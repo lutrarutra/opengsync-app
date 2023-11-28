@@ -48,6 +48,34 @@ def get(page):
                 limit=PAGE_LIMIT, offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending
             )
             context["seq_request"] = seq_request
+    elif (experiment_id := request.args.get("experiment_id", None)) is not None:
+        template = "components/tables/experiment-library.html"
+        try:
+            experiment_id = int(experiment_id)
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        with DBSession(db.db_handler) as session:
+            if (experiment := session.get_experiment(experiment_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            libraries, n_pages = session.get_libraries(
+                limit=PAGE_LIMIT, offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending
+            )
+            context["experiment"] = experiment
+    elif (sample_id := request.args.get("sample_id", None)) is not None:
+        template = "components/tables/sample-library.html"
+        try:
+            sample_id = int(sample_id)
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        with DBSession(db.db_handler) as session:
+            if (sample := session.get_sample(sample_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            libraries, n_pages = session.get_libraries(
+                limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending
+            )
+            context["sample"] = sample
     else:
         template = "components/tables/library.html"
         with DBSession(db.db_handler) as session:
@@ -56,6 +84,7 @@ def get(page):
             else:
                 libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, user_id=None, sort_by=sort_by, descending=descending)
 
+    logger.debug(template)
     return make_response(
         render_template(
             template, libraries=libraries,

@@ -61,8 +61,11 @@ def get_libraries(
 
     query = self._session.query(models.Library)
     if user_id is not None:
-        query = query.where(
-            models.Library.owner_id == user_id
+        query = query.join(
+            models.Sample,
+            models.Sample.id == models.Library.sample_id,
+        ).where(
+            models.Sample.owner_id == user_id
         )
 
     if seq_request_id is not None:

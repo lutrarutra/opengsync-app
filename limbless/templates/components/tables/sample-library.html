@@ -1,54 +1,104 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
-<div id="library-table" class="table-container">
+<div id="sample-library-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
                 {{
                     table_col(
-                        target_id='library-table', column_name='ID', column_var='id',
+                        target_id='sample-library-table', column_name='ID', column_var='id',
                         sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         query_url=url_for('libraries_htmx.table_query', sample_id=sample.id), current_query=current_query,
-                        field_name=field_name, query_type="number",
+                        field_name=field_name, query_type="number", col_size=1
                     )
                 }}
                 {{
                     table_col(
-                        target_id='library-table', column_name='Name', column_var='name',
+                        target_id='sample-library-table', column_name='Type', column_var='type_id',
                         sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', sample_id=sample.id), current_query=current_query,
-                        field_name=field_name, query_type="text", col_size=3,
+                        col_size=2
                     )
                 }}
+                <th scope="col-1">Adapter</th>
+                <th scope="col-1">
+                    Index 1 <span class="desc">i7</span>
+                    <a type="button" class="reverse-complement-index-column">
+                        <img id="reverse-complement-index-column-1"
+                        src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
+                    </a>
+                </th>
+                <th scope="col-1">
+                    Index 2 <span class="desc">i5</span>
+                    <a type="button" class="reverse-complement-index-column">
+                        <img id="reverse-complement-index-column-2"
+                        src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
+                    </a>
+                </th>
+                <th scope="col-1">
+                    Index 3
+                    <a type="button" class="reverse-complement-index-column">
+                        <img id="reverse-complement-index-column-3"
+                        src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
+                    </a>
+                </th>
+                <th scope="col-1">
+                    Index 4
+                    <a type="button" class="reverse-complement-index-column">
+                        <img id="reverse-complement-index-column-4"
+                        src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
+                    </a>
+                </th>
                 {{
                     table_col(
-                        target_id='library-table', column_name='Type', column_var='library_type_id',
+                        target_id='sample-library-table', column_name='Owner', column_var='owner_id',
                         sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
-                        col_size=3,
+                        col_size=2
                     )
                 }}
-                {{
-                    table_col(
-                        target_id='library-table', column_name='Owner', column_var='owner_id',
-                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        col_size=2,
-                    )
-                }}
-                <th scope="col" class="col-3">Index Kit</th>
             </tr>
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='sample@' + sample.id | string) }}';">
                 <th scope="row">{{ library.id }}</th>
-                <td>{{ library.name }}</td>
-                <td>{{ library.library_type.value.name }}</td>
-                <td>{{ library.sample.owner.name }} <span class="desc">{{ "(me)" if current_user.id == library.sample.owner_id }}</span></td>
-                <td>{{ library.index_kit.name if library.index_kit }}</td>
+                <td>{{ library.type.value.name }} <span class="desc">{{ library.type.value.description }}</span></td>
+                <td>
+                    {% if library.barcodes | length %}
+                    <span>{{ (library.barcodes | first).adapter }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% for barcode in library.barcodes %}
+                    {% if barcode.type.value.id == 1 or barcode.type.value.id == 5 %}
+                    <span class="index-cell" id="library-{{library.id}}-index-cell-1">{{ barcode.sequence }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for barcode in library.barcodes %}
+                    {% if barcode.type.value.id == 2 or barcode.type.value.id == 6 %}
+                    <span class="index-cell" id="library-{{library.id}}-index-cell-2">{{ barcode.sequence }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for barcode in library.barcodes %}
+                    {% if barcode.type.value.id == 3 %}
+                    <span class="index-cell" id="library-{{library.id}}-index-cell-3">{{ barcode.sequence }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for barcode in library.barcodes %}
+                    {% if barcode.type.value.id == 4 %}
+                    <span class="index-cell" id="library-{{library.id}}-index-cell-4">{{ barcode.sequence }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </td>
+                <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
             </tr>
             {% endfor %}
         </tbody>

@@ -2,7 +2,7 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..categories import LibraryType
+from ..categories import LibraryType, BarcodeType
 from ..tools import SearchResult
 from .Links import ExperimentLibraryLink, SeqRequestLibraryLink, LibraryBarcodeLink, LibraryPoolLink
 
@@ -42,7 +42,7 @@ class Library(SQLModel, SearchResult, table=True):
     )
 
     barcodes: list["Barcode"] = Relationship(
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "order_by": "Barcode.type_id"},
         link_model=LibraryBarcodeLink
     )
 
@@ -52,8 +52,21 @@ class Library(SQLModel, SearchResult, table=True):
         return {
             "library_id": self.id,
             "sample_name": self.sample.name,
-            "library_type": self.type.value.name,
-        }
+            "library_type": self.type.value,
+            "adapter": self.barcodes[0].adapter if self.barcodes else None,
+        } | self.get_barcode_sequences()
+    
+    def get_barcodes(self) -> dict[str, "Barcode"]:
+        res = {}
+        for barcode in self.barcodes:
+            res[BarcodeType.mapping(barcode.type_id)] = barcode
+        return res
+    
+    def get_barcode_sequences(self) -> dict[str, str]:
+        res = {}
+        for barcode in self.barcodes:
+            res[BarcodeType.mapping(barcode.type_id)] = barcode.sequence
+        return res
 
     @property
     def type(self) -> LibraryType:

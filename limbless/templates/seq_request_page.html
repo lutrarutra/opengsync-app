@@ -41,8 +41,8 @@
                     Export
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ url_for('seq_requests_htmx.export_samples', seq_request_id=seq_request.id) }}">
-                        Samples (.tsv)
+                    <li><a class="dropdown-item" href="{{ url_for('seq_requests_htmx.export_libraries', seq_request_id=seq_request.id) }}">
+                        Libraries (.tsv)
                     </a></li>
                     <li><a class="dropdown-item" href="{{ url_for('seq_requests_htmx.export', seq_request_id=seq_request.id) }}">Everything (.xlsx)</a></li>
                 </ul>

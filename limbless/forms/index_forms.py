@@ -84,14 +84,3 @@ def __create_atac_index_form() -> IndexForm:
     form.barcodes.append_entry()
     form.barcodes.entries[-1].sequence.label.text = "Index 4 Sequence"
     return form
-
-
-def create_index_form(library: Library) -> IndexForm:
-    if library.is_raw_library():
-        return IndexForm()
-    if library.library_type in [LibraryType.DUAL_INDEX]:
-        return __crete_dual_index_form()
-    elif library.library_type in [LibraryType.SC_ATAC]:
-        return __create_atac_index_form()
-
-    raise NotImplementedError(f"Index form for library type '{library.library_type}' not implemented.")

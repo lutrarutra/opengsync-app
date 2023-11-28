@@ -1,9 +1,16 @@
+from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from ... import db, forms, logger, PAGE_LIMIT
 from ...core import DBSession
+from ...models import User
 from ...categories import UserRole, HttpResponse
+
+if TYPE_CHECKING:
+    current_user: User = None
+else:
+    from flask_login import current_user
 
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
@@ -38,26 +45,9 @@ def library_page(library_id):
         if (library := session.get_library(library_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
-        access = session.get_user_library_access(current_user.id, library_id)
-        if access is None:
-            return abort(HttpResponse.FORBIDDEN.value.id)
-        
-        samples = library.samples
-        if not library.is_raw_library():
-            for sample in samples:
-                sample.barcodes = session.get_sample_barcodes_from_library(sample.id, library.id)
-
-    library_form = forms.LibraryForm()
-    library_form.name.data = library.name
-    library_form.library_type.data = str(library.library_type_id)
-    library_form.index_kit.data = library.index_kit_id
-    library_form.is_premade_library.data = not library.is_raw_library()
-
-    available_samples = db.db_handler.query_samples(
-        word="", exclude_library_id=library_id, user_id=current_user.id
-    )
-
-    index_form = forms.create_index_form(library)
+        if not current_user.is_insider():
+            if library.sample.owner_id != current_user.id:
+                return abort(HttpResponse.FORBIDDEN.value.id)
 
     path_list = [
         ("Libraries", url_for("libraries_page.libraries_page")),
@@ -77,16 +67,16 @@ def library_page(library_id):
                 (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
                 (f"Library {library.id}", ""),
             ]
+        elif page == "sample":
+            path_list = [
+                ("Samples", url_for("samples_page.samples_page")),
+                (f"Sample {id}", url_for("samples_page.sample_page", sample_id=id)),
+                (f"Library {library.id}", ""),
+            ]
 
     return render_template(
         "library_page.html",
-        available_samples=available_samples,
         library=library,
-        samples=library.samples,
         path_list=path_list,
-        index_form=index_form,
-        available_adapters=db.db_handler.query_adapters(word="", index_kit_id=library.index_kit_id),
-        selected_kit=library.index_kit,
-        library_form=library_form,
         table_form=forms.TableForm(),
     )

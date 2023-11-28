@@ -117,21 +117,21 @@ def export(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/export_samples", methods=["GET"])
+@seq_requests_htmx.route("<int:seq_request_id>/export_libraries", methods=["GET"])
 @login_required
-def export_samples(seq_request_id: int):
+def export_libraries(seq_request_id: int):
     with DBSession(db.db_handler) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
-        samples = seq_request.samples
+        libraries = seq_request.libraries
 
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
     
-    file_name = secure_filename(f"{seq_request.name}_samples.tsv")
+    file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
 
-    df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
+    df = pd.DataFrame.from_records([library.to_dict() for library in libraries])
 
     return Response(
         df.to_csv(sep="\t", index=False), mimetype="text/csv",

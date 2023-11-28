@@ -91,7 +91,7 @@ def seq_request_page(seq_request_id: int):
 
     path_list = [
         ("Requests", url_for("seq_requests_page.seq_requests_page")),
-        (f"{seq_request_id}", ""),
+        (f"Request {seq_request_id}", ""),
     ]
 
     return render_template(

@@ -87,5 +87,16 @@ class BarcodeType(Enum, metaclass=ExtendedEnumMeta):
     INDEX_2 = DescriptiveEnum(2, "Index 2")
     INDEX_3 = DescriptiveEnum(3, "Index 3")
     INDEX_4 = DescriptiveEnum(4, "Index 4")
-    INDEX_I7 = DescriptiveEnum(5, "Index I7")
-    INDEX_I5 = DescriptiveEnum(6, "Index I5")
+    # INDEX_I7 = DescriptiveEnum(5, "Index I7")
+    # INDEX_I5 = DescriptiveEnum(6, "Index I5")
+
+    @staticmethod
+    def mapping(type_id: int) -> str:
+        return {
+            BarcodeType.INDEX_1.value.id: "index_1",
+            BarcodeType.INDEX_2.value.id: "index_2",
+            BarcodeType.INDEX_3.value.id: "index_3",
+            BarcodeType.INDEX_4.value.id: "index_4",
+            # BarcodeType.INDEX_I7.value.id: "index_1",
+            # BarcodeType.INDEX_I5.value.id: "index_2",
+        }[type_id]
