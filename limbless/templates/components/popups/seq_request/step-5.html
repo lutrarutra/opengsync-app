@@ -15,10 +15,9 @@
                     <th scope="col" class="col-1">#</th>
                     <th scope="col" class="col-1">Selected</th>
                     <th scope="col" class="col-3">Name</th>
-                    <th scope="col" class="col-1">Sample ID</th>
-                    <th scope="col" class="col-2">Tax ID</th>
-                    <th scope="col" class="col-3">Project Name</th>
-                    <th scope="col" class="col-1">Project ID</th>
+                    <th scope="col" class="col-2">Library Type</th>
+                    <th scope="col" class="col-1">Tax ID</th>
+                    <th scope="col" class="col-3">Project</th>
                 </tr>
             </thead>
             <tbody>
@@ -44,11 +43,10 @@
                         id="sample-select-{{ sample_id }}">
                         {% endif %}
                     </td>
-                    <td>{{ sample_data["name"] }}</td>
-                    <td>{{ sample_data["sample_id"] if sample_data["sample_id"] }}</td>
+                    <td>{{ sample_data["name"] }} <span class="desc">{{ sample_data["sample_id"] if sample_data["sample_id"] }}</span></td>
+                    <td>{{ sample_data["library_type"] }}</td>
                     <td>{{ sample_data["tax_id"] }}</td>
-                    <td>{{ sample_data["project_name"] }}</td>
-                    <td>{{ sample_data["project_id"] if sample_data["project_id"] }}</td>
+                    <td>{{ sample_data["project_name"] }} <span class="desc">{{ sample_data["project_id"] if sample_data["project_id"] }}</span></td>
                 </tr>
                 {% endfor %}
             </tbody>

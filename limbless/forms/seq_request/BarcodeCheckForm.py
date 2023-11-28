@@ -57,6 +57,14 @@ class BarcodeCheckForm(TableDataForm):
             "show_index_4": df["index_4"].notnull().any(),
         }
     
+    def parse(self) -> pd.DataFrame:
+        df = self.get_df()
+
+        df["sample_id"] = df["sample_id"].astype("Int64")
+        df["project_id"] = df["project_id"].astype("Int64")
+            
+        return df
+        
     def custom_validate(self):
         validated = self.validate()
         if not validated:

@@ -1,7 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import func
+from sqlmodel import func, text
 
 from ... import models, PAGE_LIMIT
 from ...categories import LibraryType
@@ -88,20 +88,26 @@ def get_libraries(
             models.ExperimentLibraryLink.experiment_id == experiment_id
         )
 
-    if sort_by is not None:
-        attr = getattr(models.Library, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
-
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+
+    if sort_by is not None:
+        if sort_by == "sample_name":
+            if descending:
+                attr = text("sample_1_name DESC")
+            else:
+                attr = text("sample_1_name")
+        else:
+            attr = getattr(models.Library, sort_by)
+            if descending:
+                attr = attr.desc()
+        query = query.order_by(attr)
     
     if offset is not None:
         query = query.offset(offset)
 
     if limit is not None:
         query = query.limit(limit)
-
+    
     libraries = query.all()
 
     if not persist_session:
@@ -157,7 +163,6 @@ def delete_library(
 
 def update_library(
     self, library_id: int,
-    name: Optional[str] = None,
     library_type: Optional[LibraryType] = None,
     index_kit_id: Optional[int] = None,
     commit: bool = True
@@ -170,15 +175,6 @@ def update_library(
     if not library:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
-    if name is not None:
-        _lib = self._session.query(models.Library).where(
-            models.Library.name == name
-        ).first()
-        if _lib is not None and _lib.id != library_id:
-            raise exceptions.NotUniqueValue(f"Library with name {name} already exists")
-
-    if name is not None:
-        library.name = name
     if library_type is not None:
         library.library_type_id = library_type.value.id
     if index_kit_id is not None:

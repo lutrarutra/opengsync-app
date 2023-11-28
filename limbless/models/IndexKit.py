@@ -5,17 +5,16 @@ from sqlmodel import Field, SQLModel, Relationship
 from ..tools import SearchResult
 
 if TYPE_CHECKING:
-    from .Adapter import Adapter
+    from .Barcode import Barcode
 
 
 class IndexKit(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True, unique=True)
 
-    num_adapters: int = Field(nullable=False, default=0)
-
-    adapters: list["Adapter"] = Relationship(
-        back_populates="index_kit"
+    barcodes: List["Barcode"] = Relationship(
+        back_populates="index_kit",
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
 
     def __str__(self):

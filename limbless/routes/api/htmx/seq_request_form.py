@@ -11,7 +11,7 @@ import pandas as pd
 
 from .... import db, logger, forms, models, PAGE_LIMIT
 from ....core import DBSession
-from ....categories import UserRole, HttpResponse, LibraryType
+from ....categories import UserRole, HttpResponse, LibraryType, BarcodeType
 
 if TYPE_CHECKING:
     current_user: models.User = None
@@ -294,10 +294,17 @@ def check_barcodes(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     barcode_check_form = forms.BarcodeCheckForm()
-    df = barcode_check_form.get_df()
-
-    df["sample_id"] = df["sample_id"].astype("Int64")
-    df["project_id"] = df["project_id"].astype("Int64")
+    validated, barcode_check_form = barcode_check_form.custom_validate()
+    if not validated:
+        return make_response(
+            render_template(
+                "components/popups/seq_request/step-7.html",
+                seq_request=seq_request,
+                barcode_check_form=barcode_check_form,
+                **barcode_check_form.prepare()
+            )
+        )
+    df = barcode_check_form.parse()
 
     n_added = 0
     n_new_samples = 0
@@ -323,32 +330,88 @@ def check_barcodes(seq_request_id: int):
 
         if df["project_id"].isna().any():
             raise Exception("Project id is None (should not be).")
-    
-    df = df.where(pd.notna(df), None)
-    logger.debug(df["sample_id"].unique()[0])
-    logger.debug(pd.isnull(df["sample_id"].unique()[0]))
-    logger.debug(pd.isna(df["sample_id"].unique()[0]))
-    logger.debug(df[["sample_name", "sample_id", "tax_id", "project_name", "project_id"]])
+
+    def create_and_link_barcode(
+        session: db.DBHandler, library_id: int, barcode_type: BarcodeType,
+        sequence: str, adapter: Optional[str], reverse_complement: bool
+    ) -> models.Barcode:
+        if reverse_complement:
+            sequence = models.Barcode.reverse_complement(sequence)
+        barcode = session.create_barcode(
+            sequence=sequence,
+            adapter=adapter,
+            barcode_type=barcode_type,
+        )
+        session.link_library_barcode(
+            library_id=library_id,
+            barcode_id=barcode.id,
+            barcode_type=barcode_type
+        )
+        return barcode
+
     with DBSession(db.db_handler) as session:
-        for (_sample_name, _sample_id, _tax_id, _project_name, _project_id), _df in df.groupby(["sample_name", "sample_id", "tax_id", "project_name", "project_id"]):
+        for (_sample_name, _sample_id, _tax_id, _project_name, _project_id), _df in df.groupby(["sample_name", "sample_id", "tax_id", "project_name", "project_id"], dropna=False):
             project = projects[_project_id]
             logger.debug(f"{_sample_name}, {_sample_id}, {_tax_id}, {_project_name}, {_project_id}")
-            if pd.isnull(_sample_id):
+            if pd.isna(_sample_id):
+                logger.debug(f"Creating sample '{_sample_name}' in project '{project.name}'.")
                 sample = session.create_sample(
                     name=_sample_name,
-                    organism_tax_id=_tax_id,
+                    organism_tax_id=int(_tax_id),
                     project_id=project.id,
                     owner_id=current_user.id
                 )
                 n_new_samples += 1
             else:
-                sample = session.get_sample(_sample_id)
+                logger.debug(f"Getting sample '{_sample_name}' with id '{_sample_id}'.")
+                sample = session.get_sample(int(_sample_id))
 
             for i, row in _df.iterrows():
                 library = session.create_library(
                     sample_id=sample.id,
                     library_type=LibraryType.get(row["library_type_id"]),
                 )
+
+                adapter = str(row["adapter"]) if not pd.isna(row["adapter"]) else None
+                if not pd.isna(row["index_1"]):
+                    create_and_link_barcode(
+                        session=session,
+                        library_id=library.id,
+                        barcode_type=BarcodeType.INDEX_1,
+                        sequence=row["index_1"],
+                        adapter=adapter,
+                        reverse_complement=barcode_check_form.reverse_complement_index_1.data
+                    )
+
+                if not pd.isna(row["index_2"]):
+                    create_and_link_barcode(
+                        session=session,
+                        library_id=library.id,
+                        barcode_type=BarcodeType.INDEX_2,
+                        sequence=row["index_2"],
+                        adapter=adapter,
+                        reverse_complement=barcode_check_form.reverse_complement_index_2.data
+                    )
+
+                if not pd.isna(row["index_3"]):
+                    create_and_link_barcode(
+                        session=session,
+                        library_id=library.id,
+                        barcode_type=BarcodeType.INDEX_3,
+                        sequence=row["index_3"],
+                        adapter=adapter,
+                        reverse_complement=barcode_check_form.reverse_complement_index_3.data
+                    )
+
+                if not pd.isna(row["index_4"]):
+                    create_and_link_barcode(
+                        session=session,
+                        library_id=library.id,
+                        barcode_type=BarcodeType.INDEX_4,
+                        sequence=row["index_4"],
+                        adapter=adapter,
+                        reverse_complement=barcode_check_form.reverse_complement_index_4.data
+                    )
                 
                 session.link_library_seq_request(
                     library_id=library.id,
@@ -357,7 +420,7 @@ def check_barcodes(seq_request_id: int):
 
                 n_added += 1
 
-    logger.info(f"Created '{n_new_samples}'-samples and '{n_new_projects}'-projects.")
+    logger.info(f"Created '{n_new_samples}' samples and '{n_new_projects}' projects.")
     if n_added == 0:
         flash("No samples added.", "warning")
     elif n_added == len(df):

@@ -14,5 +14,4 @@ from .Barcode import Barcode
 from .IndexKit import IndexKit
 from .SeqRequest import SeqRequest
 from .Contact import Contact
-from .Adapter import Adapter
 from .Sequencer import Sequencer

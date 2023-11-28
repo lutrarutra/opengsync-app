@@ -48,7 +48,7 @@ def get(page: int):
             context["project"] = project
 
     elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-        template = "components/tables/seq_request-sample.html"
+        template = "components/tables/seq_request-library.html"
         try:
             seq_request_id = int(seq_request_id)
         except (ValueError, TypeError):
@@ -263,7 +263,7 @@ def table_query():
             context["project"] = project
     
     elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-        template = "components/tables/seq_request-sample.html"
+        template = "components/tables/seq_request-library.html"
         try:
             seq_request_id = int(seq_request_id)
         except (ValueError, TypeError):

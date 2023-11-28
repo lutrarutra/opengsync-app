@@ -7,9 +7,7 @@ from limbless.categories import BarcodeType
 
 
 def add_dual_indexes(db_handler: DBHandler, df, index_kit):
-    for adapter_name, row in df.iterrows():
-        if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is None:
-            adapter = db_handler.create_adapter(adapter_name, index_kit.id)
+    for adapter, row in df.iterrows():
         for i, seq in enumerate(row.values):
             if "i7" in df.columns[i]:
                 workflow = None
@@ -23,21 +21,21 @@ def add_dual_indexes(db_handler: DBHandler, df, index_kit):
 
             db_handler.create_barcode(
                 sequence=seq,
-                adapter_id=adapter.id,
+                adapter=adapter,
                 barcode_type=_type,
+                index_kit_id=index_kit.id,
             )
 
 
 def add_single_indexes(db_handler: DBHandler, df, index_kit):
-    for adapter_name, row in df.iterrows():
-        if (adapter := db_handler.get_adapter_by_name(index_kit.id, adapter_name)) is None:
-            adapter = db_handler.create_adapter(adapter_name, index_kit.id)
+    for adapter, row in df.iterrows():
         types = [BarcodeType.INDEX_1, BarcodeType.INDEX_2, BarcodeType.INDEX_3, BarcodeType.INDEX_4]
         for i, seq in enumerate(row.values):
             db_handler.create_barcode(
                 sequence=seq,
-                adapter_id=adapter.id,
+                adapter=adapter,
                 barcode_type=types[i],
+                index_kit_id=index_kit.id,
             )
 
 

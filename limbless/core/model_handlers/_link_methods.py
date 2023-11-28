@@ -243,7 +243,7 @@ def unlink_library_seq_request(
     for link in links:
         self._session.delete(link)
 
-    seq_request.num_samples -= 1
+    seq_request.num_libraries -= 1
 
     if commit:
         self._session.commit()

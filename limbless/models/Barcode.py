@@ -6,17 +6,18 @@ from ..tools import SearchResult
 from ..categories import BarcodeType
 
 if TYPE_CHECKING:
-    from .Adapter import Adapter
+    from .IndexKit import IndexKit
 
 
 class Barcode(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     sequence: str = Field(nullable=False, max_length=128, index=True)
-
-    adapter_id: int = Field(nullable=False, foreign_key="adapter.id")
-    adapter: "Adapter" = Relationship(
+    adapter: Optional[str] = Field(nullable=True, max_length=32, index=True)
+    
+    index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
+    index_kit: Optional["IndexKit"] = Relationship(
         back_populates="barcodes",
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={"lazy": "joined"},
     )
 
     type_id: int = Field(nullable=False)
@@ -32,6 +33,10 @@ class Barcode(SQLModel, SearchResult, table=True):
     @property
     def type(self) -> BarcodeType:
         return BarcodeType.get(self.type_id)
+    
+    @staticmethod
+    def reverse_complement(sequence: str) -> str:
+        return "".join([{"A": "T", "T": "A", "G": "C", "C": "G"}[base] for base in sequence[::-1]])
     
     def name_class(self) -> str:
         return "latin"

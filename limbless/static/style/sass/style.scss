@@ -347,20 +347,7 @@ input.disabled:focus {
         .library_type-col {
             display: flex;
         }
-        .index-col {
-            display: flex;
-            gap: 7px;
-            p {
-                font-weight:600;
-            }
-            div {
-                p {
-                    font-size: x-small;
-                    font-weight:normal;
-                    color: $gray-500;
-                }
-            }
-        }
+
         .organism-col {
             display: flex;
             gap: 7px;
@@ -385,8 +372,14 @@ span.desc {
 span.desc:before {
     content: "(";
 }
-span.desc:after {
+span.desc::after {
     content: ")";
+}
+span.desc:empty:before {
+    content: "";
+}
+span.desc:empty:after {
+    content: "";
 }
 
 .invalid-feedback-container {

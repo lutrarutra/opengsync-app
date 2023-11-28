@@ -418,3 +418,48 @@ def table_query():
         ), push_url=False
     )
         
+
+@seq_requests_htmx.route("<int:seq_request_id>/reverse_complement", methods=["POST"])
+@login_required
+def reverse_complement(seq_request_id: int):
+    if (index := request.args.get("index", None)) is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    try:
+        index = int(index)
+    except ValueError:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    library_id = request.args.get("library_id", None)
+    if library_id is not None:
+        try:
+            library_id = int(library_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    if index < 1 or index > 4:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    with DBSession(db.db_handler) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        if seq_request.requestor_id != current_user.id:
+            if not current_user.is_insider():
+                return abort(HttpResponse.FORBIDDEN.value.id)
+            
+        if library_id is not None:
+            libraries = [session.get_library(library_id)]
+        else:
+            libraries = seq_request.libraries
+        
+        n_barcodes = 0
+        for library in libraries:
+            for barcode in library.barcodes:
+                if index == barcode.type.value.id:
+                    barcode = session.reverse_complement(barcode.id)
+                    n_barcodes += 1
+
+    flash(f"Reverse complemented index {index} of sequencing request '{seq_request.name}' in {n_barcodes} libraries.", "success")
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
+    )

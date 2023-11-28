@@ -62,9 +62,7 @@
                 <th scope="row">{{ experiment.id }}</th>
                 <td>{{ experiment.status_type.value.name }} {{ experiment.status_type.value.description | safe }}</td>
                 <td>
-                    <span class="user-name-col">
-                    <p>{{ experiment.sequencing_person.name }}</p> <p>{{ "(me)" if current_user.id == experiment.sequencing_person.id }}</p>
-                    </span>
+                    {{ sequencing_person.name }} <span class="desc">{{ "(me)" if current_user.id == experiment.sequencing_person.owner_id }}</span>
                 </td>
                 
                 <td>{{ experiment.sequencer.name }}</td>

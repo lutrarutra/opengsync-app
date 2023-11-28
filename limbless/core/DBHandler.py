@@ -65,6 +65,7 @@ class DBHandler():
 
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
+        update_library
     )
 
     from .model_handlers._user_methods import (
@@ -81,7 +82,8 @@ class DBHandler():
     )
 
     from .model_handlers._barcode_methods import (
-        create_barcode, get_num_seqbarcodes, get_seqbarcodes
+        create_barcode, get_num_seqbarcodes, get_seqbarcodes,
+        update_barcode, reverse_complement,
     )
 
     from .model_handlers._index_kit_methods import (
@@ -100,11 +102,6 @@ class DBHandler():
         create_contact
     )
 
-    from .model_handlers._adapter_methods import (
-        create_adapter, get_adapter, get_adapters,
-        get_adapter_by_name, query_adapters, get_num_adapters
-    )
-
     from .model_handlers._link_methods import (
         get_sample_libraries,
         get_lanes_in_experiment,
@@ -112,6 +109,7 @@ class DBHandler():
         link_library_pool,
         link_experiment_library,
         link_library_seq_request,
+        link_library_barcode,
 
         unlink_experiment_library,
         unlink_library_seq_request,

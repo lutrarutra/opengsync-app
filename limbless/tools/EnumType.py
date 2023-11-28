@@ -5,8 +5,6 @@ from typing import TypeVar, Tuple, Type, Union
 
 T = TypeVar('T', bound=Enum)
 
-from .SearchResult import StaticSearchResult
-
 
 @dataclass
 class DescriptiveEnum():

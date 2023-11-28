@@ -21,6 +21,7 @@ class Library(SQLModel, SearchResult, table=True):
     
     sample_id: int = Field(nullable=False, foreign_key="sample.id")
     sample: "Sample" = Relationship(
+        back_populates="libraries",
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
@@ -41,16 +42,16 @@ class Library(SQLModel, SearchResult, table=True):
     )
 
     barcodes: list["Barcode"] = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"},
+        sa_relationship_kwargs={"lazy": "selectin"},
         link_model=LibraryBarcodeLink
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id"]
+    sortable_fields: ClassVar[List[str]] = ["id", "sample_name", "type_id"]
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "name": self.sample.name,
+            "library_id": self.id,
+            "sample_name": self.sample.name,
             "library_type": self.type.value.name,
         }
 

@@ -103,8 +103,6 @@ class ProjectMappingForm(TableDataForm):
                 _project_samples = project_samples[row["project_id"]]
 
             if row["sample_name"] in _project_samples.keys():
-                project = projects[row["project_id"]]
-
                 df.at[i, "sample_id"] = _project_samples[row["sample_name"]].id
                 df.at[i, "tax_id"] = _project_samples[row["sample_name"]].organism.tax_id
 

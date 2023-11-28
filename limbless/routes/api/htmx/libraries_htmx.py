@@ -26,35 +26,39 @@ def get(page):
     order = request.args.get("order", "desc")
     descending = order == "desc"
     offset = PAGE_LIMIT * page
+    logger.debug(sort_by)
 
     if sort_by not in models.Library.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    pools: list[models.Pool] = []
+    libraries: list[models.Library] = []
     context = {}
 
-    if (sample_id := request.args.get("sample_id", None)) is not None:
-        template = "components/tables/sample-library.html"
+    if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
+        template = "components/tables/seq_request-library.html"
         try:
-            sample_id = int(sample_id)
-        except ValueError:
+            seq_request_id = int(seq_request_id)
+        except (ValueError, TypeError):
             return abort(HttpResponse.BAD_REQUEST.value.id)
+        
         with DBSession(db.db_handler) as session:
-            if (sample := session.get_sample(sample_id)) is None:
+            if (seq_request := session.get_seq_request(seq_request_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
-            pools, n_pages = session.get_pools(limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending)
-            context["sample"] = sample
+            libraries, n_pages = session.get_libraries(
+                limit=PAGE_LIMIT, offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending
+            )
+            context["seq_request"] = seq_request
     else:
         template = "components/tables/library.html"
         with DBSession(db.db_handler) as session:
             if not current_user.is_insider():
-                pools, n_pages = session.get_pools(limit=PAGE_LIMIT, offset=offset, user_id=current_user.id, sort_by=sort_by, descending=descending)
+                libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, user_id=current_user.id, sort_by=sort_by, descending=descending)
             else:
-                pools, n_pages = session.get_pools(limit=PAGE_LIMIT, offset=offset, user_id=None, sort_by=sort_by, descending=descending)
+                libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, user_id=None, sort_by=sort_by, descending=descending)
 
     return make_response(
         render_template(
-            template, pools=pools,
+            template, libraries=libraries,
             n_pages=n_pages, active_page=page,
             current_sort=sort_by, current_sort_order=order,
             **context

@@ -7,14 +7,14 @@ import pandas as pd
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
 
-from ._adapter_methods import get_adapter
 from ...categories import BarcodeType
 
 
 def create_barcode(
     self, sequence: str,
-    adapter_id: int,
     barcode_type: BarcodeType,
+    adapter: Optional[str] = None,
+    index_kit_id: Optional[int] = None,
     commit: bool = True
 ) -> models.Barcode:
 
@@ -22,21 +22,10 @@ def create_barcode(
     if not self._session:
         self.open_session()
 
-    if (adapter := get_adapter(self, adapter_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Adapter with id '{adapter_id}', not found.")
-
-    if self._session.query(models.Barcode).where(
-        and_(
-            models.Barcode.sequence == sequence,
-            models.Barcode.adapter_id == adapter_id,
-            models.Barcode.type_id == barcode_type.value.id
-        )
-    ).first() is not None:
-        raise exceptions.NotUniqueValue(f"SeqIndex with sequence '{sequence} ({barcode_type})', already exists for adapter '{adapter.name}'.")
-
     barcode = models.Barcode(
         sequence=sequence,
-        adapter_id=adapter_id,
+        adapter=adapter,
+        index_kit_id=index_kit_id,
         type_id=barcode_type.value.id
     )
 
@@ -103,3 +92,40 @@ def get_num_seqbarcodes(self) -> int:
     if not persist_session:
         self.close_session()
     return res
+
+
+def update_barcode(
+    self, barcode: models.Barcode,
+    commit: bool = True
+) -> models.Barcode:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    self._session.add(barcode)
+    if commit:
+        self._session.commit()
+        self._session.refresh(barcode)
+
+    if not persist_session:
+        self.close_session()
+    return barcode
+
+
+def reverse_complement(
+    self, barcode_id: int,
+) -> models.Barcode:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    barcode = self._session.get(models.Barcode, barcode_id)
+    barcode.sequence = models.Barcode.reverse_complement(barcode.sequence)
+    self._session.add(barcode)
+    self._session.commit()
+    self._session.refresh(barcode)
+
+    if not persist_session:
+        self.close_session()
+    return barcode

@@ -26,6 +26,7 @@ class SampleSelectForm(TableDataForm):
             data = {
                 "id": int(i) + 1,
                 "name": row["sample_name"],
+                "library_type": row["library_type"],
                 "organism": row["organism"],
                 "tax_id": row["tax_id"],
                 "error": None,
