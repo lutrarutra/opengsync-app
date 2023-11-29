@@ -10,6 +10,7 @@ from .SeqRequestForm import SeqRequestForm
 from .select_forms import SelectLibraryForm
 from .SequencerForm import SequencerForm
 from .pool_forms import PoolForm
+from .library_forms import EditLibraryForm
 
 from .seq_request.BarcodeCheckForm import BarcodeCheckForm
 from .seq_request.SampleColTableForm import SampleColTableForm

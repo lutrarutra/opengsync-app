@@ -74,9 +74,18 @@ def library_page(library_id):
                 (f"Library {library.id}", ""),
             ]
 
+    library_edit_form = forms.EditLibraryForm()
+    library_edit_form.adapter.data = library.barcodes[0].adapter
+    library_edit_form.library_type.data = library.type_id
+    library_edit_form.index_1.data = library.barcodes[0].sequence
+    library_edit_form.index_2.data = library.barcodes[1].sequence if len(library.barcodes) > 1 else None
+    library_edit_form.index_3.data = library.barcodes[2].sequence if len(library.barcodes) > 2 else None
+    library_edit_form.index_4.data = library.barcodes[3].sequence if len(library.barcodes) > 3 else None
+
     return render_template(
         "library_page.html",
         library=library,
         path_list=path_list,
+        library_edit_form=library_edit_form,
         table_form=forms.TableForm(),
     )

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 class Sample(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
+    num_libraries: int = Field(nullable=False, default=0)
 
     organism_id: int = Field(nullable=False, foreign_key="organism.tax_id")
     organism: "Organism" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
@@ -35,7 +36,7 @@ class Sample(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "select"}
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id", "num_libraries"]
 
     def to_dict(self):
         data = {
@@ -60,4 +61,4 @@ class Sample(SQLModel, SearchResult, table=True):
         return self.project.name
     
     def is_editable(self) -> bool:
-        return len(self.libraries) == 0
+        return self.num_libraries == 0

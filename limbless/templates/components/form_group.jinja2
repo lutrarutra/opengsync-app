@@ -42,7 +42,7 @@
 {%- endmacro %}
 
 {% macro select_input(field, class='', disabled=false) -%}
-<div class="form-group">
+<div class="{{class}} form-group">
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
     {% endif %}>

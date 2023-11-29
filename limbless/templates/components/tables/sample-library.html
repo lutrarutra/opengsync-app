@@ -1,5 +1,11 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div class="form-check form-switch">
+  <input class="form-check-input" type="checkbox" role="switch" id="adapter-switch">
+  <label class="form-check-label" for="">Show adapters</label>
+</div>
 <div id="sample-library-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -15,40 +21,32 @@
                 }}
                 {{
                     table_col(
+                        target_id='sample-library-table', column_name='Sample Name', column_var='sample_name',
+                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
+                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', sample_id=sample.id), current_query=current_query,
+                        field_name=field_name, col_size=2
+                    )
+                }}
+                {{
+                    table_col(
                         target_id='sample-library-table', column_name='Type', column_var='type_id',
                         sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         col_size=2
                     )
                 }}
-                <th scope="col-1">Adapter</th>
                 <th scope="col-1">
                     Index 1 <span class="desc">i7</span>
-                    <a type="button" class="reverse-complement-index-column">
-                        <img id="reverse-complement-index-column-1"
-                        src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
-                    </a>
                 </th>
                 <th scope="col-1">
                     Index 2 <span class="desc">i5</span>
-                    <a type="button" class="reverse-complement-index-column">
-                        <img id="reverse-complement-index-column-2"
-                        src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
-                    </a>
                 </th>
                 <th scope="col-1">
                     Index 3
-                    <a type="button" class="reverse-complement-index-column">
-                        <img id="reverse-complement-index-column-3"
-                        src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
-                    </a>
                 </th>
                 <th scope="col-1">
                     Index 4
-                    <a type="button" class="reverse-complement-index-column">
-                        <img id="reverse-complement-index-column-4"
-                        src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
-                    </a>
                 </th>
                 {{
                     table_col(
@@ -64,44 +62,86 @@
             {% for library in libraries %}
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='sample@' + sample.id | string) }}';">
                 <th scope="row">{{ library.id }}</th>
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ sample.name }}</td>
                 <td>{{ library.type.value.name }} <span class="desc">{{ library.type.value.description }}</span></td>
-                <td>
-                    {% if library.barcodes | length %}
-                    <span>{{ (library.barcodes | first).adapter }}</span>
-                    {% endif %}
+                {% for idx in range(4) %}
+                {% set barcode = library.get_barcode_with_type(idx+1) %}
+                {% if barcode %}
+                <td {{ tooltip(barcode.adapter) }} class="col-1">
+                    <span class="barcode-cell index-cell" id="library-{{library.id}}-index-cell-{{idx+1}}">{{ barcode.sequence }}</span>
                 </td>
-                <td>
-                    {% for barcode in library.barcodes %}
-                    {% if barcode.type.value.id == 1 or barcode.type.value.id == 5 %}
-                    <span class="index-cell" id="library-{{library.id}}-index-cell-1">{{ barcode.sequence }}</span>
-                    {% endif %}
-                    {% endfor %}
+                <td {{ tooltip(barcode.sequence) }} style="display: none;" class="col-1">
+                    <span class="barcode-cell adapter-cell" id="library-{{library.id}}-adapter-cell-{{idx+1}}">{{ barcode.adapter }}</span>
                 </td>
-                <td>
-                    {% for barcode in library.barcodes %}
-                    {% if barcode.type.value.id == 2 or barcode.type.value.id == 6 %}
-                    <span class="index-cell" id="library-{{library.id}}-index-cell-2">{{ barcode.sequence }}</span>
-                    {% endif %}
-                    {% endfor %}
-                </td>
-                <td>
-                    {% for barcode in library.barcodes %}
-                    {% if barcode.type.value.id == 3 %}
-                    <span class="index-cell" id="library-{{library.id}}-index-cell-3">{{ barcode.sequence }}</span>
-                    {% endif %}
-                    {% endfor %}
-                </td>
-                <td>
-                    {% for barcode in library.barcodes %}
-                    {% if barcode.type.value.id == 4 %}
-                    <span class="index-cell" id="library-{{library.id}}-index-cell-4">{{ barcode.sequence }}</span>
-                    {% endif %}
-                    {% endfor %}
-                </td>
+                {% else %}
+                <td></td>
+                {% endif %}
+                {% endfor %}
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("library-table", "libraries_htmx.get", n_pages, active_page) }}
+    {{ pagination("sample-library-table", "libraries_htmx.get", n_pages, active_page, url_args={"sample_id": sample.id}) }}
 </div>
+<script>
+    var selected_library_id = null;
+    var selected_barcode_element_id = null;
+
+    function toggle_adapters() {
+        const adapter_cells = $(".adapter-cell");
+        const index_cells = $(".index-cell");
+        if ($("#adapter-switch").is(":checked")) {
+            adapter_cells.parent().show();
+            index_cells.parent().hide();
+        } else {
+            adapter_cells.parent().hide();
+            index_cells.parent().show();
+        }
+    }
+
+    $("#adapter-switch").change(function() {
+        toggle_adapters();
+    });
+
+
+    function copy_sequence_to_clipboard() {
+        const library_id = selected_barcode_element_id.split("-")[1];
+        const index_id = selected_barcode_element_id.split("-")[4];
+        const content = $("#library-" + library_id + "-index-cell-" + index_id).text().trim();
+        console.log(content);
+        navigator.clipboard.writeText(content);
+    }
+
+    function copy_adapter_to_clipboard() {
+        const library_id = selected_barcode_element_id.split("-")[1];
+        const index_id = selected_barcode_element_id.split("-")[4];
+        const content = $("#library-" + library_id + "-adapter-cell-" + index_id).text().trim();
+        console.log(content);
+        navigator.clipboard.writeText(content);
+    }
+
+    $(document).off("contextmenu", ".barcode-cell").on("contextmenu", ".barcode-cell", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_barcode_element_id = e.target.id;
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).empty().append([
+            `<li><a class='dropdown-item' onclick='copy_sequence_to_clipboard()'>Copy Sequence</a></li>`,
+            `<li><a class='dropdown-item' onclick='copy_adapter_to_clipboard()'>Copy Adapter</a></li>`,
+        ]);
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
+
+    
+    function copy_sample_name_to_clipboard() {
+        const content = $("#sample-name-cell-" + selected_sample_id).text().trim();
+        navigator.clipboard.writeText(content);
+    }
+</script>

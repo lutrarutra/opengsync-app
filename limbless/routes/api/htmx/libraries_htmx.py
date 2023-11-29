@@ -161,25 +161,21 @@ def edit(library_id):
         if not library.is_editable():
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    library_form = forms.LibraryForm()
-
-    validated, library_form = library_form.custom_validate(db.db_handler, current_user.id, library_id=library_id)
+    edit_library_form = forms.EditLibraryForm()
+    validated, edit_library_form = edit_library_form.custom_validate(db.db_handler, current_user.id, library_id=library_id)
 
     if not validated:
         logger.debug("Not valid")
-        logger.debug(library_form.errors)
-        template = render_template(
-            "forms/library.html",
-            library_form=library_form,
-            library_id=library_id,
-            selected_kit=library.index_kit,
-        )
+        logger.debug(edit_library_form.errors)
         return make_response(
-            template, push_url=False
+            render_template(
+                "forms/library.html",
+                edit_library_form=edit_library_form,
+            ), push_url=False
         )
 
     try:
-        library_type_id = int(library_form.library_type.data)
+        library_type_id = int(edit_library_form.library_type.data)
         library_type = LibraryType.get(library_type_id)
     except ValueError:
         library_type = None

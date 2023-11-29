@@ -435,6 +435,9 @@ def reverse_complement(seq_request_id: int):
             library_id = int(library_id)
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+    logger.debug(library_id)
+    logger.debug(index)
     
     if index < 1 or index > 4:
         return abort(HttpResponse.BAD_REQUEST.value.id)

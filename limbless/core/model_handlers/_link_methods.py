@@ -193,7 +193,7 @@ def link_library_seq_request(
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.Library, library_id)) is None:
+    if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
@@ -209,6 +209,9 @@ def link_library_seq_request(
     )
     self._session.add(link)
     seq_request.num_libraries += 1
+    library.num_seq_requests += 1
+    self._session.add(seq_request)
+    self._session.add(library)
 
     if commit:
         self._session.commit()
@@ -229,7 +232,7 @@ def unlink_library_seq_request(
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.Library, library_id)) is None:
+    if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
@@ -244,6 +247,9 @@ def unlink_library_seq_request(
         self._session.delete(link)
 
     seq_request.num_libraries -= 1
+    library.num_seq_requests -= 1
+    self._session.add(seq_request)
+    self._session.add(library)
 
     if commit:
         self._session.commit()

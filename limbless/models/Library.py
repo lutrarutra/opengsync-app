@@ -1,4 +1,4 @@
-from typing import Optional, List, TYPE_CHECKING, ClassVar
+from typing import Optional, List, TYPE_CHECKING, ClassVar, Union
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -18,6 +18,7 @@ class Library(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     type_id: int = Field(nullable=False)
     num_pools: int = Field(nullable=False, default=0)
+    num_seq_requests: int = Field(nullable=False, default=0)
     
     sample_id: int = Field(nullable=False, foreign_key="sample.id")
     sample: "Sample" = Relationship(
@@ -42,7 +43,7 @@ class Library(SQLModel, SearchResult, table=True):
     )
 
     barcodes: list["Barcode"] = Relationship(
-        sa_relationship_kwargs={"lazy": "selectin", "order_by": "Barcode.type_id"},
+        sa_relationship_kwargs={"lazy": "selectin"},
         link_model=LibraryBarcodeLink
     )
 
@@ -62,6 +63,15 @@ class Library(SQLModel, SearchResult, table=True):
             res[BarcodeType.mapping(barcode.type_id)] = barcode
         return res
     
+    def get_barcode_with_type(self, barcode_type: Union[int, BarcodeType]) -> Optional["Barcode"]:
+        if isinstance(barcode_type, BarcodeType):
+            barcode_type = barcode_type.value.id
+        
+        for barcode in self.barcodes:
+            if barcode.type_id == barcode_type:
+                return barcode
+        return None
+    
     def get_barcode_sequences(self) -> dict[str, str]:
         res = {}
         for barcode in self.barcodes:
@@ -80,3 +90,6 @@ class Library(SQLModel, SearchResult, table=True):
     
     def search_description(self) -> Optional[str]:
         return self.type.value.name
+    
+    def is_editable(self) -> bool:
+        return self.num_seq_requests == 0

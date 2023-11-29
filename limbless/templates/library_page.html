@@ -88,10 +88,11 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                {% include "forms/library.html" %}
             </div>
             <div class="modal-footer" id="popup-footer">
                 <button class="btn btn-primary"
-                hx-include="#library-form" hx-target="#library-form" hx-swap="outerHTML"
+                hx-include="#edit-library-form" hx-target="#edit-library-form" hx-swap="outerHTML"
                 hx-post="{{ url_for('libraries_htmx.edit', library_id=library.id) }}">Submit</button>
             </div>
           </div>

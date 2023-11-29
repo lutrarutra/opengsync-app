@@ -21,6 +21,9 @@ def create_library(
     if (sample := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
+    sample.num_libraries += 1
+    self._session.add(sample)
+
     library = models.Library(
         sample_id=sample_id,
         type_id=library_type.value.id,
@@ -30,6 +33,7 @@ def create_library(
     if commit:
         self._session.commit()
         self._session.refresh(library)
+        self._session.refresh(sample)
 
     if not persist_session:
         self.close_session()
@@ -140,7 +144,7 @@ def get_num_libraries(self, user_id: Optional[int] = None) -> int:
 def delete_library(
     self, library_id: int,
     commit: bool = True
-) -> None:
+):
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -151,10 +155,13 @@ def delete_library(
     library.owner.num_libraries -= 1
     for sample in library.samples:
         sample.num_libraries -= 1
+        self._session.add(sample)
     for experiment in library.experiments:
         experiment.num_libraries -= 1
+        self._session.add(experiment)
     for seq_request in library.seq_requests:
         seq_request.num_libraries -= 1
+        self._session.add(seq_request)
         
     self._session.delete(library)
     if commit:
