@@ -16,7 +16,7 @@ def experiment_to_df(db_handler: DBHandler, experiment_id: int):
             index2=sample.index2,
             project_id=sample.project_id,
             library_name=library.name,
-            library_type=library.library_type,
+            library_type=library.type,
             run_lane=run.lane,
             r1_cycles=run.r1_cycles,
             r2_cycles=run.r2_cycles,

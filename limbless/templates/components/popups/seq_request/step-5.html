@@ -16,6 +16,7 @@
                     <th scope="col" class="col-1">Selected</th>
                     <th scope="col" class="col-3">Name</th>
                     <th scope="col" class="col-2">Library Type</th>
+                    <th scope="col" class="col-1">Pool</th>
                     <th scope="col" class="col-1">Tax ID</th>
                     <th scope="col" class="col-3">Project</th>
                 </tr>
@@ -45,6 +46,7 @@
                     </td>
                     <td>{{ sample_data["name"] }} <span class="desc">{{ sample_data["sample_id"] if sample_data["sample_id"] }}</span></td>
                     <td>{{ sample_data["library_type"] }}</td>
+                    <td>{{ sample_data["pool"] }}</td>
                     <td>{{ sample_data["tax_id"] }}</td>
                     <td>{{ sample_data["project_name"] }} <span class="desc">{{ sample_data["project_id"] if sample_data["project_id"] }}</span></td>
                 </tr>

@@ -37,6 +37,7 @@ class SampleSelectForm(TableDataForm):
                 "index_1": row["index_1"],
                 "index_2": row["index_2"],
                 "adapter": row["adapter"],
+                "pool": row["pool"],
             }
 
             if row["sample_id"] is not None:

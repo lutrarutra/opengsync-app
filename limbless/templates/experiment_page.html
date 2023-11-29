@@ -8,13 +8,13 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Experiment {{ experiment.status_type.value.name }}</h1>
+            <h1>Experiment {{ experiment.status.value.name }}</h1>
         </div>
         <div>
-            <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#experiment-form-popup">
+            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#experiment-form-popup">
                 Edit Experiment
             </button>
-            <button type="button" id="" class="btn btn-danger"
+            <button type="button"  class="btn btn-danger"
             hx-post="{{ url_for('experiments_htmx.delete', experiment_id=experiment.id) }}"
             _="on htmx:confirm(issueRequest)
                 halt the event
@@ -57,7 +57,7 @@
                         <h2>Libraries <img {{ tooltip('Right click library name to remove.') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                     </div>
                     <div>
-                        <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#select-experiment-libraries-popup">
+                        <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#select-experiment-libraries-popup">
                             Add Library
                         </button>
                     </div>
@@ -97,7 +97,7 @@
         <div class="modal-dialog modal-xl modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h1 class="modal-title fs-5" id="">Edit Experiment</h1>
+              <h1 class="modal-title fs-5" >Edit Experiment</h1>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -116,7 +116,7 @@
         <div class="modal-dialog modal-xl modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h1 class="modal-title fs-5" id="">Add Libraries</h1>
+              <h1 class="modal-title fs-5" >Add Libraries</h1>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">

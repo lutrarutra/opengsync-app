@@ -16,11 +16,11 @@
                 <th scope="col" class="col-2">Add to Lane</th>
                 {{
                     table_col(
-                        target_id='select-experiment-library-table', column_name='Name', column_var='name',
+                        target_id='sample-library-table', column_name='Sample Name', column_var='sample_name',
                         sort_url='libraries_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
                         current_sort=current_sort, current_sort_order=current_sort_order,
                         query_url=url_for('libraries_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
-                        field_name=field_name, query_type="text", col_size=3,
+                        field_name=field_name, col_size=2
                     )
                 }}
                 {{
@@ -62,8 +62,8 @@
                     {% endfor %}
                     </div>
                 </td>
-                <td>{{ library.name }}</td>
-                <td>{{ library.library_type.value.name }}</td>
+                <td>{{ library.sample.name }}</td>
+                <td>{{ library.type.value.name }}</td>
                 <td>{{ library.sample.owner.name }} <span class="desc">{{ "me" if current_user.id == library.sample.owner_id }}</span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>
             </tr>

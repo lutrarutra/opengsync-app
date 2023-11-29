@@ -10,7 +10,7 @@
         </div>
         <div>
             <span {% if library.submitted %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
-                <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup"
+                <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup"
                 {% if library.submitted %}disabled{% endif %}>
                     Edit Library
                 </button>
@@ -85,7 +85,7 @@
         <div class="modal-dialog modal-xl modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h1 class="modal-title fs-5" id="">Edit Library</h1>
+              <h1 class="modal-title fs-5" >Edit Library</h1>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">

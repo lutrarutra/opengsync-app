@@ -93,7 +93,9 @@ class ProjectMappingForm(TableDataForm):
                     
                     projects[project_id] = project
                     project_samples[project_id] = dict([(sample.name, sample) for sample in project.samples])
-            
+        
+        if "pool" not in df.columns:
+            df["pool"] = 1
         df["sample_id"] = None
         df["tax_id"] = None
         for i, row in df.iterrows():

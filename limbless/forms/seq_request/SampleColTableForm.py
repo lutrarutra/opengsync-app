@@ -40,6 +40,8 @@ class SampleColSelectForm(FlaskForm):
         "organism": "organism",
         "samplename": "sample_name",
         "librarytype": "library_type",
+        "pool": "pool",
+        "librarypool": "pool"
     }
     select_field = SelectField(
         choices=required_fields + optional_fields,

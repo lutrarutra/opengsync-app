@@ -15,7 +15,7 @@ def test_create_library(db_handler):
 
     assert library.id is not None
     assert library.name == "library"
-    assert library.library_type == models.LibraryType.TRANSCRIPTOME
+    assert library.type == models.LibraryType.TRANSCRIPTOME
 
     libraries, _ = db_handler.get_libraries()
     assert len(libraries) == 1
@@ -41,7 +41,7 @@ def test_update_library(db_handler):
     )
     updated_library = db_handler.get_library(library.id)
     assert updated_library.name == "library2"
-    assert updated_library.library_type == models.LibraryType.CUSTOM_BARCODED_FEATURE
+    assert updated_library.type == models.LibraryType.CUSTOM_BARCODED_FEATURE
 
     # Non existent library_id
     with pytest.raises(exceptions.ElementDoesNotExist):

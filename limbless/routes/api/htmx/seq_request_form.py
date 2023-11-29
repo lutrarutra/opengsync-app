@@ -350,6 +350,12 @@ def check_barcodes(seq_request_id: int):
         return barcode
 
     with DBSession(db.db_handler) as session:
+        pools: dict[int | models.Pool] = {}
+        for pool_idx in df["pool"].unique():
+            pool = session.create_pool(
+                
+            )
+
         for (_sample_name, _sample_id, _tax_id, _project_name, _project_id), _df in df.groupby(["sample_name", "sample_id", "tax_id", "project_name", "project_id"], dropna=False):
             project = projects[_project_id]
             logger.debug(f"{_sample_name}, {_sample_id}, {_tax_id}, {_project_name}, {_project_id}")

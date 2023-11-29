@@ -165,7 +165,7 @@ def add_library(experiment_id: int, library_id: int, lane: int):
     if not experiment.is_editable():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if library.is_raw_library():
+    if len(library.barcodes) == 0:
         raise NotImplementedError("Raw libraries are not supported yet.")
     
     db.db_handler.link_experiment_library(
@@ -174,8 +174,8 @@ def add_library(experiment_id: int, library_id: int, lane: int):
         lane=lane,
     )
 
-    logger.debug(f"Added library '{library.name}' to experiment (id='{experiment_id}') on lane '{lane}'")
-    flash(f"Added library '{library.name}' to experiment on lane '{lane}'.", "success")
+    logger.debug(f"Added library '{library.sample.name} ({library.type.value.name})' to experiment (id='{experiment_id}') on lane '{lane}'")
+    flash(f"Added library '{library.sample.name} ({library.type.value.name})' to experiment on lane '{lane}'.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id),

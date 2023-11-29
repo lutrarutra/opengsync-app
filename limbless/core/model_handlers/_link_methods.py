@@ -286,7 +286,6 @@ def link_experiment_library(
     )
     self._session.add(experiment_library_link)
     experiment.num_libraries += 1
-    library.num_experiments += 1
 
     if commit:
         self._session.commit()

@@ -63,7 +63,7 @@
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
                 <th scope="row">{{ library.id }}</th>
                 <td>{{ library.name }}</td>
-                <td>{{ library.library_type.value.name }}</td>
+                <td>{{ library.type.value.name }}</td>
                 <td>{{ library.contact.name }}</td>
                 <td>{{ library.sample.owner.name }} <span class="desc">{{ "me" if current_user.id == library.sample.owner_id }}</span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>

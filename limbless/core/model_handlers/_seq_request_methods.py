@@ -96,12 +96,12 @@ def get_seq_requests(
     if with_statuses is not None:
         status_ids = [status.value.id for status in with_statuses]
         query = query.where(
-            models.SeqRequest.status.in_(status_ids)
+            models.SeqRequest.status_id.in_(status_ids)
         )
 
     if not show_drafts:
         query = query.where(
-            models.SeqRequest.status != SeqRequestStatus.DRAFT.value.id
+            models.SeqRequest.status_id != SeqRequestStatus.DRAFT.value.id
         )
 
     if sample_id is not None:
@@ -154,7 +154,7 @@ def get_num_seq_requests(
     if with_statuses is not None:
         status_ids = [status.value.id for status in with_statuses]
         query = query.where(
-            models.SeqRequest.status.in_(status_ids)
+            models.SeqRequest.status_id.in_(status_ids)
         )
 
     num_seq_requests = query.count()
