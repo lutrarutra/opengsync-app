@@ -95,7 +95,7 @@ class DBHandler():
     from .model_handlers._seq_request_methods import (
         create_seq_request, get_seq_request, get_num_seq_requests,
         get_seq_requests, delete_seq_request, update_seq_request,
-        query_seq_requests,
+        query_seq_requests, submit_seq_request
     )
 
     from .model_handlers._contact_methods import (

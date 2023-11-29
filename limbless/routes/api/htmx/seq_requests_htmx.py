@@ -195,17 +195,10 @@ def submit(seq_request_id: int):
             if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
         
-        if seq_request.status_type != SeqRequestStatus.DRAFT:
-            logger.debug(seq_request.status_type)
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-        
-        if seq_request.num_samples == 0:
+        if not seq_request.is_submittable():
             return abort(HttpResponse.FORBIDDEN.value.id)
         
-        session.update_seq_request(
-            seq_request_id=seq_request_id,
-            status=SeqRequestStatus.SUBMITTED,
-        )
+        session.submit_seq_request(seq_request_id)
 
     flash(f"Submitted sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Submitted sequencing request '{seq_request.name}'")

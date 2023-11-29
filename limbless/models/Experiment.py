@@ -30,7 +30,7 @@ class Experiment(SQLModel, table=True):
 
     timestamp: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
 
-    status: int = Field(nullable=False, default=0)
+    status_id: int = Field(nullable=False, default=0)
 
     sequencer_id: int = Field(nullable=False, foreign_key="sequencer.id")
     sequencer: "Sequencer" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
@@ -42,14 +42,14 @@ class Experiment(SQLModel, table=True):
     sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
 
     @property
-    def status_type(self) -> ExperimentStatus:
-        return ExperimentStatus.get(self.status)
+    def status(self) -> ExperimentStatus:
+        return ExperimentStatus.get(self.status_id)
     
     def is_deleteable(self) -> bool:
-        return self.status_type == ExperimentStatus.DRAFT
+        return self.status == ExperimentStatus.DRAFT
     
     def is_editable(self) -> bool:
-        return self.status_type == ExperimentStatus.DRAFT
+        return self.status == ExperimentStatus.DRAFT
     
     def timestamp_to_str(self) -> str:
         return self.timestamp.strftime('%Y-%m-%d %H:%M')

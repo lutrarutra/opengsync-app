@@ -40,10 +40,10 @@
             {% for seq_request in recent_seq_requests %}
                 <div class="p-2 seq_request-banner">
                     <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
-                        <div class="banner-title">
-                            <p class="title">{{ seq_request.id }}. {{ seq_request.name }}</p>
-                            <p class="description"> {{ seq_request.requestor.name }} {{ seq_request.requestor.email }}</p>
-                            <p class="submitted-time">{{ seq_request.submitted_time_to_str() }} </p>
+                        <div class="row banner-title">
+                            <div class="title col-4">{{ seq_request.id }}. {{ seq_request.name }}</div>
+                            <div class="description col-4"> {{ seq_request.requestor.name }} {{ seq_request.requestor.email }}</div>
+                            <div class="submitted-time col-4">{{ seq_request.submitted_time_to_str() }} </div>
                         </div>
                         {{ seq_request_status_bar(seq_request) }}
                     </a>
@@ -63,9 +63,9 @@
                 <div class="p-2 seq_request-banner">
                     <a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
                         <div class="banner-title">
-                            <p class="title">{{ experiment.id }}.</p>
-                            <p class="description"> {{ experiment.sequencing_person.name }} {{ experiment.sequencing_person.email }}</p>
-                            <p class="submitted-time">{{ experiment.timestamp_to_str() }} </p>
+                            <div class="title">{{ experiment.id }}.</div>
+                            <div class="description"> {{ experiment.sequencing_person.name }} {{ experiment.sequencing_person.email }}</div>
+                            <div class="submitted-time">{{ experiment.timestamp_to_str() }} </div>
                         </div>
                         {{ experiment_status_bar(experiment) }}
                     </a>

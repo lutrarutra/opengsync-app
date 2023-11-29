@@ -117,7 +117,7 @@ def get_seq_requests(
         attr = getattr(models.SeqRequest, sort_by)
         if descending:
             attr = attr.desc()
-        query = query.order_by(attr)
+        query = query.order_by(attr.nullslast())
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
 
@@ -164,6 +164,33 @@ def get_num_seq_requests(
     return num_seq_requests
 
 
+def submit_seq_request(
+    self, seq_request_id: int,
+    commit: bool = True
+) -> models.SeqRequest:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
+
+    seq_request.status_id= SeqRequestStatus.SUBMITTED.value.id
+    seq_request.submitted_time = datetime.now()
+    for library in seq_request.libraries:
+        library.submitted = True
+        self._session.add(library)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(seq_request)
+
+    if not persist_session:
+        self.close_session()
+
+    return seq_request
+
+
 def update_seq_request(
     self, seq_request_id: int,
     name: Optional[str] = None,
@@ -185,9 +212,7 @@ def update_seq_request(
         seq_request.description = description
 
     if status is not None:
-        if status == SeqRequestStatus.SUBMITTED:
-            seq_request.submitted_time = datetime.now()
-        seq_request.status = status.value.id
+        seq_request.status_id= status.value.id
 
     if commit:
         self._session.commit()

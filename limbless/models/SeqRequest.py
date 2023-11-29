@@ -18,7 +18,7 @@ class SeqRequest(SQLModel, table=True):
 
     name: str = Field(nullable=False, max_length=128)
     description: Optional[str] = Field(nullable=True, max_length=1024)
-    status: int = Field(nullable=False, default=0)
+    status_id: int = Field(nullable=False, default=0)
     submitted_time: Optional[datetime] = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True))
 
     num_libraries: int = Field(nullable=False, default=0)
@@ -59,11 +59,11 @@ class SeqRequest(SQLModel, table=True):
     sortable_fields: ClassVar[List[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
     @property
-    def status_type(self) -> SeqRequestStatus:
-        return SeqRequestStatus.get(self.status)
+    def status(self) -> SeqRequestStatus:
+        return SeqRequestStatus.get(self.status_id)
     
     def is_submittable(self) -> bool:
-        return self.status_type == SeqRequestStatus.DRAFT and self.num_libraries > 0
+        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0
     
     def submitted_time_to_str(self) -> str:
         if self.submitted_time is None:
@@ -75,7 +75,7 @@ class SeqRequest(SQLModel, table=True):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "status": self.status_type.name,
+            "status": self.status.value.name,
             "submitted_time": self.submitted_time_to_str(),
             "requestor": self.requestor.name,
             "person_contact": f"{self.contact_person.name} ({self.contact_person.email})",

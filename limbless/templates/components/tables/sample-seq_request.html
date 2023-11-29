@@ -44,7 +44,7 @@
             <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
-                <td>{{ seq_request.status_type.value.name }} {{ seq_request.status_type.value.description | safe }}</td>
+                <td>{{ seq_request.status.value.name }} {{ seq_request.status.value.description | safe }}</td>
                 <td>{{ seq_request.submitted_time_to_str() }}</td>
             </tr>
             {% endfor %}

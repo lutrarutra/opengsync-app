@@ -82,13 +82,19 @@ body {
             padding: 0;
         }
         .banner-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            p {
+            padding-left: 5px;
+            padding-right: 5px;
+            div {
+                text-align: center;
+                vertical-align: middle;
                 font-size: 1rem;
-                margin-bottom: 3px;
+                padding-bottom: 3px;
+            }
+            div:first-child {
+                text-align: start;
+            }
+            div:last-child {
+                text-align: end;
             }
         }
     }

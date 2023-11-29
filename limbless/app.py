@@ -1,15 +1,19 @@
 import os
 import warnings
 from uuid import uuid4
+from typing import TYPE_CHECKING
 
 from flask import Flask, render_template, redirect, request, url_for, session
-from flask_login import current_user
 from sassutils.wsgi import SassMiddleware
 
 from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, categories, PAGE_LIMIT
 from .models import User
 from .routes import api, pages
 
+if TYPE_CHECKING:
+    current_user: User = None
+else:
+    from flask_login import current_user
 
 def create_app():
     app = Flask(__name__)
@@ -56,7 +60,7 @@ def create_app():
         if current_user.is_insider():
             show_drafts = False
             _user_id = None
-            recent_experiments, _ = db.db_handler.get_experiments(limit=PAGE_LIMIT, sort_by="id", descending=True)
+            recent_experiments, _ = db.db_handler.get_experiments(limit=PAGE_LIMIT, sort_by="id", descending=False)
         else:
             show_drafts = True
             _user_id = current_user.id

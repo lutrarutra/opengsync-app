@@ -19,6 +19,7 @@ class Library(SQLModel, SearchResult, table=True):
     type_id: int = Field(nullable=False)
     num_pools: int = Field(nullable=False, default=0)
     num_seq_requests: int = Field(nullable=False, default=0)
+    submitted: bool = Field(nullable=False, default=False)
     
     sample_id: int = Field(nullable=False, foreign_key="sample.id")
     sample: "Sample" = Relationship(
@@ -92,4 +93,4 @@ class Library(SQLModel, SearchResult, table=True):
         return self.type.value.name
     
     def is_editable(self) -> bool:
-        return self.num_seq_requests == 0
+        return not self.submitted

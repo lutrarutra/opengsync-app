@@ -12,7 +12,7 @@
             <h1>{{ seq_request.name }}</h1>
         </div>
         <div>
-            {% if seq_request.status_type.value.name == "Draft" %}
+            {% if seq_request.status.value.name == "Draft" %}
             <span
             {% if not seq_request.is_submittable() %}
             {{ tooltip('You must add at least one library to submit the request.') }}
@@ -32,10 +32,14 @@
                     Submit Request
                 </button>
             </span>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#seq_request-form-popup">
-                Edit Request
-            </button>
+            {% endif %}
+            <span {% if seq_request.status.value.name != "Draft" %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#seq_request-form-popup"
+                    {% if seq_request.status.value.name != "Draft" %}disabled{% endif %}>
+                    Edit Request
+                </button>
+            </span>
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Export
@@ -47,20 +51,22 @@
                     <li><a class="dropdown-item" href="{{ url_for('seq_requests_htmx.export', seq_request_id=seq_request.id) }}">Everything (.xlsx)</a></li>
                 </ul>
             </div>
-            <button hx-get="{{ url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id) }}" class="btn btn-danger"
-                _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Delete request \'{{ seq_request.name }}\'',
-                    showDenyButton: true,
-                    text: 'Proceed?',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()">
-                Delete Request
-            </button>
-            {% endif %}
+            <span {% if seq_request.status.value.name != "Draft" %} {{ tooltip("You cannot edit request that is already submitted.", category="error") }} {% endif %}>
+                <button hx-get="{{ url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id) }}" class="btn btn-danger"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Delete request \'{{ seq_request.name }}\'',
+                        showDenyButton: true,
+                        text: 'Proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                    {% if seq_request.status.value.name != "Draft" %}disabled{% endif %}>
+                    Delete Request
+                </button>
+            </span>
         </div>
     </div>
 
@@ -88,7 +94,7 @@
                         <h2>Libraries <img {{ tooltip('Right click on a sample name to remove.') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                     </div>
                     <div>
-                        {% if seq_request.status_type.value.name == "Draft" %}
+                        {% if seq_request.status.value.name == "Draft" %}
                         <button type="button" id="" class="btn btn-primary" data-bs-toggle="modal"
                             data-bs-target="#sample-table-form-popup">
                             Add Libraries

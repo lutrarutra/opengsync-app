@@ -1,6 +1,7 @@
 .primary-tooltip,
 .warning-tooltip,
-.error-tooltip {
+.error-tooltip,
+.danger-tooltip {
     opacity: 0.95 !important;
     .tooltip-row {
         display: flex;
@@ -26,6 +27,11 @@
 }
 
 .error-tooltip {
+  --bs-tooltip-bg: #e95e30;
+  --bs-tooltip-color: #fff;
+}
+
+.danger-tooltip {
   --bs-tooltip-bg: #e95e30;
   --bs-tooltip-color: #fff;
 }
