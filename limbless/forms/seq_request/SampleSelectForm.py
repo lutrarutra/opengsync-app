@@ -31,8 +31,8 @@ class SampleSelectForm(TableDataForm):
                 "tax_id": row["tax_id"],
                 "error": None,
                 "info": "",
-                "sample_id": int(row["sample_id"]) if not pd.isnull(row["sample_id"]) else None,
-                "project_id": int(row["project_id"]) if not pd.isnull(row["project_id"]) else None,
+                "sample_id": int(row["sample_id"]) if not pd.isna(row["sample_id"]) else None,
+                "project_id": int(row["project_id"]) if not pd.isna(row["project_id"]) else None,
                 "project_name": row["project_name"],
                 "index_1": row["index_1"],
                 "index_2": row["index_2"],
@@ -40,7 +40,7 @@ class SampleSelectForm(TableDataForm):
                 "pool": row["pool"],
             }
 
-            if row["sample_id"] is not None:
+            if not pd.isna(row["sample_id"]):
                 data["info"] = "Existing sample found from project."
             else:
                 data["info"] = "New sample."

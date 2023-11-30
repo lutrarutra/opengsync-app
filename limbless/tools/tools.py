@@ -12,12 +12,36 @@ def connect_similar_strings(
     for word in data:
         _word = word.lower().replace(" ", "").replace("_", "")
         if similars is not None and _word in similars.keys():
-            res.append(similars[_word])
+            res.append((similars[_word], 1.0))
         else:
             closest_match = difflib.get_close_matches(word, search_dict.keys(), n=1, cutoff=cutoff)
             if len(closest_match) == 0:
                 res.append(None)
             else:
-                res.append(search_dict[closest_match[0]])
-                
-    return dict(zip(data, res))
+                score = difflib.SequenceMatcher(None, word, closest_match[0]).ratio()
+                res.append((search_dict[closest_match[0]], score))
+
+    data = dict(zip(data, res))
+    bests = {}
+    for key, val in data.items():
+        if val is None:
+            continue
+        
+        if val[0] in bests.keys():
+            if val[1] > bests[val[0]][1]:
+                bests[val[0]] = (key, val[1])
+        else:
+            bests[val[0]] = (key, val[1])
+
+    res = {}
+    for key, val in data.items():
+        if val is None:
+            res[key] = None
+            continue
+
+        if val[0] in bests.keys():
+            if bests[val[0]][0] == key:
+                res[key] = val[0]
+            else:
+                res[key] = None
+    return res

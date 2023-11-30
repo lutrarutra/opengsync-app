@@ -26,6 +26,10 @@ class Pool(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "select"},
     )
 
+    contact_name: str = Field(nullable=False, max_length=128)
+    contact_email: str = Field(nullable=False, max_length=128)
+    contact_phone: Optional[str] = Field(nullable=True, max_length=16)
+
     sortable_fields: ClassVar[List[str]] = ["id", "name", "owner_id", "num_samples"]
 
     def to_dict(self):

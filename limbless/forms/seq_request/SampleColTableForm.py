@@ -7,6 +7,7 @@ from wtforms import SelectField, FieldList, FormField, TextAreaField, IntegerFie
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from ... import tools
+from .TableDataForm import TableDataForm
 
 
 # Column selection form for sample table
@@ -25,6 +26,10 @@ class SampleColSelectForm(FlaskForm):
         ("index_4", "Index 4"),
         ("project", "Project"),
         ("pool", "Pool"),
+        ("library_kit", "Library Kit"),
+        ("library_volume", "Library Volume (uL)"),
+        ("library_concentration", "Library DNA Concentration (nM)"),
+        ("library_total_size", "Library Total Size (bp)"),
     ]
     _similars = {
         "index1(i7)": "index_1",
@@ -41,7 +46,15 @@ class SampleColSelectForm(FlaskForm):
         "samplename": "sample_name",
         "librarytype": "library_type",
         "pool": "pool",
-        "librarypool": "pool"
+        "librarypool": "pool",
+        "librarykit": "library_kit",
+        "kit": "library_kit",
+        "libraryvolume": "library_volume",
+        "volume": "library_volume",
+        "libraryconcentration": "library_concentration",
+        "concentration": "library_concentration",
+        "librarytotalsize": "library_total_size",
+        "librarysize": "library_total_size",
     }
     select_field = SelectField(
         choices=required_fields + optional_fields,
@@ -49,15 +62,14 @@ class SampleColSelectForm(FlaskForm):
 
 
 # 2. This form is used to select what each column in the sample table represents
-class SampleColTableForm(FlaskForm):
+class SampleColTableForm(TableDataForm):
     input_fields = FieldList(FormField(SampleColSelectForm))
-    data = TextAreaField()
 
     def prepare(self, df: pd.DataFrame):
         required_fields = SampleColSelectForm.required_fields
         optional_fields = SampleColSelectForm.optional_fields
         
-        self.data.data = df.to_csv(sep="\t", index=False, header=True)
+        self.set_df(df)
         columns = df.columns.tolist()
         refs = [key for key, _ in required_fields if key]
         opts = [key for key, _ in optional_fields]
@@ -79,7 +91,7 @@ class SampleColTableForm(FlaskForm):
         }
     
     def parse(self) -> pd.DataFrame:
-        df = pd.read_csv(StringIO(self.data.data), sep="\t", index_col=False, header=0)
+        df = pd.read_csv(StringIO(self.raw_data.data), sep="\t", index_col=False, header=0)
         selected_features = []
         features = SampleColSelectForm.required_fields + SampleColSelectForm.optional_fields
         features = [key for key, _ in features if key]

@@ -10,7 +10,11 @@ from .. import exceptions
 
 def create_pool(
     self, name: str,
-    owner_id: int, commit: bool = True
+    owner_id: int,
+    contact_name: str,
+    contact_email: str,
+    contact_phone: Optional[str] = None,
+    commit: bool = True
 ) -> Pool:
     persist_session = self._session is not None
     if not self._session:
@@ -22,6 +26,9 @@ def create_pool(
     pool = Pool(
         name=name,
         owner_id=owner_id,
+        contact_name=contact_name,
+        contact_email=contact_email,
+        contact_phone=contact_phone,
     )
     self._session.add(pool)
     user.num_pools += 1

@@ -3,7 +3,7 @@
 <form id="{{ id }}" enctype="multipart/form-data">
     {{ table_form.csrf_token }}
     {{ form_group(table_form.separator) }}
-    {{ form_group(table_form.data) }}
+    {{ form_group(table_form.raw_data) }}
     <p>or</p>
     {{ form_group(table_form.file) }}
 </form>

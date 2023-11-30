@@ -49,6 +49,9 @@ class ProjectMappingForm(TableDataForm):
                 if projects[i] is None:
                     selected_project = None
                 else:
+                    if raw_project_name is None or pd.isna(raw_project_name):
+                        raw_project_name = ""
+                    
                     selected_project = next(iter(db.db_handler.query_projects(word=raw_project_name, limit=1, user_id=current_user.id)), None)
                     entry.category.data = selected_project.id if selected_project is not None else None
 

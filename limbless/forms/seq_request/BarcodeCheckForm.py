@@ -10,7 +10,6 @@ from .TableDataForm import TableDataForm
 
 # 7. Check barcodes
 class BarcodeCheckForm(TableDataForm):
-    data = TextAreaField(validators=[DataRequired()])
     reverse_complement_index_1 = BooleanField("Reverse complement index 1", default=False)
     reverse_complement_index_2 = BooleanField("Reverse complement index 2", default=False)
     reverse_complement_index_3 = BooleanField("Reverse complement index 3", default=False)

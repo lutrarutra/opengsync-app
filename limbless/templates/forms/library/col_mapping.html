@@ -27,7 +27,7 @@
                 {% endfor %}
             </tbody>
         </table>
-        {{ library_col_mapping_form.data(hidden=True, readonly=True) }}
+        {{ library_col_mapping_form.raw_data(hidden=True, readonly=True) }}
         {{ library_col_mapping_form.csrf_token(hidden=True) }}
     </div>
 </form>

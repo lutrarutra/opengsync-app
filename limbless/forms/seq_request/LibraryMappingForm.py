@@ -90,5 +90,5 @@ class LibraryMappingForm(TableDataForm):
             df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields.entries[i].category.data)
         
         df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).value.name)
-        self.data.data = df.to_csv(sep="\t", index=False, header=True)
+        self.set_df(df)
         return df

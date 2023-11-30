@@ -29,7 +29,7 @@
                             {% endfor %}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="sample-table-col-select-table-body">
                         {% for row in data %}
                         <tr>
                             {% for col in row %}
@@ -39,7 +39,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                {{ sample_table_form.data(hidden=True, readonly=True) }}
+                {{ sample_table_form.raw_data(hidden=True, readonly=True) }}
                 {{ sample_table_form.csrf_token(hidden=True) }}
             </div>
         </form>

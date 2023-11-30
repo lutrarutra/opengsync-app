@@ -514,3 +514,8 @@ select {
         width: 20px;
     }
 }
+
+#pool-library-list-container {
+    max-height: 50%;
+    overflow-y: auto;
+}

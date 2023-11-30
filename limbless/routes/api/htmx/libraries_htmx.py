@@ -425,7 +425,7 @@ def parse_table(library_id: int):
     )
 
     library_col_mapping_form = forms.LibraryColMappingForm()
-    library_col_mapping_form.data.data = df.to_csv(sep="\t", index=False, header=True)
+    library_col_mapping_form.raw_data.data = df.to_csv(sep="\t", index=False, header=True)
 
     columns = df.columns.tolist()
     refs = [key for key, _ in forms.LibraryColSelectForm._fields if key]
@@ -451,45 +451,45 @@ def parse_table(library_id: int):
     )
 
 
-@libraries_htmx.route("<int:library_id>/map_columns", methods=["POST"])
-@login_required
-def map_columns(library_id: int):
-    if (library := db.db_handler.get_library(library_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+# @libraries_htmx.route("<int:library_id>/map_columns", methods=["POST"])
+# @login_required
+# def map_columns(library_id: int):
+#     if (library := db.db_handler.get_library(library_id)) is None:
+#         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    library_col_mapping_form = forms.LibraryColMappingForm()
-    validated, library_col_mapping_form = library_col_mapping_form.custom_validate()
+#     library_col_mapping_form = forms.LibraryColMappingForm()
+#     validated, library_col_mapping_form = library_col_mapping_form.custom_validate()
 
-    if not validated:
-        return make_response(
-            render_template(
-                "components/popups/library/col_mapping.html",
-                library_col_mapping_form=library_col_mapping_form,
-                library=library
-            )
-        )
+#     if not validated:
+#         return make_response(
+#             render_template(
+#                 "components/popups/library/col_mapping.html",
+#                 library_col_mapping_form=library_col_mapping_form,
+#                 library=library
+#             )
+#         )
     
-    df = pd.read_csv(StringIO(library_col_mapping_form.data.data), sep="\t", index_col=False, header=0)
-    for i, entry in enumerate(library_col_mapping_form.fields.entries):
-        val = entry.select_field.data.strip()
-        if not val:
-            continue
-        df.rename(columns={df.columns[i]: val}, inplace=True)
+#     df = pd.read_csv(StringIO(library_col_mapping_form.raw_data.data), sep="\t", index_col=False, header=0)
+#     for i, entry in enumerate(library_col_mapping_form.fields.entries):
+#         val = entry.select_field.data.strip()
+#         if not val:
+#             continue
+#         df.rename(columns={df.columns[i]: val}, inplace=True)
 
-    refs = [key for key, _ in forms.LibraryColSelectForm._fields if key]
-    df = df.loc[:, refs]
+#     refs = [key for key, _ in forms.LibraryColSelectForm._fields if key]
+#     df = df.loc[:, refs]
 
-    library_sample_select_form = forms.LibrarySampleSelectForm()
-    library_samples, errors = library_sample_select_form.parse_library_samples(library_id=library_id, df=df)
+#     library_sample_select_form = forms.LibrarySampleSelectForm()
+#     library_samples, errors = library_sample_select_form.parse_library_samples(library_id=library_id, df=df)
     
-    return make_response(
-        render_template(
-            "components/popups/library/library_sample_select.html",
-            library_sample_select_form=library_sample_select_form,
-            library=library, errors=errors,
-            library_samples=library_samples,
-        )
-    )
+#     return make_response(
+#         render_template(
+#             "components/popups/library/library_sample_select.html",
+#             library_sample_select_form=library_sample_select_form,
+#             library=library, errors=errors,
+#             library_samples=library_samples,
+#         )
+#     )
 
 
 @libraries_htmx.route("<int:library_id>/add_samples", methods=["POST"])
@@ -512,7 +512,7 @@ def add_library_samples_from_table(library_id: int):
             ), push_url=False
         )
     
-    df = pd.read_csv(StringIO(library_sample_select_form.data.data), sep="\t", index_col=False, header=0)
+    df = pd.read_csv(StringIO(library_sample_select_form.raw_data.data), sep="\t", index_col=False, header=0)
 
     if library_sample_select_form.selected_samples.data is None:
         assert False    # This should never happen because of custom validation

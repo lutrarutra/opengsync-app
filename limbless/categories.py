@@ -23,7 +23,7 @@ class UserRole(Enum, metaclass=ExtendedEnumMeta):
 class LibraryType(Enum, metaclass=ExtendedEnumMeta):
     CUSTOM = DescriptiveEnum(0, "Custom")
     GENE_EXPRESSION = DescriptiveEnum(1, "Gene Expression", "GEX")
-    MULTIPLEXING_CAPTURE = DescriptiveEnum(2, "Multiplexing Capture", "HTO")
+    MULTIPLEXING_CAPTURE = DescriptiveEnum(2, "Multiplexing Capture", "CMO")
     CHROMATIN_ACCESSIBILITY = DescriptiveEnum(3, "Chromatin Accessibility", "ATAC")
     SPATIAL_TRANSCRIPTOMIC = DescriptiveEnum(4, "Spatial transcriptomic", "VISIUM")
     VDJ_B = DescriptiveEnum(5, "VDJ-B", "VDJ-B")
@@ -32,6 +32,12 @@ class LibraryType(Enum, metaclass=ExtendedEnumMeta):
     ANTIBODY_CAPTURE = DescriptiveEnum(8, "Antibody Capture", "ABC")
     CRISPR = DescriptiveEnum(9, "CRISPR", "CRISPR")
 
+
+# class LibraryKitType(Enum, metaclass=ExtendedEnumMeta):
+#     CUSTOM = DescriptiveEnum(0, "Custom")
+#     TENX_3_PRIME = DescriptiveEnum(1, "10x 3' Single-Cell")
+#     TENX_5_PRIME_V2 = DescriptiveEnum(1, "10x 5' v2 Single-Cell")
+    
 
 class IndexKitType(Enum, metaclass=ExtendedEnumMeta):
     CUSTOM = DescriptiveEnum(0, "Custom")

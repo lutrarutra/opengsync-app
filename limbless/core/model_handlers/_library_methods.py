@@ -12,6 +12,10 @@ def create_library(
     self,
     sample_id: int,
     library_type: LibraryType,
+    kit: str = "custom",
+    volume: Optional[int] = None,
+    dna_concentration: Optional[float] = None,
+    total_size: Optional[int] = None,
     commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
@@ -27,6 +31,10 @@ def create_library(
     library = models.Library(
         sample_id=sample_id,
         type_id=library_type.value.id,
+        kit=kit,
+        volume=volume,
+        dna_concentration=dna_concentration,
+        total_size=total_size,
     )
     self._session.add(library)
 

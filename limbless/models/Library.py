@@ -20,7 +20,12 @@ class Library(SQLModel, SearchResult, table=True):
     num_pools: int = Field(nullable=False, default=0)
     num_seq_requests: int = Field(nullable=False, default=0)
     submitted: bool = Field(nullable=False, default=False)
-    
+    kit: str = Field(nullable=False, default="custom", max_length=64)
+
+    volume: Optional[int] = Field(nullable=True, default=None)
+    dna_concentration: Optional[float] = Field(nullable=True, default=None)
+    total_size: Optional[int] = Field(nullable=True, default=None)
+
     sample_id: int = Field(nullable=False, foreign_key="sample.id")
     sample: "Sample" = Relationship(
         back_populates="libraries",

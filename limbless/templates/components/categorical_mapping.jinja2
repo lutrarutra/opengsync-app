@@ -24,7 +24,7 @@
             </div>
         </td>
     {% endfor %}
-    {{ form.data(class="form-control", hidden=True, readonly=True) }}
+    {{ form.raw_data(class="form-control", hidden=True, readonly=True) }}
     {{ form.csrf_token() }}
 {%- endmacro %}
 
@@ -55,7 +55,7 @@
             </div>
         </td>
     {% endfor %}
-    {{ form.data(class="form-control", hidden=True, readonly=True) }}
+    {{ form.raw_data(class="form-control", hidden=True, readonly=True) }}
     {{ form.csrf_token() }}
 {%- endmacro %}
 
@@ -92,6 +92,6 @@
         });
     </script>
     {% endfor %}
-    {{ form.data(class="form-control", hidden=true, readonly=True) }}
+    {{ form.raw_data(class="form-control", hidden=true, readonly=True) }}
     {{ form.csrf_token(hidden=True) }}
 {%- endmacro %}

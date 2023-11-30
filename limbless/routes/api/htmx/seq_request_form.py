@@ -101,7 +101,6 @@ def map_columns(seq_request_id: int):
         )
 
     df = sample_table_form.parse()
-    
     project_mapping_form = forms.ProjectMappingForm(formdata=None)
     context = project_mapping_form.prepare(df)
 
@@ -171,7 +170,7 @@ def map_organisms(seq_request_id: int):
     
     category_mapping_form = forms.OrganismMappingForm()
     validated, category_mapping_form = category_mapping_form.custom_validate(db.db_handler)
-    df = pd.read_csv(StringIO(category_mapping_form.data.data), sep="\t", index_col=False, header=0)
+    df = category_mapping_form.get_df()
     organisms = sorted(df["organism"].unique())
 
     if not validated:
@@ -237,12 +236,47 @@ def confirm_samples(seq_request_id: int):
         )
     
     df = sample_select_form.parse()
+    logger.debug(df)
+    pool_mapping_form = forms.PoolMappingForm()
+    context = pool_mapping_form.prepare(df)
+
+    return make_response(
+        render_template(
+            "components/popups/seq_request/step-6.html",
+            seq_request=seq_request,
+            pool_mapping_form=pool_mapping_form,
+            **context
+        )
+    )
+
+
+@seq_request_form_htmx.route("<int:seq_request_id>/map_pools", methods=["POST"])
+@login_required
+def map_pools(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    pool_mapping_form = forms.PoolMappingForm()
+    context = pool_mapping_form.prepare()
+    validated, pool_mapping_form = pool_mapping_form.custom_validate(db.db_handler)
+
+    if not validated:
+        return make_response(
+            render_template(
+                "components/popups/seq_request/step-6.html",
+                seq_request=seq_request,
+                pool_mapping_form=pool_mapping_form,
+                **context
+            )
+        )
+    
+    df = pool_mapping_form.parse()
     library_mapping_form = forms.LibraryMappingForm()
     context = library_mapping_form.prepare(df)
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-6.html",
+            "components/popups/seq_request/step-7.html",
             seq_request=seq_request,
             library_mapping_form=library_mapping_form,
             **context
@@ -264,7 +298,7 @@ def map_libraries(seq_request_id: int):
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/step-6.html",
+                "components/popups/seq_request/step-7.html",
                 seq_request=seq_request,
                 library_mapping_form=library_mapping_form,
                 **context
@@ -278,7 +312,7 @@ def map_libraries(seq_request_id: int):
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-7.html",
+            "components/popups/seq_request/step-8.html",
             seq_request=seq_request,
             barcode_check_form=barcode_check_form,
             **context
@@ -298,7 +332,7 @@ def check_barcodes(seq_request_id: int):
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/step-7.html",
+                "components/popups/seq_request/step-8.html",
                 seq_request=seq_request,
                 barcode_check_form=barcode_check_form,
                 **barcode_check_form.prepare()
@@ -350,11 +384,16 @@ def check_barcodes(seq_request_id: int):
         return barcode
 
     with DBSession(db.db_handler) as session:
-        pools: dict[int | models.Pool] = {}
-        for pool_idx in df["pool"].unique():
+        pools: dict[str, models.Pool] = {}
+        for pool_label, _df in df.groupby("pool"):
             pool = session.create_pool(
-                
+                name=pool_label,
+                owner_id=current_user.id,
+                contact_name=_df["contact_person_name"].iloc[0],
+                contact_email=_df["contact_person_email"].iloc[0],
+                contact_phone=_df["contact_person_phone"].iloc[0],
             )
+            pools[pool_label] = pool
 
         for (_sample_name, _sample_id, _tax_id, _project_name, _project_id), _df in df.groupby(["sample_name", "sample_id", "tax_id", "project_name", "project_id"], dropna=False):
             project = projects[_project_id]
@@ -376,6 +415,14 @@ def check_barcodes(seq_request_id: int):
                 library = session.create_library(
                     sample_id=sample.id,
                     library_type=LibraryType.get(row["library_type_id"]),
+                    kit=row["library_kit"],
+                    volume=row["library_volume"],
+                    dna_concentration=row["library_concentration"],
+                    total_size=row["library_total_size"],
+                )
+                session.link_library_pool(
+                    library_id=library.id,
+                    pool_id=pools[row["pool"]].id
                 )
 
                 adapter = str(row["adapter"]) if not pd.isna(row["adapter"]) else None

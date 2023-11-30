@@ -1,10 +1,17 @@
+from typing import TYPE_CHECKING
+
 from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from .... import db, forms, logger, models, PAGE_LIMIT
 from ....categories import UserRole, HttpResponse
 from ....core.DBSession import DBSession
+
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
 
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/experiments/")
 

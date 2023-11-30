@@ -42,7 +42,7 @@
         </table>
         <form id="library-sample-select-form">
             {{ library_sample_select_form.csrf_token() }}
-            {{ library_sample_select_form.data(hidden=False, readonly=True) }}
+            {{ library_sample_select_form.raw_data(hidden=False, readonly=True) }}
             {{ library_sample_select_form.selected_samples(hidden=False, readonly=True) }}
         </form>
     </div>

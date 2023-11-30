@@ -43,6 +43,8 @@ def create_sample_data(db_handler: DBHandler):
             pool = db_handler.create_pool(
                 name=f"Pool {pool_i+1}",
                 owner_id=client.id,
+                contact_name=client.name,
+                contact_email=client.email,
             )
             if client.id not in pools.keys():
                 pools[client.id] = []
