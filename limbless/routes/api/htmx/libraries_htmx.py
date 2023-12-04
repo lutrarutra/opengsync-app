@@ -84,7 +84,6 @@ def get(page):
             else:
                 libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, offset=offset, user_id=None, sort_by=sort_by, descending=descending)
 
-    logger.debug(template)
     return make_response(
         render_template(
             template, libraries=libraries,

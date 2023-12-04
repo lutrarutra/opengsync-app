@@ -90,17 +90,22 @@ def map_columns(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     sample_table_form = forms.SampleColTableForm()
-    if not sample_table_form.validate_on_submit():
+    context = sample_table_form.prepare()
+    validated, sample_table_form = sample_table_form.custom_validate()
+    
+    if validated:
         return make_response(
             render_template(
                 "components/popups/sample/step-2.html",
                 sample_table_form=sample_table_form,
-                seq_request=seq_request
+                seq_request=seq_request,
+                **context
             ),
             push_url=False
         )
 
     df = sample_table_form.parse()
+    logger.debug(df.columns)
     project_mapping_form = forms.ProjectMappingForm(formdata=None)
     context = project_mapping_form.prepare(df)
 
@@ -148,14 +153,14 @@ def select_project(seq_request_id: int):
             ), push_url=False
         )
 
-    sample_select_form = forms.SampleSelectForm()
-    context = sample_select_form.prepare(seq_request.id, df)
+    library_select_form = forms.LibrarySelectForm()
+    context = library_select_form.prepare(seq_request.id, df)
 
     return make_response(
         render_template(
             "components/popups/seq_request/step-5.html",
             seq_request=seq_request,
-            sample_select_form=sample_select_form,
+            library_select_form=library_select_form,
             **context
         ), push_url=False
     )
@@ -200,42 +205,42 @@ def map_organisms(seq_request_id: int):
     
     df["tax_id"] = df["organism"].map(organism_id_mapping)
 
-    sample_select_form = forms.SampleSelectForm()
-    context = sample_select_form.prepare(seq_request.id, df)
+    library_select_form = forms.LibrarySelectForm()
+    context = library_select_form.prepare(seq_request.id, df)
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-5.html",
+            template_name_or_list="components/popups/seq_request/step-5.html",
             seq_request=seq_request,
-            sample_select_form=sample_select_form,
+            library_select_form=library_select_form,
             **context
         ), push_url=False
     )
 
 
-# 5. Confirm samples
-@seq_request_form_htmx.route("<int:seq_request_id>/confirm_samples", methods=["POST"])
+# 5. Confirm libraries
+@seq_request_form_htmx.route("<int:seq_request_id>/confirm_libraries", methods=["POST"])
 @login_required
-def confirm_samples(seq_request_id: int):
+def confirm_libraries(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    sample_select_form = forms.SampleSelectForm()
-    context = sample_select_form.prepare(seq_request.id)
+    library_select_form = forms.LibrarySelectForm()
+    context = library_select_form.prepare(seq_request.id)
     
-    validated, sample_select_form = sample_select_form.custom_validate()
+    validated, library_select_form = library_select_form.custom_validate()
 
     if not validated:
         return make_response(
             render_template(
                 "components/popups/seq_request/step-5.html",
                 seq_request=seq_request,
-                sample_select_form=sample_select_form,
+                library_select_form=library_select_form,
                 **context
             ), push_url=False
         )
     
-    df = sample_select_form.parse()
+    df = library_select_form.parse()
     logger.debug(df)
     pool_mapping_form = forms.PoolMappingForm()
     context = pool_mapping_form.prepare(df)
@@ -339,6 +344,8 @@ def check_barcodes(seq_request_id: int):
             )
         )
     df = barcode_check_form.parse()
+    logger.debug(df.columns)
+    logger.debug(df)
 
     n_added = 0
     n_new_samples = 0
@@ -425,14 +432,13 @@ def check_barcodes(seq_request_id: int):
                     pool_id=pools[row["pool"]].id
                 )
 
-                adapter = str(row["adapter"]) if not pd.isna(row["adapter"]) else None
                 if not pd.isna(row["index_1"]):
                     create_and_link_barcode(
                         session=session,
                         library_id=library.id,
                         barcode_type=BarcodeType.INDEX_1,
                         sequence=row["index_1"],
-                        adapter=adapter,
+                        adapter=str(row["adapter_1"]) if not pd.isna(row["adapter_1"]) else None,
                         reverse_complement=barcode_check_form.reverse_complement_index_1.data
                     )
 
@@ -442,7 +448,7 @@ def check_barcodes(seq_request_id: int):
                         library_id=library.id,
                         barcode_type=BarcodeType.INDEX_2,
                         sequence=row["index_2"],
-                        adapter=adapter,
+                        adapter=str(row["adapter_2"]) if not pd.isna(row["adapter_2"]) else None,
                         reverse_complement=barcode_check_form.reverse_complement_index_2.data
                     )
 
@@ -452,7 +458,7 @@ def check_barcodes(seq_request_id: int):
                         library_id=library.id,
                         barcode_type=BarcodeType.INDEX_3,
                         sequence=row["index_3"],
-                        adapter=adapter,
+                        adapter=str(row["adapter_3"]) if not pd.isna(row["adapter_3"]) else None,
                         reverse_complement=barcode_check_form.reverse_complement_index_3.data
                     )
 
@@ -462,7 +468,7 @@ def check_barcodes(seq_request_id: int):
                         library_id=library.id,
                         barcode_type=BarcodeType.INDEX_4,
                         sequence=row["index_4"],
-                        adapter=adapter,
+                        adapter=str(row["adapter_4"]) if not pd.isna(row["adapter_4"]) else None,
                         reverse_complement=barcode_check_form.reverse_complement_index_4.data
                     )
                 

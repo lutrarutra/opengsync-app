@@ -6,7 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, FieldList, FormField, TextAreaField, IntegerField, BooleanField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from ... import tools
+from ... import tools, logger
 from .TableDataForm import TableDataForm
 
 
@@ -24,6 +24,10 @@ class SampleColSelectForm(FlaskForm):
         ("index_2", "Index 2 (i5)"),
         ("index_3", "Index 3"),
         ("index_4", "Index 4"),
+        ("adapter_1", "Adapter 1"),
+        ("adapter_2", "Adapter 2"),
+        ("adapter_3", "Adapter 3"),
+        ("adapter_4", "Adapter 4"),
         ("project", "Project"),
         ("pool", "Pool"),
         ("library_kit", "Library Kit"),
@@ -42,6 +46,10 @@ class SampleColSelectForm(FlaskForm):
         "index3": "index_3",
         "index4": "index_4",
         "adapter": "adapter",
+        "adapter1": "adapter_1",
+        "adapter2": "adapter_2",
+        "adapter3": "adapter_3",
+        "adapter4": "adapter_4",
         "organism": "organism",
         "samplename": "sample_name",
         "librarytype": "library_type",
@@ -65,24 +73,79 @@ class SampleColSelectForm(FlaskForm):
 class SampleColTableForm(TableDataForm):
     input_fields = FieldList(FormField(SampleColSelectForm))
 
-    def prepare(self, df: pd.DataFrame):
+    def __get_adapters_set(self, df: pd.DataFrame) -> tuple[bool, bool, bool, bool, bool]:
+        return (
+            (~df["adapter"].isna()).any(),
+            (~df["adapter_1"].isna()).any(),
+            (~df["adapter_2"].isna()).any(),
+            (~df["adapter_3"].isna()).any(),
+            (~df["adapter_4"].isna()).any()
+        )
+
+    def custom_validate(self):
+        df = self.get_df()
+        validated = self.validate()
+        if not validated:
+            return False, self
+
+        adapter_set, adapter_1_set, adapter_2_set, adapter_3_set, adapter_4_set = self.__get_adapters_set(df)
+        if adapter_set and (adapter_1_set or adapter_2_set or adapter_3_set or adapter_4_set):
+            self.input_fields.errors = ("Specify column 'adapter' or 'adpater_1/2/3/4', not both.",)
+            validated = False
+
+        if adapter_set:
+            if ((
+                ~df["index_1"].isna() |
+                ~df["index_2"].isna() |
+                ~df["index_3"].isna() |
+                ~df["index_4"].isna()
+            ) & df["adapter"].isna()).any():
+                self.input_fields.errors = ("You must input adapters for all specified indices",)
+                validated = False
+
+        elif adapter_1_set:
+            if (~df["index_1"].isna() & df["adapter_1"].isna()).any():
+                self.input_fields.errors = ("You must input adapters for all specified indices",)
+                validated = False
+
+        elif adapter_2_set:
+            if (~df["index_2"].isna() & df["adapter_2"].isna()).any():
+                self.input_fields.errors = ("You must input adapters for all specified indices",)
+                validated = False
+
+        elif adapter_3_set:
+            if (~df["index_3"].isna() & df["adapter_3"].isna()).any():
+                self.input_fields.errors = ("You must input adapters for all specified indices",)
+                validated = False
+
+        elif adapter_4_set:
+            if (~df["index_4"].isna() & df["adapter_4"].isna()).any():
+                self.input_fields.errors = ("You must input adapters for all specified indices",)
+                validated = False
+
+        return validated, self
+
+    def prepare(self, df: Optional[pd.DataFrame] = None) -> dict:
+        if df is None:
+            df = self.get_df()
         required_fields = SampleColSelectForm.required_fields
         optional_fields = SampleColSelectForm.optional_fields
         
-        self.set_df(df)
         columns = df.columns.tolist()
         refs = [key for key, _ in required_fields if key]
         opts = [key for key, _ in optional_fields]
         matches = tools.connect_similar_strings(required_fields + optional_fields, columns, similars=SampleColSelectForm._similars)
 
         for i, col in enumerate(columns):
-            select_form = SampleColSelectForm()
-            select_form.select_field.label.text = col
-            self.input_fields.append_entry(select_form)
-            self.input_fields.entries[i].select_field.label.text = col
+            if i >= len(self.input_fields.entries):
+                select_form = SampleColSelectForm()
+                select_form.select_field.label.text = col
+                self.input_fields.append_entry(select_form)
+            self.input_fields[i].select_field.label.text = col
             if col in matches.keys():
-                self.input_fields.entries[i].select_field.data = matches[col]
+                self.input_fields[i].select_field.data = matches[col]
             
+        self.set_df(df)
         return {
             "columns": columns,
             "required_fields": refs,
@@ -91,19 +154,37 @@ class SampleColTableForm(TableDataForm):
         }
     
     def parse(self) -> pd.DataFrame:
-        df = pd.read_csv(StringIO(self.raw_data.data), sep="\t", index_col=False, header=0)
+        df = self.get_df()
         selected_features = []
         features = SampleColSelectForm.required_fields + SampleColSelectForm.optional_fields
+        
         features = [key for key, _ in features if key]
-        for feature in features:
-            df[feature] = None
 
-        for i, entry in enumerate(self.input_fields.entries):
-            val = entry.select_field.data.strip()
-            if not val:
+        for feature in features:
+            if feature not in df.columns:
+                df[feature] = None
+
+        for i, entry in enumerate(self.input_fields):
+            logger.debug(df.columns[i])
+            if not (val := entry.select_field.data):
                 continue
+            val = val.strip()
             selected_features.append(val)
+            logger.debug(f"{df.columns[i]} -> {val}")
             df[val] = df[df.columns[i]]
         
         df = df[features]
+        df.loc[df["project"].isna(), "project"] = "Project"
+        df.loc[df["organism"].isna(), "organism"] = "Organism"
+
+        adapter_set, adapter_1_set, adapter_2_set, adapter_3_set, adapter_4_set = self.__get_adapters_set(df)
+        
+        if adapter_set:
+            df["adapter_1"] = df["adapter"]
+            df["adapter_2"] = df["adapter"]
+            df["adapter_3"] = df["adapter"]
+            df["adapter_4"] = df["adapter"]
+
+        df = df.drop(columns=["adapter"])
+
         return df

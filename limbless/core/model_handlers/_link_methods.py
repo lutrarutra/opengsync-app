@@ -118,7 +118,7 @@ def link_library_pool(
 
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if (sample := self._session.get(models.Library, library_id)) is None:
+    if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
     if self._session.query(models.LibraryPoolLink).where(

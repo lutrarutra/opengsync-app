@@ -1,54 +1,51 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 
-<div id="sample-select-container" class="modal-content">
+<div id="library-select-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Confirm Samples</h1>
+        <h1 class="modal-title fs-5">Confirm Libraries</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
         <div class="input-help">
-            <p>Hover row to see additional info</p>
         </div>
         <table class="table table-hover table-cursor">
             <thead>
                 <tr>
                     <th scope="col" class="col-1">#</th>
                     <th scope="col" class="col-1">Selected</th>
-                    <th scope="col" class="col-3">Name</th>
+                    <th scope="col" class="col-3">Sample Name</th>
                     <th scope="col" class="col-2">Library Type</th>
                     <th scope="col" class="col-1">Pool</th>
-                    <th scope="col" class="col-1">Tax ID</th>
                     <th scope="col" class="col-3">Project</th>
                 </tr>
             </thead>
             <tbody>
-                {% for sample_data in samples %}
-                {% set sample_id = sample_data["id"] %}
-                {% if sample_data["error"] %}
-                <tr {{ tooltip(sample_data["error"], category="error") }}
-                {% elif sample_data["warning"] %}
-                <tr {{ tooltip(sample_data["warning"], category="warning") }}
-                {% elif sample_data["info"] %}
-                <tr {{ tooltip(sample_data["info"]) }}
+                {% for library_data in libraries %}
+                {% set library_id = library_data["id"] %}
+                {% if library_data["error"] %}
+                <tr {{ tooltip(library_data["error"], category="error") }}
+                {% elif library_data["warning"] %}
+                <tr {{ tooltip(library_data["warning"], category="warning") }}
+                {% elif library_data["info"] %}
+                <tr {{ tooltip(library_data["info"]) }}
                 {% else %}
                 <tr
                 {% endif %}
-                class="{{ 'disabled' if sample_data['error'] }} sample-check" onclick="select_row('{{ sample_id }}');">
-                    <th scope="row">{{ sample_id }}</th>
+                class="{{ 'disabled' if library_data['error'] }} library-check" onclick="select_row('{{ library_id }}');">
+                    <th scope="row">{{ library_id }}</th>
                     <td>
-                        {% if sample_data["error"] %}
+                        {% if library_data["error"] %}
                         ❌
-                        <input  type="checkbox" class="form-check-input sample-checkbox" style="display: none;">
+                        <input  type="checkbox" class="form-check-input library-checkbox" style="display: none;">
                         {% else %}
-                        <input type="checkbox" class="form-check-input sample-checkbox" checked
-                        id="sample-select-{{ sample_id }}">
+                        <input type="checkbox" class="form-check-input library-checkbox" checked
+                        id="library-select-{{ library_id }}">
                         {% endif %}
                     </td>
-                    <td>{{ sample_data["name"] }} <span class="desc">{{ sample_data["sample_id"] if sample_data["sample_id"] }}</span></td>
-                    <td>{{ sample_data["library_type"] }}</td>
-                    <td>{{ sample_data["pool"] }}</td>
-                    <td>{{ sample_data["tax_id"] }}</td>
-                    <td>{{ sample_data["project_name"] }} <span class="desc">{{ sample_data["project_id"] if sample_data["project_id"] }}</span></td>
+                    <td>{{ library_data["name"] }} <span class="desc">{{ library_data["library_id"] if library_data["library_id"] }}</span></td>
+                    <td>{{ library_data["library_type"] }}</td>
+                    <td>{{ library_data["pool"] }}</td>
+                    <td>{{ library_data["project_name"] }} <span class="desc">{{ library_data["project_id"] if library_data["project_id"] }}</span></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -57,20 +54,20 @@
             <button type="button" class="btn btn-primary col" onclick="select_all()">Select All</button>
             <button type="button" class="btn btn-primary col" onclick="deselect_all()">Remove All</button>
         </div>
-        <form id="project-sample-select-form">
-            {{ sample_select_form.csrf_token() }}
-            {{ sample_select_form.raw_data(hidden=True, readonly=True) }}
-            {{ sample_select_form.selected_samples(hidden=False, readonly=True) }}
+        <form id="project-library-select-form">
+            {{ library_select_form.csrf_token() }}
+            {{ library_select_form.raw_data(hidden=True, readonly=True) }}
+            {{ library_select_form.selected_libraries(hidden=False, readonly=True) }}
         </form>
     </div>
     <div class="modal-footer">
-        <button type="button" class="btn btn-success" hx-target="#sample-select-container" hx-swap="outerHTML"
-            hx-include="#project-sample-select-form" id="project-sample-select-form-btn"
-            hx-post="{{ url_for('seq_request_form_htmx.confirm_samples', seq_request_id=seq_request.id) }}">
+        <button type="button" class="btn btn-success" hx-target="#library-select-container" hx-swap="outerHTML"
+            hx-include="#project-library-select-form" id="project-library-select-form-btn"
+            hx-post="{{ url_for('seq_request_form_htmx.confirm_libraries', seq_request_id=seq_request.id) }}">
             Confirm
         </button>
 
-        <button type="button" class="btn btn-danger" hx-target="#sample-select-container" hx-swap="outerHTML"
+        <button type="button" class="btn btn-danger" hx-target="#library-select-container" hx-swap="outerHTML"
             hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}">
             Cancel
         </button>
@@ -79,18 +76,18 @@
 
 <script>
     init_tooltips();
-    $(".sample-checkbox:checkbox").click(function() { return false; });
+    $(".library-checkbox:checkbox").click(function() { return false; });
 
-    function select_row(sample_id) {
-        var checkbox = $("#sample-select-" + sample_id);
+    function select_row(library_id) {
+        var checkbox = $("#library-select-" + library_id);
         if (checkbox.hasClass("disabled")) {
             return;
         }
         const checked = checkbox.prop("checked");
         
-        var selected_str = $("#selected_samples").val();
+        var selected_str = $("#selected_libraries").val();
         var selected = selected_str.split(",");
-        const index = selected.indexOf(sample_id);
+        const index = selected.indexOf(library_id);
         if (checked) {
             // checkbox was checked, uncheck it
             checkbox.prop("checked", false);
@@ -101,40 +98,40 @@
             // checkbox was unchecked, check it
             checkbox.prop("checked", true);
             if (index === -1) {
-                selected.push(sample_id);
+                selected.push(library_id);
             }
         }
-        $("#selected_samples").val(selected.join(","));
+        $("#selected_libraries").val(selected.join(","));
 
         if (selected.length === 0 || (selected[0] === "" && selected.length === 1)) {
-            $("#project-sample-select-form-btn").prop("disabled", true);
+            $("#project-library-select-form-btn").prop("disabled", true);
         } else {
-            $("#project-sample-select-form-btn").prop("disabled", false);
+            $("#project-library-select-form-btn").prop("disabled", false);
         }
     }
     
 
     function deselect_all() {
-        $(".sample-checkbox").each(function () {
+        $(".library-checkbox").each(function () {
             $(this).prop("checked", false);
         });
-        $("#selected_samples").val("");
-        $("#project-sample-select-form-btn").prop("disabled", true);
+        $("#selected_libraries").val("");
+        $("#project-library-select-form-btn").prop("disabled", true);
 
     }
 
     function select_all() {
         var selected = [];
-        $(".sample-checkbox").each(function () {
+        $(".library-checkbox").each(function () {
             if (!$(this).hasClass("disabled")) {
                 $(this).prop("checked", true);
                 selected.push($(this).attr("id").split("-")[2]);
             }
         });
         console.log(selected);
-        $("#selected_samples").val(selected.join(","));
+        $("#selected_libraries").val(selected.join(","));
         if (selected.length > 0) {
-            $("#project-sample-select-form-btn").prop("disabled", false);
+            $("#project-library-select-form-btn").prop("disabled", false);
         }
     }
 </script>

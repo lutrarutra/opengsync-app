@@ -76,10 +76,13 @@
                         field=sub_form.category,
                         url=url,
                         selected=selected[loop.index0] if selected else None,
-                        class="col-4"
+                        class="col-3"
                     ) 
                 }}
-                {{  form_group(sub_form.new_category, class="col-4") }}
+                <div class="col-1 mapping-or">
+                    or
+                </div>
+                {{  form_group(sub_form.new_category, class="col-3") }}
             </div>
         </td>
     <script>

@@ -12,14 +12,14 @@ from .TableDataForm import TableDataForm
 
 
 # 5. Confirm samples before creating
-class SampleSelectForm(TableDataForm):
-    selected_samples = StringField()
+class LibrarySelectForm(TableDataForm):
+    selected_libraries = StringField()
 
     def prepare(self, seq_request_id: int, df: Optional[pd.DataFrame] = None) -> dict:
         if df is None:
             df = self.get_df()
 
-        samples: list[dict[str, str | int | None]] = []
+        libraries: list[dict[str, str | int | None]] = []
 
         for i, row in df.iterrows():
             # Check if sample names are unique in project
@@ -31,12 +31,15 @@ class SampleSelectForm(TableDataForm):
                 "tax_id": row["tax_id"],
                 "error": None,
                 "info": "",
-                "sample_id": int(row["sample_id"]) if not pd.isna(row["sample_id"]) else None,
-                "project_id": int(row["project_id"]) if not pd.isna(row["project_id"]) else None,
+                "sample_id": int(row["sample_id"]) if (not pd.isna(row["sample_id"]) and not pd.isnull(row["sample_id"])) else None,
+                "project_id": int(row["project_id"]) if (not pd.isna(row["project_id"]) and not pd.isnull(row["project_id"])) else None,
                 "project_name": row["project_name"],
                 "index_1": row["index_1"],
                 "index_2": row["index_2"],
-                "adapter": row["adapter"],
+                "adapter_1": row["adapter_1"],
+                "adapter_2": row["adapter_2"],
+                "adapter_3": row["adapter_3"],
+                "adapter_4": row["adapter_4"],
                 "pool": row["pool"],
             }
 
@@ -45,29 +48,29 @@ class SampleSelectForm(TableDataForm):
             else:
                 data["info"] = "New sample."
 
-            samples.append(data)
+            libraries.append(data)
 
         selected_samples = []
-        for sample_data in samples:
+        for sample_data in libraries:
             if sample_data["error"] is None:
                 selected_samples.append(sample_data["id"])
-        self.selected_samples.data = ",".join([str(i) for i in selected_samples])
+        self.selected_libraries.data = ",".join([str(i) for i in selected_samples])
 
         self.set_df(df)
 
         return {
-            "samples": samples,
+            "libraries": libraries,
         }
     
     def parse(self) -> pd.DataFrame:
-        if self.selected_samples.data is None:
+        if self.selected_libraries.data is None:
             assert False    # This should never happen because its checked in custom_validate()
 
         df = self.get_df()
-        selected_samples_ids = self.selected_samples.data.removeprefix(",").split(",")
-        selected_samples_ids = [int(i) - 1 for i in selected_samples_ids if i != ""]
+        selected_libraries_ids = self.selected_libraries.data.removeprefix(",").split(",")
+        selected_libraries_ids = [int(i) - 1 for i in selected_libraries_ids if i != ""]
 
-        df = df.loc[selected_samples_ids, :].reset_index()
+        df = df.loc[selected_libraries_ids, :].reset_index()
         return df
 
     def custom_validate(self):
@@ -75,8 +78,8 @@ class SampleSelectForm(TableDataForm):
         if not validated:
             return False, self
         
-        if self.selected_samples.data is None or len(self.selected_samples.data) == 0:
-            self.selected_samples.errors = ("Please select at least one sample.",)
+        if self.selected_libraries.data is None or len(self.selected_libraries.data) == 0:
+            self.selected_libraries.errors = ("Please select at least one sample.",)
             validated = False
 
         return validated, self

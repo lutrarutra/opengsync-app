@@ -111,6 +111,11 @@ def get_libraries(
                 attr = text("sample_1_name DESC")
             else:
                 attr = text("sample_1_name")
+        elif sort_by == "owner_id":
+            if descending:
+                attr = text("user_2_id DESC")
+            else:
+                attr = text("user_2_id")
         else:
             attr = getattr(models.Library, sort_by)
             if descending:

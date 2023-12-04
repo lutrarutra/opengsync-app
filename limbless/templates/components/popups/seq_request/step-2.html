@@ -18,8 +18,8 @@
                         <tr>
                             {% for column in columns %}
                             <td>
-                                {{ sample_table_form.input_fields.entries[loop.index-1].select_field(class="form-control select-field") }}
-                                {{ sample_table_form.input_fields.entries[loop.index-1].csrf_token() }}
+                                {{ sample_table_form.input_fields[loop.index-1].select_field(class="form-control select-field") }}
+                                {{ sample_table_form.input_fields[loop.index-1].csrf_token() }}
                             </td>
                             {% endfor %}
                         </tr>
@@ -29,7 +29,7 @@
                             {% endfor %}
                         </tr>
                     </thead>
-                    <tbody id="sample-table-col-select-table-body">
+                    <tbody>
                         {% for row in data %}
                         <tr>
                             {% for col in row %}

@@ -515,7 +515,9 @@ select {
     }
 }
 
-#pool-library-list-container {
-    max-height: 50%;
-    overflow-y: auto;
+.mapping-or {
+    height: 100%;
+    text-align: center;
+    padding-top: 25px;
+    vertical-align: middle;
 }

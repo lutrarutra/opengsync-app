@@ -53,7 +53,7 @@ class Library(SQLModel, SearchResult, table=True):
         link_model=LibraryBarcodeLink
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "sample_name", "type_id"]
+    sortable_fields: ClassVar[List[str]] = ["id", "sample_name", "type_id", "owner_id"]
 
     def to_dict(self):
         return {

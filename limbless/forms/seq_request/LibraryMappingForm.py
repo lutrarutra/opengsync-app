@@ -81,7 +81,7 @@ class LibraryMappingForm(TableDataForm):
 
     def parse(self) -> pd.DataFrame:
         df = self.get_df()
-        df.loc[df["library_type"].isna(), "library_type"] = "__none__"
+        df.loc[df["library_type"].isna(), "library_type"] = "Library"
         library_types = df["library_type"].unique()
         library_types = [library_type if library_type and not pd.isna(library_type) else None for library_type in library_types]
 

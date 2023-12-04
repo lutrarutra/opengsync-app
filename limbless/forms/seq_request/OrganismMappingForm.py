@@ -43,12 +43,14 @@ class OrganismMappingForm(TableDataForm):
                 if organisms[i] is None:
                     selected_organism = None
                 else:
-                    if raw_organism_name is None or pd.isna(raw_organism_name):
-                        raw_organism_name = ""
-                    selected_organism = next(iter(db.db_handler.query_organisms(word=raw_organism_name, limit=1)), None)
+                    if raw_organism_name is None or pd.isna(raw_organism_name) or raw_organism_name.strip().lower() == "organism":
+                        selected_organism = None
+                    else:
+                        selected_organism = next(iter(db.db_handler.query_organisms(word=raw_organism_name, limit=1)), None)
+
                     entry.category.data = selected_organism.id if selected_organism is not None else None
 
-            selected.append(selected_organism.to_str() if selected_organism is not None else None)
+            selected.append(selected_organism.scientific_name if selected_organism is not None else None)
 
         return {
             "categories": organisms,

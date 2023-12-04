@@ -99,7 +99,6 @@ def seq_request_page(seq_request_id: int):
         seq_request=seq_request,
         libraries=libraries,
         path_list=path_list,
-        select_library_form=forms.SelectLibraryForm(),
         library_results=library_results,
         seq_request_form=seq_request_form,
         table_form=forms.TableForm(),

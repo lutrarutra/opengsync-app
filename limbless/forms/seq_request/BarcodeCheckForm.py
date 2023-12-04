@@ -36,7 +36,10 @@ class BarcodeCheckForm(TableDataForm):
                 "index_2": row["index_2"],
                 "index_3": row["index_3"],
                 "index_4": row["index_4"],
-                "adapter": row["adapter"],
+                "adapter_1": row["adapter_1"],
+                "adapter_2": row["adapter_2"],
+                "adapter_3": row["adapter_3"],
+                "adapter_4": row["adapter_4"],
             }
 
             if data["index_1"] == data["index_2"]:

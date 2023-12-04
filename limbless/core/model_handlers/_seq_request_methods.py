@@ -243,10 +243,10 @@ def delete_seq_request(
     for link in links:
         self._session.delete(link)
 
-    self._session.delete(seq_request.contact_person)
-    self._session.delete(seq_request.billing_contact)
-    if seq_request.bioinformatician_contact_id is not None:
-        self._session.delete(seq_request.bioinformatician_contact)
+    # self._session.delete(seq_request.contact_person)
+    # self._session.delete(seq_request.billing_contact)
+    # if seq_request.bioinformatician_contact_id is not None:
+    #     self._session.delete(seq_request.bioinformatician_contact)
 
     self._session.delete(seq_request)
     if commit:

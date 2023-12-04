@@ -48,14 +48,23 @@ class PoolMappingForm(TableDataForm):
             entry.contact_person_name.data = current_user.name
             entry.contact_person_email.data = current_user.email
 
-            _data = []
-            logger.debug(_df.columns)
+            _data = {}
             for _, row in _df.iterrows():
-                _data.append({
-                    "sample_name": row["sample_name"],
+                sample_name = row["sample_name"]
+                if sample_name not in _data.keys():
+                    _data[sample_name] = []
+
+                _data[sample_name].append({
                     "library_type": row["library_type"],
+                    "library_kit": row["library_kit"],
+                    "library_volume": row["library_volume"],
+                    "library_concentration": row["library_concentration"],
+                    "library_total_size": row["library_total_size"],
                 })
+
             pool_libraries.append(_data)
+
+        logger.debug(pool_libraries)
 
         self.set_df(df)
         return {

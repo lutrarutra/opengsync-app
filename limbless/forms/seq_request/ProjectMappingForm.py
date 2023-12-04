@@ -76,9 +76,11 @@ class ProjectMappingForm(TableDataForm):
                 
                 df.loc[df["project"] == raw_project, "project_id"] = project.id
                 df.loc[df["project"] == raw_project, "project_name"] = project.name
+                logger.debug(f"Using project {project.name}")
             elif project_name := self.input_fields.entries[i].new_category.data:
                 df.loc[df["project"] == raw_project, "project_id"] = None
                 df.loc[df["project"] == raw_project, "project_name"] = project_name
+                logger.debug(f"Creating project {project_name}")
             else:
                 raise Exception("Project not selected or created.")
 
