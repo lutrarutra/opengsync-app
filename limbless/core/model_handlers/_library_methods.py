@@ -10,8 +10,8 @@ from .. import exceptions
 
 def create_library(
     self,
-    sample_id: int,
     library_type: LibraryType,
+    owner_id: int,
     kit: str = "custom",
     volume: Optional[int] = None,
     dna_concentration: Optional[float] = None,
@@ -22,15 +22,9 @@ def create_library(
     if not self._session:
         self.open_session()
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    
-    sample.num_libraries += 1
-    self._session.add(sample)
-
     library = models.Library(
-        sample_id=sample_id,
         type_id=library_type.value.id,
+        owner_id=owner_id,
         kit=kit,
         volume=volume,
         dna_concentration=dna_concentration,
@@ -41,7 +35,6 @@ def create_library(
     if commit:
         self._session.commit()
         self._session.refresh(library)
-        self._session.refresh(sample)
 
     if not persist_session:
         self.close_session()
@@ -73,11 +66,8 @@ def get_libraries(
 
     query = self._session.query(models.Library)
     if user_id is not None:
-        query = query.join(
-            models.Sample,
-            models.Sample.id == models.Library.sample_id,
-        ).where(
-            models.Sample.owner_id == user_id
+        query = query.where(
+            models.Library.owner_id == user_id
         )
 
     if seq_request_id is not None:

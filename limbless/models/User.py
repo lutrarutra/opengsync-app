@@ -1,4 +1,4 @@
-from typing import Optional, List, TYPE_CHECKING, ClassVar
+from typing import Optional, TYPE_CHECKING, ClassVar
 
 from sqlmodel import Field, SQLModel, Relationship
 from itsdangerous import SignatureExpired, BadSignature
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .Project import Project
     from .Pool import Pool
     from .Sample import Sample
+    from .Library import Library
 
 
 class UserMixin:
@@ -74,24 +75,28 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
     num_samples: int = Field(nullable=False, default=0)
     num_seq_requests: int = Field(nullable=False, default=0)
 
-    requests: List["SeqRequest"] = Relationship(
+    requests: list["SeqRequest"] = Relationship(
         back_populates="requestor",
-        sa_relationship_kwargs={"lazy": "noload"}
+        sa_relationship_kwargs={"lazy": "selectin"}
     )
-    projects: List["Project"] = Relationship(
+    projects: list["Project"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "noload"}
+        sa_relationship_kwargs={"lazy": "selectin"}
     )
-    pools: List["Pool"] = Relationship(
+    pools: list["Pool"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "noload"}
+        sa_relationship_kwargs={"lazy": "selectin"}
     )
-    samples: List["Sample"] = Relationship(
+    samples: list["Sample"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "noload"}
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    libraries: list["Library"] = Relationship(
+        back_populates="owner",
+        sa_relationship_kwargs={"lazy": "selectin"}
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "email", "last_name", "role", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
+    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
 
     def is_insider(self) -> bool:
         return self.role_type in UserRole.insiders

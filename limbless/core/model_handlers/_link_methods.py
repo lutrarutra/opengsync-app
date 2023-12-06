@@ -1,3 +1,4 @@
+import math
 from typing import Optional, Union
 
 from sqlalchemy.orm import selectinload
@@ -85,25 +86,48 @@ def get_lanes_in_experiment(
     return lanes
 
 
-def is_sample_in_library(
-    self, sample_id: int, library_id: int
-) -> bool:
+def link_sample_library(
+    self, sample_id: int, library_id: int,
+    cmo_id: Optional[int] = None,
+    commit: bool = True
+) -> models.SampleLibraryLink:
     
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.LibrarySampleLink).where(
-        models.LibrarySampleLink.library_id == library_id,
-        models.LibrarySampleLink.sample_id == sample_id
-    ).first()
+    if (sample := self._session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    if cmo_id is not None:
+        if (_ := self._session.get(models.CMO, cmo_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"CMO with id {cmo_id} does not exist")
+        
+    if self._session.query(models.SampleLibraryLink).where(
+        models.SampleLibraryLink.sample_id == sample_id,
+        models.SampleLibraryLink.library_id == library_id,
+    ).first():
+        raise exceptions.LinkAlreadyExists(f"Sample with id {sample_id} and Library with id {library_id} are already linked")
+    
+    sample_library_link = models.SampleLibraryLink(
+        sample_id=sample_id, library_id=library_id, cmo_id=cmo_id,
+    )
 
-    logger.debug(res)
+    self._session.add(sample_library_link)
+    sample.num_libraries += 1
+    library.num_samples += 1
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(sample_library_link)
 
     if not persist_session:
         self.close_session()
 
-    return res is not None
+    return sample_library_link
     
 
 def link_library_pool(
@@ -144,6 +168,40 @@ def link_library_pool(
         self.close_session()
 
     return library_pool_link
+
+
+def get_sample_library_links(
+    self,
+    sample_id: Optional[int] = None,
+    library_id: Optional[int] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+) -> tuple[Optional[models.SampleLibraryLink], int]:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.SampleLibraryLink)
+    if sample_id is not None:
+        query = query.where(models.SampleLibraryLink.sample_id == sample_id)
+
+    if library_id is not None:
+        query = query.where(models.SampleLibraryLink.library_id == library_id)
+    
+    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+
+    if limit is not None:
+        query = query.limit(limit)
+    if offset is not None:
+        query = query.offset(offset)
+
+    links = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return links, n_pages
 
 
 def link_library_barcode(

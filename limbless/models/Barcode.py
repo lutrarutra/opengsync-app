@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class Barcode(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
-    sequence: str = Field(nullable=False, max_length=128, index=True)
+    sequence: str = Field(nullable=False, max_length=64, index=True)
     adapter: Optional[str] = Field(nullable=True, max_length=32, index=True)
     
     index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")

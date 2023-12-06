@@ -420,12 +420,16 @@ def check_barcodes(seq_request_id: int):
 
             for i, row in _df.iterrows():
                 library = session.create_library(
-                    sample_id=sample.id,
                     library_type=LibraryType.get(row["library_type_id"]),
+                    owner_id=current_user.id,
                     kit=row["library_kit"],
                     volume=row["library_volume"],
                     dna_concentration=row["library_concentration"],
                     total_size=row["library_total_size"],
+                )
+                session.link_sample_library(
+                    library_id=library.id,
+                    sample_id=sample.id
                 )
                 session.link_library_pool(
                     library_id=library.id,

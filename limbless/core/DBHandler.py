@@ -105,14 +105,14 @@ class DBHandler():
     from .model_handlers._link_methods import (
         get_sample_libraries,
         get_lanes_in_experiment,
+        get_sample_library_links,
 
         link_library_pool,
         link_experiment_library,
         link_library_seq_request,
         link_library_barcode,
+        link_sample_library,
 
         unlink_experiment_library,
         unlink_library_seq_request,
-
-        is_sample_in_library,
     )

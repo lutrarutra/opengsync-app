@@ -13,7 +13,7 @@ logger.remove()
 fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} ({file}:{line} in {function}):
 >   {message}"""
 
-if os.getenv("DEBUG") == "1":
+if os.getenv("LIMBLESS_DEBUG") == "1":
     logger.add(
         sys.stdout, colorize=True,
         format=fmt, level="DEBUG"

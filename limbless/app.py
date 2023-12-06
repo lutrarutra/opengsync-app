@@ -15,10 +15,11 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
+
 def create_app():
     app = Flask(__name__)
 
-    app.debug = os.getenv("DEBUG") == "1"
+    app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
 
     logger.info(f"Debug mode: {app.debug}")
 

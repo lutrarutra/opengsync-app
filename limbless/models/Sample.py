@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .Organism import Organism
     from .Project import Project
     from .Library import Library
+    from .Links import SampleLibraryLink
     from .User import User
 
 
@@ -31,9 +32,13 @@ class Sample(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
-    libraries: list["Library"] = Relationship(
+    # libraries: list["Library"] = Relationship(
+    #     back_populates="sample",
+    #     sa_relationship_kwargs={"lazy": "select"}
+    # )
+    library_links: list["SampleLibraryLink"] = Relationship(
         back_populates="sample",
-        sa_relationship_kwargs={"lazy": "select"}
+        sa_relationship_kwargs={"lazy": "selectin"}
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id", "num_libraries"]

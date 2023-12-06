@@ -94,63 +94,6 @@ def get(page):
     )
 
 
-@libraries_htmx.route("create", methods=["POST"])
-@login_required
-def create():
-    library_form = forms.LibraryForm()
-
-    validated, library_form = library_form.custom_validate(db.db_handler, current_user.id)
-
-    if (index_kit_id := library_form.index_kit.data) is not None:
-        if (index_kit := db.db_handler.get_index_kit(index_kit_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-    else:
-        index_kit = None
-
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/library.html",
-                library_form=library_form,
-                index_kit_results=db.common_kits,
-                selected_kit=index_kit,
-            ), push_url=False
-        )
-
-    library_type = LibraryType.get(int(library_form.library_type.data))
-
-    if library_form.is_premade_library.data:
-        if library_form.current_user_is_library_contact:
-            contact = db.db_handler.create_contact(
-                name=current_user.name,
-                email=current_user.email,
-                phone=library_form.library_contact_phone.data,
-            )
-        else:
-            contact = db.db_handler.create_contact(
-                name=library_form.library_contact_name.data,
-                email=library_form.library_contact_email.data,
-                phone=library_form.library_contact_phone.data,
-            )
-    else:
-        contact = None
-
-    library = db.db_handler.create_library(
-        name=library_form.name.data,
-        library_type=library_type,
-        index_kit_id=index_kit_id,
-        owner_id=current_user.id,
-        contact_id=contact.id if contact is not None else None,
-    )
-
-    logger.debug(f"Created library '{library.name}'.")
-    flash(f"Created library '{library.name}'.", "success")
-
-    return make_response(
-        redirect=url_for("libraries_page.library_page", library_id=library.id),
-    )
-
-
 @libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
 @login_required
 def edit(library_id):
