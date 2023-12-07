@@ -28,7 +28,7 @@ def get(page: int):
             render_template(
                 "components/tables/user.html", users=users,
                 users_active_page=page, users_n_pages=n_pages,
-                current_sort=sort_by, current_sort_order=order
+                users_current_sort=sort_by, users_current_sort_order=order
             ), push_url=False
         )
 
@@ -79,6 +79,8 @@ def table_query():
         field_name = "last_name"
     elif (word := request.form.get("email", None)) is not None:
         field_name = "email"
+    elif (word := request.form.get("id", None)) is not None:
+        field_name = "id"
     else:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
@@ -89,6 +91,13 @@ def table_query():
         users = db.db_handler.query_users(word)
     elif field_name == "email":
         users = db.db_handler.query_users_by_email(word)
+    elif field_name == "id":
+        try:
+            user_id = int(word)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        else:
+            users = [db.db_handler.get_user(user_id)]
     else:
         assert False  # This should never happen
 

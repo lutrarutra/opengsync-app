@@ -44,7 +44,7 @@ style="display: none;"
         {% endif %}>
         <input type='{{ query_type }}' class='form-control' placeholder='{{ column_name }}'
         id='{{ column_var }}-query-input' role='presentation' autocomplete='off' type='search'
-        hx-post='{{ query_url }}' hx-trigger='keyup[target.value.length > 0] changed delay:500ms, search' name="{{ column_var }}"
+        hx-post='{{ query_url }}' hx-trigger='keyup[target.value.length > 0&&keyCode==13] changed, search' name="{{ column_var }}"
         hx-target='#{{ target_id }}' hx-swap='outerHTML' value="{{ current_query }}"
         style="height: 25px;">
     </th>
