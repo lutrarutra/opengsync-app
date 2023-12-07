@@ -67,7 +67,21 @@ def parse_table(seq_request_id: int):
             ), push_url=False
         )
     
-    df = table_input_form.parse()
+    try:
+        df = table_input_form.parse()
+    except pd.errors.ParserError as e:
+        if table_input_form.raw_data.data:
+            table_input_form.raw_data.errors.append(str(e))
+        else:
+            table_input_form.file.errors.append(str(e))
+            
+        return make_response(
+            render_template(
+                "components/popups/seq_request/step-1.html",
+                table_form=table_input_form, seq_request=seq_request
+            ), push_url=False
+        )
+        
     table_col_form = forms.SampleColTableForm()
     context = table_col_form.prepare(df)
 
@@ -93,10 +107,10 @@ def map_columns(seq_request_id: int):
     context = sample_table_form.prepare()
     validated, sample_table_form = sample_table_form.custom_validate()
     
-    if validated:
+    if not validated:
         return make_response(
             render_template(
-                "components/popups/sample/step-2.html",
+                "components/popups/seq_request/step-2.html",
                 sample_table_form=sample_table_form,
                 seq_request=seq_request,
                 **context
@@ -105,7 +119,6 @@ def map_columns(seq_request_id: int):
         )
 
     df = sample_table_form.parse()
-    logger.debug(df.columns)
     project_mapping_form = forms.ProjectMappingForm(formdata=None)
     context = project_mapping_form.prepare(df)
 
@@ -241,7 +254,6 @@ def confirm_libraries(seq_request_id: int):
         )
     
     df = library_select_form.parse()
-    logger.debug(df)
     pool_mapping_form = forms.PoolMappingForm()
     context = pool_mapping_form.prepare(df)
 
@@ -262,7 +274,6 @@ def map_pools(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     pool_mapping_form = forms.PoolMappingForm()
-    context = pool_mapping_form.prepare()
     validated, pool_mapping_form = pool_mapping_form.custom_validate(db.db_handler)
 
     if not validated:
@@ -271,7 +282,7 @@ def map_pools(seq_request_id: int):
                 "components/popups/seq_request/step-6.html",
                 seq_request=seq_request,
                 pool_mapping_form=pool_mapping_form,
-                **context
+                **pool_mapping_form.prepare()
             )
         )
     
@@ -344,8 +355,6 @@ def check_barcodes(seq_request_id: int):
             )
         )
     df = barcode_check_form.parse()
-    logger.debug(df.columns)
-    logger.debug(df)
 
     n_added = 0
     n_new_samples = 0
@@ -371,24 +380,6 @@ def check_barcodes(seq_request_id: int):
 
         if df["project_id"].isna().any():
             raise Exception("Project id is None (should not be).")
-
-    def create_and_link_barcode(
-        session: db.DBHandler, library_id: int, barcode_type: BarcodeType,
-        sequence: str, adapter: Optional[str], reverse_complement: bool
-    ) -> models.Barcode:
-        if reverse_complement:
-            sequence = models.Barcode.reverse_complement(sequence)
-        barcode = session.create_barcode(
-            sequence=sequence,
-            adapter=adapter,
-            barcode_type=barcode_type,
-        )
-        session.link_library_barcode(
-            library_id=library_id,
-            barcode_id=barcode.id,
-            barcode_type=barcode_type
-        )
-        return barcode
 
     with DBSession(db.db_handler) as session:
         pools: dict[str, models.Pool] = {}
@@ -420,61 +411,26 @@ def check_barcodes(seq_request_id: int):
 
             for i, row in _df.iterrows():
                 library = session.create_library(
+                    sample_id=sample.id,
                     library_type=LibraryType.get(row["library_type_id"]),
                     owner_id=current_user.id,
                     kit=row["library_kit"],
                     volume=row["library_volume"],
                     dna_concentration=row["library_concentration"],
                     total_size=row["library_total_size"],
-                )
-                session.link_sample_library(
-                    library_id=library.id,
-                    sample_id=sample.id
+                    index_1_sequence=row["index_1"] if not pd.isna(row["index_1"]) else None,
+                    index_2_sequence=row["index_2"] if not pd.isna(row["index_2"]) else None,
+                    index_3_sequence=row["index_3"] if not pd.isna(row["index_3"]) else None,
+                    index_4_sequence=row["index_4"] if not pd.isna(row["index_4"]) else None,
+                    index_1_adapter=row["adapter_1"] if not pd.isna(row["adapter_1"]) else None,
+                    index_2_adapter=row["adapter_2"] if not pd.isna(row["adapter_2"]) else None,
+                    index_3_adapter=row["adapter_3"] if not pd.isna(row["adapter_3"]) else None,
+                    index_4_adapter=row["adapter_4"] if not pd.isna(row["adapter_4"]) else None,
                 )
                 session.link_library_pool(
                     library_id=library.id,
                     pool_id=pools[row["pool"]].id
                 )
-
-                if not pd.isna(row["index_1"]):
-                    create_and_link_barcode(
-                        session=session,
-                        library_id=library.id,
-                        barcode_type=BarcodeType.INDEX_1,
-                        sequence=row["index_1"],
-                        adapter=str(row["adapter_1"]) if not pd.isna(row["adapter_1"]) else None,
-                        reverse_complement=barcode_check_form.reverse_complement_index_1.data
-                    )
-
-                if not pd.isna(row["index_2"]):
-                    create_and_link_barcode(
-                        session=session,
-                        library_id=library.id,
-                        barcode_type=BarcodeType.INDEX_2,
-                        sequence=row["index_2"],
-                        adapter=str(row["adapter_2"]) if not pd.isna(row["adapter_2"]) else None,
-                        reverse_complement=barcode_check_form.reverse_complement_index_2.data
-                    )
-
-                if not pd.isna(row["index_3"]):
-                    create_and_link_barcode(
-                        session=session,
-                        library_id=library.id,
-                        barcode_type=BarcodeType.INDEX_3,
-                        sequence=row["index_3"],
-                        adapter=str(row["adapter_3"]) if not pd.isna(row["adapter_3"]) else None,
-                        reverse_complement=barcode_check_form.reverse_complement_index_3.data
-                    )
-
-                if not pd.isna(row["index_4"]):
-                    create_and_link_barcode(
-                        session=session,
-                        library_id=library.id,
-                        barcode_type=BarcodeType.INDEX_4,
-                        sequence=row["index_4"],
-                        adapter=str(row["adapter_4"]) if not pd.isna(row["adapter_4"]) else None,
-                        reverse_complement=barcode_check_form.reverse_complement_index_4.data
-                    )
                 
                 session.link_library_seq_request(
                     library_id=library.id,

@@ -8,8 +8,8 @@
                     table_col(
                         target_id='user-project-table', column_name='ID', column_var='id',
                         sort_url='projects_htmx.get', sort_url_args={'user_id': user.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('projects_htmx.table_query', user_id=user.id), current_query=current_query,
+                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order,
+                        query_url=url_for('projects_htmx.table_query', user_id=user.id), current_query=projects_current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
@@ -17,8 +17,8 @@
                     table_col(
                         target_id='user-project-table', column_name='Name', column_var='name',
                         sort_url='projects_htmx.get', sort_url_args={'user_id': user.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('projects_htmx.table_query', user_id=user.id), current_query=current_query,
+                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order,
+                        query_url=url_for('projects_htmx.table_query', user_id=user.id), current_query=projects_current_query,
                         field_name=field_name, query_type="text", col_size=3
                     )
                 }}
@@ -26,7 +26,7 @@
                     table_col(
                         target_id='user-project-table', column_name='Owner', column_var='owner',
                         sort_url='projects_htmx.get', sort_url_args={'user_id': user.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=2
+                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order, col_size=2
                     )
                 }}
                 <th scope="col col-1"># Samples</th>
@@ -43,5 +43,5 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("user-project-table", "projects_htmx.get", n_pages, active_page, url_args={"user_id": user.id, "sort_by": current_sort, "order": current_sort_order}) }}
+    {{ pagination("user-project-table", "projects_htmx.get", projects_n_pages, projects_active_page, url_args={"user_id": user.id, "sort_by": projects_current_sort, "order": projects_current_sort_order}) }}
 </div>

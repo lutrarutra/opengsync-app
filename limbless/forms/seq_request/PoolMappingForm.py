@@ -18,7 +18,7 @@ else:
 
 
 class PoolSubForm(FlaskForm):
-    pool_label = StringField("Pool Label", validators=[DataRequired(), Length(max=64)])
+    pool_label = StringField("Pool Label", validators=[DataRequired(), Length(min=6, max=64)])
     contact_person_name = StringField("Contact Person Name", validators=[DataRequired(), Length(max=128)])
     contact_person_email = StringField("Contact Person Email", validators=[DataRequired(), Length(max=128)])
     contact_person_phone = StringField("Contact Person Phone", validators=[OptionalValidator(), Length(max=16)])
@@ -38,6 +38,7 @@ class PoolMappingForm(TableDataForm):
         if df is None:
             df = self.get_df()
         
+        df["pool"] = df["pool"].astype(str)
         pools = df["pool"].unique().tolist()
         pool_libraries = []
         for i, (pool_label, _df) in enumerate(df.groupby("pool")):
@@ -63,8 +64,6 @@ class PoolMappingForm(TableDataForm):
                 })
 
             pool_libraries.append(_data)
-
-        logger.debug(pool_libraries)
 
         self.set_df(df)
         return {

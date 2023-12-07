@@ -1,0 +1,47 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div id="seq_request-sample-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='seq_request-sample-table', column_name='ID', column_var='id',
+                        sort_url='samples_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
+                        query_url=url_for('samples_htmx.table_query', seq_request_id=seq_request.id), current_query=samples_current_query,
+                        field_name=field_name, query_type="number", col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='seq_request-sample-table', column_name='Name', column_var='name',
+                        sort_url='samples_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
+                        query_url=url_for('samples_htmx.table_query', seq_request_id=seq_request.id), current_query=samples_current_query,
+                        field_name=field_name, query_type="string", col_size=3
+                    )
+                }}
+                <th scope="col" class="col-8">Library Types</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sample in samples %}
+            <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}';">
+                <td>{{ sample.id }}</td>
+                <td>{{ sample.name }}</td>
+                <td>
+                    {% for library in sample.libraries %}
+                    {% if seq_request in library.seq_requests %}
+                    {{ library.type.value.name }} <span class="desc">{{ library.type.value.description }}</span>&nbsp;&nbsp;
+                    {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("seq_request-sample-table", "samples_htmx.get", samples_n_pages, samples_active_page, url_args={"seq_request_id": seq_request.id, "sort_by": samples_current_sort, "order": samples_current_sort_order}) }}
+</div>

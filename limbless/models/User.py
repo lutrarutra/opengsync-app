@@ -77,23 +77,23 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
 
     requests: list["SeqRequest"] = Relationship(
         back_populates="requestor",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
     projects: list["Project"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
     pools: list["Pool"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
     samples: list["Sample"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
     libraries: list["Library"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role", "num_projects", "num_pool", "num_samples", "num_seq_requests"]

@@ -27,7 +27,7 @@ def samples_page():
 
     return render_template(
         "samples_page.html", samples=samples,
-        n_pages=n_pages, active_page=0,
+        samples_n_pages=n_pages, samples_active_page=0,
         current_sort="id", current_sort_order="desc"
     )
 

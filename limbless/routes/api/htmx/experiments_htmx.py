@@ -36,8 +36,8 @@ def get(page: int):
         render_template(
             "components/tables/experiment.html",
             experiments=experiments,
-            n_pages=n_pages, active_page=page,
-            current_sort=sort_by, current_sort_order=order
+            experiments_n_pages=n_pages, experiments_active_page=page,
+            experiments_current_sort=sort_by, experiments_current_sort_order=order
         ), push_url=False
     )
 

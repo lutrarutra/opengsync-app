@@ -22,5 +22,5 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("index_kit-table", "barcodes_htmx.get", n_pages, active_page) }}
+    {{ pagination("index_kit-table", "barcodes_htmx.get", barcodes_n_pages, barcodes_active_page, url_args={"sort_by": barcodes_current_sort, "order": barcodes_current_sort_order}) }}
 </div>

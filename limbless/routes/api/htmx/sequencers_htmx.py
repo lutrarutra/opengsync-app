@@ -22,7 +22,7 @@ def get(page: int):
         render_template(
             "components/tables/device.html",
             sequencers=sequencers,
-            n_pages=n_pages, active_page=page
+            sequencers_n_pages=n_pages, sequencers_active_page=page
         ), push_url=False
     )
 

@@ -204,44 +204,6 @@ def get_sample_library_links(
     return links, n_pages
 
 
-def link_library_barcode(
-    self,
-    library_id: int, barcode_id: int,
-    barcode_type: categories.BarcodeType,
-    commit: bool = True
-) -> models.LibraryBarcodeLink:
-    
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (library := self._session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    
-    if (barcode := self._session.get(models.Barcode, barcode_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Barcode with id {barcode_id} does not exist")
-    
-    if self._session.query(models.LibraryBarcodeLink).where(
-        models.LibraryBarcodeLink.library_id == library_id,
-        models.LibraryBarcodeLink.barcode_id == barcode_id,
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and barcode with id {barcode_id} are already linked for barcode type {barcode_type.value.name}")
-
-    library_barcode_link = models.LibraryBarcodeLink(
-        library_id=library_id, barcode_id=barcode_id,
-    )
-    self._session.add(library_barcode_link)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(library_barcode_link)
-
-    if not persist_session:
-        self.close_session()
-
-    return library_barcode_link
-
-
 def link_library_seq_request(
     self, library_id: int, seq_request_id: int,
     commit: bool = True

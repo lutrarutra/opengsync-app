@@ -8,14 +8,14 @@
                     table_col(
                         target_id='experiment-table', column_name='ID', column_var='id',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Status', column_var='status',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
                 <th class="col-2" scope="col">Sequencing Person</th>
@@ -23,35 +23,35 @@
                     table_col(
                         target_id='experiment-table', column_name='Sequencer', column_var='sequencer_id',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Flowcell', column_var='flowcell',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Created', column_var='timestamp',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-table', column_name='# Lanes', column_var='num_lanes',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
             </tr>
@@ -74,5 +74,5 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("experiment-table", "experiments_htmx.getexperiments", n_pages, active_page) }}
+    {{ pagination("experiment-table", "experiments_htmx.get", experiments_n_pages, experiments_active_page, url_args={"sort_by": experiments_current_sort, "order": experiments_current_sort_order}) }}
 </div>

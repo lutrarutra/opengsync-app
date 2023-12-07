@@ -110,7 +110,6 @@ class DBHandler():
         link_library_pool,
         link_experiment_library,
         link_library_seq_request,
-        link_library_barcode,
         link_sample_library,
 
         unlink_experiment_library,

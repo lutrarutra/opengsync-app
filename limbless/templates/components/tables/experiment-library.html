@@ -8,8 +8,8 @@
                     table_col(
                         target_id='experiment-library-table', column_name='ID', column_var='id',
                         sort_url='libraries_htmx.get', sort_url_args={"experiment_id": experiment.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', experiment_id=experiment.id), current_query=current_query,
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
                         field_name=field_name, query_type="number"
                     )
                 }}
@@ -18,8 +18,8 @@
                     table_col(
                         target_id='sample-library-table', column_name='Sample Name', column_var='sample_name',
                         sort_url='libraries_htmx.get', sort_url_args={"experiment_id": experiment.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', experiment_id=experiment.id), current_query=current_query,
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
                         field_name=field_name, col_size=2
                     )
                 }}
@@ -27,14 +27,14 @@
                     table_col(
                         target_id='experiment-library-table', column_name='Type', column_var='library_type_id',
                         sort_url='libraries_htmx.get', sort_url_args={"experiment_id":experiment.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order, col_size=2
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-library-table', column_name='Owner', column_var='owner_id',
                         sort_url='libraries_htmx.get', sort_url_args={"experiment_id":experiment.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         col_size=2,
                     )
                 }}

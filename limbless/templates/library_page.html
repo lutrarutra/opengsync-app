@@ -27,6 +27,12 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#library-wetlab-tab" type="button" role="tab"
+            aria-controls="library-wetlab-tab" aria-selected="true">
+            Wet-lab</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-metadata-tab" type="button" role="tab"
             aria-controls="library-metadata-tab" aria-selected="true">
             Metadata</button>
@@ -34,23 +40,75 @@
     </ul>
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="library-barcodes-tab" role="tabpanel" tabindex="0">
-            {% for barcode in library.barcodes %}
-                {% if loop.index0 % 2 == 0 %}
-                    <div class="row">
-                {% endif %}
-                {{
-                    metadata_group(
-                        barcode.type.value.name,
-                        barcode.sequence,
-                        class="col"
-                    )
-                }}
-                {% if loop.index % 2 == 0 %}
-                    </div>
-                {% endif %}
-            {% endfor %}
+            <div class="row">
+            {{
+                metadata_group(
+                    "Index 1 (i7)",
+                    library.index_1_sequence,
+                    class="col-3"
+                )
+            }}
+            {{
+                metadata_group(
+                    "Adapter 1 (i7)",
+                    library.index_1_adapter,
+                    class="col-3"
+                )
+            }}
+            {{
+                metadata_group(
+                    "Index 2 (i5)",
+                    library.index_2_sequence,
+                    class="col-3"
+                )
+            }}
+            {{
+                metadata_group(
+                    "Adapter 1 (i5)",
+                    library.index_2_adapter,
+                    class="col-3"
+                )
+            }}
+            </div>
+            <div class="row">
+            {{
+                metadata_group(
+                    "Index 3",
+                    library.index_3_sequence,
+                    class="col-3"
+                )
+            }}
+            {{
+                metadata_group(
+                    "Adapter 3",
+                    library.index_3_adapter,
+                    class="col-3"
+                )
+            }}
+            {{
+                metadata_group(
+                    "Index 4",
+                    library.index_4_sequence,
+                    class="col-3"
+                )
+            }}
+            {{
+                metadata_group(
+                    "Adapter 4",
+                    library.index_4_adapter,
+                    class="col-3"
+                )
+            }}
+            </div>
         </div>
-        <div class="tab-pane fade show" id="library-metadata-tab" role="tabpanel" tabindex="1">
+        <div class="tab-pane fade show" id="library-wetlab-tab" role="tabpanel" tabindex="1">
+            <div class="row">
+                    {{ metadata_group("Volume (uL)", library.volume, class="col-4") }}
+                    {{ metadata_group("DNA Concentration (nM)", library.dna_concentration, class="col-4") }}
+                    {{ metadata_group("Total Size (bp)", library.total_size, class="col-4") }}
+            </div>
+        </div>
+        <div class="tab-pane fade show" id="library-metadata-tab" role="tabpanel" tabindex="2">
             <div class="row">
                 {{ 
                     metadata_group_link(

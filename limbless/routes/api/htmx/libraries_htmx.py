@@ -87,8 +87,8 @@ def get(page):
     return make_response(
         render_template(
             template, libraries=libraries,
-            n_pages=n_pages, active_page=page,
-            current_sort=sort_by, current_sort_order=order,
+            libraries_n_pages=n_pages, libraries_active_page=page,
+            libraries_current_sort=sort_by, libraries_current_sort_order=order,
             **context
         ), push_url=False
     )

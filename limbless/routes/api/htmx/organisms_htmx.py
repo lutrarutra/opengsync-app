@@ -15,8 +15,6 @@ def query():
     field_name = next(iter(request.form.keys()), None)
     word = request.form.get(field_name, default="")
 
-    logger.debug(word)
-
     if word.strip() == "":
         q_organisms = db.common_organisms
     else:

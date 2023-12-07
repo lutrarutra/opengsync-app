@@ -90,6 +90,7 @@ def get_num_samples(
 def get_samples(
     self, user_id: Optional[int] = None,
     project_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Sample], int]:
@@ -114,6 +115,15 @@ def get_samples(
         query = query.where(
             models.Sample.project_id == project_id
         )
+
+    if seq_request_id is not None:
+        query = query.join(
+            models.Library,
+            models.Library.sample_id == models.Sample.id,
+        ).join(
+            models.SeqRequestLibraryLink,
+            models.SeqRequestLibraryLink.library_id == models.Library.id,
+        ).distinct()
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
     

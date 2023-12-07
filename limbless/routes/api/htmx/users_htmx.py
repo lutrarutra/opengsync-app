@@ -27,7 +27,7 @@ def get(page: int):
         return make_response(
             render_template(
                 "components/tables/user.html", users=users,
-                page=page, n_pages=n_pages,
+                users_active_page=page, users_n_pages=n_pages,
                 current_sort=sort_by, current_sort_order=order
             ), push_url=False
         )

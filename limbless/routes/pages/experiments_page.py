@@ -22,8 +22,8 @@ def experiments_page():
     return render_template(
         "experiments_page.html", experiment_form=experiment_form,
         experiments=experiments,
-        n_pages=n_pages, active_page=0,
-        current_sort="id", current_sort_order="desc"
+        experiments_n_pages=n_pages, experiments_active_page=0,
+        experiments_current_sort="id", experiments_current_sort_order="desc"
     )
 
 
@@ -41,7 +41,7 @@ def experiment_page(experiment_id):
             return abort(HttpResponse.FORBIDDEN.value.id)
 
         libraries = experiment.libraries
-        available_libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT)
+        available_libraries, libraries_n_pages = session.get_libraries(limit=PAGE_LIMIT)
         experiment_lanes = session.get_lanes_in_experiment(experiment_id)
 
         experiment_form = forms.ExperimentForm()
@@ -69,5 +69,5 @@ def experiment_page(experiment_id):
         available_libraries=available_libraries,
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.sequencing_person,
-        n_pages=n_pages, active_page=0,
+        libraries_n_pages=libraries_n_pages, libraries_active_page=0,
     )

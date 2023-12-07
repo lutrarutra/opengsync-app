@@ -21,7 +21,7 @@ def projects_page():
 
         return render_template(
             "projects_page.html", project_form=project_form,
-            projects=projects, n_pages=n_pages, active_page=0,
+            projects=projects, projects_n_pages=n_pages, projects_active_page=0,
             current_sort="id", current_sort_order="desc"
         )
 
@@ -36,7 +36,7 @@ def project_page(project_id):
         if access is None:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-        samples = project.samples
+        samples, n_pages = session.get_samples(project_id=project_id, sort_by="id", descending=True)
 
     path_list = [
         ("Projects", url_for("projects_page.projects_page")),
@@ -48,5 +48,5 @@ def project_page(project_id):
         samples=samples,
         path_list=path_list,
         common_organisms=db.common_organisms,
-        active_page=0,
+        samples_n_pages=n_pages, samples_active_page=0,
     )

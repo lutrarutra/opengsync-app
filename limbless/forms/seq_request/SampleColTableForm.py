@@ -75,11 +75,11 @@ class SampleColTableForm(TableDataForm):
 
     def __get_adapters_set(self, df: pd.DataFrame) -> tuple[bool, bool, bool, bool, bool]:
         return (
-            (~df["adapter"].isna()).any(),
-            (~df["adapter_1"].isna()).any(),
-            (~df["adapter_2"].isna()).any(),
-            (~df["adapter_3"].isna()).any(),
-            (~df["adapter_4"].isna()).any()
+            (~df["adapter"].isna()).any() if "adapter" in df.columns else False,
+            (~df["adapter_1"].isna()).any() if "adapter_1" in df.columns else False,
+            (~df["adapter_2"].isna()).any() if "adapter_2" in df.columns else False,
+            (~df["adapter_3"].isna()).any() if "adapter_3" in df.columns else False,
+            (~df["adapter_4"].isna()).any() if "adapter_4" in df.columns else False,
         )
 
     def custom_validate(self):
@@ -184,6 +184,11 @@ class SampleColTableForm(TableDataForm):
             df["adapter_2"] = df["adapter"]
             df["adapter_3"] = df["adapter"]
             df["adapter_4"] = df["adapter"]
+
+        df.loc[pd.isna(df["index_1"]), "adapter_1"] = None
+        df.loc[pd.isna(df["index_2"]), "adapter_2"] = None
+        df.loc[pd.isna(df["index_3"]), "adapter_3"] = None
+        df.loc[pd.isna(df["index_4"]), "adapter_4"] = None
 
         df = df.drop(columns=["adapter"])
 

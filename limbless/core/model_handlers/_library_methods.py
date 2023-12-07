@@ -1,4 +1,5 @@
 import math
+import time
 from typing import Optional
 
 from sqlmodel import func, text
@@ -12,23 +13,53 @@ def create_library(
     self,
     library_type: LibraryType,
     owner_id: int,
+    sample_id: Optional[int] = None,
+    name: Optional[str] = None,
     kit: str = "custom",
     volume: Optional[int] = None,
     dna_concentration: Optional[float] = None,
     total_size: Optional[int] = None,
+    index_1_sequence: Optional[str] = None,
+    index_2_sequence: Optional[str] = None,
+    index_3_sequence: Optional[str] = None,
+    index_4_sequence: Optional[str] = None,
+    index_1_adapter: Optional[str] = None,
+    index_2_adapter: Optional[str] = None,
+    index_3_adapter: Optional[str] = None,
+    index_4_adapter: Optional[str] = None,
     commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
+    if self._session.get(models.User, owner_id) is None:
+        raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
+    
+    if sample_id is not None:
+        if (sample := self._session.get(models.Sample, sample_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+        name = sample.name
+        sample.num_libraries += 1
+        self._session.add(sample)
+
     library = models.Library(
+        sample_id=sample_id,
+        name=name,
         type_id=library_type.value.id,
         owner_id=owner_id,
         kit=kit,
         volume=volume,
         dna_concentration=dna_concentration,
         total_size=total_size,
+        index_1_sequence=index_1_sequence,
+        index_2_sequence=index_2_sequence,
+        index_3_sequence=index_3_sequence,
+        index_4_sequence=index_4_sequence,
+        index_1_adapter=index_1_adapter,
+        index_2_adapter=index_2_adapter,
+        index_3_adapter=index_3_adapter,
+        index_4_adapter=index_4_adapter,
     )
     self._session.add(library)
 
@@ -178,6 +209,14 @@ def update_library(
     self, library_id: int,
     library_type: Optional[LibraryType] = None,
     index_kit_id: Optional[int] = None,
+    index_1_sequence: Optional[str] = None,
+    index_2_sequence: Optional[str] = None,
+    index_3_sequence: Optional[str] = None,
+    index_4_sequence: Optional[str] = None,
+    index_1_adapter: Optional[str] = None,
+    index_2_adapter: Optional[str] = None,
+    index_3_adapter: Optional[str] = None,
+    index_4_adapter: Optional[str] = None,
     commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
@@ -196,6 +235,24 @@ def update_library(
         library.index_kit_id = index_kit_id
     else:
         library.index_kit_id = None
+
+    if index_1_sequence is not None:
+        library.index_1_sequence = index_1_sequence
+    if index_2_sequence is not None:
+        library.index_2_sequence = index_2_sequence
+    if index_3_sequence is not None:
+        library.index_3_sequence = index_3_sequence
+    if index_4_sequence is not None:
+        library.index_4_sequence = index_4_sequence
+        
+    if index_1_adapter is not None:
+        library.index_1_adapter = index_1_adapter
+    if index_2_adapter is not None:
+        library.index_2_adapter = index_2_adapter
+    if index_3_adapter is not None:
+        library.index_3_adapter = index_3_adapter
+    if index_4_adapter is not None:
+        library.index_4_adapter = index_4_adapter
 
     if commit:
         self._session.commit()

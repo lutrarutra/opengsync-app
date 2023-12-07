@@ -21,7 +21,7 @@ def devices_page():
     return render_template(
         "devices_page.html", sequencer_form=sequencer_form,
         sequencers=sequencers,
-        n_pages=n_pages, active_page=0
+        sequencers_n_pages=n_pages, sequencers_active_page=0
     )
 
 

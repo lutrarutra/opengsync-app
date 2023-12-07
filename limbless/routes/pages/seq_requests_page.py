@@ -36,8 +36,8 @@ def seq_requests_page():
         "seq_requests_page.html",
         seq_request_form=seq_request_form,
         seq_requests=seq_requests,
-        n_pages=n_pages, active_page=0,
-        current_sort=current_sort, current_sort_order="desc"
+        seq_requests_n_pages=n_pages, seq_requests_active_page=0,
+        seq_requests_current_sort=current_sort, seq_requests_current_sort_order="desc"
     )
 
 
@@ -51,56 +51,60 @@ def seq_request_page(seq_request_id: int):
             if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
-        libraries, n_pages = session.get_libraries(seq_request_id=seq_request_id, sort_by="id", descending=True)
+        libraries, libraries_n_pages = session.get_libraries(seq_request_id=seq_request_id, sort_by="id", descending=True)
+        samples, samples_n_pages = session.get_samples(seq_request_id=seq_request_id, sort_by="id", descending=True)
+        logger.debug(samples_n_pages)
 
-    if not current_user.is_insider():
-        if seq_request.requestor_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.value.id)
+        if not current_user.is_insider():
+            if seq_request.requestor_id != current_user.id:
+                return abort(HttpResponse.FORBIDDEN.value.id)
 
-    seq_request_form = forms.SeqRequestForm()
-    seq_request_form.current_user_is_contact.data = False
-    seq_request_form.billing_is_organization.data = False
+        seq_request_form = forms.SeqRequestForm()
+        seq_request_form.current_user_is_contact.data = False
+        seq_request_form.billing_is_organization.data = False
 
-    seq_request_form.name.data = seq_request.name
-    seq_request_form.description.data = seq_request.description
+        seq_request_form.name.data = seq_request.name
+        seq_request_form.description.data = seq_request.description
 
-    seq_request_form.contact_person_name.data = seq_request.contact_person.name
-    seq_request_form.contact_person_email.data = seq_request.contact_person.email
-    seq_request_form.contact_person_phone.data = seq_request.contact_person.phone
+        seq_request_form.contact_person_name.data = seq_request.contact_person.name
+        seq_request_form.contact_person_email.data = seq_request.contact_person.email
+        seq_request_form.contact_person_phone.data = seq_request.contact_person.phone
 
-    organization_name = seq_request.contact_person.organization
-    if " (" in organization_name:
-        organization_name = organization_name.split(" (")[0]
-        seq_request_form.organization_department.data = seq_request.contact_person.organization.split(" (")[1][:-1]
+        organization_name = seq_request.contact_person.organization
+        if " (" in organization_name:
+            organization_name = organization_name.split(" (")[0]
+            seq_request_form.organization_department.data = seq_request.contact_person.organization.split(" (")[1][:-1]
 
-    seq_request_form.organization_name.data = organization_name
-    seq_request_form.organization_address.data = seq_request.contact_person.address
+        seq_request_form.organization_name.data = organization_name
+        seq_request_form.organization_address.data = seq_request.contact_person.address
 
-    if seq_request.bioinformatician_contact is not None:
-        seq_request_form.bioinformatician_name.data = seq_request.bioinformatician_contact.name
-        seq_request_form.bioinformatician_email.data = seq_request.bioinformatician_contact.email
-        seq_request_form.bioinformatician_phone.data = seq_request.bioinformatician_contact.phone
+        if seq_request.bioinformatician_contact is not None:
+            seq_request_form.bioinformatician_name.data = seq_request.bioinformatician_contact.name
+            seq_request_form.bioinformatician_email.data = seq_request.bioinformatician_contact.email
+            seq_request_form.bioinformatician_phone.data = seq_request.bioinformatician_contact.phone
 
-    seq_request_form.billing_contact.data = seq_request.billing_contact.name
-    seq_request_form.billing_address.data = seq_request.billing_contact.address
-    seq_request_form.billing_email.data = seq_request.billing_contact.email
-    seq_request_form.billing_phone.data = seq_request.billing_contact.phone
-    seq_request_form.billing_code.data = seq_request.billing_contact.billing_code
+        seq_request_form.billing_contact.data = seq_request.billing_contact.name
+        seq_request_form.billing_address.data = seq_request.billing_contact.address
+        seq_request_form.billing_email.data = seq_request.billing_contact.email
+        seq_request_form.billing_phone.data = seq_request.billing_contact.phone
+        seq_request_form.billing_code.data = seq_request.billing_contact.billing_code
 
-    library_results = []
+        library_results = []
 
-    path_list = [
-        ("Requests", url_for("seq_requests_page.seq_requests_page")),
-        (f"Request {seq_request_id}", ""),
-    ]
+        path_list = [
+            ("Requests", url_for("seq_requests_page.seq_requests_page")),
+            (f"Request {seq_request_id}", ""),
+        ]
 
-    return render_template(
-        "seq_request_page.html",
-        seq_request=seq_request,
-        libraries=libraries,
-        path_list=path_list,
-        library_results=library_results,
-        seq_request_form=seq_request_form,
-        table_form=forms.TableForm(),
-        n_pages=n_pages, active_page=0,
-    )
+        return render_template(
+            "seq_request_page.html",
+            seq_request=seq_request,
+            libraries=libraries,
+            samples=samples,
+            path_list=path_list,
+            library_results=library_results,
+            seq_request_form=seq_request_form,
+            table_form=forms.TableForm(),
+            libraries_n_pages=libraries_n_pages, libraries_active_page=0,
+            samples_n_pages=samples_n_pages, samples_active_page=0,
+        )

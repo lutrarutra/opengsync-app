@@ -33,7 +33,7 @@
                         {% for row in data %}
                         <tr>
                             {% for col in row %}
-                            <td>{{ col }}</td>
+                            <td>{{ col if col == col }}</td>
                             {% endfor %}
                         </tr>
                         {% endfor %}

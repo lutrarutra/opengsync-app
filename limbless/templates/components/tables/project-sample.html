@@ -11,8 +11,8 @@
                     table_col(
                         target_id='sample-table', column_name='ID', column_var='id',
                         sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('samples_htmx.table_query'), current_query=current_query,
+                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
+                        query_url=url_for('samples_htmx.table_query'), current_query=samples_current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
@@ -20,8 +20,8 @@
                     table_col(
                         target_id='sample-table', column_name='Name', column_var='name',
                         sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('samples_htmx.table_query'), current_query=current_query,
+                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
+                        query_url=url_for('samples_htmx.table_query'), current_query=samples_current_query,
                         field_name=field_name, col_size=4
                     )
                 }}
@@ -29,7 +29,7 @@
                     table_col(
                         target_id='sample-table', column_name='Organism', column_var='organism_id',
                         sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
                         col_size=5
                     )
                 }}
@@ -37,7 +37,7 @@
                     table_col(
                         target_id='sample-table', column_name='Owner', column_var='owner_id',
                         sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
                         col_size=2
                     )
                 }}
@@ -60,7 +60,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page, url_args={"project_id":project.id, "sort_by": current_sort, "order": current_sort_order}) }}
+    {{ pagination("sample-table", "samples_htmx.get", samples_n_pages, samples_active_page, url_args={"project_id":project.id, "sort_by": samples_current_sort, "order": samples_current_sort_order}) }}
 </div>
 
 <script>

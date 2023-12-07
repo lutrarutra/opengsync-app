@@ -17,5 +17,5 @@ def index_kit_page():
 
     return render_template(
         "index_kit_page.html",
-        index_kit=index_kit, n_pages=n_pages, active_page=0,
+        index_kit=index_kit, index_kits_n_pages=n_pages, index_kits_active_page=0,
     )

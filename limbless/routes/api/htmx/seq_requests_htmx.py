@@ -78,8 +78,8 @@ def get(page: int):
     return make_response(
         render_template(
             template, seq_requests=seq_requests,
-            n_pages=n_pages, active_page=page,
-            current_sort=sort_by, current_sort_order=order,
+            seq_requests_n_pages=n_pages, seq_requests_active_page=page,
+            seq_requests_current_sort=sort_by, seq_requests_current_sort_order=order,
             **context
         ), push_url=False
     )

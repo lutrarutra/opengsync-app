@@ -39,7 +39,7 @@ def get(page: int, index_kit_id: Optional[int]):
     return make_response(
         render_template(
             "components/tables/adapter.html", adapters=adapters,
-            n_pages=n_pages, active_page=page, index_kit_id=index_kit_id,
-            current_sort=sort_by, current_sort_order=order
+            adapters_n_pages=n_pages, adapters_active_page=page, index_kit_id=index_kit_id,
+            adapters_current_sort=sort_by, adapters_current_sort_order=order
         ), push_url=False
     )

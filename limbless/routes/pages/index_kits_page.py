@@ -15,7 +15,7 @@ def index_kits_page():
 
     return render_template(
         "index_kits_page.html",
-        index_kits=index_kits, n_pages=n_pages, active_page=0,
+        index_kits=index_kits, index_kits_n_pages=n_pages, index_kits_active_page=0,
         
     )
 
@@ -25,7 +25,6 @@ def index_kits_page():
 def index_kit_page(index_kit_id: int):
     with DBSession(db.db_handler) as session:
         index_kit = session.get_index_kit(index_kit_id)
-        adapters, n_pages = session.get_adapters(index_kit_id=index_kit_id)
 
     path_list = [
         ("Index Kits", url_for("index_kits_page.index_kits_page")),
@@ -34,7 +33,7 @@ def index_kit_page(index_kit_id: int):
 
     return render_template(
         "index_kit_page.html",
-        n_pages=n_pages, active_page=0,
+        index_kits_active_page=0,
         path_list=path_list,
-        index_kit=index_kit, adapters=adapters
+        index_kit=index_kit
     )

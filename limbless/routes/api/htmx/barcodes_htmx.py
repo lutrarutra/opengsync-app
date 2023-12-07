@@ -31,9 +31,9 @@ def get(page):
 
     return make_response(
         render_template(
-            "components/tables/index.html", barcodes=barcodes,
-            n_pages=n_pages, active_page=page,
-            current_sort=sort_by, current_sort_order=order
+            "components/tables/barcode.html", barcodes=barcodes,
+            barcodes_n_pages=n_pages, barcodes_active_page=page,
+            barcodes_current_sort=sort_by, barcodes_current_sort_order=order
         ), push_url=False
     )
 

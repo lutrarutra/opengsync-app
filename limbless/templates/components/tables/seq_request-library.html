@@ -14,17 +14,17 @@
                     table_col(
                         target_id='seq_request-library-table', column_name='ID', column_var='id',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=libraries_current_query,
                         field_name=field_name, query_type="number", col_size=1
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-library-table', column_name='Sample Name', column_var='sample_name',
+                        target_id='seq_request-library-table', column_name='Name', column_var='sample_name',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=libraries_current_query,
                         field_name=field_name, col_size=2
                     )
                 }}
@@ -32,7 +32,7 @@
                     table_col(
                         target_id='seq_request-library-table', column_name='Type', column_var='type_id',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         col_size=2
                     )
                 }}
@@ -68,7 +68,7 @@
                     table_col(
                         target_id='seq_request-library-table', column_name='Owner', column_var='owner_id',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         col_size=2
                     )
                 }}
@@ -78,16 +78,16 @@
             {% for library in libraries %}
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}';">
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.sample.name }}</td>
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
                 <td>{{ library.type.value.name }} <span class="desc">{{ library.type.value.description }}</span></td>
                 {% for idx in range(4) %}
-                {% set barcode = library.get_barcode_with_type(idx+1) %}
-                {% if barcode %}
-                <td {{ tooltip(barcode.adapter) }} class="col-1">
-                    <span class="barcode-cell index-cell" id="library-{{library.id}}-index-cell-{{idx+1}}">{{ barcode.sequence }}</span>
+                {% set index = library.indices[idx] %}
+                {% if index %}
+                <td {{ tooltip(index.adapter) }} class="col-1">
+                    <span class="barcode-cell index-cell" id="library-{{library.id}}-index-cell-{{idx+1}}">{{ index.sequence }}</span>
                 </td>
-                <td {{ tooltip(barcode.sequence) }} style="display: none;" class="col-1">
-                    <span class="barcode-cell adapter-cell" id="library-{{library.id}}-adapter-cell-{{idx+1}}">{{ barcode.adapter }}</span>
+                <td {{ tooltip(index.sequence) }} style="display: none;" class="col-1">
+                    <span class="barcode-cell adapter-cell" id="library-{{library.id}}-adapter-cell-{{idx+1}}">{{ index.adapter }}</span>
                 </td>
                 {% else %}
                 <td></td>
@@ -98,7 +98,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("seq_request-library-table", "libraries_htmx.get", n_pages, active_page, url_args={"seq_request_id": seq_request.id}) }}
+    {{ pagination("seq_request-library-table", "libraries_htmx.get", libraries_n_pages, libraries_active_page, url_args={"seq_request_id": seq_request.id}) }}
 </div>
 <script>
     var selected_library_id = null;

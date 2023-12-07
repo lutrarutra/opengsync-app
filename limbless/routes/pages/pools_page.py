@@ -21,18 +21,18 @@ pools_page_bp = Blueprint("pools_page", __name__)
 def pools_page():
     with DBSession(db.db_handler) as session:
         if not current_user.is_insider():
-            libraries, n_pages = session.get_pools(limit=PAGE_LIMIT, user_id=current_user.id, sort_by="id", descending=True)
+            pools, n_pages = session.get_pools(limit=PAGE_LIMIT, user_id=current_user.id, sort_by="id", descending=True)
         else:
-            libraries, n_pages = session.get_pools(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
+            pools, n_pages = session.get_pools(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
     pool_form = forms.PoolForm()
 
     return render_template(
         "pools_page.html",
-        libraries=libraries,
+        pools=pools,
         index_kit_results=db.common_kits,
         pool_form=pool_form,
-        n_pages=n_pages, active_page=0,
+        pools_n_pages=n_pages, pools_active_page=0,
         current_sort="id", current_sort_order="desc"
     )
 

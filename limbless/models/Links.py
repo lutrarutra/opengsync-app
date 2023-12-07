@@ -54,12 +54,3 @@ class ExperimentLibraryLink(SQLModel, table=True):
         foreign_key="library.id", primary_key=True
     )
     lane: int = Field(nullable=False, primary_key=True)
-
-
-class LibraryBarcodeLink(SQLModel, table=True):
-    library_id: int = Field(
-        foreign_key="library.id", primary_key=True
-    )
-    barcode_id: int = Field(
-        foreign_key="barcode.id", primary_key=True
-    )

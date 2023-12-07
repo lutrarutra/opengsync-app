@@ -78,19 +78,19 @@
                         </td>
                         <td>{{ sample_data["name"] }}</td>
                         <td>{{ sample_data["library_type"] }}</td>
-                        <td>{{ sample_data["adapter_1"] if sample_data["adapter_1"] }}</td>
-                        <td class="index-cell-1">{{ sample_data["index_1"] }}</td>
+                        <td>{{ sample_data["adapter_1"] if sample_data["adapter_1"] == sample_data["adapter_1"] }}</td>
+                        <td class="index-cell-1">{{ sample_data["index_1"] if sample_data["index_1"] == sample_data["index_1"] }}</td>
                         {% if show_index_2 %}
-                        <td>{{ sample_data["adapter_2"] if sample_data["adapter_2"] }}</td>
-                        <td class="index-cell-2">{{ sample_data["index_2"] if sample_data["index_2"] }}</td>
+                        <td>{{ sample_data["adapter_2"] if sample_data["adapter_2"] == sample_data["adapter_2"] }}</td>
+                        <td class="index-cell-2">{{ sample_data["index_2"] if sample_data["index_2"] == sample_data["index_2"] }}</td>
                         {% endif %}
                         {% if show_index_3 %}
-                        <td>{{ sample_data["adapter_3"] if sample_data["adapter_3"] }}</td>
-                        <td class="index-cell-3">{{ sample_data["index_3"] if sample_data["index_3"] }}</td>
+                        <td>{{ sample_data["adapter_3"] if sample_data["adapter_3"] == sample_data["adapter_3"] }}</td>
+                        <td class="index-cell-3">{{ sample_data["index_3"] if sample_data["index_3"] == sample_data["index_3"] }}</td>
                         {% endif %}
                         {% if show_index_4 %}
-                        <td>{{ sample_data["adapter_4"] if sample_data["adapter_4"] }}</td>
-                        <td class="index-cell-4">{{ sample_data["index_4"] if sample_data["index_4"] }}</td>
+                        <td>{{ sample_data["adapter_4"] if sample_data["adapter_4"] == sample_data["adapter_4"] }}</td>
+                        <td class="index-cell-4">{{ sample_data["index_4"] if sample_data["index_4"] == sample_data["index_4"] }}</td>
                         {% endif %}
                     </tr>
                     {% endfor %}
