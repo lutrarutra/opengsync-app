@@ -37,13 +37,14 @@ def get(page: int):
     
     samples: list[models.Sample] = []
     context = {}
-    if (project_id := request.args.get("project_id", None)) is not None:
-        template = "components/tables/project-sample.html"
-        try:
-            project_id = int(project_id)
-        except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-        with DBSession(db.db_handler) as session:
+
+    with DBSession(db.db_handler) as session:
+        if (project_id := request.args.get("project_id", None)) is not None:
+            template = "components/tables/project-sample.html"
+            try:
+                project_id = int(project_id)
+            except (ValueError, TypeError):
+                return abort(HttpResponse.BAD_REQUEST.value.id)
             if (project := session.get_project(project_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             samples, n_pages = session.get_samples(
@@ -51,36 +52,34 @@ def get(page: int):
             )
             context["project"] = project
 
-    elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-        template = "components/tables/seq_request-library.html"
-        try:
-            seq_request_id = int(seq_request_id)
-        except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-        
-        with DBSession(db.db_handler) as session:
+        elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
+            template = "components/tables/seq_request-sample.html"
+            try:
+                seq_request_id = int(seq_request_id)
+            except (ValueError, TypeError):
+                return abort(HttpResponse.BAD_REQUEST.value.id)
+            
             if (seq_request := session.get_seq_request(seq_request_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             samples, n_pages = session.get_samples(
                 limit=PAGE_LIMIT, offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending
             )
             context["seq_request"] = seq_request
-    else:
-        template = "components/tables/sample.html"
-        with DBSession(db.db_handler) as session:
+        else:
+            template = "components/tables/sample.html"
             if not current_user.is_insider():
                 samples, n_pages = session.get_samples(limit=PAGE_LIMIT, offset=offset, project_id=project_id, user_id=current_user.id, sort_by=sort_by, descending=descending)
             else:
                 samples, n_pages = session.get_samples(limit=PAGE_LIMIT, offset=offset, project_id=project_id, sort_by=sort_by, descending=descending)
     
-    return make_response(
-        render_template(
-            template, samples=samples,
-            samples_n_pages=n_pages, samples_active_page=page,
-            samples_current_sort=sort_by, samples_current_sort_order=order,
-            index_form=forms.IndexForm(), **context
-        ), push_url=False
-    )
+        return make_response(
+            render_template(
+                template, samples=samples,
+                samples_n_pages=n_pages, samples_active_page=page,
+                samples_current_sort=sort_by, samples_current_sort_order=order,
+                index_form=forms.IndexForm(), **context
+            ), push_url=False
+        )
 
 
 @samples_htmx.route("<int:sample_id>/delete", methods=["DELETE"])
@@ -241,55 +240,57 @@ def table_query():
                 if project_id is not None:
                     if sample.project_id == project_id:
                         samples = [sample]
+                    else:
+                        samples = []
                 
                 if seq_request_id is not None:
-                    if seq_request_id in [sr.id for sr in sample.seq_requests]:
+                    if session.is_sample_in_seq_request(sample.id, seq_request_id):
                         samples = [sample]
+                    else:
+                        samples = []
         else:
             assert False    # This should never happen
 
         return samples
 
     context = {}
-    if (project_id := request.args.get("project_id", None)) is not None:
-        template = "components/tables/project-sample.html"
-        try:
-            project_id = int(project_id)
+    with DBSession(db.db_handler) as session:
+        if (project_id := request.args.get("project_id", None)) is not None:
+            template = "components/tables/project-sample.html"
+            try:
+                project_id = int(project_id)
 
-        except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-        
-        with DBSession(db.db_handler) as session:
+            except (ValueError, TypeError):
+                return abort(HttpResponse.BAD_REQUEST.value.id)
+            
             if (project := session.get_project(project_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
                 
             samples = __get_samples(session, word, field_name, project_id=project_id, seq_request_id=None)
             context["project"] = project
-    
-    elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-        template = "components/tables/seq_request-library.html"
-        try:
-            seq_request_id = int(seq_request_id)
-        except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
         
-        with DBSession(db.db_handler) as session:
+        elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
+            template = "components/tables/seq_request-sample.html"
+            try:
+                seq_request_id = int(seq_request_id)
+            except (ValueError, TypeError):
+                return abort(HttpResponse.BAD_REQUEST.value.id)
+            
             if (seq_request := session.get_seq_request(seq_request_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             
             samples = __get_samples(session, word, field_name, project_id=None, seq_request_id=seq_request_id)
             context["seq_request"] = seq_request
-    else:
-        template = "components/tables/sample.html"
-        with DBSession(db.db_handler) as session:
+        else:
+            template = "components/tables/sample.html"
             samples = __get_samples(session, word, field_name, project_id=None, seq_request_id=None)
 
-    return make_response(
-        render_template(
-            template,
-            current_query=word,
-            samples=samples,
-            field_name=field_name,
-            **context
-        ), push_url=False
-    )
+        return make_response(
+            render_template(
+                template,
+                current_query=word,
+                samples=samples,
+                field_name=field_name,
+                **context
+            ), push_url=False
+        )

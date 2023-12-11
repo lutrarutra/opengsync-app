@@ -51,7 +51,7 @@
     <select class="form-control select-field" name="{{ field.name }}" id="{{ field.id }}">
         {% for choice in field.iter_choices() %}
         <option value="{{ choice[0] }}"
-        {% if field.data == choice[0] %}
+        {% if choice[2] %}
         selected
         {% endif %}>
             {{ choice[1] }}

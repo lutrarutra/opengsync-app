@@ -71,9 +71,9 @@ def parse_table(seq_request_id: int):
         df = table_input_form.parse()
     except pd.errors.ParserError as e:
         if table_input_form.raw_data.data:
-            table_input_form.raw_data.errors.append(str(e))
+            table_input_form.raw_data.errors = (str(e),)
         else:
-            table_input_form.file.errors.append(str(e))
+            table_input_form.file.errors = (str(e),)
             
         return make_response(
             render_template(
@@ -119,6 +119,7 @@ def map_columns(seq_request_id: int):
         )
 
     df = sample_table_form.parse()
+    logger.debug(df)
     project_mapping_form = forms.ProjectMappingForm(formdata=None)
     context = project_mapping_form.prepare(df)
 

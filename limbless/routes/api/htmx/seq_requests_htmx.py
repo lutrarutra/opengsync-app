@@ -212,18 +212,16 @@ def submit(seq_request_id: int):
 @login_required
 def create():
     seq_request_form = forms.SeqRequestForm()
+    validated, seq_request_form = seq_request_form.custom_validate()
 
-    if not seq_request_form.validate_on_submit():
-        if seq_request_form.bioinformatician_name.data:
-            if not seq_request_form.bioinformatician_email.data:
-                seq_request_form.bioinformatician_email.errors.append("Bioinformatician email is required")
-                seq_request_form.bioinformatician_email.flags.required = True
-        template = render_template(
-            "forms/seq_request/seq_request.html",
-            seq_request_form=seq_request_form
-        )
+    if not validated:
+        logger.debug(seq_request_form.sequencing_type.data)
+
         return make_response(
-            template, push_url=False
+            render_template(
+                "forms/seq_request/seq_request.html",
+                seq_request_form=seq_request_form
+            ), push_url=False
         )
 
     organization_name = seq_request_form.organization_name.data

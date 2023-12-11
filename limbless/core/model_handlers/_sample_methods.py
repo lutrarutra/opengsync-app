@@ -264,11 +264,12 @@ def query_samples(
 
     if seq_request_id is not None:
         query = query.join(
+            models.Library,
+            models.Library.sample_id == models.Sample.id,
+        ).join(
             models.SeqRequestLibraryLink,
-            models.Sample.id == models.SeqRequestLibraryLink.library_id
-        ).where(
-            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
-        )
+            models.SeqRequestLibraryLink.library_id == models.Library.id,
+        ).distinct()
 
     query = query.order_by(
         func.similarity(models.Sample.name, word).desc()
@@ -277,6 +278,7 @@ def query_samples(
     if limit is not None:
         query = query.limit(limit)
 
+    logger.debug(query)
     res = query.all()
 
     if not persist_session:

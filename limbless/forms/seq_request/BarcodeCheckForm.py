@@ -21,7 +21,7 @@ class BarcodeCheckForm(TableDataForm):
 
         samples_data: list[dict[str, str | int | None]] = []
         
-        reused_barcodes = df[["index_1", "index_2", "index_3", "index_4"]].duplicated(keep=False).values.tolist()
+        reused_barcodes = (df[["index_1", "index_2", "index_3", "index_4"]].duplicated(keep=False)) & (~df[["index_1", "index_2", "index_3", "index_4"]].isna().all(axis=1))
 
         for i, row in df.iterrows():
             # Check if sample names are unique in project
@@ -30,7 +30,7 @@ class BarcodeCheckForm(TableDataForm):
                 "name": row["sample_name"],
                 "library_type": row["library_type"],
                 "error": None,
-                "warning": None,
+                "warning": "",
                 "info": "",
                 "index_1": row["index_1"],
                 "index_2": row["index_2"],
@@ -43,10 +43,25 @@ class BarcodeCheckForm(TableDataForm):
             }
 
             if data["index_1"] == data["index_2"]:
-                data["warning"] = "Warning: Index 1 and index 2 are the same."
+                data["warning"] += "Index 1 and index 2 are the same. "
+
+            if data["index_1"] == data["index_3"]:
+                data["warning"] += "Index 1 and index 3 are the same. "
+
+            if data["index_1"] == data["index_4"]:
+                data["warning"] += "Index 1 and index 4 are the same. "
+
+            if data["index_2"] == data["index_3"]:
+                data["warning"] += "Index 2 and index 3 are the same. "
+
+            if data["index_2"] == data["index_4"]:
+                data["warning"] += "Index 2 and index 4 are the same. "
+
+            if data["index_3"] == data["index_4"]:
+                data["warning"] += "Index 3 and index 4 are the same. "
 
             if reused_barcodes[i]:
-                data["warning"] = "Index combination is reused in two or more samples."
+                data["warning"] += "Index combination is reused in two or more libraries. "
 
             samples_data.append(data)
 
@@ -54,6 +69,7 @@ class BarcodeCheckForm(TableDataForm):
 
         return {
             "samples_data": samples_data,
+            "show_index_1": df["index_1"].notnull().any(),
             "show_index_2": df["index_2"].notnull().any(),
             "show_index_3": df["index_3"].notnull().any(),
             "show_index_4": df["index_4"].notnull().any(),

@@ -44,7 +44,7 @@ class LibraryMappingForm(TableDataForm):
         if df is None:
             df = self.get_df()
         
-        library_types = sorted(df["library_type"].unique().tolist())
+        library_types = df["library_type"].unique()
         library_types = [library_type if library_type and not pd.isna(library_type) else "Library" for library_type in library_types]
 
         selected: list[Optional[int]] = []
@@ -87,7 +87,7 @@ class LibraryMappingForm(TableDataForm):
 
         df["library_type_id"] = None
         for i, library_type in enumerate(library_types):
-            df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields.entries[i].category.data)
+            df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].category.data)
         
         df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).value.name)
         self.set_df(df)

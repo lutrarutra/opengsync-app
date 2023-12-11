@@ -5,7 +5,7 @@ from typing import Optional
 from sqlmodel import func
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus
+from ...categories import SeqRequestStatus, SequencingType
 from .. import exceptions
 
 
@@ -15,6 +15,14 @@ def create_seq_request(
     requestor_id: int,
     person_contact_id: int,
     billing_contact_id: int,
+    seq_type: SequencingType,
+    num_cycles_read_1: Optional[int] = None,
+    num_cycles_index_1: Optional[int] = None,
+    num_cycles_index_2: Optional[int] = None,
+    num_cycles_read_2: Optional[int] = None,
+    read_length: Optional[int] = None,
+    special_requirements: Optional[str] = None,
+    sequencer: Optional[str] = None,
     bioinformatician_contact_id: Optional[int] = None,
     commit: bool = True
 ) -> models.SeqRequest:
@@ -40,10 +48,18 @@ def create_seq_request(
         name=name,
         description=description,
         requestor_id=requestor_id,
+        sequencing_type_id=seq_type.value.id,
+        num_cycles_read_1=num_cycles_read_1,
+        num_cycles_index_1=num_cycles_index_1,
+        num_cycles_index_2=num_cycles_index_2,
+        num_cycles_read_2=num_cycles_read_2,
+        read_length=read_length,
+        special_requirements=special_requirements,
+        sequencer=sequencer,
         billing_contact_id=billing_contact_id,
         person_contact_id=person_contact_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
-        status=SeqRequestStatus.DRAFT.value.id,
+        status_id=SeqRequestStatus.DRAFT.value.id,
         submitted_time=None
     )
 

@@ -1,6 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, EmailField, BooleanField
-from wtforms.validators import DataRequired, Length, Email, Optional
+from wtforms import StringField, TextAreaField, EmailField, BooleanField, SelectField, IntegerField
+from wtforms.validators import DataRequired, Length, Email, NumberRange
+from wtforms.validators import Optional as OptionalValidator
+
+from ..categories import SequencingType
 
 
 class SeqRequestForm(FlaskForm):
@@ -14,6 +17,51 @@ class SeqRequestForm(FlaskForm):
         Summary of the broader project context relevant for the submitted samples.
         Often useful to copy and paste a few relevant sentences from a grant proposal
         or the methods section of a previous paper on the same topic."""
+    )
+
+    sequencing_type = SelectField(
+        choices=SequencingType.as_selectable(), validators=[DataRequired()],
+        default=SequencingType.PAIRED_END.value.id
+    )
+
+    num_cycles_read_1 = IntegerField(
+        "Number of Cycles Read 1", validators=[OptionalValidator(), NumberRange(min=1)],
+        description="Number of cycles for read 1.", default=None
+    )
+
+    num_cycles_index_1 = IntegerField(
+        "Number of Cycles Index 1", validators=[OptionalValidator(), NumberRange(min=1)],
+        description="Number of cycles for index 1.", default=None
+    )
+
+    num_cycles_index_2 = IntegerField(
+        "Number of Cycles Index 2", validators=[OptionalValidator(), NumberRange(min=1)],
+        description="Number of cycles for index 2.", default=None
+    )
+
+    num_cycles_read_2 = IntegerField(
+        "Number of Cycles Read 2", validators=[OptionalValidator(), NumberRange(min=1)],
+        description="Number of cycles for read 2.", default=None
+    )
+
+    read_length = IntegerField(
+        "Read Length", validators=[OptionalValidator(), NumberRange(min=1)],
+        description="Read length.", default=None
+    )
+
+    num_lanes = IntegerField(
+        "Number of Lanes", validators=[OptionalValidator(), NumberRange(min=1)],
+        description="Number of lanes.", default=None
+    )
+
+    special_requirements = TextAreaField(
+        "Special Requirements", validators=[OptionalValidator(), Length(max=512)],
+        description="Special requirements such as a high percentage PhiX spike-in to increase library complexity."
+    )
+
+    sequencer = StringField(
+        "Sequencer", validators=[OptionalValidator(), Length(max=64)],
+        description="Sequencer to use for sequencing."
     )
 
     current_user_is_contact = BooleanField(
@@ -40,7 +88,7 @@ class SeqRequestForm(FlaskForm):
     )
 
     bioinformatician_email = EmailField(
-        "Bioinformatician Email", validators=[Optional(), Email(), Length(max=128)],
+        "Bioinformatician Email", validators=[OptionalValidator(), Email(), Length(max=128)],
         description="E-Mail address of the bioinformatician (optional)."
     )
 
@@ -87,3 +135,16 @@ class SeqRequestForm(FlaskForm):
         "Billing Code", validators=[Length(max=64)],
         description="Billing code assigned by your institution."
     )
+
+    def custom_validate(self) -> tuple[bool, "SeqRequestForm"]:
+        validated = self.validate()
+        if not validated:
+            return False, self
+        
+        if self.bioinformatician_name.data:
+            if not self.bioinformatician_email.data:
+                self.bioinformatician_email.errors = ("Bioinformatician email is required",)
+                self.bioinformatician_email.flags.required = True
+                validated = False
+
+        return validated, self

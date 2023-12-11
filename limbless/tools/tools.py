@@ -1,5 +1,33 @@
-from typing import Optional
+from typing import Optional, Union
 import difflib
+
+import pandas as pd
+
+
+def make_filenameable(val, keep: list[str] = ['-', '.', '_']) -> Optional[str]:
+    if pd.isna(val) or val is None:
+        return None
+    return "".join(c for c in str(val) if c.isalnum() or c in keep)
+
+
+def make_alpha_numeric(val, keep: list[str] = []) -> Optional[str]:
+    if pd.isna(val) or val is None:
+        return None
+    return "".join(c for c in val if c.isalnum() or c in keep)
+
+
+def make_numeric(val: Union[int, float, str, None]) -> Union[int, float, None]:
+    if isinstance(val, int) or isinstance(val, float):
+        return val
+    if isinstance(val, str):
+        try:
+            return int("".join(c for c in val if c.isnumeric() or c == "."))
+        except ValueError:
+            try:
+                return float("".join(c for c in val if c.isnumeric() or c == "."))
+            except ValueError:
+                return None
+    return None
 
 
 def connect_similar_strings(

@@ -204,6 +204,39 @@ def get_sample_library_links(
     return links, n_pages
 
 
+def is_sample_in_seq_request(
+    self, sample_id: int, seq_request_id: int
+) -> bool:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.Sample)
+
+    query = query.join(
+        models.Library,
+        models.Library.sample_id == models.Sample.id,
+    ).join(
+        models.SeqRequestLibraryLink,
+        models.SeqRequestLibraryLink.library_id == models.Library.id,
+    ).distinct().where(
+        and_(
+            models.Sample.id == sample_id,
+            models.SeqRequestLibraryLink.seq_request_id == seq_request_id,
+        )
+    )
+
+    res = query.first() is not None
+
+    logger.debug(query.first())
+
+    if not persist_session:
+        self.close_session()
+
+    return res
+
+
 def link_library_seq_request(
     self, library_id: int, seq_request_id: int,
     commit: bool = True

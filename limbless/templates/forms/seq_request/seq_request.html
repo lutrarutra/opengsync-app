@@ -1,10 +1,27 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, select_input %}
 <form id="seq_request-form">
     {{ seq_request_form.csrf_token() }}
     
     <h4>Request Info</h4>
     {{ form_group(seq_request_form.name, class="col") }}
     {{ form_group(seq_request_form.description, class="col") }}
+
+    <br>
+    <h4>Technical Requirements</h4>
+    <div class="row">
+        {{ select_input(seq_request_form.sequencing_type, class="col-4") }}
+        {{ form_group(seq_request_form.read_length, class="col-2") }}
+        {{ form_group(seq_request_form.num_lanes, class="col-2") }}
+        {{ form_group(seq_request_form.sequencer, class="col-4") }}
+    </div>
+
+    <div class="row">
+        {{ form_group(seq_request_form.num_cycles_read_1, class="col") }}
+        {{ form_group(seq_request_form.num_cycles_index_1, class="col") }}
+        {{ form_group(seq_request_form.num_cycles_index_2, class="col") }}
+        {{ form_group(seq_request_form.num_cycles_read_2, class="col") }}
+    </div>
+    {{ form_group(seq_request_form.special_requirements, class="col") }}
 
     <br>
     <h4>Contact Person</h4>

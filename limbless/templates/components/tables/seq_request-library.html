@@ -21,7 +21,7 @@
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-library-table', column_name='Name', column_var='sample_name',
+                        target_id='seq_request-library-table', column_name='Name', column_var='name',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
                         current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=libraries_current_query,

@@ -21,7 +21,7 @@ class TableForm(FlaskForm):
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     raw_data = TextAreaField("Data")
 
-    def custom_validate(self):
+    def custom_validate(self) -> tuple[bool, "TableForm"]:
         validated = self.validate()
         if not validated:
             return False, self

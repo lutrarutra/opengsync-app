@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING, List, ClassVar
 import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..categories import SeqRequestStatus
+from ..categories import SeqRequestStatus, SequencingType
 from .Links import SeqRequestLibraryLink
 
 if TYPE_CHECKING:
@@ -20,6 +20,16 @@ class SeqRequest(SQLModel, table=True):
     description: Optional[str] = Field(nullable=True, max_length=1024)
     status_id: int = Field(nullable=False, default=0)
     submitted_time: Optional[datetime] = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True))
+
+    sequencing_type_id: int = Field(nullable=False)
+    num_cycles_read_1: Optional[int] = Field(nullable=True)
+    num_cycles_index_1: Optional[int] = Field(nullable=True)
+    num_cycles_index_2: Optional[int] = Field(nullable=True)
+    num_cycles_read_2: Optional[int] = Field(nullable=True)
+    read_length: Optional[int] = Field(nullable=True)
+    num_lanes: Optional[int] = Field(nullable=True)
+    special_requirements: Optional[str] = Field(nullable=True, max_length=512)
+    sequencer: Optional[str] = Field(nullable=True, max_length=64)
 
     num_libraries: int = Field(nullable=False, default=0)
 
@@ -61,6 +71,10 @@ class SeqRequest(SQLModel, table=True):
     @property
     def status(self) -> SeqRequestStatus:
         return SeqRequestStatus.get(self.status_id)
+    
+    @property
+    def sequencing_type(self) -> SequencingType:
+        return SequencingType.get(self.sequencing_type_id)
     
     def is_submittable(self) -> bool:
         return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0

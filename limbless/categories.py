@@ -106,3 +106,9 @@ class BarcodeType(Enum, metaclass=ExtendedEnumMeta):
             # BarcodeType.INDEX_I7.value.id: "index_1",
             # BarcodeType.INDEX_I5.value.id: "index_2",
         }[type_id]
+    
+
+class SequencingType(Enum, metaclass=ExtendedEnumMeta):
+    CUSTOM = DescriptiveEnum(0, "Custom", "⚙️")
+    SINGLE_END = DescriptiveEnum(1, "Single-end", "➡️")
+    PAIRED_END = DescriptiveEnum(2, "Paired-end", "🔁")

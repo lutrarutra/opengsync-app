@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
-libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/pools/")
+libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/libraries/")
 
 
 @libraries_htmx.route("get/<int:page>", methods=["GET"])
@@ -488,6 +488,8 @@ def restart_form(library_id: int):
 @libraries_htmx.route("table_query", methods=["POST"])
 @login_required
 def table_query():
+    logger.debug(request.form.keys())
+    logger.debug(request.args.keys())
     if (word := request.form.get("name", None)) is not None:
         field_name = "name"
     elif (word := request.form.get("id", None)) is not None:

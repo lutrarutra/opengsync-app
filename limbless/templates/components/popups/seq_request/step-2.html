@@ -106,11 +106,13 @@
     function check_columns() {
         var array = [];
         $(".select-field").each(function() {
-            if (!optional_fields.includes($(this).find(":selected").val())){
+            if (required_fields.includes($(this).find(":selected").val())){
                 array.push($(this).find(":selected").val());
             }
         });
 
+        console.log(required_fields.sort().join(""));
+        console.log(array.sort().join(""));
         if (required_fields.sort().join("") === array.sort().join("")) {
             $("#map-sample-table-col-btn").removeClass("disabled");
         } else {

@@ -1,5 +1,4 @@
 from typing import Optional
-from io import StringIO
 import pandas as pd
 
 from flask_wtf import FlaskForm
@@ -82,7 +81,7 @@ class SampleColTableForm(TableDataForm):
             (~df["adapter_4"].isna()).any() if "adapter_4" in df.columns else False,
         )
 
-    def custom_validate(self):
+    def custom_validate(self) -> tuple[bool, "SampleColTableForm"]:
         df = self.get_df()
         validated = self.validate()
         if not validated:
@@ -153,6 +152,24 @@ class SampleColTableForm(TableDataForm):
             "matches": matches,
         }
     
+    def __clean_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        df["sample_name"] = df["sample_name"].apply(tools.make_filenameable)
+        df["pool"] = df["pool"].apply(tools.make_filenameable)
+        df["index_1"] = df["index_1"].str.strip()
+        df["index_2"] = df["index_2"].str.strip()
+        df["index_3"] = df["index_3"].str.strip()
+        df["index_4"] = df["index_4"].str.strip()
+        df["adapter_1"] = df["adapter_1"].str.strip()
+        df["adapter_2"] = df["adapter_2"].str.strip()
+        df["adapter_3"] = df["adapter_3"].str.strip()
+        df["adapter_4"] = df["adapter_4"].str.strip()
+
+        df["library_volume"] = df["library_volume"].apply(tools.make_numeric)
+        df["library_concentration"] = df["library_concentration"].apply(tools.make_numeric)
+        df["library_total_size"] = df["library_total_size"].apply(tools.make_numeric)
+
+        return df
+    
     def parse(self) -> pd.DataFrame:
         df = self.get_df()
         selected_features = []
@@ -191,5 +208,6 @@ class SampleColTableForm(TableDataForm):
         df.loc[pd.isna(df["index_4"]), "adapter_4"] = None
 
         df = df.drop(columns=["adapter"])
+        df = self.__clean_df(df)
 
         return df

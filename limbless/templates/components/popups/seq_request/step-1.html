@@ -10,6 +10,8 @@
                 Enter a table in the text box below or upload a file containing a table.
                 Supported file types are .csv (separated by ','), .tsv (separated by '\t').
                 <br>
+                Spaces in 'Sample Name' will be replaced with '_' and non-alphanumeric characters (except '_', '-', '.') will be filtered.
+                <br>
                 <a href="{{ url_for('seq_request_form_htmx.download_template') }}">
                     Download template sample annotation sheet from here.
                 </a>

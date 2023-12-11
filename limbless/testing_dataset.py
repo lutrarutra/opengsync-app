@@ -1,5 +1,5 @@
 from limbless.core import DBHandler
-from limbless.categories import UserRole, LibraryType, SeqRequestStatus
+from limbless.categories import UserRole, LibraryType, SeqRequestStatus, SequencingType
 from limbless import models
 
 
@@ -77,6 +77,14 @@ def create_sample_data(db_handler: DBHandler):
             requestor_id=_client_id,
             person_contact_id=contact_person.id,
             billing_contact_id=billing_contact.id,
+            seq_type=SequencingType.PAIRED_END,
+            num_cycles_read_1=26,
+            num_cycles_index_1=10,
+            num_cycles_index_2=10,
+            num_cycles_read_2=96,
+            read_length=150,
+            sequencer="NovaSeq 6000",
+            special_requirements="Please, hurry up!!!"
         )
 
         # if i > 5:
