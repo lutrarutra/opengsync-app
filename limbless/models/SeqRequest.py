@@ -31,27 +31,39 @@ class SeqRequest(SQLModel, table=True):
     special_requirements: Optional[str] = Field(nullable=True, max_length=512)
     sequencer: Optional[str] = Field(nullable=True, max_length=64)
 
+    organization_name: str = Field(nullable=False, max_length=128)
+    organization_address: str = Field(nullable=False, max_length=256)
+    organization_department: Optional[str] = Field(nullable=True, max_length=64)
+    billing_code: Optional[str] = Field(nullable=True, max_length=32)
+
     num_libraries: int = Field(nullable=False, default=0)
 
     requestor_id: int = Field(nullable=False, foreign_key="user.id")
     requestor: "User" = Relationship(back_populates="requests", sa_relationship_kwargs={"lazy": "joined"})
 
-    person_contact_id: int = Field(nullable=False, foreign_key="contact.id")
-    billing_contact_id: int = Field(nullable=False, foreign_key="contact.id")
     bioinformatician_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")
+    bioinformatician_contact: Optional["Contact"] = Relationship(
+        back_populates="seq_requests",
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "foreign_keys": "[SeqRequest.bioinformatician_contact_id]"
+        },
+    )
 
     libraries: List["Library"] = Relationship(
         back_populates="seq_requests",
         link_model=SeqRequestLibraryLink,
     )
     
+    contact_person_id: int = Field(nullable=False, foreign_key="contact.id")
     contact_person: "Contact" = Relationship(
         sa_relationship_kwargs={
             "lazy": "joined",
-            "foreign_keys": "[SeqRequest.person_contact_id]"
+            "foreign_keys": "[SeqRequest.contact_person_id]"
         },
     )
 
+    billing_contact_id: int = Field(nullable=False, foreign_key="contact.id")
     billing_contact: "Contact" = Relationship(
         sa_relationship_kwargs={
             "lazy": "joined",

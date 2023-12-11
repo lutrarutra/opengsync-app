@@ -53,6 +53,14 @@
     </div>
     <br>
 
+    <h4>Organization</h4>
+    <div class="row">
+        {{ form_group(seq_request_form.organization_name, class="col-6 col-xl-3") }}
+        {{ form_group(seq_request_form.organization_address, class="col-6 col-xl-5") }}
+        {{ form_group(seq_request_form.organization_department, class="col-6 col-xl-4") }}
+    </div>
+    <br>
+
     <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#bioinformatician-collapse-section" aria-expanded="false" aria-controls="bioinformatician-collapse-section">
         Add Bioinformatician Contact
     </button>
@@ -67,14 +75,6 @@
                 {{ form_group(seq_request_form.bioinformatician_phone, class="col-6 col-xl-4") }}
             </div>
         </div>
-    </div>
-    <br>
-
-    <h4>Organization</h4>
-    <div class="row">
-        {{ form_group(seq_request_form.organization_name, class="col-6 col-xl-3") }}
-        {{ form_group(seq_request_form.organization_address, class="col-6 col-xl-5") }}
-        {{ form_group(seq_request_form.organization_department, class="col-6 col-xl-4") }}
     </div>
     <br>
 

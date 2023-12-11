@@ -59,14 +59,13 @@ def create_sample_data(db_handler: DBHandler):
 
     contact_person = db_handler.create_contact(
         name="Default Contact",
-        organization="CeMM (BSF)",
         email="contact@person.com",
     )
 
     billing_contact = db_handler.create_contact(
         name="CeMM Billing",
-        address="Cemmgasse 14",
         email="billing@person.com",
+        address="Lazarettgasse 14, 1160 Wien, Austria"
     )
 
     for i in range(30):
@@ -75,7 +74,7 @@ def create_sample_data(db_handler: DBHandler):
             name=f"Seq Request {i+1}",
             description=f"Description {i}",
             requestor_id=_client_id,
-            person_contact_id=contact_person.id,
+            contact_person_id=contact_person.id,
             billing_contact_id=billing_contact.id,
             seq_type=SequencingType.PAIRED_END,
             num_cycles_read_1=26,
@@ -84,7 +83,9 @@ def create_sample_data(db_handler: DBHandler):
             num_cycles_read_2=96,
             read_length=150,
             sequencer="NovaSeq 6000",
-            special_requirements="Please, hurry up!!!"
+            special_requirements="Please, hurry up!!!",
+            organization_name="CeMM",
+            organization_address="Lazarettgasse 14, 1160 Wien, Austria",
         )
 
         # if i > 5:

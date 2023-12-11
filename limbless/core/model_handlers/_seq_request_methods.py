@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlmodel import func
 
-from ... import models, PAGE_LIMIT
+from ... import models, PAGE_LIMIT, logger
 from ...categories import SeqRequestStatus, SequencingType
 from .. import exceptions
 
@@ -13,17 +13,22 @@ def create_seq_request(
     self, name: str,
     description: Optional[str],
     requestor_id: int,
-    person_contact_id: int,
+    contact_person_id: int,
     billing_contact_id: int,
     seq_type: SequencingType,
+    organization_name: str,
+    organization_address: str,
     num_cycles_read_1: Optional[int] = None,
     num_cycles_index_1: Optional[int] = None,
     num_cycles_index_2: Optional[int] = None,
     num_cycles_read_2: Optional[int] = None,
     read_length: Optional[int] = None,
+    num_lanes: Optional[int] = None,
     special_requirements: Optional[str] = None,
     sequencer: Optional[str] = None,
     bioinformatician_contact_id: Optional[int] = None,
+    organization_department: Optional[str] = None,
+    billing_code: Optional[str] = None,
     commit: bool = True
 ) -> models.SeqRequest:
 
@@ -37,8 +42,8 @@ def create_seq_request(
     if self._session.get(models.Contact, billing_contact_id) is None:
         raise exceptions.ElementDoesNotExist(f"Contact with id '{billing_contact_id}', not found.")
 
-    if self._session.get(models.Contact, person_contact_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Contact with id '{person_contact_id}', not found.")
+    if self._session.get(models.Contact, contact_person_id) is None:
+        raise exceptions.ElementDoesNotExist(f"Contact with id '{contact_person_id}', not found.")
 
     if bioinformatician_contact_id is not None:
         if self._session.get(models.Contact, bioinformatician_contact_id) is None:
@@ -54,13 +59,18 @@ def create_seq_request(
         num_cycles_index_2=num_cycles_index_2,
         num_cycles_read_2=num_cycles_read_2,
         read_length=read_length,
+        num_lanes=num_lanes,
         special_requirements=special_requirements,
         sequencer=sequencer,
         billing_contact_id=billing_contact_id,
-        person_contact_id=person_contact_id,
+        contact_person_id=contact_person_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
         status_id=SeqRequestStatus.DRAFT.value.id,
-        submitted_time=None
+        submitted_time=None,
+        organization_name=organization_name,
+        organization_department=organization_department,
+        organization_address=organization_address,
+        billing_code=billing_code,
     )
 
     requestor.num_seq_requests += 1
@@ -211,6 +221,19 @@ def update_seq_request(
     self, seq_request_id: int,
     name: Optional[str] = None,
     description: Optional[str] = None,
+    seq_type: Optional[SequencingType] = None,
+    num_cycles_read_1: Optional[int] = None,
+    num_cycles_index_1: Optional[int] = None,
+    num_cycles_index_2: Optional[int] = None,
+    num_cycles_read_2: Optional[int] = None,
+    read_length: Optional[int] = None,
+    special_requirements: Optional[str] = None,
+    sequencer: Optional[str] = None,
+    num_lanes: Optional[int] = None,
+    organization_name: Optional[str] = None,
+    organization_department: Optional[str] = None,
+    organization_address: Optional[str] = None,
+    billing_code: Optional[str] = None,
     status: Optional[SeqRequestStatus] = None,
     commit: bool = True
 ) -> models.SeqRequest:
@@ -228,11 +251,58 @@ def update_seq_request(
         seq_request.description = description
 
     if status is not None:
-        seq_request.status_id= status.value.id
+        seq_request.status_id = status.value.id
+
+    if seq_type is not None:
+        seq_request.sequencing_type_id = seq_type.value.id
+        logger.debug(seq_request.sequencing_type_id)
+
+    if num_cycles_read_1 is not None:
+        seq_request.num_cycles_read_1 = num_cycles_read_1
+
+    if num_cycles_index_1 is not None:
+        seq_request.num_cycles_index_1 = num_cycles_index_1
+
+    if num_cycles_index_2 is not None:
+        seq_request.num_cycles_index_2 = num_cycles_index_2
+
+    if num_cycles_read_2 is not None:
+        seq_request.num_cycles_read_2 = num_cycles_read_2
+
+    if read_length is not None:
+        seq_request.read_length = read_length
+
+    if special_requirements is not None:
+        seq_request.special_requirements = special_requirements
+
+    if sequencer is not None:
+        seq_request.sequencer = sequencer
+
+    if num_lanes is not None:
+        seq_request.num_lanes = num_lanes
+
+    if billing_code is not None:
+        seq_request.billing_code = billing_code
+
+    if organization_name is not None:
+        seq_request.organization = organization_name
+
+    if organization_department is not None:
+        seq_request.department = organization_department
+
+    if organization_address is not None:
+        seq_request.address = organization_address
+
+    if seq_request.bioinformatician_contact_id is not None:
+        self._session.add(seq_request.bioinformatician_contact)
 
     if commit:
         self._session.commit()
         self._session.refresh(seq_request)
+        self._session.refresh(seq_request.billing_contact)
+        self._session.refresh(seq_request.contact_person)
+        if seq_request.bioinformatician_contact_id is not None:
+            self._session.refresh(seq_request.bioinformatician_contact)
 
     if not persist_session:
         self.close_session()

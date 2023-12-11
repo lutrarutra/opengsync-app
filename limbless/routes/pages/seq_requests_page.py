@@ -5,7 +5,7 @@ from flask_login import login_required
 
 from ... import forms, db, logger, PAGE_LIMIT, models
 from ...core import DBSession
-from ...categories import UserRole, SeqRequestStatus, HttpResponse
+from ...categories import UserRole, HttpResponse
 
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 
@@ -53,41 +53,46 @@ def seq_request_page(seq_request_id: int):
             
         libraries, libraries_n_pages = session.get_libraries(seq_request_id=seq_request_id, sort_by="id", descending=True)
         samples, samples_n_pages = session.get_samples(seq_request_id=seq_request_id, sort_by="id", descending=True)
-        logger.debug(samples_n_pages)
 
         if not current_user.is_insider():
             if seq_request.requestor_id != current_user.id:
                 return abort(HttpResponse.FORBIDDEN.value.id)
 
-        seq_request_form = forms.SeqRequestForm()
-        seq_request_form.current_user_is_contact.data = False
-        seq_request_form.billing_is_organization.data = False
+        seq_request_form = forms.SeqRequestForm(
+            current_user_is_contact=False,
+            billing_is_organization=False,
 
-        seq_request_form.name.data = seq_request.name
-        seq_request_form.description.data = seq_request.description
+            name=seq_request.name,
+            description=seq_request.description,
 
-        seq_request_form.contact_person_name.data = seq_request.contact_person.name
-        seq_request_form.contact_person_email.data = seq_request.contact_person.email
-        seq_request_form.contact_person_phone.data = seq_request.contact_person.phone
+            num_cycles_read_1=seq_request.num_cycles_read_1,
+            num_cycles_index_1=seq_request.num_cycles_index_1,
+            num_cycles_index_2=seq_request.num_cycles_index_2,
+            num_cycles_read_2=seq_request.num_cycles_read_2,
+            read_length=seq_request.read_length,
+            num_lanes=seq_request.num_lanes,
+            special_requirements=seq_request.special_requirements,
+            sequencer=seq_request.sequencer,
+            sequencing_type=seq_request.sequencing_type.value.id,
 
-        organization_name = seq_request.contact_person.organization
-        if " (" in organization_name:
-            organization_name = organization_name.split(" (")[0]
-            seq_request_form.organization_department.data = seq_request.contact_person.organization.split(" (")[1][:-1]
+            contact_person_name=seq_request.contact_person.name,
+            contact_person_email=seq_request.contact_person.email,
+            contact_person_phone=seq_request.contact_person.phone,
 
-        seq_request_form.organization_name.data = organization_name
-        seq_request_form.organization_address.data = seq_request.contact_person.address
+            organization_name=seq_request.organization_name,
+            organization_department=seq_request.organization_department,
+            organization_address=seq_request.organization_address,
 
-        if seq_request.bioinformatician_contact is not None:
-            seq_request_form.bioinformatician_name.data = seq_request.bioinformatician_contact.name
-            seq_request_form.bioinformatician_email.data = seq_request.bioinformatician_contact.email
-            seq_request_form.bioinformatician_phone.data = seq_request.bioinformatician_contact.phone
+            billing_contact=seq_request.billing_contact.name,
+            billing_email=seq_request.billing_contact.email,
+            billing_phone=seq_request.billing_contact.phone,
+            billing_address=seq_request.billing_contact.address,
+            billing_code=seq_request.billing_code,
 
-        seq_request_form.billing_contact.data = seq_request.billing_contact.name
-        seq_request_form.billing_address.data = seq_request.billing_contact.address
-        seq_request_form.billing_email.data = seq_request.billing_contact.email
-        seq_request_form.billing_phone.data = seq_request.billing_contact.phone
-        seq_request_form.billing_code.data = seq_request.billing_contact.billing_code
+            bioinformatician_name=seq_request.bioinformatician_contact.name if seq_request.bioinformatician_contact is not None else None,
+            bioinformatician_email=seq_request.bioinformatician_contact.email if seq_request.bioinformatician_contact is not None else None,
+            bioinformatician_phone=seq_request.bioinformatician_contact.phone if seq_request.bioinformatician_contact is not None else None,
+        )
 
         library_results = []
 

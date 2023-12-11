@@ -99,7 +99,7 @@ class DBHandler():
     )
 
     from .model_handlers._contact_methods import (
-        create_contact
+        create_contact, update_contact
     )
 
     from .model_handlers._link_methods import (

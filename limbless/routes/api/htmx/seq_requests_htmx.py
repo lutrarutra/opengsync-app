@@ -9,7 +9,7 @@ import pandas as pd
 
 from .... import db, forms, logger, models, PAGE_LIMIT, tools
 from ....core import DBSession, DBHandler
-from ....categories import UserRole, SeqRequestStatus, HttpResponse
+from ....categories import UserRole, SeqRequestStatus, HttpResponse, SequencingType
 
 if TYPE_CHECKING:
     current_user: models.User = None
@@ -150,10 +150,69 @@ def edit(seq_request_id: int):
             return abort(HttpResponse.FORBIDDEN.value.id)
 
     seq_request_form = forms.SeqRequestForm()
+    validated, seq_request_form = seq_request_form.custom_validate()
+    if not validated:
+        logger.debug(seq_request_form.errors)
+        return make_response(
+            render_template(
+                "forms/seq_request/seq_request.html",
+                seq_request_form=seq_request_form
+            ), push_url=False
+        )
+    
+    if (seq_type_raw := seq_request_form.sequencing_type.data) is not None:
+        try:
+            seq_type = SequencingType.get(int(seq_type_raw))
+        except ValueError:
+            seq_type = None
+    else:
+        seq_type = None
+
+    logger.debug(seq_type)
+
+    db.db_handler.update_contact(
+        seq_request.billing_contact_id,
+        name=seq_request_form.billing_contact.data,
+        email=seq_request_form.billing_email.data,
+        phone=seq_request_form.billing_phone.data,
+    )
+
+    db.db_handler.update_contact(
+        seq_request.contact_person_id,
+        name=seq_request_form.contact_person_name.data,
+        phone=seq_request_form.contact_person_phone.data,
+        email=seq_request_form.contact_person_email.data,
+    )
+
+    if seq_request_form.bioinformatician_name.data:
+        if (bioinformatician_contact := seq_request.bioinformatician_contact) is None:
+            bioinformatician_contact = db.db_handler.create_contact(
+                name=seq_request_form.bioinformatician_name.data,
+                email=seq_request_form.bioinformatician_email.data,
+                phone=seq_request_form.bioinformatician_phone.data,
+            )
+        else:
+            db.db_handler.update_contact(
+                bioinformatician_contact.id,
+                name=seq_request_form.bioinformatician_name.data,
+                email=seq_request_form.bioinformatician_email.data,
+                phone=seq_request_form.bioinformatician_phone.data,
+            )
+
     db.db_handler.update_seq_request(
         seq_request_id,
         name=seq_request_form.name.data,
         description=seq_request_form.description.data,
+        seq_type=seq_type,
+        num_cycles_read_1=seq_request_form.num_cycles_read_1.data,
+        num_cycles_index_1=seq_request_form.num_cycles_index_1.data,
+        num_cycles_index_2=seq_request_form.num_cycles_index_2.data,
+        num_cycles_read_2=seq_request_form.num_cycles_read_2.data,
+        read_length=seq_request_form.read_length.data,
+        special_requirements=seq_request_form.special_requirements.data,
+        sequencer=seq_request_form.sequencer.data,
+        num_lanes=seq_request_form.num_lanes.data,
+        billing_code=seq_request_form.billing_code.data,
     )
 
     flash(f"Updated sequencing request '{seq_request.name}'", "success")
@@ -224,24 +283,16 @@ def create():
             ), push_url=False
         )
 
-    organization_name = seq_request_form.organization_name.data
-    if seq_request_form.organization_department.data:
-        organization_name += f" ({seq_request_form.organization_department.data})"
-
     contact_person = db.db_handler.create_contact(
         name=seq_request_form.contact_person_name.data,
-        organization=organization_name,
         email=seq_request_form.contact_person_email.data,
         phone=seq_request_form.contact_person_phone.data,
-        address=seq_request_form.organization_address.data,
     )
 
     billing_contact = db.db_handler.create_contact(
         name=seq_request_form.billing_contact.data,
-        address=seq_request_form.billing_address.data,
         email=seq_request_form.billing_email.data,
         phone=seq_request_form.billing_phone.data,
-        billing_code=seq_request_form.billing_code.data
     )
 
     # Create bioinformatician contact if needed
@@ -259,50 +310,27 @@ def create():
         name=seq_request_form.name.data,
         description=seq_request_form.description.data,
         requestor_id=current_user.id,
-        person_contact_id=contact_person.id,
+        contact_person_id=contact_person.id,
         billing_contact_id=billing_contact.id,
         bioinformatician_contact_id=bioinformatician_contact_id,
+        seq_type=seq_request_form.sequencing_type.data,
+        num_cycles_read_1=seq_request_form.num_cycles_read_1.data,
+        num_cycles_index_1=seq_request_form.num_cycles_index_1.data,
+        num_cycles_index_2=seq_request_form.num_cycles_index_2.data,
+        num_cycles_read_2=seq_request_form.num_cycles_read_2.data,
+        read_length=seq_request_form.read_length.data,
+        special_requirements=seq_request_form.special_requirements.data,
+        sequencer=seq_request_form.sequencer.data,
+        num_lanes=seq_request_form.num_lanes.data,
+        organization_name=seq_request_form.organization_name.data,
+        organization_address=seq_request_form.organization_address.data,
+        organization_department=seq_request_form.organization_department.data,
     )
 
     flash(f"Created new sequencing request '{seq_request.name}'", "success")
     logger.info(f"Created new sequencing request '{seq_request.name}'")
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
-    )
-
-
-@seq_requests_htmx.route("<int:seq_request_id>/add_library", methods=["POST"])
-@login_required
-def add_library(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
-
-    if seq_request.requestor_id != current_user.id:
-        if current_user.role_type != UserRole.ADMIN:
-            return abort(HttpResponse.FORBIDDEN.value.id)
-
-    select_library_form = forms.SelectLibraryForm()
-
-    if not select_library_form.validate_on_submit():
-        template = render_template(
-            "forms/seq_request/select_library.html",
-            select_library_form=select_library_form
-        )
-        return make_response(
-            template, push_url=False
-        )
-    
-    library_id = select_library_form.library.data
-    if (library := db.db_handler.get_library(library_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
-    
-    _ = db.db_handler.link_library_seq_request(library_id, seq_request_id)
-
-    flash(f"Added library '{library.name}' to sequencing request '{seq_request.name}'", "success")
-    logger.debug(f"Added library '{library.name}' to sequencing request '{seq_request.name}'")
-
-    return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
     )
 
 
@@ -332,8 +360,8 @@ def remove_library(seq_request_id: int):
             library_id=library_id, seq_request_id=seq_request_id
         )
 
-    flash(f"Removed library '{library.sample.name}' from sequencing request '{seq_request.name}'", "success")
-    logger.debug(f"Removed library '{library.sample.name}' from sequencing request '{seq_request.name}'")
+    flash(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'")
 
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
