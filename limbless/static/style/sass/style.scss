@@ -521,3 +521,13 @@ select {
     padding-top: 25px;
     vertical-align: middle;
 }
+
+.copyable-input {
+    display: flex;
+    position: relative;
+    .clipboard-btn {
+        position: absolute;
+        right: 10px;
+        top: 5px;
+    }
+}

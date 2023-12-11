@@ -123,8 +123,25 @@
                     <h4>Request Info</h4>
                     {{ metadata_group("Request Name", seq_request.name, class="col") }}
                     {{ metadata_group_textarea("Description", seq_request.description, class="col") }}
-                    <br>
 
+                    <br>
+                    <h4>Technical Requirements</h4>
+                    <div class="row">
+                        {{ metadata_group("Sequencing Type (Single-end/Paired-end)", seq_request.sequencing_type.value, class="col-4") }}
+                        {{ metadata_group("Read Length", seq_request.read_length, class="col-2") }}
+                        {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-2") }}
+                        {{ metadata_group("Sequencer", seq_request.sequencer, class="col-4") }}
+                    </div>
+
+                    <div class="row">
+                        {{ metadata_group("R1 Cycles", seq_request.num_cycles_read_1, class="col") }}
+                        {{ metadata_group("I1 Cycles", seq_request.num_cycles_index_1, class="col") }}
+                        {{ metadata_group("I2 Cycles", seq_request.num_cycles_index_2, class="col") }}
+                        {{ metadata_group("R2 Cycles", seq_request.num_cycles_read_2, class="col") }}
+                    </div>
+                    {{ metadata_group("Special Requirements", seq_request.special_requirements, class="col") }}
+
+                    <br>
                     <h4>Requestor</h4>
                     <div class="row">
                         {{ metadata_group_link("Name", seq_request.requestor.first_name + " " + seq_request.requestor.last_name, url_for("users_page.user_page", user_id=seq_request.requestor.id), class="col") }}
@@ -135,8 +152,8 @@
                             ) 
                         }}
                     </div>
-                    <br>
 
+                    <br>
                     <h4>Contact Person</h4>
                     <div class="row">
                         {{ 
