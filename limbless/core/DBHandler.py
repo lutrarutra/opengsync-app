@@ -106,14 +106,17 @@ class DBHandler():
         get_sample_libraries,
         get_lanes_in_experiment,
         get_sample_library_links,
+        get_available_pools_for_experiment,
 
         link_library_pool,
-        link_experiment_library,
+        link_experiment_pool,
         link_library_seq_request,
         link_sample_library,
+        link_experiment_seq_request,
 
         is_sample_in_seq_request,
 
-        unlink_experiment_library,
+        unlink_experiment_pool,
         unlink_library_seq_request,
+        unlink_experiment_seq_request,
     )

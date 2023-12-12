@@ -1,5 +1,5 @@
 from limbless.core import DBHandler
-from limbless.categories import UserRole, LibraryType, SeqRequestStatus, SequencingType
+from limbless.categories import UserRole, SequencingType, FlowCellType
 from limbless import models
 
 
@@ -68,12 +68,14 @@ def create_sample_data(db_handler: DBHandler):
         address="Lazarettgasse 14, 1160 Wien, Austria"
     )
 
+    techs = ["10x 5' V2", "10x 3'", "10x 5-prime V3", "10x ATAC v2"]
     for i in range(30):
         _client_id = clients[i % len(clients)].id
         seq_request = db_handler.create_seq_request(
             name=f"Seq Request {i+1}",
             description=f"Description {i}",
             requestor_id=_client_id,
+            technology=techs[i % len(techs)],
             contact_person_id=contact_person.id,
             billing_contact_id=billing_contact.id,
             seq_type=SequencingType.PAIRED_END,
@@ -82,6 +84,7 @@ def create_sample_data(db_handler: DBHandler):
             num_cycles_index_2=10,
             num_cycles_read_2=96,
             read_length=150,
+            flowcell_type=FlowCellType.get(i % 5 + 1),
             sequencer="NovaSeq 6000",
             special_requirements="Please, hurry up!!!",
             organization_name="CeMM",

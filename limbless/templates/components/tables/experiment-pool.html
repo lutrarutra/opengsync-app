@@ -1,0 +1,69 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+<div id="experiment-pool-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='experiment-pool-table', column_name='ID', column_var='id',
+                        sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
+                        field_name=field_name, query_type="number"
+                    )
+                }}
+                <th scope="col" class="col-2">Lanes</th>
+                {{
+                    table_col(
+                        target_id='experiment-pool-table', column_name='Pool Name', column_var='name',
+                        sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
+                        field_name=field_name, col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='experiment-pool-table', column_name='Owner', column_var='owner_id',
+                        sort_url='pools_htmx.get', sort_url_args={"experiment_id":experiment.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=2,
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for pool in pools %}
+            <tr onclick="window.location.href=`{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}`;">
+                <th scope="row">{{ pool.id }}</th>
+                <td>
+                    <div class="btn-group">
+                    {% for lane in range(1, experiment.num_lanes+1) %}
+                        {% if pool.id in experiment_lanes.keys() and lane in experiment_lanes[pool.id] %}
+                        <button type="button" class="btn btn-primary table-btn"
+                        hx-delete="{{ url_for('experiments_htmx.remove_pool', experiment_id=experiment.id, pool_id=pool.id, lane=lane) }}">
+                            {{ lane }}
+                        </button>
+                        {% else %}
+                        <button type="button" class="btn btn-outline-primary table-btn"
+                        hx-post="{{ url_for('experiments_htmx.add_pool', experiment_id=experiment.id, pool_id=pool.id, lane=lane) }}">
+                            {{ lane }}
+                        </button>
+                        {% endif %}
+                    {% endfor %}
+                    </div>
+                </td>
+                <td>{{ pool.name }}</td>
+                <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("experiment-pool-table", "pools_htmx.get", pools_n_pages, pools_active_page, url_args={"sort_by": samples_current_sort, "order": samples_current_sort_order, "experiment_id": experiment.id}) }}
+</div>
+<script>
+    $(".table-btn").on("click", function(e) {
+        e.stopPropagation();
+    });
+</script>

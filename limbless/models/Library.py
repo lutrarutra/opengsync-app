@@ -3,11 +3,10 @@ from dataclasses import dataclass
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..categories import LibraryType, BarcodeType
-from .Links import ExperimentLibraryLink, SeqRequestLibraryLink, LibraryPoolLink
+from ..categories import LibraryType
+from .Links import SeqRequestLibraryLink, LibraryPoolLink
 
 if TYPE_CHECKING:
-    from .Experiment import Experiment
     from .SeqRequest import SeqRequest
     from .Pool import Pool
     from .Links import SampleLibraryLink
@@ -61,12 +60,6 @@ class Library(SQLModel, table=True):
     pools: Optional["Pool"] = Relationship(
         back_populates="libraries", link_model=LibraryPoolLink,
         sa_relationship_kwargs={"lazy": "select"}
-    )
-
-    experiments: list["Experiment"] = Relationship(
-        back_populates="libraries",
-        sa_relationship_kwargs={"lazy": "select"},
-        link_model=ExperimentLibraryLink
     )
 
     seq_requests: list["SeqRequest"] = Relationship(

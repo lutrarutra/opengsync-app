@@ -3,7 +3,7 @@ from wtforms import StringField, TextAreaField, EmailField, BooleanField, Select
 from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
 
-from ..categories import SequencingType
+from ..categories import SequencingType, FlowCellType
 
 
 class SeqRequestForm(FlaskForm):
@@ -19,9 +19,15 @@ class SeqRequestForm(FlaskForm):
         or the methods section of a previous paper on the same topic."""
     )
 
+    technology = StringField(
+        "Technology", validators=[DataRequired(), Length(max=64)],
+        description="List of kits used, e.g. ('10x 5-prime V2', 'Singleron sc-RNAseq', 'Illumina complete long read', etc)."
+    )
+
     sequencing_type = SelectField(
         choices=SequencingType.as_selectable(), validators=[DataRequired()],
-        default=SequencingType.PAIRED_END.value.id
+        default=SequencingType.PAIRED_END.value.id,
+        description="Sequencing type, i.e. Single-end or Paired-end."
     )
 
     num_cycles_read_1 = IntegerField(
@@ -62,6 +68,12 @@ class SeqRequestForm(FlaskForm):
     sequencer = StringField(
         "Sequencer", validators=[OptionalValidator(), Length(max=64)],
         description="Sequencer to use for sequencing."
+    )
+
+    flowcell_type = SelectField(
+        "Flowcell Type", validators=[OptionalValidator()],
+        choices=[(-1, "-")] + FlowCellType.as_selectable(), default=-1,
+        description="Type of flowcell to use for sequencing."
     )
 
     current_user_is_contact = BooleanField(

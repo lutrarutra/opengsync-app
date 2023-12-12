@@ -2,8 +2,7 @@ import math
 import time
 from typing import Optional
 
-from sqlmodel import func, text
-from sqlalchemy import or_
+from sqlmodel import func, text, or_
 
 from ... import models, PAGE_LIMIT
 from ...categories import LibraryType
@@ -43,6 +42,9 @@ def create_library(
         name = sample.name
         sample.num_libraries += 1
         self._session.add(sample)
+
+    if name is None:
+        raise exceptions.InvalidValue("Name cannot be None")
 
     library = models.Library(
         sample_id=sample_id,
@@ -118,11 +120,15 @@ def get_libraries(
 
     if experiment_id is not None:
         query = query.join(
-            models.ExperimentLibraryLink,
-            models.ExperimentLibraryLink.library_id == models.Library.id,
+            models.LibraryPoolLink,
+            models.LibraryPoolLink.library_id == models.Library.id,
+            isouter=True
+        ).join(
+            models.ExperimentPoolLink,
+            models.ExperimentPoolLink.pool_id == models.LibraryPoolLink.pool_id,
             isouter=True
         ).where(
-            models.ExperimentLibraryLink.experiment_id == experiment_id
+            models.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
@@ -191,9 +197,9 @@ def delete_library(
     for sample in library.samples:
         sample.num_libraries -= 1
         self._session.add(sample)
-    for experiment in library.experiments:
-        experiment.num_libraries -= 1
-        self._session.add(experiment)
+    for pool in library.pools:
+        pool.num_libraries -= 1
+        self._session.add(pool)
     for seq_request in library.seq_requests:
         seq_request.num_libraries -= 1
         self._session.add(seq_request)
@@ -307,11 +313,15 @@ def query_libraries(
 
     if experiment_id is not None:
         query = query.join(
-            models.ExperimentLibraryLink,
-            models.ExperimentLibraryLink.library_id == models.Library.id,
+            models.LibraryPoolLink,
+            models.LibraryPoolLink.library_id == models.Library.id,
+            isouter=True
+        ).join(
+            models.ExperimentPoolLink,
+            models.ExperimentPoolLink.pool_id == models.LibraryPoolLink.pool_id,
             isouter=True
         ).where(
-            models.ExperimentLibraryLink.experiment_id == experiment_id
+            models.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     query = query.order_by(

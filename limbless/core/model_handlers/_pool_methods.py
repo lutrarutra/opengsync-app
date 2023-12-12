@@ -3,8 +3,7 @@ from typing import Optional
 
 from sqlmodel import func
 
-from ... import PAGE_LIMIT
-from ...models import Pool, User, Library
+from ... import PAGE_LIMIT, models
 from .. import exceptions
 
 
@@ -15,15 +14,15 @@ def create_pool(
     contact_email: str,
     contact_phone: Optional[str] = None,
     commit: bool = True
-) -> Pool:
+) -> models.Pool:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (user := self._session.get(User, owner_id)) is None:
+    if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
     
-    pool = Pool(
+    pool = models.Pool(
         name=name,
         owner_id=owner_id,
         contact_name=contact_name,
@@ -43,12 +42,12 @@ def create_pool(
     return pool
 
 
-def get_pool(self, pool_id: int) -> Pool:
+def get_pool(self, pool_id: int) -> models.Pool:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    pool = self._session.get(Pool, pool_id)
+    pool = self._session.get(models.Pool, pool_id)
     if not persist_session:
         self.close_session()
     return pool
@@ -58,30 +57,40 @@ def get_pools(
     self,
     user_id: Optional[int] = None,
     library_id: Optional[int] = None,
+    experiment_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[Pool], int]:
+) -> tuple[list[models.Pool], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(Pool)
+    query = self._session.query(models.Pool)
     if user_id is not None:
         query = query.where(
-            Pool.owner_id == user_id
+            models.Pool.owner_id == user_id
         )
 
     if library_id is not None:
         query = query.join(
-            Library,
-            Library.pool_id == Pool.id,
+            models.LibraryPoolLink,
+            models.Pool.id == models.LibraryPoolLink.pool_id,
             isouter=True
         ).where(
-            Library.id == library_id
+            models.Library.id == library_id
+        )
+
+    if experiment_id is not None:
+        query = query.join(
+            models.ExperimentPoolLink,
+            models.Pool.id == models.ExperimentPoolLink.pool_id,
+            isouter=True
+        ).where(
+            models.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     if sort_by is not None:
-        attr = getattr(Pool, sort_by)
+        attr = getattr(models.Pool, sort_by)
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)
@@ -110,7 +119,7 @@ def delete_pool(
     if not self._session:
         self.open_session()
 
-    if (pool := self._session.get(Pool, pool_id)) is None:
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     pool.owner.num_pools -= 1
@@ -129,18 +138,18 @@ def update_pool(
     self, pool_id: int,
     name: Optional[str] = None,
     commit: bool = True
-) -> Pool:
+) -> models.Pool:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    pool = self._session.get(Pool, pool_id)
+    pool = self._session.get(models.Pool, pool_id)
     if not pool:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     if name is not None:
-        _lib = self._session.query(Pool).where(
-            Pool.name == name
+        _lib = self._session.query(models.Pool).where(
+            models.Pool.name == name
         ).first()
         if _lib is not None and _lib.id != pool_id:
             raise exceptions.NotUniqueValue(f"Pool with name {name} already exists")
@@ -162,32 +171,32 @@ def query_pools(
     user_id: Optional[int] = None,
     library_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
-) -> list[Pool]:
+) -> list[models.Pool]:
 
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(Pool)
+    query = self._session.query(models.Pool)
 
     if user_id is not None:
-        if self._session.get(User, user_id) is None:
+        if self._session.get(models.User, user_id) is None:
             raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
         query = query.where(
-            Pool.owner_id == user_id
+            models.Pool.owner_id == user_id
         )
 
     if library_id is not None:
         query = query.join(
-            Library,
-            SamplePoolLink.pool_id == Pool.id,
+            models.Library,
+            models.LibraryPoolLink.pool_id == models.Pool.id,
             isouter=True
         ).where(
-            SamplePoolLink.sample_id == sample_id
+            models.LibraryPoolLink.library_id == library_id
         )
 
     query = query.order_by(
-        func.similarity(Pool.name, word).desc()
+        func.similarity(models.Pool.name, word).desc()
     )
 
     if limit is not None:

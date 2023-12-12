@@ -22,22 +22,37 @@ class UserRole(Enum, metaclass=ExtendedEnumMeta):
 
 class LibraryType(Enum, metaclass=ExtendedEnumMeta):
     CUSTOM = DescriptiveEnum(0, "Custom")
-    GENE_EXPRESSION = DescriptiveEnum(1, "Gene Expression", "GEX")
-    MULTIPLEXING_CAPTURE = DescriptiveEnum(2, "Multiplexing Capture", "CMO")
-    CHROMATIN_ACCESSIBILITY = DescriptiveEnum(3, "Chromatin Accessibility", "ATAC")
-    SPATIAL_TRANSCRIPTOMIC = DescriptiveEnum(4, "Spatial transcriptomic", "VISIUM")
-    VDJ_B = DescriptiveEnum(5, "VDJ-B", "VDJ-B")
-    VDJ_T = DescriptiveEnum(6, "VDJ-T", "VDJ-T")
-    VDJ_T_GD = DescriptiveEnum(7, "VDJ-T-GD", "VDJ-T-GD")
-    ANTIBODY_CAPTURE = DescriptiveEnum(8, "Antibody Capture", "ABC")
-    CRISPR = DescriptiveEnum(9, "CRISPR", "CRISPR")
+    SC_RNA_SEQ = DescriptiveEnum(1, "Single-cell RNA-seq", "scRNA-seq")
+    SN_RNA_SEQ = DescriptiveEnum(2, "Single-cell RNA-seq", "snRNA-seq")
+    MULTIPLEXING_CAPTURE = DescriptiveEnum(3, "Multiplexing Capture", "CMO")
+    SC_ATAC = DescriptiveEnum(4, "Single-cell Chromatin Accessibility", "scATAC-seq")
+    SPATIAL_TRANSCRIPTOMIC = DescriptiveEnum(5, "Spatial transcriptomic", "VISIUM")
+    VDJ_B = DescriptiveEnum(6, "VDJ-B", "VDJ-B")
+    VDJ_T = DescriptiveEnum(7, "VDJ-T", "VDJ-T")
+    VDJ_T_GD = DescriptiveEnum(8, "VDJ-T-GD", "VDJ-T-GD")
+    ANTIBODY_CAPTURE = DescriptiveEnum(9, "Antibody Capture", "ABC")
+    CRISPR = DescriptiveEnum(10, "CRISPR", "CRISPR")
+    BULK_RNA_SEQ = DescriptiveEnum(11, "Bulk RNA-seq", "BULK")
+    EXOME_SEQ = DescriptiveEnum(12, "Exome-seq", "EXOME")
+    GENOME_SEQ = DescriptiveEnum(13, "Genome-seq", "GENOME")
+    AMPLICON_SEQ = DescriptiveEnum(14, "Amplicon-seq", "AMPLICON")
+    RBS_SEQ = DescriptiveEnum(15, "RBS-seq", "RBS")
+    CITE_SEQ = DescriptiveEnum(16, "CITE-seq", "CITE")
+    ATAC_SEQ = DescriptiveEnum(17, "ATAC-seq", "ATAC")
 
 
-# class LibraryKitType(Enum, metaclass=ExtendedEnumMeta):
-#     CUSTOM = DescriptiveEnum(0, "Custom")
-#     TENX_3_PRIME = DescriptiveEnum(1, "10x 3' Single-Cell")
-#     TENX_5_PRIME_V2 = DescriptiveEnum(1, "10x 5' v2 Single-Cell")
-    
+class FlowCellType(Enum, metaclass=ExtendedEnumMeta):
+    OTHER = DescriptiveEnum(0, "Other")
+    NOVASEQ_SP = DescriptiveEnum(1, "NovaSeq SP")
+    NOVASEQ_S1 = DescriptiveEnum(2, "NovaSeq S1")
+    NOVASEQ_S2 = DescriptiveEnum(3, "NovaSeq S2")
+    NOVASEQ_S4 = DescriptiveEnum(4, "NovaSeq S4")
+    NOVASEQ_SP_XP = DescriptiveEnum(5, "NovaSeq SP XP")
+    MI_SEQ_V3 = DescriptiveEnum(6, "MiSeq V3")
+    MI_SEQ_V2_MICRO = DescriptiveEnum(7, "MiSeq V2 Micro")
+    NOVASEQ_S4_SP = DescriptiveEnum(8, "NovaSeq S4 SP")
+    MI_SEQ_V2_NANO = DescriptiveEnum(9, "MiSeq V2 Nano")
+
 
 class IndexKitType(Enum, metaclass=ExtendedEnumMeta):
     CUSTOM = DescriptiveEnum(0, "Custom")
@@ -109,6 +124,6 @@ class BarcodeType(Enum, metaclass=ExtendedEnumMeta):
     
 
 class SequencingType(Enum, metaclass=ExtendedEnumMeta):
-    CUSTOM = DescriptiveEnum(0, "Custom", "⚙️")
+    OTHER = DescriptiveEnum(0, "Other", "⚙️")
     SINGLE_END = DescriptiveEnum(1, "Single-end", "➡️")
     PAIRED_END = DescriptiveEnum(2, "Paired-end", "🔁")

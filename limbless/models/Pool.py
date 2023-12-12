@@ -3,11 +3,12 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..tools import SearchResult
-from .Links import LibraryPoolLink
+from .Links import LibraryPoolLink, ExperimentPoolLink
 
 if TYPE_CHECKING:
     from .Library import Library
     from .User import User
+    from .Experiment import Experiment
 
 
 class Pool(SQLModel, SearchResult, table=True):
@@ -23,6 +24,10 @@ class Pool(SQLModel, SearchResult, table=True):
     )
     libraries: List["Library"] = Relationship(
         back_populates="pools", link_model=LibraryPoolLink,
+        sa_relationship_kwargs={"lazy": "select"},
+    )
+    experiments: List["Experiment"] = Relationship(
+        back_populates="pools", link_model=ExperimentPoolLink,
         sa_relationship_kwargs={"lazy": "select"},
     )
 

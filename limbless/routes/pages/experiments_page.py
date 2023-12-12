@@ -1,9 +1,16 @@
+from typing import TYPE_CHECKING
+
 from flask import Blueprint, render_template, redirect, url_for, abort
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from ...core import DBSession
-from ... import forms, db, logger, PAGE_LIMIT
-from ...categories import UserRole, HttpResponse
+from ... import forms, db, logger, PAGE_LIMIT, models
+from ...categories import HttpResponse, SeqRequestStatus
+
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
 
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
@@ -40,8 +47,12 @@ def experiment_page(experiment_id):
         if access is None:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-        libraries = experiment.libraries
-        available_libraries, libraries_n_pages = session.get_libraries(limit=PAGE_LIMIT)
+        pools = session.get_available_pools_for_experiment(experiment_id)
+        logger.debug(pools)
+        available_seq_requests, available_seq_requests_n_pages = session.get_seq_requests(
+            sort_by="id", descending=True, exclude_experiment_id=experiment_id,
+            with_statuses=[SeqRequestStatus.SUBMITTED]
+        )
         experiment_lanes = session.get_lanes_in_experiment(experiment_id)
 
         experiment_form = forms.ExperimentForm()
@@ -64,10 +75,12 @@ def experiment_page(experiment_id):
         experiment=experiment,
         experiment_form=experiment_form,
         experiment_lanes=experiment_lanes,
-        libraries=libraries,
         path_list=path_list,
-        available_libraries=available_libraries,
+        pools=pools,
+        pools_n_pages=0,
+        available_seq_requests_n_pages=available_seq_requests_n_pages,
+        available_seq_requests_active_page=0,
+        available_seq_requests=available_seq_requests,
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.sequencing_person,
-        libraries_n_pages=libraries_n_pages, libraries_active_page=0,
     )

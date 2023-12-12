@@ -46,11 +46,20 @@ class LibraryPoolLink(SQLModel, table=True):
     )
 
 
-class ExperimentLibraryLink(SQLModel, table=True):
+class ExperimentPoolLink(SQLModel, table=True):
     experiment_id: int = Field(
         foreign_key="experiment.id", primary_key=True
     )
-    library_id: int = Field(
-        foreign_key="library.id", primary_key=True
+    pool_id: int = Field(
+        foreign_key="pool.id", primary_key=True
     )
     lane: int = Field(nullable=False, primary_key=True)
+
+
+class SeqRequestExperimentLink(SQLModel, table=True):
+    seq_request_id: int = Field(
+        foreign_key="seqrequest.id", primary_key=True
+    )
+    experiment_id: int = Field(
+        foreign_key="experiment.id", primary_key=True
+    )

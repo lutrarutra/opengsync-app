@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING, List, ClassVar
 import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..categories import SeqRequestStatus, SequencingType
+from ..categories import SeqRequestStatus, SequencingType, FlowCellType
 from .Links import SeqRequestLibraryLink
 
 if TYPE_CHECKING:
@@ -21,6 +21,7 @@ class SeqRequest(SQLModel, table=True):
     status_id: int = Field(nullable=False, default=0)
     submitted_time: Optional[datetime] = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True))
 
+    technology: str = Field(nullable=False, max_length=64)
     sequencing_type_id: int = Field(nullable=False)
     num_cycles_read_1: Optional[int] = Field(nullable=True)
     num_cycles_index_1: Optional[int] = Field(nullable=True)
@@ -30,6 +31,7 @@ class SeqRequest(SQLModel, table=True):
     num_lanes: Optional[int] = Field(nullable=True)
     special_requirements: Optional[str] = Field(nullable=True, max_length=512)
     sequencer: Optional[str] = Field(nullable=True, max_length=64)
+    flowcell_type_id: Optional[int] = Field(nullable=True)
 
     organization_name: str = Field(nullable=False, max_length=128)
     organization_address: str = Field(nullable=False, max_length=256)
@@ -87,6 +89,12 @@ class SeqRequest(SQLModel, table=True):
     @property
     def sequencing_type(self) -> SequencingType:
         return SequencingType.get(self.sequencing_type_id)
+    
+    @property
+    def flowcell_type(self) -> Optional[FlowCellType]:
+        if self.flowcell_type_id is None:
+            return None
+        return FlowCellType.get(self.flowcell_type_id)
     
     def is_submittable(self) -> bool:
         return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0

@@ -5,10 +5,10 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import ExperimentStatus
-from .Links import ExperimentLibraryLink
+from .Links import ExperimentPoolLink
 
 if TYPE_CHECKING:
-    from .Library import Library
+    from .Pool import Pool
     from .Sequencer import Sequencer
     from .User import User
 
@@ -26,7 +26,7 @@ class Experiment(SQLModel, table=True):
     sequencing_person: "User" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
     
     num_lanes: int = Field(nullable=False, default=1)
-    num_libraries: int = Field(nullable=False, default=0)
+    num_pools: int = Field(nullable=False, default=0)
 
     timestamp: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
 
@@ -35,8 +35,8 @@ class Experiment(SQLModel, table=True):
     sequencer_id: int = Field(nullable=False, foreign_key="sequencer.id")
     sequencer: "Sequencer" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
 
-    libraries: List["Library"] = Relationship(
-        back_populates="experiments", link_model=ExperimentLibraryLink
+    pools: List["Pool"] = Relationship(
+        back_populates="experiments", link_model=ExperimentPoolLink
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]

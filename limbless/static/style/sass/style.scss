@@ -531,3 +531,10 @@ select {
         top: 5px;
     }
 }
+
+.h-list {
+    display: flex;
+    gap: 25px;
+    margin: 0;
+    padding-left: 5px;
+}

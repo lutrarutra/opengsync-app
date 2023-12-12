@@ -1,0 +1,44 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+<div id="select-experiment-seq_request-table" class="table-container">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='ID', column_var='id',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
+                        field_name=field_name, query_type="number"
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='Request Name', column_var='sample_name',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
+                        field_name=field_name, col_size=5
+                    )
+                }}
+                <td scope="col" class="col-1"></td>
+            </tr>
+        </thead>
+        <tbody>
+            {% for request in available_seq_requests %}
+            <tr>
+                <th scope="row">{{ request.id }}</th>
+                <td>{{ request.name }}</td>
+                <td>
+                    <button type="button" class="btn btn-primary" style="height: 30px; padding: 5px;"
+                    hx-post="{{ url_for('experiments_htmx.add_seq_request', experiment_id=experiment.id, seq_request_id=request.id) }}">
+                    Add
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("select-experiment-seq_request-table", "seq_requests_htmx.get", available_seq_requests_n_pages, available_seq_requests_active_page, url_args={"sort_by": samples_current_sort, "order": samples_current_sort_order, "with_status": 1}) }}
+</div>

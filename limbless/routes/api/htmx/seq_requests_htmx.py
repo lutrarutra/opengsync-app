@@ -9,7 +9,7 @@ import pandas as pd
 
 from .... import db, forms, logger, models, PAGE_LIMIT, tools
 from ....core import DBSession, DBHandler
-from ....categories import UserRole, SeqRequestStatus, HttpResponse, SequencingType
+from ....categories import HttpResponse, SequencingType, FlowCellType, SeqRequestStatus
 
 if TYPE_CHECKING:
     current_user: models.User = None
@@ -34,6 +34,23 @@ def get(page: int):
     seq_requests: list[models.SeqRequest] = []
     context = {}
 
+    if (with_status := request.args.get("with_status", None)) is not None:
+        try:
+            with_status = SeqRequestStatus.get(int(with_status))
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        with_statuses = [with_status]
+    else:
+        with_statuses = None
+
+    if (exclude_experiment_id := request.args.get("exclude_experiment_id", None)) is not None:
+        try:
+            exclude_experiment_id = int(exclude_experiment_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+    else:
+        exclude_experiment_id = None
+
     if (user_id := request.args.get("user_id")) is not None:
         template = "components/tables/user-seq_request.html"
         try:
@@ -47,10 +64,13 @@ def get(page: int):
         if (user := db.db_handler.get_user(user_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
 
-        seq_requests, n_pages = db.db_handler.get_seq_requests(limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
+        seq_requests, n_pages = db.db_handler.get_seq_requests(
+            limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
+            with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
+        )
         context["user"] = user
 
-    if (sample_id := request.args.get("sample_id")) is not None:
+    elif (sample_id := request.args.get("sample_id")) is not None:
         template = "components/tables/sample-seq_request.html"
         try:
             sample_id = int(sample_id)
@@ -64,7 +84,10 @@ def get(page: int):
             if sample.owner_id != current_user.id:
                 return abort(HttpResponse.FORBIDDEN.value.id)
         
-        seq_requests, n_pages = db.db_handler.get_seq_requests(limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending)
+        seq_requests, n_pages = db.db_handler.get_seq_requests(
+            limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending,
+            with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
+        )
         context["sample"] = sample
     else:
         template = "components/tables/seq_request.html"
@@ -73,7 +96,10 @@ def get(page: int):
                 user_id = current_user.id
             else:
                 user_id = None
-            seq_requests, n_pages = session.get_seq_requests(limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, show_drafts=True)
+            seq_requests, n_pages = session.get_seq_requests(
+                limit=PAGE_LIMIT, offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
+                show_drafts=True, with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
+            )
 
     return make_response(
         render_template(
@@ -152,7 +178,6 @@ def edit(seq_request_id: int):
     seq_request_form = forms.SeqRequestForm()
     validated, seq_request_form = seq_request_form.custom_validate()
     if not validated:
-        logger.debug(seq_request_form.errors)
         return make_response(
             render_template(
                 "forms/seq_request/seq_request.html",
@@ -199,11 +224,19 @@ def edit(seq_request_id: int):
                 phone=seq_request_form.bioinformatician_phone.data,
             )
 
+    flowcell_type_id = seq_request_form.flowcell_type.data
+    if flowcell_type_id is not None and flowcell_type_id != -1:
+        flowcell_type = FlowCellType.get(flowcell_type_id)
+    else:
+        flowcell_type = None
+
     db.db_handler.update_seq_request(
         seq_request_id,
         name=seq_request_form.name.data,
         description=seq_request_form.description.data,
+        technology=seq_request_form.technology.data,
         seq_type=seq_type,
+        flowcell_type=flowcell_type,
         num_cycles_read_1=seq_request_form.num_cycles_read_1.data,
         num_cycles_index_1=seq_request_form.num_cycles_index_1.data,
         num_cycles_index_2=seq_request_form.num_cycles_index_2.data,
@@ -306,10 +339,17 @@ def create():
     else:
         bioinformatician_contact_id = None
 
+    flowcell_type_id = seq_request_form.flowcell_type.data
+    if flowcell_type_id is not None and flowcell_type_id != -1:
+        flowcell_type = FlowCellType.get(flowcell_type_id)
+    else:
+        flowcell_type = None
+
     seq_request = db.db_handler.create_seq_request(
         name=seq_request_form.name.data,
         description=seq_request_form.description.data,
         requestor_id=current_user.id,
+        technology=seq_request_form.technology.data,
         contact_person_id=contact_person.id,
         billing_contact_id=billing_contact.id,
         bioinformatician_contact_id=bioinformatician_contact_id,
@@ -321,6 +361,7 @@ def create():
         read_length=seq_request_form.read_length.data,
         special_requirements=seq_request_form.special_requirements.data,
         sequencer=seq_request_form.sequencer.data,
+        flowcell_type=flowcell_type,
         num_lanes=seq_request_form.num_lanes.data,
         organization_name=seq_request_form.organization_name.data,
         organization_address=seq_request_form.organization_address.data,

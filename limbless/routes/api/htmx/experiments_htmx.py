@@ -157,49 +157,47 @@ def delete(experiment_id: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/add_library/<int:library_id>/<int:lane>", methods=["POST"])
+@experiments_htmx.route("<int:experiment_id>/add_seq_request/<int:seq_request_id>", methods=["POST"])
 @login_required
-def add_library(experiment_id: int, library_id: int, lane: int):
+def add_seq_request(experiment_id: int, seq_request_id: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    if (library := db.db_handler.get_library(library_id)) is None:
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not experiment.is_editable():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if len(library.barcodes) == 0:
-        raise NotImplementedError("Raw libraries are not supported yet.")
+    if not experiment.is_editable():
+        return abort(HttpResponse.FORBIDDEN.value.id)
     
-    db.db_handler.link_experiment_library(
+    link = db.db_handler.link_experiment_seq_request(
         experiment_id=experiment_id,
-        library_id=library_id,
-        lane=lane,
+        seq_request_id=seq_request_id,
     )
 
-    logger.debug(f"Added library '{library.sample.name} ({library.type.value.name})' to experiment (id='{experiment_id}') on lane '{lane}'")
-    flash(f"Added library '{library.sample.name} ({library.type.value.name})' to experiment on lane '{lane}'.", "success")
+    logger.debug(f"Added request '{seq_request.name}' to experiment (id='{experiment_id}')")
+    flash(f"Added request '{seq_request.name}' to experiment.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id),
         push_url=False
     )
 
-
-@experiments_htmx.route("<int:experiment_id>/remove_library/<int:library_id>/<int:lane>", methods=["DELETE"])
+@experiments_htmx.route("<int:experiment_id>/add_pool/<int:pool_id>/<int:lane>", methods=["POST"])
 @login_required
-def remove_library(experiment_id: int, library_id: int, lane: int):
+def add_pool(experiment_id: int, pool_id: int, lane: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    if (library := db.db_handler.get_library(library_id)) is None:
+    if (pool := db.db_handler.get_pool(pool_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if lane > experiment.num_lanes or lane < 1:
@@ -208,14 +206,47 @@ def remove_library(experiment_id: int, library_id: int, lane: int):
     if not experiment.is_editable():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    db.db_handler.unlink_experiment_library(
+    db.db_handler.link_experiment_pool(
         experiment_id=experiment_id,
-        library_id=library_id,
+        pool_id=pool.id,
         lane=lane,
     )
 
-    logger.debug(f"Removed library '{library.name}' from experiment  (id='{experiment_id}') on lane '{lane}'")
-    flash(f"Removed library '{library.name}' from experiment on lane '{lane}'.", "success")
+    logger.debug(f"Added pool '{pool.name}' to experiment (id='{experiment_id}') on lane '{lane}'")
+    flash(f"Added pool '{pool.name}' to experiment on lane '{lane}'.", "success")
+
+    return make_response(
+        redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
+        push_url=False
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/remove_pool/<int:pool_id>/<int:lane>", methods=["DELETE"])
+@login_required
+def remove_pool(experiment_id: int, pool_id: int, lane: int):
+    if not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if (pool := db.db_handler.get_pool(pool_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if lane > experiment.num_lanes or lane < 1:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    if not experiment.is_editable():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    db.db_handler.unlink_experiment_pool(
+        experiment_id=experiment_id,
+        pool_id=pool_id,
+        lane=lane,
+    )
+
+    logger.debug(f"Removed pool '{pool.name}' from experiment  (id='{experiment_id}') on lane '{lane}'")
+    flash(f"Removed pool '{pool.name}' from experiment on lane '{lane}'.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),

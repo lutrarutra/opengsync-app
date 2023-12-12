@@ -37,7 +37,7 @@ def pools_page():
     )
 
 
-@pools_page_bp.route("/pools/<int:library_id>")
+@pools_page_bp.route("/pools/<int:pool_id>")
 @login_required
 def pool_page(pool_id: int):
     with DBSession(db.db_handler) as session:

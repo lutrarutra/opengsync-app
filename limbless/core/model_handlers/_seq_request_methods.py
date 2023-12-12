@@ -2,10 +2,10 @@ import math
 from datetime import datetime
 from typing import Optional
 
-from sqlmodel import func
+from sqlmodel import func, or_
 
 from ... import models, PAGE_LIMIT, logger
-from ...categories import SeqRequestStatus, SequencingType
+from ...categories import SeqRequestStatus, SequencingType, FlowCellType
 from .. import exceptions
 
 
@@ -13,6 +13,7 @@ def create_seq_request(
     self, name: str,
     description: Optional[str],
     requestor_id: int,
+    technology: str,
     contact_person_id: int,
     billing_contact_id: int,
     seq_type: SequencingType,
@@ -26,6 +27,7 @@ def create_seq_request(
     num_lanes: Optional[int] = None,
     special_requirements: Optional[str] = None,
     sequencer: Optional[str] = None,
+    flowcell_type: Optional[FlowCellType] = None,
     bioinformatician_contact_id: Optional[int] = None,
     organization_department: Optional[str] = None,
     billing_code: Optional[str] = None,
@@ -53,6 +55,7 @@ def create_seq_request(
         name=name,
         description=description,
         requestor_id=requestor_id,
+        technology=technology,
         sequencing_type_id=seq_type.value.id,
         num_cycles_read_1=num_cycles_read_1,
         num_cycles_index_1=num_cycles_index_1,
@@ -62,6 +65,7 @@ def create_seq_request(
         num_lanes=num_lanes,
         special_requirements=special_requirements,
         sequencer=sequencer,
+        flowcell_type_id=flowcell_type.value.id if flowcell_type is not None else None,
         billing_contact_id=billing_contact_id,
         contact_person_id=contact_person_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
@@ -102,6 +106,7 @@ def get_seq_request(
 def get_seq_requests(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     with_statuses: Optional[list[SeqRequestStatus]] = None,
+    exclude_experiment_id: Optional[int] = None,
     show_drafts: bool = True,
     sample_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
@@ -137,6 +142,18 @@ def get_seq_requests(
             isouter=True
         ).where(
             models.SeqRequestLibraryLink.library_id == sample_id
+        )
+
+    if exclude_experiment_id is not None:
+        query = query.join(
+            models.SeqRequestExperimentLink,
+            models.SeqRequestExperimentLink.seq_request_id == models.SeqRequest.id,
+            isouter=True
+        ).where(
+            or_(
+                models.SeqRequestExperimentLink.experiment_id != exclude_experiment_id,
+                models.SeqRequestExperimentLink.experiment_id == None
+            )
         )
 
     if sort_by is not None:
@@ -201,7 +218,7 @@ def submit_seq_request(
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
-    seq_request.status_id= SeqRequestStatus.SUBMITTED.value.id
+    seq_request.status_id = SeqRequestStatus.SUBMITTED.value.id
     seq_request.submitted_time = datetime.now()
     for library in seq_request.libraries:
         library.submitted = True
@@ -221,6 +238,7 @@ def update_seq_request(
     self, seq_request_id: int,
     name: Optional[str] = None,
     description: Optional[str] = None,
+    technology: Optional[str] = None,
     seq_type: Optional[SequencingType] = None,
     num_cycles_read_1: Optional[int] = None,
     num_cycles_index_1: Optional[int] = None,
@@ -229,6 +247,7 @@ def update_seq_request(
     read_length: Optional[int] = None,
     special_requirements: Optional[str] = None,
     sequencer: Optional[str] = None,
+    flowcell_type: Optional[FlowCellType] = None,
     num_lanes: Optional[int] = None,
     organization_name: Optional[str] = None,
     organization_department: Optional[str] = None,
@@ -250,12 +269,14 @@ def update_seq_request(
     if description is not None:
         seq_request.description = description
 
+    if technology is not None:
+        seq_request.technology = technology
+
     if status is not None:
         seq_request.status_id = status.value.id
 
     if seq_type is not None:
         seq_request.sequencing_type_id = seq_type.value.id
-        logger.debug(seq_request.sequencing_type_id)
 
     if num_cycles_read_1 is not None:
         seq_request.num_cycles_read_1 = num_cycles_read_1
@@ -277,6 +298,9 @@ def update_seq_request(
 
     if sequencer is not None:
         seq_request.sequencer = sequencer
+
+    if flowcell_type is not None:
+        seq_request.flowcell_type_id = flowcell_type.value.id
 
     if num_lanes is not None:
         seq_request.num_lanes = num_lanes

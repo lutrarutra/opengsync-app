@@ -33,11 +33,16 @@
                 <td>{{ sample.id }}</td>
                 <td>{{ sample.name }}</td>
                 <td>
+                    <ul class="h-list">
                     {% for library in sample.libraries %}
                     {% if seq_request in library.seq_requests %}
-                    {{ library.type.value.name }} <span class="desc">{{ library.type.value.description }}</span>&nbsp;&nbsp;
+                    <li
+                    {{ tooltip(library.type.value.name) }}>
+                        {{ library.type.value.description }}
+                    </li>
                     {% endif %}
                     {% endfor %}
+                    </ul>
                 </td>
             </tr>
             {% endfor %}
