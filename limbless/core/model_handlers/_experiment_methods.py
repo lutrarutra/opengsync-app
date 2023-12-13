@@ -4,6 +4,7 @@ from typing import Optional
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
+from ...categories import ExperimentStatus
 
 
 def create_experiment(
@@ -136,6 +137,7 @@ def update_experiment(
     self, experiment_id: int,
     name: Optional[str] = None,
     flowcell: Optional[str] = None,
+    status: Optional[ExperimentStatus] = None,
     r1_cycles: Optional[int] = None,
     r2_cycles: Optional[int] = None,
     i1_cycles: Optional[int] = None,
@@ -171,10 +173,15 @@ def update_experiment(
         experiment.num_lanes = num_lanes
     if sequencing_person_id is not None:
         experiment.sequencing_person_id = sequencing_person_id
-        
-    experiment.r2_cycles = r2_cycles
-    experiment.i2_cycles = i2_cycles
-    experiment.sequencer_id = sequencer_id
+    if status is not None:
+        experiment.status_id = status.value.id
+    
+    if r2_cycles is not None:
+        experiment.r2_cycles = r2_cycles
+    if i2_cycles is not None:
+        experiment.i2_cycles = i2_cycles
+    if sequencer_id is not None:
+        experiment.sequencer_id = sequencer_id
 
     if commit:
         self._session.commit()

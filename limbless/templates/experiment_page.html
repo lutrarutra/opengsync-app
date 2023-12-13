@@ -17,6 +17,7 @@
             {% endif %}>
                 <button type="button"  class="btn btn-success"
                 {% if not experiment.is_submittable() %} disabled {% endif %}
+                hx-post="{{ url_for('experiments_htmx.submit_experiment', experiment_id=experiment.id) }}"
                 _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({

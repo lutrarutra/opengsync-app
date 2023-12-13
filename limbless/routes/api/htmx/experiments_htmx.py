@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from .... import db, forms, logger, models, PAGE_LIMIT
-from ....categories import UserRole, HttpResponse
+from ....categories import HttpResponse, ExperimentStatus
 from ....core.DBSession import DBSession
 
 if TYPE_CHECKING:
@@ -275,4 +275,30 @@ def select_sequencing_person():
             experiment_form=experiment_form,
             selected_user=selected_user
         ), push_url=False
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/submit_experiment", methods=["POST"])
+@login_required
+def submit_experiment(experiment_id: int):
+    with DBSession(db.db_handler) as session:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.value.id)
+        
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        if not experiment.is_submittable():
+            return abort(HttpResponse.FORBIDDEN.value.id)
+        
+        session.update_experiment(
+            experiment_id=experiment_id,
+            status=ExperimentStatus.SEQUENCING
+        )
+
+    logger.debug(f"Submitted experiment on flowcell '{experiment.flowcell}'")
+    flash(f"Submitted experiment on flowcell '{experiment.flowcell}'.", "success")
+
+    return make_response(
+        redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
     )

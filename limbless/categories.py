@@ -86,11 +86,10 @@ class SeqRequestStatus(Enum, metaclass=ExtendedEnumMeta):
 
 class ExperimentStatus(Enum, metaclass=ExtendedEnumMeta):
     DRAFT = DescriptiveEnum(0, "Draft", description="✍🏼")
-    SUBMITTED = DescriptiveEnum(1, "Submitted", description="🚀")
-    SEQUENCING = DescriptiveEnum(2, "Sequencing", description="🧬")
-    FINISHED = DescriptiveEnum(3, "Finished", description="✅")
-    ARCHIVED = DescriptiveEnum(4, "Archived", description="🗃️")
-    FAILED = DescriptiveEnum(5, "Failed", description="❌")
+    SEQUENCING = DescriptiveEnum(1, "Sequencing", description="🧬")
+    FINISHED = DescriptiveEnum(2, "Finished", description="✅")
+    ARCHIVED = DescriptiveEnum(3, "Archived", description="🗃️")
+    FAILED = DescriptiveEnum(4, "Failed", description="❌")
 
 
 class HttpResponse(Enum, metaclass=ExtendedEnumMeta):
