@@ -70,10 +70,7 @@ def parse_table(seq_request_id: int):
     try:
         df = table_input_form.parse()
     except pd.errors.ParserError as e:
-        if table_input_form.raw_data.data:
-            table_input_form.raw_data.errors = (str(e),)
-        else:
-            table_input_form.file.errors = (str(e),)
+        table_input_form.file.errors = (str(e),)
             
         return make_response(
             render_template(

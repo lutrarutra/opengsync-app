@@ -91,6 +91,7 @@ def get_libraries(
     self,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
+    pool_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Library], int]:
@@ -129,6 +130,15 @@ def get_libraries(
             isouter=True
         ).where(
             models.ExperimentPoolLink.experiment_id == experiment_id
+        ).distinct()
+
+    if pool_id is not None:
+        query = query.join(
+            models.LibraryPoolLink,
+            models.LibraryPoolLink.library_id == models.Library.id,
+            isouter=True
+        ).where(
+            models.LibraryPoolLink.pool_id == pool_id
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
@@ -213,53 +223,14 @@ def delete_library(
 
 
 def update_library(
-    self, library_id: int,
-    library_type: Optional[LibraryType] = None,
-    index_kit_id: Optional[int] = None,
-    index_1_sequence: Optional[str] = None,
-    index_2_sequence: Optional[str] = None,
-    index_3_sequence: Optional[str] = None,
-    index_4_sequence: Optional[str] = None,
-    index_1_adapter: Optional[str] = None,
-    index_2_adapter: Optional[str] = None,
-    index_3_adapter: Optional[str] = None,
-    index_4_adapter: Optional[str] = None,
+    self, library: models.Library,
     commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    library = self._session.get(models.Library, library_id)
-    if not library:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-
-    if library_type is not None:
-        library.library_type_id = library_type.value.id
-    if index_kit_id is not None:
-        if self._session.get(models.IndexKit, index_kit_id) is None:
-            raise exceptions.ElementDoesNotExist(f"index_kit with id {index_kit_id} does not exist")
-        library.index_kit_id = index_kit_id
-    else:
-        library.index_kit_id = None
-
-    if index_1_sequence is not None:
-        library.index_1_sequence = index_1_sequence
-    if index_2_sequence is not None:
-        library.index_2_sequence = index_2_sequence
-    if index_3_sequence is not None:
-        library.index_3_sequence = index_3_sequence
-    if index_4_sequence is not None:
-        library.index_4_sequence = index_4_sequence
-        
-    if index_1_adapter is not None:
-        library.index_1_adapter = index_1_adapter
-    if index_2_adapter is not None:
-        library.index_2_adapter = index_2_adapter
-    if index_3_adapter is not None:
-        library.index_3_adapter = index_3_adapter
-    if index_4_adapter is not None:
-        library.index_4_adapter = index_4_adapter
+    self._session.add(library)
 
     if commit:
         self._session.commit()

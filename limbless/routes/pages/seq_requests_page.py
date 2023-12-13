@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, render_template, abort, url_for
+from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required
 
 from ... import forms, db, logger, PAGE_LIMIT, models
@@ -100,6 +100,14 @@ def seq_request_page(seq_request_id: int):
             ("Requests", url_for("seq_requests_page.seq_requests_page")),
             (f"Request {seq_request_id}", ""),
         ]
+        if (_from := request.args.get("from")) is not None:
+            page, id = _from.split("@")
+            if page == "experiment":
+                path_list = [
+                    ("Experiments", url_for("experiments_page.experiments_page")),
+                    (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
+                    (f"Request {seq_request_id}", ""),
+                ]
 
         return render_template(
             "seq_request_page.html",

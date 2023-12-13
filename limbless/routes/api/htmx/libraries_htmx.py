@@ -75,6 +75,34 @@ def get(page):
                 limit=PAGE_LIMIT, offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending
             )
             context["sample"] = sample
+    elif (experiment_id := request.args.get("experiment_id", None)) is not None:
+        template = "components/tables/experiment-library.html"
+        try:
+            experiment_id = int(experiment_id)
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        with DBSession(db.db_handler) as session:
+            if (experiment := session.get_experiment(experiment_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            libraries, n_pages = session.get_libraries(
+                limit=PAGE_LIMIT, offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending
+            )
+            context["experiment"] = experiment
+    elif (pool_id := request.args.get("pool_id", None)) is not None:
+        template = "components/tables/pool-library.html"
+        try:
+            pool_id = int(pool_id)
+        except (ValueError, TypeError):
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+        
+        with DBSession(db.db_handler) as session:
+            if (pool := session.get_pool(pool_id)) is None:
+                return abort(HttpResponse.NOT_FOUND.value.id)
+            libraries, n_pages = session.get_libraries(
+                limit=PAGE_LIMIT, offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending
+            )
+            context["pool"] = pool
     else:
         template = "components/tables/library.html"
         with DBSession(db.db_handler) as session:

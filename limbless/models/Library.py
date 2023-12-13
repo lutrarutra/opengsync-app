@@ -103,3 +103,6 @@ class Library(SQLModel, table=True):
             Index(self.index_3_sequence, self.index_3_adapter) if self.index_3_sequence is not None else None,
             Index(self.index_4_sequence, self.index_4_adapter) if self.index_4_sequence is not None else None,
         ]
+
+    def is_indexed(self) -> bool:
+        return self.index_1_sequence is not None

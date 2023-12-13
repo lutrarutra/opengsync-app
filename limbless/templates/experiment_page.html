@@ -11,9 +11,34 @@
             <h1>Experiment</h1>
         </div>
         <div>
-            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#experiment-form-popup">
-                Edit Experiment
-            </button>
+            {% if experiment.status.value.name == "Draft" %}
+            <span {% if not experiment.is_submittable() %}
+            {{ tooltip("All libraries in all pools must be indexed first.", category="success") }}
+            {% endif %}>
+                <button type="button"  class="btn btn-success"
+                {% if not experiment.is_submittable() %} disabled {% endif %}
+                _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Submit experiment for Sequencing?,
+                        showDenyButton: true,
+                        text: 'You can no longer edit the experiment after it is submitted. Do you want to proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()">
+                    Submit for Sequencing
+                </button>
+            </span>
+            {% endif %}
+            <span {% if not experiment.is_editable() %}
+            {{ tooltip("Experiment cannot be edited after it is submitted.") }}
+            {% endif %}>
+                <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#experiment-form-popup"
+                {% if not experiment.is_editable() %} disabled {% endif %}>
+                    Edit Experiment
+                </button>
+            </span>
             <button type="button"  class="btn btn-danger"
             hx-post="{{ url_for('experiments_htmx.delete', experiment_id=experiment.id) }}"
             _="on htmx:confirm(issueRequest)
@@ -44,10 +69,17 @@
                 Pools</button>
             </li>
                 <li class="nav-item" role="presentation">
-                <button class="nav-link" id="pools-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#seq_requests-tab" type="button" role="tab"
-                aria-controls="seq_requests-tab" aria-selected="true">
+                <button class="nav-link" id="requests-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#requests-tab" type="button" role="tab"
+                aria-controls="requests-tab" aria-selected="true">
                 Requests</button>
+            </li>
+            </li>
+                <li class="nav-item" role="presentation">
+                <button class="nav-link" id="libraries-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#libraries-tab" type="button" role="tab"
+                aria-controls="libraries-tab" aria-selected="true">
+                Libraries</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="metadata-tab-btn" data-bs-toggle="tab"
@@ -67,7 +99,7 @@
                 </div>
                 {% include "components/tables/experiment-pool.html" %}
             </div>
-            <div class="tab-pane fade show" id="seq_requests-tab" role="tabpanel" tabindex="1">
+            <div class="tab-pane fade show" id="requests-tab" role="tabpanel" tabindex="1">
                 <div class="d-flex justify-content-between">
                     <div>
                         <h2>Requests <img {{ tooltip('Right click request name to remove.') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
@@ -80,7 +112,17 @@
                 </div>
                 {% include "components/tables/experiment-seq_request.html" %}
             </div>
-            <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="2">
+            <div class="tab-pane fade show" id="libraries-tab" role="tabpanel" tabindex="2">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h2>Libraries</h2>
+                    </div>
+                    <div>
+                    </div>
+                </div>
+                {% include "components/tables/experiment-library.html" %}
+            </div>
+            <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="3">
                 <div class="row">
                     {{ 
                         metadata_group_link(
@@ -97,7 +139,13 @@
                     }}
                 </div>
                 <div class="row">
-                    {{ metadata_group("Sequencer", experiment.sequencer.name, class="col") }}
+                    {{
+                        metadata_group_link(
+                            "Sequencer", experiment.sequencer.name,
+                            url_for("devices_page.sequencer_page", sequencer_id=experiment.sequencer.id),
+                            class="col"
+                        )
+                    }}
                     {{ metadata_group("Sequencer IP", experiment.sequencer.ip, class="col") }}
                 </div>
                 <div class="row">

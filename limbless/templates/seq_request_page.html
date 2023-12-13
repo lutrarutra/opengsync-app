@@ -15,7 +15,7 @@
             {% if seq_request.status.value.name == "Draft" %}
             <span
             {% if not seq_request.is_submittable() %}
-            {{ tooltip('You must add at least one library to submit the request.') }}
+            {{ tooltip('You must add at least one library to submit the request.', category='success') }}
             {% endif %}>
                 <button hx-get="{{ url_for('seq_requests_htmx.submit', seq_request_id=seq_request.id) }}" class="btn btn-success"
                     _="on htmx:confirm(issueRequest)

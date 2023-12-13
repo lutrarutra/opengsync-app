@@ -43,26 +43,20 @@ def get(page):
 def query_index_kits():
     library_type_id: Optional[int] = None
     
-    if (raw_library_type_id := request.form.get("library_type")) is None:
-        logger.debug("No library type id provided with POST request")
-        return abort(HttpResponse.BAD_REQUEST.value.id)
-
-    try:
-        library_type_id = int(raw_library_type_id)
-    except ValueError:
-        logger.debug(f"Invalid library type '{raw_library_type_id}' id provided with POST request")
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+    if (raw_library_type_id := request.form.get("library_type")) is not None:
+        try:
+            library_type = LibraryType.get(int(raw_library_type_id))
+        except ValueError:
+            logger.debug(f"Invalid library type '{raw_library_type_id}' id provided with POST request")
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+    else:
+        library_type = None
 
     field_name = next(iter(request.form.keys()))
     word = request.form.get(field_name)
 
     if word is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
-
-    if library_type_id is not None:
-        library_type = LibraryType.get(library_type_id)
-    else:
-        library_type = None
 
     results = db.db_handler.query_index_kit(word, library_type=library_type)
 

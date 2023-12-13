@@ -48,20 +48,33 @@ def pool_page(pool_id: int):
             if pool.owner_id != current_user.id:
                 return abort(HttpResponse.FORBIDDEN.value.id)
     
-    pool_form = forms.PoolForm()
-    pool_form.name.data = pool.name
+        pool_form = forms.PoolForm()
+        pool_form.name.data = pool.name
 
-    path_list = [
-        ("Pools", url_for("pools_page.pools_page")),
-        (f"Pool {pool.id}", ""),
-    ]
-    if (_from := request.args.get("from", None)) is not None:
-        page, id = _from.split("@")
+        libraries, libraries_n_pages = db.db_handler.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
 
-    return render_template(
-        "pool_page.html",
-        pool=pool,
-        path_list=path_list,
-        pool_form=pool_form,
-        table_form=forms.TableForm(),
-    )
+        path_list = [
+            ("Pools", url_for("pools_page.pools_page")),
+            (f"Pool {pool.id}", ""),
+        ]
+        if (_from := request.args.get("from", None)) is not None:
+            page, id = _from.split("@")
+            if page == "experiment":
+                path_list = [
+                    ("Experiments", url_for("experiments_page.experiments_page")),
+                    (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
+                    (f"Pool {pool_id}", ""),
+                ]
+
+        index_form = forms.IndexForm()
+
+        return render_template(
+            "pool_page.html",
+            pool=pool,
+            libraries=libraries,
+            libraries_n_pages=libraries_n_pages,
+            path_list=path_list,
+            pool_form=pool_form,
+            index_form=index_form,
+            table_form=forms.TableForm(),
+        )

@@ -51,3 +51,10 @@ class Pool(SQLModel, SearchResult, table=True):
     
     def search_description(self) -> Optional[str]:
         return ""
+    
+    def is_indexed(self) -> bool:
+        for library in self.libraries:
+            if not library.is_indexed():
+                return False
+            
+        return True

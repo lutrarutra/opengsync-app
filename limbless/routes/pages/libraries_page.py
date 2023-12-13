@@ -73,6 +73,12 @@ def library_page(library_id):
                 (f"Sample {id}", url_for("samples_page.sample_page", sample_id=id)),
                 (f"Library {library.id}", ""),
             ]
+        elif page == "pool":
+            path_list = [
+                ("Pools", url_for("pools_page.pools_page")),
+                (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
+                (f"Library {library.id}", ""),
+            ]
 
     library_edit_form = forms.EditLibraryForm()
     library_edit_form.adapter.data = library.index_1_adapter    # TODO: separate adapter for all indices

@@ -1,0 +1,87 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+
+<div id="pool-library-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='pool-library-table', column_name='ID', column_var='id',
+                        sort_url='libraries_htmx.get', sort_url_args={"pool_id": pool.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', pool_id=pool.id), current_query=libraries_current_query,
+                        field_name=field_name, query_type="number", col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='pool-library-table', column_name='Library Name', column_var='name',
+                        sort_url='libraries_htmx.get', sort_url_args={"pool_id": pool.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        query_url=url_for('libraries_htmx.table_query', pool_id=pool.id), current_query=libraries_current_query,
+                        field_name=field_name, col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='pool-library-table', column_name='Type', column_var='type_id',
+                        sort_url='libraries_htmx.get', sort_url_args={"pool_id": pool.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=2
+                    )
+                }}
+                <th scope="col-1">
+                    Index 1 <span class="desc">i7</span>
+                </th>
+                <th scope="col-1">
+                    Index 2 <span class="desc">i5</span>
+                </th>
+                <th scope="col-1">
+                    Index 3
+                </th>
+                <th scope="col-1">
+                    Index 4
+                </th>
+                {{
+                    table_col(
+                        target_id='pool-library-table', column_name='Owner', column_var='owner_id',
+                        sort_url='libraries_htmx.get', sort_url_args={"pool_id": pool.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=2
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for library in libraries %}
+            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='pool@' + pool.id | string) }}';">
+                <th scope="row">{{ library.id }}</th>
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
+                <td>
+                    <span {{ tooltip(library.type.value.name) }}>
+                        {{ library.type.value.description }}
+                    </span>
+                </td>
+                {% for idx in range(4) %}
+                {% set index = library.indices[idx] %}
+                {% if index %}
+                <td {{ tooltip(index.adapter) }} class="col-1">
+                    <span class="barcode-cell index-cell" id="library-{{library.id}}-index-cell-{{idx+1}}">{{ index.sequence if index.sequence }}</span>
+                </td>
+                <td {{ tooltip(index.sequence) }} style="display: none;" class="col-1">
+                    <span class="barcode-cell adapter-cell" id="library-{{library.id}}-adapter-cell-{{idx+1}}">{{ index.adapter if index.adapter }}</span>
+                </td>
+                {% else %}
+                <td></td>
+                {% endif %}
+                {% endfor %}
+                <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("pool-library-table", "libraries_htmx.get", libraries_n_pages, libraries_active_page, url_args={"pool_id": pool.id, "sort_by": libraries_current_sort, "order": libraries_current_sort_order}) }}
+</div>

@@ -169,10 +169,22 @@ body {
         }
     }
     #breadcrumb {
-        word-wrap: break-word;
-        a {
-            text-decoration: none;
+        ol {
+            padding: 5px 0 0 5px;
+            li.active {
+                color: $cemm-blue-dark;
+            }
+            a {
+                text-decoration: none;
+                color: $cemm-blue;
+            }
+            list-style: none;
+            li:not(:last-child):after {
+                content: "/";
+                padding: 0 5px 0 5px;
+            }
         }
+        word-wrap: break-word;
     }
 
     h1 {

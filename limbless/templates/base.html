@@ -122,12 +122,12 @@
         <div id="main">
                 <div id="left-margin">
                     <nav id="breadcrumb" aria-label="breadcrumb">
-                        <ol class="breadcrumb">
+                        <ol>
                         {% for name, url in path_list %}
                             {% if loop.last %}
-                                <li  class="breadcrumb-item active" aria-current="page">{{name}}</li>
+                                <li  class="active" aria-current="page">{{name}}</li>
                             {% else %}
-                                <li  class="breadcrumb-item"><a href="{{ url }}">{{name}}</a></li>
+                                <li><a href="{{ url }}">{{name}}</a></li>
                             {% endif %}
                         {% endfor %}
                         </ol>

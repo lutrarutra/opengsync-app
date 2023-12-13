@@ -1,5 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
 <div id="library-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -63,7 +65,11 @@
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
                 <th scope="row">{{ library.id }}</th>
                 <td>{{ library.name }}</td>
-                <td>{{ library.type.value.name }}</td>
+                <td>
+                    <span {{ tooltip(library.type.value.name) }}>
+                        {{ library.type.value.description }}
+                    </span>
+                </td>
                 <td>{{ library.contact.name }}</td>
                 <td>{{ library.sample.owner.name }} <span class="desc">{{ "me" if current_user.id == library.sample.owner_id }}</span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>

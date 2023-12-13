@@ -1,44 +1,18 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
-<form id="index-form">
-    {{ index_form.csrf_token }}
+
+<form id="index-form" enctype="multipart/form-data">
+    {{ index_form.csrf_token() }}
     {{
         search_select_field(
-            index_form.sample,
-            results=available_samples,
-            url=url_for('samples_htmx.query', exclude_library_id=library.id),
-            selected=selected_sample.name if selected_sample is defined,
+            index_form.index_kit_id,
+            results=available_index_kits,
+            url=url_for('barcodes_htmx.query_index_kits'),
+            selected=selected_index_kit,
         )
     }}
-    {% if not library.is_raw_library() %}
-    {{
-        search_select_field(
-            index_form.adapter,
-            url_for('barcodes_htmx.query_adapters', index_kit_id=library.index_kit_id),
-            selected=selected_adapter.name if selected_adapter is defined,
-            results=available_adapters, include_data_element=False,
-        )
-    }}
-    <input id="adapter" name="adapter" hx-target="#index-form" hx-swap="outerHTML" hx-include="#index-form"
-        hx-trigger="change" hx-post="{{ url_for('barcodes_htmx.select_barcodes', library_id=library.id) }}"
-        value="{{ selected_adapter.id if selected_adapter is defined }}" type="number" readonly=true>
-
-
-    <div class="barcodes-container">
-        {% for index_seq_form in index_form.barcodes %}
-            <div class="form-group">
-                {{ index_seq_form.sequence.label }}
-                {{ 
-                    index_seq_form.index_seq_id(
-                        value=index_seq_form.index_seq_id.data if index_seq_form.index_seq_id.data else '',
-                        readonly=True, hidden=False
-                    ) 
-                }}
-                {{ index_seq_form.sequence(class="form-control", readonly=True) }}
-                {{ index_seq_form.csrf_token() }}
-            </div>
-        {% endfor %}
+    <div class="row">
+        {{ form_group(index_form.separator, class="col-2") }}
+        {{ form_group(index_form.file, class="col-10") }}
     </div>
-    {% endif %}
-
 </form>

@@ -6,7 +6,7 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Library: {{ library.sample.name }} <span class="desc">{{ library.type.value.description }}</span></h1>
+            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.value.description }}</span></h1>
         </div>
         <div>
             <span {% if library.submitted %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
@@ -44,28 +44,28 @@
             {{
                 metadata_group(
                     "Index 1 (i7)",
-                    library.index_1_sequence,
+                    library.index_1_sequence if library.index_1_sequence else "",
                     class="col-3"
                 )
             }}
             {{
                 metadata_group(
                     "Adapter 1 (i7)",
-                    library.index_1_adapter,
+                    library.index_1_adapter if library.index_1_adapter else "",
                     class="col-3"
                 )
             }}
             {{
                 metadata_group(
                     "Index 2 (i5)",
-                    library.index_2_sequence,
+                    library.index_2_sequence if library.index_2_sequence else "",
                     class="col-3"
                 )
             }}
             {{
                 metadata_group(
                     "Adapter 1 (i5)",
-                    library.index_2_adapter,
+                    library.index_2_adapter if library.index_2_adapter else "",
                     class="col-3"
                 )
             }}
@@ -74,28 +74,28 @@
             {{
                 metadata_group(
                     "Index 3",
-                    library.index_3_sequence,
+                    library.index_3_sequence if library.index_3_sequence else "",
                     class="col-3"
                 )
             }}
             {{
                 metadata_group(
                     "Adapter 3",
-                    library.index_3_adapter,
+                    library.index_3_adapter if library.index_3_adapter else "",
                     class="col-3"
                 )
             }}
             {{
                 metadata_group(
                     "Index 4",
-                    library.index_4_sequence,
+                    library.index_4_sequence if library.index_4_sequence else "",
                     class="col-3"
                 )
             }}
             {{
                 metadata_group(
                     "Adapter 4",
-                    library.index_4_adapter,
+                    library.index_4_adapter if library.index_4_adapter else "",
                     class="col-3"
                 )
             }}
@@ -124,8 +124,8 @@
                 {{ 
                     metadata_group_link(
                         "Owner Name",
-                        library.sample.owner.first_name + " " + library.sample.owner.last_name,
-                        url_for("users_page.user_page", user_id=library.sample.owner.id),
+                        library.owner.name,
+                        url_for("users_page.user_page", user_id=library.owner.id),
                         class="col"
                     )
                 }}
@@ -157,13 +157,6 @@
           </div>
         </div>
     </div>
-
-    <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-        {% include "components/popups/library/table.html" %}
-        </div>
-    </div>
-
 </div>
 <script type="text/javascript">
 </script>

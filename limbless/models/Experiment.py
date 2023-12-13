@@ -36,7 +36,8 @@ class Experiment(SQLModel, table=True):
     sequencer: "Sequencer" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
 
     pools: List["Pool"] = Relationship(
-        back_populates="experiments", link_model=ExperimentPoolLink
+        back_populates="experiments", link_model=ExperimentPoolLink,
+        sa_relationship_kwargs={"lazy": "select"},
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
@@ -50,6 +51,17 @@ class Experiment(SQLModel, table=True):
     
     def is_editable(self) -> bool:
         return self.status == ExperimentStatus.DRAFT
+    
+    def is_submittable(self) -> bool:
+        return self.status == ExperimentStatus.DRAFT and self.is_all_pools_indexed()
+    
+    def is_all_pools_indexed(self) -> bool:
+        if len(self.pools) == 0:
+            return False
+        for pool in self.pools:
+            if not pool.is_indexed():
+                return False
+        return True
     
     def timestamp_to_str(self) -> str:
         return self.timestamp.strftime('%Y-%m-%d %H:%M')

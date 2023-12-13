@@ -1,4 +1,5 @@
 .primary-tooltip,
+.success-tooltip,
 .warning-tooltip,
 .error-tooltip,
 .danger-tooltip {
@@ -18,6 +19,11 @@
 .primary-tooltip {
   --bs-tooltip-bg: #00aecc;
   --bs-tooltip-color: #fff;
+}
+
+.success-tooltip {
+    --bs-tooltip-bg: #96c03a;
+    --bs-tooltip-color: #fff;
 }
 
 .warning-tooltip {

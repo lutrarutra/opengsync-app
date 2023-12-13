@@ -1,10 +1,15 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from flask import Blueprint, render_template, redirect, url_for, abort
-from flask_login import current_user, login_required
+from flask import Blueprint, render_template, url_for, abort, request
+from flask_login import login_required
 
-from ... import logger, db, forms, PAGE_LIMIT
+from ... import logger, db, forms, PAGE_LIMIT, models
 from ...categories import UserRole, HttpResponse
+
+if TYPE_CHECKING:
+    current_user: models.User = None
+else:
+    from flask_login import current_user
 
 users_page_bp = Blueprint("users_page", __name__)
 
@@ -41,8 +46,35 @@ def user_page(user_id: Optional[int]):
 
     path_list = [
         ("Users", url_for("users_page.users_page")),
-        (f"{user_id}", ""),
+        (f"User {user_id}", ""),
     ]
+
+    if (_from := request.args.get("from", None)) is not None:
+        page, id = _from.split("@")
+        if page == "library":
+            path_list = [
+                ("Libraries", url_for("libraries_page.libraries_page")),
+                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                (f"User {user_id}", ""),
+            ]
+        elif page == "project":
+            path_list = [
+                ("Projects", url_for("projects_page.projects_page")),
+                (f"Project {id}", url_for("projects_page.project_page", project_id=id)),
+                (f"User {user_id}", ""),
+            ]
+        elif page == "sample":
+            path_list = [
+                ("Samples", url_for("samples_page.samples_page")),
+                (f"Sample {id}", url_for("samples_page.sample_page", sample_id=id)),
+                (f"User {user_id}", ""),
+            ]
+        elif page == "pool":
+            path_list = [
+                ("Pools", url_for("pools_page.pools_page")),
+                (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
+                (f"User {user_id}", ""),
+            ]
 
     projects, _ = db.db_handler.get_projects(user_id=user_id, limit=None)
     seq_requests, _ = db.db_handler.get_seq_requests(user_id=user_id, limit=None)
