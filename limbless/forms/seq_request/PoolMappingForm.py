@@ -42,9 +42,10 @@ class PoolMappingForm(TableDataForm):
         pools = df["pool"].unique().tolist()
         pool_libraries = []
         for i, (pool_label, _df) in enumerate(df.groupby("pool")):
-            if i > len(self.input_fields.entries) - 1:
+            if i > len(self.input_fields) - 1:
                 self.input_fields.append_entry()
-            entry = self.input_fields.entries[i]
+
+            entry = self.input_fields[i]
             entry.pool_label.data = pool_label
             entry.contact_person_name.data = current_user.name
             entry.contact_person_email.data = current_user.email
@@ -66,6 +67,7 @@ class PoolMappingForm(TableDataForm):
             pool_libraries.append(_data)
 
         self.set_df(df)
+
         return {
             "pools": pools,
             "pool_libraries": pool_libraries,

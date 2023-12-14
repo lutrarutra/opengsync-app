@@ -209,6 +209,8 @@ class SampleColTableForm(TableDataForm):
 
         df = df.drop(columns=["adapter"])
         df["id"] = df.reset_index(drop=True).index + 1
+        if "pool" not in df.columns:
+            df["pool"] = 1
         df = self.__clean_df(df)
 
         return df

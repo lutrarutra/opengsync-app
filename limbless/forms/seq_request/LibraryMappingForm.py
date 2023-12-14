@@ -129,8 +129,9 @@ class LibraryMappingForm(TableDataForm):
 
         df["library_type_id"] = None
         for i, library_type in enumerate(library_types):
+            logger.debug(f"{library_type} -> {self.input_fields[i].category.data}")
             df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].category.data)
         
-        df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).value.name)
+        df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).value.description)
         self.set_df(df)
         return df

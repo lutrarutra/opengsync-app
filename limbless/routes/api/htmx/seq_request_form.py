@@ -116,7 +116,6 @@ def map_columns(seq_request_id: int):
         )
 
     df = sample_table_form.parse()
-    logger.debug(df)
     project_mapping_form = forms.ProjectMappingForm(formdata=None)
     context = project_mapping_form.prepare(df)
 
@@ -153,8 +152,6 @@ def select_project(seq_request_id: int):
 
     category_mapping_form = forms.OrganismMappingForm(formdata=None)
     context = category_mapping_form.prepare(seq_request.id, df)
-
-    logger.debug(context)
 
     if df["sample_id"].isna().any():
         # new sample -> map organisms
@@ -218,43 +215,41 @@ def map_organisms(seq_request_id: int):
     
     df["tax_id"] = df["organism"].map(organism_id_mapping)
 
-    library_select_form = forms.LibrarySelectForm()
-    context = library_select_form.prepare(seq_request.id, df)
-
+    library_mapping_form = forms.LibraryMappingForm()
+    context = library_mapping_form.prepare(df)
     return make_response(
         render_template(
-            template_name_or_list="components/popups/seq_request/step-5.html",
+            "components/popups/seq_request/step-5.html",
             seq_request=seq_request,
-            library_select_form=library_select_form,
+            library_mapping_form=library_mapping_form,
             **context
-        ), push_url=False
+        )
     )
 
 
-# 5. Confirm libraries
-@seq_request_form_htmx.route("<int:seq_request_id>/confirm_libraries", methods=["POST"])
+# 5. Map libraries
+@seq_request_form_htmx.route("<int:seq_request_id>/map_libraries", methods=["POST"])
 @login_required
-def confirm_libraries(seq_request_id: int):
+def map_libraries(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    library_select_form = forms.LibrarySelectForm()
-    context = library_select_form.prepare(seq_request.id)
-    
-    validated, library_select_form = library_select_form.custom_validate()
+    library_mapping_form = forms.LibraryMappingForm()
+    validated, library_mapping_form = library_mapping_form.custom_validate(db.db_handler)
+    context = library_mapping_form.prepare()  # this needs to be after validation
 
     if not validated:
         return make_response(
             render_template(
                 "components/popups/seq_request/step-5.html",
                 seq_request=seq_request,
-                library_select_form=library_select_form,
+                library_mapping_form=library_mapping_form,
                 **context
-            ), push_url=False
+            )
         )
     
-    df = library_select_form.parse()
-    pool_mapping_form = forms.PoolMappingForm()
+    df = library_mapping_form.parse()
+    pool_mapping_form = forms.PoolMappingForm(formdata=None)
     context = pool_mapping_form.prepare(df)
 
     return make_response(
@@ -267,6 +262,7 @@ def confirm_libraries(seq_request_id: int):
     )
 
 
+# 6. Map pools
 @seq_request_form_htmx.route("<int:seq_request_id>/map_pools", methods=["POST"])
 @login_required
 def map_pools(seq_request_id: int):
@@ -287,41 +283,42 @@ def map_pools(seq_request_id: int):
         )
     
     df = pool_mapping_form.parse()
-    library_mapping_form = forms.LibraryMappingForm()
-    context = library_mapping_form.prepare(df)
+    library_select_form = forms.LibrarySelectForm()
+    context = library_select_form.prepare(seq_request.id, df)
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-7.html",
+            template_name_or_list="components/popups/seq_request/step-7.html",
             seq_request=seq_request,
-            library_mapping_form=library_mapping_form,
+            library_select_form=library_select_form,
             **context
-        )
+        ), push_url=False
     )
 
 
-@seq_request_form_htmx.route("<int:seq_request_id>/map_libraries", methods=["POST"])
+# 7. Confirm libraries
+@seq_request_form_htmx.route("<int:seq_request_id>/confirm_libraries", methods=["POST"])
 @login_required
-def map_libraries(seq_request_id: int):
+def confirm_libraries(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    library_mapping_form = forms.LibraryMappingForm()
-    validated, library_mapping_form = library_mapping_form.custom_validate(db.db_handler)
+    library_select_form = forms.LibrarySelectForm()
+    context = library_select_form.prepare(seq_request.id)
     
-    context = library_mapping_form.prepare()    # this needs to be after validation
+    validated, library_select_form = library_select_form.custom_validate()
 
     if not validated:
         return make_response(
             render_template(
                 "components/popups/seq_request/step-7.html",
                 seq_request=seq_request,
-                library_mapping_form=library_mapping_form,
+                library_select_form=library_select_form,
                 **context
-            )
+            ), push_url=False
         )
 
-    df = library_mapping_form.parse()
+    df = library_select_form.parse()
 
     barcode_check_form = forms.BarcodeCheckForm()
     context = barcode_check_form.prepare(df)
@@ -336,7 +333,7 @@ def map_libraries(seq_request_id: int):
     )
 
 
-# 7. Check barcodes
+# 8. Check barcodes
 @seq_request_form_htmx.route("<int:seq_request_id>/check_barcodes", methods=["POST"])
 @login_required
 def check_barcodes(seq_request_id: int):

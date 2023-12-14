@@ -123,6 +123,8 @@ def get_samples(
         ).join(
             models.SeqRequestLibraryLink,
             models.SeqRequestLibraryLink.library_id == models.Library.id,
+        ).where(
+            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
         ).distinct()
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1

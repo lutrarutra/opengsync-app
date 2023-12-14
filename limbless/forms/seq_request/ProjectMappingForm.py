@@ -76,7 +76,6 @@ class ProjectMappingForm(TableDataForm):
                 
                 df.loc[df["project"] == raw_project, "project_id"] = project.id
                 df.loc[df["project"] == raw_project, "project_name"] = project.name
-                logger.debug(f"Using project {project.name}")
             elif project_name := self.input_fields.entries[i].new_category.data:
                 df.loc[df["project"] == raw_project, "project_id"] = None
                 df.loc[df["project"] == raw_project, "project_name"] = project_name
@@ -99,8 +98,7 @@ class ProjectMappingForm(TableDataForm):
                     projects[project_id] = project
                     project_samples[project_id] = dict([(sample.name, sample) for sample in project.samples])
         
-        if "pool" not in df.columns:
-            df["pool"] = 1
+
         df["sample_id"] = None
         df["tax_id"] = None
         for i, row in df.iterrows():

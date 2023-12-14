@@ -34,7 +34,7 @@ def connect_similar_strings(
     refs: list[tuple[str, str]], data: list[str],
     similars: Optional[dict[str, str | int]] = None, cutoff: float = 0.5
 ) -> dict:
-    search_dict = dict([(val.lower().replace(" ", "").replace("_", "").replace("-",""), key) for key, val in refs])
+    search_dict = dict([(val.lower().replace(" ", "").replace("_", "").replace("-", ""), key) for key, val in refs])
 
     res = []
     for word in data:
