@@ -1,0 +1,39 @@
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+
+<div id="index-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Add Indexes</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help pb-3">
+            <a type="button" class="btn btn-primary" href="{{ url_for('pools_htmx.download_template', pool_id=pool.id) }}">
+            Download Template
+            </a>
+        </div>
+        <form id="index-form" enctype="multipart/form-data">
+            {{ index_form.csrf_token() }}
+            {{
+                search_select_field(
+                    index_form.index_kit_id,
+                    results=available_index_kits,
+                    url=url_for('barcodes_htmx.query_index_kits'),
+                    selected=selected_index_kit,
+                )
+            }}
+            <div class="row">
+                {{ form_group(index_form.separator, class="col-2") }}
+                {{ form_group(index_form.file, class="col-10") }}
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <button id="submit-project-btn" class="btn btn-success" type="button"
+            hx-include="#index-form" hx-target="#index-form-container" hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+            hx-post="{{ url_for('pools_htmx.check_indices', pool_id=pool.id) }}">
+            Submit
+        </button>
+    </div>
+</div>

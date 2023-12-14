@@ -2,7 +2,7 @@
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
-{% macro static_categorical_mapping(form, categories, selected) -%}
+{% macro static_categorical_mapping(form, categories) -%}
     {% for category in categories %}
         {% set sub_form = form.input_fields[loop.index0] %}
         <td>

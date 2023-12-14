@@ -26,7 +26,7 @@ class BarcodeCheckForm(TableDataForm):
         for i, row in df.iterrows():
             # Check if sample names are unique in project
             data = {
-                "id": int(i) + 1,
+                "id": row["id"],
                 "name": row["sample_name"],
                 "library_type": row["library_type"],
                 "error": None,

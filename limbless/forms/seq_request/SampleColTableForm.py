@@ -208,6 +208,7 @@ class SampleColTableForm(TableDataForm):
         df.loc[pd.isna(df["index_4"]), "adapter_4"] = None
 
         df = df.drop(columns=["adapter"])
+        df["id"] = df.reset_index(drop=True).index + 1
         df = self.__clean_df(df)
 
         return df

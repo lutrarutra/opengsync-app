@@ -7,7 +7,12 @@
     </div>
     <div class="modal-body">
         <form id="library-type-category-mapping-form">
-            {{ static_categorical_mapping(library_mapping_form, categories, selected) }}
+            {{ 
+                static_categorical_mapping(
+                    form=library_mapping_form,
+                    categories=categories
+                )
+            }}
         </form>
     </div>
     <div class="modal-footer">

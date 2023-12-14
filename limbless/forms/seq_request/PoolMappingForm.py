@@ -78,15 +78,17 @@ class PoolMappingForm(TableDataForm):
         df["contact_person_email"] = None
         df["contact_person_phone"] = None
 
+        raw_pool_labels = df["pool"].unique().tolist()
         for i, entry in enumerate(self.input_fields.entries):
             pool_label = entry.pool_label.data
             contact_person_name = entry.contact_person_name.data
             contact_person_email = entry.contact_person_email.data
             contact_person_phone = entry.contact_person_phone.data
 
-            df.loc[df["pool"] == pool_label, "contact_person_name"] = contact_person_name
-            df.loc[df["pool"] == pool_label, "contact_person_email"] = contact_person_email
-            df.loc[df["pool"] == pool_label, "contact_person_phone"] = contact_person_phone
+            df.loc[df["pool"] == raw_pool_labels[i], "contact_person_name"] = contact_person_name
+            df.loc[df["pool"] == raw_pool_labels[i], "contact_person_email"] = contact_person_email
+            df.loc[df["pool"] == raw_pool_labels[i], "contact_person_phone"] = contact_person_phone
+            df.loc[df["pool"] == raw_pool_labels[i], "pool"] = pool_label
 
         self.set_df(df)
         return df

@@ -61,7 +61,7 @@
         </form>
     </div>
     <div class="modal-footer">
-        <button type="button" class="btn btn-success" hx-target="#library-select-container" hx-swap="outerHTML"
+        <button type="button" class="btn btn-primary" hx-target="#library-select-container" hx-swap="outerHTML"
             hx-include="#project-library-select-form" id="project-library-select-form-btn"
             hx-post="{{ url_for('seq_request_form_htmx.confirm_libraries', seq_request_id=seq_request.id) }}">
             Confirm

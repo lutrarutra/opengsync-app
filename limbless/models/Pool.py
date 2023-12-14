@@ -58,3 +58,10 @@ class Pool(SQLModel, SearchResult, table=True):
                 return False
             
         return True
+
+    def is_submitted(self) -> bool:
+        for library in self.libraries:
+            if library.submitted:
+                return True
+            
+        return False

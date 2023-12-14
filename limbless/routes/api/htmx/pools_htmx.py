@@ -114,6 +114,28 @@ def download_template(pool_id: int):
     )
 
 
+@pools_htmx.route("<int:pool_id>/check_indices", methods=["POST"])
+@login_required
+def check_indices(pool_id: int):
+    if (pool := db.db_handler.get_pool(pool_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
+    if not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    barcode_check_form = forms.BarcodeCheckForm()
+    context = barcode_check_form.prepare()
+
+    return make_response(
+        render_template(
+            "components/popups/seq_request/step-8.html",
+            pool=pool,
+            barcode_check_form=barcode_check_form,
+            **context
+        )
+    )
+
+
 @pools_htmx.route("<int:pool_id>/add_indices", methods=["POST"])
 @login_required
 def add_indices(pool_id: int):
@@ -129,7 +151,7 @@ def add_indices(pool_id: int):
     if not valid or df is None:
         return make_response(
             render_template(
-                "forms/index.html", index_form=index_form
+                "forms/index/file.html", index_form=index_form
             )
         )
 

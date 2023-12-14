@@ -74,6 +74,7 @@ def seq_request_page(seq_request_id: int):
             special_requirements=seq_request.special_requirements,
             sequencer=seq_request.sequencer,
             sequencing_type=seq_request.sequencing_type.value.id,
+            flowcell_type=seq_request.flowcell_type.value.id if seq_request.flowcell_type is not None else -1,
 
             contact_person_name=seq_request.contact_person.name,
             contact_person_email=seq_request.contact_person.email,

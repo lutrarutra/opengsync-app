@@ -10,12 +10,22 @@
             <h1>Pool: {{ pool.name }}</h1>
         </div>
         <div>
-            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#index-pool-form-popup">
-                Add Indexes
-            </button>
-            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pool-form-popup">
-                Edit Pool
-            </button>
+            <span {% if pool.is_submitted() %}
+            {{ tooltip("You can no longer edit pool after it is submitted.") }}
+            {% endif %}>
+                <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#index-pool-form-popup"
+                {% if pool.is_submitted() %}disabled{% endif %}>
+                    Add Indexes
+                </button>
+            </span>
+            <span {% if pool.is_submitted() %}
+            {{ tooltip("You can no longer edit pool after it is submitted.") }}
+            {% endif %}>
+                <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pool-form-popup"
+                {% if pool.is_submitted() %}disabled{% endif %}>
+                    Edit Pool
+                </button>
+            </span>
         </div>
     </div>
 
@@ -61,26 +71,7 @@
 
     <div class="modal fade" id="index-pool-form-popup" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5" >Add Indexes</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="input-help pb-3">
-                    <a type="button" class="btn btn-primary" href="{{ url_for('pools_htmx.download_template', pool_id=pool.id) }}">
-                    Download Template
-                    </a>
-                </div>
-                {% include "forms/index.html"%}
-            </div>
-            <div class="modal-footer" id="popup-footer">
-                <button id="submit-project-btn" class="btn btn-success" type="button"
-                    hx-include="#index-form" hx-target="#index-form" hx-swap="outerHTML"
-                    hx-encoding="multipart/form-data"
-                    hx-post="{{ url_for('pools_htmx.add_indices', pool_id=pool.id) }}">Submit</button>
-            </div>
-          </div>
+            {% include "forms/index/file.html"%}
         </div>
     </div>
 </div>

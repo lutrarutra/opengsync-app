@@ -154,6 +154,8 @@ def select_project(seq_request_id: int):
     category_mapping_form = forms.OrganismMappingForm(formdata=None)
     context = category_mapping_form.prepare(seq_request.id, df)
 
+    logger.debug(context)
+
     if df["sample_id"].isna().any():
         # new sample -> map organisms
         return make_response(
