@@ -5,29 +5,108 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
-        <div class="input-help">
-            <p>
-                Upload a file containing a table.
-                Supported file types are .csv (separated by ','), .tsv (separated by '\t').
-                <br>
-                Spaces in 'Sample Name' will be replaced with '_' and non-alphanumeric characters (except '_', '-', '.') will be filtered.
-                <br>
-                <a href="{{ url_for('seq_request_form_htmx.download_template') }}">
-                    Download template sample annotation sheet from here.
-                </a>
-            </p>
-            <p><b>Required columns: <i>Sample Name</i> and <i>Sample Organism</i></b></p>
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#raw-library-submission-tab" type="button" role="tab"
+                aria-controls="raw-library-submission-tab" aria-selected="true">
+                Raw Samples</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#premade-library-submission-tab" type="button" role="tab"
+                aria-controls="premade-library-submission-tab" aria-selected="false">
+                Premade Libraries</button>
+            </li>
+        </ul>
+        <div class="tab-content pt-3">
+            <div class="tab-pane fade show active" id="raw-library-submission-tab" role="tabpanel" tabindex="0">
+                <div class="input-help pb-3">
+                    <h5>How to?</h5>
+                    <ol>
+                        <li>Read instructions, download the template below, and fill in the neeeded columns.</li>
+                        <li>Submit the modified template below.</li>
+                    </ol>
+
+                    <h5>Required Columns</h5>
+                    <ul>
+                        <li><b>Sample Name</b> <span class="desc">Biological Sample, e.g. sample_KO, sample_WT, etc.</span></li>
+                        <li><b>Library type</b> <span class="desc">E.g. scRNA-seq, ATAC-seq, WES, etc.</span></li>
+                    </ul>
+
+                    <h5>Optional Columns (can be left blank)</h5>
+                    <ul>
+                        <li>Organism <span class="desc">If samples from two or more organisms are present.</span></li>
+                        <li>Project <span class="desc">If request contains samples from two or more projects.</span></li>
+                    </ul>
+
+                    <h5>Important</h5>
+                    <ul>
+                        <li><b>'Sample Name'</b>-column denotes a biological sample.</li>
+                        <li>Multiple rows can have same value in <b>'Sample Name'</b>-column if multiple libraries are created from a single biological sample.</li>
+                        <li>White-spaces in <b>'Sample Name'</b>-column will be replaced with '_' automatically. Also non-alphanumeric characters (except '_', '-', '.') will be filtered.</li>
+                        <li>In edge cases, please contact us at <a href="mailto:bsf@cemm.at">bsf@cemm.at</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="tab-pane fade show" id="premade-library-submission-tab" role="tabpanel" tabindex="1">
+                <div class="input-help pb-3">
+                    <h5>How to?</h5>
+                    <ol>
+                        <li>Read instructions, download the template below, and fill in the neeeded columns.</li>
+                        <li>Submit the modified template below.</li>
+                    </ol>
+
+                    <h5>Required Columns</h5>
+                    <ul>
+                        <li><b>Sample Name</b> <span class="desc">Biological Sample, e.g. sample_KO, sample_WT, etc.</span></li>
+                        <li><b>Library type</b> <span class="desc">e.g. scRNA-seq, ATAC-seq, WES, etc.</span></li>
+                        <li><b>Pool</b> <span class="desc">denotes how libraries were pooled, e.g. '1', '1', '2', '2'</span></li>
+                        <li><b>Index 1</b> or <b>Adapter</b> + <b>Library Kit</b></li>
+                    </ul>
+
+                    <h5>Optional Columns (can be left blank)</h5>
+                    <ul>
+                        <li>Organism <span class="desc">If samples from two or more organisms are present</span></li>
+                        <li>Project <span class="desc">If request contains samples from two or more projects</span></li>
+                        <li>Adapter <span class="desc">Index adapter, e.g. 'SI-TT-A1'</span></li>
+                        <li>Index 1 <span class="desc">Index 1 (i7 for 10x) sequence, e.g. 'GTAACATGCG'</span></li>
+                        <li>Index 2 <span class="desc">Index 2 (i5 for 10x) sequence, e.g. 'AGTGTTACCT'</span></li>
+                        <li>Index 3 <span class="desc">Index 3 sequence, e.g. for 10x ATAC-seq</span></li>
+                        <li>Index 4 <span class="desc">Index 4 sequence, e.g. for 10x ATAC-seq</span></li>
+                        <li>Library Volume [uL]</li>
+                        <li>Library DNA Concentration [nM]</li>
+                        <li>Library Total Size [bp]</li>
+                    </ul>
+
+                    <h5>Important</h5>
+                    <ul>
+                        <li><b>'Sample Name'</b>-column denotes a biological sample.</li>
+                        <li>Multiple rows can have same value in <b>'Sample Name'</b>-column if multiple libraries are created from a single biological sample.</li>
+                        <li>White-spaces in <b>'Sample Name'</b>-column will be replaced with '_' automatically. Also non-alphanumeric characters (except '_', '-', '.') will be filtered.</li>
+                        <li>If you are using a common library kit, one found in <a href="{{ url_for('index_kits_page.index_kits_page') }}">'Index Kits'</a>-page, it is enough to only specify <b>Adapter</b>-column (without <b>Index 1/2/3/4</b>-columns.)</li>
+                        <li>If a single library has different adapters for its indices, you can specify different adapters using <b>'Adapter 1/2/3/4'</b>-columns.</li>
+                        <li>If a common index kit is specified with <b>'Adapter'</b> and <b>'Index 1/2/3/4</b>-columns, this app will warn if there are errors in barcode sequences, e.g. typos or reused indices.</li>
+                        <li>In edge cases, please contact us at <a href="mailto:bsf@cemm.at">bsf@cemm.at</a></li>
+                    </ul>
+                </div>
+            </div>
+            {{ table_input(table_form, id="sample-table-input-form") }}
         </div>
-        {{ table_input(table_form, id="sample-table-input-form") }}
+        
     </div>
     <div class="modal-footer">
-        <button type="button" id="parse-table-btn" class="btn btn-primary" hx-target="#sample-table-submission-container"
+        
+        <a type="button" class="btn btn-primary" href="{{ url_for('seq_request_form_htmx.download_template', type='raw') }}">
+            Raw Sample Template Download
+        </a>
+        <a type="button" class="btn btn-primary" href="{{ url_for('seq_request_form_htmx.download_template', type='premade') }}">
+            Premade Libraries Template Download
+        </a>
+        <button type="button" id="parse-table-btn" class="btn btn-success" hx-target="#sample-table-submission-container"
             hx-swap="outerHTML" hx-include="#sample-table-input-form" hx-encoding="multipart/form-data"
             hx-post="{{ url_for('seq_request_form_htmx.parse_table', seq_request_id=seq_request.id) }}">
             Parse Table
         </button>
-
-        <button type="button" id="clear-table-btn" class="btn btn-danger disabled" style="display: none;">Clear
-            Table</button>
     </div>
 </div>

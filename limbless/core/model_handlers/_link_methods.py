@@ -1,9 +1,9 @@
 import math
-from typing import Optional, Union
+from typing import Optional
 
 from sqlmodel import and_
 
-from ... import models, logger, categories
+from ... import models, logger
 from .. import exceptions
 
 

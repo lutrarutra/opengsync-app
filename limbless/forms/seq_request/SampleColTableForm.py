@@ -29,7 +29,6 @@ class SampleColSelectForm(FlaskForm):
         ("adapter_4", "Adapter 4"),
         ("project", "Project"),
         ("pool", "Pool"),
-        ("library_kit", "Library Kit"),
         ("library_volume", "Library Volume (uL)"),
         ("library_concentration", "Library DNA Concentration (nM)"),
         ("library_total_size", "Library Total Size (bp)"),
@@ -54,8 +53,6 @@ class SampleColSelectForm(FlaskForm):
         "librarytype": "library_type",
         "pool": "pool",
         "librarypool": "pool",
-        "librarykit": "library_kit",
-        "kit": "library_kit",
         "libraryvolume": "library_volume",
         "volume": "library_volume",
         "libraryconcentration": "library_concentration",
@@ -65,6 +62,7 @@ class SampleColSelectForm(FlaskForm):
     }
     select_field = SelectField(
         choices=required_fields + optional_fields,
+        validators=[OptionalValidator()],
     )
 
 

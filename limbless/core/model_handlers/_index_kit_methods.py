@@ -96,22 +96,13 @@ def get_index_kits(
 
 
 def query_index_kit(
-    self, word: str, library_type: Optional[LibraryType] = None, limit: Optional[int] = PAGE_LIMIT
+    self, word: str, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.IndexKit]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.IndexKit)
-
-    if library_type is not None:
-        query = query.join(
-            models.IndexKitLibraryType,
-            and_(
-                models.IndexKitLibraryType.index_kit_id == models.IndexKit.id,
-                models.IndexKitLibraryType.library_type_id == library_type.value.id
-            )
-        )
 
     query = query.order_by(func.similarity(models.IndexKit.name, word).desc())
 

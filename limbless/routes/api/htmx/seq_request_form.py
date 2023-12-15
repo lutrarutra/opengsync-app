@@ -23,14 +23,22 @@ seq_request_form_htmx = Blueprint("seq_request_form_htmx", __name__, url_prefix=
 
 
 # Template sample annotation sheet
-@seq_request_form_htmx.route("download_template", methods=["GET"])
+@seq_request_form_htmx.route("download_template/<string:type>", methods=["GET"])
 @login_required
-def download_template():
+def download_template(type: str):
+    if type == "raw":
+        name = "sas_raw_libraries.tsv"
+    elif type == "premade":
+        name = "sas_premade_libraries.tsv"
+    else:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
     path = os.path.join(
         current_app.root_path,
-        "static", "resources", "sample_annotation_sheet.tsv"
+        "static", "resources", "templates", name
     )
-    return send_file(path, mimetype="text/csv", as_attachment=True, download_name="sample_annotation_sheet.tsv")
+
+    return send_file(path, mimetype="text/csv", as_attachment=True, download_name=name)
 
 
 # 0. Restart form
@@ -105,10 +113,12 @@ def map_columns(seq_request_id: int):
     validated, sample_table_form = sample_table_form.custom_validate()
     
     if not validated:
+        # TODO: show errors
         return make_response(
             render_template(
                 "components/popups/seq_request/step-2.html",
                 sample_table_form=sample_table_form,
+                data=sample_table_form.get_df().values.tolist(),
                 seq_request=seq_request,
                 **context
             ),

@@ -16,7 +16,7 @@ class IndexKit(SQLModel, SearchResult, table=True):
 
     barcodes: List["Barcode"] = Relationship(
         back_populates="index_kit",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "select"},
     )
 
     def __str__(self):

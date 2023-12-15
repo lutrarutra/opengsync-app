@@ -25,15 +25,16 @@ class Library(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64)
     type_id: int = Field(nullable=False)
-    num_pools: int = Field(nullable=False, default=0)
-    num_samples: int = Field(nullable=False, default=0)
-    num_seq_requests: int = Field(nullable=False, default=0)
+    
     submitted: bool = Field(nullable=False, default=False)
-    kit: str = Field(nullable=False, default="custom", max_length=64)
 
     volume: Optional[int] = Field(nullable=True, default=None)
     dna_concentration: Optional[float] = Field(nullable=True, default=None)
     total_size: Optional[int] = Field(nullable=True, default=None)
+
+    num_pools: int = Field(nullable=False, default=0)
+    num_samples: int = Field(nullable=False, default=0)
+    num_seq_requests: int = Field(nullable=False, default=0)
 
     sample_id: Optional[int] = Field(nullable=True, foreign_key="sample.id")
     sample: Optional["Sample"] = Relationship(

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .Library import Library
     from .User import User
     from .Experiment import Experiment
+    from .IndexKit import IndexKit
 
 
 class Pool(SQLModel, SearchResult, table=True):
@@ -17,6 +18,11 @@ class Pool(SQLModel, SearchResult, table=True):
     name: str = Field(nullable=False, max_length=64, index=True)
     
     num_libraries: int = Field(nullable=False, default=0)
+    
+    index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
+    index_kit: Optional["IndexKit"] = Relationship(
+        sa_relationship_kwargs={"lazy": "joined"}
+    )
 
     owner_id: int = Field(nullable=False, foreign_key="user.id")
     owner: "User" = Relationship(

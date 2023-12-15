@@ -41,24 +41,13 @@ def get(page):
 @barcodes_htmx.route("query_index_kits", methods=["POST"])
 @login_required
 def query_index_kits():
-    library_type_id: Optional[int] = None
-    
-    if (raw_library_type_id := request.form.get("library_type")) is not None:
-        try:
-            library_type = LibraryType.get(int(raw_library_type_id))
-        except ValueError:
-            logger.debug(f"Invalid library type '{raw_library_type_id}' id provided with POST request")
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-    else:
-        library_type = None
-
     field_name = next(iter(request.form.keys()))
     word = request.form.get(field_name)
 
     if word is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
-    results = db.db_handler.query_index_kit(word, library_type=library_type)
+    results = db.db_handler.query_index_kit(word)
 
     return make_response(
         render_template(

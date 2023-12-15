@@ -1,4 +1,5 @@
 {% from "components/form_group.jinja2" import form_group %}
+{% from "components/search_select.jinja2" import search_select_field %}
 
 <div id="pool-mapping-container" class="modal-content">
     <div class="modal-header">
@@ -10,27 +11,35 @@
             <ul class="nav nav-tabs" role="tablist">
                 {% for sub_form in pool_mapping_form.input_fields %}
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link {{ 'active' if loop.first else '' }}" data-bs-toggle="tab"
+                    <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
                     data-bs-target="#pool-form-tab-{{ sub_form.pool_label.data }}" type="button" role="tab"
                     aria-controls="pool-form-tab" aria-selected="true">
                     {{ sub_form.pool_label.data }}</button>
                 </li>
                 {% endfor %}
             </ul>
-            <div class="tab-content pt-3" style="height: 100%; overflow-y: hidden;">
+            <div class="tab-content pt-3">
                 {% for sub_form in pool_mapping_form.input_fields %}
                 <div class="tab-pane fade show {{ 'active' if loop.first else '' }}" id="pool-form-tab-{{ sub_form.pool_label.data }}" role="tabpanel" tabindex="{{loop.index0}}">
-                    <div style="height: 100%; overflow-y: auto;">
+                    <div>
                         <div>
-                        {% for sub_form in pool_mapping_form.input_fields %}
-                            {{ sub_form.csrf_token() }}
-                            {{ form_group(sub_form.pool_label) }}
-                            <div class="row">
-                                {{ form_group(sub_form.contact_person_name, class="col-4") }}
-                                {{ form_group(sub_form.contact_person_email, class="col-4") }}
-                                {{ form_group(sub_form.contact_person_phone, class="col-4") }}
-                            </div>
-                        {% endfor %}
+                        {{ sub_form.csrf_token() }}
+                        <div class="row">
+                            {{ form_group(sub_form.pool_label, class="col") }}
+                            {{ 
+                                search_select_field(
+                                    field=sub_form.index_kit,
+                                    url=url_for('barcodes_htmx.query_index_kits'),
+                                    selected=selected_index_kit,
+                                    class="col"
+                                ) 
+                            }}
+                        </div>
+                        <div class="row">
+                            {{ form_group(sub_form.contact_person_name, class="col-4") }}
+                            {{ form_group(sub_form.contact_person_email, class="col-4") }}
+                            {{ form_group(sub_form.contact_person_phone, class="col-4") }}
+                        </div>
                         </div>
                         <div id="pool-library-list-container">
                             <table class="table table-hover table-cursor">
@@ -81,3 +90,6 @@
         </button>
     </div>
 </div>
+<script>
+    init_tooltips();
+</script>

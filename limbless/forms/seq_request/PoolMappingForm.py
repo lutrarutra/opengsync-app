@@ -18,7 +18,8 @@ else:
 
 
 class PoolSubForm(FlaskForm):
-    pool_label = StringField("Pool Label", validators=[DataRequired(), Length(min=6, max=64)])
+    pool_label = StringField("Pool Label", validators=[DataRequired(), Length(min=6, max=64)], description="Unique label to identify the pool")
+    index_kit = IntegerField("Index Kit (leave empty if custom)", validators=[OptionalValidator()])
     contact_person_name = StringField("Contact Person Name", validators=[DataRequired(), Length(max=128)])
     contact_person_email = StringField("Contact Person Email", validators=[DataRequired(), Length(max=128)])
     contact_person_phone = StringField("Contact Person Phone", validators=[OptionalValidator(), Length(max=16)])
@@ -46,9 +47,12 @@ class PoolMappingForm(TableDataForm):
                 self.input_fields.append_entry()
 
             entry = self.input_fields[i]
-            entry.pool_label.data = pool_label
-            entry.contact_person_name.data = current_user.name
-            entry.contact_person_email.data = current_user.email
+            if entry.pool_label.data is None:
+                entry.pool_label.data = pool_label
+            if entry.contact_person_name.data is None:
+                entry.contact_person_name.data = current_user.name
+            if entry.contact_person_email.data is None:
+                entry.contact_person_email.data = current_user.email
 
             _data = {}
             for _, row in _df.iterrows():
@@ -58,7 +62,6 @@ class PoolMappingForm(TableDataForm):
 
                 _data[sample_name].append({
                     "library_type": row["library_type"],
-                    "library_kit": row["library_kit"],
                     "library_volume": row["library_volume"],
                     "library_concentration": row["library_concentration"],
                     "library_total_size": row["library_total_size"],
