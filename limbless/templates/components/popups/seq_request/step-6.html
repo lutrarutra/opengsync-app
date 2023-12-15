@@ -45,9 +45,13 @@
                                     <tr>
                                         <td>{{ sample }}</td>
                                         <td>
-                                        {% for library in sample_data %}
-                                            {{ library["library_type"] }}, 
-                                        {% endfor %}
+                                            <ul class="h-list">
+                                            {% for library in sample_data %}
+                                                <li>
+                                                    {{ library["library_type"] }}
+                                                </li>
+                                            {% endfor %}
+                                            </ul>
                                         </td>
                                     </tr>
                                     {% endfor %}

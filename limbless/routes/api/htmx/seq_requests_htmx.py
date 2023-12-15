@@ -307,8 +307,6 @@ def create():
     validated, seq_request_form = seq_request_form.custom_validate()
 
     if not validated:
-        logger.debug(seq_request_form.sequencing_type.data)
-
         return make_response(
             render_template(
                 "forms/seq_request/seq_request.html",
@@ -339,9 +337,21 @@ def create():
     else:
         bioinformatician_contact_id = None
 
-    flowcell_type_id = seq_request_form.flowcell_type.data
-    if flowcell_type_id is not None and flowcell_type_id != -1:
-        flowcell_type = FlowCellType.get(flowcell_type_id)
+
+
+    if (seq_type_id := seq_request_form.sequencing_type.data) is not None:
+        try:
+            seq_type = SequencingType.get(int(seq_type_id))
+        except ValueError:
+            seq_type = SequencingType.OTHER
+    else:
+        seq_type = SequencingType.OTHER
+
+    if (flowcell_type_id := seq_request_form.flowcell_type.data) is not None:
+        try:
+            flowcell_type = FlowCellType.get(int(flowcell_type_id))
+        except ValueError:
+            flowcell_type = None
     else:
         flowcell_type = None
 
@@ -353,7 +363,7 @@ def create():
         contact_person_id=contact_person.id,
         billing_contact_id=billing_contact.id,
         bioinformatician_contact_id=bioinformatician_contact_id,
-        seq_type=seq_request_form.sequencing_type.data,
+        seq_type=seq_type,
         num_cycles_read_1=seq_request_form.num_cycles_read_1.data,
         num_cycles_index_1=seq_request_form.num_cycles_index_1.data,
         num_cycles_index_2=seq_request_form.num_cycles_index_2.data,

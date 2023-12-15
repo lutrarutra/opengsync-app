@@ -3,6 +3,7 @@ from uuid import uuid4
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from flask_wtf import FlaskForm
 from wtforms import IntegerField, SelectField
@@ -11,6 +12,7 @@ from flask_wtf.file import FileField, FileAllowed
 from werkzeug.utils import secure_filename
 
 from ..models import Library
+from .. import db
 from ..core.DBHandler import DBHandler
 from ..core.DBSession import DBSession
 from .. import logger
@@ -18,7 +20,7 @@ from .. import logger
 
 class IndexForm(FlaskForm):
     _required_columns: list[str] = [
-        "library_id", "library_name", "library_type", "index_1", "adapter"
+        "id", "library_name", "library_type", "index_1", "adapter"
     ]
     _allowed_extensions: list[tuple[str, str]] = [
         ("tsv", "Tab-separated"),
@@ -67,10 +69,6 @@ class IndexForm(FlaskForm):
                 self.file.errors = (f"Missing column(s): [{', '.join(missing)}]",)
                 return False, self, df
             
-            if pd.isna(df["index_1"]).any():
-                self.file.errors = ("Missing index_1 value(s) in one or more libraries",)
-                return False, self, df
-            
         adapter_set, adapter_1_set, adapter_2_set, adapter_3_set, adapter_4_set = self.__get_adapters_set(df)
         if adapter_set and (adapter_1_set or adapter_2_set or adapter_3_set or adapter_4_set):
             self.file.errors = ("Specify column 'adapter' or 'adpater_1/2/3/4', not both.",)
@@ -87,12 +85,46 @@ class IndexForm(FlaskForm):
             df["adapter_3"] = df["adapter"]
             df["adapter_4"] = df["adapter"]
 
+        if self.index_kit_id.data is not None:
+            for i, row in df.iterrows():
+                adapter = db.db_handler.get_adapter_from_index_kit(row["adapter"], self.index_kit_id.data)
+                
+                if adapter.barcode_1 is not None:
+                    df.loc[i, "index_1"] = adapter.barcode_1.sequence
+                else:
+                    df.loc[i, "index_1"] = np.nan
+                
+                if adapter.barcode_2 is not None:
+                    df.loc[i, "index_2"] = adapter.barcode_2.sequence
+                else:
+                    df.loc[i, "index_2"] = np.nan
+
+                if adapter.barcode_3 is not None:
+                    df.loc[i, "index_3"] = adapter.barcode_3.sequence
+                else:
+                    df.loc[i, "index_3"] = np.nan
+
+                if adapter.barcode_4 is not None:
+                    df.loc[i, "index_4"] = adapter.barcode_4.sequence
+                else:
+                    df.loc[i, "index_4"] = np.nan
+
+        if pd.isna(df["index_1"]).any():
+            self.file.errors = ("Missing index_1 value(s) in one or more libraries",)
+            return False, self, df
+
+        df.loc[df["index_1"].isna(), "adapter_1"] = np.nan
+        df.loc[df["index_2"].isna(), "adapter_2"] = np.nan
+        df.loc[df["index_3"].isna(), "adapter_3"] = np.nan
+        df.loc[df["index_4"].isna(), "adapter_4"] = np.nan
+
+        logger.debug(df[["adapter", "index_1", "index_2", "index_3", "index_4"]])
         df = df.drop(columns=["adapter"])
 
         df.loc[~pd.isna(df["index_1"]), "index_1"] = df.loc[~pd.isna(df["index_1"]), "index_1"].str.strip()
         df.loc[~pd.isna(df["index_2"]), "index_2"] = df.loc[~pd.isna(df["index_2"]), "index_2"].str.strip()
-        df.loc[~pd.isna(df["index_3"]), "index_3"] = df.loc[~pd.isna(df["index_3"]), "index_3"].str.strip()
-        df.loc[~pd.isna(df["index_4"]), "index_4"] = df.loc[~pd.isna(df["index_4"]), "index_4"].str.strip()
+        # df.loc[~pd.isna(df["index_3"]), "index_3"] = df.loc[~pd.isna(df["index_3"]), "index_3"].str.strip()
+        # df.loc[~pd.isna(df["index_4"]), "index_4"] = df.loc[~pd.isna(df["index_4"]), "index_4"].str.strip()
         
         df["adapter_1"] = df["adapter_1"].str.strip()
         df["adapter_2"] = df["adapter_2"].str.strip()

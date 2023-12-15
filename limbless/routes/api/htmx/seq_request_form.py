@@ -137,9 +137,9 @@ def select_project(seq_request_id: int):
     
     project_mapping_form = forms.ProjectMappingForm()
     validated, project_mapping_form = project_mapping_form.custom_validate(db.db_handler, current_user.id)
-    context = project_mapping_form.prepare()
 
     if not validated:
+        context = project_mapping_form.prepare()
         return make_response(
             render_template(
                 "components/popups/seq_request/step-3.html",
@@ -163,16 +163,16 @@ def select_project(seq_request_id: int):
             ), push_url=False
         )
 
-    library_select_form = forms.LibrarySelectForm()
-    context = library_select_form.prepare(seq_request.id, df)
+    library_mapping_form = forms.LibraryMappingForm()
+    context = library_mapping_form.prepare(df)
 
     return make_response(
         render_template(
             "components/popups/seq_request/step-5.html",
             seq_request=seq_request,
-            library_select_form=library_select_form,
+            library_mapping_form=library_mapping_form,
             **context
-        ), push_url=False
+        )
     )
 
 

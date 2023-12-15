@@ -182,12 +182,10 @@ class SampleColTableForm(TableDataForm):
                 df[feature] = None
 
         for i, entry in enumerate(self.input_fields):
-            logger.debug(df.columns[i])
             if not (val := entry.select_field.data):
                 continue
             val = val.strip()
             selected_features.append(val)
-            logger.debug(f"{df.columns[i]} -> {val}")
             df[val] = df[df.columns[i]]
         
         df = df[features]

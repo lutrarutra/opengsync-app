@@ -87,7 +87,7 @@ def download_template(pool_id: int):
     filename = f"pool_index_{pool.id}.tsv"
 
     data = {
-        "library_id": [],
+        "id": [],
         "library_name": [],
         "library_type": [],
         "adapter": [],
@@ -97,7 +97,7 @@ def download_template(pool_id: int):
         "index_4": [],
     }
     for library in libraries:
-        data["library_id"].append(library.id)
+        data["id"].append(library.id)
         data["library_name"].append(library.name)
         data["library_type"].append(library.type.value.description)
         data["adapter"].append("")
@@ -123,12 +123,23 @@ def check_indices(pool_id: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
+    index_form = forms.IndexForm()
+    valid, index_form, df = index_form.custom_validate()
+    if not valid or df is None:
+        return make_response(
+            render_template(
+                "forms/index/file.html",
+                index_form=index_form,
+                pool=pool,
+            )
+        )
+    
     barcode_check_form = forms.BarcodeCheckForm()
-    context = barcode_check_form.prepare()
+    context = barcode_check_form.prepare(df)
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-8.html",
+            "forms/index/check.html",
             pool=pool,
             barcode_check_form=barcode_check_form,
             **context
@@ -139,24 +150,32 @@ def check_indices(pool_id: int):
 @pools_htmx.route("<int:pool_id>/add_indices", methods=["POST"])
 @login_required
 def add_indices(pool_id: int):
-    if (pool := db.db_handler.get_pool(pool_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+    with DBSession(db.db_handler) as session:
+        if (pool := session.get_pool(pool_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+        
+        if not pool.is_editable():
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
-    if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.value.id)
     
-    index_form = forms.IndexForm()
-    valid, index_form, df = index_form.custom_validate()
-
-    if not valid or df is None:
+    barcode_check_form = forms.BarcodeCheckForm()
+    valid, barcode_check_form = barcode_check_form.custom_validate()
+    if not valid:
         return make_response(
             render_template(
-                "forms/index/file.html", index_form=index_form
+                "forms/index/check.html",
+                pool=pool,
+                barcode_check_form=barcode_check_form,
             )
         )
 
+    df = barcode_check_form.parse()
+    logger.debug(df)
+
     for _, row in df.iterrows():
-        library = db.db_handler.get_library(row["library_id"])
+        library = db.db_handler.get_library(row["id"])
         library.index_1_sequence = row["index_1"] if not pd.isna(row["index_1"]) else None
         library.index_2_sequence = row["index_2"] if not pd.isna(row["index_2"]) else None
         library.index_3_sequence = row["index_3"] if not pd.isna(row["index_3"]) else None
@@ -165,7 +184,7 @@ def add_indices(pool_id: int):
         library.index_2_adapter = row["adapter_2"] if not pd.isna(row["adapter_2"]) else None
         library.index_3_adapter = row["adapter_3"] if not pd.isna(row["adapter_3"]) else None
         library.index_4_adapter = row["adapter_4"] if not pd.isna(row["adapter_4"]) else None
-        db.db_handler.update_library(library)
+        library = db.db_handler.update_library(library)
 
     flash(f"Indices added succesfully to pool {pool.name}", "success")
     logger.debug(f"Indices added succesfully to pool {pool.name} ({pool.id})")

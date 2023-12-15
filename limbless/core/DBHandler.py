@@ -102,6 +102,11 @@ class DBHandler():
         create_contact, update_contact
     )
 
+    from .model_handlers._adapter_methods import (
+        create_adapter, get_adapter, get_adapters,
+        get_adapter_from_index_kit
+    )
+
     from .model_handlers._link_methods import (
         get_sample_libraries,
         get_lanes_in_experiment,

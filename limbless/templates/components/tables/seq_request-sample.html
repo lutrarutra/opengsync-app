@@ -36,10 +36,10 @@
                     <ul class="h-list">
                     {% for library in sample.libraries %}
                     {% if seq_request in library.seq_requests %}
-                    <li
-                    {{ tooltip(library.type.value.name) }}>
-                        {{ library.type.value.description }}
-                    </li>
+                        <li
+                        {{ tooltip(library.type.value.name) }}>
+                            {{ library.type.value.description }}
+                        </li>
                     {% endif %}
                     {% endfor %}
                     </ul>

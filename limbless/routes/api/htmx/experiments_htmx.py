@@ -50,9 +50,7 @@ def create():
 
     experiment_form = forms.ExperimentForm()
 
-    validated, experiment_form = experiment_form.custom_validate(
-        db_handler=db.db_handler, user_id=current_user.id,
-    )
+    validated, experiment_form = experiment_form.custom_validate()
 
     if (selected_person_id := experiment_form.sequencing_person.data) is not None:
         if (selected_user := db.db_handler.get_user(selected_person_id)) is None:
@@ -102,10 +100,7 @@ def edit(experiment_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     experiment_form = forms.ExperimentForm()
-    validated, experiment_form = experiment_form.custom_validate(
-        db_handler=db.db_handler,
-        user_id=current_user.id,
-    )
+    validated, experiment_form = experiment_form.custom_validate()
 
     if not validated:
         return make_response(

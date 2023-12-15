@@ -53,8 +53,10 @@ def experiment_page(experiment_id):
             sort_by="id", descending=True, experiment_id=experiment_id
         )
 
+        available_seq_requests_sort = "submitted_time"
+
         available_seq_requests, available_seq_requests_n_pages = session.get_seq_requests(
-            sort_by="id", descending=True, exclude_experiment_id=experiment_id,
+            sort_by=available_seq_requests_sort, descending=True, exclude_experiment_id=experiment_id,
             with_statuses=[SeqRequestStatus.SUBMITTED]
         )
         experiment_lanes = session.get_lanes_in_experiment(experiment_id)
@@ -94,6 +96,8 @@ def experiment_page(experiment_id):
             available_seq_requests_n_pages=available_seq_requests_n_pages,
             available_seq_requests_active_page=0,
             available_seq_requests=available_seq_requests,
+            available_seq_requests_current_sort=available_seq_requests_sort,
+            available_seq_requests_current_sort_order="desc",
             selected_sequencer=experiment.sequencer.name,
             selected_user=experiment.sequencing_person,
         )

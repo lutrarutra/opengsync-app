@@ -45,7 +45,7 @@
         </form>
     </div>
     <div class="modal-footer">
-        <button type="button" id="map-sample-table-col-btn" class="btn btn-primary disabled"
+        <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
             hx-target="#sample-table-col-select-container" hx-swap="outerHTML"
             hx-include="#sample-table-col-select-form"
             hx-post="{{ url_for('seq_request_form_htmx.map_columns', seq_request_id=seq_request.id) }}">
@@ -122,9 +122,9 @@
     }
 
     $(".select-field").on("change", function() {
-        check_columns();
+        //check_columns();
     });
 
-    check_columns();
+    //check_columns();
 
 </script>

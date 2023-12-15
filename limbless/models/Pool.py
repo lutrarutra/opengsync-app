@@ -4,6 +4,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from ..tools import SearchResult
 from .Links import LibraryPoolLink, ExperimentPoolLink
+from ..categories import ExperimentStatus
 
 if TYPE_CHECKING:
     from .Library import Library
@@ -59,9 +60,9 @@ class Pool(SQLModel, SearchResult, table=True):
             
         return True
 
-    def is_submitted(self) -> bool:
-        for library in self.libraries:
-            if library.submitted:
-                return True
+    def is_editable(self) -> bool:
+        for experiment in self.experiments:
+            if not experiment.status == ExperimentStatus.DRAFT:
+                return False
             
-        return False
+        return True

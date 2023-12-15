@@ -34,7 +34,7 @@ class ProjectMappingForm(TableDataForm):
         else:
             self.set_df(df)
         
-        projects = sorted(df["project"].unique())
+        projects = df["project"].unique()
         selected: list[Optional[str]] = []    # TODO: get projects for each selected
 
         for i, raw_project_name in enumerate(projects):
@@ -67,16 +67,18 @@ class ProjectMappingForm(TableDataForm):
 
         df["project_name"] = None
         df["project_id"] = None
-        projects = sorted(df["project"].unique())
+        projects = df["project"].unique()
 
         for i, raw_project in enumerate(projects):
-            if (project_id := self.input_fields.entries[i].category.data) is not None:
+            logger.debug(f"Project {raw_project} -> {self.input_fields[i].category.data}")
+            logger.debug(f"Project {raw_project} -> {self.input_fields[i].new_category.data}")
+            if (project_id := self.input_fields[i].category.data) is not None:
                 if (project := db.db_handler.get_project(project_id)) is None:
                     raise Exception(f"Project with id {project_id} does not exist.")
                 
                 df.loc[df["project"] == raw_project, "project_id"] = project.id
                 df.loc[df["project"] == raw_project, "project_name"] = project.name
-            elif project_name := self.input_fields.entries[i].new_category.data:
+            elif project_name := self.input_fields[i].new_category.data:
                 df.loc[df["project"] == raw_project, "project_id"] = None
                 df.loc[df["project"] == raw_project, "project_name"] = project_name
                 logger.debug(f"Creating project {project_name}")
@@ -111,6 +113,9 @@ class ProjectMappingForm(TableDataForm):
                 df.at[i, "sample_id"] = _project_samples[row["sample_name"]].id
                 df.at[i, "tax_id"] = _project_samples[row["sample_name"]].organism.tax_id
 
+        df["project_id"] = df["project_id"].astype("Int64")
+        df["sample_id"] = df["sample_id"].astype("Int64")
+
         return df
 
     def custom_validate(self, db_handler: DBHandler, user_id: int):
@@ -126,7 +131,8 @@ class ProjectMappingForm(TableDataForm):
                     field.new_category.errors = ("Please select or create a project.",)
                     field.category.errors = ("Please select or create a project.",)
                     validated = False
-                if field.category.data and field.new_category.data:
+                
+                if field.category.data is not None and field.new_category.data.strip():
                     field.new_category.errors = ("Please select or create a project, not both.",)
                     field.category.errors = ("Please select or create a project, not both.",)
                     validated = False

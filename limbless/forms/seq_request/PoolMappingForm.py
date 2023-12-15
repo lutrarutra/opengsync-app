@@ -80,6 +80,7 @@ class PoolMappingForm(TableDataForm):
         df["contact_person_email"] = None
         df["contact_person_phone"] = None
 
+        df["pool"] = df["pool"].astype(str)
         raw_pool_labels = df["pool"].unique().tolist()
         for i, entry in enumerate(self.input_fields.entries):
             pool_label = entry.pool_label.data

@@ -10,19 +10,19 @@
             <h1>Pool: {{ pool.name }}</h1>
         </div>
         <div>
-            <span {% if pool.is_submitted() %}
+            <span {% if not is_editable %}
             {{ tooltip("You can no longer edit pool after it is submitted.") }}
             {% endif %}>
                 <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#index-pool-form-popup"
-                {% if pool.is_submitted() %}disabled{% endif %}>
+                {% if not is_editable %}disabled{% endif %}>
                     Add Indexes
                 </button>
             </span>
-            <span {% if pool.is_submitted() %}
+            <span {% if not is_editable %}
             {{ tooltip("You can no longer edit pool after it is submitted.") }}
             {% endif %}>
                 <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pool-form-popup"
-                {% if pool.is_submitted() %}disabled{% endif %}>
+                {% if not is_editable %}disabled{% endif %}>
                     Edit Pool
                 </button>
             </span>
@@ -75,6 +75,21 @@
         </div>
     </div>
 </div>
+{% if open_index_form %}
 <script type="text/javascript">
+    function replaceQueryParam(param, newval, search) {
+        var regex = new RegExp("([?;&])" + param + "[^&;]*[;&]?");
+        var query = search.replace(regex, "$1").replace(/&$/, '');
+
+        return (query.length > 2 ? query + "&" : "?") + (newval ? param + "=" + newval : '');
+    }
+    $(document).ready(function() {
+        $("#index-pool-form-popup").modal("show");
+        var url = window.location.href;
+        url = replaceQueryParam("index_form", "", url);
+        console.log(url);
+        window.history.pushState({path: url}, '', url);
+    });
 </script>
+{% endif %}
 {% endblock content %}

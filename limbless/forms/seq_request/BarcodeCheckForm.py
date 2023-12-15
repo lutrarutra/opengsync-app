@@ -27,7 +27,7 @@ class BarcodeCheckForm(TableDataForm):
             # Check if sample names are unique in project
             data = {
                 "id": row["id"],
-                "name": row["sample_name"],
+                "name": row["sample_name"] if "sample_name" in row else row["library_name"],
                 "library_type": row["library_type"],
                 "error": None,
                 "warning": "",
@@ -77,9 +77,6 @@ class BarcodeCheckForm(TableDataForm):
     
     def parse(self) -> pd.DataFrame:
         df = self.get_df()
-
-        df["sample_id"] = df["sample_id"].astype("Int64")
-        df["project_id"] = df["project_id"].astype("Int64")
             
         return df
         

@@ -12,6 +12,8 @@ class IndexKit(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True, unique=True)
 
+    num_indices_per_adapter: int = Field(nullable=False)
+
     barcodes: List["Barcode"] = Relationship(
         back_populates="index_kit",
         sa_relationship_kwargs={"lazy": "selectin"},

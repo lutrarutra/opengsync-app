@@ -56,7 +56,7 @@ class SeqRequestForm(FlaskForm):
     )
 
     num_lanes = IntegerField(
-        "Number of Lanes", validators=[OptionalValidator(), NumberRange(min=1)],
+        "Number of Lanes", validators=[OptionalValidator(), NumberRange(min=1, max=8)],
         description="Number of lanes.", default=None
     )
 

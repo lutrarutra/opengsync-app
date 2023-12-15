@@ -1,12 +1,8 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, select_input %}
 {% from 'components/search_select.jinja2' import search_select_field %}
+
 <form id="experiment-form">
     {{ experiment_form.csrf_token() }}
-    <div class="row">
-        {{ form_group(experiment_form.flowcell, class="col") }}
-        {{ form_group(experiment_form.num_lanes, class="col") }}
-    </div>
-    
     <div class="form-check form-switch">
         {{ experiment_form.current_user_is_seq_person(class="form-check-input") }}
         <label class="form-check-label">I am sequencing.</label>
@@ -21,14 +17,22 @@
     }}
     <input id="sequencing_person" name="sequencing_person" hx-target="#experiment-form" hx-swap="outerHTML" hx-include="#experiment-form"
         hx-trigger="change" hx-post="{{ url_for('experiments_htmx.select_sequencing_person') }}"
-        value="{{ selected_user.id if selected_user is defined else current_user.id }}" type="number" readonly=true>
-    {{ 
-        search_select_field(
-            experiment_form.sequencer,
-            url=url_for('sequencers_htmx.query'),
-            selected=selected_sequencer,
-        ) 
-    }}
+        value="{{ selected_user.id if selected_user is defined else current_user.id }}" type="number" readonly=true hidden>
+    
+    <div class="row">
+        {{ 
+            search_select_field(
+                experiment_form.sequencer,
+                url=url_for('sequencers_htmx.query'),
+                selected=selected_sequencer,
+                class="col-4"
+            ) 
+        }}
+        {{ select_input(experiment_form.flowcell_type, class="col-3") }}
+        {{ form_group(experiment_form.flowcell, class="col-3") }}
+        {{ form_group(experiment_form.num_lanes, class="col-2") }}
+    </div>
+
     <div class="row">
         {{ form_group(experiment_form.r1_cycles, class="col") }}
         {{ form_group(experiment_form.i1_cycles, class="col") }}

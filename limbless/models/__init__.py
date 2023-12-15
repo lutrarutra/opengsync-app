@@ -15,4 +15,5 @@ from .SeqRequest import SeqRequest
 from .Contact import Contact
 from .Sequencer import Sequencer
 from .CMO import CMO
+from .Adapter import Adapter
 from .Barcode import Barcode

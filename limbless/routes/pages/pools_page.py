@@ -51,7 +51,8 @@ def pool_page(pool_id: int):
         pool_form = forms.PoolForm()
         pool_form.name.data = pool.name
 
-        libraries, libraries_n_pages = db.db_handler.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
+        libraries, libraries_n_pages = session.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
+        is_editable = pool.is_editable()
 
         path_list = [
             ("Pools", url_for("pools_page.pools_page")),
@@ -66,6 +67,8 @@ def pool_page(pool_id: int):
                     (f"Pool {pool_id}", ""),
                 ]
 
+        open_index_form = request.args.get("index_form", None) == "open"
+
         index_form = forms.IndexForm()
 
         return render_template(
@@ -75,6 +78,8 @@ def pool_page(pool_id: int):
             libraries_n_pages=libraries_n_pages,
             path_list=path_list,
             pool_form=pool_form,
+            open_index_form=open_index_form,
+            is_editable=is_editable,
             index_form=index_form,
             table_form=forms.TableForm(),
         )

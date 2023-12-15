@@ -10,7 +10,9 @@ from ...categories import LibraryType
 
 
 def create_index_kit(
-    self, name: str
+    self, name: str,
+    num_indices_per_adapter: int,
+    commit: bool = True
 ) -> models.IndexKit:
     persist_session = self._session is not None
     if not self._session:
@@ -20,11 +22,13 @@ def create_index_kit(
         raise exceptions.NotUniqueValue(f"index_kit with name '{name}', already exists.")
 
     seq_kit = models.IndexKit(
-        name=name
+        name=name,
+        num_indices_per_adapter=num_indices_per_adapter
     )
     self._session.add(seq_kit)
-    self._session.commit()
-    self._session.refresh(seq_kit)
+    if commit:
+        self._session.commit()
+        self._session.refresh(seq_kit)
 
     if not persist_session:
         self.close_session()

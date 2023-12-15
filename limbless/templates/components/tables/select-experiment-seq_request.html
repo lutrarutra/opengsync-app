@@ -8,33 +8,97 @@
                     table_col(
                         target_id='select-experiment-seq_request-table', column_name='ID', column_var='id',
                         sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
                         query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
-                        field_name=field_name, query_type="number"
+                        field_name=field_name, query_type="number", col_size=1
                     )
                 }}
                 {{
                     table_col(
                         target_id='select-experiment-seq_request-table', column_name='Request Name', column_var='sample_name',
                         sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
                         query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
-                        field_name=field_name, col_size=5
+                        field_name=field_name, col_size=2
                     )
                 }}
-                <td scope="col" class="col-1"></td>
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='Requestor', column_var='requestor_name',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
+                        field_name=field_name, col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='Technology', column_var='technology',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
+                        field_name=field_name, col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='Submitted', column_var='submitted_time',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order, col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='Read Length', column_var='read_length',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
+                        field_name=field_name, col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='Sequencer', column_var='sequencer',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
+                        field_name=field_name, col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='Flowcell', column_var='flowcell_type_id',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
+                        field_name=field_name, col_size=1
+                    )
+                }}
+                <th scope="col" class="col-1">
+                    Read Config
+                </th>
             </tr>
         </thead>
         <tbody>
             {% for request in available_seq_requests %}
             <tr>
-                <th scope="row">{{ request.id }}</th>
-                <td>{{ request.name }}</td>
-                <td>
-                    <button type="button" class="btn btn-primary" style="height: 30px; padding: 5px;"
+                <th scope="row">{{ request.id }}
+                    <button type="button" class="btn btn-primary table-btn"
                     hx-post="{{ url_for('experiments_htmx.add_seq_request', experiment_id=experiment.id, seq_request_id=request.id) }}">
                     Add
                     </button>
+                </th>
+                <td>{{ request.name }}</td>
+                <td>{{ request.requestor.name }}</td>
+                <td>{{ request.technology }}</td>
+                <td>{{ request.submitted_time_to_str() }}</td>
+                <td>{{ request.read_length }}</td>
+                <td>{{ request.sequencer }}</td>
+                <td>{{ request.flowcell_type.value.name if request.flowcell_type else None }}</td>
+                <td>
+                    {% if request.num_cycles_read_1 %}
+                    {{ request.num_cycles_read_1 }}-{{ request.num_cycles_index_1 }}{% if request.num_cycles_index_2 %}-{{ request.num_cycles_index_2 }}-{{ request.num_cycles_read_2 }}{% endif %}
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

@@ -132,7 +132,7 @@
                     </div>
                     <div class="row">
                         {{ metadata_group("Sequencer", seq_request.sequencer, class="col-5") }}
-                        {{ metadata_group("Flowcell Type", seq_request.flowcell_type.value.name, class="col-5") }}
+                        {{ metadata_group("Flowcell Type", seq_request.flowcell_type.value.name if seq_request.flowcell_type else None, class="col-5") }}
                         {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-2") }}
                     </div>
 

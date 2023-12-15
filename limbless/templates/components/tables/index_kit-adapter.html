@@ -1,0 +1,40 @@
+{% from "components/pagination.jinja2" import pagination %}
+<div id="index_kit-adapter-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col" class="col-1">ID</th>
+                <th scope="col" class="col-3">Adapter</th>
+                <th scope="col" class="col-2">Index 1</th>
+                {% if index_kit.num_indices_per_adapter > 1 %}
+                <th scope="col" class="col-2">Index 2</th>
+                {% endif %}
+                {% if index_kit.num_indices_per_adapter > 2 %}
+                <th scope="col" class="col-2">Index 3</th>
+                {% endif %}
+                {% if index_kit.num_indices_per_adapter > 3 %}
+                <th scope="col" class="col-2">Index 4</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for adapter in adapters %}
+            <tr>
+                <th scope="row">{{ adapter.id }}</th>
+                <td>{{ adapter.name }}</td>
+                <td>{{ adapter.barcode_1.sequence }}</td>
+                {% if index_kit.num_indices_per_adapter > 1 %}
+                <td>{{ adapter.barcode_2.sequence }}</td>
+                {% endif %}
+                {% if index_kit.num_indices_per_adapter > 2 %}
+                <td>{{ adapter.barcode_3.sequence }}</td>
+                {% endif %}
+                {% if index_kit.num_indices_per_adapter > 3 %}
+                <td>{{ adapter.barcode_4.sequence }}</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("index_kit-adapter-table", "barcodes_htmx.get", adapters_n_pages, adapters_active_page) }}
+</div>

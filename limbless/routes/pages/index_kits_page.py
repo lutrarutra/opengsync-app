@@ -31,9 +31,13 @@ def index_kit_page(index_kit_id: int):
         (f"{index_kit_id}", ""),
     ]
 
+    adapters, adapters_n_pages = session.get_adapters(index_kit_id=index_kit_id, limit=PAGE_LIMIT)
+
     return render_template(
         "index_kit_page.html",
-        index_kits_active_page=0,
         path_list=path_list,
-        index_kit=index_kit
+        index_kit=index_kit,
+        adapters=adapters,
+        adapters_n_pages=adapters_n_pages,
+        adapters_active_page=0,
     )

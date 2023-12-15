@@ -3,21 +3,15 @@
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Library Types</th>
-                <th scope="col"># Adapters</th>
+                <th scope="col" class="col-1">ID</th>
+                <th scope="col" class="col-11">Name</th>
             </tr>
         </thead>
         <tbody>
             {% for index_kit in index_kits %}
             <tr onclick="window.location.href='{{ url_for('index_kits_page.index_kit_page', index_kit_id=index_kit.id) }}';">
-                <th scope="row">{{ index_kit.name }}</th>
-                <td class="library_type-col">
-                    {% for library_type in index_kit.library_types %}
-                        <span class="comma">{{ library_type.value.name }}</span>
-                    {% endfor %}
-                </td>
-                <td>{{ index_kit.num_adapters }}</td>
+                <th scope="row">{{ index_kit.id }}</th>
+                <td scope="row">{{ index_kit.name }}</td>
             </tr>
             {% endfor %}
         </tbody>

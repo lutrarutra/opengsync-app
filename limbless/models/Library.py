@@ -67,15 +67,15 @@ class Library(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select"}
     )
 
-    index_1_sequence: Optional[str] = Field(nullable=True, alias="index_1_sequence")
-    index_2_sequence: Optional[str] = Field(nullable=True, alias="index_2_sequence")
-    index_3_sequence: Optional[str] = Field(nullable=True, alias="index_3_sequence")
-    index_4_sequence: Optional[str] = Field(nullable=True, alias="index_4_sequence")
+    index_1_sequence: Optional[str] = Field(nullable=True)
+    index_2_sequence: Optional[str] = Field(nullable=True)
+    index_3_sequence: Optional[str] = Field(nullable=True)
+    index_4_sequence: Optional[str] = Field(nullable=True)
 
-    index_1_adapter: Optional[str] = Field(nullable=True, alias="index_1_adapter")
-    index_2_adapter: Optional[str] = Field(nullable=True, alias="index_2_adapter")
-    index_3_adapter: Optional[str] = Field(nullable=True, alias="index_3_adapter")
-    index_4_adapter: Optional[str] = Field(nullable=True, alias="index_4_adapter")
+    index_1_adapter: Optional[str] = Field(nullable=True)
+    index_2_adapter: Optional[str] = Field(nullable=True)
+    index_3_adapter: Optional[str] = Field(nullable=True)
+    index_4_adapter: Optional[str] = Field(nullable=True)
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id", "owner_id"]
 
