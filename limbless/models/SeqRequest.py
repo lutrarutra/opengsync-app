@@ -45,7 +45,6 @@ class SeqRequest(SQLModel, table=True):
 
     bioinformatician_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")
     bioinformatician_contact: Optional["Contact"] = Relationship(
-        back_populates="seq_requests",
         sa_relationship_kwargs={
             "lazy": "joined",
             "foreign_keys": "[SeqRequest.bioinformatician_contact_id]"
@@ -70,13 +69,6 @@ class SeqRequest(SQLModel, table=True):
         sa_relationship_kwargs={
             "lazy": "joined",
             "foreign_keys": "[SeqRequest.billing_contact_id]"
-        },
-    )
-
-    bioinformatician_contact: Optional["Contact"] = Relationship(
-        sa_relationship_kwargs={
-            "lazy": "joined",
-            "foreign_keys": "[SeqRequest.bioinformatician_contact_id]"
         },
     )
 

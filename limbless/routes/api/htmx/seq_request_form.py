@@ -294,7 +294,7 @@ def map_pools(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     pool_mapping_form = forms.PoolMappingForm()
-    validated, pool_mapping_form = pool_mapping_form.custom_validate(db.db_handler)
+    validated, pool_mapping_form = pool_mapping_form.custom_validate()
 
     if not validated:
         return make_response(
@@ -405,9 +405,11 @@ def check_barcodes(seq_request_id: int):
     with DBSession(db.db_handler) as session:
         pools: dict[str, models.Pool] = {}
         for pool_label, _df in df.groupby("pool"):
+            pool_label = str(pool_label)
             pool = session.create_pool(
                 name=pool_label,
                 owner_id=current_user.id,
+                index_kit_id=df["index_kit"].iloc[0],
                 contact_name=_df["contact_person_name"].iloc[0],
                 contact_email=_df["contact_person_email"].iloc[0],
                 contact_phone=_df["contact_person_phone"].iloc[0],
@@ -435,7 +437,6 @@ def check_barcodes(seq_request_id: int):
                     sample_id=sample.id,
                     library_type=LibraryType.get(row["library_type_id"]),
                     owner_id=current_user.id,
-                    kit=row["library_kit"],
                     volume=row["library_volume"],
                     dna_concentration=row["library_concentration"],
                     total_size=row["library_total_size"],

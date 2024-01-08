@@ -70,8 +70,6 @@ class ProjectMappingForm(TableDataForm):
         projects = df["project"].unique()
 
         for i, raw_project in enumerate(projects):
-            logger.debug(f"Project {raw_project} -> {self.input_fields[i].category.data}")
-            logger.debug(f"Project {raw_project} -> {self.input_fields[i].new_category.data}")
             if (project_id := self.input_fields[i].category.data) is not None:
                 if (project := db.db_handler.get_project(project_id)) is None:
                     raise Exception(f"Project with id {project_id} does not exist.")
