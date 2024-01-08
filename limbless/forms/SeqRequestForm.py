@@ -18,6 +18,9 @@ class SeqRequestForm(FlaskForm):
         Often useful to copy and paste a few relevant sentences from a grant proposal
         or the methods section of a previous paper on the same topic."""
     )
+    seq_auth_form_sent = BooleanField(
+        "Sequencing Authorization Form Sent", default=False,
+    )
 
     technology = StringField(
         "Technology", validators=[DataRequired(), Length(max=64)],
@@ -150,7 +153,12 @@ class SeqRequestForm(FlaskForm):
 
     def custom_validate(self) -> tuple[bool, "SeqRequestForm"]:
         validated = self.validate()
+        
         if not validated:
+            return False, self
+        
+        if not self.seq_auth_form_sent.data:
+            self.seq_auth_form_sent.errors = ("Sequencing authorization form is required",)
             return False, self
         
         if self.bioinformatician_name.data:

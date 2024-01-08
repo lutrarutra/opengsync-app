@@ -176,16 +176,9 @@
             }
         });
 
-        // Copy to clipboard icon
-        $(".clipboard-btn").on("click", function() {
-            var input_element = null;
-            if ($(this).siblings().first().is("input")) {
-                input_element = $(this).siblings().first();
-            } else {
-                input_element = $(this).siblings().first().children("input").first();
-            }
-
-            navigator.clipboard.writeText(input_element.val());
+        function copy_to_clipboard(uuid) {
+            console.log("copying " + uuid);
+            navigator.clipboard.writeText($("#" + uuid + " input").first().val());
 
             $(".copied-icon").css({
                 display: "none"
@@ -193,13 +186,13 @@
             $(".not-copied-icon").css({
                 display: "inline-block"
             });
-            $(this).children(".not-copied-icon").css({
+            $("#" + uuid + " a .not-copied-icon").css({
                 display: "none"
             });
-            $(this).children(".copied-icon").css({
+            $("#" + uuid + " a .copied-icon").css({
                 display: "inline-block"
             });
-        });
+        };
 
         // responsive navbar
         $("#burger").on("click", function () {

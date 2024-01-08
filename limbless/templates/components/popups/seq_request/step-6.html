@@ -10,7 +10,7 @@
         <form id="pool-mapping-form">
             <ul class="nav nav-tabs" role="tablist">
                 {% for sub_form in pool_mapping_form.input_fields %}
-                <li class="nav-item" role="presentation">
+                <li class="nav-item" role="presentation"> 
                     <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
                     data-bs-target="#pool-form-tab-{{ sub_form.pool_label.data }}" type="button" role="tab"
                     aria-controls="pool-form-tab" aria-selected="true">

@@ -3,8 +3,29 @@
     {{ seq_request_form.csrf_token() }}
     
     <h4>Request Info</h4>
-    {{ form_group(seq_request_form.name, class="col") }}
-    {{ form_group(seq_request_form.description, class="col") }}
+    {{ form_group(seq_request_form.name) }}
+    {{ form_group(seq_request_form.description) }}
+    <div class="form-group">
+        {{ 
+            seq_request_form.seq_auth_form_sent(
+                class="form-check-input" + (" is-invalid" if (seq_request_form.seq_auth_form_sent.errors) else ""),
+                type="checkbox"
+            )
+        }}
+        <label>
+            I have filled in 
+            <a href="{{ url_for('seq_request_form_htmx.download_seq_auth_form') }}">
+                the sequencing authorization form</a> and sent it to
+            <a href="mailto:cbock@cemm.oeaw.ac.at?subject=Sequencing%20Authorization%20Form">
+                cbock@cemm.oeaw.ac.at
+            </a>
+        </label>
+        <div class="invalid-feedback-container">
+            {% for error in seq_request_form.seq_auth_form_sent.errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    </div>
 
     <br>
     <h4>Technical Requirements</h4>
@@ -155,6 +176,4 @@
             $("#contact_person_email").val("");
         }
     });
-
-
 </script>

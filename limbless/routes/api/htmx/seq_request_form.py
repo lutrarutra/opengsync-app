@@ -41,6 +41,20 @@ def download_template(type: str):
     return send_file(path, mimetype="text/csv", as_attachment=True, download_name=name)
 
 
+# Template sequencing authorization form
+@seq_request_form_htmx.route("seq_auth_form/download", methods=["GET"])
+@login_required
+def download_seq_auth_form():
+    name = "seq_auth_form_v2.pdf"
+
+    path = os.path.join(
+        current_app.root_path,
+        "static", "resources", "templates", name
+    )
+
+    return send_file(path, mimetype="pdf", as_attachment=True, download_name=name)
+
+
 # 0. Restart form
 @seq_request_form_htmx.route("<int:seq_request_id>/restart_form", methods=["GET"])
 @login_required

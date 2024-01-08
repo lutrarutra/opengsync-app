@@ -19,6 +19,7 @@ class LibrarySubForm(FlaskForm):
         "scrnaseq": 1,
         "scrna": 1,
         "geneexpression": 1,
+        "gene expression": 1,
         "gex": 1,
         "snrnaseq": 2,
         "snrna": 2,

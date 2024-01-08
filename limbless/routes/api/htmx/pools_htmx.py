@@ -172,7 +172,6 @@ def add_indices(pool_id: int):
         )
 
     df = barcode_check_form.parse()
-    logger.debug(df)
 
     for _, row in df.iterrows():
         library = db.db_handler.get_library(row["id"])
