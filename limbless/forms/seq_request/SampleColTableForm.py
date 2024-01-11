@@ -152,7 +152,8 @@ class SampleColTableForm(TableDataForm):
     
     def __clean_df(self, df: pd.DataFrame) -> pd.DataFrame:
         df["sample_name"] = df["sample_name"].apply(tools.make_filenameable)
-        df["pool"] = df["pool"].apply(tools.make_filenameable)
+        if "pool" in df.columns:
+            df["pool"] = df["pool"].apply(tools.make_filenameable)
         df["index_1"] = df["index_1"].str.strip()
         df["index_2"] = df["index_2"].str.strip()
         df["index_3"] = df["index_3"].str.strip()
@@ -205,8 +206,6 @@ class SampleColTableForm(TableDataForm):
 
         df = df.drop(columns=["adapter"])
         df["id"] = df.reset_index(drop=True).index + 1
-        if "pool" not in df.columns:
-            df["pool"] = 1
         df = self.__clean_df(df)
 
         return df

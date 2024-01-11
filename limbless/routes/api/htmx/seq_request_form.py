@@ -241,6 +241,7 @@ def map_organisms(seq_request_id: int):
 
     library_mapping_form = forms.LibraryMappingForm()
     context = library_mapping_form.prepare(df)
+
     return make_response(
         render_template(
             "components/popups/seq_request/step-5.html",
@@ -273,19 +274,34 @@ def map_libraries(seq_request_id: int):
         )
     
     df = library_mapping_form.parse()
-    pool_mapping_form = forms.PoolMappingForm(formdata=None)
-    context = pool_mapping_form.prepare(df)
+    if (~df["pool"].isnull()).any():
+        pool_mapping_form = forms.PoolMappingForm(formdata=None)
+        context = pool_mapping_form.prepare(df)
+
+        return make_response(
+            render_template(
+                "components/popups/seq_request/step-6.html",
+                seq_request=seq_request,
+                pool_mapping_form=pool_mapping_form,
+                **context
+            )
+        )
+    
+    library_select_form = forms.LibrarySelectForm()
+    context = library_select_form.prepare(seq_request.id, df)
+
+    logger.debug(df["pool"])
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-6.html",
+            template_name_or_list="components/popups/seq_request/step-7.html",
             seq_request=seq_request,
-            pool_mapping_form=pool_mapping_form,
+            library_select_form=library_select_form,
             **context
-        )
+        ), push_url=False
     )
-
-
+    
+    
 # 6. Map pools
 @seq_request_form_htmx.route("<int:seq_request_id>/map_pools", methods=["POST"])
 @login_required
@@ -449,10 +465,11 @@ def check_barcodes(seq_request_id: int):
                     index_3_adapter=row["adapter_3"] if not pd.isna(row["adapter_3"]) else None,
                     index_4_adapter=row["adapter_4"] if not pd.isna(row["adapter_4"]) else None,
                 )
-                session.link_library_pool(
-                    library_id=library.id,
-                    pool_id=pools[row["pool"]].id
-                )
+                if not pd.isna(row["pool"]):
+                    session.link_library_pool(
+                        library_id=library.id,
+                        pool_id=pools[row["pool"]].id
+                    )
                 
                 session.link_library_seq_request(
                     library_id=library.id,
