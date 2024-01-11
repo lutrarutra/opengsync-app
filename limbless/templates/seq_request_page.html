@@ -15,7 +15,11 @@
             {% if seq_request.status.value.name == "Draft" %}
             <span
             {% if not seq_request.is_submittable() %}
-            {{ tooltip('You must add at least one library to submit the request.', category='success') }}
+                {% if not seq_request.is_authorized() %}
+                    {{ tooltip('You must add a sequencing authorization form to submit the request.', category='success') }}
+                {% else %}
+                    {{ tooltip('You must add at least one library to submit the request.', category='success') }}
+                {% endif %}
             {% endif %}>
                 <button hx-get="{{ url_for('seq_requests_htmx.submit', seq_request_id=seq_request.id) }}" class="btn btn-success"
                     _="on htmx:confirm(issueRequest)
@@ -90,6 +94,11 @@
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#request-metadata-tab" type="button" role="tab"
                 aria-controls="request-metadata-tab" aria-selected="true">Metadata</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#request-seq_auth-tab" type="button" role="tab"
+                aria-controls="request-seq_auth-tab" aria-selected="true">Sequencing Authorization</button>
             </li>
         </ul>
         <div class="tab-content pt-3">
@@ -217,6 +226,38 @@
                         {{ metadata_group("Phone", seq_request.billing_contact.phone, class="col") }}
                     </div>
                 </div>
+            </div>
+            <div class="tab-pane fade show" id="request-seq_auth-tab" role="tabpanel" tabindex="3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>Sequencing Authorization</h2>
+                    </div>
+                    <div>
+                        {% if seq_request.is_authorized() %}
+                        <a type="button" class="btn btn-danger" hx-delete="{{ url_for('seq_requests_htmx.remove_auth_form', seq_request_id=seq_request.id) }}"
+                        _="on htmx:confirm(issueRequest)
+                        halt the event
+                        call Swal.fire({
+                            title: 'Remove authorization form from \'{{ seq_request.name }}\'',
+                            showDenyButton: true,
+                            text: 'Do you want to proceed?',
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'No'
+                        })
+                        if result.isConfirmed issueRequest()">
+                            Remove Authorization Form
+                        </a>
+                        {% endif %}
+                        <a type="button" class="btn btn-primary" href="{{ url_for('seq_request_form_htmx.download_seq_auth_form') }}">
+                            Download Template
+                        </a>
+                    </div>
+                </div>
+                {% if not seq_request.is_authorized() %}
+                {% include "forms/seq_request/seq_auth.html" %}
+                {% else %}
+                <embed src="{{ url_for('auth_forms', uuid=seq_request.seq_auth_form_uuid) }}" width="100%" height="1000px">
+                {% endif %}
             </div>
         </div>
     </div>

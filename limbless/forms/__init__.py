@@ -18,3 +18,4 @@ from .seq_request.OrganismMappingForm import OrganismMappingForm
 from .seq_request.ProjectMappingForm import ProjectMappingForm
 from .seq_request.LibraryMappingForm import LibraryMappingForm
 from .seq_request.PoolMappingForm import PoolMappingForm
+from .seq_request.SeqAuthForm import SeqAuthForm

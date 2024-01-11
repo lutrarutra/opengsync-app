@@ -245,90 +245,14 @@ def submit_seq_request(
 
 
 def update_seq_request(
-    self, seq_request_id: int,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    technology: Optional[str] = None,
-    seq_type: Optional[SequencingType] = None,
-    num_cycles_read_1: Optional[int] = None,
-    num_cycles_index_1: Optional[int] = None,
-    num_cycles_index_2: Optional[int] = None,
-    num_cycles_read_2: Optional[int] = None,
-    read_length: Optional[int] = None,
-    special_requirements: Optional[str] = None,
-    sequencer: Optional[str] = None,
-    flowcell_type: Optional[FlowCellType] = None,
-    num_lanes: Optional[int] = None,
-    organization_name: Optional[str] = None,
-    organization_department: Optional[str] = None,
-    organization_address: Optional[str] = None,
-    billing_code: Optional[str] = None,
-    status: Optional[SeqRequestStatus] = None,
+    self, seq_request: models.SeqRequest,
     commit: bool = True
 ) -> models.SeqRequest:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
-
-    if name is not None:
-        seq_request.name = name
-
-    if description is not None:
-        seq_request.description = description
-
-    if technology is not None:
-        seq_request.technology = technology
-
-    if status is not None:
-        seq_request.status_id = status.value.id
-
-    if seq_type is not None:
-        seq_request.sequencing_type_id = seq_type.value.id
-
-    if num_cycles_read_1 is not None:
-        seq_request.num_cycles_read_1 = num_cycles_read_1
-
-    if num_cycles_index_1 is not None:
-        seq_request.num_cycles_index_1 = num_cycles_index_1
-
-    if num_cycles_index_2 is not None:
-        seq_request.num_cycles_index_2 = num_cycles_index_2
-
-    if num_cycles_read_2 is not None:
-        seq_request.num_cycles_read_2 = num_cycles_read_2
-
-    if read_length is not None:
-        seq_request.read_length = read_length
-
-    if special_requirements is not None:
-        seq_request.special_requirements = special_requirements
-
-    if sequencer is not None:
-        seq_request.sequencer = sequencer
-
-    if flowcell_type is not None:
-        seq_request.flowcell_type_id = flowcell_type.value.id
-
-    if num_lanes is not None:
-        seq_request.num_lanes = num_lanes
-
-    if billing_code is not None:
-        seq_request.billing_code = billing_code
-
-    if organization_name is not None:
-        seq_request.organization = organization_name
-
-    if organization_department is not None:
-        seq_request.department = organization_department
-
-    if organization_address is not None:
-        seq_request.address = organization_address
-
-    if seq_request.bioinformatician_contact_id is not None:
-        self._session.add(seq_request.bioinformatician_contact)
+    self._session.add(seq_request)
 
     if commit:
         self._session.commit()

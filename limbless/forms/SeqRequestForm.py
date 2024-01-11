@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, EmailField, BooleanField, SelectField, IntegerField
+from wtforms import StringField, TextAreaField, EmailField, BooleanField, SelectField, IntegerField, FileField
 from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
+from flask_wtf.file import FileAllowed
 
 from ..categories import SequencingType, FlowCellType
 
@@ -17,9 +18,6 @@ class SeqRequestForm(FlaskForm):
         Summary of the broader project context relevant for the submitted samples.
         Often useful to copy and paste a few relevant sentences from a grant proposal
         or the methods section of a previous paper on the same topic."""
-    )
-    seq_auth_form_sent = BooleanField(
-        "Sequencing Authorization Form Sent", default=False,
     )
 
     technology = StringField(
@@ -155,10 +153,6 @@ class SeqRequestForm(FlaskForm):
         validated = self.validate()
         
         if not validated:
-            return False, self
-        
-        if not self.seq_auth_form_sent.data:
-            self.seq_auth_form_sent.errors = ("Sequencing authorization form is required",)
             return False, self
         
         if self.bioinformatician_name.data:

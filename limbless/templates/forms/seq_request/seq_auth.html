@@ -1,0 +1,12 @@
+<form id="seq_auth-form" enctype="multipart/form-data">
+    {% from 'components/form_group.jinja2' import form_group, select_input %}
+    {{ seq_auth_form.csrf_token() }}
+    {{ form_group(seq_auth_form.file) }}
+    <button class="btn btn-primary" hx-include="#seq_auth-form" hx-target="#seq_auth-form" hx-swap="outerHTML"
+    hx-encoding="multipart/form-data" hx-post="{{ url_for('seq_requests_htmx.upload_auth_form', seq_request_id=seq_request.id) }}">
+        Submit
+    </button>
+</form>
+<script>
+    init_tooltips();
+</script>

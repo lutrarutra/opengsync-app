@@ -74,6 +74,8 @@ class SeqRequest(SQLModel, table=True):
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
+    seq_auth_form_uuid: Optional[str] = Field(nullable=True, max_length=64)
+
     @property
     def status(self) -> SeqRequestStatus:
         return SeqRequestStatus.get(self.status_id)
@@ -88,8 +90,11 @@ class SeqRequest(SQLModel, table=True):
             return None
         return FlowCellType.get(self.flowcell_type_id)
     
+    def is_authorized(self) -> bool:
+        return self.seq_auth_form_uuid is not None
+    
     def is_submittable(self) -> bool:
-        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0
+        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
     
     def submitted_time_to_str(self) -> str:
         if self.submitted_time is None:

@@ -1,4 +1,6 @@
+import os
 from io import StringIO, BytesIO
+from uuid import uuid4
 from typing import Optional, TYPE_CHECKING
 
 from flask import Blueprint, url_for, render_template, flash, abort, request, Response
@@ -7,7 +9,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-from .... import db, forms, logger, models, PAGE_LIMIT, tools
+from .... import db, forms, logger, models, PAGE_LIMIT, tools, SEQ_AUTH_FORMS_DIR
 from ....core import DBSession, DBHandler
 from ....categories import HttpResponse, SequencingType, FlowCellType, SeqRequestStatus
 
@@ -230,23 +232,58 @@ def edit(seq_request_id: int):
     else:
         flowcell_type = None
 
-    db.db_handler.update_seq_request(
-        seq_request_id,
-        name=seq_request_form.name.data,
-        description=seq_request_form.description.data,
-        technology=seq_request_form.technology.data,
-        seq_type=seq_type,
-        flowcell_type=flowcell_type,
-        num_cycles_read_1=seq_request_form.num_cycles_read_1.data,
-        num_cycles_index_1=seq_request_form.num_cycles_index_1.data,
-        num_cycles_index_2=seq_request_form.num_cycles_index_2.data,
-        num_cycles_read_2=seq_request_form.num_cycles_read_2.data,
-        read_length=seq_request_form.read_length.data,
-        special_requirements=seq_request_form.special_requirements.data,
-        sequencer=seq_request_form.sequencer.data,
-        num_lanes=seq_request_form.num_lanes.data,
-        billing_code=seq_request_form.billing_code.data,
-    )
+    if seq_request_form.name.data is not None:
+        seq_request.name = seq_request_form.name.data
+
+    if seq_request_form.description.data is not None:
+        seq_request.description = seq_request_form.description.data
+
+    if seq_request_form.technology.data is not None:
+        seq_request.technology = seq_request_form.technology.data
+
+    if seq_type is not None:
+        seq_request.sequencing_type_id = seq_type.value.id
+
+    if seq_request_form.num_cycles_read_1.data is not None:
+        seq_request.num_cycles_read_1 = seq_request_form.num_cycles_read_1.data
+
+    if seq_request_form.num_cycles_index_1.data is not None:
+        seq_request.num_cycles_index_1 = seq_request_form.num_cycles_index_1.data
+
+    if seq_request_form.num_cycles_index_2.data is not None:
+        seq_request.num_cycles_index_2 = seq_request_form.num_cycles_index_2.data
+
+    if seq_request_form.num_cycles_read_2.data is not None:
+        seq_request.num_cycles_read_2 = seq_request_form.num_cycles_read_2.data
+
+    if seq_request_form.read_length.data is not None:
+        seq_request.read_length = seq_request_form.read_length.data
+
+    if seq_request_form.special_requirements.data is not None:
+        seq_request.special_requirements = seq_request_form.special_requirements.data
+
+    if seq_request_form.sequencer.data is not None:
+        seq_request.sequencer = seq_request_form.sequencer.data
+
+    if flowcell_type is not None:
+        seq_request.flowcell_type_id = flowcell_type.value.id
+
+    if seq_request_form.num_lanes.data is not None:
+        seq_request.num_lanes = seq_request_form.num_lanes.data
+
+    if seq_request_form.billing_code.data is not None:
+        seq_request.billing_code = seq_request_form.billing_code.data
+
+    if seq_request_form.organization_name.data is not None:
+        seq_request.organization = seq_request_form.organization_name.data
+
+    if seq_request_form.organization_department.data is not None:
+        seq_request.department = seq_request_form.organization_department.data
+
+    if seq_request_form.organization_address.data is not None:
+        seq_request.address = seq_request_form.organization_address.data
+
+    seq_request = db.db_handler.update_seq_request(seq_request)
 
     flash(f"Updated sequencing request '{seq_request.name}'", "success")
     logger.info(f"Updated sequencing request '{seq_request.name}'")
@@ -337,8 +374,6 @@ def create():
     else:
         bioinformatician_contact_id = None
 
-
-
     if (seq_type_id := seq_request_form.sequencing_type.data) is not None:
         try:
             seq_type = SequencingType.get(int(seq_type_id))
@@ -380,6 +415,66 @@ def create():
 
     flash(f"Created new sequencing request '{seq_request.name}'", "success")
     logger.info(f"Created new sequencing request '{seq_request.name}'")
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/upload_auth_form", methods=["POST"])
+@login_required
+def upload_auth_form(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.value.id)
+
+    seq_auth_form = forms.SeqAuthForm()
+    validated, seq_auth_form = seq_auth_form.custom_validate()
+    if not validated:
+        return make_response(
+            render_template(
+                "forms/seq_request/seq_auth.html",
+                seq_auth_form=seq_auth_form,
+                seq_request=seq_request
+            ), push_url=False
+        )
+    
+    uuid = str(uuid4())
+    filepath = os.path.join(SEQ_AUTH_FORMS_DIR, f"{uuid}.pdf")
+    seq_auth_form.file.data.save(filepath)
+
+    seq_request.seq_auth_form_uuid = uuid
+    seq_request = db.db_handler.update_seq_request(seq_request=seq_request)
+
+    flash("Authorization form uploaded!", "success")
+    logger.debug(f"Uploaded sequencing authorization form for sequencing request '{seq_request.name}': {uuid}")
+
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/remove_auth_form", methods=["DELETE"])
+@login_required
+def remove_auth_form(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if seq_request.seq_auth_form_uuid is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.value.id)
+
+    seq_request.seq_auth_form_uuid = None
+    seq_request = db.db_handler.update_seq_request(seq_request=seq_request)
+
+    flash("Authorization form removed!", "success")
+    logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
+
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
     )

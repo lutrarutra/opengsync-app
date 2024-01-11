@@ -1,3 +1,4 @@
+import os
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, abort, url_for, request
@@ -119,6 +120,7 @@ def seq_request_page(seq_request_id: int):
             library_results=library_results,
             seq_request_form=seq_request_form,
             table_form=forms.TableForm(),
+            seq_auth_form=forms.SeqAuthForm(),
             libraries_n_pages=libraries_n_pages, libraries_active_page=0,
             samples_n_pages=samples_n_pages, samples_active_page=0,
         )

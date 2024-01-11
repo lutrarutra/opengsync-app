@@ -5,29 +5,8 @@
     <h4>Request Info</h4>
     {{ form_group(seq_request_form.name) }}
     {{ form_group(seq_request_form.description) }}
-    <div class="form-group">
-        {{ 
-            seq_request_form.seq_auth_form_sent(
-                class="form-check-input" + (" is-invalid" if (seq_request_form.seq_auth_form_sent.errors) else ""),
-                type="checkbox"
-            )
-        }}
-        <label>
-            I have filled in 
-            <a href="{{ url_for('seq_request_form_htmx.download_seq_auth_form') }}">
-                the sequencing authorization form</a> and sent it to
-            <a href="mailto:cbock@cemm.oeaw.ac.at?subject=Sequencing%20Authorization%20Form">
-                cbock@cemm.oeaw.ac.at
-            </a>
-        </label>
-        <div class="invalid-feedback-container">
-            {% for error in seq_request_form.seq_auth_form_sent.errors %}
-                <p>{{ error }}</p>
-            {% endfor %}
-        </div>
-    </div>
 
-    <br>
+    <hr>
     <h4>Technical Requirements</h4>
     <div class="row">
         {{ form_group(seq_request_form.technology, class="col-5") }}
@@ -49,7 +28,7 @@
     </div>
     {{ form_group(seq_request_form.special_requirements, class="col") }}
 
-    <br>
+    <hr>
     <h4>Contact Person</h4>
     <div class="form-check form-switch">
         {{ seq_request_form.current_user_is_contact(class="form-check-input") }}
@@ -77,20 +56,10 @@
             ) 
         }}
     </div>
-    <br>
-
-    <h4>Organization</h4>
-    <div class="row">
-        {{ form_group(seq_request_form.organization_name, class="col-6 col-xl-3") }}
-        {{ form_group(seq_request_form.organization_address, class="col-6 col-xl-5") }}
-        {{ form_group(seq_request_form.organization_department, class="col-6 col-xl-4") }}
-    </div>
-    <br>
 
     <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#bioinformatician-collapse-section" aria-expanded="false" aria-controls="bioinformatician-collapse-section">
         Add Bioinformatician Contact
     </button>
-    <br>
 
     <div class="collapse {{ 'show' if seq_request_form.bioinformatician_name.data else ''}}" id="bioinformatician-collapse-section">
         <div class="card-body pt-3">
@@ -102,8 +71,16 @@
             </div>
         </div>
     </div>
-    <br>
 
+    <hr>
+    <h4>Organization</h4>
+    <div class="row">
+        {{ form_group(seq_request_form.organization_name, class="col-6 col-xl-3") }}
+        {{ form_group(seq_request_form.organization_address, class="col-6 col-xl-5") }}
+        {{ form_group(seq_request_form.organization_department, class="col-6 col-xl-4") }}
+    </div>
+
+    <hr>
     <h4>Billing Info</h4>
     <div class="form-check form-switch">
         {{ seq_request_form.billing_is_organization(class="form-check-input") }}

@@ -3,10 +3,11 @@ import warnings
 from uuid import uuid4
 from typing import TYPE_CHECKING
 
-from flask import Flask, render_template, redirect, request, url_for, session
+from flask import Flask, render_template, redirect, request, url_for, session, current_app, abort, make_response
+from flask_login import login_required
 from sassutils.wsgi import SassMiddleware
 
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, categories, PAGE_LIMIT
+from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, categories, PAGE_LIMIT, SEQ_AUTH_FORMS_DIR
 from .models import User
 from .routes import api, pages
 
@@ -74,6 +75,24 @@ def create_app():
             recent_seq_requests=recent_seq_requests,
             recent_experiments=recent_experiments
         )
+    
+    @app.route("/auth_forms/<string:uuid>")
+    @login_required
+    def auth_forms(uuid: str):
+        auth_form_path = os.path.join(
+            current_app.root_path, "..", SEQ_AUTH_FORMS_DIR,
+            f"{uuid}.pdf"
+        )
+        if not os.path.exists(auth_form_path):
+            return abort(404)
+        
+        with open(auth_form_path, "rb") as f:
+            data = f.read()
+
+        response = make_response(data)
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Content-Disposition"] = "inline; filename=auth_form.pdf"
+        return response
 
     @login_manager.unauthorized_handler
     def unauthorized():

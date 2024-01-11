@@ -34,9 +34,18 @@ else:
     )
 
 PAGE_LIMIT = 15
-
 SECRET_KEY = "SECRET_KEY"
-EMAIL_SENDER = "noreply@limbless.com"
+if (SEQ_AUTH_FORMS_DIR := os.getenv("SEQ_AUTH_FORMS_DIR")) is None:
+    SEQ_AUTH_FORMS_DIR = ""
+    raise ValueError("SEQ_AUTH_FORMS_DIR environment variable not set")
+
+if not os.path.exists(SEQ_AUTH_FORMS_DIR):
+    os.mkdir(SEQ_AUTH_FORMS_DIR)
+
+if (EMAIL_SENDER := os.getenv("EMAIL_SENDER")) is None:
+    EMAIL_SENDER = ""
+    raise ValueError("EMAIL_SENDER environment variable not set")
+
 htmx = HTMX()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
