@@ -65,6 +65,7 @@ def seq_request_page(seq_request_id: int):
 
             name=seq_request.name,
             description=seq_request.description,
+            technology=seq_request.technology,
 
             num_cycles_read_1=seq_request.num_cycles_read_1,
             num_cycles_index_1=seq_request.num_cycles_index_1,

@@ -195,13 +195,12 @@ def edit(seq_request_id: int):
     else:
         seq_type = None
 
-    logger.debug(seq_type)
-
     db.db_handler.update_contact(
         seq_request.billing_contact_id,
         name=seq_request_form.billing_contact.data,
         email=seq_request_form.billing_email.data,
         phone=seq_request_form.billing_phone.data,
+        address=seq_request_form.billing_address.data,
     )
 
     db.db_handler.update_contact(
@@ -226,7 +225,10 @@ def edit(seq_request_id: int):
                 phone=seq_request_form.bioinformatician_phone.data,
             )
 
-    flowcell_type_id = seq_request_form.flowcell_type.data
+    try:
+        flowcell_type_id = int(seq_request_form.flowcell_type.data)
+    except ValueError:
+        flowcell_type_id = None
     if flowcell_type_id is not None and flowcell_type_id != -1:
         flowcell_type = FlowCellType.get(flowcell_type_id)
     else:
@@ -275,13 +277,13 @@ def edit(seq_request_id: int):
         seq_request.billing_code = seq_request_form.billing_code.data
 
     if seq_request_form.organization_name.data is not None:
-        seq_request.organization = seq_request_form.organization_name.data
+        seq_request.organization_name = seq_request_form.organization_name.data
 
     if seq_request_form.organization_department.data is not None:
-        seq_request.department = seq_request_form.organization_department.data
+        seq_request.organization_department = seq_request_form.organization_department.data
 
     if seq_request_form.organization_address.data is not None:
-        seq_request.address = seq_request_form.organization_address.data
+        seq_request.organization_address = seq_request_form.organization_address.data
 
     seq_request = db.db_handler.update_seq_request(seq_request)
 
@@ -360,6 +362,7 @@ def create():
     billing_contact = db.db_handler.create_contact(
         name=seq_request_form.billing_contact.data,
         email=seq_request_form.billing_email.data,
+        address=seq_request_form.billing_address.data,
         phone=seq_request_form.billing_phone.data,
     )
 
@@ -486,6 +489,13 @@ def remove_library(seq_request_id: int):
     if (library_id := request.args.get("library_id")) is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if seq_request.status != SeqRequestStatus.DRAFT:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.value.id)
+    
     try:
         library_id = int(library_id)
     except ValueError:
@@ -493,9 +503,6 @@ def remove_library(seq_request_id: int):
     
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-        
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
         if seq_request.requestor_id != current_user.id:

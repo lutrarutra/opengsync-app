@@ -253,7 +253,7 @@
                         </a>
                     </div>
                 </div>
-                {% if not seq_request.is_authorized() %}
+                {% if not seq_request.is_authorized() and seq_request.status.value.name == "Draft" %}
                 {% include "forms/seq_request/seq_auth.html" %}
                 {% else %}
                 <embed src="{{ url_for('auth_forms', uuid=seq_request.seq_auth_form_uuid) }}" width="100%" height="1000px">

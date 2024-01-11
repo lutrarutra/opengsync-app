@@ -409,7 +409,7 @@ def check_barcodes(seq_request_id: int):
             pool = session.create_pool(
                 name=pool_label,
                 owner_id=current_user.id,
-                index_kit_id=df["index_kit"].iloc[0],
+                index_kit_id=df["index_kit"].iloc[0] if not pd.isnull(df["index_kit"].iloc[0]) else None,
                 contact_name=_df["contact_person_name"].iloc[0],
                 contact_email=_df["contact_person_email"].iloc[0],
                 contact_phone=_df["contact_person_phone"].iloc[0],
