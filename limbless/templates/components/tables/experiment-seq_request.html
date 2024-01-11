@@ -43,12 +43,58 @@
             {% for request in seq_requests %}
             <tr onclick="window.location.href=`{{ url_for('seq_requests_page.seq_request_page', seq_request_id=request.id, from='experiment@' + experiment.id | string) }}`;">
                 <th scope="row">{{ request.id }}</th>
-                <td>{{ request.name }} </td>
+                <td class="request-name-cell" id="request-name-cell-{{request.id}}">{{ request.name }} </td>
                 <td>{{ request.requestor.name }}</td>
                 <td>{{ request.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
     {{ pagination("experiment-seq_request-table", "seq_requests_htmx.get", seq_requests_n_pages, seq_requests_active_page, url_args={"sort_by": samples_current_sort, "order": samples_current_sort_order, "experiment_id": experiment.id}) }}
+
+    <script>
+        var selected_request_id = null;
+
+        function remove_request() {
+            Swal.fire({
+                title: `Remove request (id='${selected_request_id}') from experiment '{experiment.id}'?`,
+                showDenyButton: true,
+                text: 'Are you sure?',
+                confirmButtonText: 'Yes',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                    "DELETE", "{{ url_for('experiments_htmx.remove_seq_request', experiment_id=experiment.id) }}?request_id=" + selected_request_id,
+                    null, {
+                        target: "#experiment-seq_request-table",
+                        swapStyle: "outerHTML"
+                    });
+                }
+            });
+        }
+
+        $(document).off("contextmenu", ".request-name-cell").on("contextmenu", ".request-name-cell", function(e) {
+            e.preventDefault();
+            const x = e.pageX;
+            const y = e.pageY;
+            selected_request_id = e.target.id.split("-")[3];
+            $("#copy-edit-menu").css({
+                display: "block",
+                left: x + 8, top: y + 8
+            }).empty().append([
+                {% if experiment.is_editable() %}
+                `<li><a class='dropdown-item' onclick='remove_request()'>Remove</a></li>`
+                {% else %}
+                `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`
+                {% endif %}
+            ]);
+
+            $("#right-click-bg").css({
+                display: "block"
+            });
+        });
+    </script>
 </div>
+

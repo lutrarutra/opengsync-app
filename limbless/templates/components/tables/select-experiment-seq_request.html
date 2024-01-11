@@ -92,9 +92,9 @@
                 <td>{{ request.requestor.name }}</td>
                 <td>{{ request.technology }}</td>
                 <td>{{ request.submitted_time_to_str() }}</td>
-                <td>{{ request.read_length }}</td>
+                <td>{{ request.read_length if request.read_length else "" }}</td>
                 <td>{{ request.sequencer }}</td>
-                <td>{{ request.flowcell_type.value.name if request.flowcell_type else None }}</td>
+                <td>{{ request.flowcell_type.value.name if request.flowcell_type else "" }}</td>
                 <td>
                     {% if request.num_cycles_read_1 %}
                     {{ request.num_cycles_read_1 }}-{{ request.num_cycles_index_1 }}{% if request.num_cycles_index_2 %}-{{ request.num_cycles_index_2 }}-{{ request.num_cycles_read_2 }}{% endif %}

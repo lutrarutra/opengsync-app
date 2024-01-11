@@ -247,6 +247,44 @@ def remove_pool(experiment_id: int, pool_id: int, lane: int):
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
         push_url=False
     )
+
+
+@experiments_htmx.route("<int:experiment_id>/remove_seq_request", methods=["DELETE"])
+@login_required
+def remove_seq_request(experiment_id: int):
+    if (request_id := request.args.get("request_id", None)) is not None:
+        logger.debug(f"Request id: {request_id}")
+        try:
+            seq_request_id = int(request_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.value.id)
+    else:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    if not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if not experiment.is_editable():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    db.db_handler.unlink_experiment_seq_request(
+        experiment_id=experiment_id,
+        seq_request_id=seq_request_id,
+    )
+
+    logger.debug(f"Removed request '{seq_request.name}' from experiment (id='{experiment_id}')")
+    flash(f"Removed request '{seq_request.name}' from experiment.", "success")
+
+    return make_response(
+        redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
+        push_url=False
+    )
     
 
 @experiments_htmx.route("select_sequencing_person", methods=["POST"])

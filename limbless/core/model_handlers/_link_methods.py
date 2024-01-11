@@ -413,8 +413,6 @@ def unlink_experiment_seq_request(
     for link in links:
         self._session.delete(link)
 
-    seq_request.num_experiments -= 1
-    experiment.num_seq_requests -= 1
     self._session.add(seq_request)
     self._session.add(experiment)
 

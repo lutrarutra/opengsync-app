@@ -19,7 +19,7 @@ else:
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/pools/")
 
 
-@pools_htmx.route("get", methods=["POST"])
+@pools_htmx.route("get", methods=["GET"])
 @login_required
 def get(page):
     sort_by = request.args.get("sort_by", "id")

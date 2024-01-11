@@ -37,7 +37,7 @@
                 </button>
             </span>
             {% endif %}
-            <span {% if seq_request.status.value.name != "Draft" %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
+            <span {% if seq_request.status.value.name != "Draft" %} {{ tooltip("You cannot edit request that is already submitted.") }} {% endif %}>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                     data-bs-target="#seq_request-form-popup"
                     {% if seq_request.status.value.name != "Draft" %}disabled{% endif %}>
