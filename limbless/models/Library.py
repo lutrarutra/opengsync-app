@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import LibraryType
-from .Links import SeqRequestLibraryLink, LibraryPoolLink
+from .Links import SeqRequestLibraryLink
 
 if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
@@ -32,12 +32,18 @@ class Library(SQLModel, table=True):
     dna_concentration: Optional[float] = Field(nullable=True, default=None)
     total_size: Optional[int] = Field(nullable=True, default=None)
 
-    num_pools: int = Field(nullable=False, default=0)
+    pool_id: Optional[int] = Field(nullable=True, foreign_key="pool.id")
+    pool: Optional["Pool"] = Relationship(
+        back_populates="libraries",
+        sa_relationship_kwargs={"lazy": "joined"}
+    )
+
+    # num_pools: int = Field(nullable=False, default=0)
     num_samples: int = Field(nullable=False, default=0)
     num_seq_requests: int = Field(nullable=False, default=0)
 
-    sample_id: Optional[int] = Field(nullable=True, foreign_key="sample.id")
-    sample: Optional["Sample"] = Relationship(
+    sample_id: int = Field(nullable=True, foreign_key="sample.id")
+    sample: "Sample" = Relationship(
         back_populates="libraries",
         sa_relationship_kwargs={"lazy": "joined"}
     )
@@ -58,10 +64,10 @@ class Library(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select"}
     )
 
-    pools: Optional["Pool"] = Relationship(
-        back_populates="libraries", link_model=LibraryPoolLink,
-        sa_relationship_kwargs={"lazy": "select"}
-    )
+    # pools: Optional["Pool"] = Relationship(
+    #     back_populates="libraries", link_model=LibraryPoolLink,
+    #     sa_relationship_kwargs={"lazy": "select"}
+    # )
 
     seq_requests: list["SeqRequest"] = Relationship(
         back_populates="libraries", link_model=SeqRequestLibraryLink,
@@ -73,10 +79,7 @@ class Library(SQLModel, table=True):
     index_3_sequence: Optional[str] = Field(nullable=True)
     index_4_sequence: Optional[str] = Field(nullable=True)
 
-    index_1_adapter: Optional[str] = Field(nullable=True)
-    index_2_adapter: Optional[str] = Field(nullable=True)
-    index_3_adapter: Optional[str] = Field(nullable=True)
-    index_4_adapter: Optional[str] = Field(nullable=True)
+    adapter: Optional[str] = Field(nullable=True)
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id", "owner_id"]
 
@@ -99,11 +102,14 @@ class Library(SQLModel, table=True):
     @property
     def indices(self) -> List[Optional[Index]]:
         return [
-            Index(self.index_1_sequence, self.index_1_adapter) if self.index_1_sequence is not None else None,
-            Index(self.index_2_sequence, self.index_2_adapter) if self.index_2_sequence is not None else None,
-            Index(self.index_3_sequence, self.index_3_adapter) if self.index_3_sequence is not None else None,
-            Index(self.index_4_sequence, self.index_4_adapter) if self.index_4_sequence is not None else None,
+            Index(self.index_1_sequence, self.adapter) if self.index_1_sequence is not None else None,
+            Index(self.index_2_sequence, self.adapter) if self.index_2_sequence is not None else None,
+            Index(self.index_3_sequence, self.adapter) if self.index_3_sequence is not None else None,
+            Index(self.index_4_sequence, self.adapter) if self.index_4_sequence is not None else None,
         ]
 
     def is_indexed(self) -> bool:
         return self.index_1_sequence is not None
+    
+    def is_pooled(self) -> bool:
+        return self.pool_id is not None

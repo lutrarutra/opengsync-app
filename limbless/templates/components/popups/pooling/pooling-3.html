@@ -1,0 +1,99 @@
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/search_select.jinja2" import search_select_field %}
+
+<div id="pool-mapping-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Describe Libraries/Pools</h1>
+        <button type="button" class="btn-close" data-bs-ldismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" style="height: 100%; overflow-y: hidden;">
+        <form id="pool-mapping-form">
+            <ul class="nav nav-tabs" role="tablist">
+                {% for sub_form in pool_mapping_form.input_fields %}
+                <li class="nav-item" role="presentation"> 
+                    <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#pool-form-tab-{{ loop.index0 }}" type="button" role="tab"
+                    aria-controls="pool-form-tab" aria-selected="true">
+                    {{ pools[loop.index0] }}</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="tab-content pt-3">
+                {% for sub_form in pool_mapping_form.input_fields %}
+                <div class="tab-pane fade show {{ 'active' if loop.first else '' }}" id="pool-form-tab-{{ loop.index0 }}" role="tabpanel" tabindex="{{loop.index0}}">
+                    <div>
+                        <div>
+                        {{ sub_form.csrf_token() }}
+                        <div class="row">
+                            {{ form_group(sub_form.pool_label, class="col") }}
+                            {{ 
+                                search_select_field(
+                                    field=sub_form.index_kit,
+                                    url=url_for('barcodes_htmx.query_index_kits'),
+                                    selected=selected_index_kit,
+                                    class="col"
+                                ) 
+                            }}
+                        </div>
+                        <h5>Who did the pooling?</h5>
+                        <div class="row">
+                            {{ form_group(sub_form.contact_person_name, class="col-4") }}
+                            {{ form_group(sub_form.contact_person_email, class="col-4") }}
+                            {{ form_group(sub_form.contact_person_phone, class="col-4") }}
+                        </div>
+                        </div>
+                        <div id="pool-library-list-container">
+                            <table class="table table-hover table-cursor">
+                                <thead>
+                                    <tr>
+                                        <th>Sample</th>
+                                        <th>Library Types</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sample, sample_data in pool_libraries[loop.index0].items() %}
+                                    <tr>
+                                        <td>{{ sample }}</td>
+                                        <td>
+                                            <ul class="h-list">
+                                            {% for library in sample_data %}
+                                                <li>
+                                                    {{ library["library_type"] }}
+                                                </li>
+                                            {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {{ pool_mapping_form.raw_data(class="form-control", hidden=True, readonly=True) }}
+            {{ pool_mapping_form.csrf_token() }}
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-success"
+            hx-target="#pool-mapping-container" hx-swap="outerHTML"
+            hx-include="#pool-mapping-form"
+            hx-post="{{ url_for('seq_requests_htmx.check_indices', seq_request_id=seq_request.id) }}"{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}>
+            Confirm
+        </button>
+        
+        <a class="btn btn-danger" type="button"
+            {% if experiment %}
+                href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}"
+            {% else %}
+                href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}"
+            {% endif %}>
+            Cancel
+        </a>
+    </div>
+</div>
+<script>
+    init_tooltips();
+</script>

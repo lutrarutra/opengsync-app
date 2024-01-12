@@ -18,14 +18,12 @@ def create_library(
     volume: Optional[int] = None,
     dna_concentration: Optional[float] = None,
     total_size: Optional[int] = None,
+    pool_id: Optional[int] = None,
     index_1_sequence: Optional[str] = None,
     index_2_sequence: Optional[str] = None,
     index_3_sequence: Optional[str] = None,
     index_4_sequence: Optional[str] = None,
-    index_1_adapter: Optional[str] = None,
-    index_2_adapter: Optional[str] = None,
-    index_3_adapter: Optional[str] = None,
-    index_4_adapter: Optional[str] = None,
+    adapter: Optional[str] = None,
     commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
@@ -51,16 +49,14 @@ def create_library(
         type_id=library_type.value.id,
         owner_id=owner_id,
         volume=volume,
+        pool_id=pool_id,
         dna_concentration=dna_concentration,
         total_size=total_size,
         index_1_sequence=index_1_sequence,
         index_2_sequence=index_2_sequence,
         index_3_sequence=index_3_sequence,
         index_4_sequence=index_4_sequence,
-        index_1_adapter=index_1_adapter,
-        index_2_adapter=index_2_adapter,
-        index_3_adapter=index_3_adapter,
-        index_4_adapter=index_4_adapter,
+        adapter=adapter
     )
     self._session.add(library)
 
@@ -89,8 +85,7 @@ def get_libraries(
     self,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
-    pool_id: Optional[int] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
+    pool_id: Optional[int] = None, sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Library], int]:
     persist_session = self._session is not None
@@ -119,24 +114,16 @@ def get_libraries(
 
     if experiment_id is not None:
         query = query.join(
-            models.LibraryPoolLink,
-            models.LibraryPoolLink.library_id == models.Library.id,
-            isouter=True
-        ).join(
             models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.LibraryPoolLink.pool_id,
+            models.ExperimentPoolLink.pool_id == models.Library.pool_id,
             isouter=True
         ).where(
             models.ExperimentPoolLink.experiment_id == experiment_id
         ).distinct()
 
     if pool_id is not None:
-        query = query.join(
-            models.LibraryPoolLink,
-            models.LibraryPoolLink.library_id == models.Library.id,
-            isouter=True
-        ).where(
-            models.LibraryPoolLink.pool_id == pool_id
+        query = query.where(
+            models.Library.pool_id == pool_id
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
@@ -282,12 +269,8 @@ def query_libraries(
 
     if experiment_id is not None:
         query = query.join(
-            models.LibraryPoolLink,
-            models.LibraryPoolLink.library_id == models.Library.id,
-            isouter=True
-        ).join(
             models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.LibraryPoolLink.pool_id,
+            models.ExperimentPoolLink.pool_id == models.Library.pool_id,
             isouter=True
         ).where(
             models.ExperimentPoolLink.experiment_id == experiment_id

@@ -36,7 +36,7 @@ def experiments_page():
 
 @experiments_page_bp.route("/experiments/<experiment_id>")
 @login_required
-def experiment_page(experiment_id):
+def experiment_page(experiment_id: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     

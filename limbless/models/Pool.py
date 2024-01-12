@@ -3,7 +3,7 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..tools import SearchResult
-from .Links import LibraryPoolLink, ExperimentPoolLink
+from .Links import ExperimentPoolLink
 from ..categories import ExperimentStatus
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ class Pool(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "joined"}
     )
     libraries: List["Library"] = Relationship(
-        back_populates="pools", link_model=LibraryPoolLink,
+        back_populates="pool",
         sa_relationship_kwargs={"lazy": "select"},
     )
     experiments: List["Experiment"] = Relationship(

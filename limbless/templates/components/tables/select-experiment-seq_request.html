@@ -77,16 +77,31 @@
                 <th scope="col" class="col-1">
                     Read Config
                 </th>
+                {{
+                    table_col(
+                        target_id='select-experiment-seq_request-table', column_name='# Libraries', column_var='num_libraries',
+                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
+                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order, col_size=1,
+                    )
+                }}
             </tr>
         </thead>
         <tbody>
             {% for request in available_seq_requests %}
             <tr>
                 <th scope="row">{{ request.id }}
-                    <button type="button" class="btn btn-primary table-btn"
+                    {% if request.is_indexed() %}
+                    <button type="button" class="btn btn-success table-btn"
                     hx-post="{{ url_for('experiments_htmx.add_seq_request', experiment_id=experiment.id, seq_request_id=request.id) }}">
                     Add
                     </button>
+                    {% else %}
+                    <button type="button" class="btn btn-primary table-btn"
+                    hx-target="#pooling-form-popup"
+                    hx-get="{{ url_for('seq_requests_htmx.pooling_form', experiment_id=experiment.id, seq_request_id=request.id) }}">
+                    Pool
+                    </button>
+                    {% endif %}
                 </th>
                 <td>{{ request.name }}</td>
                 <td>{{ request.requestor.name }}</td>
@@ -100,6 +115,7 @@
                     {{ request.num_cycles_read_1 }}-{{ request.num_cycles_index_1 }}{% if request.num_cycles_index_2 %}-{{ request.num_cycles_index_2 }}-{{ request.num_cycles_read_2 }}{% endif %}
                     {% endif %}
                 </td>
+                <td>{{ request.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>

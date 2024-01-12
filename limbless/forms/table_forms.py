@@ -40,7 +40,6 @@ class TableForm(FlaskForm):
         filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
         filename = secure_filename(filename)
         self.file.data.save("data/uploads/" + filename)
-        logger.debug(f"Saved file to data/uploads/{filename}")
 
         df = pd.read_csv("data/uploads/" + filename, sep=sep, index_col=False, header=0)
         

@@ -17,8 +17,8 @@
                         <th scope="col" class="col-1">Status</th>
                         <th scope="col" class="col-2">Name</th>
                         <th scope="col" class="col-2">Library Type</th>
+                        <th scope="col" class="col-1">Adapter</th>
                         {% if show_index_1 %}
-                        <th scope="col" class="col-1">Adapter 1</th>
                         <th scope="col" class="col-1">
                             <div class="form-check form-switch">
                                 {{ barcode_check_form.reverse_complement_index_1(class="form-check-input reverse-complement",) }}
@@ -28,7 +28,6 @@
                         </th>
                         {% endif %}
                         {% if show_index_2 %}
-                        <th scope="col" class="col-1">Adapter 2</th>
                         <th scope="col" class="col-1">
                             <div class="form-check form-switch">
                                 {{ barcode_check_form.reverse_complement_index_2(class="form-check-input reverse-complement") }}
@@ -38,7 +37,6 @@
                         </th>
                         {% endif %}
                         {% if show_index_3 %}
-                        <th scope="col" class="col-1">Adapter 3</th>
                         <th scope="col" class="col-1">
                             <div class="form-check form-switch">
                                 {{ barcode_check_form.reverse_complement_index_3(class="form-check-input reverse-complement") }}
@@ -48,7 +46,6 @@
                         </th>
                         {% endif %}
                         {% if show_index_4 %}
-                        <th scope="col" class="col-1">Adapter 4</th>
                         <th scope="col" class="col-1">
                             <div class="form-check form-switch">
                                 {{ barcode_check_form.reverse_complement_index_4(class="form-check-input reverse-complement") }}
@@ -80,20 +77,17 @@
                         </td>
                         <td>{{ sample_data["name"] }}</td>
                         <td>{{ sample_data["library_type"] }}</td>
+                        <td>{{ sample_data["adapter"] if sample_data["adapter"] }}</td>
                         {% if show_index_1 %}
-                        <td>{{ sample_data["adapter_1"] if sample_data["adapter_1"] == sample_data["adapter_1"] }}</td>
                         <td class="index-cell-1">{{ sample_data["index_1"] if sample_data["index_1"] == sample_data["index_1"] }}</td>
                         {% endif %}
                         {% if show_index_2 %}
-                        <td>{{ sample_data["adapter_2"] if sample_data["adapter_2"] == sample_data["adapter_2"] }}</td>
                         <td class="index-cell-2">{{ sample_data["index_2"] if sample_data["index_2"] == sample_data["index_2"] }}</td>
                         {% endif %}
                         {% if show_index_3 %}
-                        <td>{{ sample_data["adapter_3"] if sample_data["adapter_3"] == sample_data["adapter_3"] }}</td>
                         <td class="index-cell-3">{{ sample_data["index_3"] if sample_data["index_3"] == sample_data["index_3"] }}</td>
                         {% endif %}
                         {% if show_index_4 %}
-                        <td>{{ sample_data["adapter_4"] if sample_data["adapter_4"] == sample_data["adapter_4"] }}</td>
                         <td class="index-cell-4">{{ sample_data["index_4"] if sample_data["index_4"] == sample_data["index_4"] }}</td>
                         {% endif %}
                     </tr>

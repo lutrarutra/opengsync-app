@@ -113,7 +113,7 @@ class DBHandler():
         get_sample_library_links,
         get_available_pools_for_experiment,
 
-        link_library_pool,
+        # link_library_pool,
         link_experiment_pool,
         link_library_seq_request,
         link_sample_library,

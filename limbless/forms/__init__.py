@@ -4,7 +4,7 @@ from .ProjectForm import ProjectForm
 from .ExperimentForm import ExperimentForm
 from .SearchForm import SearchForm
 from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm, UserForm, ResetPasswordForm
-from .index_forms import IndexForm
+from .seq_request.PoolingForm import PoolingForm
 from .table_forms import TableForm
 from .SeqRequestForm import SeqRequestForm
 from .SequencerForm import SequencerForm

@@ -23,10 +23,6 @@ class SampleColSelectForm(FlaskForm):
         ("index_2", "Index 2 (i5)"),
         ("index_3", "Index 3"),
         ("index_4", "Index 4"),
-        ("adapter_1", "Adapter 1"),
-        ("adapter_2", "Adapter 2"),
-        ("adapter_3", "Adapter 3"),
-        ("adapter_4", "Adapter 4"),
         ("project", "Project"),
         ("pool", "Pool"),
         ("library_volume", "Library Volume (uL)"),
@@ -44,10 +40,6 @@ class SampleColSelectForm(FlaskForm):
         "index3": "index_3",
         "index4": "index_4",
         "adapter": "adapter",
-        "adapter1": "adapter_1",
-        "adapter2": "adapter_2",
-        "adapter3": "adapter_3",
-        "adapter4": "adapter_4",
         "organism": "organism",
         "samplename": "sample_name",
         "librarytype": "library_type",
@@ -70,55 +62,11 @@ class SampleColSelectForm(FlaskForm):
 class SampleColTableForm(TableDataForm):
     input_fields = FieldList(FormField(SampleColSelectForm))
 
-    def __get_adapters_set(self, df: pd.DataFrame) -> tuple[bool, bool, bool, bool, bool]:
-        return (
-            (~df["adapter"].isna()).any() if "adapter" in df.columns else False,
-            (~df["adapter_1"].isna()).any() if "adapter_1" in df.columns else False,
-            (~df["adapter_2"].isna()).any() if "adapter_2" in df.columns else False,
-            (~df["adapter_3"].isna()).any() if "adapter_3" in df.columns else False,
-            (~df["adapter_4"].isna()).any() if "adapter_4" in df.columns else False,
-        )
-
     def custom_validate(self) -> tuple[bool, "SampleColTableForm"]:
         df = self.get_df()
         validated = self.validate()
         if not validated:
             return False, self
-
-        adapter_set, adapter_1_set, adapter_2_set, adapter_3_set, adapter_4_set = self.__get_adapters_set(df)
-        if adapter_set and (adapter_1_set or adapter_2_set or adapter_3_set or adapter_4_set):
-            self.input_fields.errors = ("Specify column 'adapter' or 'adpater_1/2/3/4', not both.",)
-            validated = False
-
-        if adapter_set:
-            if ((
-                ~df["index_1"].isna() |
-                ~df["index_2"].isna() |
-                ~df["index_3"].isna() |
-                ~df["index_4"].isna()
-            ) & df["adapter"].isna()).any():
-                self.input_fields.errors = ("You must input adapters for all specified indices",)
-                validated = False
-
-        elif adapter_1_set:
-            if (~df["index_1"].isna() & df["adapter_1"].isna()).any():
-                self.input_fields.errors = ("You must input adapters for all specified indices",)
-                validated = False
-
-        elif adapter_2_set:
-            if (~df["index_2"].isna() & df["adapter_2"].isna()).any():
-                self.input_fields.errors = ("You must input adapters for all specified indices",)
-                validated = False
-
-        elif adapter_3_set:
-            if (~df["index_3"].isna() & df["adapter_3"].isna()).any():
-                self.input_fields.errors = ("You must input adapters for all specified indices",)
-                validated = False
-
-        elif adapter_4_set:
-            if (~df["index_4"].isna() & df["adapter_4"].isna()).any():
-                self.input_fields.errors = ("You must input adapters for all specified indices",)
-                validated = False
 
         return validated, self
 
@@ -158,10 +106,7 @@ class SampleColTableForm(TableDataForm):
         df["index_2"] = df["index_2"].str.strip()
         df["index_3"] = df["index_3"].str.strip()
         df["index_4"] = df["index_4"].str.strip()
-        df["adapter_1"] = df["adapter_1"].str.strip()
-        df["adapter_2"] = df["adapter_2"].str.strip()
-        df["adapter_3"] = df["adapter_3"].str.strip()
-        df["adapter_4"] = df["adapter_4"].str.strip()
+        df["adapter"] = df["adapter"].str.strip()
 
         df["library_volume"] = df["library_volume"].apply(tools.make_numeric)
         df["library_concentration"] = df["library_concentration"].apply(tools.make_numeric)
@@ -191,20 +136,6 @@ class SampleColTableForm(TableDataForm):
         df.loc[df["project"].isna(), "project"] = "Project"
         df.loc[df["organism"].isna(), "organism"] = "Organism"
 
-        adapter_set, adapter_1_set, adapter_2_set, adapter_3_set, adapter_4_set = self.__get_adapters_set(df)
-        
-        if adapter_set:
-            df["adapter_1"] = df["adapter"]
-            df["adapter_2"] = df["adapter"]
-            df["adapter_3"] = df["adapter"]
-            df["adapter_4"] = df["adapter"]
-
-        df.loc[pd.isna(df["index_1"]), "adapter_1"] = None
-        df.loc[pd.isna(df["index_2"]), "adapter_2"] = None
-        df.loc[pd.isna(df["index_3"]), "adapter_3"] = None
-        df.loc[pd.isna(df["index_4"]), "adapter_4"] = None
-
-        df = df.drop(columns=["adapter"])
         df["id"] = df.reset_index(drop=True).index + 1
         df = self.__clean_df(df)
 

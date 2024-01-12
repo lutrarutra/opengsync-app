@@ -68,11 +68,8 @@ def get_available_pools_for_experiment(
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
     query = self._session.query(models.Pool).join(
-        models.LibraryPoolLink,
-        models.LibraryPoolLink.pool_id == models.Pool.id,
-    ).join(
         models.Library,
-        models.Library.id == models.LibraryPoolLink.library_id,
+        models.Pool.id == models.Library.pool_id,
     ).join(
         models.SeqRequestLibraryLink,
         models.SeqRequestLibraryLink.library_id == models.Library.id,
@@ -135,44 +132,44 @@ def link_sample_library(
     return sample_library_link
     
 
-def link_library_pool(
-    self,
-    pool_id: int, library_id: int,
-    commit: bool = True
-) -> models.LibraryPoolLink:
+# def link_library_pool(
+#     self,
+#     pool_id: int, library_id: int,
+#     commit: bool = True
+# ) -> models.LibraryPoolLink:
 
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
+#     persist_session = self._session is not None
+#     if not self._session:
+#         self.open_session()
 
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if (library := self._session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+#     if (pool := self._session.get(models.Pool, pool_id)) is None:
+#         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+#     if (library := self._session.get(models.Library, library_id)) is None:
+#         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if self._session.query(models.LibraryPoolLink).where(
-        and_(
-            models.LibraryPoolLink.pool_id == pool_id,
-            models.LibraryPoolLink.library_id == library_id,
-        )
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and pool with id {pool_id} are already linked")
+#     if self._session.query(models.LibraryPoolLink).where(
+#         and_(
+#             models.LibraryPoolLink.pool_id == pool_id,
+#             models.LibraryPoolLink.library_id == library_id,
+#         )
+#     ).first():
+#         raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and pool with id {pool_id} are already linked")
 
-    library_pool_link = models.LibraryPoolLink(
-        pool_id=pool_id, library_id=library_id,
-    )
-    self._session.add(library_pool_link)
-    library.num_pools += 1
-    pool.num_libraries += 1
+#     library_pool_link = models.LibraryPoolLink(
+#         pool_id=pool_id, library_id=library_id,
+#     )
+#     self._session.add(library_pool_link)
+#     library.num_pools += 1
+#     pool.num_libraries += 1
 
-    if commit:
-        self._session.commit()
-        self._session.refresh(library_pool_link)
+#     if commit:
+#         self._session.commit()
+#         self._session.refresh(library_pool_link)
 
-    if not persist_session:
-        self.close_session()
+#     if not persist_session:
+#         self.close_session()
 
-    return library_pool_link
+#     return library_pool_link
 
 
 def get_sample_library_links(
@@ -433,7 +430,7 @@ def unlink_experiment_pool(
 
     if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    if (library := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     if (link := self._session.query(models.ExperimentPoolLink).where(

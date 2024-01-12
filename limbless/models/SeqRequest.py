@@ -90,6 +90,13 @@ class SeqRequest(SQLModel, table=True):
             return None
         return FlowCellType.get(self.flowcell_type_id)
     
+    def is_indexed(self) -> bool:
+        for library in self.libraries:
+            if not library.is_indexed():
+                return False
+            
+        return True
+    
     def is_authorized(self) -> bool:
         return self.seq_auth_form_uuid is not None
     

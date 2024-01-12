@@ -37,13 +37,13 @@ class SampleLibraryLink(SQLModel, table=True):
         return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"
 
 
-class LibraryPoolLink(SQLModel, table=True):
-    pool_id: int = Field(
-        foreign_key="pool.id", primary_key=True
-    )
-    library_id: int = Field(
-        foreign_key="library.id", primary_key=True
-    )
+# class LibraryPoolLink(SQLModel, table=True):
+#     pool_id: int = Field(
+#         foreign_key="pool.id", primary_key=True
+#     )
+#     library_id: int = Field(
+#         foreign_key="library.id", primary_key=True
+#     )
 
 
 class ExperimentPoolLink(SQLModel, table=True):

@@ -460,16 +460,11 @@ def check_barcodes(seq_request_id: int):
                     index_2_sequence=row["index_2"] if not pd.isna(row["index_2"]) else None,
                     index_3_sequence=row["index_3"] if not pd.isna(row["index_3"]) else None,
                     index_4_sequence=row["index_4"] if not pd.isna(row["index_4"]) else None,
-                    index_1_adapter=row["adapter_1"] if not pd.isna(row["adapter_1"]) else None,
-                    index_2_adapter=row["adapter_2"] if not pd.isna(row["adapter_2"]) else None,
-                    index_3_adapter=row["adapter_3"] if not pd.isna(row["adapter_3"]) else None,
-                    index_4_adapter=row["adapter_4"] if not pd.isna(row["adapter_4"]) else None,
+                    
                 )
                 if not pd.isna(row["pool"]):
-                    session.link_library_pool(
-                        library_id=library.id,
-                        pool_id=pools[row["pool"]].id
-                    )
+                    library.pool_id = pools[row["pool"]].id
+                    library = session.update_library(library)
                 
                 session.link_library_seq_request(
                     library_id=library.id,
