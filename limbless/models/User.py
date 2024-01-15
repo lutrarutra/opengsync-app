@@ -63,6 +63,7 @@ class UserMixin:
 
 
 class User(UserMixin, SQLModel, SearchResult, table=True):
+    __tablename__ = "lims_user"
     id: int = Field(default=None, primary_key=True)
     first_name: str = Field(nullable=False, max_length=64)
     last_name: str = Field(nullable=False, max_length=64)

@@ -1,11 +1,12 @@
+import os
 from .core import DBHandler
 from .tools import SearchResult
 from .index_kits import add_index_kits
 
-db_url = "data/sample_experiment.db"
+db_url = os.getenv("DATABASE_URL")
+
 # db_url = "postgresql://postgres:limbless@localhost/limbless_db"
-db_url = "postgresql://postgres:password@127.0.0.1:5432/limbless_db"
-# db_path = "data/database.db"
+# db_url = "postgresql://postgres:password@127.0.0.1:5432/limbless_db"
 
 db_handler = DBHandler(db_url)
 
