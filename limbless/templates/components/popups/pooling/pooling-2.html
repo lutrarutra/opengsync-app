@@ -46,7 +46,7 @@
         <button class="btn btn-success" type="button"
             hx-include="#pooling-input-form" hx-target="#pooling-input-form-container" hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
-            hx-post="{{ url_for('seq_requests_htmx.parse_pooling_form', experiment_id=experiment.id, seq_request_id=seq_request.id) }}">
+            hx-post="{{ url_for('seq_requests_htmx.parse_pooling_form', seq_request_id=seq_request.id) }}{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}">
             Parse
         </button>
         <a class="btn btn-danger" type="button"

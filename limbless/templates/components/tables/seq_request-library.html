@@ -5,7 +5,7 @@
 <div id="seq_request-library-table" class="table-container">
     <div class="form-check form-switch">
         <input class="form-check-input" type="checkbox" role="switch" id="adapter-switch">
-        <label class="form-check-label" for="">Show adapters</label>
+        <label class="form-check-label" for="">Show Adapters</label>
     </div>
     <table class="table table-hover table-cursor">
         <thead>
@@ -26,6 +26,14 @@
                         current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=libraries_current_query,
                         field_name=field_name, col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='seq_request-library-table', column_name='Pool', column_var='pool_id',
+                        sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=2
                     )
                 }}
                 {{
@@ -64,14 +72,6 @@
                         src="{{ url_for('static', filename='images/arrows.svg') }}" width="14px" height="14px">
                     </a>
                 </th>
-                {{
-                    table_col(
-                        target_id='seq_request-library-table', column_name='Owner', column_var='owner_id',
-                        sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        col_size=2
-                    )
-                }}
             </tr>
         </thead>
         <tbody>
@@ -79,6 +79,7 @@
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}';">
                 <th scope="row">{{ library.id }}</th>
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
+                <td>{{ library.pool.name if library.pool_id else "" }}</td>
                 <td>
                     <span {{ tooltip(library.type.value.name) }}>
                         {{ library.type.value.description }}
@@ -97,7 +98,6 @@
                 <td></td>
                 {% endif %}
                 {% endfor %}
-                <td>{{ library.sample.owner.name }} <span class="desc">{{ "me" if current_user.id == library.sample.owner_id }}</span></td>
             </tr>
             {% endfor %}
         </tbody>

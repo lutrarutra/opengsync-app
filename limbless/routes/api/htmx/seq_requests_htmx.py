@@ -295,7 +295,7 @@ def edit(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/delete", methods=["GET"])
+@seq_requests_htmx.route("<int:seq_request_id>/delete", methods=["DELETE"])
 @login_required
 def delete(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
@@ -312,6 +312,46 @@ def delete(seq_request_id: int):
 
     return make_response(
         redirect=url_for("seq_requests_page.seq_requests_page"),
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/archive", methods=["POST"])
+@login_required
+def archive(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if not current_user.is_insider():
+        if seq_request.requestor_id != current_user.id:
+            return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    seq_request.status_id = SeqRequestStatus.ARCHIVED.value.id
+    seq_request = db.db_handler.update_seq_request(seq_request)
+    flash(f"Archived sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Archived sequencing request '{seq_request.name}'")
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/unarchive", methods=["POST"])
+@login_required
+def unarchive(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    seq_request.status_id = SeqRequestStatus.DRAFT.value.id
+    seq_request.submitted_time = None
+    seq_request = db.db_handler.update_seq_request(seq_request)
+
+    flash(f"Unarchived sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Unarchived sequencing request '{seq_request.name}'")
+
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
     )
 
 
@@ -469,6 +509,10 @@ def remove_auth_form(seq_request_id: int):
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.value.id)
+        
+    if seq_request.status != SeqRequestStatus.DRAFT:
         if not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
 
@@ -809,7 +853,6 @@ def check_indices(seq_request_id: int):
         )
     
     df = pool_mapping_form.parse()
-    logger.debug(df)
     
     barcode_check_form = forms.BarcodeCheckForm()
     context = barcode_check_form.prepare(df)
@@ -870,6 +913,8 @@ def add_indices(seq_request_id: int):
     n_pools = 0
     for pool_label, _df in df.groupby("pool"):
         pool_label = str(pool_label)
+        logger.debug(pool_label)
+        logger.debug(_df[["sample_name", "library_type"]])
         pool = db.db_handler.create_pool(
             name=pool_label,
             owner_id=current_user.id,
@@ -878,10 +923,13 @@ def add_indices(seq_request_id: int):
             contact_email=_df["contact_person_email"].iloc[0],
             contact_phone=_df["contact_person_phone"].iloc[0],
         )
+
         for _, row in _df.iterrows():
             library = db.db_handler.get_library(int(row["id"]))
+            logger.debug(f"Adding library '{library.name}' to pool '{pool.name}'")
             library.pool_id = pool.id
             library = db.db_handler.update_library(library)
+
         n_pools += 1
 
     if experiment is not None:

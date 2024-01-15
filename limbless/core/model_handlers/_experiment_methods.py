@@ -124,6 +124,9 @@ def delete_experiment(
     if not experiment:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
+    experiment.pools = []
+    experiment.seq_requests = []     
+
     self._session.delete(experiment)
     
     if commit:

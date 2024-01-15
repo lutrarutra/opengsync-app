@@ -100,13 +100,18 @@
     <div class="modal-footer">
         <button type="button" class="btn btn-success" hx-target="#index-check-container" hx-swap="outerHTML"
             hx-include="#index-check-form" id="index-check-form-btn"
-            hx-post="{{ url_for('seq_requests_htmx.add_indices', seq_request_id=seq_request.id) }}">
+            hx-post="{{ url_for('seq_requests_htmx.add_indices', seq_request_id=seq_request.id) }}{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}">
             Submit
         </button>
 
-        <button type="button" class="btn btn-danger" hx-target="#index-check-container" hx-swap="outerHTML">
+        <a class="btn btn-danger" type="button"
+            {% if experiment %}
+                href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}"
+            {% else %}
+                href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}"
+            {% endif %}>
             Cancel
-        </button>
+        </a>
     </div>
 </div>
 <script>

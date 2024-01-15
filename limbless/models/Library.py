@@ -81,7 +81,7 @@ class Library(SQLModel, table=True):
 
     adapter: Optional[str] = Field(nullable=True)
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id", "owner_id"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id", "owner_id", "pool_id"]
 
     def to_dict(self):
         return {

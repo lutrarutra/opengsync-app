@@ -37,13 +37,6 @@
                 </button>
             </span>
             {% endif %}
-            <span {% if seq_request.status.value.name != "Draft" %} {{ tooltip("You cannot edit request that is already submitted.") }} {% endif %}>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                    data-bs-target="#seq_request-form-popup"
-                    {% if seq_request.status.value.name != "Draft" %}disabled{% endif %}>
-                    Edit Request
-                </button>
-            </span>
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Export
@@ -55,22 +48,69 @@
                     <li><a class="dropdown-item" href="{{ url_for('seq_requests_htmx.export', seq_request_id=seq_request.id) }}">Everything (.xlsx)</a></li>
                 </ul>
             </div>
-            <span {% if seq_request.status.value.name != "Draft" %} {{ tooltip("You cannot edit request that is already submitted.", category="error") }} {% endif %}>
-                <button hx-get="{{ url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id) }}" class="btn btn-danger"
-                    _="on htmx:confirm(issueRequest)
-                    halt the event
-                    call Swal.fire({
-                        title: 'Delete request \'{{ seq_request.name }}\'',
-                        showDenyButton: true,
-                        text: 'Proceed?',
-                        confirmButtonText: 'Yes',
-                        denyButtonText: 'No'
-                    })
-                    if result.isConfirmed issueRequest()"
-                    {% if seq_request.status.value.name != "Draft" %}disabled{% endif %}>
-                    Delete Request
+            <div class="dropdown">
+              <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Manage
                 </button>
-            </span>
+                <ul class="dropdown-menu">
+                    <li>
+                        <span {% if seq_request.status.value.name != "Draft" and not current_user.is_insider() %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
+                            <button class="dropdown-item"
+                            data-bs-toggle="modal"
+                            data-bs-target="#seq_request-form-popup"
+                            {% if seq_request.status.value.name != "Draft" and not current_user.is_insider() %}disabled{% endif %}>Edit</button>
+                        </span>
+                    </li>
+                    <li>
+                        <span {% if seq_request.status.value.name != "Draft" %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
+                            <button class="dropdown-item"
+                            hx-delete="{{ url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id) }}"
+                            _="on htmx:confirm(issueRequest)
+                            halt the event
+                            call Swal.fire({
+                                title: 'Delete request \'{{ seq_request.name }}\'',
+                                showDenyButton: true,
+                                text: 'Proceed?',
+                                confirmButtonText: 'Yes',
+                                denyButtonText: 'No'
+                            })
+                            if result.isConfirmed issueRequest()"
+                            {% if seq_request.status.value.name != "Draft" %}disabled{% endif %}>Delete</button>
+                        </span>
+                    </li>
+                    <li>
+                        <button class="dropdown-item"
+                        hx-post="{{ url_for('seq_requests_htmx.archive', seq_request_id=seq_request.id) }}"
+                        _="on htmx:confirm(issueRequest)
+                        halt the event
+                        call Swal.fire({
+                            title: 'Archive request \'{{ seq_request.name }}\'',
+                            showDenyButton: true,
+                            text: 'You will not be able to use this request anymore. Do you want to proceed?',
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'No'
+                        })
+                        if result.isConfirmed issueRequest()"
+                        {% if seq_request.status.value.name == "Draft" or seq_request.status.value.name == "Archived" %}disabled{% endif %}>Archive</button>
+                    </li>
+                    {% if current_user.is_insider() and seq_request.status.value.name == "Archived" %}
+                    <li>
+                        <button class="dropdown-item"
+                        hx-post="{{ url_for('seq_requests_htmx.unarchive', seq_request_id=seq_request.id) }}"
+                        _="on htmx:confirm(issueRequest)
+                        halt the event
+                        call Swal.fire({
+                            title: 'Unarchive request \'{{ seq_request.name }}\'',
+                            showDenyButton: true,
+                            text: 'Do you want to proceed?',
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'No'
+                        })
+                        if result.isConfirmed issueRequest()">Unarchive</button>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -234,6 +274,7 @@
                     </div>
                     <div>
                         {% if seq_request.is_authorized() %}
+                        {% if seq_request.status.value.name == "Draft" or current_user.is_insider() %}
                         <a type="button" class="btn btn-danger" hx-delete="{{ url_for('seq_requests_htmx.remove_auth_form', seq_request_id=seq_request.id) }}"
                         _="on htmx:confirm(issueRequest)
                         halt the event
@@ -247,6 +288,7 @@
                         if result.isConfirmed issueRequest()">
                             Remove Authorization Form
                         </a>
+                        {% endif %}
                         {% endif %}
                         <a type="button" class="btn btn-primary" href="{{ url_for('seq_request_form_htmx.download_seq_auth_form') }}">
                             Download Template

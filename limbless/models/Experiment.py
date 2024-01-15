@@ -5,12 +5,13 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import ExperimentStatus
-from .Links import ExperimentPoolLink
+from .Links import ExperimentPoolLink, SeqRequestExperimentLink
 
 if TYPE_CHECKING:
     from .Pool import Pool
     from .Sequencer import Sequencer
     from .User import User
+    from .SeqRequest import SeqRequest
 
 
 class Experiment(SQLModel, table=True):
@@ -37,6 +38,10 @@ class Experiment(SQLModel, table=True):
 
     pools: List["Pool"] = Relationship(
         back_populates="experiments", link_model=ExperimentPoolLink,
+        sa_relationship_kwargs={"lazy": "select"},
+    )
+    seq_requests: List["SeqRequest"] = Relationship(
+        back_populates="experiments", link_model=SeqRequestExperimentLink,
         sa_relationship_kwargs={"lazy": "select"},
     )
 

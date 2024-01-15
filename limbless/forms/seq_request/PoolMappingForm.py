@@ -57,18 +57,21 @@ class PoolMappingForm(TableDataForm):
             df = self.get_df()
         
         df["pool"] = df["pool"].apply(lambda x: str(x) if x and not pd.isna(x) and not pd.isnull(x) else "__NONE__")
-        pools = []
+
         pool_libraries = []
-        for i, (pool_label, _df) in enumerate(df.groupby("pool")):
+        raw_pool_labels = df["pool"].unique().tolist()
+
+        for i, raw_pool_label in enumerate(raw_pool_labels):
+            _df = df[df["pool"] == raw_pool_label]
+
             if i > len(self.input_fields) - 1:
                 self.input_fields.append_entry()
 
-            pool_raw_label = pool_label if pool_label != "__NONE__" else f"Pool {i+1}"
-            pools.append(pool_raw_label)
+            raw_pool_label = raw_pool_label if raw_pool_label != "__NONE__" else f"Pool {i+1}"
 
             entry = self.input_fields[i]
             if entry.pool_label.data is None:
-                entry.pool_label.data = pool_label if pool_label != "__NONE__" else ""
+                entry.pool_label.data = raw_pool_label if raw_pool_label != "__NONE__" else ""
             if entry.contact_person_name.data is None:
                 entry.contact_person_name.data = current_user.name
             if entry.contact_person_email.data is None:
@@ -92,7 +95,7 @@ class PoolMappingForm(TableDataForm):
         self.set_df(df)
 
         return {
-            "pools": pools,
+            "pools": raw_pool_labels,
             "pool_libraries": pool_libraries,
         }
 
@@ -114,15 +117,21 @@ class PoolMappingForm(TableDataForm):
 
         for i, entry in enumerate(self.input_fields):
             pool_label = entry.pool_label.data
+            logger.debug(f"{raw_pool_labels[i]} -> {pool_label}")
             df.loc[df["pool"] == raw_pool_labels[i], "pool"] = pool_label
 
         logger.debug(df[["pool", "index_kit"]])
 
+        df["index_1"] = None
+        df["index_2"] = None
+        df["index_3"] = None
+        df["index_4"] = None
         for i, row in df.iterrows():
             if not pd.isnull(row["index_1"]):
                 continue
 
             adapter = db.db_handler.get_adapter_from_index_kit(row["adapter"], row["index_kit"])
+
             df.loc[i, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 is not None else None
             df.loc[i, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 is not None else None
             df.loc[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 is not None else None
