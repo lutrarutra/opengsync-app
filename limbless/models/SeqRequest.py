@@ -41,7 +41,7 @@ class SeqRequest(SQLModel, table=True):
 
     num_libraries: int = Field(nullable=False, default=0)
 
-    requestor_id: int = Field(nullable=False, foreign_key="user.id")
+    requestor_id: int = Field(nullable=False, foreign_key="lims_user.id")
     requestor: "User" = Relationship(back_populates="requests", sa_relationship_kwargs={"lazy": "joined"})
 
     bioinformatician_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")

@@ -48,7 +48,7 @@ class Library(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
-    owner_id: int = Field(nullable=False, foreign_key="user.id")
+    owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
     owner: "User" = Relationship(
         back_populates="libraries",
         sa_relationship_kwargs={"lazy": "joined"}

@@ -19,7 +19,7 @@ class Project(SQLModel, SearchResult, table=True):
         back_populates="project"
     )
 
-    owner_id: int = Field(nullable=False, foreign_key="user.id")
+    owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
     owner: "User" = Relationship(
         back_populates="projects",
         sa_relationship_kwargs={"lazy": "joined"}
