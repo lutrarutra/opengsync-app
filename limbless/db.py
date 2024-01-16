@@ -1,14 +1,25 @@
 import os
 from .core import DBHandler
 from .tools import SearchResult
-from .index_kits import add_index_kits
 
-db_url = os.getenv("DATABASE_URL")
 
-# db_url = "postgresql://postgres:limbless@localhost/limbless_db"
-# db_url = "postgresql://postgres:password@127.0.0.1:5432/limbless_db"
+if (db_user := os.environ.get("POSTGRES_USER")) is None:
+    raise ValueError("POSTGRES_USER environment variable is not set.")
 
-db_handler = DBHandler(db_url)
+if (db_password := os.environ.get("POSTGRES_PASSWORD")) is None:
+    raise ValueError("POSTGRES_PASSWORD environment variable is not set.")
+
+if (db_name := os.environ.get("POSTGRES_DB")) is None:
+    raise ValueError("POSTGRES_DB environment variable is not set.")
+
+if (db_port := os.environ.get("POSTGRES_PORT")) is None:
+    raise ValueError("POSTGRES_PORT environment variable is not set.")
+
+if (db_host := os.environ.get("POSTGRES_HOST")) is None:
+    raise ValueError("POSTGRES_HOST environment variable is not set.")
+
+
+db_handler = DBHandler(f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
 
 
 common_organisms = [

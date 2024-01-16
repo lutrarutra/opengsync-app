@@ -12,14 +12,11 @@ ENV PYTHONUNBUFFERED 1
 RUN apt update
 RUN apt install build-essential -y
 RUN apt install libpq-dev -y
-RUN apt install wget -y
-RUN apt install unzip -y
+RUN apt install curl -y
 RUN pip install --upgrade pip
-RUN pip install gunicorn
-COPY ./requirements.txt /usr/src/app/requirements.txt
-RUN pip install -r requirements.txt
-
-# copy project
 COPY . /usr/src/app/
+RUN mkdir uploads && touch uploads/hello
+RUN pip install -r requirements.txt
+RUN chmod +x entrypoint.sh
 
-EXPOSE 5000
+ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

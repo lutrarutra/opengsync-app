@@ -26,26 +26,22 @@ else:
         format=fmt, level="INFO"
     )
     logger.add(
-        f"logs/limbless_{date}.log", format=fmt, level="INFO",
+        f"logs/{date}_server.log", format=fmt, level="INFO",
         colorize=False, rotation="1 day"
     )
     logger.add(
-        f"logs/limbless_{date}.err", format=fmt, level="ERROR",
+        f"logs/{date}_server.err", format=fmt, level="ERROR",
         colorize=False, rotation="1 day"
     )
 
 PAGE_LIMIT = 15
 SECRET_KEY = "SECRET_KEY"
-if (SEQ_AUTH_FORMS_DIR := os.getenv("SEQ_AUTH_FORMS_DIR")) is None:
-    SEQ_AUTH_FORMS_DIR = ""
-    raise ValueError("SEQ_AUTH_FORMS_DIR environment variable not set")
+SEQ_AUTH_FORMS_DIR = "uploads/auth_forms"
 
 if not os.path.exists(SEQ_AUTH_FORMS_DIR):
     os.mkdir(SEQ_AUTH_FORMS_DIR)
 
-if (EMAIL_SENDER := os.getenv("EMAIL_SENDER")) is None:
-    EMAIL_SENDER = ""
-    raise ValueError("EMAIL_SENDER environment variable not set")
+EMAIL_SENDER = os.environ["EMAIL_SENDER"]
 
 htmx = HTMX()
 bcrypt = Bcrypt()

@@ -3,7 +3,7 @@ import warnings
 from uuid import uuid4
 from typing import TYPE_CHECKING
 
-from flask import Flask, render_template, redirect, request, url_for, session, current_app, abort, make_response
+from flask import Flask, render_template, redirect, request, url_for, session, current_app, abort, make_response, send_from_directory
 from flask_login import login_required
 from sassutils.wsgi import SassMiddleware
 
@@ -39,16 +39,16 @@ def create_app():
     login_manager.init_app(app)
     mail.init_app(app)
 
-    @login_manager.user_loader
-    def load_user(user_id: int) -> User:
-        user = db.db_handler.get_user(user_id)
-        return user
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
         app.wsgi_app = SassMiddleware(app.wsgi_app, {
             "limbless": ("static/style/sass", "static/style/css", "/static/style/css")
         })
+
+    @login_manager.user_loader
+    def load_user(user_id: int) -> User:
+        user = db.db_handler.get_user(user_id)
+        return user
 
     @app.route("/index_page")
     def _index_page():
@@ -119,6 +119,10 @@ def create_app():
     def before_request():
         session["from_url"] = request.referrer
 
+    @app.route("/status")
+    def status():
+        return make_response("OK", 200)
+    
     # app.register_blueprint(api.jobs_bp)
     app.register_blueprint(api.samples_htmx)
     app.register_blueprint(api.projects_htmx)

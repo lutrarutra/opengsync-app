@@ -2,21 +2,18 @@ from typing import Optional
 
 from sqlmodel import create_engine, SQLModel, Session
 from sqlalchemy import orm
-from sqlalchemy_utils import database_exists, create_database
 
-from .. import models, categories, logger
+from .. import logger
 
 
 class DBHandler():
     def __init__(self, url: str):
         self.url = url
-        # self._engine = create_engine(f"sqlite:///{self.url}?check_same_thread=False")
-        if not database_exists(self.url):
-            logger.debug(f"Created database {self.url}")
-            create_database(self.url)
         self._engine = create_engine(self.url)
         self._session: Optional[orm.Session] = None
 
+    def init_database(self) -> None:
+        logger.debug("Creating DB tables.")
         SQLModel.metadata.create_all(self._engine)
 
     def open_session(self) -> None:

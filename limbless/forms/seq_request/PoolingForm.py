@@ -40,7 +40,7 @@ class PoolingForm(TableDataForm):
         
         filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
         filename = secure_filename(filename)
-        self.file.data.save("data/uploads/" + filename)
+        self.file.data.save("uploads/" + filename)
         logger.debug(f"Saved file to data/uploads/{filename}")
 
         if self.separator.data == "tsv":
@@ -49,7 +49,7 @@ class PoolingForm(TableDataForm):
             sep = ","
         
         try:
-            df = pd.read_csv("data/uploads/" + filename, sep=sep, index_col=False, header=0)
+            df = pd.read_csv("uploads/" + filename, sep=sep, index_col=False, header=0)
         except pd.errors.ParserError as e:
             self.file.errors = (str(e),)
             return False, self, None
