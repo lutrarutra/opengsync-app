@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
     nginx:
         build: ./services/nginx
@@ -28,10 +30,6 @@ services:
 
         healthcheck:
             test: ["CMD", "curl", "-f", "http://limbless-server:5000/status"]
-            start-interval: 5s  # 5s interval when container is starting
-            interval: 300s      # check every 5 minutes
-            timeout: 5s         # wait for the command to complete
-            retries: 5
 
     postgres:
         container_name: postgres
@@ -47,10 +45,6 @@ services:
             - ./db/postgres:/var/lib/postgresql/data
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
-            start-interval: 5s  # 5s interval when container is starting
-            interval: 300s      # check every 5 minutes
-            timeout: 5s         # wait for the command to complete
-            retries: 5
 
     pgadmin:
         container_name: pgadmin
