@@ -14,8 +14,10 @@ Web app for NGS sample/library/project tracking
     - password: `$(PGADMIN_PASSWORD)`
 
 ## pgAdmin Server Setup
-    - host: `host.docker.internal`
-    - port: `5432`
+    - host: `host.docker.internal` & port: `5432` or
+    - Find the IP address of the container:
+        1. `docker ps`
+        2. `docker inspect <container id> | grep IPAddress`
     - username: `$(POSTGRES_USER)`
     - password: `$(POSTGRES_PASSWORD)`
 
