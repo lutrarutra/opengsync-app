@@ -1,60 +1,12 @@
-$white:    #fff;
-$gray-100: #f8f9fa;
-$gray-200: #e9ecef;
-$gray-300: #dee2e6;
-$gray-400: #ced4da;
-$gray-500: #adb5bd;
-$gray-600: #6c757d;
-$gray-700: #495057;
-$gray-800: #343a40;
-$gray-900: #212529;
-$black:    #000;
-
-$blue:    #0d6efd;
-$indigo:  #6610f2;
-$purple:  #6f42c1;
-$pink:    #d63384;
-$red:     #dc3545;
-$orange:  #fd7e14;
-$yellow:  #ffc107;
-$green:   #198754;
-$teal:    #20c997;
-$cyan:    #0dcaf0;
-
-$primary:       $blue;
-$secondary:     $gray-600;
-$success:       $green;
-$info:          $cyan;
-$warning:       $yellow;
-$danger:        $red;
-$light:         $gray-100;
-$dark:          $gray-900;
-
-$cemm-blue:     #00aecc;
-$cemm-blue-darker: #0090aa;
-$cemm-blue-dark: #0f5568;
-$cemm-secondary:   #1b88a7;
-$cemm-secondary-darker:   #16748e;
-$cemm-secondary-dark:   #136379;
-$cemm-yellow:   #c6b600;
-$cemm-yellow-darker:   #f1dd00;
-$cemm-yellow-dark:   #ac9e00;
-$cemm-red:   #e95e30;
-$cemm-red-darker:   #d1562d;
-$cemm-red-dark:   #bb4c27;
-$cemm-green: #96c03a;
-$cemm-green-darker: #89af36;
-$cemm-green-dark: #75952f;
-
 $progress-height: 1.3rem !default;
 
-// @import "../bootstrap/scss/bootstrap.scss";
+@import "colors.scss";
 @import "../css/scrollbar.css";
-@import "./theme.scss";
-@import "./navbar.scss";
-@import "./responsive.scss";
-@import "./colors.scss";
-@import "./tooltip.scss";
+@import "theme.scss";
+@import "navbar.scss";
+@import "responsive.scss";
+@import "colors.scss";
+@import "tooltip.scss";
 
 
 body {

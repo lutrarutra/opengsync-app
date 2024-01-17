@@ -1,28 +1,20 @@
 version: "3.8"
 
 services:
-    nginx:
-        container_name: limbless-nginx-proxy
-        build: ./services/nginx
-        ports:
-            - 80:80
-        volumes:
-            - static_volume:/usr/src/app/static
-        depends_on:
-            limbless-server:
-                condition: service_healthy
-                restart: true
-
     limbless-server:
         container_name: limbless-web-server
-        build: ./services/limbless-server
-        command: "gunicorn -w 4 --bind 0.0.0.0:5000 'wsgi:app'"
+        build:
+            context: ./services/limbless-server
+            dockerfile: Dockerfile.dev
+        command: "flask run --host=0.0.0.0"
         volumes:
+            - ./services/limbless-server/limbless:/usr/src/app/limbless
             - ./uploads:/usr/src/app/uploads
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
-            - static_volume:/usr/src/app/static
-        env_file: .env
+        env_file: .dev.env
+        ports:
+            - 5000:5000
         expose:
             - 5000
         depends_on:
@@ -69,7 +61,3 @@ services:
             postgres:
                 condition: service_healthy
                 restart: true
-
-
-volumes:
-    static_volume:

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from flask import Flask, render_template, redirect, request, url_for, session, current_app, abort, make_response, send_from_directory
 from flask_login import login_required
-from sassutils.wsgi import SassMiddleware
+import sass
 
 from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, categories, PAGE_LIMIT, SEQ_AUTH_FORMS_DIR
 from .models import User
@@ -18,7 +18,7 @@ else:
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="/usr/src/app/static")
 
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
 
@@ -39,11 +39,7 @@ def create_app():
     login_manager.init_app(app)
     mail.init_app(app)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        app.wsgi_app = SassMiddleware(app.wsgi_app, {
-            "limbless": ("static/style/sass", "static/style/css", "/static/style/css")
-        })
+    sass.compile(dirname=("/usr/src/app/static/style/sass", "/usr/src/app/static/style/css"))
 
     @login_manager.user_loader
     def load_user(user_id: int) -> User:

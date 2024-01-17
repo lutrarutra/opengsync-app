@@ -1,3 +1,5 @@
+@import "colors.scss";
+
 .btn-primary,
 .btn-primary.show,
 .btn-primary.disabled {
@@ -100,11 +102,6 @@
     background-color: $cemm-green;
     opacity: 0.7;
 }
-
-$navbar-color: $cemm-blue;
-$navbar-active-color: $cemm-blue-darker;
-// $navbar-color: $dark;
-// $navbar-active-color: $gray-800;
 
 .page-link {
     color: $cemm-blue;

@@ -1,3 +1,11 @@
+
+@import "colors.scss";
+
+$navbar-color: $cemm-blue;
+$navbar-active-color: $cemm-blue-darker;
+// $navbar-color: $dark;
+// $navbar-active-color: $gray-800;
+
 nav#navbar {
     width: 100vw;
     height: 60px;

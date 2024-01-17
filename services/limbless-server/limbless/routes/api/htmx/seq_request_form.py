@@ -19,7 +19,7 @@ else:
     from flask_login import current_user
 
 
-seq_request_form_htmx = Blueprint("seq_request_form_htmx", __name__, url_prefix="/api/samples/")
+seq_request_form_htmx = Blueprint("seq_request_form_htmx", __name__, url_prefix="/api/seq_request_form/")
 
 
 # Template sample annotation sheet
@@ -34,7 +34,7 @@ def download_template(type: str):
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     path = os.path.join(
-        current_app.root_path,
+        current_app.root_path, "..",
         "static", "resources", "templates", name
     )
 
