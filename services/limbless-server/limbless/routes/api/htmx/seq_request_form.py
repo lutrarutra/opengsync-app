@@ -64,7 +64,7 @@ def restart_form(seq_request_id: int):
     
     return make_response(
         render_template(
-            "components/popups/seq_request/step-1.html",
+            "components/popups/seq_request/seq_request-1.html",
             table_form=forms.TableForm(),
             seq_request=seq_request
         ), push_url=False
@@ -84,7 +84,7 @@ def parse_table(seq_request_id: int):
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/step-1.html",
+                "components/popups/seq_request/seq_request-1.html",
                 table_form=table_input_form, seq_request=seq_request
             ), push_url=False
         )
@@ -96,7 +96,7 @@ def parse_table(seq_request_id: int):
             
         return make_response(
             render_template(
-                "components/popups/seq_request/step-1.html",
+                "components/popups/seq_request/seq_request-1.html",
                 table_form=table_input_form, seq_request=seq_request
             ), push_url=False
         )
@@ -106,7 +106,7 @@ def parse_table(seq_request_id: int):
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-2.html",
+            "components/popups/seq_request/seq_request-2.html",
             sample_table_form=table_col_form,
             data=df.values.tolist(),
             seq_request=seq_request,
@@ -130,7 +130,7 @@ def map_columns(seq_request_id: int):
         # TODO: show errors
         return make_response(
             render_template(
-                "components/popups/seq_request/step-2.html",
+                "components/popups/seq_request/seq_request-2.html",
                 sample_table_form=sample_table_form,
                 data=sample_table_form.get_df().values.tolist(),
                 seq_request=seq_request,
@@ -145,7 +145,7 @@ def map_columns(seq_request_id: int):
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-3.html",
+            "components/popups/seq_request/seq_request-3.html",
             project_mapping_form=project_mapping_form,
             seq_request=seq_request, **context
         ), push_url=False
@@ -166,7 +166,7 @@ def select_project(seq_request_id: int):
         context = project_mapping_form.prepare()
         return make_response(
             render_template(
-                "components/popups/seq_request/step-3.html",
+                "components/popups/seq_request/seq_request-3.html",
                 project_mapping_form=project_mapping_form,
                 seq_request=seq_request, **context
             ), push_url=False
@@ -181,7 +181,7 @@ def select_project(seq_request_id: int):
         # new sample -> map organisms
         return make_response(
             render_template(
-                "components/popups/seq_request/step-4.html",
+                "components/popups/seq_request/seq_request-4.html",
                 category_mapping_form=category_mapping_form,
                 seq_request=seq_request, **context
             ), push_url=False
@@ -192,7 +192,7 @@ def select_project(seq_request_id: int):
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-5.html",
+            "components/popups/seq_request/seq_request-5.html",
             seq_request=seq_request,
             library_mapping_form=library_mapping_form,
             **context
@@ -208,7 +208,7 @@ def map_organisms(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     category_mapping_form = forms.OrganismMappingForm()
-    validated, category_mapping_form = category_mapping_form.custom_validate(db.db_handler)
+    validated, category_mapping_form = category_mapping_form.custom_validate()
     df = category_mapping_form.get_df()
     organisms = sorted(df["organism"].unique())
 
@@ -225,7 +225,7 @@ def map_organisms(seq_request_id: int):
 
         return make_response(
             render_template(
-                "components/popups/seq_request/step-4.html",
+                "components/popups/seq_request/seq_request-4.html",
                 category_mapping_form=category_mapping_form,
                 categories=organisms, selected=selected,
                 seq_request=seq_request
@@ -244,7 +244,7 @@ def map_organisms(seq_request_id: int):
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-5.html",
+            "components/popups/seq_request/seq_request-5.html",
             seq_request=seq_request,
             library_mapping_form=library_mapping_form,
             **context
@@ -266,7 +266,7 @@ def map_libraries(seq_request_id: int):
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/step-5.html",
+                "components/popups/seq_request/seq_request-5.html",
                 seq_request=seq_request,
                 library_mapping_form=library_mapping_form,
                 **context
@@ -274,13 +274,51 @@ def map_libraries(seq_request_id: int):
         )
     
     df = library_mapping_form.parse()
-    if (~df["pool"].isnull()).any():
+    index_kit_mapping_form = forms.IndexKitMappingForm(formdata=None)
+    context = index_kit_mapping_form.prepare(df)
+
+    logger.debug(index_kit_mapping_form.input_fields[0].raw_category.data)
+
+    return make_response(
+            render_template(
+                "components/popups/seq_request/seq_request-6.html",
+                seq_request=seq_request,
+                index_kit_mapping_form=index_kit_mapping_form,
+                **context
+            )
+        )
+
+
+# 6. Map index_kits
+@seq_request_form_htmx.route("<int:seq_request_id>/map_index_kits", methods=["POST"])
+@login_required
+def map_index_kits(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
+    index_kit_mapping_form = forms.IndexKitMappingForm()
+    validated, index_kit_mapping_form = index_kit_mapping_form.custom_validate()
+    logger.debug(index_kit_mapping_form.errors)
+    
+    if not validated:
+        return make_response(
+            render_template(
+                "components/popups/seq_request/seq_request-6.html",
+                seq_request=seq_request,
+                index_kit_mapping_form=index_kit_mapping_form,
+                **index_kit_mapping_form.prepare()
+            )
+        )
+    
+    df = index_kit_mapping_form.parse()
+
+    if "pool" in df.columns:
         pool_mapping_form = forms.PoolMappingForm(formdata=None)
         context = pool_mapping_form.prepare(df)
 
         return make_response(
             render_template(
-                "components/popups/seq_request/step-6.html",
+                "components/popups/seq_request/seq_request-7.html",
                 seq_request=seq_request,
                 pool_mapping_form=pool_mapping_form,
                 **context
@@ -290,32 +328,31 @@ def map_libraries(seq_request_id: int):
     library_select_form = forms.LibrarySelectForm()
     context = library_select_form.prepare(seq_request.id, df)
 
-    logger.debug(df["pool"])
-
     return make_response(
         render_template(
-            template_name_or_list="components/popups/seq_request/step-7.html",
+            template_name_or_list="components/popups/seq_request/seq_request-8.html",
             seq_request=seq_request,
             library_select_form=library_select_form,
             **context
         ), push_url=False
     )
+
+
     
-    
-# 6. Map pools
+# 7. Map pools
 @seq_request_form_htmx.route("<int:seq_request_id>/map_pools", methods=["POST"])
 @login_required
 def map_pools(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    pool_mapping_form = forms.PoolMappingForm()
+    pool_mapping_form = forms.PoolMappingForm(request_form)
     validated, pool_mapping_form = pool_mapping_form.custom_validate()
 
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/step-6.html",
+                "components/popups/seq_request/seq_request-7.html",
                 seq_request=seq_request,
                 pool_mapping_form=pool_mapping_form,
                 **pool_mapping_form.prepare()
@@ -328,7 +365,7 @@ def map_pools(seq_request_id: int):
 
     return make_response(
         render_template(
-            template_name_or_list="components/popups/seq_request/step-7.html",
+            template_name_or_list="components/popups/seq_request/seq_request-8.html",
             seq_request=seq_request,
             library_select_form=library_select_form,
             **context
@@ -351,7 +388,7 @@ def confirm_libraries(seq_request_id: int):
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/step-7.html",
+                "components/popups/seq_request/seq_request-8.html",
                 seq_request=seq_request,
                 library_select_form=library_select_form,
                 **context
@@ -365,7 +402,7 @@ def confirm_libraries(seq_request_id: int):
 
     return make_response(
         render_template(
-            "components/popups/seq_request/step-8.html",
+            "components/popups/seq_request/seq_request-9.html",
             seq_request=seq_request,
             barcode_check_form=barcode_check_form,
             **context
@@ -385,7 +422,7 @@ def check_barcodes(seq_request_id: int):
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/step-8.html",
+                "components/popups/seq_request/seq_request-9.html",
                 seq_request=seq_request,
                 barcode_check_form=barcode_check_form,
                 **barcode_check_form.prepare()
@@ -450,7 +487,7 @@ def check_barcodes(seq_request_id: int):
 
             for i, row in _df.iterrows():
                 library = session.create_library(
-                    sample_id=sample.id,
+                    name=sample.name,
                     library_type=LibraryType.get(row["library_type_id"]),
                     owner_id=current_user.id,
                     volume=row["library_volume"],
@@ -460,7 +497,9 @@ def check_barcodes(seq_request_id: int):
                     index_2_sequence=row["index_2"] if not pd.isna(row["index_2"]) else None,
                     index_3_sequence=row["index_3"] if not pd.isna(row["index_3"]) else None,
                     index_4_sequence=row["index_4"] if not pd.isna(row["index_4"]) else None,
-                    
+                )
+                sample_library_link = session.link_sample_library(
+                    sample_id=sample.id, library_id=library.id
                 )
                 if not pd.isna(row["pool"]):
                     library.pool_id = pools[row["pool"]].id

@@ -26,14 +26,6 @@
                         {{ sub_form.csrf_token() }}
                         <div class="row">
                             {{ form_group(sub_form.pool_label, class="col") }}
-                            {{ 
-                                search_select_field(
-                                    field=sub_form.index_kit,
-                                    url=url_for('barcodes_htmx.query_index_kits'),
-                                    selected=selected_index_kit,
-                                    class="col"
-                                ) 
-                            }}
                         </div>
                         <div class="row">
                             {{ form_group(sub_form.contact_person_name, class="col-4") }}

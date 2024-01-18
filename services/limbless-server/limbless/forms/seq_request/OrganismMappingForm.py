@@ -7,8 +7,6 @@ from wtforms import FieldList, FormField, TextAreaField, IntegerField, BooleanFi
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from ... import tools, models, db, logger
-from ...core.DBHandler import DBHandler
-from ...core.DBSession import DBSession
 from .TableDataForm import TableDataForm
 
 
@@ -50,14 +48,14 @@ class OrganismMappingForm(TableDataForm):
 
                     entry.category.data = selected_organism.id if selected_organism is not None else None
 
-            selected.append(selected_organism.scientific_name if selected_organism is not None else None)
+            selected.append(selected_organism.to_str() if selected_organism is not None else None)
 
         return {
             "categories": organisms,
             "selected": selected,
         }
 
-    def custom_validate(self, db_handler: DBHandler):
+    def custom_validate(self):
         validated = self.validate()
         if not validated:
             return False, self

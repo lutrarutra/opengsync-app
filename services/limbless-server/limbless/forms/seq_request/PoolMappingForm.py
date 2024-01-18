@@ -105,7 +105,6 @@ class PoolMappingForm(TableDataForm):
         df["contact_person_name"] = None
         df["contact_person_email"] = None
         df["contact_person_phone"] = None
-        df["index_kit"] = None
 
         df["pool"] = df["pool"].astype(str)
         raw_pool_labels = df["pool"].unique().tolist()

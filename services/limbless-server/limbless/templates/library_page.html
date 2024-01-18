@@ -110,14 +110,6 @@
         </div>
         <div class="tab-pane fade show" id="library-metadata-tab" role="tabpanel" tabindex="2">
             <div class="row">
-                {{ 
-                    metadata_group_link(
-                        "Sample",
-                        library.sample.name,
-                        url_for("samples_page.sample_page", sample_id=library.sample.id),
-                        class="col"
-                    )
-                }}
                 {{ metadata_group("Type", library.type.value, class="col") }}
             </div>
             <div class="row">
@@ -131,8 +123,8 @@
                 }}
                 {{
                     metadata_group_email_link(
-                        "Owner Email", library.sample.owner.email, class="col",
-                        subject="BSF Library: " + library.sample.name + " " + library.type.value.description + " " + " (" + library.id | string + ")"
+                        "Owner Email", library.owner.email, class="col",
+                        subject="BSF Library: " + library.name + " " + library.type.value.description + " " + " (" + library.id | string + ")"
                     )
                 }}
             </div>

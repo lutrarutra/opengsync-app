@@ -81,7 +81,7 @@ def library_page(library_id):
             ]
 
     library_edit_form = forms.EditLibraryForm()
-    library_edit_form.adapter.data = library.index_1_adapter    # TODO: separate adapter for all indices
+    library_edit_form.adapter.data = library.adapter    # TODO: separate adapter for all indices
     library_edit_form.library_type.data = library.type_id
     library_edit_form.index_1.data = library.index_1_sequence
     library_edit_form.index_2.data = library.index_2_sequence

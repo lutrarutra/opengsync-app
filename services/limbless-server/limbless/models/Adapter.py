@@ -59,3 +59,7 @@ class Adapter(SQLModel, SearchResult, table=True):
     
     def search_description(self) -> Optional[str]:
         return None
+    
+    def __str__(self) -> str:
+        return f"Adapter({self.name})"
+        

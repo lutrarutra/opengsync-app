@@ -71,7 +71,7 @@
                     </span>
                 </td>
                 <td>{{ library.contact.name }}</td>
-                <td>{{ library.sample.owner.name }} <span class="desc">{{ "me" if current_user.id == library.sample.owner_id }}</span></td>
+                <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
                 <td>{{ library.index_kit.name if library.index_kit }}</td>
                 <td>{{ library.num_samples }}</td>
                 <td>{{ library.num_seq_requests }}</td>

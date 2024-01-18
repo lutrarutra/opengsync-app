@@ -19,6 +19,7 @@ class SampleColSelectForm(FlaskForm):
         ("organism", "Organism"),
         ("library_type", "Library Type"),
         ("adapter", "Adapter"),
+        ("index_kit", "Index Kit"),
         ("index_1", "Index 1 (i7)"),
         ("index_2", "Index 2 (i5)"),
         ("index_3", "Index 3"),
@@ -102,11 +103,11 @@ class SampleColTableForm(TableDataForm):
         df["sample_name"] = df["sample_name"].apply(tools.make_filenameable)
         if "pool" in df.columns:
             df["pool"] = df["pool"].apply(tools.make_filenameable)
-        df["index_1"] = df["index_1"].str.strip()
-        df["index_2"] = df["index_2"].str.strip()
-        df["index_3"] = df["index_3"].str.strip()
-        df["index_4"] = df["index_4"].str.strip()
-        df["adapter"] = df["adapter"].str.strip()
+        df["index_1"] = df["index_1"].astype(str).str.strip()
+        df["index_2"] = df["index_2"].astype(str).str.strip()
+        df["index_3"] = df["index_3"].astype(str).str.strip()
+        df["index_4"] = df["index_4"].astype(str).str.strip()
+        df["adapter"] = df["adapter"].astype(str).str.strip()
 
         df["library_volume"] = df["library_volume"].apply(tools.make_numeric)
         df["library_concentration"] = df["library_concentration"].apply(tools.make_numeric)

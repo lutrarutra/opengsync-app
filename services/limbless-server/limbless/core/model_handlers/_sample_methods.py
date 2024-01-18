@@ -118,11 +118,11 @@ def get_samples(
 
     if seq_request_id is not None:
         query = query.join(
-            models.Library,
-            models.Library.sample_id == models.Sample.id,
+            models.SampleLibraryLink,
+            models.SampleLibraryLink.sample_id == models.Sample.id
         ).join(
             models.SeqRequestLibraryLink,
-            models.SeqRequestLibraryLink.library_id == models.Library.id,
+            models.SeqRequestLibraryLink.library_id == models.SampleLibraryLink.library_id, 
         ).where(
             models.SeqRequestLibraryLink.seq_request_id == seq_request_id
         ).distinct()
@@ -266,11 +266,13 @@ def query_samples(
 
     if seq_request_id is not None:
         query = query.join(
-            models.Library,
-            models.Library.sample_id == models.Sample.id,
+            models.SampleLibraryLink,
+            models.SampleLibraryLink.sample_id == models.Sample.id
         ).join(
             models.SeqRequestLibraryLink,
-            models.SeqRequestLibraryLink.library_id == models.Library.id,
+            models.SeqRequestLibraryLink.library_id == models.SampleLibraryLink.library_id, 
+        ).where(
+            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
         ).distinct()
 
     query = query.order_by(

@@ -264,7 +264,7 @@ def link_library_seq_request(
     )
     self._session.add(link)
     seq_request.num_libraries += 1
-    library.num_seq_requests += 1
+
     self._session.add(seq_request)
     self._session.add(library)
 
@@ -302,7 +302,6 @@ def unlink_library_seq_request(
         self._session.delete(link)
 
     seq_request.num_libraries -= 1
-    library.num_seq_requests -= 1
     self._session.add(seq_request)
     self._session.add(library)
 

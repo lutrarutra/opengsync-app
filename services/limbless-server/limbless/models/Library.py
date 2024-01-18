@@ -38,15 +38,7 @@ class Library(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
-    # num_pools: int = Field(nullable=False, default=0)
     num_samples: int = Field(nullable=False, default=0)
-    num_seq_requests: int = Field(nullable=False, default=0)
-
-    sample_id: int = Field(nullable=True, foreign_key="sample.id")
-    sample: "Sample" = Relationship(
-        back_populates="libraries",
-        sa_relationship_kwargs={"lazy": "joined"}
-    )
 
     owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
     owner: "User" = Relationship(
@@ -63,11 +55,6 @@ class Library(SQLModel, table=True):
         back_populates="library",
         sa_relationship_kwargs={"lazy": "select"}
     )
-
-    # pools: Optional["Pool"] = Relationship(
-    #     back_populates="libraries", link_model=LibraryPoolLink,
-    #     sa_relationship_kwargs={"lazy": "select"}
-    # )
 
     seq_requests: list["SeqRequest"] = Relationship(
         back_populates="libraries", link_model=SeqRequestLibraryLink,

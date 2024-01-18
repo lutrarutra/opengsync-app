@@ -9,9 +9,9 @@ if TYPE_CHECKING:
 
 class CMO(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
-    sequence: str = Field(nullable=False, max_length=64)
-    pattern: str = Field(nullable=False, max_length=32)
-    read: str = Field(nullable=False, max_length=16)
+    sequence: str = Field(nullable=False, max_length=16)
+    pattern: str = Field(nullable=False, max_length=8)
+    read: str = Field(nullable=False, max_length=8)
 
     sample_id: int = Field(nullable=False, foreign_key="sample.id")
     sample: "Sample" = Relationship(

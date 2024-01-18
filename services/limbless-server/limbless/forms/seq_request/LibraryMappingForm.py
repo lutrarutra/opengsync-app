@@ -127,7 +127,6 @@ class LibraryMappingForm(TableDataForm):
         df.loc[df["library_type"].isna(), "library_type"] = "Library"
         library_types = df["library_type"].unique()
         library_types = [library_type if library_type and not pd.isna(library_type) else None for library_type in library_types]
-
         df["library_type_id"] = None
         for i, library_type in enumerate(library_types):
             df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].category.data)

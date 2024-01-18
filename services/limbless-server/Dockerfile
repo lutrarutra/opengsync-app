@@ -15,7 +15,6 @@ RUN apt install libpq-dev -y
 RUN apt install curl -y
 RUN pip install --upgrade pip
 COPY . /usr/src/app/
-# RUN mkdir uploads
 RUN pip install -r requirements.txt
 RUN chmod +x entrypoint.sh
 

@@ -2,7 +2,7 @@ import math
 import time
 from typing import Optional
 
-from sqlmodel import func, text, or_
+from sqlmodel import func, text, or_, and_
 
 from ... import models, PAGE_LIMIT
 from ...categories import LibraryType
@@ -13,8 +13,7 @@ def create_library(
     self,
     library_type: LibraryType,
     owner_id: int,
-    sample_id: Optional[int] = None,
-    name: Optional[str] = None,
+    name: str,
     volume: Optional[int] = None,
     dna_concentration: Optional[float] = None,
     total_size: Optional[int] = None,
@@ -32,19 +31,8 @@ def create_library(
 
     if self._session.get(models.User, owner_id) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
-    
-    if sample_id is not None:
-        if (sample := self._session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-        name = sample.name
-        sample.num_libraries += 1
-        self._session.add(sample)
-
-    if name is None:
-        raise exceptions.InvalidValue("Name cannot be None")
 
     library = models.Library(
-        sample_id=sample_id,
         name=name,
         type_id=library_type.value.id,
         owner_id=owner_id,
@@ -108,8 +96,12 @@ def get_libraries(
         )
 
     if sample_id is not None:
-        query = query.where(
-            models.Library.sample_id == sample_id
+        query = query.join(
+            models.SampleLibraryLink,
+            and_(
+                models.SampleLibraryLink.library_id == models.Library.id,
+                models.SampleLibraryLink.sample_id == sample_id
+            )
         )
 
     if experiment_id is not None:

@@ -34,10 +34,10 @@
                 <td>{{ sample.name }}</td>
                 <td>
                     <ul class="h-list">
-                    {% for library in sample.libraries %}
+                    {% for library_link in sample.library_links %}
+                    {% set library = library_link.library %}
                     {% if seq_request in library.seq_requests %}
-                        <li
-                        {{ tooltip(library.type.value.name) }}>
+                        <li {{ tooltip(library.type.value.name) }}>
                             {{ library.type.value.description }}
                         </li>
                     {% endif %}

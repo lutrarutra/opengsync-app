@@ -32,13 +32,9 @@ class Sample(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "joined"}
     )
 
-    libraries: list["Library"] = Relationship(
-        back_populates="sample",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
     library_links: list["SampleLibraryLink"] = Relationship(
         back_populates="sample",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id", "num_libraries"]

@@ -1,0 +1,34 @@
+{% from "components/categorical_mapping.jinja2" import categorical_mapping %}
+
+<div id="index_kit-mapping-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Map Index Kits</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <form id="index_kit-mapping-form">
+            {{    
+                categorical_mapping(
+                    form=index_kit_mapping_form,
+                    categories=categories,
+                    url=url_for('barcodes_htmx.query_index_kits'),
+                    selected=selected,
+                )
+            }}
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary"
+            hx-target="#index_kit-mapping-form-container" hx-swap="outerHTML"
+            hx-include="#index_kit-mapping-form"
+            hx-post="{{ url_for('seq_request_form_htmx.map_index_kits', seq_request_id=seq_request.id) }}">
+            Map Index Kits
+        </button>
+        
+        <button type="button"class="btn btn-danger"
+            hx-target="#index_kit-mapping-form-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}">
+            Cancel
+        </button>
+    </div>
+</div>
