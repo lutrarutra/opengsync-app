@@ -9,3 +9,4 @@ from .seq_requests_page import seq_requests_page_bp
 from .index_kits_page import index_kits_page_bp
 from .devices_page import devices_page_bp
 from .pools_page import pools_page_bp
+from .feature_kits_page import feature_kits_page_bp

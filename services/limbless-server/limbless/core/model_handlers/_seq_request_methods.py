@@ -2,7 +2,7 @@ import math
 from datetime import datetime
 from typing import Optional
 
-from sqlmodel import func, or_
+from sqlmodel import func, or_, and_
 
 from ... import models, PAGE_LIMIT, logger
 from ...categories import SeqRequestStatus, SequencingType, FlowCellType
@@ -138,11 +138,14 @@ def get_seq_requests(
 
     if sample_id is not None:
         query = query.join(
-            models.SeqRequestLibraryLink,
-            models.SeqRequestLibraryLink.seq_request_id == models.SeqRequest.id,
-            isouter=True
-        ).where(
-            models.SeqRequestLibraryLink.library_id == sample_id
+            models.Library,
+            models.Library.seq_request_id == models.SeqRequest.id,
+        ).join(
+            models.SampleLibraryLink,
+            and_(
+                models.SampleLibraryLink.library_id == models.Library.id,
+                models.SampleLibraryLink.sample_id == sample_id
+            )
         )
 
     if experiment_id is not None:
@@ -280,17 +283,12 @@ def delete_seq_request(
     if not seq_request:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {sample_id} does not exist")
 
-    links = self._session.query(models.SeqRequestLibraryLink).where(
-        models.SeqRequestLibraryLink.seq_request_id == seq_request.id
+    libraries = self._session.query(models.Library).where(
+        models.Library.seq_request_id == seq_request.id
     ).all()
     
-    for link in links:
-        self._session.delete(link)
-
-    # self._session.delete(seq_request.contact_person)
-    # self._session.delete(seq_request.billing_contact)
-    # if seq_request.bioinformatician_contact_id is not None:
-    #     self._session.delete(seq_request.bioinformatician_contact)
+    for library in libraries:
+        self._session.delete(library)
 
     self._session.delete(seq_request)
     if commit:

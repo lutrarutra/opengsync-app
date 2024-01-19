@@ -30,6 +30,8 @@ def download_template(type: str):
         name = "sas_raw_libraries.tsv"
     elif type == "premade":
         name = "sas_premade_libraries.tsv"
+    elif type == "feature":
+        name = "feature.tsv"
     else:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
@@ -274,19 +276,31 @@ def map_libraries(seq_request_id: int):
         )
     
     df = library_mapping_form.parse()
-    index_kit_mapping_form = forms.IndexKitMappingForm(formdata=None)
-    context = index_kit_mapping_form.prepare(df)
+    if df["index_kit"].isna().all():
+        feature_input_form = forms.FeatureInputForm()
+        context = feature_input_form.prepare(df)
+        logger.info(feature_input_form.raw_data.data)
 
-    logger.debug(index_kit_mapping_form.input_fields[0].raw_category.data)
-
-    return make_response(
+        return make_response(
             render_template(
-                "components/popups/seq_request/seq_request-6.html",
+                "components/popups/seq_request/seq_request-7.html",
                 seq_request=seq_request,
-                index_kit_mapping_form=index_kit_mapping_form,
+                feature_input_form=feature_input_form,
                 **context
             )
         )
+
+    index_kit_mapping_form = forms.IndexKitMappingForm(formdata=None)
+    context = index_kit_mapping_form.prepare(df)
+
+    return make_response(
+        render_template(
+            "components/popups/seq_request/seq_request-6.html",
+            seq_request=seq_request,
+            index_kit_mapping_form=index_kit_mapping_form,
+            **context
+        )
+    )
 
 
 # 6. Map index_kits
@@ -311,6 +325,18 @@ def map_index_kits(seq_request_id: int):
         )
     
     df = index_kit_mapping_form.parse()
+    feature_input_form = forms.FeatureInputForm()
+    context = feature_input_form.prepare(df)
+    logger.info(feature_input_form.raw_data.data)
+
+    return make_response(
+        render_template(
+            "components/popups/seq_request/seq_request-7.html",
+            seq_request=seq_request,
+            feature_input_form=feature_input_form,
+            **context
+        )
+    )
 
     if "pool" in df.columns:
         pool_mapping_form = forms.PoolMappingForm(formdata=None)
@@ -318,7 +344,7 @@ def map_index_kits(seq_request_id: int):
 
         return make_response(
             render_template(
-                "components/popups/seq_request/seq_request-7.html",
+                "components/popups/seq_request/seq_request-9.html",
                 seq_request=seq_request,
                 pool_mapping_form=pool_mapping_form,
                 **context
@@ -330,7 +356,7 @@ def map_index_kits(seq_request_id: int):
 
     return make_response(
         render_template(
-            template_name_or_list="components/popups/seq_request/seq_request-8.html",
+            template_name_or_list="components/popups/seq_request/seq_request-10.html",
             seq_request=seq_request,
             library_select_form=library_select_form,
             **context
@@ -338,21 +364,54 @@ def map_index_kits(seq_request_id: int):
     )
 
 
+# 7. Specify Features
+@seq_request_form_htmx.route("<int:seq_request_id>/parse_feature_form", methods=["POST"])
+@login_required
+def parse_feature_form(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
+    feature_input_form = forms.FeatureInputForm()
+    validated, feature_input_form = feature_input_form.custom_validate()
+    if not validated:
+        return make_response(
+            render_template(
+                "components/popups/seq_request/seq_request-7.html",
+                seq_request=seq_request,
+                feature_input_form=feature_input_form,
+                **feature_input_form.prepare()
+            )
+        )
+
+    df = feature_input_form.parse()
+    feature_kit_mapping_form = forms.FeatureKitMappingForm(formdata=None)
+    context = feature_kit_mapping_form.prepare(df)
+
+    return make_response(
+        render_template(
+            "components/popups/seq_request/seq_request-8.html",
+            seq_request=seq_request,
+            feature_kit_mapping_form=feature_kit_mapping_form,
+            **context
+        )
+    )
+
     
-# 7. Map pools
+# 9. Map pools
 @seq_request_form_htmx.route("<int:seq_request_id>/map_pools", methods=["POST"])
 @login_required
 def map_pools(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    pool_mapping_form = forms.PoolMappingForm(request_form)
+    pool_mapping_form = forms.PoolMappingForm()
+    logger.debug("hello")
     validated, pool_mapping_form = pool_mapping_form.custom_validate()
 
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/seq_request-7.html",
+                "components/popups/seq_request/seq_request-9.html",
                 seq_request=seq_request,
                 pool_mapping_form=pool_mapping_form,
                 **pool_mapping_form.prepare()
@@ -365,7 +424,7 @@ def map_pools(seq_request_id: int):
 
     return make_response(
         render_template(
-            template_name_or_list="components/popups/seq_request/seq_request-8.html",
+            template_name_or_list="components/popups/seq_request/seq_request-10.html",
             seq_request=seq_request,
             library_select_form=library_select_form,
             **context
@@ -388,7 +447,7 @@ def confirm_libraries(seq_request_id: int):
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/seq_request-8.html",
+                "components/popups/seq_request/seq_request-10.html",
                 seq_request=seq_request,
                 library_select_form=library_select_form,
                 **context
@@ -402,7 +461,7 @@ def confirm_libraries(seq_request_id: int):
 
     return make_response(
         render_template(
-            "components/popups/seq_request/seq_request-9.html",
+            "components/popups/seq_request/seq_request-11.html",
             seq_request=seq_request,
             barcode_check_form=barcode_check_form,
             **context
@@ -422,7 +481,7 @@ def check_barcodes(seq_request_id: int):
     if not validated:
         return make_response(
             render_template(
-                "components/popups/seq_request/seq_request-9.html",
+                "components/popups/seq_request/seq_request-11.html",
                 seq_request=seq_request,
                 barcode_check_form=barcode_check_form,
                 **barcode_check_form.prepare()
@@ -462,7 +521,6 @@ def check_barcodes(seq_request_id: int):
             pool = session.create_pool(
                 name=pool_label,
                 owner_id=current_user.id,
-                index_kit_id=df["index_kit"].iloc[0] if not pd.isnull(df["index_kit"].iloc[0]) else None,
                 contact_name=_df["contact_person_name"].iloc[0],
                 contact_email=_df["contact_person_email"].iloc[0],
                 contact_phone=_df["contact_person_phone"].iloc[0],
@@ -488,11 +546,14 @@ def check_barcodes(seq_request_id: int):
             for i, row in _df.iterrows():
                 library = session.create_library(
                     name=sample.name,
+                    seq_request_id=seq_request.id,
                     library_type=LibraryType.get(row["library_type_id"]),
+                    index_kit_id=row["index_kit_id"] if not pd.isna(row["index_kit_id"]) else None,
                     owner_id=current_user.id,
-                    volume=row["library_volume"],
-                    dna_concentration=row["library_concentration"],
-                    total_size=row["library_total_size"],
+                    volume=row["library_volume"] if not pd.isna(row["library_volume"]) else None,
+                    dna_concentration=row["library_concentration"] if not pd.isna(row["library_concentration"]) else None,
+                    total_size=row["library_total_size"] if not pd.isna(row["library_total_size"]) else None,
+                    adapter=row["adapter"] if not pd.isna(row["adapter"]) else None,
                     index_1_sequence=row["index_1"] if not pd.isna(row["index_1"]) else None,
                     index_2_sequence=row["index_2"] if not pd.isna(row["index_2"]) else None,
                     index_3_sequence=row["index_3"] if not pd.isna(row["index_3"]) else None,
@@ -504,11 +565,6 @@ def check_barcodes(seq_request_id: int):
                 if not pd.isna(row["pool"]):
                     library.pool_id = pools[row["pool"]].id
                     library = session.update_library(library)
-                
-                session.link_library_seq_request(
-                    library_id=library.id,
-                    seq_request_id=seq_request.id
-                )
 
                 n_added += 1
 

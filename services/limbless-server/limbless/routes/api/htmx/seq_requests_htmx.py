@@ -645,6 +645,8 @@ def reverse_complement(seq_request_id: int):
     except ValueError:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
+    logger.debug(index)
+    
     library_id = request.args.get("library_id", None)
     if library_id is not None:
         try:
@@ -670,10 +672,20 @@ def reverse_complement(seq_request_id: int):
         
         n_barcodes = 0
         for library in libraries:
-            for barcode in library.barcodes:
-                if index == barcode.type.value.id:
-                    barcode = session.reverse_complement(barcode.id)
-                    n_barcodes += 1
+            if index == 1 and library.index_1_sequence:
+                library.index_1_sequence = models.Barcode.reverse_complement(library.index_1_sequence)
+                n_barcodes += 1
+            elif index == 2 and library.index_2_sequence:
+                library.index_2_sequence = models.Barcode.reverse_complement(library.index_2_sequence)
+                n_barcodes += 1
+            elif index == 3 and library.index_3_sequence:
+                library.index_3_sequence = models.Barcode.reverse_complement(library.index_3_sequence)
+                n_barcodes += 1
+            elif index == 4 and library.index_4_sequence:
+                library.index_4_sequence = models.Barcode.reverse_complement(library.index_4_sequence)
+                n_barcodes += 1
+            
+            library = session.update_library(library)
 
     flash(f"Reverse complemented index {index} of sequencing request '{seq_request.name}' in {n_barcodes} libraries.", "success")
     return make_response(

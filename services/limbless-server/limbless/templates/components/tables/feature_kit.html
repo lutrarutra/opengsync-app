@@ -1,0 +1,24 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div id="feature_kit-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col" class="col-1">ID</th>
+                <th scope="col" class="col-3">Name</th>
+                <th scope="col" class="col-3">Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for feature_kit in feature_kits %}
+            <tr onclick="window.location.href='{{ url_for('feature_kits_page.feature_kit_page', feature_kit_id=feature_kit.id) }}';">
+                <th scope="row">{{ feature_kit.id }}</th>
+                <td>{{ feature_kit.name }}</td>
+                <td>{{ feature_kit.type.value.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("feature_kit-table", "barcodes_htmx.get_kit", barcodes_n_pages, barcodes_active_page, url_args={"sort_by": barcodes_current_sort, "order": barcodes_current_sort_order}) }}
+</div>

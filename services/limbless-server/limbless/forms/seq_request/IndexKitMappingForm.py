@@ -8,6 +8,7 @@ from wtforms.validators import DataRequired, Optional as OptionalValidator
 from ... import db, models, logger, tools
 from .TableDataForm import TableDataForm
 
+
 class IndexKitSubForm(FlaskForm):
     raw_category = StringField("Raw Label", validators=[OptionalValidator()])
     category = IntegerField("Index Kit", validators=[DataRequired()])
@@ -98,14 +99,19 @@ class IndexKitMappingForm(TableDataForm):
             else:
                 raise Exception("Index Kit not selected.")
             
+        df["index_1"] = None
+        df["index_2"] = None
+        df["index_3"] = None
+        df["index_4"] = None
+
         for i, row in df.iterrows():
             index_kit_id = int(row["index_kit_id"])
             adapter_name = str(row["adapter"])
             adapter = db.db_handler.get_adapter_from_index_kit(adapter_name, index_kit_id)
-            df.loc[i, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 else None
-            df.loc[i, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 else None
-            df.loc[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None
-            df.loc[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 else None
+            df.at[i, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 else None
+            df.at[i, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 else None
+            df.at[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None
+            df.at[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 else None
             
         self.set_df(df)
         return df

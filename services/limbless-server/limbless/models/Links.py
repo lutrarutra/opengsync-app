@@ -8,15 +8,6 @@ if TYPE_CHECKING:
     from .CMO import CMO
 
 
-class SeqRequestLibraryLink(SQLModel, table=True):
-    seq_request_id: int = Field(
-        foreign_key="seqrequest.id", primary_key=True
-    )
-    library_id: int = Field(
-        foreign_key="library.id", primary_key=True
-    )
-
-
 class SampleLibraryLink(SQLModel, table=True):
     sample_id: int = Field(
         foreign_key="sample.id", primary_key=True

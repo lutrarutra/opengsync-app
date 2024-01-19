@@ -60,33 +60,6 @@ def get_sample(self, sample_id: int) -> models.Sample:
     return res
 
 
-def get_num_samples(
-    self, user_id: Optional[int] = None,
-    project_id: Optional[int] = None, library_id: Optional[int] = None
-) -> int:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    query = self._session.query(models.Sample)
-
-    if user_id is not None:
-        query = query.where(
-            models.Sample.owner_id == user_id
-        )
-
-    if project_id is not None:
-        query = query.where(
-            models.Sample.project_id == project_id
-        )
-
-    res = query.count()
-
-    if not persist_session:
-        self.close_session()
-    return res
-
-
 def get_samples(
     self, user_id: Optional[int] = None,
     project_id: Optional[int] = None,
@@ -119,13 +92,13 @@ def get_samples(
     if seq_request_id is not None:
         query = query.join(
             models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id
+            models.SampleLibraryLink.sample_id == models.Sample.id,
         ).join(
-            models.SeqRequestLibraryLink,
-            models.SeqRequestLibraryLink.library_id == models.SampleLibraryLink.library_id, 
+            models.Library,
+            models.Library.id == models.SampleLibraryLink.library_id,
         ).where(
-            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
-        ).distinct()
+            models.Library.seq_request_id == seq_request_id,
+        )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
     
@@ -267,13 +240,13 @@ def query_samples(
     if seq_request_id is not None:
         query = query.join(
             models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id
+            models.SampleLibraryLink.sample_id == models.Sample.id,
         ).join(
-            models.SeqRequestLibraryLink,
-            models.SeqRequestLibraryLink.library_id == models.SampleLibraryLink.library_id, 
+            models.Library,
+            models.Library.id == models.SampleLibraryLink.library_id,
         ).where(
-            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
-        ).distinct()
+            models.Library.seq_request_id == seq_request_id,
+        )
 
     query = query.order_by(
         func.similarity(models.Sample.name, word).desc()

@@ -12,7 +12,6 @@ def create_pool(
     owner_id: int,
     contact_name: str,
     contact_email: str,
-    index_kit_id: Optional[int] = None,
     contact_phone: Optional[str] = None,
     commit: bool = True
 ) -> models.Pool:
@@ -23,14 +22,9 @@ def create_pool(
     if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
     
-    if index_kit_id is not None:
-        if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_id} does not exist")
-    
     pool = models.Pool(
         name=name,
         owner_id=owner_id,
-        index_kit_id=index_kit_id,
         contact_name=contact_name,
         contact_email=contact_email,
         contact_phone=contact_phone,

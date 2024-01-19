@@ -1,0 +1,33 @@
+{% from "components/pagination.jinja2" import pagination %}
+
+<div id="feature_kit-feature-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                <th scope="col" class="col-1">ID</th>
+                <th scope="col" class="col-2">Name</th>
+                <th scope="col" class="col-2">Target Name</th>
+                <th scope="col" class="col-2">Target ID</th>
+                <th scope="col" class="col-2">Sequence</th>
+                <th scope="col" class="col-1">Pattern</th>
+                <th scope="col" class="col-1">Read</th>
+                <th scope="col" class="col-1">Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for feature in features %}
+            <tr>
+                <th scope="row">{{ feature.id }}</th>
+                <td>{{ feature.name }}</td>
+                <td>{{ feature.target_name }}</td>
+                <td>{{ feature.target_id }}</td>
+                <td>{{ feature.sequence }}</td>
+                <td>{{ feature.pattern }}</td>
+                <td>{{ feature.read }}</td>
+                <td>{{ feature.type.value.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("feature_kit-feature-table", "features_htmx.get", features_n_pages, features_active_page, url_args={"feature_kit_id": feature_kit.id, "sort_by": features_current_sort, "order": features_current_sort_order}) }}
+</div>

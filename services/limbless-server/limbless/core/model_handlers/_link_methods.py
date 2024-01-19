@@ -69,13 +69,10 @@ def get_available_pools_for_experiment(
 
     query = self._session.query(models.Pool).join(
         models.Library,
-        models.Pool.id == models.Library.pool_id,
-    ).join(
-        models.SeqRequestLibraryLink,
-        models.SeqRequestLibraryLink.library_id == models.Library.id,
+        models.Library.pool_id == models.Pool.id,
     ).join(
         models.SeqRequestExperimentLink,
-        models.SeqRequestExperimentLink.seq_request_id == models.SeqRequestLibraryLink.seq_request_id,
+        models.SeqRequestExperimentLink.seq_request_id == models.Library.seq_request_id,
     ).where(
         models.SeqRequestExperimentLink.experiment_id == experiment_id,
     ).distinct()
@@ -130,46 +127,6 @@ def link_sample_library(
         self.close_session()
 
     return sample_library_link
-    
-
-# def link_library_pool(
-#     self,
-#     pool_id: int, library_id: int,
-#     commit: bool = True
-# ) -> models.LibraryPoolLink:
-
-#     persist_session = self._session is not None
-#     if not self._session:
-#         self.open_session()
-
-#     if (pool := self._session.get(models.Pool, pool_id)) is None:
-#         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-#     if (library := self._session.get(models.Library, library_id)) is None:
-#         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    
-#     if self._session.query(models.LibraryPoolLink).where(
-#         and_(
-#             models.LibraryPoolLink.pool_id == pool_id,
-#             models.LibraryPoolLink.library_id == library_id,
-#         )
-#     ).first():
-#         raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and pool with id {pool_id} are already linked")
-
-#     library_pool_link = models.LibraryPoolLink(
-#         pool_id=pool_id, library_id=library_id,
-#     )
-#     self._session.add(library_pool_link)
-#     library.num_pools += 1
-#     pool.num_libraries += 1
-
-#     if commit:
-#         self._session.commit()
-#         self._session.refresh(library_pool_link)
-
-#     if not persist_session:
-#         self.close_session()
-
-#     return library_pool_link
 
 
 def get_sample_library_links(
@@ -217,16 +174,13 @@ def is_sample_in_seq_request(
     query = self._session.query(models.Sample)
 
     query = query.join(
-        models.Library,
-        models.Library.sample_id == models.Sample.id,
+        models.SampleLibraryLink,
+        models.SampleLibraryLink.sample_id == sample_id,
     ).join(
-        models.SeqRequestLibraryLink,
-        models.SeqRequestLibraryLink.library_id == models.Library.id,
-    ).distinct().where(
-        and_(
-            models.Sample.id == sample_id,
-            models.SeqRequestLibraryLink.seq_request_id == seq_request_id,
-        )
+        models.Library,
+        models.Library.id == models.SampleLibraryLink.library_id,
+    ).where(
+        models.Library.seq_request_id == seq_request_id,
     )
 
     res = query.first() is not None
@@ -237,79 +191,6 @@ def is_sample_in_seq_request(
         self.close_session()
 
     return res
-
-
-def link_library_seq_request(
-    self, library_id: int, seq_request_id: int,
-    commit: bool = True
-) -> models.SeqRequestLibraryLink:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (library := self._session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
-
-    if self._session.query(models.SeqRequestLibraryLink).where(
-        models.SeqRequestLibraryLink.library_id == library_id,
-        models.SeqRequestLibraryLink.seq_request_id == seq_request_id,
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"Library with id {library_id} and SeqRequest with id {seq_request_id} are already linked")
-
-    link = models.SeqRequestLibraryLink(
-        library_id=library_id, seq_request_id=seq_request_id,
-    )
-    self._session.add(link)
-    seq_request.num_libraries += 1
-
-    self._session.add(seq_request)
-    self._session.add(library)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(link)
-
-    if not persist_session:
-        self.close_session()
-
-    return link
-
-
-def unlink_library_seq_request(
-    self, library_id: int, seq_request_id: int,
-    commit: bool = True
-) -> None:
-    
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (library := self._session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
-    
-    if (links := self._session.query(models.SeqRequestLibraryLink).where(
-        models.SeqRequestLibraryLink.library_id == library_id,
-        models.SeqRequestLibraryLink.seq_request_id == seq_request_id,
-    ).all()) is None:
-        raise exceptions.LinkDoesNotExist(f"Library with id {library_id} and SeqRequest with id {seq_request_id} are not linked")
-    
-    for link in links:
-        self._session.delete(link)
-
-    seq_request.num_libraries -= 1
-    self._session.add(seq_request)
-    self._session.add(library)
-
-    if commit:
-        self._session.commit()
-
-    if not persist_session:
-        self.close_session()
 
 
 def link_experiment_pool(

@@ -18,7 +18,7 @@ barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/barcodes/"
 
 @barcodes_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
-def get(page):
+def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
     descending = order == "desc"

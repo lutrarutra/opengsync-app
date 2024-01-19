@@ -19,7 +19,6 @@ else:
 
 class PoolSubForm(FlaskForm):
     pool_label = StringField("Library (-Pool) Label", validators=[DataRequired(), Length(min=6, max=64)], description="Unique label to identify the pool")
-    index_kit = IntegerField("Index Kit (optional)", validators=[OptionalValidator()], description="Index kit used in the pool. If a custom kit or more than a single kit is used, leave this field empty.")
     contact_person_name = StringField("Contact Person Name", validators=[DataRequired(), Length(max=128)], description="Who prepared the libraries?")
     contact_person_email = StringField("Contact Person Email", validators=[DataRequired(), Length(max=128)], description="Who prepared the libraries?")
     contact_person_phone = StringField("Contact Person Phone", validators=[OptionalValidator(), Length(max=16)], description="Who prepared the libraries?")
@@ -30,20 +29,10 @@ class PoolMappingForm(TableDataForm):
 
     def custom_validate(self):
         validated = self.validate()
-
-        df = self.get_df()
         
         labels = []
-        pool_raw_labels = df["pool"].unique().tolist()
         for i, entry in enumerate(self.input_fields):
             pool_label = entry.pool_label.data
-
-            if (df[df["pool"] == pool_raw_labels[i]]["index_1"].isnull().any()):
-                if entry.index_kit.data is None:
-                    entry.index_kit.errors = ("Index kit is required since you have not specified index-sequence manually for all libraries in this pool.",)
-                    validated = False
-            else:
-                logger.debug(df["index_1"])
 
             if pool_label in labels:
                 entry.pool_label.errors = ("Pool label is not unique.",)
@@ -112,29 +101,12 @@ class PoolMappingForm(TableDataForm):
             df.loc[df["pool"] == raw_pool_labels[i], "contact_person_name"] = entry.contact_person_name.data
             df.loc[df["pool"] == raw_pool_labels[i], "contact_person_email"] = entry.contact_person_email.data
             df.loc[df["pool"] == raw_pool_labels[i], "contact_person_phone"] = entry.contact_person_phone.data
-            df.loc[df["pool"] == raw_pool_labels[i], "index_kit"] = entry.index_kit.data
 
         for i, entry in enumerate(self.input_fields):
             pool_label = entry.pool_label.data
             logger.debug(f"{raw_pool_labels[i]} -> {pool_label}")
             df.loc[df["pool"] == raw_pool_labels[i], "pool"] = pool_label
 
-        logger.debug(df[["pool", "index_kit"]])
-
-        df["index_1"] = None
-        df["index_2"] = None
-        df["index_3"] = None
-        df["index_4"] = None
-        for i, row in df.iterrows():
-            if not pd.isnull(row["index_1"]):
-                continue
-
-            adapter = db.db_handler.get_adapter_from_index_kit(row["adapter"], row["index_kit"])
-
-            df.loc[i, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 is not None else None
-            df.loc[i, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 is not None else None
-            df.loc[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 is not None else None
-            df.loc[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 is not None else None
-
         self.set_df(df)
+        logger.debug(df[["sample_name", "pool", "index_kit", "index_1", "library_type"]])
         return df

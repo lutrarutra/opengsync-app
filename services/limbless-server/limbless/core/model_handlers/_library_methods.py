@@ -1,5 +1,4 @@
 import math
-import time
 from typing import Optional
 
 from sqlmodel import func, text, or_, and_
@@ -14,7 +13,9 @@ def create_library(
     library_type: LibraryType,
     owner_id: int,
     name: str,
+    seq_request_id: int,
     volume: Optional[int] = None,
+    index_kit_id: Optional[int] = None,
     dna_concentration: Optional[float] = None,
     total_size: Optional[int] = None,
     pool_id: Optional[int] = None,
@@ -31,12 +32,18 @@ def create_library(
 
     if self._session.get(models.User, owner_id) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
+    
+    if index_kit_id is not None:
+        if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_id} does not exist")
 
     library = models.Library(
         name=name,
+        seq_request_id=seq_request_id,
         type_id=library_type.value.id,
         owner_id=owner_id,
         volume=volume,
+        index_kit_id=index_kit_id,
         pool_id=pool_id,
         dna_concentration=dna_concentration,
         total_size=total_size,
@@ -87,12 +94,8 @@ def get_libraries(
         )
 
     if seq_request_id is not None:
-        query = query.join(
-            models.SeqRequestLibraryLink,
-            models.SeqRequestLibraryLink.library_id == models.Library.id,
-            isouter=True
-        ).where(
-            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
+        query = query.where(
+            models.Library.seq_request_id == seq_request_id
         )
 
     if sample_id is not None:
@@ -149,24 +152,6 @@ def get_libraries(
         self.close_session()
 
     return libraries, n_pages
-
-
-def get_num_libraries(self, user_id: Optional[int] = None) -> int:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    query = self._session.query(models.Library)
-    if user_id is not None:
-        query = query.where(
-            models.Library.owner_id == user_id
-        )
-
-    res = query.count()
-
-    if not persist_session:
-        self.close_session()
-    return res
 
 
 def delete_library(
@@ -239,12 +224,8 @@ def query_libraries(
         )
 
     if seq_request_id is not None:
-        query = query.join(
-            models.SeqRequestLibraryLink,
-            models.SeqRequestLibraryLink.library_id == models.Library.id,
-            isouter=True
-        ).where(
-            models.SeqRequestLibraryLink.seq_request_id == seq_request_id
+        query = query.where(
+            models.Library.seq_request_id == seq_request_id
         )
 
     if sample_id is not None:

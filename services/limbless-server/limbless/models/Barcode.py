@@ -26,9 +26,6 @@ class Barcode(SQLModel, SearchResult, table=True):
 
     def __str__(self):
         return f"Barcode('{self.sequence}', {self.type})"
-
-    def __repr__(self) -> str:
-        return f"{self.sequence} [{self.type}]"
     
     @property
     def type(self) -> BarcodeType:

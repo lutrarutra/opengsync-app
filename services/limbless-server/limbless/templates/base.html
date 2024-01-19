@@ -77,6 +77,9 @@
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" id="barcodes-page" href="{{ url_for('index_kits_page.index_kits_page') }}">Index Kits</a>
             </div>
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a>
+            </div>
             {% if role_name == "Admin" %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'devices-page' else ''}}" id="devices-page" href="{{ url_for('devices_page.devices_page') }}">Devices</a>

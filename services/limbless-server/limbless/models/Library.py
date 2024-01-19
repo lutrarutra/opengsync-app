@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import LibraryType
-from .Links import SeqRequestLibraryLink
 
 if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
@@ -12,7 +11,7 @@ if TYPE_CHECKING:
     from .Links import SampleLibraryLink
     from .CMO import CMO
     from .User import User
-    from .Sample import Sample
+    from .IndexKit import IndexKit
 
 
 @dataclass
@@ -31,6 +30,11 @@ class Library(SQLModel, table=True):
     volume: Optional[int] = Field(nullable=True, default=None)
     dna_concentration: Optional[float] = Field(nullable=True, default=None)
     total_size: Optional[int] = Field(nullable=True, default=None)
+
+    index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
+    index_kit: Optional["IndexKit"] = Relationship(
+        sa_relationship_kwargs={"lazy": "joined"}
+    )
 
     pool_id: Optional[int] = Field(nullable=True, foreign_key="pool.id")
     pool: Optional["Pool"] = Relationship(
@@ -56,17 +60,17 @@ class Library(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select"}
     )
 
-    seq_requests: list["SeqRequest"] = Relationship(
-        back_populates="libraries", link_model=SeqRequestLibraryLink,
+    seq_request_id: int = Field(nullable=False, foreign_key="seqrequest.id")
+    seq_request: "SeqRequest" = Relationship(
+        back_populates="libraries",
         sa_relationship_kwargs={"lazy": "select"}
     )
 
+    adapter: Optional[str] = Field(nullable=True)
     index_1_sequence: Optional[str] = Field(nullable=True)
     index_2_sequence: Optional[str] = Field(nullable=True)
     index_3_sequence: Optional[str] = Field(nullable=True)
     index_4_sequence: Optional[str] = Field(nullable=True)
-
-    adapter: Optional[str] = Field(nullable=True)
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id", "owner_id", "pool_id"]
 

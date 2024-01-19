@@ -123,6 +123,15 @@ class BarcodeType(Enum, metaclass=ExtendedEnumMeta):
         }[type_id]
     
 
+class FeatureType(Enum, metaclass=ExtendedEnumMeta):
+    CUSTOM = DescriptiveEnum(0, "Custom")
+    CMO = DescriptiveEnum(1, "Cell Multiplexing Oligo", "CMO")
+    ANTIBODY = DescriptiveEnum(2, "Antibody", "ABC")
+    CRISPR_CAPTURE = DescriptiveEnum(3, "CRISPR Capture", "CRISPR")
+    GENE_CAPTURE = DescriptiveEnum(4, "Gene Capture", "GENE")
+    PRIMER_CAPTURE = DescriptiveEnum(5, "Primer Capture", "PRIMER")
+    
+
 class SequencingType(Enum, metaclass=ExtendedEnumMeta):
     OTHER = DescriptiveEnum(0, "Other", "⚙️")
     SINGLE_END = DescriptiveEnum(1, "Single-end", "➡️")

@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import SeqRequestStatus, SequencingType, FlowCellType
-from .Links import SeqRequestLibraryLink, SeqRequestExperimentLink
+from .Links import SeqRequestExperimentLink
 
 if TYPE_CHECKING:
     from .User import User
@@ -53,10 +53,10 @@ class SeqRequest(SQLModel, table=True):
     )
 
     libraries: List["Library"] = Relationship(
-        back_populates="seq_requests",
-        link_model=SeqRequestLibraryLink,
+        back_populates="seq_request",
         sa_relationship_kwargs={"lazy": "select"},
     )
+
     experiments: List["Experiment"] = Relationship(
         back_populates="seq_requests",
         link_model=SeqRequestExperimentLink,

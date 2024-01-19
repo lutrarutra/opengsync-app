@@ -59,17 +59,6 @@ def get_index_kit_by_name(self, name: str) -> models.IndexKit:
     return res
 
 
-def get_num_index_kits(self) -> int:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    res = self._session.query(models.IndexKit).count()
-    if not persist_session:
-        self.close_session()
-    return res
-
-
 def get_index_kits(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0
 ) -> tuple[list[models.IndexKit], int]:

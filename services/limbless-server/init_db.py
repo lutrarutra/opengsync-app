@@ -59,9 +59,39 @@ if (db_host := os.environ.get("POSTGRES_HOST")) is None:
     raise ValueError("POSTGRES_HOST environment variable is not set.")
 
 
+def add_features_from_kit(db_handler: DBHandler, path: str, feature_type: categories.FeatureType):
+    df = pd.read_csv(path, sep="\t", comment="#")
+    kit_name = os.path.basename(path).split(".")[0].replace("_", " ").title()
+
+    if db_handler.get_feature_kit_by_name(kit_name) is not None:
+        logger.info(f"Feature kit {kit_name} is already present in the DB.")
+        return
+    
+    if db_handler.get_feature_kit_by_name(kit_name) is not None:
+        logger.info(f"Feature kit {kit_name} is already present in the DB.")
+        return
+    
+    kit = db_handler.create_feature_kit(name=kit_name, type=feature_type)
+    
+    for _, row in df.iterrows():
+        if pd.isnull(row["barcode_id"]):
+            logger.error(f"Barcode name is null for row {row}, {kit_name}")
+            raise Exception(f"Barcode name is null for row {row}.")
+        db_handler.create_feature(
+            name=str(row["barcode_id"]),
+            feature_kit_id=kit.id,
+            type=feature_type,
+            sequence=row["barcode_sequence"],
+            pattern=row["pattern"],
+            read=row["read"],
+            target_name=row["barcode_target_name"],
+            target_id=row["barcode_target_id"],
+        )
+
+
 def add_indices_from_kit(db_handler: DBHandler, path: str):
     df = pd.read_csv(path)
-    kit_name = os.path.basename(path).split(".")[0].replace("_", " ")
+    kit_name = os.path.basename(path).split(".")[0].replace("_", " ").title()
 
     num_indices_per_adapter = None
     if "single index" in kit_name.lower():
@@ -281,6 +311,33 @@ def init_db(create_users: bool):
     add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Single_Index_Kit_N_Set_A.csv")
     add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Single_Index_Kit_T_Set_A.csv")
 
+    # Feature Kits
+    logger.info("Adding feature kits.")
+    add_features_from_kit(db_handler, "data/feature-kits/CAR_CRISPR_EP_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/CMO_hastags_florian.tsv", categories.FeatureType.CMO)
+    add_features_from_kit(db_handler, "data/feature-kits/CMO_multiome_hashtags.tsv", categories.FeatureType.CMO)
+    add_features_from_kit(db_handler, "data/feature-kits/LCMV_gene_barcode.tsv", categories.FeatureType.GENE_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/LCMV_primer_barcode.tsv", categories.FeatureType.PRIMER_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/LMO_multiome_hashtags.tsv", categories.FeatureType.CMO)
+    add_features_from_kit(db_handler, "data/feature-kits/LMO_multiome_hashtags_EWS.tsv", categories.FeatureType.CMO)
+    add_features_from_kit(db_handler, "data/feature-kits/MF_AK_smallCROPSeq.tsv", categories.FeatureType.CUSTOM)
+    add_features_from_kit(db_handler, "data/feature-kits/MF_AK_smallCROPSeq_reverse.tsv", categories.FeatureType.CUSTOM)
+    add_features_from_kit(db_handler, "data/feature-kits/MultiSeq_LMO.tsv", categories.FeatureType.CMO)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_PT129_5p_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_PT129_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V1_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V1_MM10_ALT.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V2_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V2_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V3_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V3_MM10_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V4_MM10_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
+    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody.tsv", categories.FeatureType.ANTIBODY)
+    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody_Multiplex.tsv", categories.FeatureType.ANTIBODY)
+    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqB_Antibody.tsv", categories.FeatureType.ANTIBODY)
+    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody.tsv", categories.FeatureType.ANTIBODY)
+    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody_Multiplex.tsv", categories.FeatureType.ANTIBODY)
+
     logger.info("DB initialization finished.")
 
 
@@ -298,3 +355,5 @@ if __name__ == "__main__":
         db_port = args.db_port
 
     init_db(args.create_users)
+    
+exit(0)

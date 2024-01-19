@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set active_page = "feature_kits-page" %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <div>
+            <h1>Feature Kits</h1>
+        </div>
+        <div>
+            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#feature_kit-form-popup">
+                New Kit
+            </button>
+        </div>
+    </div>
+    {% include "components/tables/feature_kit.html" %}
+
+    <div class="modal fade" id="feature_kit-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" >New Feature Kit</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                {# <button id="submit-project-btn" class="btn btn-primary"
+                hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('projects_htmx.create') }}">Submit</button> #}
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

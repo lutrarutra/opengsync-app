@@ -36,7 +36,7 @@
                     <ul class="h-list">
                     {% for library_link in sample.library_links %}
                     {% set library = library_link.library %}
-                    {% if seq_request in library.seq_requests %}
+                    {% if seq_request.id == library.seq_request_id %}
                         <li {{ tooltip(library.type.value.name) }}>
                             {{ library.type.value.description }}
                         </li>

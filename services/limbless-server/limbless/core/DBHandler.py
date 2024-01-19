@@ -52,7 +52,7 @@ class DBHandler():
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
         delete_sample, update_sample, get_user_sample_by_name,
-        get_num_samples, query_samples
+        query_samples
     )
 
     from .model_handlers._pool_methods import (
@@ -85,8 +85,7 @@ class DBHandler():
 
     from .model_handlers._index_kit_methods import (
         create_index_kit, get_index_kit, get_index_kits,
-        get_index_kit_by_name, query_index_kit,
-        get_num_index_kits
+        get_index_kit_by_name, query_index_kit
     )
 
     from .model_handlers._seq_request_methods import (
@@ -104,21 +103,28 @@ class DBHandler():
         get_adapter_from_index_kit
     )
 
+    from .model_handlers._feature_methods import (
+        create_feature, get_feature, get_features,
+        delete_feature, update_feature
+    )
+
+    from .model_handlers._feature_kit_methods import (
+        create_feature_kit, get_feature_kit, get_feature_kits,
+        get_feature_kit_by_name, update_feature_kit, delete_feature_kit,
+    )
+
     from .model_handlers._link_methods import (
         get_sample_libraries,
         get_lanes_in_experiment,
         get_sample_library_links,
         get_available_pools_for_experiment,
 
-        # link_library_pool,
         link_experiment_pool,
-        link_library_seq_request,
         link_sample_library,
         link_experiment_seq_request,
 
         is_sample_in_seq_request,
 
         unlink_experiment_pool,
-        unlink_library_seq_request,
         unlink_experiment_seq_request,
     )
