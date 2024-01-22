@@ -4,9 +4,10 @@ Web app for NGS sample/library/project tracking
 ## Installation
     - `pip install -r requirements.txt`
 
-## Run flask debug server
-    - `docker compose up`
-    - `flask run`
+## Run with flask debug server
+    - `docker compose -f compose.dev.yaml up --build`
+## Production
+    - `docker compose -f compose.yaml up --build`
 
 ## pgAdmin Interface
     - `http://localhost:5050`
