@@ -56,7 +56,7 @@
         </div>
         <form id="project-library-select-form">
             {{ library_select_form.csrf_token() }}
-            {{ library_select_form.raw_data(hidden=True, readonly=True) }}
+            {{ library_select_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
             {{ library_select_form.selected_libraries(hidden=False, readonly=True) }}
         </form>
     </div>

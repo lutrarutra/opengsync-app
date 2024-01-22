@@ -2,13 +2,10 @@ from typing import Optional, TYPE_CHECKING
 import pandas as pd
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, FieldList, FormField, TextAreaField, IntegerField, BooleanField
+from wtforms import StringField, FieldList, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from ... import db, models, logger, tools
-from ...core.DBHandler import DBHandler
-from ...core.DBSession import DBSession
-from ...categories import LibraryType
 from .TableDataForm import TableDataForm
 
 if TYPE_CHECKING:
@@ -41,9 +38,11 @@ class PoolMappingForm(TableDataForm):
 
         return validated, self
     
-    def prepare(self, df: Optional[pd.DataFrame] = None) -> dict:
-        if df is None:
-            df = self.get_df()
+    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+        if data is None:
+            data = self.data
+
+        df = data["sample_table"]
         
         df["pool"] = df["pool"].apply(lambda x: str(x) if x and not pd.isna(x) and not pd.isnull(x) else "__NONE__")
 
@@ -81,15 +80,17 @@ class PoolMappingForm(TableDataForm):
 
             pool_libraries.append(_data)
 
-        self.set_df(df)
+        data["sample_table"] = df
+        self.update_data(data)
 
         return {
             "pools": raw_pool_labels,
             "pool_libraries": pool_libraries,
         }
 
-    def parse(self) -> pd.DataFrame:
-        df = self.get_df()
+    def parse(self) -> dict[str, pd.DataFrame]:
+        data = self.data
+        df = data["sample_table"]
 
         df["contact_person_name"] = None
         df["contact_person_email"] = None
@@ -107,6 +108,7 @@ class PoolMappingForm(TableDataForm):
             logger.debug(f"{raw_pool_labels[i]} -> {pool_label}")
             df.loc[df["pool"] == raw_pool_labels[i], "pool"] = pool_label
 
-        self.set_df(df)
-        logger.debug(df[["sample_name", "pool", "index_kit", "index_1", "library_type"]])
-        return df
+        data["sample_table"] = df
+        self.update_data(data)
+
+        return data

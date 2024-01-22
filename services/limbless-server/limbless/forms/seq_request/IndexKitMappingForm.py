@@ -22,7 +22,7 @@ class IndexKitMappingForm(TableDataForm):
         if not validated:
             return False, self
         
-        df = self.get_df()
+        df = self.get_data()
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
         
@@ -38,19 +38,19 @@ class IndexKitMappingForm(TableDataForm):
                 return False, self
             
             _df = df[df["index_kit"] == raw_index_kit_label]
-            for idx, row in _df.iterrows():
+            for _, row in _df.iterrows():
                 adapter_name = str(row["adapter"])
-                if (adapter := db.db_handler.get_adapter_from_index_kit(adapter_name, selected_kit.id)) is None:
+                if (_ := db.db_handler.get_adapter_from_index_kit(adapter_name, selected_kit.id)) is None:
                     entry.category.errors = (f"Unknown adapter '{adapter_name}' does not belong to this index kit.",)
                     return False, self
 
         return validated, self
     
-    def prepare(self, df: Optional[pd.DataFrame] = None) -> dict:
-        if df is None:
-            df = self.get_df()
+    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+        if data is None:
+            data = self.data
 
-        index_kits = df["index_kit"].unique().tolist()
+        index_kits = data["sample_table"]["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
 
         selected: list[Optional[models.IndexKit]] = []
@@ -70,22 +70,23 @@ class IndexKitMappingForm(TableDataForm):
 
             selected.append(selected_kit)
 
-        self.set_df(df)
+        self.update_data(data)
+
         return {
             "categories": index_kits,
             "selected": selected
         }
     
-    def parse(self) -> pd.DataFrame:
-        df = self.get_df()
+    def parse(self) -> dict[str, pd.DataFrame]:
+        data = self.data
+
+        df = data["sample_table"]
 
         df["index_kit_name"] = None
         df["index_kit_id"] = None
 
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
-
-        index_kit_map = {}
 
         for i, index_kit in enumerate(index_kits):
             entry = self.input_fields[i]
@@ -113,6 +114,8 @@ class IndexKitMappingForm(TableDataForm):
             df.at[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None
             df.at[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 else None
             
-        self.set_df(df)
-        return df
+        data["sample_table"] = df
+        self.update_data(data)
+
+        return data
             

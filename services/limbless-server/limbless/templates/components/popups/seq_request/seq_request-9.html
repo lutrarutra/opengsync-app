@@ -64,7 +64,7 @@
                 </div>
                 {% endfor %}
             </div>
-            {{ pool_mapping_form.raw_data(class="form-control", hidden=True, readonly=True) }}
+            {{ pool_mapping_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
             {{ pool_mapping_form.csrf_token() }}
         </form>
     </div>

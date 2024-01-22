@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from uuid import uuid4
 from pathlib import Path
@@ -20,6 +21,10 @@ class TableForm(FlaskForm):
     separator = SelectField(choices=_allowed_extensions, default="tsv")
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
 
+    def __init__(self, upload_dir: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.upload_path = os.path.join("uploads", upload_dir)
+
     def custom_validate(self) -> tuple[bool, "TableForm"]:
         validated = self.validate()
         if not validated:
@@ -39,10 +44,9 @@ class TableForm(FlaskForm):
 
         filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
         filename = secure_filename(filename)
-        self.file.data.save("uploads/" + filename)
+        self.file.data.save(os.path.join(self.upload_path, filename))
 
-        df = pd.read_csv("uploads/" + filename, sep=sep, index_col=False, header=0)
+        df = pd.read_csv(os.path.join(self.upload_path, filename), sep=sep, index_col=False, header=0)
         
         return df
-
         

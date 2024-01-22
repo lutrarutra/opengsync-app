@@ -68,3 +68,22 @@ def get(page: int):
             **context
         )
     )
+
+
+@features_htmx.route("query_kits", methods=["POST"])
+@login_required
+def query_kits():
+    field_name = next(iter(request.form.keys()))
+
+    if (word := request.form.get(field_name)) is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+
+    results = db.db_handler.query_feature_kits(word)
+
+    return make_response(
+        render_template(
+            "components/search_select_results.html",
+            results=results,
+            field_name=field_name
+        ), push_url=False
+    )

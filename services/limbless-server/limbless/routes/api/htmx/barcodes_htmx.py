@@ -42,9 +42,8 @@ def get(page: int):
 @login_required
 def query_index_kits():
     field_name = next(iter(request.form.keys()))
-    word = request.form.get(field_name)
-
-    if word is None:
+    
+    if (word := request.form.get(field_name)) is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
     results = db.db_handler.query_index_kit(word)

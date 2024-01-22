@@ -40,7 +40,9 @@ label_search_columns: dict[str, list[str]] = {
     str(models.Organism.__tablename__): ["scientific_name", "common_name"],
     str(models.Barcode.__tablename__): ["sequence", "adapter"],
     str(models.IndexKit.__tablename__): ["name"],
-    str(models.User.__tablename__): ["email", "last_name", "first_name"]
+    str(models.User.__tablename__): ["email", "last_name", "first_name"],
+    str(models.FeatureKit.__tablename__): ["name"],
+    str(models.Feature.__tablename__): ["name", "target_name", "target_id"],
 }
 
 if (db_user := os.environ.get("POSTGRES_USER")) is None:

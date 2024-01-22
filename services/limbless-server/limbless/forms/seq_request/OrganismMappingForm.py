@@ -19,13 +19,13 @@ class OrganismSubForm(FlaskForm):
 class OrganismMappingForm(TableDataForm):
     input_fields = FieldList(FormField(OrganismSubForm), min_entries=1)
 
-    def prepare(self, seq_request_id: int, df: Optional[pd.DataFrame] = None) -> dict:
-        if df is None:
-            df = self.get_df()
+    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+        if data is None:
+            data = self.data
             
+        df = data["sample_table"]
         df["duplicate"] = False
 
-        self.set_df(df)
         organisms = sorted(df["organism"].unique())
         selected: list[Optional[str]] = []
 
@@ -50,10 +50,26 @@ class OrganismMappingForm(TableDataForm):
 
             selected.append(selected_organism.to_str() if selected_organism is not None else None)
 
+        data["sample_table"] = df
+        self.update_data(data)
+
         return {
             "categories": organisms,
             "selected": selected,
         }
+    
+    def parse(self) -> dict[str, pd.DataFrame]:
+        data = self.data
+
+        organism_id_mapping = {}
+        organisms = sorted(data["sample_table"]["organism"].unique())
+    
+        for i, organism in enumerate(organisms):
+            organism_id_mapping[organism] = self.input_fields.entries[i].category.data
+        
+        data["sample_table"]["tax_id"] = data["sample_table"]["organism"].map(organism_id_mapping)
+        self.update_data(data)
+        return data
 
     def custom_validate(self):
         validated = self.validate()

@@ -144,3 +144,19 @@ def update_feature(
     return feature
 
     
+def get_feature_from_kit_by_feature_name(
+    self, feature_name: str, feature_kit_id: int
+) -> models.Feature:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    feature = self._session.query(models.Feature).where(
+        models.Feature.name == feature_name,
+        models.Feature.feature_kit_id == feature_kit_id
+    ).first()
+
+    if not persist_session:
+        self.close_session()
+
+    return feature

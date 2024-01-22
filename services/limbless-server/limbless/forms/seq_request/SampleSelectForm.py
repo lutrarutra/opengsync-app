@@ -15,15 +15,17 @@ from .TableDataForm import TableDataForm
 class LibrarySelectForm(TableDataForm):
     selected_libraries = StringField()
 
-    def prepare(self, seq_request_id: int, df: Optional[pd.DataFrame] = None) -> dict:
-        if df is None:
-            df = self.get_df()
+    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+        if data is None:
+            data = self.data
+
+        df = data["sample_table"]
 
         libraries: list[dict[str, str | int | None]] = []
 
         for i, row in df.iterrows():
             # Check if sample names are unique in project
-            data = {
+            _data = {
                 "id": int(i) + 1,
                 "name": row["sample_name"],
                 "library_type": row["library_type"],
@@ -41,11 +43,11 @@ class LibrarySelectForm(TableDataForm):
             }
 
             if not pd.isna(row["sample_id"]):
-                data["info"] = "Existing sample found from project."
+                _data["info"] = "Existing sample found from project."
             else:
-                data["info"] = "New sample."
+                _data["info"] = "New sample."
 
-            libraries.append(data)
+            libraries.append(_data)
 
         selected_samples = []
         for sample_data in libraries:
@@ -53,22 +55,29 @@ class LibrarySelectForm(TableDataForm):
                 selected_samples.append(sample_data["id"])
         self.selected_libraries.data = ",".join([str(i) for i in selected_samples])
 
-        self.set_df(df)
+        data["sample_table"] = df
+        self.update_data(data)
 
         return {
             "libraries": libraries,
         }
     
-    def parse(self) -> pd.DataFrame:
+    def parse(self) -> dict[str, pd.DataFrame]:
         if self.selected_libraries.data is None:
             assert False    # This should never happen because its checked in custom_validate()
 
-        df = self.get_df()
+        data = self.data
+        df = data["sample_table"]
+
         selected_libraries_ids = self.selected_libraries.data.removeprefix(",").split(",")
         selected_libraries_ids = [int(i) - 1 for i in selected_libraries_ids if i != ""]
 
         df = df.loc[selected_libraries_ids, :].reset_index()
-        return df
+
+        data["sample_table"] = df
+        self.update_data(data)
+
+        return data
 
     def custom_validate(self):
         validated = self.validate()

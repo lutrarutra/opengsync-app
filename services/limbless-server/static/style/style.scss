@@ -1,7 +1,7 @@
 $progress-height: 1.3rem !default;
 
 @import "colors.scss";
-@import "../css/scrollbar.css";
+@import "scrollbar.css";
 @import "theme.scss";
 @import "navbar.scss";
 @import "responsive.scss";
@@ -354,10 +354,12 @@ span.desc:empty:after {
 
 .invalid-feedback-container {
     display: flex;
-    height: 20px;
+    flex-direction: column;
+    min-height: 20px;
+
     p {
+        height: 8px;
         width: 100%;
-        height: 20px;
         color: $danger;
         font-size: 14px;
     }

@@ -9,12 +9,14 @@
         <form id="sample-organism-category-mapping-form">
             {{    
                 categorical_mapping(
-                    form=category_mapping_form,
+                    form=organism_mapping_form,
                     categories=categories,
                     url=url_for('organisms_htmx.query'),
                     selected=selected,
                 )
             }}
+            {{ organism_mapping_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ organism_mapping_form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">

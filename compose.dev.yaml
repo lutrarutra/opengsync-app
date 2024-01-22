@@ -12,6 +12,7 @@ services:
             - ./uploads:/usr/src/app/uploads
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
+            - ./services/limbless-server/static/style:/usr/src/app/static/style
         env_file: .dev.env
         ports:
             - 5000:5000

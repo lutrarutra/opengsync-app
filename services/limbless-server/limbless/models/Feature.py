@@ -27,7 +27,7 @@ class Feature(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "joined"},
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "sequence", "pattern", "read", "feature_kit_id"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "target_name", "target_id", "feature_kit_id"]
 
     def __str__(self) -> str:
         return f"Feature('{self.sequence}', {self.pattern}, {self.read}{f', {self.feature_kit.name}' if self.feature_kit else ''})"

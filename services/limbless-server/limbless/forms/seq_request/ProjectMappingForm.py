@@ -28,13 +28,11 @@ class ProjectSubForm(FlaskForm):
 class ProjectMappingForm(TableDataForm):
     input_fields = FieldList(FormField(ProjectSubForm), min_entries=1)
 
-    def prepare(self, df: Optional[pd.DataFrame] = None) -> dict:
-        if df is None:
-            df = self.get_df()
-        else:
-            self.set_df(df)
+    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+        if data is None:
+            data = self.data
         
-        projects = df["project"].unique()
+        projects = data["sample_table"]["project"].unique()
         selected: list[Optional[str]] = []    # TODO: get projects for each selected
 
         for i, raw_project_name in enumerate(projects):
@@ -57,13 +55,16 @@ class ProjectMappingForm(TableDataForm):
 
             selected.append(selected_project.search_name() if selected_project is not None else None)
 
+        self.update_data(data)
+
         return {
             "categories": projects,
             "selected": selected,
         }
     
-    def parse(self, seq_request_id: int) -> pd.DataFrame:
-        df = self.get_df()
+    def parse(self, seq_request_id: int) -> dict[str, pd.DataFrame]:
+        data = self.data
+        df = data["sample_table"]
 
         df["project_name"] = None
         df["project_id"] = None
@@ -98,7 +99,6 @@ class ProjectMappingForm(TableDataForm):
                     projects[project_id] = project
                     project_samples[project_id] = dict([(sample.name, sample) for sample in project.samples])
         
-
         df["sample_id"] = None
         df["tax_id"] = None
         for i, row in df.iterrows():
@@ -114,7 +114,10 @@ class ProjectMappingForm(TableDataForm):
         df["project_id"] = df["project_id"].astype("Int64")
         df["sample_id"] = df["sample_id"].astype("Int64")
 
-        return df
+        data["sample_table"] = df
+        self.update_data(data)
+
+        return data
 
     def custom_validate(self, db_handler: DBHandler, user_id: int):
         validated = self.validate()

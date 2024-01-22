@@ -105,12 +105,13 @@ class DBHandler():
 
     from .model_handlers._feature_methods import (
         create_feature, get_feature, get_features,
-        delete_feature, update_feature
+        delete_feature, update_feature, get_feature_from_kit_by_feature_name,
     )
 
     from .model_handlers._feature_kit_methods import (
         create_feature_kit, get_feature_kit, get_feature_kits,
         get_feature_kit_by_name, update_feature_kit, delete_feature_kit,
+        query_feature_kits
     )
 
     from .model_handlers._link_methods import (

@@ -15,9 +15,11 @@ class BarcodeCheckForm(TableDataForm):
     reverse_complement_index_3 = BooleanField("Reverse complement index 3", default=False)
     reverse_complement_index_4 = BooleanField("Reverse complement index 4", default=False)
     
-    def prepare(self, df: Optional[pd.DataFrame] = None) -> dict:
-        if df is None:
-            df = self.get_df()
+    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+        if data is None:
+            data = self.data
+
+        df = data["sample_table"]
 
         samples_data: list[dict[str, str | int | None]] = []
         
@@ -25,7 +27,7 @@ class BarcodeCheckForm(TableDataForm):
 
         for i, row in df.iterrows():
             # Check if sample names are unique in project
-            data = {
+            _data = {
                 "id": row["id"],
                 "name": row["sample_name"] if "sample_name" in row else row["library_name"],
                 "library_type": row["library_type"],
@@ -39,30 +41,31 @@ class BarcodeCheckForm(TableDataForm):
                 "adapter": row["adapter"],
             }
 
-            if data["index_1"] == data["index_2"]:
-                data["warning"] += "Index 1 and index 2 are the same. "
+            if _data["index_1"] == _data["index_2"]:
+                _data["warning"] += "Index 1 and index 2 are the same. "
 
-            if data["index_1"] == data["index_3"]:
-                data["warning"] += "Index 1 and index 3 are the same. "
+            if _data["index_1"] == _data["index_3"]:
+                _data["warning"] += "Index 1 and index 3 are the same. "
 
-            if data["index_1"] == data["index_4"]:
-                data["warning"] += "Index 1 and index 4 are the same. "
+            if _data["index_1"] == _data["index_4"]:
+                _data["warning"] += "Index 1 and index 4 are the same. "
 
-            if data["index_2"] == data["index_3"]:
-                data["warning"] += "Index 2 and index 3 are the same. "
+            if _data["index_2"] == _data["index_3"]:
+                _data["warning"] += "Index 2 and index 3 are the same. "
 
-            if data["index_2"] == data["index_4"]:
-                data["warning"] += "Index 2 and index 4 are the same. "
+            if _data["index_2"] == _data["index_4"]:
+                _data["warning"] += "Index 2 and index 4 are the same. "
 
-            if data["index_3"] == data["index_4"]:
-                data["warning"] += "Index 3 and index 4 are the same. "
+            if _data["index_3"] == _data["index_4"]:
+                _data["warning"] += "Index 3 and index 4 are the same. "
 
             if reused_barcodes[i]:
-                data["warning"] += "Index combination is reused in two or more libraries. "
+                _data["warning"] += "Index combination is reused in two or more libraries. "
 
-            samples_data.append(data)
+            samples_data.append(_data)
 
-        self.set_df(df)
+        data["sample_table"] = df
+        self.update_data(data)
 
         return {
             "samples_data": samples_data,
@@ -72,10 +75,10 @@ class BarcodeCheckForm(TableDataForm):
             "show_index_4": df["index_4"].notnull().any(),
         }
     
-    def parse(self) -> pd.DataFrame:
-        df = self.get_df()
+    def parse(self) -> dict[str, pd.DataFrame]:
+        data = self.data
             
-        return df
+        return data
         
     def custom_validate(self):
         validated = self.validate()

@@ -24,8 +24,6 @@
             </div>
         </td>
     {% endfor %}
-    {{ form.raw_data(class="form-control", hidden=True, readonly=True) }}
-    {{ form.csrf_token() }}
 {%- endmacro %}
 
 {% macro categorical_mapping(form, categories, url, selected) -%}
@@ -55,8 +53,6 @@
             </div>
         </td>
     {% endfor %}
-    {{ form.raw_data(class="form-control", hidden=True, readonly=True) }}
-    {{ form.csrf_token() }}
 {%- endmacro %}
 
 {% macro categorical_mapping_with_new_field(form, categories, url, selected) -%}
@@ -100,6 +96,4 @@
         });
     </script>
     {% endfor %}
-    {{ form.raw_data(class="form-control", hidden=true, readonly=True) }}
-    {{ form.csrf_token(hidden=True) }}
 {%- endmacro %}

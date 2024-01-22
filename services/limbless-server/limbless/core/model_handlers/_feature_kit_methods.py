@@ -128,3 +128,28 @@ def delete_feature_kit(
 
     if not persist_session:
         self.close_session()
+
+
+def query_feature_kits(
+    self, word: str, limit: Optional[int] = PAGE_LIMIT
+) -> list[models.FeatureKit]:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.FeatureKit)
+
+    query = query.order_by(
+        func.similarity(models.FeatureKit.name, word).desc(),
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    feature_kits = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return feature_kits

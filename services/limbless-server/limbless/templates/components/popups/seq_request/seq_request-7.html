@@ -31,7 +31,7 @@
                 {{ form_group(feature_input_form.separator, class="col-2") }}
                 {{ form_group(feature_input_form.file, class="col-10") }}
             </div>
-            {{ feature_input_form.raw_data(class="form-control", hidden=True, readonly=True) }}
+            {{ feature_input_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
         </form>
     </div>
     <div class="modal-footer" id="popup-footer">

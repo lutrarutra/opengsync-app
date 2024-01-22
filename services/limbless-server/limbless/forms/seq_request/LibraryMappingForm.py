@@ -87,9 +87,11 @@ class LibraryMappingForm(TableDataForm):
 
         return validated, self
     
-    def prepare(self, df: Optional[pd.DataFrame] = None) -> dict:
-        if df is None:
-            df = self.get_df()
+    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+        if data is None:
+            data = self.data
+
+        df = data["sample_table"]
         
         library_types = df["library_type"].unique()
         library_types = [library_type if library_type and not pd.isna(library_type) else "Library" for library_type in library_types]
@@ -117,13 +119,17 @@ class LibraryMappingForm(TableDataForm):
             if selected_library_type is not None:
                 self.input_fields[i].category.process_data(selected_library_type.value.id)
 
-        self.set_df(df)
+        data["sample_table"] = df
+        self.update_data(data)
+
         return {
             "categories": library_types,
         }
 
-    def parse(self) -> pd.DataFrame:
-        df = self.get_df()
+    def parse(self) -> dict[str, pd.DataFrame]:
+        data = self.data
+        df = data["sample_table"]
+
         df.loc[df["library_type"].isna(), "library_type"] = "Library"
         library_types = df["library_type"].unique()
         library_types = [library_type if library_type and not pd.isna(library_type) else None for library_type in library_types]
@@ -132,5 +138,8 @@ class LibraryMappingForm(TableDataForm):
             df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].category.data)
         
         df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).value.description)
-        self.set_df(df)
-        return df
+
+        data["sample_table"] = df
+        self.update_data(data)
+
+        return data

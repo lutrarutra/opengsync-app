@@ -67,7 +67,7 @@ def restart_form(seq_request_id: int):
     return make_response(
         render_template(
             "components/popups/seq_request/seq_request-1.html",
-            table_form=forms.TableForm(),
+            table_form=forms.TableForm("seq_request"),
             seq_request=seq_request
         ), push_url=False
     )
@@ -80,7 +80,7 @@ def parse_table(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    table_input_form = forms.TableForm()
+    table_input_form = forms.TableForm("seq_request")
     validated, table_input_form = table_input_form.custom_validate()
 
     if not validated:
@@ -102,9 +102,10 @@ def parse_table(seq_request_id: int):
                 table_form=table_input_form, seq_request=seq_request
             ), push_url=False
         )
-        
+    
+    data = {"sample_table": df}
     table_col_form = forms.SampleColTableForm()
-    context = table_col_form.prepare(df)
+    context = table_col_form.prepare(data)
 
     return make_response(
         render_template(
@@ -134,16 +135,16 @@ def map_columns(seq_request_id: int):
             render_template(
                 "components/popups/seq_request/seq_request-2.html",
                 sample_table_form=sample_table_form,
-                data=sample_table_form.get_df().values.tolist(),
+                data=sample_table_form.get_data().values.tolist(),
                 seq_request=seq_request,
                 **context
             ),
             push_url=False
         )
 
-    df = sample_table_form.parse()
-    project_mapping_form = forms.ProjectMappingForm(formdata=None)
-    context = project_mapping_form.prepare(df)
+    data = sample_table_form.parse()
+    project_mapping_form = forms.ProjectMappingForm()
+    context = project_mapping_form.prepare(data)
 
     return make_response(
         render_template(
@@ -174,23 +175,23 @@ def select_project(seq_request_id: int):
             ), push_url=False
         )
     
-    df = project_mapping_form.parse(seq_request_id=seq_request_id)
+    data = project_mapping_form.parse(seq_request_id=seq_request_id)
 
-    category_mapping_form = forms.OrganismMappingForm(formdata=None)
-    context = category_mapping_form.prepare(seq_request.id, df)
+    organism_mapping_form = forms.OrganismMappingForm()
+    context = organism_mapping_form.prepare(data)
 
-    if df["sample_id"].isna().any():
+    if data["sample_table"]["sample_id"].isna().any():
         # new sample -> map organisms
         return make_response(
             render_template(
                 "components/popups/seq_request/seq_request-4.html",
-                category_mapping_form=category_mapping_form,
+                organism_mapping_form=organism_mapping_form,
                 seq_request=seq_request, **context
             ), push_url=False
         )
 
     library_mapping_form = forms.LibraryMappingForm()
-    context = library_mapping_form.prepare(df)
+    context = library_mapping_form.prepare(data)
 
     return make_response(
         render_template(
@@ -209,40 +210,23 @@ def map_organisms(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    category_mapping_form = forms.OrganismMappingForm()
-    validated, category_mapping_form = category_mapping_form.custom_validate()
-    df = category_mapping_form.get_df()
-    organisms = sorted(df["organism"].unique())
+    organism_mapping_form = forms.OrganismMappingForm()
+    validated, organism_mapping_form = organism_mapping_form.custom_validate()
 
     if not validated:
-        selected = []
-        with DBSession(db.db_handler) as session:
-            for i, organism in enumerate(organisms):
-                category_mapping_form.input_fields.entries[i].raw_category.data = organism
-                if category_mapping_form.input_fields.entries[i].category.data:
-                    selected_organism = session.get_organism(category_mapping_form.input_fields.entries[i].category.data)
-                    selected.append(str(selected_organism))
-                else:
-                    selected.append("")
-
         return make_response(
             render_template(
                 "components/popups/seq_request/seq_request-4.html",
-                category_mapping_form=category_mapping_form,
-                categories=organisms, selected=selected,
-                seq_request=seq_request
+                organism_mapping_form=organism_mapping_form,
+                seq_request=seq_request,
+                **organism_mapping_form.prepare()
             ), push_url=False
         )
-
-    organism_id_mapping = {}
     
-    for i, organism in enumerate(organisms):
-        organism_id_mapping[organism] = category_mapping_form.input_fields.entries[i].category.data
-    
-    df["tax_id"] = df["organism"].map(organism_id_mapping)
+    data = organism_mapping_form.parse()
 
     library_mapping_form = forms.LibraryMappingForm()
-    context = library_mapping_form.prepare(df)
+    context = library_mapping_form.prepare(data)
 
     return make_response(
         render_template(
@@ -275,23 +259,21 @@ def map_libraries(seq_request_id: int):
             )
         )
     
-    df = library_mapping_form.parse()
-    if df["index_kit"].isna().all():
-        feature_input_form = forms.FeatureInputForm()
-        context = feature_input_form.prepare(df)
-        logger.info(feature_input_form.raw_data.data)
+    data = library_mapping_form.parse()
 
+    if data["sample_table"]["index_kit"].isna().all():
+        feature_input_form = forms.FeatureInputForm()
         return make_response(
             render_template(
                 "components/popups/seq_request/seq_request-7.html",
                 seq_request=seq_request,
                 feature_input_form=feature_input_form,
-                **context
+                **feature_input_form.prepare()
             )
         )
 
-    index_kit_mapping_form = forms.IndexKitMappingForm(formdata=None)
-    context = index_kit_mapping_form.prepare(df)
+    index_kit_mapping_form = forms.IndexKitMappingForm()
+    context = index_kit_mapping_form.prepare(data)
 
     return make_response(
         render_template(
@@ -312,7 +294,6 @@ def map_index_kits(seq_request_id: int):
 
     index_kit_mapping_form = forms.IndexKitMappingForm()
     validated, index_kit_mapping_form = index_kit_mapping_form.custom_validate()
-    logger.debug(index_kit_mapping_form.errors)
     
     if not validated:
         return make_response(
@@ -323,11 +304,10 @@ def map_index_kits(seq_request_id: int):
                 **index_kit_mapping_form.prepare()
             )
         )
-    
-    df = index_kit_mapping_form.parse()
+
+    data = index_kit_mapping_form.parse()
     feature_input_form = forms.FeatureInputForm()
-    context = feature_input_form.prepare(df)
-    logger.info(feature_input_form.raw_data.data)
+    context = feature_input_form.prepare(data)
 
     return make_response(
         render_template(
@@ -336,31 +316,6 @@ def map_index_kits(seq_request_id: int):
             feature_input_form=feature_input_form,
             **context
         )
-    )
-
-    if "pool" in df.columns:
-        pool_mapping_form = forms.PoolMappingForm(formdata=None)
-        context = pool_mapping_form.prepare(df)
-
-        return make_response(
-            render_template(
-                "components/popups/seq_request/seq_request-9.html",
-                seq_request=seq_request,
-                pool_mapping_form=pool_mapping_form,
-                **context
-            )
-        )
-    
-    library_select_form = forms.LibrarySelectForm()
-    context = library_select_form.prepare(seq_request.id, df)
-
-    return make_response(
-        render_template(
-            template_name_or_list="components/popups/seq_request/seq_request-10.html",
-            seq_request=seq_request,
-            library_select_form=library_select_form,
-            **context
-        ), push_url=False
     )
 
 
@@ -382,10 +337,23 @@ def parse_feature_form(seq_request_id: int):
                 **feature_input_form.prepare()
             )
         )
-
-    df = feature_input_form.parse()
-    feature_kit_mapping_form = forms.FeatureKitMappingForm(formdata=None)
-    context = feature_kit_mapping_form.prepare(df)
+    
+    try:
+        data = feature_input_form.parse()
+    except pd.errors.ParserError as e:
+        feature_input_form.file.errors = (str(e),)
+            
+        return make_response(
+            render_template(
+                "components/popups/seq_request/seq_request-7.html",
+                seq_request=seq_request,
+                feature_input_form=feature_input_form,
+                **feature_input_form.prepare()
+            )
+        )
+    
+    feature_kit_mapping_form = forms.FeatureKitMappingForm()
+    context = feature_kit_mapping_form.prepare(data)
 
     return make_response(
         render_template(
@@ -394,6 +362,53 @@ def parse_feature_form(seq_request_id: int):
             feature_kit_mapping_form=feature_kit_mapping_form,
             **context
         )
+    )
+
+
+# 8. Map Feature Kits
+@seq_request_form_htmx.route("<int:seq_request_id>/map_feature_kits", methods=["POST"])
+@login_required
+def map_feature_kits(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
+    feature_kit_mapping_form = forms.FeatureKitMappingForm()
+    validated, feature_kit_mapping_form = feature_kit_mapping_form.custom_validate()
+    if not validated:
+        return make_response(
+            render_template(
+                "components/popups/seq_request/seq_request-8.html",
+                seq_request=seq_request,
+                feature_kit_mapping_form=feature_kit_mapping_form,
+                **feature_kit_mapping_form.prepare()
+            )
+        )
+    
+    data = feature_kit_mapping_form.parse()
+
+    if "pool" in data["sample_table"].columns:
+        pool_mapping_form = forms.PoolMappingForm()
+        context = pool_mapping_form.prepare(data)
+
+        return make_response(
+            render_template(
+                "components/popups/seq_request/seq_request-9.html",
+                seq_request=seq_request,
+                pool_mapping_form=pool_mapping_form,
+                **context
+            )
+        )
+    
+    library_select_form = forms.LibrarySelectForm()
+    context = library_select_form.prepare(data)
+
+    return make_response(
+        render_template(
+            template_name_or_list="components/popups/seq_request/seq_request-10.html",
+            seq_request=seq_request,
+            library_select_form=library_select_form,
+            **context
+        ), push_url=False
     )
 
     
@@ -405,7 +420,6 @@ def map_pools(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     pool_mapping_form = forms.PoolMappingForm()
-    logger.debug("hello")
     validated, pool_mapping_form = pool_mapping_form.custom_validate()
 
     if not validated:
@@ -418,9 +432,9 @@ def map_pools(seq_request_id: int):
             )
         )
     
-    df = pool_mapping_form.parse()
+    data = pool_mapping_form.parse()
     library_select_form = forms.LibrarySelectForm()
-    context = library_select_form.prepare(seq_request.id, df)
+    context = library_select_form.prepare(data)
 
     return make_response(
         render_template(
@@ -432,7 +446,7 @@ def map_pools(seq_request_id: int):
     )
 
 
-# 7. Confirm libraries
+# 10. Confirm libraries
 @seq_request_form_htmx.route("<int:seq_request_id>/confirm_libraries", methods=["POST"])
 @login_required
 def confirm_libraries(seq_request_id: int):
@@ -440,7 +454,7 @@ def confirm_libraries(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     library_select_form = forms.LibrarySelectForm()
-    context = library_select_form.prepare(seq_request.id)
+    context = library_select_form.prepare()
     
     validated, library_select_form = library_select_form.custom_validate()
 
@@ -454,10 +468,10 @@ def confirm_libraries(seq_request_id: int):
             ), push_url=False
         )
 
-    df = library_select_form.parse()
+    data = library_select_form.parse()
 
     barcode_check_form = forms.BarcodeCheckForm()
-    context = barcode_check_form.prepare(df)
+    context = barcode_check_form.prepare(data)
 
     return make_response(
         render_template(
@@ -469,7 +483,7 @@ def confirm_libraries(seq_request_id: int):
     )
 
 
-# 8. Check barcodes
+# 11. Check barcodes
 @seq_request_form_htmx.route("<int:seq_request_id>/check_barcodes", methods=["POST"])
 @login_required
 def check_barcodes(seq_request_id: int):
@@ -487,7 +501,10 @@ def check_barcodes(seq_request_id: int):
                 **barcode_check_form.prepare()
             )
         )
-    df = barcode_check_form.parse()
+    data = barcode_check_form.parse()
+
+    sample_table = data["sample_table"]
+    feature_table = data["feature_table"]
 
     n_added = 0
     n_new_samples = 0
@@ -495,7 +512,7 @@ def check_barcodes(seq_request_id: int):
 
     with DBSession(db.db_handler) as session:
         projects: dict[int | str, models.Project] = {}
-        for project_id, project_name in df[["project_id", "project_name"]].drop_duplicates().values.tolist():
+        for project_id, project_name in sample_table[["project_id", "project_name"]].drop_duplicates().values.tolist():
             if not pd.isnull(project_id):
                 project_id = int(project_id)
                 if (project := session.get_project(project_id)) is None:
@@ -509,14 +526,14 @@ def check_barcodes(seq_request_id: int):
                     owner_id=current_user.id
                 )
                 projects[project.id] = project
-                df.loc[df["project_name"] == project_name, "project_id"] = project.id
+                sample_table.loc[sample_table["project_name"] == project_name, "project_id"] = project.id
 
-        if df["project_id"].isna().any():
+        if sample_table["project_id"].isna().any():
             raise Exception("Project id is None (should not be).")
 
     with DBSession(db.db_handler) as session:
         pools: dict[str, models.Pool] = {}
-        for pool_label, _df in df.groupby("pool"):
+        for pool_label, _df in sample_table.groupby("pool"):
             pool_label = str(pool_label)
             pool = session.create_pool(
                 name=pool_label,
@@ -527,7 +544,7 @@ def check_barcodes(seq_request_id: int):
             )
             pools[pool_label] = pool
 
-        for (_sample_name, _sample_id, _tax_id, _project_name, _project_id), _df in df.groupby(["sample_name", "sample_id", "tax_id", "project_name", "project_id"], dropna=False):
+        for (_sample_name, _sample_id, _tax_id, _project_name, _project_id), _df in sample_table.groupby(["sample_name", "sample_id", "tax_id", "project_name", "project_id"], dropna=False):
             project = projects[_project_id]
             logger.debug(f"{_sample_name}, {_sample_id}, {_tax_id}, {_project_name}, {_project_id}")
             if pd.isna(_sample_id):

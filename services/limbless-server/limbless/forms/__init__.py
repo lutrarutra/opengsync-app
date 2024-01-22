@@ -5,7 +5,7 @@ from .ExperimentForm import ExperimentForm
 from .SearchForm import SearchForm
 from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm, UserForm, ResetPasswordForm
 from .seq_request.PoolingForm import PoolingForm
-from .table_forms import TableForm
+from .TableForm import TableForm
 from .SeqRequestForm import SeqRequestForm
 from .SequencerForm import SequencerForm
 from .pool_forms import PoolForm
@@ -21,3 +21,4 @@ from .seq_request.PoolMappingForm import PoolMappingForm
 from .seq_request.SeqAuthForm import SeqAuthForm
 from .seq_request.IndexKitMappingForm import IndexKitMappingForm
 from .seq_request.FeatureInputForm import FeatureInputForm
+from .seq_request.FeatureKitMappingForm import FeatureKitMappingForm

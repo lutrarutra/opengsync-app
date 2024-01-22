@@ -13,7 +13,7 @@ from .TableDataForm import TableDataForm
 class SampleColSelectForm(FlaskForm):
     required_fields = [
         ("", "-"),
-        ("sample_name", "Sample Name"),
+        ("sample_name", "Sample/Library Name"),
     ]
     optional_fields = [
         ("organism", "Organism"),
@@ -43,6 +43,7 @@ class SampleColSelectForm(FlaskForm):
         "adapter": "adapter",
         "organism": "organism",
         "samplename": "sample_name",
+        "sample/libraryname": "sample_name",
         "librarytype": "library_type",
         "pool": "pool",
         "librarypool": "pool",
@@ -64,20 +65,20 @@ class SampleColTableForm(TableDataForm):
     input_fields = FieldList(FormField(SampleColSelectForm))
 
     def custom_validate(self) -> tuple[bool, "SampleColTableForm"]:
-        df = self.get_df()
         validated = self.validate()
         if not validated:
             return False, self
 
         return validated, self
 
-    def prepare(self, df: Optional[pd.DataFrame] = None) -> dict:
-        if df is None:
-            df = self.get_df()
+    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+        if data is None:
+            data = self.data
+
         required_fields = SampleColSelectForm.required_fields
         optional_fields = SampleColSelectForm.optional_fields
         
-        columns = df.columns.tolist()
+        columns = data["sample_table"].columns.tolist()
         refs = [key for key, _ in required_fields if key]
         opts = [key for key, _ in optional_fields]
         matches = tools.connect_similar_strings(required_fields + optional_fields, columns, similars=SampleColSelectForm._similars)
@@ -91,7 +92,7 @@ class SampleColTableForm(TableDataForm):
             if col in matches.keys():
                 self.input_fields[i].select_field.data = matches[col]
             
-        self.set_df(df)
+        self.update_data(data)
         return {
             "columns": columns,
             "required_fields": refs,
@@ -115,29 +116,32 @@ class SampleColTableForm(TableDataForm):
 
         return df
     
-    def parse(self) -> pd.DataFrame:
-        df = self.get_df()
+    def parse(self) -> dict[str, pd.DataFrame]:
+        data = self.data
         selected_features = []
         features = SampleColSelectForm.required_fields + SampleColSelectForm.optional_fields
         
         features = [key for key, _ in features if key]
 
         for feature in features:
-            if feature not in df.columns:
-                df[feature] = None
+            if feature not in data["sample_table"].columns:
+                data["sample_table"][feature] = None
 
         for i, entry in enumerate(self.input_fields):
             if not (val := entry.select_field.data):
                 continue
             val = val.strip()
             selected_features.append(val)
-            df[val] = df[df.columns[i]]
+            data["sample_table"][val] = data["sample_table"][data["sample_table"].columns[i]]
         
-        df = df[features]
+        df = data["sample_table"][features]
         df.loc[df["project"].isna(), "project"] = "Project"
         df.loc[df["organism"].isna(), "organism"] = "Organism"
 
         df["id"] = df.reset_index(drop=True).index + 1
         df = self.__clean_df(df)
+        data["sample_table"] = df
+        
+        self.update_data(data)
 
-        return df
+        return data

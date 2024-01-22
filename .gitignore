@@ -10,9 +10,7 @@ uploads/
 .dev.env
 .snakemake/
 containers/images/
-*/static/style/bootstrap/
-*.scss.css
-*.scss.css.map
+**/style/compiled/
 poetry.lock
 
 # Byte-compiled / optimized / DLL files

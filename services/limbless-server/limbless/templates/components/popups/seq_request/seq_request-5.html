@@ -13,6 +13,8 @@
                     categories=categories
                 )
             }}
+            {{ library_mapping_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ library_mapping_form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">

@@ -17,6 +17,8 @@
                     selected=selected,
                 )
             }}
+            {{ project_mapping_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ project_mapping_form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">

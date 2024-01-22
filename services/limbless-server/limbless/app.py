@@ -39,7 +39,8 @@ def create_app():
     login_manager.init_app(app)
     mail.init_app(app)
 
-    sass.compile(dirname=("/usr/src/app/static/style/sass", "/usr/src/app/static/style/css"))
+    logger.debug("Compiling SASS..")
+    sass.compile(dirname=("/usr/src/app/static/style", "/usr/src/app/static/style/compiled"))
 
     @login_manager.user_loader
     def load_user(user_id: int) -> User:
