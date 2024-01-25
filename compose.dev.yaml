@@ -10,6 +10,7 @@ services:
         volumes:
             - ./services/limbless-server/limbless:/usr/src/app/limbless
             - ./uploads:/usr/src/app/uploads
+            - ./media:/usr/src/app/media
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
             - ./services/limbless-server/static/style:/usr/src/app/static/style

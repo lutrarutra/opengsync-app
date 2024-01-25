@@ -46,7 +46,17 @@
                 href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}"
             {% else %}
                 href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}"
-            {% endif %}>
+            {% endif %}
+            _="on htmx:confirm(issueRequest)
+            halt the event
+            call Swal.fire({
+                title: 'Cancel Request Form',
+                showDenyButton: true,
+                text: 'Do you want to proceed?',
+                confirmButtonText: 'Yes',
+                denyButtonText: 'No'
+            })
+            if result.isConfirmed issueRequest()">
             Cancel
         </a>
     </div>

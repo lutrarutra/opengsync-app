@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlmodel import and_
 
-from ... import models, logger
+from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
 
 
@@ -133,7 +133,8 @@ def get_sample_library_links(
     self,
     sample_id: Optional[int] = None,
     library_id: Optional[int] = None,
-    limit: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
+    limit: Optional[int] = PAGE_LIMIT,
     offset: Optional[int] = None,
 ) -> tuple[Optional[models.SampleLibraryLink], int]:
     
@@ -147,6 +148,14 @@ def get_sample_library_links(
 
     if library_id is not None:
         query = query.where(models.SampleLibraryLink.library_id == library_id)
+
+    if seq_request_id is not None:
+        query = query.join(
+            models.Library,
+            models.Library.id == models.SampleLibraryLink.library_id,
+        ).where(
+            models.Library.seq_request_id == seq_request_id,
+        )
     
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
 

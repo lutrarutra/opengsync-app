@@ -1,5 +1,5 @@
-import os
-from typing import TYPE_CHECKING
+import json
+from typing import TYPE_CHECKING, Optional
 
 from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .Library import Library
     from .User import User
     from .Experiment import Experiment
+    from .SeqRequest import SeqRequest
 
 
 class Pool(SQLModel, SearchResult, table=True):
@@ -30,6 +31,11 @@ class Pool(SQLModel, SearchResult, table=True):
     experiments: List["Experiment"] = Relationship(
         back_populates="pools", link_model=ExperimentPoolLink,
         sa_relationship_kwargs={"lazy": "select"},
+    )
+    seq_request_id: int = Field(nullable=False, foreign_key="seqrequest.id")
+    seq_request: "SeqRequest" = Relationship(
+        back_populates="pools",
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     contact_name: str = Field(nullable=False, max_length=128)

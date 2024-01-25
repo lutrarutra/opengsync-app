@@ -23,7 +23,7 @@ class OrganismMappingForm(TableDataForm):
         if data is None:
             data = self.data
             
-        df = data["sample_table"]
+        df = data["library_table"]
         df["duplicate"] = False
 
         organisms = sorted(df["organism"].unique())
@@ -50,7 +50,7 @@ class OrganismMappingForm(TableDataForm):
 
             selected.append(selected_organism.to_str() if selected_organism is not None else None)
 
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return {
@@ -62,12 +62,12 @@ class OrganismMappingForm(TableDataForm):
         data = self.data
 
         organism_id_mapping = {}
-        organisms = sorted(data["sample_table"]["organism"].unique())
+        organisms = sorted(data["library_table"]["organism"].unique())
     
         for i, organism in enumerate(organisms):
             organism_id_mapping[organism] = self.input_fields.entries[i].category.data
         
-        data["sample_table"]["tax_id"] = data["sample_table"]["organism"].map(organism_id_mapping)
+        data["library_table"]["tax_id"] = data["library_table"]["organism"].map(organism_id_mapping)
         self.update_data(data)
         return data
 

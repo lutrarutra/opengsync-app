@@ -91,7 +91,7 @@ class LibraryMappingForm(TableDataForm):
         if data is None:
             data = self.data
 
-        df = data["sample_table"]
+        df = data["library_table"]
         
         library_types = df["library_type"].unique()
         library_types = [library_type if library_type and not pd.isna(library_type) else "Library" for library_type in library_types]
@@ -119,7 +119,7 @@ class LibraryMappingForm(TableDataForm):
             if selected_library_type is not None:
                 self.input_fields[i].category.process_data(selected_library_type.value.id)
 
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return {
@@ -128,7 +128,7 @@ class LibraryMappingForm(TableDataForm):
 
     def parse(self) -> dict[str, pd.DataFrame]:
         data = self.data
-        df = data["sample_table"]
+        df = data["library_table"]
 
         df.loc[df["library_type"].isna(), "library_type"] = "Library"
         library_types = df["library_type"].unique()
@@ -139,7 +139,14 @@ class LibraryMappingForm(TableDataForm):
         
         df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).value.description)
 
-        data["sample_table"] = df
+        df["is_cmo_sample"] = False
+        for sample_name, _df in df.groupby("sample_name"):
+            if LibraryType.MULTIPLEXING_CAPTURE.value.id in _df["library_type_id"].unique():
+                df.loc[df["sample_name"] == sample_name, "is_cmo_sample"] = True
+
+        data["library_table"] = df
         self.update_data(data)
+
+        logger.debug(df[["sample_name", "library_type", "is_cmo_sample"]])
 
         return data

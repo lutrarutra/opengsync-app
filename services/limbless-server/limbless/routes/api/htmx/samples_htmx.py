@@ -77,7 +77,7 @@ def get(page: int):
                 template, samples=samples,
                 samples_n_pages=n_pages, samples_active_page=page,
                 samples_current_sort=sort_by, samples_current_sort_order=order,
-                index_form=forms.IndexForm(), **context
+                **context
             ), push_url=False
         )
 

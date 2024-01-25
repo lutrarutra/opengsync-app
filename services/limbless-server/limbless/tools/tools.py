@@ -3,6 +3,23 @@ import difflib
 
 import pandas as pd
 
+tab_10_colors = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf"
+]
+
+
+def titlecase_with_acronyms(val: str) -> str:
+    return " ".join([c[0].upper() + c[1:] for c in val.split(" ")])
+
 
 def make_filenameable(val, keep: list[str] = ['-', '.', '_']) -> Optional[str]:
     if pd.isna(val) or val is None:

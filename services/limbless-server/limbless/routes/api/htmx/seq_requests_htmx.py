@@ -3,7 +3,7 @@ from io import StringIO, BytesIO
 from uuid import uuid4
 from typing import Optional, TYPE_CHECKING
 
-from flask import Blueprint, url_for, render_template, flash, abort, request, Response
+from flask import Blueprint, url_for, render_template, flash, abort, request, Response, jsonify
 from flask_htmx import make_response
 from flask_login import login_required
 from werkzeug.utils import secure_filename
@@ -516,6 +516,9 @@ def remove_auth_form(seq_request_id: int):
         if not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
 
+    filepath = os.path.join(SEQ_AUTH_FORMS_DIR, f"{seq_request.seq_auth_form_uuid}.pdf")
+    if os.path.exists(filepath):
+        os.remove(filepath)
     seq_request.seq_auth_form_uuid = None
     seq_request = db.db_handler.update_seq_request(seq_request=seq_request)
 
@@ -553,9 +556,7 @@ def remove_library(seq_request_id: int):
             if not current_user.is_insider():
                 return abort(HttpResponse.FORBIDDEN.value.id)
             
-        session.unlink_library_seq_request(
-            library_id=library_id, seq_request_id=seq_request_id
-        )
+        session.delete_library(library_id)
 
     flash(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'")
@@ -711,7 +712,6 @@ def download_pooling_template(seq_request_id: int):
 
     data = {
         "id": [],
-        "sample_name": [],
         "library_name": [],
         "library_type": [],
         "pool": [],
@@ -726,7 +726,6 @@ def download_pooling_template(seq_request_id: int):
     }
     for library in unpooled_libraries:
         data["id"].append(library.id)
-        data["sample_name"].append(library.sample.name)
         data["library_name"].append(library.name)
         data["library_type"].append(library.type.value.description)
         data["pool"].append("")
@@ -959,4 +958,116 @@ def add_indices(seq_request_id: int):
 
     return make_response(
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/get_graph", methods=["GET"])
+@login_required
+def get_graph(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.value.id)
+
+    LINK_WIDTH_UNIT = 1
+
+    with DBSession(db.db_handler) as session:
+        samples, _ = session.get_samples(seq_request_id=seq_request_id, limit=None)
+
+        graph = {
+            "nodes": [],
+            "links": []
+        }
+
+        seq_request_node = {
+            "node": 0,
+            "name": seq_request.name,
+        }
+        graph["nodes"].append(seq_request_node)
+
+        idx = 1
+
+        project_nodes: dict[int, int] = {}
+        sample_nodes: dict[int, int] = {}
+        library_nodes: dict[int, int] = {}
+        pool_nodes: dict[int, int] = {}
+
+        for sample in samples:
+            if sample.project_id not in project_nodes.keys():
+                project_node = {
+                    "node": idx,
+                    "name": sample.project.name,
+                }
+                graph["nodes"].append(project_node)
+                project_nodes[sample.project.id] = idx
+                project_idx = idx
+                idx += 1
+            else:
+                project_idx = project_nodes[sample.project.id]
+
+            sample_node = {
+                "node": idx,
+                "name": sample.name,
+            }
+            graph["nodes"].append(sample_node)
+            sample_nodes[sample.id] = idx
+            idx += 1
+            n_sample_links = 0
+            for link in sample.library_links:
+                if link.library.seq_request_id == seq_request_id:
+                    n_sample_links += 1
+                    if link.library.id not in library_nodes.keys():
+                        library_node = {
+                            "node": idx,
+                            "name": link.library.name,
+                        }
+                        graph["nodes"].append(library_node)
+                        library_nodes[link.library.id] = idx
+                        library_idx = idx
+                        idx += 1
+                    else:
+                        library_idx = library_nodes[link.library.id]
+                    graph["links"].append({
+                        "source": sample_node["node"],
+                        "target": library_idx,
+                        "value": LINK_WIDTH_UNIT
+                    })
+
+            graph["links"].append({
+                "source": project_idx,
+                "target": sample_nodes[sample.id],
+                "value": LINK_WIDTH_UNIT * n_sample_links
+            })
+            
+        pools, _ = session.get_pools(seq_request_id=seq_request_id, limit=None)
+
+        for pool in pools:
+            pool_node = {
+                "node": idx,
+                "name": pool.name,
+            }
+            graph["nodes"].append(pool_node)
+            pool_nodes[pool.id] = idx
+            pool_idx = idx
+            idx += 1
+
+            link_width = 0
+            for library in pool.libraries:
+                graph["links"].append({
+                    "source": library_nodes[library.id],
+                    "target": pool_idx,
+                    "value": LINK_WIDTH_UNIT * library.num_samples
+                })
+                link_width += LINK_WIDTH_UNIT * library.num_samples
+
+            graph["links"].append({
+                "source": pool_idx,
+                "target": seq_request_node["node"],
+                "value": link_width
+            })
+
+    return make_response(
+        jsonify(graph)
     )

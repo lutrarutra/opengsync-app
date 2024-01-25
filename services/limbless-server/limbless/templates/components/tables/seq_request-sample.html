@@ -24,14 +24,15 @@
                         field_name=field_name, query_type="string", col_size=3
                     )
                 }}
-                <th scope="col" class="col-8">Library Types</th>
+                <th scope="col" class="col-4">Library Types</th>
             </tr>
         </thead>
         <tbody>
             {% for sample in samples %}
             <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}';">
-                <th>{{ sample.id }}</th>
+                <th scope="row">{{ sample.id }}</th>
                 <td>{{ sample.name }}</td>
+                {% set cmo_index = "" %}
                 <td>
                     <ul class="h-list">
                     {% for library_link in sample.library_links %}

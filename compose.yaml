@@ -21,6 +21,7 @@ services:
             - ./uploads:/usr/src/app/uploads
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
+            - ./media:/usr/src/app/media
             - static_volume:/usr/src/app/static
         env_file: .env
         expose:

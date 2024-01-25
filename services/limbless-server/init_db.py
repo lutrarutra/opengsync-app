@@ -12,6 +12,7 @@ import sqlalchemy as sqla
 import limbless.models as models
 import limbless.categories as categories
 from limbless.core import DBHandler
+from limbless import tools
 
 load_dotenv()
 
@@ -63,7 +64,7 @@ if (db_host := os.environ.get("POSTGRES_HOST")) is None:
 
 def add_features_from_kit(db_handler: DBHandler, path: str, feature_type: categories.FeatureType):
     df = pd.read_csv(path, sep="\t", comment="#")
-    kit_name = os.path.basename(path).split(".")[0].replace("_", " ").title()
+    kit_name = tools.titlecase_with_acronyms(os.path.basename(path).split(".")[0].replace("_", " "))
 
     if db_handler.get_feature_kit_by_name(kit_name) is not None:
         logger.info(f"Feature kit {kit_name} is already present in the DB.")
@@ -79,6 +80,7 @@ def add_features_from_kit(db_handler: DBHandler, path: str, feature_type: catego
         if pd.isnull(row["barcode_id"]):
             logger.error(f"Barcode name is null for row {row}, {kit_name}")
             raise Exception(f"Barcode name is null for row {row}.")
+        
         db_handler.create_feature(
             name=str(row["barcode_id"]),
             feature_kit_id=kit.id,
@@ -93,7 +95,7 @@ def add_features_from_kit(db_handler: DBHandler, path: str, feature_type: catego
 
 def add_indices_from_kit(db_handler: DBHandler, path: str):
     df = pd.read_csv(path)
-    kit_name = os.path.basename(path).split(".")[0].replace("_", " ").title()
+    kit_name = tools.titlecase_with_acronyms(os.path.basename(path).split(".")[0].replace("_", " "))
 
     num_indices_per_adapter = None
     if "single index" in kit_name.lower():

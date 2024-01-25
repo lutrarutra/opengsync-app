@@ -13,7 +13,7 @@ from .TableDataForm import TableDataForm
 class SampleColSelectForm(FlaskForm):
     required_fields = [
         ("", "-"),
-        ("sample_name", "Sample/Library Name"),
+        ("sample_name", "Sample Name"),
     ]
     optional_fields = [
         ("organism", "Organism"),
@@ -43,7 +43,6 @@ class SampleColSelectForm(FlaskForm):
         "adapter": "adapter",
         "organism": "organism",
         "samplename": "sample_name",
-        "sample/libraryname": "sample_name",
         "librarytype": "library_type",
         "pool": "pool",
         "librarypool": "pool",
@@ -78,7 +77,7 @@ class SampleColTableForm(TableDataForm):
         required_fields = SampleColSelectForm.required_fields
         optional_fields = SampleColSelectForm.optional_fields
         
-        columns = data["sample_table"].columns.tolist()
+        columns = data["library_table"].columns.tolist()
         refs = [key for key, _ in required_fields if key]
         opts = [key for key, _ in optional_fields]
         matches = tools.connect_similar_strings(required_fields + optional_fields, columns, similars=SampleColSelectForm._similars)
@@ -124,23 +123,23 @@ class SampleColTableForm(TableDataForm):
         features = [key for key, _ in features if key]
 
         for feature in features:
-            if feature not in data["sample_table"].columns:
-                data["sample_table"][feature] = None
+            if feature not in data["library_table"].columns:
+                data["library_table"][feature] = None
 
         for i, entry in enumerate(self.input_fields):
             if not (val := entry.select_field.data):
                 continue
             val = val.strip()
             selected_features.append(val)
-            data["sample_table"][val] = data["sample_table"][data["sample_table"].columns[i]]
+            data["library_table"][val] = data["library_table"][data["library_table"].columns[i]]
         
-        df = data["sample_table"][features]
+        df = data["library_table"][features]
         df.loc[df["project"].isna(), "project"] = "Project"
         df.loc[df["organism"].isna(), "organism"] = "Organism"
 
         df["id"] = df.reset_index(drop=True).index + 1
         df = self.__clean_df(df)
-        data["sample_table"] = df
+        data["library_table"] = df
         
         self.update_data(data)
 

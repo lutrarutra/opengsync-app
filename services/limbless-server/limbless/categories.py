@@ -41,6 +41,30 @@ class LibraryType(Enum, metaclass=ExtendedEnumMeta):
     CITE_SEQ = DescriptiveEnum(105, "CITE-seq", "CITE")
     ATAC_SEQ = DescriptiveEnum(106, "ATAC-seq", "ATAC")
 
+    @staticmethod
+    def technical_abbreviation(library_type: "LibraryType") -> str:
+        return {
+            0: "",
+            1: "GEX",
+            2: "GEX",
+            3: "CMO",
+            4: "ATAC",
+            5: "ATAC",
+            6: "VISIUM",
+            7: "VDJ-B",
+            8: "VDJ-T",
+            9: "VDJ-T-GD",
+            10: "ABC",
+            11: "CRISPR",
+            100: "GEX",
+            101: "EXOME",
+            102: "GENOME",
+            103: "AMPLICON",
+            104: "RBS",
+            105: "CITE",
+            106: "ATAC",
+        }[library_type.value.id]
+
 
 class FlowCellType(Enum, metaclass=ExtendedEnumMeta):
     OTHER = DescriptiveEnum(0, "Other")

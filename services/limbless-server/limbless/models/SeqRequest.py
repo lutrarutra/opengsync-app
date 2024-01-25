@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING, List, ClassVar
+from typing import Optional, TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .Contact import Contact
     from .Library import Library
     from .Experiment import Experiment
+    from .Pool import Pool
 
 
 class SeqRequest(SQLModel, table=True):
@@ -52,12 +53,17 @@ class SeqRequest(SQLModel, table=True):
         },
     )
 
-    libraries: List["Library"] = Relationship(
+    libraries: list["Library"] = Relationship(
         back_populates="seq_request",
         sa_relationship_kwargs={"lazy": "select"},
     )
 
-    experiments: List["Experiment"] = Relationship(
+    pools: list["Pool"] = Relationship(
+        back_populates="seq_request",
+        sa_relationship_kwargs={"lazy": "select"},
+    )
+
+    experiments: list["Experiment"] = Relationship(
         back_populates="seq_requests",
         link_model=SeqRequestExperimentLink,
         sa_relationship_kwargs={"lazy": "select"},
@@ -79,7 +85,7 @@ class SeqRequest(SQLModel, table=True):
         },
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
     seq_auth_form_uuid: Optional[str] = Field(nullable=True, max_length=64)
 

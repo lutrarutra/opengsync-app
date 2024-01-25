@@ -36,6 +36,12 @@ def create_library(
     if index_kit_id is not None:
         if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_id} does not exist")
+    
+    if seq_request_id is not None:
+        if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Seq request with id {seq_request_id} does not exist")
+        seq_request.num_libraries += 1
+        self._session.add(seq_request)
 
     library = models.Library(
         name=name,
@@ -165,16 +171,17 @@ def delete_library(
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
-    library.owner.num_libraries -= 1
-    for sample in library.samples:
-        sample.num_libraries -= 1
-        self._session.add(sample)
-    for pool in library.pools:
-        pool.num_libraries -= 1
-        self._session.add(pool)
-    for seq_request in library.seq_requests:
-        seq_request.num_libraries -= 1
-        self._session.add(seq_request)
+    for link in self._session.query(models.SampleLibraryLink).where(
+        models.SampleLibraryLink.library_id == library_id
+    ).all():
+        if link.cmo is not None:
+            self._session.delete(link.cmo)
+
+        self._session.delete(link)
+
+    seq_request = library.seq_request
+    seq_request.num_libraries -= 1
+    self._session.add(seq_request)
         
     self._session.delete(library)
     if commit:

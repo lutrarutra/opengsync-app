@@ -51,7 +51,7 @@ class DBHandler():
 
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
-        delete_sample, update_sample, get_user_sample_by_name,
+        delete_sample, update_sample,
         query_samples
     )
 
@@ -103,6 +103,10 @@ class DBHandler():
         get_adapter_from_index_kit
     )
 
+    from .model_handlers._cmo_methods import (
+        create_cmo, get_cmo, get_cmos,
+    )
+
     from .model_handlers._feature_methods import (
         create_feature, get_feature, get_features,
         delete_feature, update_feature, get_feature_from_kit_by_feature_name,
@@ -113,6 +117,7 @@ class DBHandler():
         get_feature_kit_by_name, update_feature_kit, delete_feature_kit,
         query_feature_kits
     )
+
 
     from .model_handlers._link_methods import (
         get_sample_libraries,

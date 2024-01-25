@@ -19,7 +19,7 @@ class LibrarySelectForm(TableDataForm):
         if data is None:
             data = self.data
 
-        df = data["sample_table"]
+        df = data["library_table"]
 
         libraries: list[dict[str, str | int | None]] = []
 
@@ -55,7 +55,7 @@ class LibrarySelectForm(TableDataForm):
                 selected_samples.append(sample_data["id"])
         self.selected_libraries.data = ",".join([str(i) for i in selected_samples])
 
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return {
@@ -67,14 +67,14 @@ class LibrarySelectForm(TableDataForm):
             assert False    # This should never happen because its checked in custom_validate()
 
         data = self.data
-        df = data["sample_table"]
+        df = data["library_table"]
 
         selected_libraries_ids = self.selected_libraries.data.removeprefix(",").split(",")
         selected_libraries_ids = [int(i) - 1 for i in selected_libraries_ids if i != ""]
 
         df = df.loc[selected_libraries_ids, :].reset_index()
 
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return data

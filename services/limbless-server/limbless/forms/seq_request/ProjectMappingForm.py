@@ -32,7 +32,7 @@ class ProjectMappingForm(TableDataForm):
         if data is None:
             data = self.data
         
-        projects = data["sample_table"]["project"].unique()
+        projects = data["library_table"]["project"].unique()
         selected: list[Optional[str]] = []    # TODO: get projects for each selected
 
         for i, raw_project_name in enumerate(projects):
@@ -64,7 +64,7 @@ class ProjectMappingForm(TableDataForm):
     
     def parse(self, seq_request_id: int) -> dict[str, pd.DataFrame]:
         data = self.data
-        df = data["sample_table"]
+        df = data["library_table"]
 
         df["project_name"] = None
         df["project_id"] = None
@@ -114,7 +114,7 @@ class ProjectMappingForm(TableDataForm):
         df["project_id"] = df["project_id"].astype("Int64")
         df["sample_id"] = df["sample_id"].astype("Int64")
 
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return data

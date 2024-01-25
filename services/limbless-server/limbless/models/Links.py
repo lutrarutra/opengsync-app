@@ -22,7 +22,7 @@ class SampleLibraryLink(SQLModel, table=True):
 
     sample: "Sample" = Relationship(back_populates="library_links")
     library: "Library" = Relationship(back_populates="sample_links")
-    cmo: "CMO" = Relationship()
+    cmo: Optional["CMO"] = Relationship()
 
     def __str__(self):
         return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"

@@ -103,7 +103,7 @@ def parse_table(seq_request_id: int):
             ), push_url=False
         )
     
-    data = {"sample_table": df}
+    data = {"library_table": df}
     table_col_form = forms.SampleColTableForm()
     context = table_col_form.prepare(data)
 
@@ -180,7 +180,7 @@ def select_project(seq_request_id: int):
     organism_mapping_form = forms.OrganismMappingForm()
     context = organism_mapping_form.prepare(data)
 
-    if data["sample_table"]["sample_id"].isna().any():
+    if data["library_table"]["sample_id"].isna().any():
         # new sample -> map organisms
         return make_response(
             render_template(
@@ -261,7 +261,7 @@ def map_libraries(seq_request_id: int):
     
     data = library_mapping_form.parse()
 
-    if data["sample_table"]["index_kit"].isna().all():
+    if data["library_table"]["index_kit"].isna().all():
         feature_input_form = forms.FeatureInputForm()
         return make_response(
             render_template(
@@ -386,7 +386,7 @@ def map_feature_kits(seq_request_id: int):
     
     data = feature_kit_mapping_form.parse()
 
-    if "pool" in data["sample_table"].columns:
+    if "pool" in data["library_table"].columns:
         pool_mapping_form = forms.PoolMappingForm()
         context = pool_mapping_form.prepare(data)
 
@@ -503,7 +503,7 @@ def check_barcodes(seq_request_id: int):
         )
     data = barcode_check_form.parse()
 
-    sample_table = data["sample_table"]
+    library_table = data["library_table"]
     feature_table = data["feature_table"]
 
     n_added = 0
@@ -512,7 +512,7 @@ def check_barcodes(seq_request_id: int):
 
     with DBSession(db.db_handler) as session:
         projects: dict[int | str, models.Project] = {}
-        for project_id, project_name in sample_table[["project_id", "project_name"]].drop_duplicates().values.tolist():
+        for project_id, project_name in library_table[["project_id", "project_name"]].drop_duplicates().values.tolist():
             if not pd.isnull(project_id):
                 project_id = int(project_id)
                 if (project := session.get_project(project_id)) is None:
@@ -526,46 +526,81 @@ def check_barcodes(seq_request_id: int):
                     owner_id=current_user.id
                 )
                 projects[project.id] = project
-                sample_table.loc[sample_table["project_name"] == project_name, "project_id"] = project.id
+                library_table.loc[library_table["project_name"] == project_name, "project_id"] = project.id
 
-        if sample_table["project_id"].isna().any():
+        if library_table["project_id"].isna().any():
             raise Exception("Project id is None (should not be).")
 
     with DBSession(db.db_handler) as session:
         pools: dict[str, models.Pool] = {}
-        for pool_label, _df in sample_table.groupby("pool"):
+
+        for pool_label, _df in library_table.groupby("pool"):
             pool_label = str(pool_label)
             pool = session.create_pool(
                 name=pool_label,
                 owner_id=current_user.id,
+                seq_request_id=seq_request_id,
                 contact_name=_df["contact_person_name"].iloc[0],
                 contact_email=_df["contact_person_email"].iloc[0],
                 contact_phone=_df["contact_person_phone"].iloc[0],
             )
             pools[pool_label] = pool
 
-        for (_sample_name, _sample_id, _tax_id, _project_name, _project_id), _df in sample_table.groupby(["sample_name", "sample_id", "tax_id", "project_name", "project_id"], dropna=False):
-            project = projects[_project_id]
-            logger.debug(f"{_sample_name}, {_sample_id}, {_tax_id}, {_project_name}, {_project_id}")
-            if pd.isna(_sample_id):
-                logger.debug(f"Creating sample '{_sample_name}' in project '{project.name}'.")
-                sample = session.create_sample(
-                    name=_sample_name,
-                    organism_tax_id=int(_tax_id),
-                    project_id=project.id,
-                    owner_id=current_user.id
-                )
-                n_new_samples += 1
-            else:
-                logger.debug(f"Getting sample '{_sample_name}' with id '{_sample_id}'.")
-                sample = session.get_sample(int(_sample_id))
+        for (sample_name, sample_id, tax_id, project_id, is_cmo_sample), _df in library_table.groupby(["sample_name", "sample_id", "tax_id", "project_id", "is_cmo_sample"], dropna=False):
+            feature_ref = feature_table.loc[feature_table["sample_pool"] == sample_name, :]
+            library_samples: list[tuple[models.Sample, Optional[models.CMO]]] = []
 
-            for i, row in _df.iterrows():
+            sample_id = int(sample_id) if not pd.isna(sample_id) else None
+            project_id = int(project_id)
+            tax_id = int(tax_id)
+
+            if is_cmo_sample:
+                for _, row in feature_ref.iterrows():
+                    feature = session.get_feature(row["feature_id"])
+                    sample = session.create_sample(
+                        name=row["biosample"],
+                        organism_tax_id=tax_id,
+                        owner_id=current_user.id,
+                        project_id=project_id,
+                    )
+                    # Temporary data object
+                    logger.debug(feature)
+                    cmo = models.CMO(
+                        sequence=feature.sequence,
+                        pattern=feature.pattern,
+                        read=feature.read,
+                        sample_id=0,
+                        library_id=0,
+                    )
+                    
+                    library_samples.append((sample, cmo))
+                    n_new_samples += 1
+            else:
+                
+                if sample_id is None:
+                    logger.debug(f"Creating sample '{sample_name}' in project '{project_id}'.")
+                    sample = session.create_sample(
+                        name=sample_name,
+                        organism_tax_id=tax_id,
+                        project_id=project_id,
+                        owner_id=current_user.id
+                    )
+                    library_samples.append((sample, None))
+                    n_new_samples += 1
+                else:
+                    logger.debug(f"Getting sample '{sample_name}' with id '{sample_id}'.")
+                    sample = session.get_sample(sample_id)
+                    library_samples.append((sample, None))
+
+            for _, row in _df.iterrows():
+                library_type = LibraryType.get(row["library_type_id"])
+                index_kit_id = int(row["index_kit_id"]) if "index_kit_id" in row and not pd.isna(row["index_kit_id"]) else None
+
                 library = session.create_library(
-                    name=sample.name,
+                    name=sample_name + "_" + library_type.value.description,
                     seq_request_id=seq_request.id,
-                    library_type=LibraryType.get(row["library_type_id"]),
-                    index_kit_id=row["index_kit_id"] if not pd.isna(row["index_kit_id"]) else None,
+                    library_type=library_type,
+                    index_kit_id=index_kit_id,
                     owner_id=current_user.id,
                     volume=row["library_volume"] if not pd.isna(row["library_volume"]) else None,
                     dna_concentration=row["library_concentration"] if not pd.isna(row["library_concentration"]) else None,
@@ -576,22 +611,39 @@ def check_barcodes(seq_request_id: int):
                     index_3_sequence=row["index_3"] if not pd.isna(row["index_3"]) else None,
                     index_4_sequence=row["index_4"] if not pd.isna(row["index_4"]) else None,
                 )
-                sample_library_link = session.link_sample_library(
-                    sample_id=sample.id, library_id=library.id
-                )
+            
+                for sample, cmo in library_samples:
+                    if cmo is not None:
+                        logger.debug(cmo.pattern)
+                        _cmo = session.create_cmo(
+                            sequence=cmo.sequence,
+                            pattern=cmo.pattern,
+                            read=cmo.read,
+                            sample_id=sample.id,
+                            library_id=library.id,
+                        )
+                        session.link_sample_library(
+                            sample_id=sample.id,
+                            library_id=library.id,
+                            cmo_id=_cmo.id,
+                        )
+                    else:
+                        session.link_sample_library(
+                            sample_id=sample.id,
+                            library_id=library.id,
+                        )
+
                 if not pd.isna(row["pool"]):
                     library.pool_id = pools[row["pool"]].id
                     library = session.update_library(library)
+                    n_added += 1
 
-                n_added += 1
+    logger.debug(f"Created '{n_new_samples}' samples and '{n_new_projects}' projects.")
 
-    logger.info(f"Created '{n_new_samples}' samples and '{n_new_projects}' projects.")
     if n_added == 0:
         flash("No samples added.", "warning")
-    elif n_added == len(df):
-        flash(f"Added all ({n_added}) samples to sequencing request.", "success")
-    elif n_added < len(df):
-        flash(f"Some samples ({len(df) - n_added}) could not be added.", "warning")
+    else:
+        flash(f"Added {n_added} libraries to sequencing request.", "success")
 
     return make_response(
         redirect=url_for(

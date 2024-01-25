@@ -98,7 +98,7 @@ def get_samples(
             models.Library.id == models.SampleLibraryLink.library_id,
         ).where(
             models.Library.seq_request_id == seq_request_id,
-        )
+        ).distinct()
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
     
@@ -114,48 +114,6 @@ def get_samples(
         self.close_session()
         
     return samples, n_pages
-
-
-def get_user_sample_by_name(self, sample_name: str, user_id: int) -> models.Sample:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.User, user_id) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-
-    sample = self._session.query(models.Sample).filter_by(
-        and_(
-            name=sample_name,
-            owner_id=user_id
-        )
-    ).first()
-    if not persist_session:
-        self.close_session()
-    return sample
-
-
-def get_project_sample_by_name(
-    self, sample_name: str, project_id: int
-) -> Optional[models.Sample]:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Project, project_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
-
-    sample = self._session.query(models.Sample).filter_by(
-        and_(
-            models.Sample.name==sample_name,
-            models.Sample.project_id==project_id
-        )
-    ).first()
-
-    if not persist_session:
-        self.close_session()
-    return sample
 
 
 def update_sample(

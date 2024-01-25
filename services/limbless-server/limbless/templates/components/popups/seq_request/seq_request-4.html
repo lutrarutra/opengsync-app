@@ -29,7 +29,17 @@
         
         <button type="button"class="btn btn-danger"
             hx-target="#sample-table-organism-map-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}">
+            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}"
+            _="on htmx:confirm(issueRequest)
+            halt the event
+            call Swal.fire({
+                title: 'Cancel Request Form',
+                showDenyButton: true,
+                text: 'Do you want to proceed?',
+                confirmButtonText: 'Yes',
+                denyButtonText: 'No'
+            })
+            if result.isConfirmed issueRequest()">
             Cancel
         </button>
     </div>

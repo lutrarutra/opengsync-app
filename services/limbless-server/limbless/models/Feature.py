@@ -16,8 +16,8 @@ class Feature(SQLModel, SearchResult, table=True):
     sequence: str = Field(nullable=False, max_length=32, index=True)
     pattern: str = Field(nullable=False, max_length=32)
     read: str = Field(nullable=False, max_length=8)
-    target_name: Optional[str] = Field(nullable=True, max_length=16, index=True)
-    target_id: Optional[str] = Field(nullable=True, max_length=16, index=True)
+    target_name: Optional[str] = Field(nullable=True, max_length=32, index=True)
+    target_id: Optional[str] = Field(nullable=True, max_length=32, index=True)
 
     type_id: int = Field(nullable=False)
 

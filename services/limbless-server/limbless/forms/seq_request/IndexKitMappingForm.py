@@ -50,7 +50,7 @@ class IndexKitMappingForm(TableDataForm):
         if data is None:
             data = self.data
 
-        index_kits = data["sample_table"]["index_kit"].unique().tolist()
+        index_kits = data["library_table"]["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
 
         selected: list[Optional[models.IndexKit]] = []
@@ -80,7 +80,7 @@ class IndexKitMappingForm(TableDataForm):
     def parse(self) -> dict[str, pd.DataFrame]:
         data = self.data
 
-        df = data["sample_table"]
+        df = data["library_table"]
 
         df["index_kit_name"] = None
         df["index_kit_id"] = None
@@ -114,7 +114,7 @@ class IndexKitMappingForm(TableDataForm):
             df.at[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None
             df.at[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 else None
             
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return data

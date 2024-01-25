@@ -15,7 +15,7 @@ else:
 
 
 class PoolSubForm(FlaskForm):
-    pool_label = StringField("Library (-Pool) Label", validators=[DataRequired(), Length(min=6, max=64)], description="Unique label to identify the pool")
+    pool_label = StringField("Library (-Pool) Label", validators=[DataRequired(), Length(min=4, max=64)], description="Unique label to identify the pool")
     contact_person_name = StringField("Contact Person Name", validators=[DataRequired(), Length(max=128)], description="Who prepared the libraries?")
     contact_person_email = StringField("Contact Person Email", validators=[DataRequired(), Length(max=128)], description="Who prepared the libraries?")
     contact_person_phone = StringField("Contact Person Phone", validators=[OptionalValidator(), Length(max=16)], description="Who prepared the libraries?")
@@ -42,7 +42,7 @@ class PoolMappingForm(TableDataForm):
         if data is None:
             data = self.data
 
-        df = data["sample_table"]
+        df = data["library_table"]
         
         df["pool"] = df["pool"].apply(lambda x: str(x) if x and not pd.isna(x) and not pd.isnull(x) else "__NONE__")
 
@@ -67,11 +67,11 @@ class PoolMappingForm(TableDataForm):
 
             _data = {}
             for _, row in _df.iterrows():
-                sample_name = row["sample_name"]
-                if sample_name not in _data.keys():
-                    _data[sample_name] = []
+                library_name = row["sample_name"]
+                if library_name not in _data.keys():
+                    _data[library_name] = []
 
-                _data[sample_name].append({
+                _data[library_name].append({
                     "library_type": row["library_type"],
                     "library_volume": row["library_volume"],
                     "library_concentration": row["library_concentration"],
@@ -80,7 +80,7 @@ class PoolMappingForm(TableDataForm):
 
             pool_libraries.append(_data)
 
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return {
@@ -90,7 +90,7 @@ class PoolMappingForm(TableDataForm):
 
     def parse(self) -> dict[str, pd.DataFrame]:
         data = self.data
-        df = data["sample_table"]
+        df = data["library_table"]
 
         df["contact_person_name"] = None
         df["contact_person_email"] = None
@@ -108,7 +108,7 @@ class PoolMappingForm(TableDataForm):
             logger.debug(f"{raw_pool_labels[i]} -> {pool_label}")
             df.loc[df["pool"] == raw_pool_labels[i], "pool"] = pool_label
 
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return data

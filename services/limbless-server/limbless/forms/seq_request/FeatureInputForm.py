@@ -16,12 +16,21 @@ from .TableDataForm import TableDataForm
 
 class FeatureInputForm(TableDataForm):
     _required_columns: list[Union[str, list[str]]] = [
-        "Sample Name", "Library Name",
+        "Biosample", "Sample Name",
     ]
     _allowed_extensions: list[tuple[str, str]] = [
         ("tsv", "Tab-separated"),
         ("csv", "Comma-separated")
     ]
+    _mapping: dict[str, str] = {
+        "Biosample": "biosample",
+        "Sample Name": "sample_pool",
+        "Kit": "feature_kit",
+        "Feature": "feature_name",
+        "Sequence": "sequence",
+        "Pattern": "pattern",
+        "Read": "read",
+    }
 
     separator = SelectField(choices=_allowed_extensions, default="tsv")
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
@@ -76,21 +85,21 @@ class FeatureInputForm(TableDataForm):
             self.file.errors = ("Columns 'Kit + Feature' or 'Sequence + Pattern Read'  must be specified for all rows.",)
             return False, self
         
-        if self.feature_ref["Library Name"].isna().any():
-            self.file.errors = ("Column 'Library Name' must be specified for all rows.",)
-            return False, self
-        
         if self.feature_ref["Sample Name"].isna().any():
             self.file.errors = ("Column 'Sample Name' must be specified for all rows.",)
             return False, self
         
+        if self.feature_ref["Biosample"].isna().any():
+            self.file.errors = ("Column 'Biosample' must be specified for all rows.",)
+            return False, self
+        
         data = self.data
 
-        libraries_not_mapped = ~self.feature_ref["Library Name"].isin(data["sample_table"]["sample_name"])
+        libraries_not_mapped = ~self.feature_ref["Sample Name"].isin(data["library_table"]["sample_name"])
         if libraries_not_mapped.any():
             self.file.errors = (
-                "Values in 'Library Name'-column in feature reference must be found in 'Sample/Library Name'-column of sample annotation sheet.",
-                "Missing values: " + ", ".join(self.feature_ref["Library Name"][libraries_not_mapped].unique().tolist())
+                "Values in 'Sample Name'-column in feature reference must be found in 'Sample Name'-column of sample annotation sheet.",
+                "Missing values: " + ", ".join(self.feature_ref["Sample Name"][libraries_not_mapped].unique().tolist())
             )
             return False, self
         
@@ -99,15 +108,7 @@ class FeatureInputForm(TableDataForm):
     def parse(self) -> dict[str, pd.DataFrame]:
         data = self.data
 
-        self.feature_ref = self.feature_ref.rename(columns={
-            "Sample Name": "sample_name",
-            "Library Name": "library_name",
-            "Kit": "feature_kit",
-            "Feature": "feature_name",
-            "Sequence": "sequence",
-            "Pattern": "pattern",
-            "Read": "read",
-        })
+        self.feature_ref = self.feature_ref.rename(columns=FeatureInputForm._mapping)
 
         data["feature_table"] = self.feature_ref
 

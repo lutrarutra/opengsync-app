@@ -19,7 +19,7 @@ class BarcodeCheckForm(TableDataForm):
         if data is None:
             data = self.data
 
-        df = data["sample_table"]
+        df = data["library_table"]
 
         samples_data: list[dict[str, str | int | None]] = []
         
@@ -29,7 +29,7 @@ class BarcodeCheckForm(TableDataForm):
             # Check if sample names are unique in project
             _data = {
                 "id": row["id"],
-                "name": row["sample_name"] if "sample_name" in row else row["library_name"],
+                "name": row["sample_name"],
                 "library_type": row["library_type"],
                 "error": None,
                 "warning": "",
@@ -64,7 +64,7 @@ class BarcodeCheckForm(TableDataForm):
 
             samples_data.append(_data)
 
-        data["sample_table"] = df
+        data["library_table"] = df
         self.update_data(data)
 
         return {
