@@ -11,7 +11,7 @@ from .TableDataForm import TableDataForm
 
 class IndexKitSubForm(FlaskForm):
     raw_category = StringField("Raw Label", validators=[OptionalValidator()])
-    category = IntegerField("Index Kit", validators=[DataRequired()])
+    category = IntegerField("Index Kit", validators=[OptionalValidator()])
 
 
 class IndexKitMappingForm(TableDataForm):
@@ -22,25 +22,27 @@ class IndexKitMappingForm(TableDataForm):
         if not validated:
             return False, self
         
-        df = self.get_data()
+        df = self.data["library_table"]
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
         
         for i, entry in enumerate(self.input_fields):
             raw_index_kit_label = index_kits[i]
+            _df = df[df["index_kit"] == raw_index_kit_label]
 
             if (index_kit_id := entry.category.data) is None:
-                entry.category.errors = ("Not valid index kit selected")
+                if (pd.isnull(_df["index_1"]) & pd.isnull(_df["index_1"])).any():
+                    entry.category.errors = ("You must specify either an index kit or indices manually",)
+                    return False, self
+                continue
+            
+            if db.db_handler.get_index_kit(index_kit_id) is None:
+                entry.category.errors = ("Not valid index kit selected",)
                 return False, self
             
-            if (selected_kit := db.db_handler.get_index_kit(index_kit_id)) is None:
-                entry.category.errors = ("Not valid index kit selected")
-                return False, self
-            
-            _df = df[df["index_kit"] == raw_index_kit_label]
             for _, row in _df.iterrows():
                 adapter_name = str(row["adapter"])
-                if (_ := db.db_handler.get_adapter_from_index_kit(adapter_name, selected_kit.id)) is None:
+                if (_ := db.db_handler.get_adapter_from_index_kit(adapter_name, index_kit_id)) is None:
                     entry.category.errors = (f"Unknown adapter '{adapter_name}' does not belong to this index kit.",)
                     return False, self
 
@@ -50,6 +52,10 @@ class IndexKitMappingForm(TableDataForm):
         if data is None:
             data = self.data
 
+        if "index_kit" not in data["library_table"].columns:
+            data["library_table"]["index_kit"] = None
+
+        logger.debug(data["library_table"].columns.tolist())
         index_kits = data["library_table"]["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
 
@@ -96,9 +102,6 @@ class IndexKitMappingForm(TableDataForm):
                 
                 df.loc[df["index_kit"] == index_kit, "index_kit_id"] = selected_id
                 df.loc[df["index_kit"] == index_kit, "index_kit_name"] = selected_kit.name
-
-            else:
-                raise Exception("Index Kit not selected.")
             
         df["index_1"] = None
         df["index_2"] = None
@@ -106,6 +109,8 @@ class IndexKitMappingForm(TableDataForm):
         df["index_4"] = None
 
         for i, row in df.iterrows():
+            if pd.isnull(row["index_kit_id"]):
+                continue
             index_kit_id = int(row["index_kit_id"])
             adapter_name = str(row["adapter"])
             adapter = db.db_handler.get_adapter_from_index_kit(adapter_name, index_kit_id)

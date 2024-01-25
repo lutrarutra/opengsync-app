@@ -261,7 +261,23 @@ def map_libraries(seq_request_id: int):
     
     data = library_mapping_form.parse()
 
-    if data["library_table"]["index_kit"].isna().all():
+    if "index_kit" in data["library_table"]:
+        index_kit_mapping_form = forms.IndexKitMappingForm()
+        context = index_kit_mapping_form.prepare(data)
+
+        return make_response(
+            render_template(
+                "components/popups/seq_request/seq_request-6.html",
+                seq_request=seq_request,
+                index_kit_mapping_form=index_kit_mapping_form,
+                **context
+            )
+        )
+    
+    if data["library_table"]["library_type_id"].isin([
+        LibraryType.ANTIBODY_CAPTURE.value.id,
+        LibraryType.MULTIPLEXING_CAPTURE.value.id,
+    ]).any():
         feature_input_form = forms.FeatureInputForm()
         return make_response(
             render_template(
@@ -271,17 +287,30 @@ def map_libraries(seq_request_id: int):
                 **feature_input_form.prepare()
             )
         )
+    
+    if "pool" in data["library_table"].columns:
+        pool_mapping_form = forms.PoolMappingForm()
+        context = pool_mapping_form.prepare(data)
 
-    index_kit_mapping_form = forms.IndexKitMappingForm()
-    context = index_kit_mapping_form.prepare(data)
+        return make_response(
+            render_template(
+                "components/popups/seq_request/seq_request-9.html",
+                seq_request=seq_request,
+                pool_mapping_form=pool_mapping_form,
+                **context
+            )
+        )
+
+    library_select_form = forms.LibrarySelectForm()
+    context = library_select_form.prepare(data)
 
     return make_response(
         render_template(
-            "components/popups/seq_request/seq_request-6.html",
+            template_name_or_list="components/popups/seq_request/seq_request-10.html",
             seq_request=seq_request,
-            index_kit_mapping_form=index_kit_mapping_form,
+            library_select_form=library_select_form,
             **context
-        )
+        ), push_url=False
     )
 
 
@@ -504,7 +533,7 @@ def check_barcodes(seq_request_id: int):
     data = barcode_check_form.parse()
 
     library_table = data["library_table"]
-    feature_table = data["feature_table"]
+    feature_table = data["feature_table"] if "feature_table" in data else None
 
     n_added = 0
     n_new_samples = 0
@@ -534,20 +563,24 @@ def check_barcodes(seq_request_id: int):
     with DBSession(db.db_handler) as session:
         pools: dict[str, models.Pool] = {}
 
-        for pool_label, _df in library_table.groupby("pool"):
-            pool_label = str(pool_label)
-            pool = session.create_pool(
-                name=pool_label,
-                owner_id=current_user.id,
-                seq_request_id=seq_request_id,
-                contact_name=_df["contact_person_name"].iloc[0],
-                contact_email=_df["contact_person_email"].iloc[0],
-                contact_phone=_df["contact_person_phone"].iloc[0],
-            )
-            pools[pool_label] = pool
+        if "pool" in library_table.columns:
+            for pool_label, _df in library_table.groupby("pool"):
+                pool_label = str(pool_label)
+                pool = session.create_pool(
+                    name=pool_label,
+                    owner_id=current_user.id,
+                    seq_request_id=seq_request_id,
+                    contact_name=_df["contact_person_name"].iloc[0],
+                    contact_email=_df["contact_person_email"].iloc[0],
+                    contact_phone=_df["contact_person_phone"].iloc[0],
+                )
+                pools[pool_label] = pool
 
         for (sample_name, sample_id, tax_id, project_id, is_cmo_sample), _df in library_table.groupby(["sample_name", "sample_id", "tax_id", "project_id", "is_cmo_sample"], dropna=False):
-            feature_ref = feature_table.loc[feature_table["sample_pool"] == sample_name, :]
+            if feature_table is not None:
+                feature_ref = feature_table.loc[feature_table["sample_pool"] == sample_name, :]
+            else:
+                feature_ref = pd.DataFrame()
             library_samples: list[tuple[models.Sample, Optional[models.CMO]]] = []
 
             sample_id = int(sample_id) if not pd.isna(sample_id) else None
@@ -594,7 +627,16 @@ def check_barcodes(seq_request_id: int):
 
             for _, row in _df.iterrows():
                 library_type = LibraryType.get(row["library_type_id"])
+
                 index_kit_id = int(row["index_kit_id"]) if "index_kit_id" in row and not pd.isna(row["index_kit_id"]) else None
+                library_volume = row["library_volume"] if "library_volume" in row and not pd.isna(row["library_volume"]) else None
+                dna_concentration = row["library_concentration"] if "library_concentration" in row and not pd.isna(row["library_concentration"]) else None
+                total_size = row["library_total_size"] if "library_total_size" in row and not pd.isna(row["library_total_size"]) else None
+                adapter = row["adapter"] if "adapter" in row and not pd.isna(row["adapter"]) else None
+                index_1_sequence = row["index_1"] if "index_1" in row and not pd.isna(row["index_1"]) else None
+                index_2_sequence = row["index_2"] if "index_2" in row and not pd.isna(row["index_2"]) else None
+                index_3_sequence = row["index_3"] if "index_3" in row and not pd.isna(row["index_3"]) else None
+                index_4_sequence = row["index_4"] if "index_4" in row and not pd.isna(row["index_4"]) else None
 
                 library = session.create_library(
                     name=sample_name + "_" + library_type.value.description,
@@ -602,15 +644,16 @@ def check_barcodes(seq_request_id: int):
                     library_type=library_type,
                     index_kit_id=index_kit_id,
                     owner_id=current_user.id,
-                    volume=row["library_volume"] if not pd.isna(row["library_volume"]) else None,
-                    dna_concentration=row["library_concentration"] if not pd.isna(row["library_concentration"]) else None,
-                    total_size=row["library_total_size"] if not pd.isna(row["library_total_size"]) else None,
-                    adapter=row["adapter"] if not pd.isna(row["adapter"]) else None,
-                    index_1_sequence=row["index_1"] if not pd.isna(row["index_1"]) else None,
-                    index_2_sequence=row["index_2"] if not pd.isna(row["index_2"]) else None,
-                    index_3_sequence=row["index_3"] if not pd.isna(row["index_3"]) else None,
-                    index_4_sequence=row["index_4"] if not pd.isna(row["index_4"]) else None,
+                    volume=library_volume,
+                    dna_concentration=dna_concentration,
+                    total_size=total_size,
+                    index_1_sequence=index_1_sequence,
+                    index_2_sequence=index_2_sequence,
+                    index_3_sequence=index_3_sequence,
+                    index_4_sequence=index_4_sequence,
+                    adapter=adapter,
                 )
+                n_added += 1
             
                 for sample, cmo in library_samples:
                     if cmo is not None:
@@ -633,15 +676,14 @@ def check_barcodes(seq_request_id: int):
                             library_id=library.id,
                         )
 
-                if not pd.isna(row["pool"]):
+                if "pool" in row and not pd.isna(row["pool"]):
                     library.pool_id = pools[row["pool"]].id
                     library = session.update_library(library)
-                    n_added += 1
 
     logger.debug(f"Created '{n_new_samples}' samples and '{n_new_projects}' projects.")
 
     if n_added == 0:
-        flash("No samples added.", "warning")
+        flash("No libraries added.", "warning")
     else:
         flash(f"Added {n_added} libraries to sequencing request.", "success")
 

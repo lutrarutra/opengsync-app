@@ -36,11 +36,15 @@ class LibrarySelectForm(TableDataForm):
                 "sample_id": int(row["sample_id"]) if (not pd.isna(row["sample_id"]) and not pd.isnull(row["sample_id"])) else None,
                 "project_id": int(row["project_id"]) if (not pd.isna(row["project_id"]) and not pd.isnull(row["project_id"])) else None,
                 "project_name": row["project_name"],
-                "index_1": row["index_1"],
-                "index_2": row["index_2"],
-                "adapter": row["adapter"],
-                "pool": row["pool"],
             }
+            if "index_1" in row:
+                _data["index_1"] = row["index_1"]
+
+            if "index_2" in row:
+                _data["index_2"] = row["index_2"]
+
+            if "index_3" in row:
+                _data["index_3"] = row["index_3"]
 
             if not pd.isna(row["sample_id"]):
                 _data["info"] = "Existing sample found from project."

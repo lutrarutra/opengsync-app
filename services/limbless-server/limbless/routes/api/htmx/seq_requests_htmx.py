@@ -929,6 +929,7 @@ def add_indices(seq_request_id: int):
         pool = db.db_handler.create_pool(
             name=pool_label,
             owner_id=current_user.id,
+            seq_request_id=seq_request_id,
             index_kit_id=int(df["index_kit"].iloc[0]) if not pd.isnull(df["index_kit"].iloc[0]) else None,
             contact_name=_df["contact_person_name"].iloc[0],
             contact_email=_df["contact_person_email"].iloc[0],
@@ -978,12 +979,14 @@ def get_graph(seq_request_id: int):
 
         graph = {
             "nodes": [],
-            "links": []
+            "links": [],
+            "pooled": 0,
         }
 
         seq_request_node = {
             "node": 0,
             "name": seq_request.name,
+            "id": f"seq_request-{seq_request.id}"
         }
         graph["nodes"].append(seq_request_node)
 
@@ -999,6 +1002,7 @@ def get_graph(seq_request_id: int):
                 project_node = {
                     "node": idx,
                     "name": sample.project.name,
+                    "id": f"project-{sample.project_id}"
                 }
                 graph["nodes"].append(project_node)
                 project_nodes[sample.project.id] = idx
@@ -1010,6 +1014,7 @@ def get_graph(seq_request_id: int):
             sample_node = {
                 "node": idx,
                 "name": sample.name,
+                "id": f"sample-{sample.id}"
             }
             graph["nodes"].append(sample_node)
             sample_nodes[sample.id] = idx
@@ -1021,12 +1026,22 @@ def get_graph(seq_request_id: int):
                     if link.library.id not in library_nodes.keys():
                         library_node = {
                             "node": idx,
-                            "name": link.library.name,
+                            "name": link.library.type.value.description,
+                            "id": f"library-{link.library.id}"
                         }
                         graph["nodes"].append(library_node)
                         library_nodes[link.library.id] = idx
                         library_idx = idx
                         idx += 1
+
+                        if not link.library.is_pooled():
+                            graph["links"].append({
+                                "source": library_idx,
+                                "target": seq_request_node["node"],
+                                "value": LINK_WIDTH_UNIT
+                            })
+                        else:
+                            graph["pooled"] = 1
                     else:
                         library_idx = library_nodes[link.library.id]
                     graph["links"].append({
@@ -1047,6 +1062,7 @@ def get_graph(seq_request_id: int):
             pool_node = {
                 "node": idx,
                 "name": pool.name,
+                "id": f"pool-{pool.id}"
             }
             graph["nodes"].append(pool_node)
             pool_nodes[pool.id] = idx

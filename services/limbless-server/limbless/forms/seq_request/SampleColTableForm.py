@@ -103,15 +103,30 @@ class SampleColTableForm(TableDataForm):
         df["sample_name"] = df["sample_name"].apply(tools.make_filenameable)
         if "pool" in df.columns:
             df["pool"] = df["pool"].apply(tools.make_filenameable)
-        df["index_1"] = df["index_1"].astype(str).str.strip()
-        df["index_2"] = df["index_2"].astype(str).str.strip()
-        df["index_3"] = df["index_3"].astype(str).str.strip()
-        df["index_4"] = df["index_4"].astype(str).str.strip()
-        df["adapter"] = df["adapter"].astype(str).str.strip()
 
-        df["library_volume"] = df["library_volume"].apply(tools.make_numeric)
-        df["library_concentration"] = df["library_concentration"].apply(tools.make_numeric)
-        df["library_total_size"] = df["library_total_size"].apply(tools.make_numeric)
+        if "index_1" in df.columns:
+            df["index_1"] = df["index_1"].astype(str).str.strip()
+            
+        if "index_2" in df.columns:
+            df["index_2"] = df["index_2"].astype(str).str.strip()
+
+        if "index_3" in df.columns:
+            df["index_3"] = df["index_3"].astype(str).str.strip()
+
+        if "index_4" in df.columns:
+            df["index_4"] = df["index_4"].astype(str).str.strip()
+
+        if "adapter" in df.columns:
+            df["adapter"] = df["adapter"].astype(str).str.strip()
+
+        if "library_volume" in df.columns:
+            df["library_volume"] = df["library_volume"].apply(tools.make_numeric)
+
+        if "library_concentration" in df.columns:
+            df["library_concentration"] = df["library_concentration"].apply(tools.make_numeric)
+            
+        if "library_total_size" in df.columns:
+            df["library_total_size"] = df["library_total_size"].apply(tools.make_numeric)
 
         return df
     
@@ -121,10 +136,7 @@ class SampleColTableForm(TableDataForm):
         features = SampleColSelectForm.required_fields + SampleColSelectForm.optional_fields
         
         features = [key for key, _ in features if key]
-
-        for feature in features:
-            if feature not in data["library_table"].columns:
-                data["library_table"][feature] = None
+        logger.debug(features)
 
         for i, entry in enumerate(self.input_fields):
             if not (val := entry.select_field.data):
@@ -132,6 +144,8 @@ class SampleColTableForm(TableDataForm):
             val = val.strip()
             selected_features.append(val)
             data["library_table"][val] = data["library_table"][data["library_table"].columns[i]]
+
+        features = [feature for feature in features if feature in selected_features]
         
         df = data["library_table"][features]
         df.loc[df["project"].isna(), "project"] = "Project"

@@ -353,13 +353,23 @@
     .link:hover {
         stroke-opacity: .5;
     }
+
+    .node:hover {
+        cursor: pointer;
+    }
 </style>
 <script>
     $(document).ready(function() {
+        addEventListener("load", (event) => {
+            console.log("All resources finished loading!");
+        });
         $("#request-overview-tab-btn").on("click", function() {
             d3.json("{{ url_for('seq_requests_htmx.get_graph', seq_request_id=seq_request.id) }}", function(error, graph) {
                 const _h = graph.nodes.length * 30;
                 const _w = $("#graph").width();
+                
+                const contains_pooled_samples = graph["pooled"] === 1;
+                const n_levels = contains_pooled_samples ? 5 : 4;
 
                 var margin = {top: 50, right: 10, bottom: 10, left: 10},
                     width =  _w - margin.left - margin.right,
@@ -371,7 +381,7 @@
                     .append("g")
                     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-                const dx = width / (5 - 1);
+                const dx = width / (n_levels - 1);
 
                 svg.append("text")
                     .attr("x", 30)
@@ -394,15 +404,17 @@
                     .style("font-size", "22px")
                     .text("Library");
 
-                svg.append("text")
-                    .attr("x", dx * 3)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Pool");
+                if (contains_pooled_samples) {
+                    svg.append("text")
+                        .attr("x", dx * 3)
+                        .attr("y", -margin.top * 0.5)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "22px")
+                        .text("Pool");
+                }
 
                 svg.append("text")
-                    .attr("x", dx * 4 - 50)
+                    .attr("x", dx * (n_levels - 1) - 50)
                     .attr("y", -margin.top * 0.5)
                     .attr("text-anchor", "middle")
                     .style("font-size", "22px")
@@ -418,7 +430,7 @@
                     .size([width, height]);
 
                 // Constructs a new Sankey generator with the default settings.
-                sankey.nodes(graph.nodes).links(graph.links).layout(8);
+                sankey.nodes(graph.nodes).links(graph.links).layout(20);
 
                 // add in the links
                 var link = svg.append("g")
@@ -441,19 +453,8 @@
                     .call(d3.drag()
                         .subject(function(d) { return d; })
                         .on("start", function() { this.parentNode.appendChild(this); })
-                        .on("drag", dragmove));
-
-                // add the rectangles for the nodes
-                node
-                    .append("rect")
-                    .attr("height", function(d) { return d.dy; })
-                    .attr("width", sankey.nodeWidth())
-                    .style("fill", function(d) { return d.color = color(d.name.replace(/ .*/, "")); })
-                    .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
-                    // Add hover text
-                    .append("title")
-                    .text(function(d) { return d.name + "\n" + "There is " + d.value + " stuff in this node"; });
-
+                        .on("drag", dragmove)
+                    );
 
                 // add in the title for the nodes
                 node
@@ -468,6 +469,16 @@
                     .attr("x", 6 + sankey.nodeWidth())
                     .attr("text-anchor", "start");
 
+                // add the rectangles for the nodes
+                var rect = node.append("rect");
+
+                rect.attr("class", "graph-node")
+                    .attr("id", function(d) { return d.id; })
+                    .attr("height", function(d) { return d.dy; })
+                    .attr("width", sankey.nodeWidth())
+                    .style("fill", function(d) { return d.color = color(d.name.replace(/ .*/, "")); })
+                    .style("stroke", function(d) { return d3.rgb(d.color).darker(2); });
+
                 // the function for moving the nodes
                 function dragmove(d) {
                     d3.select(this)
@@ -480,8 +491,9 @@
                     sankey.relayout();
                     link.attr("d", sankey.link() );
                 }
-
             });
+
+            $("#request-overview-tab-btn").off("click");
         });
     });
 </script>
