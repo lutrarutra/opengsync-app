@@ -16,7 +16,7 @@ from .TableDataForm import TableDataForm
 
 class PoolingForm(TableDataForm):
     _required_columns: list[str] = [
-        "id", "library_name", "library_type", "index_1", "adapter"
+        "id", "library_name", "library_type", "index_1", "adapter", "pool", "index_kit"
     ]
     _allowed_extensions: list[tuple[str, str]] = [
         ("tsv", "Tab-separated"),
@@ -55,6 +55,7 @@ class PoolingForm(TableDataForm):
             return False, self, None
 
         missing = []
+        logger.debug(df.columns)
         for col in PoolingForm._required_columns:
             if col not in df.columns:
                 missing.append(col)
@@ -63,38 +64,4 @@ class PoolingForm(TableDataForm):
                 self.file.errors = (f"Missing column(s): [{', '.join(missing)}]",)
                 return False, self, df
 
-
-        if self.index_kit_id.data is not None:
-            for i, row in df.iterrows():
-                adapter = db.db_handler.get_adapter_from_index_kit(row["adapter"], self.index_kit_id.data)
-                
-                if adapter.barcode_1 is not None:
-                    df.loc[i, "index_1"] = adapter.barcode_1.sequence
-                else:
-                    df.loc[i, "index_1"] = np.nan
-                
-                if adapter.barcode_2 is not None:
-                    df.loc[i, "index_2"] = adapter.barcode_2.sequence
-                else:
-                    df.loc[i, "index_2"] = np.nan
-
-                if adapter.barcode_3 is not None:
-                    df.loc[i, "index_3"] = adapter.barcode_3.sequence
-                else:
-                    df.loc[i, "index_3"] = np.nan
-
-                if adapter.barcode_4 is not None:
-                    df.loc[i, "index_4"] = adapter.barcode_4.sequence
-                else:
-                    df.loc[i, "index_4"] = np.nan
-
-        if pd.isna(df["index_1"]).any():
-            self.file.errors = ("Missing index_1 value(s) in one or more libraries",)
-            return False, self, df
-
-        df.loc[~pd.isna(df["index_1"]), "index_1"] = df.loc[~pd.isna(df["index_1"]), "index_1"].str.strip()
-        df.loc[~pd.isna(df["index_2"]), "index_2"] = df.loc[~pd.isna(df["index_2"]), "index_2"].str.strip()
-        # df.loc[~pd.isna(df["index_3"]), "index_3"] = df.loc[~pd.isna(df["index_3"]), "index_3"].str.strip()
-        # df.loc[~pd.isna(df["index_4"]), "index_4"] = df.loc[~pd.isna(df["index_4"]), "index_4"].str.strip()
-            
         return validated, self, df

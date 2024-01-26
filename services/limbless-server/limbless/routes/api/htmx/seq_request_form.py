@@ -464,6 +464,7 @@ def map_pools(seq_request_id: int):
     data = pool_mapping_form.parse()
     library_select_form = forms.LibrarySelectForm()
     context = library_select_form.prepare(data)
+    logger.debug(data["library_table"][["sample_name", "library_type", "index_1", "adapter", "index_2"]])
 
     return make_response(
         render_template(

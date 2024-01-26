@@ -1,109 +1,81 @@
-{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/search_select.jinja2" import search_select_field %}
 
-<div id="index-check-container" class="modal-content">
+<div id="pool-mapping-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Confirm Samples</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-    </div> 
-    <div class="modal-body">
-        <div class="input-help">
-            <p>Hover row to see additional info</p>
-        </div>
-        <form id="index-check-form">
-            {{ barcode_check_form.csrf_token() }}
-            {{ barcode_check_form.raw_data(hidden=True, readonly=True) }}
-            <table class="table table-hover table-cursor">
-                <thead>
-                    <tr>
-                        <th scope="col" class="col-1">Status</th>
-                        <th scope="col" class="col-2">Name</th>
-                        <th scope="col" class="col-2">Library Type</th>
-                        <th scope="col" class="col-1">Adapter</th>
-                        {% if show_index_1 %}
-                        <th scope="col" class="col-1">
-                            <div class="form-check form-switch">
-                                {{ barcode_check_form.reverse_complement_index_1(class="form-check-input reverse-complement",) }}
-                                <label class="form-check-label">RC</label>
-                            </div>
-                            Index 1
-                        </th>
-                        {% endif %}
-                        {% if show_index_2 %}
-                        <th scope="col" class="col-1">
-                            <div class="form-check form-switch">
-                                {{ barcode_check_form.reverse_complement_index_2(class="form-check-input reverse-complement") }}
-                                <label class="form-check-label">RC</label>
-                            </div>
-                            Index 2
-                        </th>
-                        {% endif %}
-                        {% if show_index_3 %}
-                        <th scope="col" class="col-1">
-                            <div class="form-check form-switch">
-                                {{ barcode_check_form.reverse_complement_index_3(class="form-check-input reverse-complement") }}
-                                <label class="form-check-label">RC</label>
-                            </div>
-                            Index 3
-                        </th>
-                        {% endif %}
-                        {% if show_index_4 %}
-                        <th scope="col" class="col-1">
-                            <div class="form-check form-switch">
-                                {{ barcode_check_form.reverse_complement_index_4(class="form-check-input reverse-complement") }}
-                                <label class="form-check-label">RC</label>
-                            </div>
-                            Index 4
-                        </th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for sample_data in samples_data %}
-                    {% set sample_id = sample_data["id"] %}
-                    {% if sample_data["error"] %}
-                    <tr {{ tooltip(sample_data["error"], category="error") }}>
-                    {% elif sample_data["warning"] %}
-                    <tr {{ tooltip(sample_data["warning"], category="warning") }}>
-                    {% elif sample_data["info"] %}
-                    <tr {{ tooltip(sample_data["info"]) }}>
-                    {% else %}
-                    <tr>
-                    {% endif %}
-                        <td>
-                            {% if sample_data["warning"] %}
-                            ⚠️
-                            {% else %}
-                            ✅
-                            {% endif %}
-                        </td>
-                        <td>{{ sample_data["name"] }}</td>
-                        <td>{{ sample_data["library_type"] }}</td>
-                        <td>{{ sample_data["adapter"] if sample_data["adapter"] }}</td>
-                        {% if show_index_1 %}
-                        <td class="index-cell-1">{{ sample_data["index_1"] if sample_data["index_1"] == sample_data["index_1"] }}</td>
-                        {% endif %}
-                        {% if show_index_2 %}
-                        <td class="index-cell-2">{{ sample_data["index_2"] if sample_data["index_2"] == sample_data["index_2"] }}</td>
-                        {% endif %}
-                        {% if show_index_3 %}
-                        <td class="index-cell-3">{{ sample_data["index_3"] if sample_data["index_3"] == sample_data["index_3"] }}</td>
-                        {% endif %}
-                        {% if show_index_4 %}
-                        <td class="index-cell-4">{{ sample_data["index_4"] if sample_data["index_4"] == sample_data["index_4"] }}</td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <h1 class="modal-title fs-5">Describe Libraries/Pools</h1>
+        <button type="button" class="btn-close" data-bs-ldismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" style="height: 100%; overflow-y: hidden;">
+        <form id="pool-mapping-form">
+            <ul class="nav nav-tabs" role="tablist">
+                {% for sub_form in pool_mapping_form.input_fields %}
+                <li class="nav-item" role="presentation"> 
+                    <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#pool-form-tab-{{ loop.index0 }}" type="button" role="tab"
+                    aria-controls="pool-form-tab" aria-selected="true">
+                    {{ pools[loop.index0] }}</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="tab-content pt-3">
+                {% for sub_form in pool_mapping_form.input_fields %}
+                <div class="tab-pane fade show {{ 'active' if loop.first else '' }}" id="pool-form-tab-{{ loop.index0 }}" role="tabpanel" tabindex="{{loop.index0}}">
+                    <div>
+                        <div>
+                        {{ sub_form.csrf_token() }}
+                        <div class="row">
+                            {{ form_group(sub_form.pool_label, class="col") }}
+                        </div>
+                        <h5>Who did the pooling?</h5>
+                        <div class="row">
+                            {{ form_group(sub_form.contact_person_name, class="col-4") }}
+                            {{ form_group(sub_form.contact_person_email, class="col-4") }}
+                            {{ form_group(sub_form.contact_person_phone, class="col-4") }}
+                        </div>
+                        </div>
+                        <div id="pool-library-list-container">
+                            <table class="table table-hover table-cursor">
+                                <thead>
+                                    <tr>
+                                        <th>Sample</th>
+                                        <th>Library Types</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sample, sample_data in pool_libraries[loop.index0].items() %}
+                                    <tr>
+                                        <td>{{ sample }}</td>
+                                        <td>
+                                            <ul class="h-list">
+                                            {% for library in sample_data %}
+                                                <li>
+                                                    {{ library["library_type"] }}
+                                                </li>
+                                            {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {{ pool_mapping_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ pool_mapping_form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">
-        <button type="button" class="btn btn-success" hx-target="#index-check-container" hx-swap="outerHTML"
-            hx-include="#index-check-form" id="index-check-form-btn"
-            hx-post="{{ url_for('seq_requests_htmx.add_indices', seq_request_id=seq_request.id) }}{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}">
-            Submit
+        <button type="button" class="btn btn-success"
+            hx-target="#pool-mapping-container" hx-swap="outerHTML"
+            hx-include="#pool-mapping-form"
+            hx-post="{{ url_for('seq_requests_htmx.check_indices', seq_request_id=seq_request.id) }}"{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}>
+            Confirm
         </button>
-
+        
         <a class="btn btn-danger" type="button"
             {% if experiment %}
                 href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}"
@@ -116,12 +88,4 @@
 </div>
 <script>
     init_tooltips();
-
-    $(".reverse-complement").on("change", function(e) {
-        const splitted = e.target.id.split("_");
-        var index = splitted[splitted.length - 1];
-        $(`.index-cell-${index}`).each(function() {
-            $(this).text(reverse_complement($(this).text()));
-        });
-    });
 </script>

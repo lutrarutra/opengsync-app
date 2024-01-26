@@ -24,6 +24,8 @@ class TableForm(FlaskForm):
     def __init__(self, upload_dir: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.upload_path = os.path.join("uploads", upload_dir)
+        if not os.path.exists(self.upload_path):
+            os.makedirs(self.upload_path)
 
     def custom_validate(self) -> tuple[bool, "TableForm"]:
         validated = self.validate()

@@ -19,7 +19,9 @@ class BarcodeCheckForm(TableDataForm):
         if data is None:
             data = self.data
 
-        df = data["library_table"]
+        data = self.data
+        table = "library_table" if "library_table" in data.keys() else "pooling_table"
+        df = self.data[table]
 
         samples_data: list[dict[str, str | int | None]] = []
 
@@ -65,7 +67,7 @@ class BarcodeCheckForm(TableDataForm):
 
             samples_data.append(_data)
 
-        data["library_table"] = df
+        data[table] = df
         self.update_data(data)
 
         return {

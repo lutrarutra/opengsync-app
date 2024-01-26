@@ -22,7 +22,10 @@ class IndexKitMappingForm(TableDataForm):
         if not validated:
             return False, self
         
-        df = self.data["library_table"]
+        data = self.data
+        table = "library_table" if "library_table" in data.keys() else "pooling_table"
+        df = self.data[table]
+
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
         
@@ -52,11 +55,13 @@ class IndexKitMappingForm(TableDataForm):
         if data is None:
             data = self.data
 
-        if "index_kit" not in data["library_table"].columns:
-            data["library_table"]["index_kit"] = None
+        table = "library_table" if "library_table" in data.keys() else "pooling_table"
+        df = data[table]
 
-        logger.debug(data["library_table"].columns.tolist())
-        index_kits = data["library_table"]["index_kit"].unique().tolist()
+        if "index_kit" not in df.columns:
+            data[table]["index_kit"] = None
+
+        index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
 
         selected: list[Optional[models.IndexKit]] = []
@@ -85,8 +90,8 @@ class IndexKitMappingForm(TableDataForm):
     
     def parse(self) -> dict[str, pd.DataFrame]:
         data = self.data
-
-        df = data["library_table"]
+        table = "library_table" if "library_table" in data.keys() else "pooling_table"
+        df = data[table]
 
         df["index_kit_name"] = None
         df["index_kit_id"] = None
@@ -102,11 +107,18 @@ class IndexKitMappingForm(TableDataForm):
                 
                 df.loc[df["index_kit"] == index_kit, "index_kit_id"] = selected_id
                 df.loc[df["index_kit"] == index_kit, "index_kit_name"] = selected_kit.name
+                
+        if "index_1" not in df.columns:
+            df["index_1"] = None
+
+        if "index_2" not in df.columns:
+            df["index_2"] = None
             
-        df["index_1"] = None
-        df["index_2"] = None
-        df["index_3"] = None
-        df["index_4"] = None
+        if "index_3" not in df.columns:
+            df["index_3"] = None
+
+        if "index_4" not in df.columns:
+            df["index_4"] = None
 
         for i, row in df.iterrows():
             if pd.isnull(row["index_kit_id"]):
@@ -119,7 +131,7 @@ class IndexKitMappingForm(TableDataForm):
             df.at[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None
             df.at[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 else None
             
-        data["library_table"] = df
+        data[table] = df
         self.update_data(data)
 
         return data

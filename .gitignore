@@ -5,6 +5,7 @@ data/
 logs/
 db/
 uploads/
+media/
 .vscode/
 .env
 .dev.env
