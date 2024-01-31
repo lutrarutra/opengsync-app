@@ -22,6 +22,10 @@ def create_app():
 
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
 
+    if app.debug:
+        logger.debug("Compiling SASS..")
+        sass.compile(dirname=("/usr/src/app/static/style", "/usr/src/app/static/style/compiled"))
+
     logger.info(f"Debug mode: {app.debug}")
 
     app.config["SECRET_KEY"] = SECRET_KEY
@@ -38,9 +42,6 @@ def create_app():
     bcrypt.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
-
-    logger.debug("Compiling SASS..")
-    sass.compile(dirname=("/usr/src/app/static/style", "/usr/src/app/static/style/compiled"))
 
     @login_manager.user_loader
     def load_user(user_id: int) -> User:

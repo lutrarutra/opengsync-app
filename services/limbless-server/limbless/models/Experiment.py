@@ -38,11 +38,11 @@ class Experiment(SQLModel, table=True):
 
     pools: List["Pool"] = Relationship(
         back_populates="experiments", link_model=ExperimentPoolLink,
-        sa_relationship_kwargs={"lazy": "select"},
+        sa_relationship_kwargs={"lazy": "select", "overlaps": "experiment_links,pool,experiment"},
     )
     pool_links: List["ExperimentPoolLink"] = Relationship(
         back_populates="experiment",
-        sa_relationship_kwargs={"lazy": "select"}
+        sa_relationship_kwargs={"lazy": "select", "overlaps": "experiments,pools,experiment"},
     )
 
     seq_requests: List["SeqRequest"] = Relationship(
@@ -66,10 +66,10 @@ class Experiment(SQLModel, table=True):
         return self.status == ExperimentStatus.DRAFT and self.is_all_pools_indexed()
     
     def is_all_pools_indexed(self) -> bool:
-        if len(self.pools) == 0:
+        if len(self.pool_links) == 0:
             return False
-        for pool in self.pools:
-            if not pool.is_indexed():
+        for pool_link in self.pool_links:
+            if not pool_link.pool.is_indexed():
                 return False
         return True
     

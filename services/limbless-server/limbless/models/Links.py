@@ -39,8 +39,8 @@ class ExperimentPoolLink(SQLModel, table=True):
     )
     lane: int = Field(nullable=False, primary_key=True)
 
-    experiment: "Experiment" = Relationship(back_populates="pool_links")
-    pool: "Pool" = Relationship(back_populates="experiment_links")
+    experiment: "Experiment" = Relationship()
+    pool: "Pool" = Relationship()
 
     def __str__(self) -> str:
         return f"ExperimentPoolLink(experiment_id: {self.experiment_id}, pool_id: {self.pool_id}, lane: {self.lane})"

@@ -28,14 +28,15 @@ class Pool(SQLModel, SearchResult, table=True):
         back_populates="pool",
         sa_relationship_kwargs={"lazy": "select"},
     )
+
     experiments: List["Experiment"] = Relationship(
         back_populates="pools", link_model=ExperimentPoolLink,
-        sa_relationship_kwargs={"lazy": "select"},
+        sa_relationship_kwargs={"lazy": "select", "overlaps": "pool_links,pool,experiment"},
     )
 
-    experiment_links: list["ExperimentPoolLink"] = Relationship(
+    experiment_links: List["ExperimentPoolLink"] = Relationship(
         back_populates="pool",
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete", "overlaps": "pools,experiments,pool"},
     )
     
     seq_request_id: int = Field(nullable=False, foreign_key="seqrequest.id")
