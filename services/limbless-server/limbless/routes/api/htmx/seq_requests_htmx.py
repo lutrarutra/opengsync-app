@@ -1094,7 +1094,6 @@ def get_graph(seq_request_id: int):
         pools, _ = session.get_pools(seq_request_id=seq_request_id, limit=None)
 
         for pool in pools:
-            logger.debug(pool)
             pool_node = {
                 "node": idx,
                 "name": pool.name,
