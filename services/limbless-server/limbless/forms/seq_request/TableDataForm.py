@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, Any
 from uuid import uuid4
 
 from flask_wtf import FlaskForm
@@ -10,14 +10,24 @@ import pandas as pd
 
 from ...tools import io as iot
 
+_Auto = object()
+
 
 class TableDataForm(FlaskForm):
     file_uuid = StringField()
 
-    def __init__(self):
-        super().__init__()
-        if self.file_uuid.data is None:
-            self.file_uuid.data = str(uuid4())
+    def __init__(self, uuid: Optional[str], formdata: Optional[dict[str, Any]]):
+        super().__init__(formdata=formdata)
+
+        if uuid is None:
+            if self.file_uuid.data is not None:
+                uuid = self.file_uuid.data
+            else:
+                uuid = str(uuid4())
+
+        self.uuid = uuid
+        self.file_uuid.data = uuid
+
         self._data = None
 
     @property

@@ -331,6 +331,7 @@ def unlink_experiment_pool(
 
     self._session.delete(link)
     experiment.num_pools -= 1
+    self._session.add(experiment)
     if commit:
         self._session.commit()
 

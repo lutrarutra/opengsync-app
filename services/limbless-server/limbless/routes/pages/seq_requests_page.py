@@ -16,7 +16,7 @@ else:
     from flask_login import current_user
 
 
-@seq_requests_page_bp.route("/seq_request")
+@seq_requests_page_bp.route("/seq_requests")
 @login_required
 def seq_requests_page():
     seq_request_form = forms.SeqRequestForm()
@@ -42,7 +42,7 @@ def seq_requests_page():
     )
 
 
-@seq_requests_page_bp.route("/seq_request/<int:seq_request_id>")
+@seq_requests_page_bp.route("/seq_requests/<int:seq_request_id>")
 @login_required
 def seq_request_page(seq_request_id: int):
     with DBSession(db.db_handler) as session:

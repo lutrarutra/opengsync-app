@@ -47,7 +47,8 @@ class OrganismMappingForm(TableDataForm):
                         selected_organism = next(iter(db.db_handler.query_organisms(word=raw_organism_name, limit=1)), None)
 
                     entry.category.data = selected_organism.id if selected_organism is not None else None
-
+            
+            logger.debug(selected_organism)
             selected.append(selected_organism.to_str() if selected_organism is not None else None)
 
         data["library_table"] = df

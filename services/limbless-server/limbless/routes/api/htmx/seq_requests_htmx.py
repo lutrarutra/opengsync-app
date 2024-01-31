@@ -9,7 +9,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-from .... import db, forms, logger, models, PAGE_LIMIT, tools, SEQ_AUTH_FORMS_DIR
+from .... import db, forms, logger, models, PAGE_LIMIT, SEQ_AUTH_FORMS_DIR
 from ....core import DBSession, DBHandler
 from ....categories import HttpResponse, SequencingType, FlowCellType, SeqRequestStatus
 
@@ -1094,6 +1094,7 @@ def get_graph(seq_request_id: int):
         pools, _ = session.get_pools(seq_request_id=seq_request_id, limit=None)
 
         for pool in pools:
+            logger.debug(pool)
             pool_node = {
                 "node": idx,
                 "name": pool.name,

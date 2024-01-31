@@ -360,9 +360,6 @@
 </style>
 <script>
     $(document).ready(function() {
-        addEventListener("load", (event) => {
-            console.log("All resources finished loading!");
-        });
         $("#request-overview-tab-btn").on("click", function() {
             d3.json("{{ url_for('seq_requests_htmx.get_graph', seq_request_id=seq_request.id) }}", function(error, graph) {
                 const _h = graph.nodes.length * 30;
@@ -428,9 +425,23 @@
                     .nodeWidth(25)
                     .nodePadding(15)
                     .size([width, height]);
-
+                
                 // Constructs a new Sankey generator with the default settings.
                 sankey.nodes(graph.nodes).links(graph.links).layout(20);
+
+                for (let i = 0; i < graph.nodes.length; i++) {
+                    console.log(graph.nodes[i]);
+                    if (Number.isNaN(graph.nodes[i].dy)) {
+                        console.log("NaN");
+                    }
+                }
+
+                for (let i = 0; i < graph.links.length; i++) {
+                    console.log(graph.links[i]);
+                    if (Number.isNaN(graph.links[i].dy)) {
+                        console.log("NaN");
+                    }
+                }
 
                 // add in the links
                 var link = svg.append("g")

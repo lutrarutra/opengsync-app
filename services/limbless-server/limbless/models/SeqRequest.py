@@ -55,7 +55,7 @@ class SeqRequest(SQLModel, table=True):
 
     libraries: list["Library"] = Relationship(
         back_populates="seq_request",
-        sa_relationship_kwargs={"lazy": "select"},
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
     )
 
     pools: list["Pool"] = Relationship(
@@ -87,7 +87,7 @@ class SeqRequest(SQLModel, table=True):
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
-    seq_auth_form_uuid: Optional[str] = Field(nullable=True, max_length=64)
+    seq_auth_form_uuid: Optional[str] = Field(default=None, nullable=True, max_length=64)
 
     @property
     def status(self) -> SeqRequestStatus:

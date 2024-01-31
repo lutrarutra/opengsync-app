@@ -2,10 +2,6 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 
-<div class="form-check form-switch">
-  <input class="form-check-input" type="checkbox" role="switch" id="adapter-switch">
-  <label class="form-check-label" for="">Show adapters</label>
-</div>
 <div id="sample-library-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -34,6 +30,14 @@
                         sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='seq_request-library-table', column_name='Adapter', column_var='adapter',
+                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=1
                     )
                 }}
                 <th scope="col-1">
@@ -68,6 +72,7 @@
                         {{ library.type.value.description }}
                     </span>
                 </td>
+                <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
                 {% for idx in range(4) %}
                 {% set index = library.indices[idx] %}
                 {% if index %}
@@ -91,23 +96,6 @@
 <script>
     var selected_library_id = null;
     var selected_barcode_element_id = null;
-
-    function toggle_adapters() {
-        const adapter_cells = $(".adapter-cell");
-        const index_cells = $(".index-cell");
-        if ($("#adapter-switch").is(":checked")) {
-            adapter_cells.parent().show();
-            index_cells.parent().hide();
-        } else {
-            adapter_cells.parent().hide();
-            index_cells.parent().show();
-        }
-    }
-
-    $("#adapter-switch").change(function() {
-        toggle_adapters();
-    });
-
 
     function copy_sequence_to_clipboard() {
         const library_id = selected_barcode_element_id.split("-")[1];

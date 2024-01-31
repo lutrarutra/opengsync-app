@@ -52,7 +52,7 @@ class Library(SQLModel, table=True):
 
     sample_links: list["SampleLibraryLink"] = Relationship(
         back_populates="library",
-        sa_relationship_kwargs={"lazy": "select"}
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
     cmos: list["CMO"] = Relationship(
@@ -104,3 +104,6 @@ class Library(SQLModel, table=True):
     
     def is_pooled(self) -> bool:
         return self.pool_id is not None
+    
+    def __str__(self) -> str:
+        return f"Library(id: {self.id}, name: {self.name}, type: {self.type})"

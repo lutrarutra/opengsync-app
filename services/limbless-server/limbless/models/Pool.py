@@ -32,6 +32,12 @@ class Pool(SQLModel, SearchResult, table=True):
         back_populates="pools", link_model=ExperimentPoolLink,
         sa_relationship_kwargs={"lazy": "select"},
     )
+
+    experiment_links: list["ExperimentPoolLink"] = Relationship(
+        back_populates="pool",
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
+    )
+    
     seq_request_id: int = Field(nullable=False, foreign_key="seqrequest.id")
     seq_request: "SeqRequest" = Relationship(
         back_populates="pools",

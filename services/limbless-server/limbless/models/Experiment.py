@@ -26,7 +26,7 @@ class Experiment(SQLModel, table=True):
     sequencing_person_id: int = Field(nullable=False, foreign_key="lims_user.id")
     sequencing_person: "User" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
     
-    num_lanes: int = Field(nullable=False, default=1)
+    num_lanes: int = Field(nullable=False, default=0)
     num_pools: int = Field(nullable=False, default=0)
 
     timestamp: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
@@ -40,6 +40,11 @@ class Experiment(SQLModel, table=True):
         back_populates="experiments", link_model=ExperimentPoolLink,
         sa_relationship_kwargs={"lazy": "select"},
     )
+    pool_links: List["ExperimentPoolLink"] = Relationship(
+        back_populates="experiment",
+        sa_relationship_kwargs={"lazy": "select"}
+    )
+
     seq_requests: List["SeqRequest"] = Relationship(
         back_populates="experiments", link_model=SeqRequestExperimentLink,
         sa_relationship_kwargs={"lazy": "select"},

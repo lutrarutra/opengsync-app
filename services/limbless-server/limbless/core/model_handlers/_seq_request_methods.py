@@ -283,12 +283,34 @@ def delete_seq_request(
     if not seq_request:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {sample_id} does not exist")
 
-    libraries = self._session.query(models.Library).where(
-        models.Library.seq_request_id == seq_request.id
-    ).all()
+    libraries = seq_request.libraries
     
     for library in libraries:
+        for link in library.sample_links:
+            if link.cmo is not None:
+                self._session.delete(link.cmo)
+            self._session.delete(link)
+        
+        library.sample.num_libraries -= 1
+        self._session.add(library.sample)
+        if library.pool is not None:
+            library.pool.num_libraries -= 1
+            self._session.add(library.pool)
         self._session.delete(library)
+
+    pools = seq_request.pools
+    for pool in pools:
+        for link in pool.experiment_links:
+            link = self._session.query(models.ExperimentPoolLink).where(
+                models.ExperimentPoolLink.experiment_id == link.experiment_id,
+                models.ExperimentPoolLink.pool_id == link.pool_id,
+                models.ExperimentPoolLink.lane == link.lane,
+            ).first()
+            link.experiment.num_pools -= 1
+            self._session.add(link.experiment)
+            self._session.delete(link)
+                
+        self._session.delete(pool)
 
     self._session.delete(seq_request)
     if commit:

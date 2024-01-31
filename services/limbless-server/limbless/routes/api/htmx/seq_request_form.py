@@ -1,17 +1,15 @@
 import os
-from io import StringIO
-from typing import Optional, Any, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
-from flask import Blueprint, redirect, url_for, render_template, flash, request, abort, Response, send_file, current_app
+from flask import Blueprint, url_for, render_template, flash, request, abort, send_file, current_app
 from flask_htmx import make_response
 from flask_login import login_required
-from werkzeug.utils import secure_filename
 
 import pandas as pd
 
-from .... import db, logger, forms, models, PAGE_LIMIT
+from .... import db, logger, forms, models
 from ....core import DBSession
-from ....categories import UserRole, HttpResponse, LibraryType, BarcodeType
+from ....categories import HttpResponse, LibraryType
 
 if TYPE_CHECKING:
     current_user: models.User = None
@@ -104,7 +102,7 @@ def parse_table(seq_request_id: int):
         )
     
     data = {"library_table": df}
-    table_col_form = forms.SampleColTableForm()
+    table_col_form = forms.SampleColTableForm(None, None)
     context = table_col_form.prepare(data)
 
     return make_response(
@@ -125,7 +123,7 @@ def map_columns(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    sample_table_form = forms.SampleColTableForm()
+    sample_table_form = forms.SampleColTableForm(None, request.form)
     context = sample_table_form.prepare()
     validated, sample_table_form = sample_table_form.custom_validate()
     
@@ -143,7 +141,7 @@ def map_columns(seq_request_id: int):
         )
 
     data = sample_table_form.parse()
-    project_mapping_form = forms.ProjectMappingForm()
+    project_mapping_form = forms.ProjectMappingForm(sample_table_form.uuid, None)
     context = project_mapping_form.prepare(data)
 
     return make_response(
@@ -162,7 +160,7 @@ def select_project(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    project_mapping_form = forms.ProjectMappingForm()
+    project_mapping_form = forms.ProjectMappingForm(None, request.form)
     validated, project_mapping_form = project_mapping_form.custom_validate(db.db_handler, current_user.id)
 
     if not validated:
@@ -177,10 +175,9 @@ def select_project(seq_request_id: int):
     
     data = project_mapping_form.parse(seq_request_id=seq_request_id)
 
-    organism_mapping_form = forms.OrganismMappingForm()
-    context = organism_mapping_form.prepare(data)
-
     if data["library_table"]["sample_id"].isna().any():
+        organism_mapping_form = forms.OrganismMappingForm(project_mapping_form.uuid, None)
+        context = organism_mapping_form.prepare(data)
         # new sample -> map organisms
         return make_response(
             render_template(
@@ -190,7 +187,7 @@ def select_project(seq_request_id: int):
             ), push_url=False
         )
 
-    library_mapping_form = forms.LibraryMappingForm()
+    library_mapping_form = forms.LibraryMappingForm(project_mapping_form.uuid, None)
     context = library_mapping_form.prepare(data)
 
     return make_response(
@@ -210,7 +207,7 @@ def map_organisms(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    organism_mapping_form = forms.OrganismMappingForm()
+    organism_mapping_form = forms.OrganismMappingForm(None, request.form)
     validated, organism_mapping_form = organism_mapping_form.custom_validate()
 
     if not validated:
@@ -224,8 +221,7 @@ def map_organisms(seq_request_id: int):
         )
     
     data = organism_mapping_form.parse()
-
-    library_mapping_form = forms.LibraryMappingForm()
+    library_mapping_form = forms.LibraryMappingForm(organism_mapping_form.uuid, None)
     context = library_mapping_form.prepare(data)
 
     return make_response(
@@ -245,7 +241,7 @@ def map_libraries(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    library_mapping_form = forms.LibraryMappingForm()
+    library_mapping_form = forms.LibraryMappingForm(None, request.form)
     validated, library_mapping_form = library_mapping_form.custom_validate(db.db_handler)
     context = library_mapping_form.prepare()  # this needs to be after validation
 
@@ -262,7 +258,7 @@ def map_libraries(seq_request_id: int):
     data = library_mapping_form.parse()
 
     if "index_kit" in data["library_table"]:
-        index_kit_mapping_form = forms.IndexKitMappingForm()
+        index_kit_mapping_form = forms.IndexKitMappingForm(library_mapping_form.uuid, None)
         context = index_kit_mapping_form.prepare(data)
 
         return make_response(
@@ -278,7 +274,7 @@ def map_libraries(seq_request_id: int):
         LibraryType.ANTIBODY_CAPTURE.value.id,
         LibraryType.MULTIPLEXING_CAPTURE.value.id,
     ]).any():
-        feature_input_form = forms.FeatureInputForm()
+        feature_input_form = forms.FeatureInputForm(library_mapping_form.uuid, None)
         return make_response(
             render_template(
                 "components/popups/seq_request/seq_request-7.html",
@@ -289,7 +285,7 @@ def map_libraries(seq_request_id: int):
         )
     
     if "pool" in data["library_table"].columns:
-        pool_mapping_form = forms.PoolMappingForm()
+        pool_mapping_form = forms.PoolMappingForm(library_mapping_form.uuid, None)
         context = pool_mapping_form.prepare(data)
 
         return make_response(
@@ -301,7 +297,7 @@ def map_libraries(seq_request_id: int):
             )
         )
 
-    library_select_form = forms.LibrarySelectForm()
+    library_select_form = forms.LibrarySelectForm(library_mapping_form.uuid, None)
     context = library_select_form.prepare(data)
 
     return make_response(
@@ -321,7 +317,7 @@ def map_index_kits(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    index_kit_mapping_form = forms.IndexKitMappingForm()
+    index_kit_mapping_form = forms.IndexKitMappingForm(None, request.form)
     validated, index_kit_mapping_form = index_kit_mapping_form.custom_validate()
     
     if not validated:
@@ -335,7 +331,7 @@ def map_index_kits(seq_request_id: int):
         )
 
     data = index_kit_mapping_form.parse()
-    feature_input_form = forms.FeatureInputForm()
+    feature_input_form = forms.FeatureInputForm(index_kit_mapping_form.uuid, None)
     context = feature_input_form.prepare(data)
 
     return make_response(
@@ -355,7 +351,7 @@ def parse_feature_form(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    feature_input_form = forms.FeatureInputForm()
+    feature_input_form = forms.FeatureInputForm(None, request.form)
     validated, feature_input_form = feature_input_form.custom_validate()
     if not validated:
         return make_response(
@@ -381,7 +377,7 @@ def parse_feature_form(seq_request_id: int):
             )
         )
     
-    feature_kit_mapping_form = forms.FeatureKitMappingForm()
+    feature_kit_mapping_form = forms.FeatureKitMappingForm(feature_input_form.uuid, None)
     context = feature_kit_mapping_form.prepare(data)
 
     return make_response(
@@ -401,7 +397,7 @@ def map_feature_kits(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    feature_kit_mapping_form = forms.FeatureKitMappingForm()
+    feature_kit_mapping_form = forms.FeatureKitMappingForm(None, request.form)
     validated, feature_kit_mapping_form = feature_kit_mapping_form.custom_validate()
     if not validated:
         return make_response(
@@ -416,7 +412,7 @@ def map_feature_kits(seq_request_id: int):
     data = feature_kit_mapping_form.parse()
 
     if "pool" in data["library_table"].columns:
-        pool_mapping_form = forms.PoolMappingForm()
+        pool_mapping_form = forms.PoolMappingForm(feature_kit_mapping_form.uuid, None)
         context = pool_mapping_form.prepare(data)
 
         return make_response(
@@ -428,7 +424,7 @@ def map_feature_kits(seq_request_id: int):
             )
         )
     
-    library_select_form = forms.LibrarySelectForm()
+    library_select_form = forms.LibrarySelectForm(feature_kit_mapping_form.uuid, None)
     context = library_select_form.prepare(data)
 
     return make_response(
@@ -448,7 +444,7 @@ def map_pools(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    pool_mapping_form = forms.PoolMappingForm()
+    pool_mapping_form = forms.PoolMappingForm(None, request.form)
     validated, pool_mapping_form = pool_mapping_form.custom_validate()
 
     if not validated:
@@ -462,9 +458,8 @@ def map_pools(seq_request_id: int):
         )
     
     data = pool_mapping_form.parse()
-    library_select_form = forms.LibrarySelectForm()
+    library_select_form = forms.LibrarySelectForm(pool_mapping_form.uuid, None)
     context = library_select_form.prepare(data)
-    logger.debug(data["library_table"][["sample_name", "library_type", "index_1", "adapter", "index_2"]])
 
     return make_response(
         render_template(
@@ -483,7 +478,7 @@ def confirm_libraries(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    library_select_form = forms.LibrarySelectForm()
+    library_select_form = forms.LibrarySelectForm(None, request.form)
     context = library_select_form.prepare()
     
     validated, library_select_form = library_select_form.custom_validate()
@@ -499,8 +494,7 @@ def confirm_libraries(seq_request_id: int):
         )
 
     data = library_select_form.parse()
-
-    barcode_check_form = forms.BarcodeCheckForm()
+    barcode_check_form = forms.BarcodeCheckForm(library_select_form.uuid, None)
     context = barcode_check_form.prepare(data)
 
     return make_response(
@@ -520,7 +514,7 @@ def check_barcodes(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    barcode_check_form = forms.BarcodeCheckForm()
+    barcode_check_form = forms.BarcodeCheckForm(None, request.form)
     validated, barcode_check_form = barcode_check_form.custom_validate()
     if not validated:
         return make_response(

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, url_for, render_template, flash, abort, request
+from flask import Blueprint, url_for, render_template, flash, abort, request, jsonify
 from flask_htmx import make_response
 from flask_login import login_required
 
@@ -253,7 +253,6 @@ def remove_pool(experiment_id: int, pool_id: int, lane: int):
 @login_required
 def remove_seq_request(experiment_id: int):
     if (request_id := request.args.get("request_id", None)) is not None:
-        logger.debug(f"Request id: {request_id}")
         try:
             seq_request_id = int(request_id)
         except ValueError:
@@ -334,4 +333,115 @@ def submit_experiment(experiment_id: int):
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/get_graph", methods=["GET"])
+@login_required
+def get_graph(experiment_id: int):
+    if not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    LINK_WIDTH_UNIT = 1
+    
+    with DBSession(db.db_handler) as session:
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.value.id)
+    
+        graph = {
+            "nodes": [],
+            "links": [],
+        }
+
+        experiment_node = {
+            "node": 0,
+            "name": f"Experiment {experiment.id}",
+        }
+        graph["nodes"].append(experiment_node)
+        idx = 1
+        
+        project_nodes: dict[int, int] = {}
+        sample_nodes: dict[int, int] = {}
+        library_nodes: dict[int, int] = {}
+        pool_nodes: dict[int, int] = {}
+        seq_request_nodes: dict[int, int] = {}
+        lane_nodes: dict[int, int] = {}
+
+        for lane in range(1, experiment.num_lanes + 1):
+            lane_libraries_count = 0
+            if lane not in lane_nodes.keys():
+                lane_node = {
+                    "node": idx,
+                    "name": f"Lane {lane}",
+                }
+                graph["nodes"].append(lane_node)
+                lane_nodes[lane] = idx
+                lane_node_idx = idx
+                idx += 1
+            else:
+                lane_node_idx = lane_nodes[lane]
+
+            for pool_link in experiment.pool_links:
+                if pool_link.lane != lane:
+                    continue
+                
+                if pool_link.pool.id not in pool_nodes.keys():
+                    pool_node = {
+                        "node": idx,
+                        "name": f"{pool_link.pool.name}",
+                    }
+                    graph["nodes"].append(pool_node)
+                    pool_nodes[pool_link.pool.id] = idx
+                    pool_node_idx = idx
+                    idx += 1
+                else:
+                    pool_node_idx = pool_nodes[pool_link.pool.id]
+
+                for library in pool_link.pool.libraries:
+                    lane_libraries_count += 1
+                    if library.seq_request_id not in seq_request_nodes.keys():
+                        seq_request_node = {
+                            "node": idx,
+                            "name": f"{library.seq_request.name}",
+                        }
+                        graph["nodes"].append(seq_request_node)
+                        seq_request_nodes[library.seq_request.id] = idx
+                        seq_request_node_idx = idx
+                        idx += 1
+                    else:
+                        seq_request_node_idx = seq_request_nodes[library.seq_request.id]
+                    
+                    if library.id not in library_nodes.keys():
+                        library_node = {
+                            "node": idx,
+                            "name": f"{library.type.value.description}",
+                        }
+                        graph["nodes"].append(library_node)
+                        library_nodes[library.id] = idx
+                        graph["links"].append({
+                            "source": seq_request_node_idx,
+                            "target": idx,
+                            "value": LINK_WIDTH_UNIT,
+                        })
+                        graph["links"].append({
+                            "source": idx,
+                            "target": pool_node_idx,
+                            "value": LINK_WIDTH_UNIT,
+                        })
+                        idx += 1
+                
+                graph["links"].append({
+                    "source": pool_node_idx,
+                    "target": lane_node_idx,
+                    "value": LINK_WIDTH_UNIT * len(pool_link.pool.libraries),
+                })
+
+            graph["links"].append({
+                "source": lane_node_idx,
+                "target": experiment_node["node"],
+                "value": LINK_WIDTH_UNIT * lane_libraries_count,
+            })
+
+    return make_response(
+        jsonify(graph)
     )
