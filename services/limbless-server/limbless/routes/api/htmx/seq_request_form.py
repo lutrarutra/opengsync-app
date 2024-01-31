@@ -28,8 +28,8 @@ def download_template(type: str):
         name = "sas_raw_libraries.tsv"
     elif type == "premade":
         name = "sas_premade_libraries.tsv"
-    elif type == "feature":
-        name = "feature.tsv"
+    elif type == "cmo":
+        name = "cmo.tsv"
     else:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
@@ -271,16 +271,15 @@ def map_libraries(seq_request_id: int):
         )
     
     if data["library_table"]["library_type_id"].isin([
-        LibraryType.ANTIBODY_CAPTURE.value.id,
         LibraryType.MULTIPLEXING_CAPTURE.value.id,
     ]).any():
-        feature_input_form = forms.FeatureInputForm(library_mapping_form.uuid, None)
+        cmo_reference_input_form = forms.CMOReferenceInputForm(library_mapping_form.uuid, None)
         return make_response(
             render_template(
                 "components/popups/seq_request/seq_request-7.html",
                 seq_request=seq_request,
-                feature_input_form=feature_input_form,
-                **feature_input_form.prepare()
+                cmo_reference_input_form=cmo_reference_input_form,
+                **cmo_reference_input_form.prepare()
             )
         )
     
@@ -331,53 +330,57 @@ def map_index_kits(seq_request_id: int):
         )
 
     data = index_kit_mapping_form.parse()
-    feature_input_form = forms.FeatureInputForm(index_kit_mapping_form.uuid, None)
-    context = feature_input_form.prepare(data)
+    cmo_reference_input_form = forms.CMOReferenceInputForm(index_kit_mapping_form.uuid, None)
+    context = cmo_reference_input_form.prepare(data)
+    logger.debug(cmo_reference_input_form.file.data)
 
     return make_response(
         render_template(
             "components/popups/seq_request/seq_request-7.html",
             seq_request=seq_request,
-            feature_input_form=feature_input_form,
+            cmo_reference_input_form=cmo_reference_input_form,
             **context
         )
     )
 
 
 # 7. Specify Features
-@seq_request_form_htmx.route("<int:seq_request_id>/parse_feature_form", methods=["POST"])
+@seq_request_form_htmx.route("<int:seq_request_id>/parse_cmo_reference", methods=["POST"])
 @login_required
-def parse_feature_form(seq_request_id: int):
+def parse_cmo_reference(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    feature_input_form = forms.FeatureInputForm(None, request.form)
-    validated, feature_input_form = feature_input_form.custom_validate()
+    cmo_reference_input_form = forms.CMOReferenceInputForm(None, request.form | request.files)
+    logger.debug(cmo_reference_input_form.file.data)
+    validated, cmo_reference_input_form = cmo_reference_input_form.custom_validate()
+
+    logger.debug(cmo_reference_input_form.file.errors)
     if not validated:
         return make_response(
             render_template(
                 "components/popups/seq_request/seq_request-7.html",
                 seq_request=seq_request,
-                feature_input_form=feature_input_form,
-                **feature_input_form.prepare()
+                cmo_reference_input_form=cmo_reference_input_form,
+                **cmo_reference_input_form.prepare()
             )
         )
     
     try:
-        data = feature_input_form.parse()
+        data = cmo_reference_input_form.parse()
     except pd.errors.ParserError as e:
-        feature_input_form.file.errors = (str(e),)
+        cmo_reference_input_form.file.errors = (str(e),)
             
         return make_response(
             render_template(
                 "components/popups/seq_request/seq_request-7.html",
                 seq_request=seq_request,
-                feature_input_form=feature_input_form,
-                **feature_input_form.prepare()
+                cmo_reference_input_form=cmo_reference_input_form,
+                **cmo_reference_input_form.prepare()
             )
         )
     
-    feature_kit_mapping_form = forms.FeatureKitMappingForm(feature_input_form.uuid, None)
+    feature_kit_mapping_form = forms.FeatureKitMappingForm(cmo_reference_input_form.uuid, None)
     context = feature_kit_mapping_form.prepare(data)
 
     return make_response(
@@ -528,7 +531,7 @@ def check_barcodes(seq_request_id: int):
     data = barcode_check_form.parse()
 
     library_table = data["library_table"]
-    feature_table = data["feature_table"] if "feature_table" in data else None
+    cmo_table = data["cmo_table"] if "cmo_table" in data else None
 
     n_added = 0
     n_new_samples = 0
@@ -572,8 +575,8 @@ def check_barcodes(seq_request_id: int):
                 pools[pool_label] = pool
 
         for (sample_name, sample_id, tax_id, project_id, is_cmo_sample), _df in library_table.groupby(["sample_name", "sample_id", "tax_id", "project_id", "is_cmo_sample"], dropna=False):
-            if feature_table is not None:
-                feature_ref = feature_table.loc[feature_table["sample_pool"] == sample_name, :]
+            if cmo_table is not None:
+                feature_ref = cmo_table.loc[cmo_table["sample_pool"] == sample_name, :]
             else:
                 feature_ref = pd.DataFrame()
             library_samples: list[tuple[models.Sample, Optional[models.CMO]]] = []

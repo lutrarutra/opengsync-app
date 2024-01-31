@@ -147,6 +147,4 @@ class LibraryMappingForm(TableDataForm):
         data["library_table"] = df
         self.update_data(data)
 
-        logger.debug(df[["sample_name", "library_type", "is_cmo_sample"]])
-
         return data

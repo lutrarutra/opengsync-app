@@ -2,10 +2,23 @@
 
 <div id="index_kit-mapping-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Map Index Kits</h1>
+        <h1 class="modal-title fs-5">6. Map Index Kits</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
+        <div class="input-help">
+            <h5>Instructions</h5>
+            <ul>
+                <li>If library barcode indices are specified manually, you can leave this field empty.</li>
+                <li>For each unique 'Raw Label', select a index kit type from the list.</li>
+                <li>You can find available kits and their adapters <a href="{{ url_for('index_kits_page.index_kits_page') }}">Index Kits</a> -page</li>
+            </ul>
+            <h5>Important</h5>
+            <ul>
+                <li>All adapters associated to a library with a specified index kit must be found from the index kit.</li>
+                <li>If you have not specified an Index Kit for any libraries, 'Raw Label' will be empty and <b>if index kit is chosen it will apply to all libraries</b>.</li>
+            </ul>
+        </div>
         <form id="index_kit-mapping-form">
             {{    
                 categorical_mapping(

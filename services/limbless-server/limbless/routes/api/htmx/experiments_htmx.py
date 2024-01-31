@@ -170,7 +170,7 @@ def add_seq_request(experiment_id: int, seq_request_id: int):
     if not experiment.is_editable():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    link = db.db_handler.link_experiment_seq_request(
+    db.db_handler.link_experiment_seq_request(
         experiment_id=experiment_id,
         seq_request_id=seq_request_id,
     )
@@ -182,6 +182,7 @@ def add_seq_request(experiment_id: int, seq_request_id: int):
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id),
         push_url=False
     )
+
 
 @experiments_htmx.route("<int:experiment_id>/add_pool/<int:pool_id>/<int:lane>", methods=["POST"])
 @login_required
@@ -360,8 +361,6 @@ def get_graph(experiment_id: int):
         graph["nodes"].append(experiment_node)
         idx = 1
         
-        project_nodes: dict[int, int] = {}
-        sample_nodes: dict[int, int] = {}
         library_nodes: dict[int, int] = {}
         pool_nodes: dict[int, int] = {}
         seq_request_nodes: dict[int, int] = {}

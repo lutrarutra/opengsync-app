@@ -178,7 +178,7 @@ def edit(seq_request_id: int):
             return abort(HttpResponse.FORBIDDEN.value.id)
 
     seq_request_form = forms.SeqRequestForm()
-    validated, seq_request_form = seq_request_form.custom_validate()
+    validated, seq_request_form = seq_request_form.custom_validate(current_user, seq_request_id=seq_request_id)
     if not validated:
         return make_response(
             render_template(
@@ -383,7 +383,7 @@ def submit(seq_request_id: int):
 @login_required
 def create():
     seq_request_form = forms.SeqRequestForm()
-    validated, seq_request_form = seq_request_form.custom_validate()
+    validated, seq_request_form = seq_request_form.custom_validate(current_user)
 
     if not validated:
         return make_response(
@@ -698,7 +698,7 @@ def reverse_complement(seq_request_id: int):
 @login_required
 def download_pooling_template(seq_request_id: int):
     with DBSession(db.db_handler) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+        if (_ := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
         if not current_user.is_insider():

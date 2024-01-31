@@ -8,7 +8,7 @@
 <div class="{{class}} form-group" id="{{guid}}">
     <label>{{ label }}</label>
     <div class="copyable-input">
-        <input class="form-control" type="text" value="{{ value if value else '' }}">
+        <input class="form-control" type="text" value="{{ value if value else '' }}" readonly>
         <a type="button" class="clipboard-btn" {{ tooltip("Click to copy.", position="top") }}
         onclick="copy_to_clipboard('{{guid}}')">
             <svg class="not-copied-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi bi-clipboard" viewBox="0 0 16 16">

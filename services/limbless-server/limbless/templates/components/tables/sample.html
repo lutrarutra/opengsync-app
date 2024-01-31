@@ -32,9 +32,24 @@
                 }}
                 {{
                     table_col(
+                        target_id='sample-table', column_name='Project', column_var='project_id',
+                        sort_url='samples_htmx.get',
+                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
+                        col_size=5
+                    )
+                }}
+                {{
+                    table_col(
                         target_id='sample-table', column_name='Owner', column_var='owner_id',
                         sort_url='samples_htmx.get',
                         current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
+                        col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='sample-table', column_name='# Libraries', column_var='num_libraries',
+                        sort_url='samples_htmx.get', current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
                         col_size=2
                     )
                 }}
@@ -52,7 +67,9 @@
                         <p>{{ ("(" + sample.organism.common_name + ")" if sample.organism.common_name else "") }}</p>
                     </span>
                 </td>
+                <td>{{ sample.project.name }}</td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
+                <td>{{ sample.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>

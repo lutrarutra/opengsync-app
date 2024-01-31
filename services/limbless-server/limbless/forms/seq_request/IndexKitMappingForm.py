@@ -62,7 +62,7 @@ class IndexKitMappingForm(TableDataForm):
             data[table]["index_kit"] = None
 
         index_kits = df["index_kit"].unique().tolist()
-        index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
+        index_kits = [index_kit if index_kit and not pd.isna(index_kit) else None for index_kit in index_kits]
 
         selected: list[Optional[models.IndexKit]] = []
 
@@ -73,7 +73,9 @@ class IndexKitMappingForm(TableDataForm):
             entry = self.input_fields[i]
             entry.raw_category.data = index_kit
 
-            if entry.category.data is None:
+            if index_kit is None:
+                selected_kit = None
+            elif entry.category.data is None:
                 selected_kit = next(iter(db.db_handler.query_index_kit(index_kit, 1)), None)
                 entry.category.data = selected_kit.id if selected_kit else None
             else:

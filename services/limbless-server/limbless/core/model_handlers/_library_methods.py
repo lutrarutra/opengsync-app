@@ -171,12 +171,11 @@ def delete_library(
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
-    for link in self._session.query(models.SampleLibraryLink).where(
-        models.SampleLibraryLink.library_id == library_id
-    ).all():
+    for link in library.sample_links:
+        link.sample.num_libraries -= 1
+        self._session.add(link.sample)
         if link.cmo is not None:
             self._session.delete(link.cmo)
-
         self._session.delete(link)
 
     seq_request = library.seq_request

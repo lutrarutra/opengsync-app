@@ -165,7 +165,7 @@ def get_seq_requests(
         ).where(
             or_(
                 models.SeqRequestExperimentLink.experiment_id != exclude_experiment_id,
-                models.SeqRequestExperimentLink.experiment_id == None
+                models.SeqRequestExperimentLink.experiment_id is None
             )
         )
 
@@ -287,12 +287,12 @@ def delete_seq_request(
     
     for library in libraries:
         for link in library.sample_links:
+            link.sample.num_libraries -= 1
+            self._session.add(link.sample)
             if link.cmo is not None:
                 self._session.delete(link.cmo)
             self._session.delete(link)
-        
-        library.sample.num_libraries -= 1
-        self._session.add(library.sample)
+
         if library.pool is not None:
             library.pool.num_libraries -= 1
             self._session.add(library.pool)

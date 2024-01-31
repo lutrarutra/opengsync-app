@@ -2,43 +2,54 @@
 {% from 'components/search_select.jinja2' import search_select_field %}
 {% from "components/table_input.jinja2" import table_input %}
 
-<div id="feature-input-form-container" class="modal-content">
+<div id="cmo-reference-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >Feature Form</h1>
+        <h1 class="modal-title fs-5" >7. CMO Reference Input Form</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
-        <div class="input-help pb-3">
+        <div class="input-help">
             <h5>How to?</h5>
             <ol>
-                <li><a href="{{ url_for('seq_request_form_htmx.download_template', type='features') }}">
-                Download template</a></li>
+                <li><a href="{{ url_for('seq_request_form_htmx.download_template', type='cmo') }}">Download template</a></li>
                 <li>Fill in the template</li>
                 <li>Submit the file below</li>
             </ol>
 
             <h5>Modify Columns</h5>
             <ul>
+                <li>Biosample <span class="desc">Name of the biosample</span></li>
+                <li>Library Name <span class="desc">the library from annotation sheet that this CMO belongs to</span></li>
+                <li>Feature <span class="desc">Name of the CMO feature. If using common kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+                <li>Kit <span class="desc">name of a common feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
+                <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
+                <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
+                <li>Read <span class="desc">e.g. 'R2'</span></li>
             </ul>
 
             <h5>Important</h5>
             <ul>
+                <li>Two ways to specify CMOs:</li>
+                <ol>
+                    <li>If using common kit from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a>: specify columns <b>Biosample, Library Name, Feature, Kit</b></li>
+                    <li>If using custom kit: specify columns <b>Biosample, Library Name, Sequence, Pattern, Read</b></li>
+                </ol>
             </ul>
         </div>
-        <form id="feature-input-form" enctype="multipart/form-data">
-            {{ feature_input_form.csrf_token() }}
+        <form id="cmo-reference-form" enctype="multipart/form-data">
+            {{ cmo_reference_input_form.csrf_token() }}
             <div class="row">
-                {{ form_group(feature_input_form.separator, class="col-2") }}
-                {{ form_group(feature_input_form.file, class="col-10") }}
+                {{ form_group(cmo_reference_input_form.separator, class="col-2") }}
+                {{ form_group(cmo_reference_input_form.file, class="col-10") }}
             </div>
-            {{ feature_input_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ cmo_reference_input_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
         </form>
     </div>
-    <div class="modal-footer" id="popup-footer">
+    <div class="modal-footer">
         <button class="btn btn-success" type="button"
-            hx-include="#feature-input-form" hx-target="#feature-input-form-container" hx-swap="outerHTML"
+            hx-include="#cmo-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
-            hx-post="{{ url_for('seq_request_form_htmx.parse_feature_form', seq_request_id=seq_request.id) }}{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}">
+            hx-post="{{ url_for('seq_request_form_htmx.parse_cmo_reference', seq_request_id=seq_request.id) }}{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}">
             Parse
         </button>
         <a class="btn btn-danger" type="button"

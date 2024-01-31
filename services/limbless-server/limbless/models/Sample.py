@@ -7,7 +7,6 @@ from ..tools import SearchResult
 if TYPE_CHECKING:
     from .Organism import Organism
     from .Project import Project
-    from .Library import Library
     from .Links import SampleLibraryLink
     from .User import User
 

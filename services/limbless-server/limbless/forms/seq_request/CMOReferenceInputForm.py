@@ -14,7 +14,7 @@ from ... import db, models, logger, tools
 from .TableDataForm import TableDataForm
 
 
-class FeatureInputForm(TableDataForm):
+class CMOReferenceInputForm(TableDataForm):
     _required_columns: list[Union[str, list[str]]] = [
         "Biosample", "Sample Name",
     ]
@@ -25,7 +25,7 @@ class FeatureInputForm(TableDataForm):
     _mapping: dict[str, str] = {
         "Biosample": "biosample",
         "Sample Name": "sample_pool",
-        "Kit": "feature_kit",
+        "Kit": "kit",
         "Feature": "feature_name",
         "Sequence": "sequence",
         "Pattern": "pattern",
@@ -44,8 +44,9 @@ class FeatureInputForm(TableDataForm):
 
     def custom_validate(
         self,
-    ) -> tuple[bool, "FeatureInputForm"]:
+    ) -> tuple[bool, "CMOReferenceInputForm"]:
 
+        logger.debug(self.file.data)
         validated = self.validate()
         if not validated:
             return False, self
@@ -65,41 +66,41 @@ class FeatureInputForm(TableDataForm):
             sep = ","
 
         try:
-            self.feature_ref = pd.read_csv("uploads/seq_request/" + filename, sep=sep, index_col=False, header=0)
+            self.cmo_ref = pd.read_csv("uploads/seq_request/" + filename, sep=sep, index_col=False, header=0)
         except pd.errors.ParserError as e:
             self.file.errors = (str(e),)
             return False, self
         
         missing = []
-        for col in FeatureInputForm._required_columns:
-            if col not in self.feature_ref.columns:
+        for col in CMOReferenceInputForm._required_columns:
+            if col not in self.cmo_ref.columns:
                 missing.append(col)
         
             if len(missing) > 0:
                 self.file.errors = (f"Missing column(s): [{', '.join(missing)}]",)
                 return False, self
         
-        specified_with_name = (~self.feature_ref["Kit"].isna() & ~self.feature_ref["Feature"].isna())
-        specified_manually = (~self.feature_ref["Sequence"].isna() & ~self.feature_ref["Pattern"].isna() & ~self.feature_ref["Read"].isna())
+        specified_with_name = (~self.cmo_ref["Kit"].isna() & ~self.cmo_ref["Feature"].isna())
+        specified_manually = (~self.cmo_ref["Sequence"].isna() & ~self.cmo_ref["Pattern"].isna() & ~self.cmo_ref["Read"].isna())
         if (~(specified_with_name | specified_manually)).any():
             self.file.errors = ("Columns 'Kit + Feature' or 'Sequence + Pattern Read'  must be specified for all rows.",)
             return False, self
         
-        if self.feature_ref["Sample Name"].isna().any():
+        if self.cmo_ref["Sample Name"].isna().any():
             self.file.errors = ("Column 'Sample Name' must be specified for all rows.",)
             return False, self
         
-        if self.feature_ref["Biosample"].isna().any():
+        if self.cmo_ref["Biosample"].isna().any():
             self.file.errors = ("Column 'Biosample' must be specified for all rows.",)
             return False, self
         
         data = self.data
 
-        libraries_not_mapped = ~self.feature_ref["Sample Name"].isin(data["library_table"]["sample_name"])
+        libraries_not_mapped = ~self.cmo_ref["Sample Name"].isin(data["library_table"]["sample_name"])
         if libraries_not_mapped.any():
             self.file.errors = (
                 "Values in 'Sample Name'-column in feature reference must be found in 'Sample Name'-column of sample annotation sheet.",
-                "Missing values: " + ", ".join(self.feature_ref["Sample Name"][libraries_not_mapped].unique().tolist())
+                "Missing values: " + ", ".join(self.cmo_ref["Sample Name"][libraries_not_mapped].unique().tolist())
             )
             return False, self
         
@@ -108,9 +109,9 @@ class FeatureInputForm(TableDataForm):
     def parse(self) -> dict[str, pd.DataFrame]:
         data = self.data
 
-        self.feature_ref = self.feature_ref.rename(columns=FeatureInputForm._mapping)
+        self.cmo_ref = self.cmo_ref.rename(columns=CMOReferenceInputForm._mapping)
 
-        data["feature_table"] = self.feature_ref
+        data["cmo_table"] = self.cmo_ref
 
         self.update_data(data)
 

@@ -4,10 +4,17 @@
 
 <div id="project-select-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Select Project</h1>
+        <h1 class="modal-title fs-5">3. Select Project(s)</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
+        <div class="input-help">
+            <h5>Instructions</h5>
+            <ul>
+                <li>For each unique 'Raw Label', select an existing project or create a new project.</li>
+                <li>Samples associated to a same project are processed and published together.</li>
+            </ul>
+        </div>
         <form id="project-select-form">
             {{    
                 categorical_mapping_with_new_field(

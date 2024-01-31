@@ -20,5 +20,5 @@ from .seq_request.LibraryMappingForm import LibraryMappingForm
 from .seq_request.PoolMappingForm import PoolMappingForm
 from .seq_request.SeqAuthForm import SeqAuthForm
 from .seq_request.IndexKitMappingForm import IndexKitMappingForm
-from .seq_request.FeatureInputForm import FeatureInputForm
+from .seq_request.CMOReferenceInputForm import CMOReferenceInputForm
 from .seq_request.FeatureKitMappingForm import FeatureKitMappingForm

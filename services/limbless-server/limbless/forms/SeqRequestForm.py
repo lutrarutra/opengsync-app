@@ -1,10 +1,14 @@
+from typing import Optional
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, EmailField, BooleanField, SelectField, IntegerField, FileField
 from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
-from flask_wtf.file import FileAllowed
 
 from ..categories import SequencingType, FlowCellType
+
+from .. import models
+from .. import db
 
 
 class SeqRequestForm(FlaskForm):
@@ -149,7 +153,7 @@ class SeqRequestForm(FlaskForm):
         description="Billing code assigned by your institution."
     )
 
-    def custom_validate(self) -> tuple[bool, "SeqRequestForm"]:
+    def custom_validate(self, current_user: models.User, seq_request_id: Optional[int] = None) -> tuple[bool, "SeqRequestForm"]:
         validated = self.validate()
         
         if not validated:
@@ -160,5 +164,16 @@ class SeqRequestForm(FlaskForm):
                 self.bioinformatician_email.errors = ("Bioinformatician email is required",)
                 self.bioinformatician_email.flags.required = True
                 validated = False
+
+        user_requests, _ = db.db_handler.get_seq_requests(
+            user_id=current_user.id, limit=None
+        )
+
+        for request in user_requests:
+            if seq_request_id is not None and seq_request_id == request.id:
+                continue
+            if request.name == self.name.data:
+                self.name.errors = ("You already have a request with this name",)
+                return False, self
 
         return validated, self
