@@ -43,60 +43,37 @@
             <div class="row">
             {{
                 metadata_group(
-                    "Index 1 (i7)",
-                    library.index_1_sequence if library.index_1_sequence else "",
-                    class="col-3"
+                    "Adapter",
+                    library.index_1_adapter if library.index_1_adapter else "",
+                    class="col-2"
                 )
             }}
             {{
                 metadata_group(
-                    "Adapter 1 (i7)",
-                    library.index_1_adapter if library.index_1_adapter else "",
-                    class="col-3"
+                    "Index 1 (i7)",
+                    library.index_1_sequence if library.index_1_sequence else "",
+                    class="col-2"
                 )
             }}
             {{
                 metadata_group(
                     "Index 2 (i5)",
                     library.index_2_sequence if library.index_2_sequence else "",
-                    class="col-3"
+                    class="col-2"
                 )
             }}
-            {{
-                metadata_group(
-                    "Adapter 1 (i5)",
-                    library.index_2_adapter if library.index_2_adapter else "",
-                    class="col-3"
-                )
-            }}
-            </div>
-            <div class="row">
             {{
                 metadata_group(
                     "Index 3",
                     library.index_3_sequence if library.index_3_sequence else "",
-                    class="col-3"
-                )
-            }}
-            {{
-                metadata_group(
-                    "Adapter 3",
-                    library.index_3_adapter if library.index_3_adapter else "",
-                    class="col-3"
+                    class="col-2"
                 )
             }}
             {{
                 metadata_group(
                     "Index 4",
                     library.index_4_sequence if library.index_4_sequence else "",
-                    class="col-3"
-                )
-            }}
-            {{
-                metadata_group(
-                    "Adapter 4",
-                    library.index_4_adapter if library.index_4_adapter else "",
-                    class="col-3"
+                    class="col-2"
                 )
             }}
             </div>

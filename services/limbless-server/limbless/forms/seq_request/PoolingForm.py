@@ -11,7 +11,7 @@ from flask_wtf.file import FileField, FileAllowed
 from werkzeug.utils import secure_filename
 
 from ... import db, logger
-from .TableDataForm import TableDataForm
+from ..TableDataForm import TableDataForm
 
 
 class PoolingForm(TableDataForm):

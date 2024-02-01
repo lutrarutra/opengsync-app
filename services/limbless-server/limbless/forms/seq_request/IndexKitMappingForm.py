@@ -1,4 +1,5 @@
 from typing import Optional
+from flask import Response
 import pandas as pd
 
 from flask_wtf import FlaskForm
@@ -6,7 +7,13 @@ from wtforms import StringField, FieldList, FormField, IntegerField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from ... import db, models, logger, tools
-from .TableDataForm import TableDataForm
+from ..TableDataForm import TableDataForm
+from ...categories import LibraryType
+
+from ..ExtendedFlaskForm import ExtendedFlaskForm
+from .CMOReferenceInputForm import CMOReferenceInputForm
+from .PoolMappingForm import PoolMappingForm
+from .BarcodeCheckForm import BarcodeCheckForm
 
 
 class IndexKitSubForm(FlaskForm):
@@ -14,17 +21,25 @@ class IndexKitSubForm(FlaskForm):
     category = IntegerField("Index Kit", validators=[OptionalValidator()])
 
 
-class IndexKitMappingForm(TableDataForm):
+class IndexKitMappingForm(ExtendedFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
-    def custom_validate(self) -> tuple[bool, "IndexKitMappingForm"]:
-        validated = self.validate()
+    _template_path = "components/popups/seq_request/seq_request-5.html"
+
+    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+        if uuid is None:
+            uuid = formdata.get("file_uuid")
+        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        TableDataForm.__init__(self, uuid=uuid)
+
+    def validate(self) -> bool:
+        validated = super().validate()
         if not validated:
-            return False, self
+            return False
         
-        data = self.data
+        data = self.get_data()
         table = "library_table" if "library_table" in data.keys() else "pooling_table"
-        df = self.data[table]
+        df = self.get_data()[table]
 
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
@@ -36,24 +51,24 @@ class IndexKitMappingForm(TableDataForm):
             if (index_kit_id := entry.category.data) is None:
                 if (pd.isnull(_df["index_1"]) & pd.isnull(_df["index_1"])).any():
                     entry.category.errors = ("You must specify either an index kit or indices manually",)
-                    return False, self
+                    return False
                 continue
             
             if db.db_handler.get_index_kit(index_kit_id) is None:
                 entry.category.errors = ("Not valid index kit selected",)
-                return False, self
+                return False
             
             for _, row in _df.iterrows():
                 adapter_name = str(row["adapter"])
                 if (_ := db.db_handler.get_adapter_from_index_kit(adapter_name, index_kit_id)) is None:
                     entry.category.errors = (f"Unknown adapter '{adapter_name}' does not belong to this index kit.",)
-                    return False, self
+                    return False
 
-        return validated, self
+        return validated
     
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
         if data is None:
-            data = self.data
+            data = self.get_data()
 
         table = "library_table" if "library_table" in data.keys() else "pooling_table"
         df = data[table]
@@ -90,8 +105,8 @@ class IndexKitMappingForm(TableDataForm):
             "selected": selected
         }
     
-    def parse(self) -> dict[str, pd.DataFrame]:
-        data = self.data
+    def __parse(self) -> dict[str, pd.DataFrame]:
+        data = self.get_data()
         table = "library_table" if "library_table" in data.keys() else "pooling_table"
         df = data[table]
 
@@ -137,4 +152,26 @@ class IndexKitMappingForm(TableDataForm):
         self.update_data(data)
 
         return data
-            
+        
+    def process_request(self, **context) -> Response:
+        validated = self.validate()
+        if not validated:
+            return self.make_response(**context)
+        
+        data = self.__parse()
+
+        if data["library_table"]["library_type_id"].isin([
+            LibraryType.MULTIPLEXING_CAPTURE.value.id,
+        ]).any():
+            cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
+            context = cmo_reference_input_form.prepare(data) | context
+            return cmo_reference_input_form.make_response(**context)
+
+        if "pool" in data["library_table"].columns:
+            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
+            context = pool_mapping_form.prepare(data) | context
+            return pool_mapping_form.make_response(**context)
+
+        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
+        context = barcode_check_form.prepare(data) | context
+        return barcode_check_form.make_response(**context)

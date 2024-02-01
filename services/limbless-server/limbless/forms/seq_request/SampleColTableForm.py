@@ -6,7 +6,7 @@ from wtforms import SelectField, FieldList, FormField, TextAreaField, IntegerFie
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from ... import tools, logger
-from .TableDataForm import TableDataForm
+from ..TableDataForm import TableDataForm
 
 
 # Column selection form for sample table
@@ -72,7 +72,7 @@ class SampleColTableForm(TableDataForm):
 
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
         if data is None:
-            data = self.data
+            data = self.get_data()
 
         required_fields = SampleColSelectForm.required_fields
         optional_fields = SampleColSelectForm.optional_fields
@@ -131,7 +131,7 @@ class SampleColTableForm(TableDataForm):
         return df
     
     def parse(self) -> dict[str, pd.DataFrame]:
-        data = self.data
+        data = self.get_data()
         selected_features = []
         features = SampleColSelectForm.required_fields + SampleColSelectForm.optional_fields
         

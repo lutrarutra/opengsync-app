@@ -1,43 +1,40 @@
-{% from "components/search_select.jinja2" import search_select_field %}
-{% from "components/form_group.jinja2" import form_group %}
-{% from "components/categorical_mapping.jinja2" import categorical_mapping_with_new_field %}
+{% from "components/categorical_mapping.jinja2" import categorical_mapping %}
 
-<div id="project-select-form-container" class="modal-content">
+<div id="sample-table-organism-map-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">3. Select Project(s)</h1>
+        <h1 class="modal-title fs-5">3. Map Organisms</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
         <div class="input-help">
             <h5>Instructions</h5>
             <ul>
-                <li>For each unique 'Raw Label', select an existing project or create a new project.</li>
-                <li>Samples associated to a same project are processed and published together.</li>
+                <li>For each unique 'Raw Label', select an organism from list.</li>
             </ul>
         </div>
-        <form id="project-select-form">
+        <form id="sample-organism-category-mapping-form">
             {{    
-                categorical_mapping_with_new_field(
-                    form=project_mapping_form,
+                categorical_mapping(
+                    form=form,
                     categories=categories,
-                    url=url_for('projects_htmx.query'),
+                    url=url_for('organisms_htmx.query'),
                     selected=selected,
                 )
             }}
-            {{ project_mapping_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
-            {{ project_mapping_form.csrf_token() }}
+            {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">
         <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
-            hx-target="#project-select-form-container" hx-swap="outerHTML"
-            hx-include="#project-select-form"
-            hx-post="{{ url_for('seq_request_form_htmx.select_project', seq_request_id=seq_request.id) }}">
-            Select Project
+            hx-target="#sample-table-organism-map-container" hx-swap="outerHTML"
+            hx-include="#sample-organism-category-mapping-form"
+            hx-post="{{ url_for('seq_request_form_htmx.map_organisms', seq_request_id=seq_request.id) }}">
+            Map Organisms
         </button>
         
         <button type="button"class="btn btn-danger"
-            hx-target="#project-select-form-container" hx-swap="outerHTML"
+            hx-target="#sample-table-organism-map-container" hx-swap="outerHTML"
             hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}"
             _="on htmx:confirm(issueRequest)
             halt the event

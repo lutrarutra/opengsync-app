@@ -1,4 +1,5 @@
 from typing import Optional, TYPE_CHECKING
+from flask import Response
 import pandas as pd
 
 from flask_wtf import FlaskForm
@@ -6,12 +7,15 @@ from wtforms import StringField, FieldList, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from ... import db, models, logger, tools
-from .TableDataForm import TableDataForm
+from ..TableDataForm import TableDataForm
 
 if TYPE_CHECKING:
     current_user: models.User = None
 else:
     from flask_login import current_user
+
+from ..ExtendedFlaskForm import ExtendedFlaskForm
+from .BarcodeCheckForm import BarcodeCheckForm
 
 
 class PoolSubForm(FlaskForm):
@@ -21,26 +25,20 @@ class PoolSubForm(FlaskForm):
     contact_person_phone = StringField("Contact Person Phone", validators=[OptionalValidator(), Length(max=16)], description="Who prepared the libraries?")
 
 
-class PoolMappingForm(TableDataForm):
+class PoolMappingForm(ExtendedFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(PoolSubForm), min_entries=1)
 
-    def custom_validate(self):
-        validated = self.validate()
-        
-        labels = []
-        for i, entry in enumerate(self.input_fields):
-            pool_label = entry.pool_label.data
+    _template_path = "components/popups/seq_request/seq_request-8.html"
 
-            if pool_label in labels:
-                entry.pool_label.errors = ("Pool label is not unique.",)
-                validated = False
-            labels.append(pool_label)
+    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+        if uuid is None:
+            uuid = formdata.get("file_uuid")
+        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        TableDataForm.__init__(self, uuid=uuid)
 
-        return validated, self
-    
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
         if data is None:
-            data = self.data
+            data = self.get_data()
 
         table = "library_table" if "library_table" in data.keys() else "pooling_table"
         df = data[table]
@@ -89,8 +87,24 @@ class PoolMappingForm(TableDataForm):
             "pool_libraries": pool_libraries,
         }
 
-    def parse(self) -> dict[str, pd.DataFrame]:
-        data = self.data
+    def validate(self):
+        validated = super().validate()
+        if not validated:
+            return False
+        
+        labels = []
+        for i, entry in enumerate(self.input_fields):
+            pool_label = entry.pool_label.data
+
+            if pool_label in labels:
+                entry.pool_label.errors = ("Pool label is not unique.",)
+                validated = False
+            labels.append(pool_label)
+
+        return validated, self
+
+    def __parse(self) -> dict[str, pd.DataFrame]:
+        data = self.get_data()
         table = "library_table" if "library_table" in data.keys() else "pooling_table"
         df = data[table]
 
@@ -114,3 +128,14 @@ class PoolMappingForm(TableDataForm):
         self.update_data(data)
 
         return data
+    
+    def process_request(self, **context) -> Response:
+        validated = self.validate()
+        if not validated:
+            return self.make_response(**context)
+        
+        data = self.__parse()
+
+        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
+        context = barcode_check_form.prepare(data) | context
+        return barcode_check_form.make_response(**context)

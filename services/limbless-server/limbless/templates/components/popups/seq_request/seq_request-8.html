@@ -1,34 +1,83 @@
-{% from "components/categorical_mapping.jinja2" import categorical_mapping %}
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/search_select.jinja2" import search_select_field %}
 
-<div id="feature_kit-mapping-form-container" class="modal-content">
+<div id="pool-mapping-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">8. Map Feature Kits</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h1 class="modal-title fs-5">8. Describe Library-Pools</h1>
+        <button type="button" class="btn-close" data-bs-ldismiss="modal" aria-label="Close"></button>
     </div>
-    <div class="modal-body">
-        <form id="feature_kit-mapping-form">
-            {{    
-                categorical_mapping(
-                    form=feature_kit_mapping_form,
-                    categories=categories,
-                    url=url_for('features_htmx.query_kits'),
-                    selected=selected,
-                )
-            }}
-            {{ feature_kit_mapping_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
-            {{ feature_kit_mapping_form.csrf_token() }}
+    <div class="modal-body" style="height: 100%; overflow-y: hidden;">
+        <form id="pool-mapping-form">
+            <ul class="nav nav-tabs" role="tablist">
+                {% for sub_form in form.input_fields %}
+                <li class="nav-item" role="presentation"> 
+                    <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#pool-form-tab-{{ sub_form.pool_label.data }}" type="button" role="tab"
+                    aria-controls="pool-form-tab" aria-selected="true">
+                    {{ pools[loop.index0] }}</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="tab-content pt-3">
+                {% for sub_form in form.input_fields %}
+                <div class="tab-pane fade show {{ 'active' if loop.first else '' }}" id="pool-form-tab-{{ sub_form.pool_label.data }}" role="tabpanel" tabindex="{{loop.index0}}">
+                    <div>
+                        <div>
+                            {{ sub_form.csrf_token() }}
+                            <div class="row">
+                                {{ form_group(sub_form.pool_label, class="col") }}
+                            </div>
+                            <h5>Who did the pooling?</h5>
+                            <div class="row">
+                                {{ form_group(sub_form.contact_person_name, class="col-4") }}
+                                {{ form_group(sub_form.contact_person_email, class="col-4") }}
+                                {{ form_group(sub_form.contact_person_phone, class="col-4") }}
+                            </div>
+                        </div>
+                        <div id="pool-library-list-container">
+                            <table class="table table-hover table-cursor">
+                                <thead>
+                                    <tr>
+                                        <th>Sample</th>
+                                        <th>Library Types</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sample, sample_data in pool_libraries[loop.index0].items() %}
+                                    <tr>
+                                        <td>{{ sample }}</td>
+                                        <td>
+                                            <ul class="h-list">
+                                            {% for library in sample_data %}
+                                                <li>
+                                                    {{ library["library_type"] }}
+                                                </li>
+                                            {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-primary"
-            hx-target="#feature_kit-mapping-form-container" hx-swap="outerHTML"
-            hx-include="#feature_kit-mapping-form"
-            hx-post="{{ url_for('seq_request_form_htmx.map_feature_kits', seq_request_id=seq_request.id) }}">
-            Map Feature Kits
+            hx-target="#pool-mapping-container" hx-swap="outerHTML"
+            hx-include="#pool-mapping-form"
+            hx-post="{{ url_for('seq_request_form_htmx.map_pools', seq_request_id=seq_request.id) }}">
+            Confirm
         </button>
         
         <button type="button"class="btn btn-danger"
-            hx-target="#feature_kit-mapping-form-container" hx-swap="outerHTML"
+            hx-target="#pool-mapping-container" hx-swap="outerHTML"
             hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}"
             _="on htmx:confirm(issueRequest)
             halt the event
@@ -44,3 +93,6 @@
         </button>
     </div>
 </div>
+<script>
+    init_tooltips();
+</script>

@@ -1,59 +1,43 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from "components/search_select.jinja2" import search_select_field %}
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/categorical_mapping.jinja2" import categorical_mapping_with_new_field %}
 
-<div id="sample-table-col-select-container" class="modal-content">
+<div id="project-select-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">2. Add Samples from Table</h1>
+        <h1 class="modal-title fs-5">2. Select Project(s)</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
         <div class="input-help">
             <h5>Instructions</h5>
             <ul>
-                <li>If you have used the template annotation sheet from previous step and not renamed colum names, you don't neeed to change anything here.</li>
+                <li>For each unique 'Raw Label', select an existing project or create a new project.</li>
+                <li>Samples associated to a same project are processed and published together.</li>
             </ul>
         </div>
-        <form id="sample-table-col-select-form">
-            <div class="form-table-container">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            {% for column in columns %}
-                            <td>
-                                {{ sample_table_form.input_fields[loop.index-1].select_field(class="form-control select-field") }}
-                                {{ sample_table_form.input_fields[loop.index-1].csrf_token() }}
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        <tr>
-                            {% for column in columns %}
-                            <th scope="col">{{ column }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in data %}
-                        <tr>
-                            {% for col in row %}
-                            <td>{{ col if col == col }}</td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {{ sample_table_form.file_uuid(hidden=False, readonly=True) }}
-                {{ sample_table_form.csrf_token(hidden=True) }}
-            </div>
+        <form id="project-select-form">
+            {{    
+                categorical_mapping_with_new_field(
+                    form=form,
+                    categories=categories,
+                    url=url_for('projects_htmx.query'),
+                    selected=selected,
+                )
+            }}
+            {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">
         <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
-            hx-target="#sample-table-col-select-container" hx-swap="outerHTML"
-            hx-include="#sample-table-col-select-form"
-            hx-post="{{ url_for('seq_request_form_htmx.map_columns', seq_request_id=seq_request.id) }}">
-            Check Columns
+            hx-target="#project-select-form-container" hx-swap="outerHTML"
+            hx-include="#project-select-form"
+            hx-post="{{ url_for('seq_request_form_htmx.select_project', seq_request_id=seq_request.id) }}">
+            Select Project
         </button>
+        
         <button type="button"class="btn btn-danger"
-            hx-target="#sample-table-col-select-container" hx-swap="outerHTML"
+            hx-target="#project-select-form-container" hx-swap="outerHTML"
             hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}"
             _="on htmx:confirm(issueRequest)
             halt the event
@@ -69,73 +53,3 @@
         </button>
     </div>
 </div>
-
-<script>
-    var required_fields = {{ required_fields | safe }};
-    var optional_fields = {{ optional_fields | safe }};
-
-    function update_missing_list() {
-        var selected_fields = [];
-        $(".select-field").each(function() {
-            if ($(this).find(":selected").val() != "") {
-                selected_fields.push($(this).find(":selected").val())
-            }
-        });
-        
-        var missing_fields = [];
-        for (required_field in required_fields) {
-            if (!selected_fields.includes(required_fields[required_field])) {
-                missing_fields.push(required_fields[required_field].replace("_", " "));
-            }
-        }
-        if (missing_fields.length > 0) {
-            const missing_fields_string = "Missing: " + missing_fields.join(", ");
-            $("#missing-col-list").text(missing_fields_string);
-        } else {
-            $("#missing-col-list").text("");
-        }
-        
-        var duplicated_fields = [];
-        var selected_fields_set = new Set(selected_fields);
-        for (selected_field of selected_fields_set) {
-            if (selected_fields.filter(x => x === selected_field).length > 1) {
-                duplicated_fields.push(selected_field.replace("_", " "));
-            }
-        }
-
-        if (duplicated_fields.length > 0) {
-            const duplicated_fields_string = "Duplicated: " + duplicated_fields.join(", ");
-            $("#duplicate-col-list").text(duplicated_fields_string);
-            if (!$("#map-sample-table-col-btn").hasClass("disabled")) {
-                $("#map-sample-table-col-btn").addClass("disabled");
-            }
-        } else {
-            $("#duplicate-col-list").text("");
-        }
-    }
-
-    function check_columns() {
-        var array = [];
-        $(".select-field").each(function() {
-            if (required_fields.includes($(this).find(":selected").val())){
-                array.push($(this).find(":selected").val());
-            }
-        });
-
-        console.log(required_fields.sort().join(""));
-        console.log(array.sort().join(""));
-        if (required_fields.sort().join("") === array.sort().join("")) {
-            $("#map-sample-table-col-btn").removeClass("disabled");
-        } else {
-            $("#map-sample-table-col-btn").addClass("disabled");
-        }
-        update_missing_list();
-    }
-
-    $(".select-field").on("change", function() {
-        //check_columns();
-    });
-
-    //check_columns();
-
-</script>

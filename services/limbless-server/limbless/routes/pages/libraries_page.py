@@ -24,9 +24,7 @@ def libraries_page():
         else:
             libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
-    library_form = forms.LibraryForm()
-    library_form.library_contact_email.data = current_user.email
-    library_form.library_contact_name.data = current_user.name
+    library_form = forms.EditLibraryForm()
 
     return render_template(
         "libraries_page.html",
@@ -93,5 +91,4 @@ def library_page(library_id):
         library=library,
         path_list=path_list,
         library_edit_form=library_edit_form,
-        table_form=forms.TableForm(),
     )

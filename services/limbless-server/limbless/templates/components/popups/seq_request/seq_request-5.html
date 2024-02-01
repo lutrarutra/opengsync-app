@@ -1,38 +1,46 @@
-{% from "components/categorical_mapping.jinja2" import static_categorical_mapping %}
+{% from "components/categorical_mapping.jinja2" import categorical_mapping %}
 
-<div id="library-type-mapping-container" class="modal-content">
+<div id="index_kit-mapping-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">5. Map Library Types</h1>
-        <button type="button" class="btn-close" data-bs-ldismiss="modal" aria-label="Close"></button>
+        <h1 class="modal-title fs-5">5. Map Index Kits</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
         <div class="input-help">
             <h5>Instructions</h5>
             <ul>
-                <li>For each unique 'Raw Label', select a library type from the list.</li>
+                <li>If library barcode indices are specified manually, you can leave this field empty.</li>
+                <li>For each unique 'Raw Label', select a index kit type from the list.</li>
+                <li>You can find available kits and their adapters <a href="{{ url_for('index_kits_page.index_kits_page') }}">Index Kits</a> -page</li>
+            </ul>
+            <h5>Important</h5>
+            <ul>
+                <li>All adapters associated to a library with a specified index kit must be found from the index kit.</li>
             </ul>
         </div>
-        <form id="library-type-category-mapping-form">
-            {{ 
-                static_categorical_mapping(
-                    form=library_mapping_form,
-                    categories=categories
+        <form id="index_kit-mapping-form">
+            {{    
+                categorical_mapping(
+                    form=form,
+                    categories=categories,
+                    url=url_for('barcodes_htmx.query_index_kits'),
+                    selected=selected,
                 )
             }}
-            {{ library_mapping_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
-            {{ library_mapping_form.csrf_token() }}
+            {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-primary"
-            hx-target="#library-type-mapping-container" hx-swap="outerHTML"
-            hx-include="#library-type-category-mapping-form"
-            hx-post="{{ url_for('seq_request_form_htmx.map_libraries', seq_request_id=seq_request.id) }}">
-            Map Library Types
+            hx-target="#index_kit-mapping-form-container" hx-swap="outerHTML"
+            hx-include="#index_kit-mapping-form"
+            hx-post="{{ url_for('seq_request_form_htmx.map_index_kits', seq_request_id=seq_request.id) }}">
+            Map Index Kits
         </button>
         
         <button type="button"class="btn btn-danger"
-            hx-target="#library-type-mapping-container" hx-swap="outerHTML"
+            hx-target="#index_kit-mapping-form-container" hx-swap="outerHTML"
             hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}"
             _="on htmx:confirm(issueRequest)
             halt the event

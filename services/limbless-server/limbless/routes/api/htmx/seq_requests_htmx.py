@@ -765,7 +765,7 @@ def pooling_form(seq_request_id: int):
         if not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
     
-    table_form = forms.TableForm("pooling")
+    table_form = forms.TableInputForm("pooling")
 
     return make_response(
         render_template(

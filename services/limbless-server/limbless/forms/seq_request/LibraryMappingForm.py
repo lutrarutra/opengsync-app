@@ -1,5 +1,6 @@
 from typing import Optional
 from io import StringIO
+from flask import Response
 import pandas as pd
 
 from flask_wtf import FlaskForm
@@ -8,9 +9,15 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 
 from ... import db, models, logger, tools
 from ...core.DBHandler import DBHandler
-from ...core.DBSession import DBSession
 from ...categories import LibraryType
-from .TableDataForm import TableDataForm
+from ..TableDataForm import TableDataForm
+
+from ..ExtendedFlaskForm import ExtendedFlaskForm
+
+from .IndexKitMappingForm import IndexKitMappingForm
+from .CMOReferenceInputForm import CMOReferenceInputForm
+from .PoolMappingForm import PoolMappingForm
+from .BarcodeCheckForm import BarcodeCheckForm
 
 
 class LibrarySubForm(FlaskForm):
@@ -77,19 +84,20 @@ class LibrarySubForm(FlaskForm):
     category = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], default=None)
 
 
-class LibraryMappingForm(TableDataForm):
+class LibraryMappingForm(ExtendedFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(LibrarySubForm), min_entries=1)
 
-    def custom_validate(self, db_handler: DBHandler):
-        validated = self.validate()
-        if not validated:
-            return False, self
+    _template_path = "components/popups/seq_request/seq_request-4.html"
 
-        return validated, self
-    
+    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+        if uuid is None:
+            uuid = formdata.get("file_uuid")
+        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        TableDataForm.__init__(self, uuid=uuid)
+
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
         if data is None:
-            data = self.data
+            data = self.get_data()
 
         df = data["library_table"]
         
@@ -126,8 +134,8 @@ class LibraryMappingForm(TableDataForm):
             "categories": library_types,
         }
 
-    def parse(self) -> dict[str, pd.DataFrame]:
-        data = self.data
+    def __parse(self) -> dict[str, pd.DataFrame]:
+        data = self.get_data()
         df = data["library_table"]
 
         df.loc[df["library_type"].isna(), "library_type"] = "Library"
@@ -148,3 +156,32 @@ class LibraryMappingForm(TableDataForm):
         self.update_data(data)
 
         return data
+    
+    def process_request(self, **context) -> Response:
+        validated = self.validate()
+        if not validated:
+            return self.make_response(**context)
+        
+        data = self.__parse()
+
+        if "index_kit" in data["library_table"] and not data["library_table"]["index_kit"].isna().all():
+            index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
+            context = index_kit_mapping_form.prepare(data) | context
+            return index_kit_mapping_form.make_response(**context)
+        
+        if data["library_table"]["library_type_id"].isin([
+            LibraryType.MULTIPLEXING_CAPTURE.value.id,
+        ]).any():
+            
+            cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
+            context = cmo_reference_input_form.prepare(data) | context
+            return cmo_reference_input_form.make_response(**context)
+        
+        if "pool" in data["library_table"].columns:
+            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
+            context = pool_mapping_form.prepare(data) | context
+            return pool_mapping_form.make_response(**context)
+
+        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
+        context = barcode_check_form.prepare(data) | context
+        return barcode_check_form.make_response(**context)

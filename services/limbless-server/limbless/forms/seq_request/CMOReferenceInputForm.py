@@ -1,9 +1,9 @@
 from typing import Optional, Union
+from flask import Response
 import pandas as pd
 from pathlib import Path
 from uuid import uuid4
 
-from flask_wtf import FlaskForm
 from wtforms import SelectField, FileField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
@@ -11,10 +11,13 @@ from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 
 from ... import db, models, logger, tools
-from .TableDataForm import TableDataForm
+from ..TableDataForm import TableDataForm
+
+from ..ExtendedFlaskForm import ExtendedFlaskForm
+from .FeatureKitMappingForm import FeatureKitMappingForm
 
 
-class CMOReferenceInputForm(TableDataForm):
+class CMOReferenceInputForm(ExtendedFlaskForm, TableDataForm):
     _required_columns: list[Union[str, list[str]]] = [
         "Biosample", "Sample Name",
     ]
@@ -35,25 +38,29 @@ class CMOReferenceInputForm(TableDataForm):
     separator = SelectField(choices=_allowed_extensions, default="tsv")
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
 
+    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+        if uuid is None:
+            uuid = formdata.get("file_uuid")
+        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        TableDataForm.__init__(self, uuid=uuid)
+
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
         if data is None:
-            data = self.data
+            data = self.get_data()
 
         # self.update_data(data)
         return {}
 
-    def custom_validate(
-        self,
-    ) -> tuple[bool, "CMOReferenceInputForm"]:
+    def validate(self) -> bool:
 
         logger.debug(self.file.data)
         validated = self.validate()
         if not validated:
-            return False, self
+            return False
         
         if self.file.data is None:
             self.file.errors = ("Upload a file.",)
-            return False, self
+            return False
         
         filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
         filename = secure_filename(filename)
@@ -69,7 +76,7 @@ class CMOReferenceInputForm(TableDataForm):
             self.cmo_ref = pd.read_csv("uploads/seq_request/" + filename, sep=sep, index_col=False, header=0)
         except pd.errors.ParserError as e:
             self.file.errors = (str(e),)
-            return False, self
+            return False
         
         missing = []
         for col in CMOReferenceInputForm._required_columns:
@@ -78,23 +85,23 @@ class CMOReferenceInputForm(TableDataForm):
         
             if len(missing) > 0:
                 self.file.errors = (f"Missing column(s): [{', '.join(missing)}]",)
-                return False, self
+                return False
         
         specified_with_name = (~self.cmo_ref["Kit"].isna() & ~self.cmo_ref["Feature"].isna())
         specified_manually = (~self.cmo_ref["Sequence"].isna() & ~self.cmo_ref["Pattern"].isna() & ~self.cmo_ref["Read"].isna())
         if (~(specified_with_name | specified_manually)).any():
             self.file.errors = ("Columns 'Kit + Feature' or 'Sequence + Pattern Read'  must be specified for all rows.",)
-            return False, self
+            return False
         
         if self.cmo_ref["Sample Name"].isna().any():
             self.file.errors = ("Column 'Sample Name' must be specified for all rows.",)
-            return False, self
+            return False
         
         if self.cmo_ref["Biosample"].isna().any():
             self.file.errors = ("Column 'Biosample' must be specified for all rows.",)
-            return False, self
+            return False
         
-        data = self.data
+        data = self.get_data()
 
         libraries_not_mapped = ~self.cmo_ref["Sample Name"].isin(data["library_table"]["sample_name"])
         if libraries_not_mapped.any():
@@ -102,12 +109,12 @@ class CMOReferenceInputForm(TableDataForm):
                 "Values in 'Sample Name'-column in feature reference must be found in 'Sample Name'-column of sample annotation sheet.",
                 "Missing values: " + ", ".join(self.cmo_ref["Sample Name"][libraries_not_mapped].unique().tolist())
             )
-            return False, self
+            return False
         
-        return validated, self
+        return validated
     
-    def parse(self) -> dict[str, pd.DataFrame]:
-        data = self.data
+    def __parse(self) -> dict[str, pd.DataFrame]:
+        data = self.get_data()
 
         self.cmo_ref = self.cmo_ref.rename(columns=CMOReferenceInputForm._mapping)
 
@@ -116,3 +123,18 @@ class CMOReferenceInputForm(TableDataForm):
         self.update_data(data)
 
         return data
+    
+    def process_request(self, **context) -> Response:
+        validated = self.validate()
+        if not validated:
+            return self.make_response(**context)
+
+        try:
+            data = self.__parse()
+        except pd.errors.ParserError as e:
+            self.file.errors = (str(e),)
+            return self.make_response(**context)
+        
+        feature_kit_mapping_form = FeatureKitMappingForm(uuid=self.uuid)
+        context = feature_kit_mapping_form.prepare(data) | context
+        return feature_kit_mapping_form.make_response(**context)

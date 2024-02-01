@@ -1,4 +1,5 @@
 from typing import Optional
+from flask import Response
 import pandas as pd
 
 from flask_wtf import FlaskForm
@@ -6,7 +7,12 @@ from wtforms import StringField, FieldList, FormField, IntegerField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from ... import db, models, logger, tools
-from .TableDataForm import TableDataForm
+from ..TableDataForm import TableDataForm
+
+from ..ExtendedFlaskForm import ExtendedFlaskForm
+
+from .PoolMappingForm import PoolMappingForm
+from .BarcodeCheckForm import BarcodeCheckForm
 
 
 class FeatureKitSubForm(FlaskForm):
@@ -14,15 +20,21 @@ class FeatureKitSubForm(FlaskForm):
     category = IntegerField("Index Kit", validators=[DataRequired()])
 
 
-class FeatureKitMappingForm(TableDataForm):
+class FeatureKitMappingForm(ExtendedFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(FeatureKitSubForm), min_entries=1)
 
-    def custom_validate(self) -> tuple[bool, "FeatureKitMappingForm"]:
-        validated = self.validate()
+    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+        if uuid is None:
+            uuid = formdata.get("file_uuid")
+        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        TableDataForm.__init__(self, uuid=uuid)
+
+    def validate(self) -> bool:
+        validated = super().validate()
         if not validated:
-            return False, self
+            return False
         
-        data = self.data
+        data = self.get_data()
         for table_name in ["feature_table", "cmo_table"]:
             if table_name not in data.keys():
                 continue
@@ -36,24 +48,24 @@ class FeatureKitMappingForm(TableDataForm):
 
                 if (feature_kit_id := entry.category.data) is None:
                     entry.category.errors = ("Not valid feature kit selected")
-                    return False, self
+                    return False
                 
                 if (selected_kit := db.db_handler.get_feature_kit(feature_kit_id)) is None:
                     entry.category.errors = ("Not valid feature kit selected")
-                    return False, self
+                    return False
                 
                 _df = df[df["kit"] == raw_feature_kit_label]
                 for _, row in _df.iterrows():
                     feature_name = str(row["feature_name"])
                     if (_ := db.db_handler.get_feature_from_kit_by_feature_name(feature_name, selected_kit.id)) is None:
                         entry.category.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
-                        return False, self
+                        return False
 
-        return validated, self
+        return validated
     
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
         if data is None:
-            data = self.data
+            data = self.get_data()
 
         kits = []
         selected: list[Optional[models.FeatureKit]] = []
@@ -91,8 +103,8 @@ class FeatureKitMappingForm(TableDataForm):
             "selected": selected
         }
     
-    def parse(self) -> dict[str, pd.DataFrame]:
-        data = self.data
+    def __parse(self) -> dict[str, pd.DataFrame]:
+        data = self.get_data()
 
         for table_name in ["feature_table", "cmo_table"]:
             if table_name not in data.keys():
@@ -131,3 +143,18 @@ class FeatureKitMappingForm(TableDataForm):
 
         return data
             
+    def process_request(self, **context) -> Response:
+        validated = self.validate()
+        if not validated:
+            return self.make_response(**context)
+
+        data = self.__parse()
+
+        if "pool" in data["library_table"].columns:
+            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
+            context = pool_mapping_form.prepare(data) | context
+            return pool_mapping_form.make_response(**context)
+
+        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
+        context = barcode_check_form.prepare(data)
+        return barcode_check_form.make_response(**context)

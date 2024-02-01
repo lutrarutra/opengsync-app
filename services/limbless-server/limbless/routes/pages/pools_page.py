@@ -81,5 +81,5 @@ def pool_page(pool_id: int):
             open_index_form=open_index_form,
             is_editable=is_editable,
             index_form=index_form,
-            table_form=forms.TableForm(),
+            table_form=forms.TableInputForm(),
         )

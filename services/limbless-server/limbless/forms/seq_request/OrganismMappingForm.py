@@ -1,5 +1,6 @@
 from typing import Optional
 from io import StringIO
+from flask import Response
 import pandas as pd
 
 from flask_wtf import FlaskForm
@@ -7,7 +8,10 @@ from wtforms import FieldList, FormField, TextAreaField, IntegerField, BooleanFi
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from ... import tools, models, db, logger
-from .TableDataForm import TableDataForm
+from ..TableDataForm import TableDataForm
+
+from ..ExtendedFlaskForm import ExtendedFlaskForm
+from .LibraryMappingForm import LibraryMappingForm
 
 
 class OrganismSubForm(FlaskForm):
@@ -16,12 +20,20 @@ class OrganismSubForm(FlaskForm):
 
 
 # 4. Select organism for samples
-class OrganismMappingForm(TableDataForm):
+class OrganismMappingForm(ExtendedFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(OrganismSubForm), min_entries=1)
+
+    _template_path = "components/popups/seq_request/seq_request-3.html"
+
+    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+        if uuid is None:
+            uuid = formdata.get("file_uuid")
+        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        TableDataForm.__init__(self, uuid=uuid)
 
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
         if data is None:
-            data = self.data
+            data = self.get_data()
             
         df = data["library_table"]
         df["duplicate"] = False
@@ -59,8 +71,8 @@ class OrganismMappingForm(TableDataForm):
             "selected": selected,
         }
     
-    def parse(self) -> dict[str, pd.DataFrame]:
-        data = self.data
+    def __parse(self) -> dict[str, pd.DataFrame]:
+        data = self.get_data()
 
         organism_id_mapping = {}
         organisms = sorted(data["library_table"]["organism"].unique())
@@ -71,10 +83,14 @@ class OrganismMappingForm(TableDataForm):
         data["library_table"]["tax_id"] = data["library_table"]["organism"].map(organism_id_mapping)
         self.update_data(data)
         return data
-
-    def custom_validate(self):
+    
+    def process_request(self, **context) -> Response:
         validated = self.validate()
         if not validated:
-            return False, self
+            return self.make_response(**context)
+        
+        data = self.__parse()
 
-        return validated, self
+        library_mapping_form = LibraryMappingForm(uuid=self.uuid)
+        context = library_mapping_form.prepare(data) | context
+        return library_mapping_form.make_response(**context)
