@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -12,9 +12,20 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 
 class SampleForm(HTMXFlaskForm):
-    _template_path = "forms/sample.html"
+    _template_path = "forms/sample/sample.html"
+    _form_label = "sample_form"
+
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
     organism = IntegerField("Organism", validators=[DataRequired()])
+
+    def __init__(self, formdata: Optional[dict[str, Any]] = None, sample: Optional[models.Sample] = None):
+        super().__init__(formdata=formdata)
+        if sample is not None:
+            self.__fill_form(sample)
+
+    def __fill_form(self, sample: models.Sample):
+        self.name.data = sample.name
+        self.organism.data = sample.organism.tax_id
 
     def validate(self, user_id: int, sample: models.Sample) -> bool:
         if not super().validate():

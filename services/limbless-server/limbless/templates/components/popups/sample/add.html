@@ -4,7 +4,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
-        {% include "forms/sample/sample.html" %}
+        {% include sample_form._template_path %}
     </div>
     <div class="modal-footer">
         <button id="submit-sample-btn" class="btn btn-primary" hx-include="#sample-form" hx-target="#sample-form"

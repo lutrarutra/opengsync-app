@@ -157,10 +157,10 @@ def delete_sample(
     if not self._session:
         self.open_session()
 
-    if (sample := self._session.get(models.Sample, sample_id)):
+    if (sample := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
-    sample.user.num_samples -= 1
+    sample.owner.num_samples -= 1
     sample.project.num_samples -= 1
     self._session.delete(sample)
 

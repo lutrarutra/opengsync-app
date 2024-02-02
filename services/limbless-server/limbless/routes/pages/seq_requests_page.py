@@ -76,7 +76,7 @@ def seq_request_page(seq_request_id: int):
                     (f"Request {seq_request_id}", ""),
                 ]
 
-        form = forms.SASInputForm()
+        sas_input_form = forms.SASInputForm()
 
         return render_template(
             "seq_request_page.html",
@@ -86,7 +86,7 @@ def seq_request_page(seq_request_id: int):
             path_list=path_list,
             library_results=library_results,
             seq_request_form=seq_request_form,
-            form=form,
+            sas_input_form=sas_input_form,
             seq_auth_form=forms.SeqAuthForm(),
             libraries_n_pages=libraries_n_pages, libraries_active_page=0,
             samples_n_pages=samples_n_pages, samples_active_page=0,

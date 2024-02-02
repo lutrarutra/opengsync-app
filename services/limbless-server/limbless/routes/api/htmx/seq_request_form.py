@@ -75,8 +75,8 @@ def parse_table(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.TableInputForm(
-        upload_dir="seq_request", formdata=request.form | request.files
+    return forms.SASInputForm(
+        formdata=request.form | request.files
     ).process_request(
         seq_request=seq_request, user_id=current_user.id
     )

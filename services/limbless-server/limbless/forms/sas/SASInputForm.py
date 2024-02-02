@@ -15,14 +15,15 @@ from .ProjectMappingForm import ProjectMappingForm
 
 
 class SASInputForm(HTMXFlaskForm):
+    _template_path = "components/popups/seq_request/sas-1.html"
+    _form_label = "sas_input_form"
+
     _allowed_extensions: list[tuple[str, str]] = [
         ("tsv", "Tab-separated"),
         ("csv", "Comma-separated")
     ]
     separator = SelectField(choices=_allowed_extensions, default="tsv")
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
-
-    _template_path = "components/popups/seq_request/sas-1.html"
 
     def __init__(self, formdata: Optional[dict] = None):
         super().__init__(formdata=formdata)

@@ -7,8 +7,8 @@ from wtforms import StringField, SelectField, FieldList, FormField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from ...categories import LibraryType
+from ... import tools
 from ..TableDataForm import TableDataForm
-
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 from .IndexKitMappingForm import IndexKitMappingForm

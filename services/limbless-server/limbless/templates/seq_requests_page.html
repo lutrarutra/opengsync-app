@@ -23,7 +23,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    {% include "forms/seq_request/seq_request.html" %}
+                    {% include seq_request_form._template_path %}
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form"

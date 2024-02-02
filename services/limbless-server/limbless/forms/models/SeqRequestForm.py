@@ -13,6 +13,7 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 class SeqRequestForm(HTMXFlaskForm):
     _template_path = "forms/seq_request/seq_request.html"
+    _form_label = "seq_request_form"
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, seq_request: Optional[models.SeqRequest] = None):
         super().__init__(formdata=formdata)
@@ -84,8 +85,8 @@ class SeqRequestForm(HTMXFlaskForm):
 
     flowcell_type = SelectField(
         "Flowcell Type", validators=[OptionalValidator()],
-        choices=[(-1, "-")] + FlowCellType.as_selectable(), default=-1,
-        description="Type of flowcell to use for sequencing."
+        choices=[(-1, "-")] + FlowCellType.as_selectable(), default=None,
+        description="Type of flowcell to use for sequencing.", coerce=int
     )
 
     current_user_is_contact = BooleanField(
@@ -172,11 +173,14 @@ class SeqRequestForm(HTMXFlaskForm):
 
         user_requests, _ = db.db_handler.get_seq_requests(user_id=user_id, limit=None)
 
-        try:
-            FlowCellType.get(int(self.flowcell_type.data))
-        except ValueError:
-            self.flowcell_type.errors = ("Invalid flowcell type",)
-            return False
+        if self.flowcell_type.data != -1:
+            try:
+                logger.debug(self.flowcell_type.data)
+                
+                FlowCellType.get(int(self.flowcell_type.data))
+            except ValueError:
+                self.flowcell_type.errors = ("Invalid flowcell type",)
+                return False
 
         if seq_request is not None:
             for request in user_requests:
@@ -352,11 +356,8 @@ class SeqRequestForm(HTMXFlaskForm):
         else:
             seq_type = SequencingType.OTHER
 
-        if (flowcell_type_id := self.flowcell_type.data) is not None:
-            try:
-                flowcell_type = FlowCellType.get(int(flowcell_type_id))
-            except ValueError:
-                flowcell_type = None
+        if self.flowcell_type.data != -1:
+            flowcell_type = FlowCellType.get(int(self.flowcell_type.data))
         else:
             flowcell_type = None
 
@@ -395,6 +396,7 @@ class SeqRequestForm(HTMXFlaskForm):
         seq_request: Optional[models.SeqRequest] = context.get("seq_request")
 
         if not self.validate(user_id=user_id, seq_request=seq_request):
+            logger.debug(self.errors)
             return self.make_response(**context)
         
         if seq_request is not None:

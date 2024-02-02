@@ -2,15 +2,15 @@
 {% from 'components/search_select.jinja2' import search_select_field %}
 <form id="edit-library-form">
     <div class="row">
-        {{ form_group(library_edit_form.adapter, class="col") }}
-        {{ select_input(library_edit_form.library_type, class="col") }}
+        {{ form_group(library_form.adapter, class="col") }}
+        {{ select_input(library_form.library_type, class="col") }}
     </div>
     <div class="row">
-        {{ form_group(library_edit_form.index_1, class="col") }}
-        {{ form_group(library_edit_form.index_2, class="col") }}
+        {{ form_group(library_form.index_1, class="col") }}
+        {{ form_group(library_form.index_2, class="col") }}
     </div>
     <div class="row">
-        {{ form_group(library_edit_form.index_3, class="col") }}
-        {{ form_group(library_edit_form.index_4, class="col") }}
+        {{ form_group(library_form.index_3, class="col") }}
+        {{ form_group(library_form.index_4, class="col") }}
     </div>
 </form>

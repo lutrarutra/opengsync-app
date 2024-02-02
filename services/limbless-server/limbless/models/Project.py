@@ -16,7 +16,7 @@ class Project(SQLModel, SearchResult, table=True):
     num_samples: int = Field(nullable=False, default=0)
 
     samples: List["Sample"] = Relationship(
-        back_populates="project"
+        back_populates="project", sa_relationship_kwargs={"lazy": "select"}
     )
 
     owner_id: int = Field(nullable=False, foreign_key="lims_user.id")

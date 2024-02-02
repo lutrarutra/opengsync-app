@@ -1,6 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group %}
 <form id="project-form">
-    {{ form.csrf_token() }}
-    {{ form_group(form.name) }}
-    {{ form_group(form.description) }}
+    {{ project_form.csrf_token() }}
+    {{ form_group(project_form.name) }}
+    {{ form_group(project_form.description) }}
 </form>

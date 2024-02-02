@@ -19,6 +19,7 @@ from .LibraryMappingForm import LibraryMappingForm
 class ProjectSubForm(FlaskForm):
     raw_category = StringField("Raw Label", validators=[OptionalValidator()])
     category = IntegerField("Select Existing Project", validators=[OptionalValidator()])
+    
 
     new_category = StringField("Create New Project", validators=[OptionalValidator()])
 

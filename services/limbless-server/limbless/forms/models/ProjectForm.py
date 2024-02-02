@@ -12,6 +12,7 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 class ProjectForm(HTMXFlaskForm):
     _template_path = "forms/project.html"
+    _form_label = "project_form"
 
     name = StringField("Name", validators=[DataRequired(), Length(min=6, max=64)])
     description = TextAreaField("Description", validators=[DataRequired(), Length(min=1, max=1024)])

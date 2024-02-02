@@ -85,7 +85,6 @@ def get(page: int):
 @samples_htmx.route("<int:sample_id>/delete", methods=["DELETE"])
 @login_required
 def delete(sample_id: int):
-    logger.debug(sample_id)
     if (sample := db.db_handler.get_sample(sample_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     

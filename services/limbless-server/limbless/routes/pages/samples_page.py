@@ -43,9 +43,7 @@ def sample_page(sample_id):
         if access is None:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    sample_form = forms.SampleForm()
-    sample_form.name.data = sample.name
-    sample_form.organism.data = sample.organism.tax_id
+    sample_form = forms.SampleForm(sample=sample)
 
     with DBSession(db.db_handler) as session:
         sample = session.get_sample(sample_id)

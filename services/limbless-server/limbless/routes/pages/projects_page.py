@@ -20,7 +20,7 @@ def projects_page():
             projects, n_pages = session.get_projects(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
         return render_template(
-            "projects_page.html", form=project_form,
+            "projects_page.html", project_form=project_form,
             projects=projects, projects_n_pages=n_pages, projects_active_page=0,
             current_sort="id", current_sort_order="desc"
         )
@@ -49,7 +49,7 @@ def project_page(project_id):
         "project_page.html", project=project,
         samples=samples,
         path_list=path_list,
-        form=project_form,
+        project_form=project_form,
         common_organisms=db.common_organisms,
         samples_n_pages=n_pages, samples_active_page=0,
     )
