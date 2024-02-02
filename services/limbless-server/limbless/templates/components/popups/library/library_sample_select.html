@@ -113,7 +113,6 @@
                 selected.push($(this).attr("id").split("-")[2]);
             }
         });
-        console.log(selected);
         $("#selected_samples").val(selected.join(","));
         if (selected.length > 0) {
             $("#library-sample-select-form-btn").prop("disabled", false);

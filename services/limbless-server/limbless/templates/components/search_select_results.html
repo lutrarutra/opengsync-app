@@ -1,25 +1,25 @@
 <ul class="list-group search-component">
-{% if results and (results | length > 0) %}
-{% for res in results %}
-<li>
-    <a id="option-{{ field_name}}-{{ loop.index }}"
-    class="list-group-item search-component search-select-option"
-    value="{{ res.search_value() }}"
-    onclick="select_option('{{ res.search_name() }}', '{{ res.search_value() }}', '{{ field_name }}');"
-    aria-controls="{{ field_name }}">
-        <span class="search-select-name {{ res.name_class() }}">{{ res.search_name() }}</span>
-        {% if res.show_value() %}
-        <span class="search-select-value">[{{ res.search_value() }}]</span>
-        {% endif %}
-        {% if res.search_description() %}
-        <span class="search-select-desc {{ res.description_class() }}">({{ res.search_description() }})</span>
-        {% endif %}
-    </a>
-</li>
-{% endfor %}
-{% else %}
-<li>
-    <a class="list-group-item disabled">No results...</a>
-</li>
-{% endif %}
+    {% if results and (results | length > 0) %}
+    {% for res in results %}
+    <li>
+        <a id="option-{{ field_name}}-{{ loop.index }}"
+        class="list-group-item search-component search-select-option"
+        value="{{ res.search_value() }}"
+        onclick="select_option('{{ res.search_name() }}', '{{ res.search_value() }}', '{{ field_name }}');"
+        aria-controls="{{ field_name }}">
+            <span class="search-select-name {{ res.name_class() }}">{{ res.search_name() }}</span>
+            {% if res.show_value() %}
+            <span class="search-select-value">[{{ res.search_value() }}]</span>
+            {% endif %}
+            {% if res.search_description() %}
+            <span class="search-select-desc {{ res.description_class() }}">({{ res.search_description() }})</span>
+            {% endif %}
+        </a>
+    </li>
+    {% endfor %}
+    {% else %}
+    <li>
+        <a class="list-group-item disabled">No results...</a>
+    </li>
+    {% endif %}
 </ul>

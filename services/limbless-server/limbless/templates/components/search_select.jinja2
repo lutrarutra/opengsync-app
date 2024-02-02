@@ -1,55 +1,47 @@
-{% macro search_select_field(field, url, selected=None, results=None, include_data_element=True, disabled=false, include_field=None, custom_id=None, class="") -%}
-{% set field_name = field.name %}
-{% if not custom_id %}
-    {% set custom_id = field_name %}
-{% endif %}
-{% set class_str = "form-control search-component search-select-input" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else "") %}
-<div id="{{ custom_id }}-select" class="search-select form-group {{ class }}">
-    <label for="{{ custom_id }}">{{ field.label }}</label>
+{% macro search_select_field(field, class="") -%}
+<div class="mb-3 search-select {{ class }}">
+    <label for="basic-url" class="form-label mb-0">{{ field.search_bar.label.text }}</label>
     <div class="input-group">
-        <input type="search"
-        onclick="this.select();"
-        class="{{ class_str }} search-select-input"
-        autocomplete="off"
-        name="{{ custom_id }}-search"
-        id="{{ custom_id }}-search"
-        aria-controls="#{{ custom_id }}-results"
-        value="{{ selected if selected else '' }}"
-        hx-post="{{ url }}"
-        hx-include="[name='{{ custom_id }}-search'],[name='library_type']"
-        hx-params="{{ custom_id }}-search{{ ',' + include_field if include_field else ''}}"
-        hx-target="#{{ custom_id }}-results"
-        hx-trigger="keyup changed delay:500ms, {{ custom_id }}, change{{ ', load' if not results else '' }}" 
+        <input class="input-group-text searchbar-data" type="number" value="{{ field.selected.data if field.selected.data }}" readonly
+        id="{{ field.name }}" name="{{ field.name }}">
+        <input type="search" class="form-control searchbar-input search-component" aria-describedby=""
+        value="{{ field.search_bar.data }}"
+        name="{{ field.name }}-search"
+        id="{{ field.name }}-search"
+        hx-include="#{{ field.name }}-search"
+        hx-target="#{{ field.name }}-results"
+        hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{{ ', load' if not results else '' }}" 
+        hx-post="{{ field.query_url }}"
         hx-swap="innerHTML"
-        placeholder="Search"
-        {{ "readonly" if disabled }}>
-        <div id="{{ custom_id }}-results" class="search-select-results">
-            {% include "components/search_select_results.html" %}
-        </div>
+        placeholder="Search">
     </div>
-    <div class="invalid-feedback-container" id="{{ custom_id }}-invalid-container">
-    {% if field.errors %}
+    <div id="{{ field.name }}-results" class="search-select-results" style="display: none; width: 100%;">
+        {% include "components/search_select_results.html" %}
+    </div>
+    <div class="invalid-feedback-container" id="{{ field.name }}-invalid-container">
+        {% if field.errors %}
             {% for error in field.errors %}
             <p>{{ error }}</p>
             {% endfor %}
-    {% endif %}
+        {% endif %}
     </div>
-    {% if include_data_element %}
-        {{ field(hidden=False, readonly=True, id=custom_id) }}
-    {% endif %}
+    {{ field.csrf_token() }}
 </div>
 <script>
     // Shows search results when user focuses on search component
-    $("#{{ custom_id }}-search").on("focus", function() {
-        if ($(this).hasClass("disabled")) {
-            return;
-        }
-        $("#{{ custom_id }}-results").css("display", "block");
+    $("#{{ field.name }}-search:not(.disabled)").on("focus", function() {
+        $("#{{ field.name }}-results").css("display", "block");
+        this.select();
+        $(this).parent().addClass("active");
     });
 
-    $("#{{ custom_id }}-search").on("change", function() {
+    $("#{{ field.name }}-search:not(.disabled)").on("focusout", function() {
+        $(this).parent().removeClass("active");
+    });
+
+    $("#{{ field.name }}-search").on("change", function() {
         if ($(this).val() === "") {
-            $("#{{ custom_id }}").val("");
+            $("#{{ field.name }}").val("");
         }
     });
 </script>

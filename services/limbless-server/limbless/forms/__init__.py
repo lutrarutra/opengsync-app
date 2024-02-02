@@ -2,6 +2,8 @@ from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm, UserF
 from .TableDataForm import TableDataForm
 from .SeqAuthForm import SeqAuthForm
 
+from .search_bars import OrganismSearchBar, ProjectSearchBar
+
 from .models.LibraryForm import LibraryForm
 from .models.SequencerForm import SequencerForm
 from .models.SampleForm import SampleForm

@@ -377,66 +377,47 @@ span.desc:empty:after {
 
 
 .search-select {
-    .input-group {
-        display: flex;
-        width: 100%;
-        input {
-            border-radius: 0.375rem !important;
+    position: relative;
+    padding: 0;
+
+    .active {
+        .searchbar-data {
+            border-bottom-left-radius: 0;
         }
-        input:focus {
-            border-bottom-left-radius: 0 !important;
-            border-bottom-right-radius: 0 !important;
+        .searchbar-input {
+            border-bottom-right-radius: 0;
+            box-shadow: none !important;
+        }
+        box-shadow: 0 .125rem .25rem rgba($black, .075);
+    }
+
+    .input-group {
+        padding: 0;
+
+        width: 100%;
+        display: flex;
+        .searchbar-data {
+            width: 20%;
+        }
+        .searchbar-input {
+            flex-grow: 1;
         }
     }
 
     .search-select-results {
-        display: none;
-        z-index: 10;
+        position: absolute;
+        width: 100%;
         ul {
-            position: absolute;
-            max-height: 200px;
-            width: 100%;
-            overflow-y: auto;
-            border-top-left-radius: 0;
-            border-top-right-radius: 0;
-
+            list-style: none;
             li {
                 height: 40px;
+                text-decoration: none;
             }
-            .list-group-item:hover {
-                background-color: $gray-100;
-            }
-            .list-group-item {
-                height: 40px;
-                white-space: nowrap;
-                overflow: hidden;
-                .search-select-name {
-                    font-weight: 500;
-                }
-                .latin {
-                    font-style: italic;
-                }
-                .search-select-value {
-                    font-weight: 600;
-                }
-                .search-select-desc {
-                    color: $gray-500;
-                    white-space: nowrap;
-                    overflow: hidden;
-                }
-                height: 40px;
-                width: 100%;
-                div {
-                    display: flex;
-                    align-items: center;
-                }
-            }
-            .list-group-item:hover {
+            li:hover {
+                background-color: $gray-400 !important;
                 cursor: pointer;
             }
-            
         }
-        width: 100%;
     }
 }
 

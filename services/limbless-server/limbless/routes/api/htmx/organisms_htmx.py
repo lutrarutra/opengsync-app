@@ -12,6 +12,7 @@ organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism
 @organisms_htmx.route("query", methods=["POST"])
 @login_required
 def query():
+    logger.debug(request.form)
     field_name = next(iter(request.form.keys()), None)
     word = request.form.get(field_name, default="")
 

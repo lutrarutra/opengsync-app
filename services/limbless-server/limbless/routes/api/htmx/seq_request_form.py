@@ -62,7 +62,7 @@ def restart_form(seq_request_id: int):
     return make_response(
         render_template(
             "components/popups/seq_request/sas-1.html",
-            form=forms.TableInputForm("seq_request"),
+            sas_input_form=forms.SASInputForm(),
             seq_request=seq_request
         ), push_url=False
     )
@@ -86,6 +86,7 @@ def parse_table(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/project_select", methods=["POST"])
 @login_required
 def select_project(seq_request_id: int):
+    logger.debug(request.form)
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     

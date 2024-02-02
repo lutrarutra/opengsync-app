@@ -23,17 +23,6 @@ function select_option(name, id, search_field_id) {
     htmx.trigger(`#${search_field_id}`, "change");
 }
 
-// function init_searchbar_callbacks() {
-//     $(".search-select-option").on("click", function() {
-//         const selected_value = this.value;
-//         const field_name = $(this).attr("aria-controls");
-        
-//         console.log(field_name);
-//         console.log(selected_value);
-//     });
-// }
-
-// init_searchbar_callbacks();
 
 // Hides search results when user clicks outside of search component
 $(document).on("click", function(event) {

@@ -14,14 +14,18 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 from .OrganismMappingForm import OrganismMappingForm
 from .LibraryMappingForm import LibraryMappingForm
+from ..search_bars import ProjectSearchBar
 
 
 class ProjectSubForm(FlaskForm):
     raw_category = StringField("Raw Label", validators=[OptionalValidator()])
-    category = IntegerField("Select Existing Project", validators=[OptionalValidator()])
-    
-
+    # category = IntegerField("Select Existing Project", validators=[OptionalValidator()])
+    project = FormField(ProjectSearchBar)
     new_category = StringField("Create New Project", validators=[OptionalValidator()])
+
+    @property
+    def category(self):
+        return self.project
 
 
 # 3. Map sample to existing/new projects
@@ -46,9 +50,9 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             if i > len(self.input_fields.entries) - 1:
                 self.input_fields.append_entry()
 
-            entry = self.input_fields.entries[i]
+            entry = self.input_fields[i]
 
-            if (selected_id := entry.category.data) is not None:
+            if (selected_id := entry.project.selected.data) is not None:
                 selected_project = db.db_handler.get_project(selected_id)
             else:
                 if raw_project_name is None or pd.isna(raw_project_name):
@@ -56,7 +60,8 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
                     selected_project = None
                 else:
                     selected_project = next(iter(db.db_handler.query_projects(word=raw_project_name, limit=1, user_id=user_id)), None)
-                    entry.category.data = selected_project.id if selected_project is not None else None
+                    entry.project.selected.data = selected_project.id if selected_project is not None else None
+                    entry.project.search_bar.data = selected_project.search_name() if selected_project is not None else None
 
             selected.append(selected_project.search_name() if selected_project is not None else None)
 
@@ -76,17 +81,18 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
         projects = df["project"].unique().tolist()
 
         for i, raw_project in enumerate(projects):
+            input_field = self.input_fields[i]
+            
             if pd.isnull(raw_project):
                 idx = df["project"].isna()
             else:
                 idx = df["project"] == raw_project
-            if (project_id := self.input_fields[i].category.data) is not None:
+            if (project_id := input_field.project.selected.data) is not None:
                 if (project := db.db_handler.get_project(project_id)) is None:
                     raise Exception(f"Project with id {project_id} does not exist.")
                 df.loc[idx, "project_id"] = project.id
                 df.loc[idx, "project_name"] = project.name
             elif project_name := self.input_fields[i].new_category.data:
-                
                 df.loc[idx, "project_id"] = None
                 df.loc[idx, "project_name"] = project_name
                 logger.debug(f"Creating project {project_name}")
@@ -131,6 +137,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
 
     def validate(self, user_id: int) -> bool:
         if (validated := super().validate()) is False:
+            logger.debug(self.errors)
             return False
         
         with DBSession(db.db_handler) as session:

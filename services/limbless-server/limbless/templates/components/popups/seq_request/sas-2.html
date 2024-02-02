@@ -15,7 +15,7 @@
                 <li>Samples associated to a same project are processed and published together.</li>
             </ul>
         </div>
-        <form id="project-select-form">
+        <div id="project-select-form">
             {{    
                 categorical_mapping_with_new_field(
                     form=form,
@@ -26,7 +26,7 @@
             }}
             {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
             {{ form.csrf_token() }}
-        </form>
+        </div>
     </div>
     <div class="modal-footer">
         <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
