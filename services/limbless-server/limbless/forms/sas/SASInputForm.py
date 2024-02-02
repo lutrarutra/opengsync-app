@@ -5,20 +5,16 @@ from typing import Optional
 
 import pandas as pd
 
-
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import SelectField
 from flask import Response
 from werkzeug.utils import secure_filename
-from werkzeug.datastructures import ImmutableMultiDict
 
-from .. import logger
-
-from .ExtendedFlaskForm import ExtendedFlaskForm
-from .seq_request.ProjectMappingForm import ProjectMappingForm
+from ..HTMXFlaskForm import HTMXFlaskForm
+from .ProjectMappingForm import ProjectMappingForm
 
 
-class TableInputForm(ExtendedFlaskForm):
+class SASInputForm(HTMXFlaskForm):
     _allowed_extensions: list[tuple[str, str]] = [
         ("tsv", "Tab-separated"),
         ("csv", "Comma-separated")
@@ -26,11 +22,11 @@ class TableInputForm(ExtendedFlaskForm):
     separator = SelectField(choices=_allowed_extensions, default="tsv")
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
 
-    _template_path = "components/popups/seq_request/seq_request-1.html"
+    _template_path = "components/popups/seq_request/sas-1.html"
 
-    def __init__(self, upload_dir: str, formdata: Optional[dict] = None):
+    def __init__(self, formdata: Optional[dict] = None):
         super().__init__(formdata=formdata)
-        self.upload_path = os.path.join("uploads", upload_dir)
+        self.upload_path = os.path.join("uploads", "seq_request")
         if not os.path.exists(self.upload_path):
             os.makedirs(self.upload_path)
 
@@ -40,6 +36,37 @@ class TableInputForm(ExtendedFlaskForm):
         
         if self.file.data is None:
             self.file.errors = ("Please upload a file.",)
+            return False
+        
+        try:
+            self.df = self.__parse()
+
+            feature_mapping = {
+                "Sample Name": "sample_name",
+                "Organism": "organism",
+                "Project": "project",
+                "Library Type": "library_type",
+                "Pool": "pool",
+                "Index Kit": "index_kit",
+                "Adapter": "adapter",
+                "Index 1 (i7)": "index_1",
+                "Index 2 (i5)": "index_2",
+                "Index 3": "index_3",
+                "Index 4": "index_4",
+                "Library Volume [uL]": "library_volume",
+                "Library DNA Concentration [nM]": "library_concentration",
+                "Library Total Size [bp]": "library_total_size",
+            }
+            missing_cols = [col for col in feature_mapping.keys() if col not in self.df.columns]
+            if len(missing_cols) > 0:
+                self.file.errors = (str(f"Uploaded table is missing column(s): [{', '.join(missing_cols)}]"),)
+                return False
+
+            self.df = self.df.rename(columns=feature_mapping)
+            self.df = self.df[feature_mapping.values()]
+
+        except pd.errors.ParserError as e:
+            self.file.errors = (str(e),)
             return False
 
         return True
@@ -59,47 +86,12 @@ class TableInputForm(ExtendedFlaskForm):
         return df
     
     def process_request(self, **context) -> Response:
-        if (validated := self.validate()) is False:
+        if not self.validate():
             return self.make_response(**context)
         
         user_id: int = context["user_id"]
-
-        try:
-            df = self.__parse()
-
-            feature_mapping = {
-                "Sample Name": "sample_name",
-                "Organism": "organism",
-                "Project": "project",
-                "Library Type": "library_type",
-                "Pool": "pool",
-                "Index Kit": "index_kit",
-                "Adapter": "adapter",
-                "Index 1 (i7)": "index_1",
-                "Index 2 (i5)": "index_2",
-                "Index 3": "index_3",
-                "Index 4": "index_4",
-                "Library Volume [uL]": "library_volume",
-                "Library DNA Concentration [nM]": "library_concentration",
-                "Library Total Size [bp]": "library_total_size",
-            }
-            missing_cols = [col for col in feature_mapping.keys() if col not in df.columns]
-            if len(missing_cols) > 0:
-                self.file.errors = (str(f"Uploaded table is missing column(s): [{', '.join(missing_cols)}]"),)
-                validated = False
-
-            df = df.rename(columns=feature_mapping)
-            df = df[feature_mapping.values()]
-
-        except pd.errors.ParserError as e:
-            self.file.errors = (str(e),)
-            validated = False
-            df = pd.DataFrame()
-
-        if not validated:
-            return self.make_response(**context)
         
-        data = {"library_table": df}
+        data = {"library_table": self.df}
 
         project_mapping_form = ProjectMappingForm()
         context = project_mapping_form.prepare(user_id, data) | context

@@ -96,37 +96,12 @@ def edit(experiment_id: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+    if (_ := db.db_handler.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    experiment_form = forms.ExperimentForm()
-    validated, experiment_form = experiment_form.custom_validate()
-
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/experiment.html",
-                experiment_form=experiment_form
-            ), push_url=False
-        )
-    
-    db.db_handler.update_experiment(
-        experiment_id=experiment_id,
-        flowcell=experiment_form.flowcell.data,
-        r1_cycles=experiment_form.r1_cycles.data,
-        r2_cycles=experiment_form.r2_cycles.data,
-        i1_cycles=experiment_form.i1_cycles.data,
-        i2_cycles=experiment_form.i2_cycles.data,
-        num_lanes=experiment_form.num_lanes.data,
-        sequencer_id=experiment_form.sequencer.data,
-        sequencing_person_id=experiment_form.sequencing_person.data,
-    )
-
-    logger.debug(f"Edited experiment on flowcell '{experiment.flowcell}'")
-    flash(f"Edited experiment on flowcell '{experiment.flowcell}'.", "success")
-
-    return make_response(
-        redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
+    experiment_form = forms.ExperimentForm(request.form)
+    return experiment_form.process_request(
+        experiment_id=experiment_id
     )
 
 

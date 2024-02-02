@@ -6,7 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from ... import db, models, logger, tools
+from ... import logger
 from ..TableDataForm import TableDataForm
 
 if TYPE_CHECKING:
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
-from ..ExtendedFlaskForm import ExtendedFlaskForm
+from ..HTMXFlaskForm import HTMXFlaskForm
 from .BarcodeCheckForm import BarcodeCheckForm
 
 
@@ -25,15 +25,15 @@ class PoolSubForm(FlaskForm):
     contact_person_phone = StringField("Contact Person Phone", validators=[OptionalValidator(), Length(max=16)], description="Who prepared the libraries?")
 
 
-class PoolMappingForm(ExtendedFlaskForm, TableDataForm):
+class PoolMappingForm(HTMXFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(PoolSubForm), min_entries=1)
 
-    _template_path = "components/popups/seq_request/seq_request-8.html"
+    _template_path = "components/popups/seq_request/sas-8.html"
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
-        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
 
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:

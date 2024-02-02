@@ -1,5 +1,6 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
+
 {% extends "base.html" %}
 {% set active_page = "samples-page" %}
 {% block content %}
@@ -21,7 +22,7 @@
             </span>
             <span
             {% if not sample.is_editable() %}
-            {{ tooltip('Sample is not editable after it is added to library.') }}
+            {{ tooltip('Sample is not editable after it is added to library.', category='danger') }}
             {% endif %}>
                 <button hx-delete="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" class="btn btn-danger"
                     _="on htmx:confirm(issueRequest)

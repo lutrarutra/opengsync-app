@@ -61,7 +61,7 @@ def restart_form(seq_request_id: int):
     
     return make_response(
         render_template(
-            "components/popups/seq_request/seq_request-1.html",
+            "components/popups/seq_request/sas-1.html",
             form=forms.TableInputForm("seq_request"),
             seq_request=seq_request
         ), push_url=False

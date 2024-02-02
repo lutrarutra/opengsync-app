@@ -1,4 +1,6 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
 {% block content %}
@@ -8,6 +10,29 @@
             <h1>Project: {{ project.name }}</h1>
         </div>
         <div>
+            <button type="button"  class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#project-form-popup">
+                Edit Project
+            </button>
+            <span
+            {% if project.num_samples > 0 %}
+            {{ tooltip('Project containing samples cannot be deleted.', category='danger') }}
+            {% endif %}>
+                <button hx-delete="{{ url_for('projects_htmx.delete', project_id=project.id) }}" class="btn btn-danger"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Delete project \'{{ project.name }}\'',
+                        showDenyButton: true,
+                        text: 'Proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                    {% if project.num_samples > 0 %}disabled{% endif %}>
+                    Delete Project
+                </button>
+            </span>
         </div>
     </div>
 
@@ -58,6 +83,23 @@
                     }}
                 </div>
                 {{ metadata_group_textarea("Description", project.description) }}
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="project-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" >Edit Project</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include form._template_path %}
+            </div>
+            <div class="modal-footer" id="popup-footer">
+                <button class="btn btn-primary" hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
+                    hx-post="{{ url_for('projects_htmx.edit', project_id=project.id) }}">Submit</button>
             </div>
         </div>
     </div>

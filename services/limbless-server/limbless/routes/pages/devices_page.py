@@ -19,7 +19,7 @@ def devices_page():
         sequencers, n_pages = session.get_sequencers(limit=PAGE_LIMIT)
 
     return render_template(
-        "devices_page.html", sequencer_form=sequencer_form,
+        "devices_page.html", form=sequencer_form,
         sequencers=sequencers,
         sequencers_n_pages=n_pages, sequencers_active_page=0
     )
@@ -43,6 +43,6 @@ def sequencer_page(sequencer_id: int):
         (f"Device {sequencer.id}", ""),
     ]
     return render_template(
-        "device_page.html", sequencer_form=sequencer_form,
+        "device_page.html", form=sequencer_form,
         sequencer=sequencer, path_list=path_list
     )

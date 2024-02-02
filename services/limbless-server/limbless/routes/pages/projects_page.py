@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, redirect, abort, url_for
+from flask import Blueprint, render_template, abort, url_for
 from flask_login import login_required, current_user
 
 from ... import db, forms, logger, PAGE_LIMIT
 from ...core import DBSession
-from ...categories import UserRole, HttpResponse
+from ...categories import HttpResponse
 
 projects_page_bp = Blueprint("projects_page", __name__)
 
@@ -20,7 +20,7 @@ def projects_page():
             projects, n_pages = session.get_projects(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
         return render_template(
-            "projects_page.html", project_form=project_form,
+            "projects_page.html", form=project_form,
             projects=projects, projects_n_pages=n_pages, projects_active_page=0,
             current_sort="id", current_sort_order="desc"
         )
@@ -43,10 +43,13 @@ def project_page(project_id):
         (f"Project {project_id}", ""),
     ]
 
+    project_form = forms.ProjectForm(project=project)
+
     return render_template(
         "project_page.html", project=project,
         samples=samples,
         path_list=path_list,
+        form=project_form,
         common_organisms=db.common_organisms,
         samples_n_pages=n_pages, samples_active_page=0,
     )

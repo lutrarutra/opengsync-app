@@ -1,18 +1,15 @@
 from typing import Optional
-from io import StringIO
 from flask import Response
 import pandas as pd
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, FieldList, FormField, TextAreaField, IntegerField, BooleanField
-from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
+from wtforms import StringField, SelectField, FieldList, FormField
+from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-from ... import db, models, logger, tools
-from ...core.DBHandler import DBHandler
 from ...categories import LibraryType
 from ..TableDataForm import TableDataForm
 
-from ..ExtendedFlaskForm import ExtendedFlaskForm
+from ..HTMXFlaskForm import HTMXFlaskForm
 
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
@@ -84,15 +81,15 @@ class LibrarySubForm(FlaskForm):
     category = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], default=None)
 
 
-class LibraryMappingForm(ExtendedFlaskForm, TableDataForm):
+class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
+    _template_path = "components/popups/seq_request/sas-4.html"
+    
     input_fields = FieldList(FormField(LibrarySubForm), min_entries=1)
-
-    _template_path = "components/popups/seq_request/seq_request-4.html"
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
-        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
 
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:

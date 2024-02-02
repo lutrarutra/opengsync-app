@@ -6,10 +6,10 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField, IntegerField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-from ... import db, models, logger, tools
+from ... import db, models
 from ..TableDataForm import TableDataForm
 
-from ..ExtendedFlaskForm import ExtendedFlaskForm
+from ..HTMXFlaskForm import HTMXFlaskForm
 
 from .PoolMappingForm import PoolMappingForm
 from .BarcodeCheckForm import BarcodeCheckForm
@@ -20,13 +20,15 @@ class FeatureKitSubForm(FlaskForm):
     category = IntegerField("Index Kit", validators=[DataRequired()])
 
 
-class FeatureKitMappingForm(ExtendedFlaskForm, TableDataForm):
+class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
+    _template_path = "components/popups/seq_request/sas-7.html"
+
     input_fields = FieldList(FormField(FeatureKitSubForm), min_entries=1)
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
-        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
 
     def validate(self) -> bool:

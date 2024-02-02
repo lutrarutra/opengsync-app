@@ -1,16 +1,15 @@
 from typing import Optional
-from io import StringIO
 from flask import Response
 import pandas as pd
 
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, TextAreaField, IntegerField, BooleanField, StringField
-from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
+from wtforms import FieldList, FormField, IntegerField, StringField
+from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-from ... import tools, models, db, logger
+from ... import db, logger
 from ..TableDataForm import TableDataForm
 
-from ..ExtendedFlaskForm import ExtendedFlaskForm
+from ..HTMXFlaskForm import HTMXFlaskForm
 from .LibraryMappingForm import LibraryMappingForm
 
 
@@ -20,15 +19,15 @@ class OrganismSubForm(FlaskForm):
 
 
 # 4. Select organism for samples
-class OrganismMappingForm(ExtendedFlaskForm, TableDataForm):
-    input_fields = FieldList(FormField(OrganismSubForm), min_entries=1)
+class OrganismMappingForm(HTMXFlaskForm, TableDataForm):
+    _template_path = "components/popups/seq_request/sas-3.html"
 
-    _template_path = "components/popups/seq_request/seq_request-3.html"
+    input_fields = FieldList(FormField(OrganismSubForm), min_entries=1)
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
-        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
 
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:

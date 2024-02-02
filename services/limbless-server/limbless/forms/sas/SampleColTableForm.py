@@ -2,8 +2,8 @@ from typing import Optional
 import pandas as pd
 
 from flask_wtf import FlaskForm
-from wtforms import SelectField, FieldList, FormField, TextAreaField, IntegerField, BooleanField
-from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
+from wtforms import SelectField, FieldList, FormField
+from wtforms.validators import Optional as OptionalValidator
 
 from ... import tools, logger
 from ..TableDataForm import TableDataForm

@@ -24,7 +24,7 @@ def libraries_page():
         else:
             libraries, n_pages = session.get_libraries(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
-    library_form = forms.EditLibraryForm()
+    library_form = forms.LibraryForm()
 
     return render_template(
         "libraries_page.html",
@@ -78,7 +78,7 @@ def library_page(library_id):
                 (f"Library {library.id}", ""),
             ]
 
-    library_edit_form = forms.EditLibraryForm()
+    library_edit_form = forms.LibraryForm()
     library_edit_form.adapter.data = library.adapter    # TODO: separate adapter for all indices
     library_edit_form.library_type.data = library.type_id
     library_edit_form.index_1.data = library.index_1_sequence

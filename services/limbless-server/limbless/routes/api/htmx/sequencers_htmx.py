@@ -26,35 +26,14 @@ def get(page: int):
         ), push_url=False
     )
 
+
 @sequencers_htmx.route("create", methods=["POST"])
 @login_required
 def create():
     if current_user.role_type != UserRole.ADMIN:
         return abort(HttpResponse.FORBIDDEN.value.id)
 
-    sequencer_form = forms.SequencerForm()
-
-    validated, sequencer_form = sequencer_form.custom_validate(db.db_handler)
-
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/sequencer.html",
-                sequencer_form=sequencer_form
-            ), push_url=False
-        )
-    
-    with DBSession(db.db_handler) as session:
-        sequencer = session.create_sequencer(
-            name=sequencer_form.name.data,
-            ip=sequencer_form.ip_address.data,
-        )
-
-    flash("Sequencer created.", "success")
-
-    return make_response(
-        redirect=url_for("devices_page.devices_page")
-    )
+    return forms.SequencerForm(request.form).process_request()
 
 
 @sequencers_htmx.route("update/<int:sequencer_id>", methods=["POST"])
@@ -62,33 +41,12 @@ def create():
 def update(sequencer_id: int):
     if current_user.role_type != UserRole.ADMIN:
         return abort(HttpResponse.FORBIDDEN.value.id)
-
-    sequencer_form = forms.SequencerForm()
-
-    validated, sequencer_form = sequencer_form.custom_validate(db.db_handler, sequencer_id=sequencer_id)
-
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/sequencer.html",
-                sequencer_form=sequencer_form
-            ), push_url=False
-        )
     
-    with DBSession(db.db_handler) as session:
-        if session.get_sequencer(sequencer_id) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-        
-        session.update_sequencer(
-            sequencer_id=sequencer_id,
-            name=sequencer_form.name.data,
-            ip=sequencer_form.ip_address.data,
-        )
+    if (sequencer := db.db_handler.get_sequencer(sequencer_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
 
-    flash("Sequencer updated.", "success")
-
-    return make_response(
-        redirect=url_for("devices_page.sequencer_page", sequencer_id=sequencer_id)
+    return forms.SequencerForm(request.form).process_request(
+        sequencer=sequencer
     )
 
 

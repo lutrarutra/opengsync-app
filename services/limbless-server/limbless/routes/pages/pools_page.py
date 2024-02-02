@@ -25,13 +25,10 @@ def pools_page():
         else:
             pools, n_pages = session.get_pools(limit=PAGE_LIMIT, user_id=None, sort_by="id", descending=True)
 
-    pool_form = forms.PoolForm()
-
     return render_template(
         "pools_page.html",
         pools=pools,
         index_kit_results=db.common_kits,
-        pool_form=pool_form,
         pools_n_pages=n_pages, pools_active_page=0,
         current_sort="id", current_sort_order="desc"
     )
@@ -47,9 +44,6 @@ def pool_page(pool_id: int):
         if not current_user.is_insider():
             if pool.owner_id != current_user.id:
                 return abort(HttpResponse.FORBIDDEN.value.id)
-    
-        pool_form = forms.PoolForm()
-        pool_form.name.data = pool.name
 
         libraries, libraries_n_pages = session.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
         is_editable = pool.is_editable()
@@ -77,7 +71,6 @@ def pool_page(pool_id: int):
             libraries=libraries,
             libraries_n_pages=libraries_n_pages,
             path_list=path_list,
-            pool_form=pool_form,
             open_index_form=open_index_form,
             is_editable=is_editable,
             index_form=index_form,

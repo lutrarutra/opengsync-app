@@ -59,43 +59,7 @@ def seq_request_page(seq_request_id: int):
             if seq_request.requestor_id != current_user.id:
                 return abort(HttpResponse.FORBIDDEN.value.id)
 
-        seq_request_form = forms.SeqRequestForm(
-            current_user_is_contact=False,
-            billing_is_organization=False,
-
-            name=seq_request.name,
-            description=seq_request.description,
-            technology=seq_request.technology,
-
-            num_cycles_read_1=seq_request.num_cycles_read_1,
-            num_cycles_index_1=seq_request.num_cycles_index_1,
-            num_cycles_index_2=seq_request.num_cycles_index_2,
-            num_cycles_read_2=seq_request.num_cycles_read_2,
-            read_length=seq_request.read_length,
-            num_lanes=seq_request.num_lanes,
-            special_requirements=seq_request.special_requirements,
-            sequencer=seq_request.sequencer,
-            sequencing_type=seq_request.sequencing_type.value.id,
-            flowcell_type=seq_request.flowcell_type.value.id if seq_request.flowcell_type is not None else -1,
-
-            contact_person_name=seq_request.contact_person.name,
-            contact_person_email=seq_request.contact_person.email,
-            contact_person_phone=seq_request.contact_person.phone,
-
-            organization_name=seq_request.organization_name,
-            organization_department=seq_request.organization_department,
-            organization_address=seq_request.organization_address,
-
-            billing_contact=seq_request.billing_contact.name,
-            billing_email=seq_request.billing_contact.email,
-            billing_phone=seq_request.billing_contact.phone,
-            billing_address=seq_request.billing_contact.address,
-            billing_code=seq_request.billing_code,
-
-            bioinformatician_name=seq_request.bioinformatician_contact.name if seq_request.bioinformatician_contact is not None else None,
-            bioinformatician_email=seq_request.bioinformatician_contact.email if seq_request.bioinformatician_contact is not None else None,
-            bioinformatician_phone=seq_request.bioinformatician_contact.phone if seq_request.bioinformatician_contact is not None else None,
-        )
+        seq_request_form = forms.SeqRequestForm(seq_request=seq_request)
 
         library_results = []
 
@@ -112,7 +76,7 @@ def seq_request_page(seq_request_id: int):
                     (f"Request {seq_request_id}", ""),
                 ]
 
-        form = forms.TableInputForm("seq_request")
+        form = forms.SASInputForm()
 
         return render_template(
             "seq_request_page.html",

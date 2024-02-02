@@ -1,6 +1,5 @@
 import os
-from io import StringIO, BytesIO
-from uuid import uuid4
+from io import BytesIO
 from typing import Optional, TYPE_CHECKING
 
 from flask import Blueprint, url_for, render_template, flash, abort, request, Response, jsonify
@@ -9,9 +8,9 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-from .... import db, forms, logger, models, PAGE_LIMIT, SEQ_AUTH_FORMS_DIR
+from .... import db, forms, logger, models, PAGE_LIMIT
 from ....core import DBSession, DBHandler
-from ....categories import HttpResponse, SequencingType, FlowCellType, SeqRequestStatus
+from ....categories import HttpResponse, SeqRequestStatus
 
 if TYPE_CHECKING:
     current_user: models.User = None
@@ -177,121 +176,8 @@ def edit(seq_request_id: int):
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    seq_request_form = forms.SeqRequestForm()
-    validated, seq_request_form = seq_request_form.custom_validate(current_user, seq_request_id=seq_request_id)
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/seq_request/seq_request.html",
-                seq_request_form=seq_request_form
-            ), push_url=False
-        )
-    
-    if (seq_type_raw := seq_request_form.sequencing_type.data) is not None:
-        try:
-            seq_type = SequencingType.get(int(seq_type_raw))
-        except ValueError:
-            seq_type = None
-    else:
-        seq_type = None
-
-    db.db_handler.update_contact(
-        seq_request.billing_contact_id,
-        name=seq_request_form.billing_contact.data,
-        email=seq_request_form.billing_email.data,
-        phone=seq_request_form.billing_phone.data,
-        address=seq_request_form.billing_address.data,
-    )
-
-    db.db_handler.update_contact(
-        seq_request.contact_person_id,
-        name=seq_request_form.contact_person_name.data,
-        phone=seq_request_form.contact_person_phone.data,
-        email=seq_request_form.contact_person_email.data,
-    )
-
-    if seq_request_form.bioinformatician_name.data:
-        if (bioinformatician_contact := seq_request.bioinformatician_contact) is None:
-            bioinformatician_contact = db.db_handler.create_contact(
-                name=seq_request_form.bioinformatician_name.data,
-                email=seq_request_form.bioinformatician_email.data,
-                phone=seq_request_form.bioinformatician_phone.data,
-            )
-        else:
-            db.db_handler.update_contact(
-                bioinformatician_contact.id,
-                name=seq_request_form.bioinformatician_name.data,
-                email=seq_request_form.bioinformatician_email.data,
-                phone=seq_request_form.bioinformatician_phone.data,
-            )
-
-    try:
-        flowcell_type_id = int(seq_request_form.flowcell_type.data)
-    except ValueError:
-        flowcell_type_id = None
-    if flowcell_type_id is not None and flowcell_type_id != -1:
-        flowcell_type = FlowCellType.get(flowcell_type_id)
-    else:
-        flowcell_type = None
-
-    if seq_request_form.name.data is not None:
-        seq_request.name = seq_request_form.name.data
-
-    if seq_request_form.description.data is not None:
-        seq_request.description = seq_request_form.description.data
-
-    if seq_request_form.technology.data is not None:
-        seq_request.technology = seq_request_form.technology.data
-
-    if seq_type is not None:
-        seq_request.sequencing_type_id = seq_type.value.id
-
-    if seq_request_form.num_cycles_read_1.data is not None:
-        seq_request.num_cycles_read_1 = seq_request_form.num_cycles_read_1.data
-
-    if seq_request_form.num_cycles_index_1.data is not None:
-        seq_request.num_cycles_index_1 = seq_request_form.num_cycles_index_1.data
-
-    if seq_request_form.num_cycles_index_2.data is not None:
-        seq_request.num_cycles_index_2 = seq_request_form.num_cycles_index_2.data
-
-    if seq_request_form.num_cycles_read_2.data is not None:
-        seq_request.num_cycles_read_2 = seq_request_form.num_cycles_read_2.data
-
-    if seq_request_form.read_length.data is not None:
-        seq_request.read_length = seq_request_form.read_length.data
-
-    if seq_request_form.special_requirements.data is not None:
-        seq_request.special_requirements = seq_request_form.special_requirements.data
-
-    if seq_request_form.sequencer.data is not None:
-        seq_request.sequencer = seq_request_form.sequencer.data
-
-    if flowcell_type is not None:
-        seq_request.flowcell_type_id = flowcell_type.value.id
-
-    if seq_request_form.num_lanes.data is not None:
-        seq_request.num_lanes = seq_request_form.num_lanes.data
-
-    if seq_request_form.billing_code.data is not None:
-        seq_request.billing_code = seq_request_form.billing_code.data
-
-    if seq_request_form.organization_name.data is not None:
-        seq_request.organization_name = seq_request_form.organization_name.data
-
-    if seq_request_form.organization_department.data is not None:
-        seq_request.organization_department = seq_request_form.organization_department.data
-
-    if seq_request_form.organization_address.data is not None:
-        seq_request.organization_address = seq_request_form.organization_address.data
-
-    seq_request = db.db_handler.update_seq_request(seq_request)
-
-    flash(f"Updated sequencing request '{seq_request.name}'", "success")
-    logger.info(f"Updated sequencing request '{seq_request.name}'")
-
-    return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+    return forms.SeqRequestForm(request.form).process_request(
+        seq_request=seq_request, user_id=current_user.id
     )
 
 
@@ -382,85 +268,7 @@ def submit(seq_request_id: int):
 @seq_requests_htmx.route("create", methods=["POST"])
 @login_required
 def create():
-    seq_request_form = forms.SeqRequestForm()
-    validated, seq_request_form = seq_request_form.custom_validate(current_user)
-
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/seq_request/seq_request.html",
-                seq_request_form=seq_request_form
-            ), push_url=False
-        )
-
-    contact_person = db.db_handler.create_contact(
-        name=seq_request_form.contact_person_name.data,
-        email=seq_request_form.contact_person_email.data,
-        phone=seq_request_form.contact_person_phone.data,
-    )
-
-    billing_contact = db.db_handler.create_contact(
-        name=seq_request_form.billing_contact.data,
-        email=seq_request_form.billing_email.data,
-        address=seq_request_form.billing_address.data,
-        phone=seq_request_form.billing_phone.data,
-    )
-
-    # Create bioinformatician contact if needed
-    if seq_request_form.bioinformatician_name.data:
-        bioinformatician = db.db_handler.create_contact(
-            name=seq_request_form.bioinformatician_name.data,
-            email=seq_request_form.bioinformatician_email.data,
-            phone=seq_request_form.bioinformatician_phone.data,
-        )
-        bioinformatician_contact_id = bioinformatician.id
-    else:
-        bioinformatician_contact_id = None
-
-    if (seq_type_id := seq_request_form.sequencing_type.data) is not None:
-        try:
-            seq_type = SequencingType.get(int(seq_type_id))
-        except ValueError:
-            seq_type = SequencingType.OTHER
-    else:
-        seq_type = SequencingType.OTHER
-
-    if (flowcell_type_id := seq_request_form.flowcell_type.data) is not None:
-        try:
-            flowcell_type = FlowCellType.get(int(flowcell_type_id))
-        except ValueError:
-            flowcell_type = None
-    else:
-        flowcell_type = None
-
-    seq_request = db.db_handler.create_seq_request(
-        name=seq_request_form.name.data,
-        description=seq_request_form.description.data,
-        requestor_id=current_user.id,
-        technology=seq_request_form.technology.data,
-        contact_person_id=contact_person.id,
-        billing_contact_id=billing_contact.id,
-        bioinformatician_contact_id=bioinformatician_contact_id,
-        seq_type=seq_type,
-        num_cycles_read_1=seq_request_form.num_cycles_read_1.data,
-        num_cycles_index_1=seq_request_form.num_cycles_index_1.data,
-        num_cycles_index_2=seq_request_form.num_cycles_index_2.data,
-        num_cycles_read_2=seq_request_form.num_cycles_read_2.data,
-        read_length=seq_request_form.read_length.data,
-        special_requirements=seq_request_form.special_requirements.data,
-        sequencer=seq_request_form.sequencer.data,
-        flowcell_type=flowcell_type,
-        num_lanes=seq_request_form.num_lanes.data,
-        organization_name=seq_request_form.organization_name.data,
-        organization_address=seq_request_form.organization_address.data,
-        organization_department=seq_request_form.organization_department.data,
-    )
-
-    flash(f"Created new sequencing request '{seq_request.name}'", "success")
-    logger.info(f"Created new sequencing request '{seq_request.name}'")
-    return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
-    )
+    return forms.SeqRequestForm(request.form).process_request(user_id=current_user.id)
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/upload_auth_form", methods=["POST"])
@@ -472,31 +280,11 @@ def upload_auth_form(seq_request_id: int):
     if seq_request.requestor_id != current_user.id:
         if not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
-
-    seq_auth_form = forms.SeqAuthForm()
-    validated, seq_auth_form = seq_auth_form.custom_validate()
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/seq_request/seq_auth.html",
-                seq_auth_form=seq_auth_form,
-                seq_request=seq_request
-            ), push_url=False
-        )
+        
+    if seq_request.seq_auth_form_uuid is not None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    uuid = str(uuid4())
-    filepath = os.path.join(SEQ_AUTH_FORMS_DIR, f"{uuid}.pdf")
-    seq_auth_form.file.data.save(filepath)
-
-    seq_request.seq_auth_form_uuid = uuid
-    seq_request = db.db_handler.update_seq_request(seq_request=seq_request)
-
-    flash("Authorization form uploaded!", "success")
-    logger.debug(f"Uploaded sequencing authorization form for sequencing request '{seq_request.name}': {uuid}")
-
-    return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
-    )
+    return forms.SeqAuthForm(request.form | request.files).process_request(seq_request=seq_request)
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/remove_auth_form", methods=["DELETE"])
@@ -794,31 +582,8 @@ def parse_pooling_form(seq_request_id: int):
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
         
-    pooling_form = forms.PoolingForm()
-    validated, table_form, df = pooling_form.custom_validate()
-
-    if not validated or df is None:
-        return make_response(
-            render_template(
-                "components/popups/pooling/pooling-2.html",
-                table_form=table_form,
-                seq_request=seq_request,
-                experiment=experiment,
-            )
-        )
-    
-    data = {"pooling_table": df}
-    index_kit_mapping_form = forms.IndexKitMappingForm()
-    context = index_kit_mapping_form.prepare(data)
-
-    return make_response(
-        render_template(
-            "components/popups/pooling/pooling-3.html",
-            seq_request=seq_request,
-            experiment=experiment,
-            index_kit_mapping_form=index_kit_mapping_form,
-            **context
-        )
+    return forms.PoolingInputForm(request.form | request.files).process_request(
+        seq_request=seq_request, experiment=experiment
     )
 
 

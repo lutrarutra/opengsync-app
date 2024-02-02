@@ -5,19 +5,20 @@ from pathlib import Path
 from uuid import uuid4
 
 from wtforms import SelectField, FileField
-from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 
-from ... import db, models, logger, tools
+from ... import logger
 from ..TableDataForm import TableDataForm
 
-from ..ExtendedFlaskForm import ExtendedFlaskForm
+from ..HTMXFlaskForm import HTMXFlaskForm
 from .FeatureKitMappingForm import FeatureKitMappingForm
 
 
-class CMOReferenceInputForm(ExtendedFlaskForm, TableDataForm):
+class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
+    _template_path = "components/popups/seq_request/sas-6.html"
+    
     _required_columns: list[Union[str, list[str]]] = [
         "Biosample", "Sample Name",
     ]
@@ -41,7 +42,7 @@ class CMOReferenceInputForm(ExtendedFlaskForm, TableDataForm):
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
-        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
 
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:

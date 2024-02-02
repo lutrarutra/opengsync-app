@@ -143,33 +143,8 @@ def edit(sample_id):
         if not sample.is_editable():
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    sample_form = forms.SampleForm()
-    validated, sample_form = sample_form.custom_validate(
-        db_handler=db.db_handler,
-        user_id=current_user.id,
-        sample_id=sample_id
-    )
-
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/sample/sample.html",
-                selected_organism=sample.organism,
-                sample_form=sample_form, sample=sample
-            ), push_url=False
-        )
-
-    db.db_handler.update_sample(
-        sample_id,
-        name=sample_form.name.data,
-        organism_tax_id=sample_form.organism.data
-    )
-
-    logger.debug(f"Edited {sample}")
-    flash("Changes saved succesfully!", "success")
-
-    return make_response(
-        redirect=url_for("samples_page.sample_page", sample_id=sample_id),
+    return forms.SampleForm(request.form).process_request(
+        user_id=current_user.id, sample=sample
     )
 
 

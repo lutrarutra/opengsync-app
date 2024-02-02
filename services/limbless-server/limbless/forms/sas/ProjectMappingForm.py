@@ -1,17 +1,16 @@
-from typing import Optional, TYPE_CHECKING
-from io import StringIO
+from typing import Optional
 import pandas as pd
 
 from flask_wtf import FlaskForm
 from flask import Response
-from wtforms import StringField, SelectField, FieldList, FormField, TextAreaField, IntegerField, BooleanField
-from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
+from wtforms import StringField, FieldList, FormField, IntegerField
+from wtforms.validators import Optional as OptionalValidator
 
 from ... import db, models, logger
 from ..TableDataForm import TableDataForm
 from ...core.DBSession import DBSession
 
-from ..ExtendedFlaskForm import ExtendedFlaskForm
+from ..HTMXFlaskForm import HTMXFlaskForm
 
 from .OrganismMappingForm import OrganismMappingForm
 from .LibraryMappingForm import LibraryMappingForm
@@ -25,13 +24,13 @@ class ProjectSubForm(FlaskForm):
 
 
 # 3. Map sample to existing/new projects
-class ProjectMappingForm(ExtendedFlaskForm, TableDataForm):
+class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(ProjectSubForm), min_entries=1)
 
-    _template_path = "components/popups/seq_request/seq_request-2.html"
+    _template_path = "components/popups/seq_request/sas-2.html"
 
     def __init__(self, formdata: Optional[dict] = None):
-        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=None)
 
     def prepare(self, user_id: int, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
@@ -94,7 +93,7 @@ class ProjectMappingForm(ExtendedFlaskForm, TableDataForm):
                 raise Exception("Project not selected or created.")
 
         with DBSession(db.db_handler) as session:
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            if (_ := session.get_seq_request(seq_request_id)) is None:
                 raise Exception(f"Seq request with id {seq_request_id} does not exist.")
             
             # projects: dict[int, models.Project] = {}

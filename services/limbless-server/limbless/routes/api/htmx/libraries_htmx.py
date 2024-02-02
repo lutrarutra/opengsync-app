@@ -127,39 +127,11 @@ def edit(library_id):
     with DBSession(db.db_handler) as session:
         if (library := session.get_library(library_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
-        if not library.is_editable():
+        if not library.is_editable() and not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    edit_library_form = forms.EditLibraryForm()
-    validated, edit_library_form = edit_library_form.custom_validate(db.db_handler, current_user.id, library_id=library_id)
-
-    if not validated:
-        logger.debug("Not valid")
-        logger.debug(edit_library_form.errors)
-        return make_response(
-            render_template(
-                "forms/library.html",
-                edit_library_form=edit_library_form,
-            ), push_url=False
-        )
-
-    try:
-        library_type_id = int(edit_library_form.library_type.data)
-        library_type = LibraryType.get(library_type_id)
-    except ValueError:
-        library_type = None
-
-    library = db.db_handler.update_library(
-        library_id=library_id,
-        name=library_form.name.data,
-        library_type=library_type,
-        index_kit_id=library_form.index_kit.data,
-    )
-    logger.debug(f"Updated library '{library.name}'.")
-    flash(f"Updated library '{library.name}'.", "success")
-
-    return make_response(
-        redirect=url_for("libraries_page.library_page", library_id=library.id),
+    return forms.LibraryForm(request.form).process_request(
+        librray=library
     )
 
 

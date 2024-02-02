@@ -2,31 +2,29 @@ from typing import Optional
 from flask import Response
 import pandas as pd
 
-from wtforms import TextAreaField, BooleanField
+from wtforms import BooleanField
 from flask import url_for, flash
-from wtforms.validators import DataRequired, Optional as OptionalValidator
 from flask_htmx import make_response
 
 from ... import db, models, logger
 from ..TableDataForm import TableDataForm
 from ...categories import LibraryType
 from ...core import DBSession
+from ..HTMXFlaskForm import HTMXFlaskForm
 
-from ..ExtendedFlaskForm import ExtendedFlaskForm
 
+class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
+    _template_path = "components/popups/seq_request/sas-9.html"
 
-class BarcodeCheckForm(ExtendedFlaskForm, TableDataForm):
     reverse_complement_index_1 = BooleanField("Reverse complement index 1", default=False)
     reverse_complement_index_2 = BooleanField("Reverse complement index 2", default=False)
     reverse_complement_index_3 = BooleanField("Reverse complement index 3", default=False)
     reverse_complement_index_4 = BooleanField("Reverse complement index 4", default=False)
 
-    _template_path = "components/popups/seq_request/seq_request-9.html"
-
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
-        ExtendedFlaskForm.__init__(self, formdata=formdata)
+        HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
     
     def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:

@@ -93,33 +93,38 @@ def query():
 @projects_htmx.route("create", methods=["POST"])
 @login_required
 def create():
-    project_form = forms.ProjectForm()
-    validated, project_form = project_form.custom_validate(db.db_handler, current_user.id)
+    return forms.ProjectForm(request.form).process_request(user_id=current_user.id)
 
-    if not validated:
-        template = render_template(
-            "forms/project.html",
-            project_form=project_form
-        )
-        return make_response(
-            template, push_url=False
-        )
 
-    with DBSession(db.db_handler) as session:
-        project = session.create_project(
-            name=project_form.name.data,
-            description=project_form.description.data,
-            owner_id=current_user.id
-        )
-
-    logger.debug(f"Created project {project.name}.")
-    flash(f"Created project {project.name}.", "success")
-
-    return make_response(
-        redirect=url_for("projects_page.project_page", project_id=project.id),
+@projects_htmx.route("<int:project_id>/edit", methods=["POST"])
+@login_required
+def edit(project_id: int):
+    if (project := db.db_handler.get_project(project_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if project.owner_id != current_user.id and not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    return forms.ProjectForm(request.form).process_request(
+        user_id=current_user.id, project=project
     )
 
-# TODO: edit project
+
+@projects_htmx.route("<int:project_id>/delete", methods=["DELETE"])
+@login_required
+def delete(project_id: int):
+    if (project := db.db_handler.get_project(project_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if project.owner_id != current_user.id and not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+
+    if project.num_samples > 0:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
+    
+    db.db_handler.delete_project(project_id)
+    flash(f"Deleted project {project.name}.", "success")
+    return make_response(redirect=url_for("projects_page.projects_page"))
 
 
 @projects_htmx.route("table_query", methods=["POST"])
