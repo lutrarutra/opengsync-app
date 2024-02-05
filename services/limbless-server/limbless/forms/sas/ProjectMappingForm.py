@@ -144,15 +144,16 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             user_projects = session.get_user(user_id).projects
             user_project_names = [project.name for project in user_projects]
             for field in self.input_fields:
-                if field.category.data is None and not field.new_category.data:
+                if field.project.selected.data is None and not field.new_category.data:
                     field.new_category.errors = ("Please select or create a project.",)
-                    field.category.errors = ("Please select or create a project.",)
+                    field.project.selected.errors = ("Please select or create a project.",)
                     validated = False
-                
-                if field.category.data is not None and field.new_category.data.strip():
+
+                if field.project.selected.data is not None and field.new_category.data.strip():
                     field.new_category.errors = ("Please select or create a project, not both.",)
-                    field.category.errors = ("Please select or create a project, not both.",)
+                    field.project.selected.errors = ("Please select or create a project, not both.",)
                     validated = False
+
                 if field.new_category.data:
                     if field.new_category.data in user_project_names:
                         field.new_category.errors = ("You already have a project with this name.",)

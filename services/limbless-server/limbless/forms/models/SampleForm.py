@@ -2,13 +2,14 @@ from typing import Optional, Any
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms import StringField, IntegerField
+from wtforms import StringField, FormField
 from wtforms.validators import DataRequired, Length
 
 
 from ... import logger, db, models
 from ...core.DBSession import DBSession
 from ..HTMXFlaskForm import HTMXFlaskForm
+from ..search_bars import OrganismSearchBar
 
 
 class SampleForm(HTMXFlaskForm):
@@ -16,7 +17,7 @@ class SampleForm(HTMXFlaskForm):
     _form_label = "sample_form"
 
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
-    organism = IntegerField("Organism", validators=[DataRequired()])
+    organism = FormField(OrganismSearchBar)
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, sample: Optional[models.Sample] = None):
         super().__init__(formdata=formdata)
@@ -25,7 +26,8 @@ class SampleForm(HTMXFlaskForm):
 
     def __fill_form(self, sample: models.Sample):
         self.name.data = sample.name
-        self.organism.data = sample.organism.tax_id
+        self.organism.selected.data = sample.organism.tax_id
+        self.organism.search_bar.data = sample.organism.search_name()
 
     def validate(self, user_id: int, sample: models.Sample) -> bool:
         if not super().validate():
@@ -56,10 +58,9 @@ class SampleForm(HTMXFlaskForm):
         sample = db.db_handler.update_sample(
             sample_id=sample.id,
             name=self.name.data,
-            organism_tax_id=self.organism.data
+            organism_tax_id=self.organism.selected.data
         )
 
-        logger.debug(f"Edited {sample}")
         flash("Changes saved succesfully!", "success")
         return make_response(
             redirect=url_for("samples_page.sample_page", sample_id=sample.id),

@@ -1,14 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
-<form id="sample-form">
+<div id="sample-form">
     {{ sample_form.csrf_token() }}
     {{ form_group(sample_form.name) }}
-    {{ 
-        search_select_field(
-            field=sample_form.organism,
-            url=url_for('organisms_htmx.query'),
-            selected=selected_organism,
-            results=common_organisms
-        )
-    }}
-</form>
+    {{ search_select_field(sample_form.organism) }}
+</div>
