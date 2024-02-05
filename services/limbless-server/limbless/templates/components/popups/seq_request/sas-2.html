@@ -16,14 +16,17 @@
             </ul>
         </div>
         <div id="project-select-form">
+            {% for sub_form in form.input_fields %}
             {{    
                 categorical_mapping_with_new_field(
-                    form=form,
-                    categories=categories,
-                    url=url_for('projects_htmx.query'),
-                    selected=selected,
+                    raw_label=sub_form.raw_label,
+                    existing_category=sub_form.project,
+                    new_category=sub_form.new_project,
+                    query_url=url_for('projects_htmx.query'),
+                    token=sub_form.csrf_token,
                 )
             }}
+            {% endfor %}
             {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
             {{ form.csrf_token() }}
         </div>

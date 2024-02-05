@@ -1,7 +1,7 @@
 <ul class="list-group search-component">
     {% if results and (results | length > 0) %}
     {% for res in results %}
-    <li>
+    <li {% if loop.last %} class="last" {% endif %}>
         <a id="option-{{ field_name}}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         value="{{ res.search_value() }}"
@@ -18,7 +18,7 @@
     </li>
     {% endfor %}
     {% else %}
-    <li>
+    <li class="last">
         <a class="list-group-item disabled">No results...</a>
     </li>
     {% endif %}

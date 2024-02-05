@@ -17,7 +17,7 @@
                 }}
                 {{
                     table_col(
-                        target_id='sample-library-table', column_name='Sample Name', column_var='sample_name',
+                        target_id='sample-library-table', column_name='Name', column_var='name',
                         sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
                         current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         query_url=url_for('libraries_htmx.table_query', sample_id=sample.id), current_query=libraries_current_query,
@@ -66,26 +66,17 @@
             {% for library in libraries %}
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='sample@' + sample.id | string) }}';">
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ sample.name }}</td>
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
                 <td>
                     <span {{ tooltip(library.type.value.name) }}>
                         {{ library.type.value.description }}
                     </span>
                 </td>
                 <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
-                {% for idx in range(4) %}
-                {% set index = library.indices[idx] %}
-                {% if index %}
-                <td {{ tooltip(index.adapter) }} class="col-1">
-                    <span class="barcode-cell index-cell" id="library-{{library.id}}-index-cell-{{idx+1}}">{{ index.sequence }}</span>
-                </td>
-                <td {{ tooltip(index.sequence) }} style="display: none;" class="col-1">
-                    <span class="barcode-cell adapter-cell" id="library-{{library.id}}-adapter-cell-{{idx+1}}">{{ index.adapter }}</span>
-                </td>
-                {% else %}
-                <td></td>
-                {% endif %}
-                {% endfor %}
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.index_1_sequence if library.index_1_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.index_2_sequence if library.index_2_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-3">{{ library.index_3_sequence if library.index_3_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-4">{{ library.index_4_sequence if library.index_4_sequence }}</td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
             </tr>
             {% endfor %}
@@ -101,17 +92,31 @@
         const library_id = selected_barcode_element_id.split("-")[1];
         const index_id = selected_barcode_element_id.split("-")[4];
         const content = $("#library-" + library_id + "-index-cell-" + index_id).text().trim();
-        console.log(content);
         navigator.clipboard.writeText(content);
     }
 
     function copy_adapter_to_clipboard() {
         const library_id = selected_barcode_element_id.split("-")[1];
-        const index_id = selected_barcode_element_id.split("-")[4];
-        const content = $("#library-" + library_id + "-adapter-cell-" + index_id).text().trim();
-        console.log(content);
+        const content = $("#library-" + library_id + "adapter-cell").text().trim();
         navigator.clipboard.writeText(content);
     }
+
+    $(document).off("contextmenu", ".adapter-cell").on("contextmenu", ".adapter-cell", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_library_id = selected_barcode_element_id.split("-")[1];
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).empty().append([
+            `<li><a class='dropdown-item' onclick='copy_adapter_to_clipboard()'>Copy Adapter</a></li>`,
+        ]);
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
 
     $(document).off("contextmenu", ".barcode-cell").on("contextmenu", ".barcode-cell", function(e) {
         e.preventDefault();
@@ -123,7 +128,6 @@
             left: x + 8, top: y + 8
         }).empty().append([
             `<li><a class='dropdown-item' onclick='copy_sequence_to_clipboard()'>Copy Sequence</a></li>`,
-            `<li><a class='dropdown-item' onclick='copy_adapter_to_clipboard()'>Copy Adapter</a></li>`,
         ]);
 
         $("#right-click-bg").css({

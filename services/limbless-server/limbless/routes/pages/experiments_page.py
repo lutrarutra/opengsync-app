@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, render_template, redirect, url_for, abort
+from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required
 
 from ...core import DBSession
@@ -23,8 +23,7 @@ def experiments_page():
     
     experiments, n_pages = db.db_handler.get_experiments()
 
-    experiment_form = forms.ExperimentForm()
-    experiment_form.sequencing_person.data = current_user.id
+    experiment_form = forms.ExperimentForm(user=current_user)
 
     return render_template(
         "experiments_page.html", experiment_form=experiment_form,

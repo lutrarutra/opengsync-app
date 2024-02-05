@@ -13,12 +13,15 @@
             </ul>
         </div>
         <form id="library-type-category-mapping-form">
+            {% for sub_form in form.input_fields %}
             {{ 
                 static_categorical_mapping(
-                    form=form,
-                    categories=categories
+                    raw_label=sub_form.raw_label,
+                    select_field=sub_form.library_type,
+                    token=sub_form.csrf_token,
                 )
             }}
+            {% endfor %}
             {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
             {{ form.csrf_token() }}
         </form>

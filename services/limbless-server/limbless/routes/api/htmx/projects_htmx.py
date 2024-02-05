@@ -69,7 +69,8 @@ def get(page):
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))
-    word = request.form.get(field_name)
+    if (word := request.form.get(field_name)) is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     if word is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)

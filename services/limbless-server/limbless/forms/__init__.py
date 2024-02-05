@@ -1,8 +1,8 @@
 from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm, UserForm, ResetPasswordForm
 from .TableDataForm import TableDataForm
 from .SeqAuthForm import SeqAuthForm
+from .SearchBar import SearchBar
 
-from .search_bars import OrganismSearchBar, ProjectSearchBar
 
 from .models.LibraryForm import LibraryForm
 from .models.SequencerForm import SequencerForm

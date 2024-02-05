@@ -6,14 +6,15 @@ from flask_login import login_required
 from .... import db, logger
 from ....categories import HttpResponse
 
-organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism/")
+organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organisms/")
 
 
 @organisms_htmx.route("query", methods=["POST"])
 @login_required
 def query():
-    field_name = "organism-search"
-    word = request.form.get(field_name, default="")
+    field_name = next(iter(request.form.keys()))
+    if (word := request.form.get(field_name, default="")) is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     if word.strip() == "":
         q_organisms = db.common_organisms

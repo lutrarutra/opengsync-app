@@ -11,11 +11,12 @@ from ..TableDataForm import TableDataForm
 
 from ..HTMXFlaskForm import HTMXFlaskForm
 from .LibraryMappingForm import LibraryMappingForm
+from ..SearchBar import SearchBar
 
 
 class OrganismSubForm(FlaskForm):
-    raw_category = StringField("Raw Label", validators=[OptionalValidator()])
-    category = IntegerField("Organism", validators=[DataRequired()], default=None)
+    raw_label = StringField("Raw Label", validators=[OptionalValidator()])
+    organism = FormField(SearchBar, label="Select Orgnanism")
 
 
 # 4. Select organism for samples
@@ -37,38 +38,29 @@ class OrganismMappingForm(HTMXFlaskForm, TableDataForm):
         df = data["library_table"]
         df["duplicate"] = False
 
-        organisms = sorted(df["organism"].unique())
-        selected: list[Optional[str]] = []
+        organisms = df["organism"].unique().tolist()
 
         for i, raw_organism_name in enumerate(organisms):
             if i > len(self.input_fields.entries) - 1:
                 self.input_fields.append_entry()
 
             entry = self.input_fields.entries[i]
+            entry.raw_label.data = raw_organism_name
             
-            if (selected_id := entry.category.data) is not None:
+            if (selected_id := entry.organism.selected.data) is not None:
                 selected_organism = db.db_handler.get_organism(selected_id)
             else:
-                if organisms[i] is None:
+                if raw_organism_name is None or pd.isna(raw_organism_name):
                     selected_organism = None
                 else:
-                    if raw_organism_name is None or pd.isna(raw_organism_name) or raw_organism_name.strip().lower() == "organism":
-                        selected_organism = None
-                    else:
-                        selected_organism = next(iter(db.db_handler.query_organisms(word=raw_organism_name, limit=1)), None)
-
-                    entry.category.data = selected_organism.id if selected_organism is not None else None
+                    selected_organism = next(iter(db.db_handler.query_organisms(word=raw_organism_name, limit=1)), None)
+                    entry.organism.selected.data = selected_organism.id if selected_organism is not None else None
+                    entry.organism.search_bar.data = selected_organism.search_name() if selected_organism is not None else None
             
-            logger.debug(selected_organism)
-            selected.append(selected_organism.to_str() if selected_organism is not None else None)
-
         data["library_table"] = df
         self.update_data(data)
 
-        return {
-            "categories": organisms,
-            "selected": selected,
-        }
+        return {}
     
     def __parse(self) -> dict[str, pd.DataFrame]:
         data = self.get_data()
@@ -77,7 +69,7 @@ class OrganismMappingForm(HTMXFlaskForm, TableDataForm):
         organisms = sorted(data["library_table"]["organism"].unique())
     
         for i, organism in enumerate(organisms):
-            organism_id_mapping[organism] = self.input_fields.entries[i].category.data
+            organism_id_mapping[organism] = self.input_fields.entries[i].organism.selected.data
         
         data["library_table"]["tax_id"] = data["library_table"]["organism"].map(organism_id_mapping)
         self.update_data(data)

@@ -2,84 +2,62 @@
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
-{% macro static_categorical_mapping(form, categories) -%}
-    {% for category in categories %}
-        {% set sub_form = form.input_fields[loop.index0] %}
-        <td>
-            {{ sub_form.csrf_token() }}
-            <div class="row">
-                {{
-                    metadata_group(
-                        sub_form.raw_category.label.text, category, class="col-3"
-                    )
-                }}
-                <div class="col-1 mapping-arrow">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
-                    </svg>
-                </div>
-                <div class="form-group col-8">
-                    {{ select_input(sub_form.category) }}
-                </div>
-            </div>
-        </td>
-    {% endfor %}
+{% macro static_categorical_mapping(raw_label, select_field, token) -%}
+<td>
+    {{ token() }}
+    <div class="row">
+        {{ metadata_group(raw_label.label.text, raw_label.data, class="col-3")}}
+        <div class="col-1 mapping-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+            </svg>
+        </div>
+        <div class="form-group col-8">
+            {{ select_input(select_field) }}
+        </div>
+    </div>
+</td>
 {%- endmacro %}
 
-{% macro categorical_mapping(form, categories, url, selected) -%}
-    {% for category in categories %}
-        {% set sub_form = form.input_fields[loop.index0] %}
-        <td>
-            {{ sub_form.csrf_token() }}
-            <div class="row">
-                {{ 
-                    metadata_group(
-                        sub_form.raw_category.label.text, category, class="col-3"
-                    )
-                }}
-                <div class="col-1 mapping-arrow">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
-                    </svg>
-                </div>
-                {{ search_select_field(sub_form.category, class="col-8") }}
-            </div>
-        </td>
-    {% endfor %}
+{% macro categorical_mapping(raw_label, category, query_url, token) -%}
+<td>
+    {{ token() }}
+    <div class="row">
+        {{ metadata_group(raw_label.label.text, raw_label.data, class="col-3") }}
+        <div class="col-1 mapping-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+            </svg>
+        </div>
+        {{ search_select_field(category, query_url, class="col-8") }}
+    </div>
+</td>
 {%- endmacro %}
 
-{% macro categorical_mapping_with_new_field(form, categories, url, selected) -%}
-    {% for category in categories %}
-        {% set sub_form = form.input_fields[loop.index0] %}
-        <td>
-            {{ sub_form.csrf_token() }}
-            <div class="row">
-                {{
-                    metadata_group(
-                        sub_form.raw_category.label.text,
-                        category, class="col-2"
-                    )
-                }}
-                <div class="col-1 mapping-arrow">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
-                    </svg>
-                </div>
-                {{ search_select_field(sub_form.category, class="col-4") }}
-                <div class="col-1 mapping-or">
-                    or
-                </div>
-                {{  form_group(sub_form.new_category, class="col-4") }}
-            </div>
-        </td>
-    <script>
-        $("#input_fields-{{ loop.index0 }}-new_category").on("input", function() {
-            $("#input_fields-{{ loop.index0 }}-category-search").val(null);
-            $("#input_fields-{{ loop.index0 }}-category").val(null);
-        });
-        $("#input_fields-{{ loop.index0 }}-category").on("change", function() {
-            $("#input_fields-{{ loop.index0 }}-new_category").val(null);
-        });
-    </script>
-    {% endfor %}
+{% macro categorical_mapping_with_new_field(raw_label, existing_category, new_category, query_url, token) -%}
+<td>
+    {{ token() }}
+    <div class="row">
+        {{ metadata_group(raw_label.label.text, raw_label.data, class="col-2") }}
+        <div class="col-1 mapping-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+            </svg>
+        </div>
+        {{ search_select_field(existing_category, query_url, class="col-4") }}
+        <div class="col-1 mapping-or">
+            or
+        </div>
+        {{  form_group(new_category, class="col-4") }}
+    </div>
+</td>
+<script>
+    $("#{{ new_category.name }}").on("input", function() {
+        $("#{{ existing_category.name }}-search").val(null);
+        $("#{{ existing_category.name }}").val(null);
+    });
+    $("#{{ existing_category.name }}").on("change", function() {
+        $("#{{ new_category.name }}").val(null);
+    });
+</script>
 {%- endmacro %}

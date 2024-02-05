@@ -34,7 +34,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
         data = self.get_data()
         table = "library_table" if "library_table" in data.keys() else "pooling_table"
         df = self.get_data()[table]
-        logger.debug(df.columns)
 
         samples_data: list[dict[str, str | int | None]] = []
 
@@ -54,7 +53,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             # Check if sample names are unique in project
             _data = {
                 "id": row["sample_id"],
-                "name": row["sample_name"],
+                "name": row["library_name"],
                 "library_type": row["library_type"],
                 "error": None,
                 "warning": "",
@@ -198,6 +197,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                 for _, row in _df.iterrows():
                     library_type = LibraryType.get(row["library_type_id"])
 
+                    library_name = row["library_name"]
                     index_kit_id = int(row["index_kit_id"]) if "index_kit_id" in row and not pd.isna(row["index_kit_id"]) else None
                     library_volume = row["library_volume"] if "library_volume" in row and not pd.isna(row["library_volume"]) else None
                     dna_concentration = row["library_concentration"] if "library_concentration" in row and not pd.isna(row["library_concentration"]) else None
@@ -209,7 +209,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                     index_4_sequence = row["index_4"] if "index_4" in row and not pd.isna(row["index_4"]) else None
 
                     library = session.create_library(
-                        name=sample_name + "_" + library_type.value.description,
+                        name=library_name,
                         seq_request_id=seq_request.id,
                         library_type=library_type,
                         index_kit_id=index_kit_id,

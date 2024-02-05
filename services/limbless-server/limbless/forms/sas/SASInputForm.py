@@ -44,6 +44,7 @@ class SASInputForm(HTMXFlaskForm):
 
             feature_mapping = {
                 "Sample Name": "sample_name",
+                "Library Name": "library_name",
                 "Organism": "organism",
                 "Project": "project",
                 "Library Type": "library_type",

@@ -9,7 +9,7 @@ from wtforms.validators import DataRequired, Length
 from ... import logger, db, models
 from ...core.DBSession import DBSession
 from ..HTMXFlaskForm import HTMXFlaskForm
-from ..search_bars import OrganismSearchBar
+from ..SearchBar import SearchBar
 
 
 class SampleForm(HTMXFlaskForm):
@@ -17,7 +17,7 @@ class SampleForm(HTMXFlaskForm):
     _form_label = "sample_form"
 
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=64)])
-    organism = FormField(OrganismSearchBar)
+    organism = FormField(SearchBar, label="Select Organism")
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, sample: Optional[models.Sample] = None):
         super().__init__(formdata=formdata)

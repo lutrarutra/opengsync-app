@@ -48,46 +48,7 @@ def create():
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
 
-    experiment_form = forms.ExperimentForm()
-
-    validated, experiment_form = experiment_form.custom_validate()
-
-    if (selected_person_id := experiment_form.sequencing_person.data) is not None:
-        if (selected_user := db.db_handler.get_user(selected_person_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-    elif experiment_form.current_user_is_seq_person.data:
-        selected_user = current_user
-    else:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
-    
-    experiment_form.current_user_is_seq_person.data = current_user.id == selected_user.id
-
-    if not validated:
-        return make_response(
-            render_template(
-                "forms/experiment.html",
-                experiment_form=experiment_form,
-                selected_user=selected_user
-            ), push_url=False
-        )
-
-    experiment = db.db_handler.create_experiment(
-        flowcell=experiment_form.flowcell.data,
-        sequencer_id=experiment_form.sequencer.data,
-        r1_cycles=experiment_form.r1_cycles.data,
-        r2_cycles=experiment_form.r2_cycles.data,
-        i1_cycles=experiment_form.i1_cycles.data,
-        i2_cycles=experiment_form.i2_cycles.data,
-        num_lanes=experiment_form.num_lanes.data,
-        sequencing_person_id=selected_user.id,
-    )
-
-    logger.debug(f"Created experiment on flowcell '{experiment.flowcell}'")
-    flash(f"Created experiment on flowcell '{experiment.flowcell}'.", "success")
-
-    return make_response(
-        redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
-    )
+    return forms.ExperimentForm(formdata=request.form).process_request()
 
 
 @experiments_htmx.route("<int:experiment_id>/edit", methods=["POST"])
@@ -96,12 +57,11 @@ def edit(experiment_id: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if (_ := db.db_handler.get_experiment(experiment_id)) is None:
+    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    experiment_form = forms.ExperimentForm(request.form)
-    return experiment_form.process_request(
-        experiment_id=experiment_id
+    return forms.ExperimentForm(formdata=request.form).process_request(
+        experiment=experiment
     )
 
 

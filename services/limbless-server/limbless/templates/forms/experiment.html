@@ -1,30 +1,20 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
-<form id="experiment-form">
+<div id="experiment-form">
     {{ experiment_form.csrf_token() }}
-    <div class="form-check form-switch">
-        {{ experiment_form.current_user_is_seq_person(class="form-check-input") }}
-        <label class="form-check-label">I am sequencing.</label>
-    </div>
     {{
         search_select_field(
             experiment_form.sequencing_person,
-            url=url_for('users_htmx.query', only_insiders=True),
-            selected=selected_user.search_name() if selected_user is defined else current_user.search_name(),
-            include_data_element=False,
+            query_url=url_for('users_htmx.query', only_insiders=True)
         ) 
     }}
-    <input id="sequencing_person" name="sequencing_person" hx-target="#experiment-form" hx-swap="outerHTML" hx-include="#experiment-form"
-        hx-trigger="change" hx-post="{{ url_for('experiments_htmx.select_sequencing_person') }}"
-        value="{{ selected_user.id if selected_user is defined else current_user.id }}" type="number" readonly=true hidden>
     
     <div class="row">
         {{ 
             search_select_field(
                 experiment_form.sequencer,
-                url=url_for('sequencers_htmx.query'),
-                selected=selected_sequencer,
+                query_url=url_for('sequencers_htmx.query'),
                 class="col-4"
             ) 
         }}
@@ -39,14 +29,4 @@
         {{ form_group(experiment_form.i2_cycles, class="col") }}
         {{ form_group(experiment_form.r2_cycles, class="col") }}
     </div>
-</form>
-
-<script>
-    $("#current_user_is_seq_person").on("click", function(){
-        const checked = $(this).is(":checked");
-        if (checked){
-            $("#sequencing_person").val("{{ current_user.id }}");
-            $("#sequencing_person-search").val("{{ current_user.name }}");
-        }
-    });
-</script>
+</div>

@@ -378,7 +378,6 @@ span.desc:empty:after {
 
 .search-select {
     position: relative;
-    padding: 0;
 
     .active {
         .searchbar-data {
@@ -392,10 +391,8 @@ span.desc:empty:after {
     }
 
     .input-group {
-        padding: 0;
-
-        width: 100%;
         display: flex;
+
         .searchbar-data {
             width: 20%;
         }
@@ -404,9 +401,15 @@ span.desc:empty:after {
         }
     }
 
+    .search-select-results-container {
+        position: relative;
+        padding: 0;
+    }
+
     .search-select-results {
         position: absolute;
         width: 100%;
+
         ul {
             list-style: none;
             li {
@@ -416,6 +419,10 @@ span.desc:empty:after {
             li:hover {
                 background-color: $gray-400 !important;
                 cursor: pointer;
+            }
+            li.last {
+                border-bottom-left-radius: 5px;
+                border-bottom-right-radius: 5px;
             }
         }
     }

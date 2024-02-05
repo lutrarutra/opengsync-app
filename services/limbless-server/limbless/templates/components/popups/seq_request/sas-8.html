@@ -35,17 +35,17 @@
                             </div>
                         </div>
                         <div id="pool-library-list-container">
-                            <table class="table table-hover table-cursor">
+                            <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Sample</th>
-                                        <th>Library Types</th>
+                                        <th scope="col" class="col-2">Sample</th>
+                                        <th scope="col" class="col-10">Library Types</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for sample, sample_data in pool_libraries[loop.index0].items() %}
                                     <tr>
-                                        <td>{{ sample }}</td>
+                                        <th scope="row">{{ sample }}</th>
                                         <td>
                                             <ul class="h-list">
                                             {% for library in sample_data %}

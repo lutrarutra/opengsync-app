@@ -77,8 +77,8 @@ class LibrarySubForm(FlaskForm):
         "atacseq": 106,
     }
 
-    raw_category = StringField("Raw Type", validators=[OptionalValidator()])
-    category = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], default=None)
+    raw_label = StringField("Raw Label", validators=[OptionalValidator()])
+    library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], default=None)
 
 
 class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
@@ -98,7 +98,7 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
 
         df = data["library_table"]
         
-        library_types = df["library_type"].unique()
+        library_types = df["library_type"].unique().tolist()
         library_types = [library_type if library_type and not pd.isna(library_type) else "Library" for library_type in library_types]
 
         for i, library_type in enumerate(library_types):
@@ -106,9 +106,10 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
                 self.input_fields.append_entry()
 
             entry = self.input_fields[i]
+            entry.raw_label.data = library_type
             
             selected_library_type = None
-            if (selected_id := entry.category.data) is not None:
+            if (selected_id := entry.library_type.data) is not None:
                 try:
                     selected_id = int(selected_id)
                     selected_library_type = LibraryType.get(selected_id)
@@ -122,7 +123,7 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
                         selected_library_type = LibraryType.get(similar)
 
             if selected_library_type is not None:
-                self.input_fields[i].category.process_data(selected_library_type.value.id)
+                self.input_fields[i].library_type.process_data(selected_library_type.value.id)
 
         data["library_table"] = df
         self.update_data(data)
@@ -140,7 +141,7 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
         library_types = [library_type if library_type and not pd.isna(library_type) else None for library_type in library_types]
         df["library_type_id"] = None
         for i, library_type in enumerate(library_types):
-            df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].category.data)
+            df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].library_type.data)
         
         df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).value.description)
 

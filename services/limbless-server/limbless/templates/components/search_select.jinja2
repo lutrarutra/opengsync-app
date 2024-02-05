@@ -1,26 +1,36 @@
-{% macro search_select_field(field, class="") -%}
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+{% macro search_select_field(field, query_url, class="") -%}
 <div class="mb-3 search-select {{ class }}">
-    <label for="basic-url" class="form-label mb-0">{{ field.search_bar.label.text }}</label>
+    <a {% if field.description %}
+    {{ tooltip(field.description, "top") }}
+    {% endif %}>
+        {{ field.label.text }}
+    </a>
     <div class="input-group">
-        <input class="input-group-text searchbar-data" type="number" value="{{ field.selected.data if field.selected.data }}" readonly
-        id="{{ field.name }}" name="{{ field.name }}">
-        <input type="search" class="form-control searchbar-input search-component" aria-describedby=""
+        <input class="input-group-text searchbar-data"
+        type="number" value="{{ field.selected.data if field.selected.data }}" readonly
+        id="{{ field.name }}" name="{{ field.name }}-selected">
+        <input type="search" aria-describedby=""
+        class="form-control searchbar-input search-component {% if field.selected.errors %} is-invalid {% endif %}"
         value="{{ field.search_bar.data }}"
         name="{{ field.name }}-search"
         id="{{ field.name }}-search"
         hx-include="#{{ field.name }}-search"
         hx-target="#{{ field.name }}-results"
         hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{{ ', load' if not results else '' }}" 
-        hx-post="{{ field.query_url }}"
+        hx-post="{{ query_url }}"
         hx-swap="innerHTML"
         placeholder="Search">
     </div>
-    <div id="{{ field.name }}-results" class="search-select-results" style="display: none; width: 100%;">
-        {% include "components/search_select_results.html" %}
+    <div class="search-select-results-container">
+        <div id="{{ field.name }}-results" class="search-select-results" style="display: none; width: 100%; z-index: 100;">
+            {% include "components/search_select_results.html" %}
+        </div>
     </div>
     <div class="invalid-feedback-container" id="{{ field.name }}-invalid-container">
         {% if field.errors %}
-            {% for error in field.errors %}
+            {% for error in field.selected.errors %}
             <p>{{ error }}</p>
             {% endfor %}
         {% endif %}
@@ -28,6 +38,7 @@
     {{ field.csrf_token() }}
 </div>
 <script>
+    init_tooltips();
     // Shows search results when user focuses on search component
     $("#{{ field.name }}-search:not(.disabled)").on("focus", function() {
         $("#{{ field.name }}-results").css("display", "block");
