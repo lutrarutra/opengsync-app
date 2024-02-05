@@ -160,3 +160,9 @@ class SequencingType(Enum, metaclass=ExtendedEnumMeta):
     OTHER = DescriptiveEnum(0, "Other", "⚙️")
     SINGLE_END = DescriptiveEnum(1, "Single-end", "➡️")
     PAIRED_END = DescriptiveEnum(2, "Paired-end", "🔁")
+
+
+class RequestResponse(Enum, metaclass=ExtendedEnumMeta):
+    ACCEPTED = DescriptiveEnum(1, "Accepted", "✅")
+    REJECTED = DescriptiveEnum(2, "Rejected", "❌")
+    PENDING_REVISION = DescriptiveEnum(3, "Pending Revision", "🔍")

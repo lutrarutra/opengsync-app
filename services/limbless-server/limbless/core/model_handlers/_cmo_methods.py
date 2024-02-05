@@ -1,8 +1,6 @@
 import math
 from typing import Optional, TYPE_CHECKING
 
-from sqlmodel import and_, func, or_
-
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
 
@@ -21,10 +19,10 @@ def create_cmo(
     if not self._session:
         self.open_session()
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
+    if (_ := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
 
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (_ := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
     
     cmo = models.CMO(

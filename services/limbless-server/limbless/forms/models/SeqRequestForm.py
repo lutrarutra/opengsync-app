@@ -15,11 +15,6 @@ class SeqRequestForm(HTMXFlaskForm):
     _template_path = "forms/seq_request/seq_request.html"
     _form_label = "seq_request_form"
 
-    def __init__(self, formdata: Optional[dict[str, Any]] = None, seq_request: Optional[models.SeqRequest] = None):
-        super().__init__(formdata=formdata)
-        if seq_request is not None:
-            self.__fill_form(seq_request)
-
     name = StringField(
         "Request Name", validators=[DataRequired(), Length(min=6, max=64)],
         description="Descriptive title of the samples and experiment."
@@ -160,6 +155,11 @@ class SeqRequestForm(HTMXFlaskForm):
         "Billing Code", validators=[Length(max=64)],
         description="Billing code assigned by your institution."
     )
+
+    def __init__(self, formdata: Optional[dict[str, Any]] = None, seq_request: Optional[models.SeqRequest] = None):
+        super().__init__(formdata=formdata)
+        if seq_request is not None:
+            self.__fill_form(seq_request)
 
     def validate(self, user_id: int, seq_request: Optional[models.SeqRequest] = None) -> bool:
         if not super().validate():

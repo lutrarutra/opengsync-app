@@ -1,0 +1,10 @@
+{% from "components/form_group.jinja2" import form_group, switch_input %}
+
+<div id="process_request-form">
+    <div class="row">
+        {{ form_group(process_request_form.response_type, class="col-4") }}
+        {{ form_group(process_request_form.notification_receiver, class="col-8") }}
+    </div>
+    {{ form_group(process_request_form.notification_comment) }}
+    {{ process_request_form.csrf_token() }}
+</div>

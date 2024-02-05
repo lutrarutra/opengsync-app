@@ -3,6 +3,7 @@ from typing import Optional
 from ... import models
 from .. import exceptions
 
+
 def create_contact(
     self, name: str,
     email: Optional[str] = None,

@@ -105,7 +105,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
         n_added = 0
         n_new_samples = 0
-        n_new_projects = 0
 
         logger.debug(library_table[["sample_name", "project_id", "project_name"]])
 
@@ -247,10 +246,10 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                             )
 
                     if "pool" in row and not pd.isna(row["pool"]):
-                        library.pool_id = pools[row["pool"]].id
-                        library = session.update_library(library)
-
-        logger.debug(f"Created '{n_new_samples}' samples and '{n_new_projects}' projects.")
+                        session.link_library_pool(
+                            library_id=library.id,
+                            pool_id=pools[row["pool"]].id
+                        )
 
         if n_added == 0:
             flash("No libraries added.", "warning")

@@ -89,10 +89,16 @@
                             text: 'You will not be able to use this request anymore. Do you want to proceed?',
                             confirmButtonText: 'Yes',
                             denyButtonText: 'No'
-                        })
+                    })
                         if result.isConfirmed issueRequest()"
                         {% if seq_request.status.value.name == "Draft" or seq_request.status.value.name == "Archived" %}disabled{% endif %}>Archive</button>
                     </li>
+                    {% if current_user.is_insider() and seq_request.status.value.name == "Submitted" %}
+                    <li>
+                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#process_request-form-popup">
+                        Process</button>
+                    </li>
+                    {% endif %}
                     {% if current_user.is_insider() and seq_request.status.value.name == "Archived" %}
                     <li>
                         <button class="dropdown-item"
@@ -341,6 +347,24 @@
     <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             {% include "components/popups/seq_request/sas-1.html" %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="process_request-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
+        <div class="modal-dialog modal-l modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" >Process Sequencing Request</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {% include process_request_form._template_path %}
+                </div>
+                <div class="modal-footer" id="popup-footer">
+                    <button class="btn btn-primary" hx-include="#process_request-form" hx-target="#process_request-form" hx-swap="outerHTML"
+                        hx-post="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}">Submit</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

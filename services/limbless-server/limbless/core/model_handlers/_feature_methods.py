@@ -1,8 +1,6 @@
 import math
 from typing import Optional
 
-from sqlmodel import func, text, or_, and_
-
 from ... import models, PAGE_LIMIT
 from ...categories import FeatureType
 from .. import exceptions

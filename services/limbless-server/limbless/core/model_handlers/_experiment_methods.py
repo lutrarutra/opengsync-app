@@ -124,6 +124,16 @@ def delete_experiment(
     if not experiment:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
+    for link in self._session.query(models.ExperimentPoolLink).where(
+        models.ExperimentPoolLink.experiment_id == experiment_id
+    ).all():
+        self._session.delete(link)
+
+    for link in self._session.query(models.SeqRequestExperimentLink).where(
+        models.SeqRequestExperimentLink.experiment_id == experiment_id
+    ).all():
+        self._session.delete(link)
+
     self._session.delete(experiment)
     
     if commit:

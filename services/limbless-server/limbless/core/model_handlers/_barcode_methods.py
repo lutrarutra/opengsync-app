@@ -1,11 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import and_
-import pandas as pd
-
 from ... import models, logger, PAGE_LIMIT
-from .. import exceptions
 
 from ...categories import BarcodeType
 

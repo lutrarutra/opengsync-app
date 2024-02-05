@@ -1,29 +1,8 @@
 import math
 from typing import Optional
 
-from sqlmodel import and_
-
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
-
-
-def get_sample_libraries(self, sample_id: int) -> list[models.Library]:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if self._session.get(models.Sample, sample_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-
-    sample_libraries = self._session.query(models.Sample).join(
-        models.Library,
-        models.Library.sample_id == models.Sample.id
-    ).all()
-
-    if not persist_session:
-        self.close_session()
-
-    return sample_libraries
 
 
 def get_lanes_in_experiment(
@@ -215,7 +194,7 @@ def link_experiment_pool(
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     if lane > experiment.num_lanes:
         raise exceptions.InvalidValue(f"Experiment with id {experiment_id} has only {experiment.num_lanes} lanes")
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (_ := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     if self._session.query(models.ExperimentPoolLink).where(
@@ -250,9 +229,9 @@ def link_experiment_seq_request(
     if not self._session:
         self.open_session()
 
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
+    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+    if (_ := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
 
     if self._session.query(models.SeqRequestExperimentLink).where(
@@ -319,7 +298,7 @@ def unlink_experiment_pool(
 
     if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (_ := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     if (link := self._session.query(models.ExperimentPoolLink).where(

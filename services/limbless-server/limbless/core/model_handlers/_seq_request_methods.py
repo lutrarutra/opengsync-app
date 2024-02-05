@@ -2,7 +2,8 @@ import math
 from datetime import datetime
 from typing import Optional
 
-from sqlmodel import func, or_, and_
+from sqlmodel import func
+from sqlalchemy.sql.operators import is_, or_, and_
 
 from ... import models, PAGE_LIMIT, logger
 from ...categories import SeqRequestStatus, SequencingType, FlowCellType
@@ -165,7 +166,7 @@ def get_seq_requests(
         ).where(
             or_(
                 models.SeqRequestExperimentLink.experiment_id != exclude_experiment_id,
-                models.SeqRequestExperimentLink.experiment_id is None
+                is_(models.SeqRequestExperimentLink.experiment_id, None)
             )
         )
 

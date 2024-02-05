@@ -1,12 +1,10 @@
 import math
-from typing import Optional, Union
+from typing import Optional
 
-from sqlmodel import func, and_
-import pandas as pd
+from sqlalchemy.sql.operators import and_
 
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
-from ...categories import LibraryType
 
 
 def create_adapter(

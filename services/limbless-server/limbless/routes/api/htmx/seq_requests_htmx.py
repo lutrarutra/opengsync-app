@@ -762,6 +762,17 @@ def add_indices(seq_request_id: int):
     )
 
 
+@seq_requests_htmx.route("<int:seq_request_id>/process_request", methods=["POST"])
+@login_required
+def process_request(seq_request_id: int):
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    return forms.ProcessRequestForm(formdata=request.form).process_request(
+        seq_request=seq_request
+    )
+
+
 @seq_requests_htmx.route("<int:seq_request_id>/get_graph", methods=["GET"])
 @login_required
 def get_graph(seq_request_id: int):

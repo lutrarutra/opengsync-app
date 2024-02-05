@@ -31,14 +31,26 @@ class ExperimentForm(HTMXFlaskForm):
 
     sequencing_person = FormField(SearchBar, label="Sequencing Person")
 
-    def __init__(self, user: Optional[models.User] = None, formdata: Optional[dict] = None):
+    def __init__(self, user: Optional[models.User] = None, experiment: Optional[models.Experiment] = None, formdata: Optional[dict] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        self.prepare(user)
+        self.prepare(user, experiment)
 
-    def prepare(self, user: Optional[models.User]):
+    def prepare(self, user: Optional[models.User], experiment: Optional[models.Experiment]):
         if user is not None:
             self.sequencing_person.selected.data = user.id
             self.sequencing_person.search_bar.data = user.search_name()
+
+        if experiment is not None:
+            self.flowcell.data = experiment.flowcell
+            self.sequencer.selected.data = experiment.sequencer.id
+            self.sequencer.search_bar.data = experiment.sequencer.name
+            self.r1_cycles.data = experiment.r1_cycles
+            self.r2_cycles.data = experiment.r2_cycles
+            self.i1_cycles.data = experiment.i1_cycles
+            self.i2_cycles.data = experiment.i2_cycles
+            self.num_lanes.data = experiment.num_lanes
+            self.sequencing_person.selected.data = experiment.sequencing_person_id
+            self.sequencing_person.search_bar.data = experiment.sequencing_person.name
 
     def validate(self) -> bool:
         if (validated := super().validate()) is False:
@@ -68,7 +80,7 @@ class ExperimentForm(HTMXFlaskForm):
     def __create_new_experiment(self) -> Response:
         experiment = db.db_handler.create_experiment(
             flowcell=self.flowcell.data,
-            sequencer_id=self.sequencer.data,
+            sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,
             r2_cycles=self.r2_cycles.data,
             i1_cycles=self.i1_cycles.data,

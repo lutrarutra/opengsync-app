@@ -49,15 +49,6 @@
                 }}
                 {{
                     table_col(
-                        target_id='select-experiment-seq_request-table', column_name='Read Length', column_var='read_length',
-                        sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
-                        current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query', exclude_experiment_id=experiment.id), current_query=current_query,
-                        field_name=field_name, col_size=1
-                    )
-                }}
-                {{
-                    table_col(
                         target_id='select-experiment-seq_request-table', column_name='Sequencer', column_var='sequencer',
                         sort_url='seq_requests_htmx.get', sort_url_args={"exclude_experiment_id": experiment.id},
                         current_sort=available_seq_requests_current_sort, current_sort_order=available_seq_requests_current_sort_order,
@@ -74,9 +65,6 @@
                         field_name=field_name, col_size=1
                     )
                 }}
-                <th scope="col" class="col-1">
-                    Read Config
-                </th>
                 {{
                     table_col(
                         target_id='select-experiment-seq_request-table', column_name='# Libraries', column_var='num_libraries',
@@ -89,7 +77,8 @@
         <tbody>
             {% for request in available_seq_requests %}
             <tr>
-                <th scope="row">{{ request.id }}
+                <th scope="row">
+                    {{ request.id }}
                     {% if request.is_indexed() %}
                     <button type="button" class="btn btn-success table-btn"
                     hx-post="{{ url_for('experiments_htmx.add_seq_request', experiment_id=experiment.id, seq_request_id=request.id) }}">
@@ -107,14 +96,8 @@
                 <td>{{ request.requestor.name }}</td>
                 <td>{{ request.technology }}</td>
                 <td>{{ request.submitted_time_to_str() }}</td>
-                <td>{{ request.read_length if request.read_length else "" }}</td>
                 <td>{{ request.sequencer }}</td>
                 <td>{{ request.flowcell_type.value.name if request.flowcell_type else "" }}</td>
-                <td>
-                    {% if request.num_cycles_read_1 %}
-                    {{ request.num_cycles_read_1 }}-{{ request.num_cycles_index_1 }}{% if request.num_cycles_index_2 %}-{{ request.num_cycles_index_2 }}-{{ request.num_cycles_read_2 }}{% endif %}
-                    {% endif %}
-                </td>
                 <td>{{ request.num_libraries }}</td>
             </tr>
             {% endfor %}

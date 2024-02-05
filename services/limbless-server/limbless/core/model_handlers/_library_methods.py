@@ -1,7 +1,8 @@
 import math
 from typing import Optional
 
-from sqlmodel import func, text, or_, and_
+from sqlmodel import func, text
+from sqlalchemy.sql.operators import or_, and_
 
 from ... import models, PAGE_LIMIT
 from ...categories import LibraryType
@@ -235,6 +236,7 @@ def query_libraries(
         )
 
     if sample_id is not None:
+        raise NotImplementedError()
         query = query.join(
             models.SampleLibraryLink,
             models.SampleLibraryLink.library_id == models.Library.id,
@@ -268,3 +270,27 @@ def query_libraries(
         self.close_session()
 
     return libraries
+
+
+def link_library_pool(self, library_id: int, pool_id: int, commit: bool = True):
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+
+    if library.pool_id is None:
+        pool.num_libraries += 1
+        self._session.add(pool)
+        
+    library.pool_id = pool_id
+    self._session.add(library)
+
+    if commit:
+        self._session.commit()
+
+    if not persist_session:
+        self.close_session()

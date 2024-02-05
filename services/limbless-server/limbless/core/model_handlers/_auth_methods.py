@@ -1,7 +1,6 @@
 from typing import Optional
 
 from sqlalchemy.orm import selectinload
-from sqlmodel import and_
 
 from ... import models, logger
 from .. import exceptions

@@ -57,12 +57,13 @@ class DBHandler():
 
     from .model_handlers._pool_methods import (
         create_pool, get_pool, get_pools,
-        delete_pool, update_pool, query_pools
+        delete_pool, update_pool
     )
 
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
+        link_library_pool
     )
 
     from .model_handlers._user_methods import (
@@ -118,9 +119,7 @@ class DBHandler():
         query_feature_kits
     )
 
-
     from .model_handlers._link_methods import (
-        get_sample_libraries,
         get_lanes_in_experiment,
         get_sample_library_links,
         get_available_pools_for_experiment,

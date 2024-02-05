@@ -171,6 +171,25 @@ body {
     }
 }
 
+.modal-l {
+    min-width: 60vw;
+    .modal-content {
+        width: 100%;
+    }
+    .modal-body {
+        height: 50vh;
+        padding: 20px 30px 20px 30px;
+        overflow-y: auto;
+
+        .tab-content {
+            height: 100%;
+            .tab-pane {
+                height: 100%;
+            }
+        }
+    }
+}
+
 
 .htmx-request:hover {
     cursor: wait;

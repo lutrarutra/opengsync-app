@@ -2,6 +2,7 @@ from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm, UserF
 from .TableDataForm import TableDataForm
 from .SeqAuthForm import SeqAuthForm
 from .SearchBar import SearchBar
+from .ProcessRequestForm import ProcessRequestForm
 
 
 from .models.LibraryForm import LibraryForm

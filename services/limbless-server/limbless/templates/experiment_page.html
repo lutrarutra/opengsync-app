@@ -12,8 +12,9 @@
         </div>
         <div>
             {% if experiment.status.value.name == "Draft" %}
-            <span {% if not experiment.is_submittable() %} {{ tooltip("All libraries in all pools must be indexed
-                first.", category="success" ) }} {% endif %}>
+            <span {% if not experiment.is_submittable() %}
+            {{ tooltip("At least one pool must be added to a lane and all libraries in all pools must be indexed.", category="success" ) }}
+            {% endif %}>
                 <button type="button" class="btn btn-success" {% if not experiment.is_submittable() %} disabled {% endif
                     %} hx-post="{{ url_for('experiments_htmx.submit_experiment', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
                         halt the event

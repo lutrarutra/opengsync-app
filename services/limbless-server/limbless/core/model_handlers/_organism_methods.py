@@ -1,7 +1,6 @@
 from typing import Optional
 
 from sqlmodel import func
-import pandas as pd
 
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions

@@ -220,30 +220,6 @@ def remove_seq_request(experiment_id: int):
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
         push_url=False
     )
-    
-
-@experiments_htmx.route("select_sequencing_person", methods=["POST"])
-@login_required
-def select_sequencing_person():
-    experiment_form = forms.ExperimentForm()
-
-    if (selected_person_id := experiment_form.sequencing_person.data) is not None:
-        if (selected_user := db.db_handler.get_user(selected_person_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-    elif experiment_form.current_user_is_seq_person.data:
-        selected_user = current_user
-    else:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
-    
-    experiment_form.current_user_is_seq_person.data = current_user.id == selected_user.id
-
-    return make_response(
-        render_template(
-            "forms/experiment.html",
-            experiment_form=experiment_form,
-            selected_user=selected_user
-        ), push_url=False
-    )
 
 
 @experiments_htmx.route("<int:experiment_id>/submit_experiment", methods=["POST"])

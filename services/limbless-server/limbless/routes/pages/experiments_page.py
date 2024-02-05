@@ -55,8 +55,9 @@ def experiment_page(experiment_id: int):
         available_seq_requests_sort = "submitted_time"
 
         available_seq_requests, available_seq_requests_n_pages = session.get_seq_requests(
-            sort_by=available_seq_requests_sort, descending=True, exclude_experiment_id=experiment_id,
-            with_statuses=[SeqRequestStatus.SUBMITTED]
+            exclude_experiment_id=experiment_id,
+            with_statuses=[SeqRequestStatus.PREPARATION],
+            sort_by=available_seq_requests_sort, descending=True,
         )
         experiment_lanes = session.get_lanes_in_experiment(experiment_id)
 
@@ -64,15 +65,7 @@ def experiment_page(experiment_id: int):
             sort_by="id", descending=True, experiment_id=experiment_id
         )
 
-        experiment_form = forms.ExperimentForm()
-        experiment_form.flowcell.data = experiment.flowcell
-        experiment_form.sequencer.data = experiment.sequencer.id
-        experiment_form.r1_cycles.data = experiment.r1_cycles
-        experiment_form.r2_cycles.data = experiment.r2_cycles
-        experiment_form.i1_cycles.data = experiment.i1_cycles
-        experiment_form.i2_cycles.data = experiment.i2_cycles
-        experiment_form.num_lanes.data = experiment.num_lanes
-        experiment_form.sequencing_person.data = experiment.sequencing_person_id
+        experiment_form = forms.ExperimentForm(experiment=experiment)
 
         path_list = [
             ("Experiments", url_for("experiments_page.experiments_page")),

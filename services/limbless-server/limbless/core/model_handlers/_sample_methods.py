@@ -1,7 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import and_, func, or_
+from sqlmodel import func
 
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions

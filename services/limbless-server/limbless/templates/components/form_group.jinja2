@@ -27,7 +27,7 @@
 {%- endmacro %}
 
 {% macro switch_input(field, class='', disabled=false, collapse_element_id=none) -%}
-<div class="form-check form-switch {{ class }}">
+<div class="form-check form-switch {{ class }} pb-3">
     {% if collapse_element_id %}
         {% if field.data == True %}
         <input type="checkbox" id="{{ field.id }}" checked name="{{ field.name }}" class="form-check-input" data-bs-toggle="collapse" data-bs-target="#{{collapse_element_id}}" aria-expanded="{{ 'true' if field.data else 'false' }}" aria-controls="{{collapse_element_id}}">

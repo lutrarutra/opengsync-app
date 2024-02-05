@@ -31,7 +31,14 @@
                         col_size=2,
                     )
                 }}
-                <th scope="col" class="col-2">Indexed</th>
+                {{
+                    table_col(
+                        target_id='experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
+                        sort_url='pools_htmx.get', sort_url_args={"experiment_id":experiment.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=2,
+                    )
+                }}
             </tr>
         </thead>
         <tbody>
@@ -57,16 +64,7 @@
                 </td>
                 <td>{{ pool.name }}</td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
-                <td>
-                {% if pool.is_indexed() %}
-                    ✅
-                {% else %}
-                    <a class="btn btn-primary table-btn" type="button"
-                    href="{{ url_for('pools_page.pool_page', pool_id=pool.id, index_form='open', from='experiment@' + experiment.id | string) }}">
-                    Add
-                    </a>
-                {% endif %}
-                </td>
+                <td>{{ pool.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -1,8 +1,7 @@
 import math
-from typing import Optional, Union
+from typing import Optional
 
-from sqlmodel import func, and_
-import pandas as pd
+from sqlmodel import func
 
 from ... import models, logger, PAGE_LIMIT
 from .. import exceptions
