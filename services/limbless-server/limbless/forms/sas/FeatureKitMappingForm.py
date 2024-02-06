@@ -13,11 +13,12 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 from .PoolMappingForm import PoolMappingForm
 from .BarcodeCheckForm import BarcodeCheckForm
+from ..SearchBar import SearchBar
 
 
 class FeatureKitSubForm(FlaskForm):
-    raw_category = StringField("Raw Label", validators=[OptionalValidator()])
-    category = IntegerField("Index Kit", validators=[DataRequired()])
+    raw_label = StringField("Raw Label", validators=[OptionalValidator()])
+    feature_kit = FormField(SearchBar, label="Select Feature Kit")
 
 
 class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
@@ -48,19 +49,19 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
             for i, entry in enumerate(self.input_fields):
                 raw_feature_kit_label = kits[i]
 
-                if (feature_kit_id := entry.category.data) is None:
-                    entry.category.errors = ("Not valid feature kit selected")
+                if (feature_kit_id := entry.feature_kit.selected.data) is None:
+                    entry.feature_kit.selected.errors = ("Not valid feature kit selected")
                     return False
                 
                 if (selected_kit := db.db_handler.get_feature_kit(feature_kit_id)) is None:
-                    entry.category.errors = ("Not valid feature kit selected")
+                    entry.feature_kit.selected.errors = ("Not valid feature kit selected")
                     return False
                 
                 _df = df[df["kit"] == raw_feature_kit_label]
                 for _, row in _df.iterrows():
                     feature_name = str(row["feature_name"])
                     if (_ := db.db_handler.get_feature_from_kit_by_feature_name(feature_name, selected_kit.id)) is None:
-                        entry.category.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
+                        entry.feature_kit.selected.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
                         return False
 
         return validated
@@ -70,7 +71,6 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
             data = self.get_data()
 
         kits = []
-        selected: list[Optional[models.FeatureKit]] = []
 
         for table_name in ["feature_table", "cmo_table"]:
             if table_name not in data.keys():
@@ -79,31 +79,28 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
 
             kits.extend([feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in df["kit"].unique().tolist()])
 
-            for i, feature_kit in enumerate(kits):
+            for i, raw_feature_kit_label in enumerate(kits):
                 if i > len(self.input_fields) - 1:
                     self.input_fields.append_entry()
 
                 entry = self.input_fields[i]
-                entry.raw_category.data = feature_kit
+                entry.raw_label.data = raw_feature_kit_label
 
-                if feature_kit is None:
+                if raw_feature_kit_label is None:
                     selected_kit = None
-                elif entry.category.data is None:
-                    selected_kit = next(iter(db.db_handler.query_feature_kits(feature_kit, 1)), None)
-                    entry.category.data = selected_kit.id if selected_kit else None
+                elif entry.feature_kit.selected.data is None:
+                    selected_kit = next(iter(db.db_handler.query_feature_kits(raw_feature_kit_label, 1)), None)
+                    entry.feature_kit.selected.data = selected_kit.id if selected_kit else None
+                    entry.feature_kit.search_bar.data = selected_kit.search_name() if selected_kit else None
                 else:
-                    selected_kit = db.db_handler.get_feature_kit(entry.category.data)
-
-                selected.append(selected_kit)
+                    selected_kit = db.db_handler.get_feature_kit(entry.feature_kit.selected.data)
+                    entry.feature_kit.search_bar.data = selected_kit.search_name() if selected_kit else None
 
             data[table_name] = df
 
         self.update_data(data)
 
-        return {
-            "categories": kits,
-            "selected": selected
-        }
+        return {}
     
     def __parse(self) -> dict[str, pd.DataFrame]:
         data = self.get_data()
@@ -121,7 +118,7 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
 
             for i, feature_kit in enumerate(kits):
                 entry = self.input_fields[i]
-                if (selected_id := entry.category.data) is not None:
+                if (selected_id := entry.feature_kit.selected.data) is not None:
                     if (selected_kit := db.db_handler.get_feature_kit(selected_id)) is None:
                         raise Exception(f"Feature kit with id '{selected_id}' does not exist.")
                     

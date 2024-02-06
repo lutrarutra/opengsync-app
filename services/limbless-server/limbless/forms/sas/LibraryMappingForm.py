@@ -128,9 +128,7 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
         data["library_table"] = df
         self.update_data(data)
 
-        return {
-            "categories": library_types,
-        }
+        return {}
 
     def __parse(self) -> dict[str, pd.DataFrame]:
         data = self.get_data()
@@ -164,13 +162,11 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
 
         if "index_kit" in data["library_table"] and not data["library_table"]["index_kit"].isna().all():
             index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
-            context = index_kit_mapping_form.prepare(data) | context
             return index_kit_mapping_form.make_response(**context)
         
         if data["library_table"]["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.value.id,
         ]).any():
-            
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)

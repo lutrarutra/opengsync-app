@@ -41,7 +41,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
         if data is None:
             data = self.get_data()
 
-        df = data["library_table"]
+        df = data["pooling_table"]
 
         df["pool"] = df["pool"].apply(lambda x: str(x) if x and not pd.isna(x) and not pd.isnull(x) else "__NONE__")
 
@@ -80,7 +80,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
 
             pool_libraries.append(_data)
 
-        data["library_table"] = df
+        data["pooling_table"] = df
         self.update_data(data)
 
         return {
@@ -105,7 +105,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
 
     def __parse(self) -> dict[str, pd.DataFrame]:
         data = self.get_data()
-        df = data["library_table"]
+        df = data["pooling_table"]
 
         df["contact_person_name"] = None
         df["contact_person_email"] = None
@@ -122,7 +122,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
             pool_label = entry.pool_name.data
             df.loc[df["pool"] == raw_pool_labels[i], "pool"] = pool_label
 
-        data["library_table"] = df
+        data["pooling_table"] = df
         self.update_data(data)
 
         return data

@@ -53,10 +53,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         return {}
 
     def validate(self) -> bool:
-
-        logger.debug(self.file.data)
-        validated = self.validate()
-        if not validated:
+        if not super().validate():
             return False
         
         if self.file.data is None:
@@ -112,7 +109,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
             )
             return False
         
-        return validated
+        return True
     
     def __parse(self) -> dict[str, pd.DataFrame]:
         data = self.get_data()
@@ -126,8 +123,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         return data
     
     def process_request(self, **context) -> Response:
-        validated = self.validate()
-        if not validated:
+        if not self.validate():
             return self.make_response(**context)
 
         try:

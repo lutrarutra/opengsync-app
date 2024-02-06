@@ -41,9 +41,8 @@ def pool_page(pool_id: int):
         if (pool := session.get_pool(pool_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
-        if not current_user.is_insider():
-            if pool.owner_id != current_user.id:
-                return abort(HttpResponse.FORBIDDEN.value.id)
+        if not current_user.is_insider() and pool.owner_id != current_user.id:
+            return abort(HttpResponse.FORBIDDEN.value.id)
 
         libraries, libraries_n_pages = session.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
         is_editable = pool.is_editable()
@@ -63,16 +62,11 @@ def pool_page(pool_id: int):
 
         open_index_form = request.args.get("index_form", None) == "open"
 
-        index_form = forms.IndexForm()
-
         return render_template(
             "pool_page.html",
-            pool=pool,
-            libraries=libraries,
+            pool=pool, libraries=libraries,
             libraries_n_pages=libraries_n_pages,
-            path_list=path_list,
+            path_list=path_list, is_editable=is_editable,
             open_index_form=open_index_form,
-            is_editable=is_editable,
-            index_form=index_form,
-            table_form=forms.TableInputForm(),
+            pooling_form=forms.PoolingInputForm(),
         )

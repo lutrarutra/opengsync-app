@@ -84,7 +84,7 @@
                 window.location.href = 'mailto:{{ email }}?subject={{ subject }}';
             }
         });">
-            <input class="form-control" style="cursor: pointer; color: #0d6efd; readonly type="text" value="{{ email }}">
+            <input class="form-control" style="cursor: pointer; color: #0d6efd;" readonly type="text" value="{{ email }}">
         </a>
         <a type="button" class="clipboard-btn" {{ tooltip("Click to copy.", position="top") }}
         onclick="copy_to_clipboard('{{guid}}')">

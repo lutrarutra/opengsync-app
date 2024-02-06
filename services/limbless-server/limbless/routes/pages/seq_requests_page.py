@@ -76,7 +76,7 @@ def seq_request_page(seq_request_id: int):
                     (f"Request {seq_request_id}", ""),
                 ]
 
-        sas_input_form = forms.SASInputForm()
+        sas_input_form = forms.sas.SASInputForm()
         process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
         seq_auth_form = forms.SeqAuthForm()
 

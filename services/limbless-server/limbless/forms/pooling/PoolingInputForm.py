@@ -13,12 +13,12 @@ from werkzeug.utils import secure_filename
 from ... import logger
 from ..TableDataForm import TableDataForm
 from ..HTMXFlaskForm import HTMXFlaskForm
-from ..sas.IndexKitMappingForm import IndexKitMappingForm
+from .IndexKitMappingForm import IndexKitMappingForm
 
 
 class PoolingInputForm(HTMXFlaskForm, TableDataForm):
     _template_path = "components/popups/pooling/pooling-1.html"
-    _form_label = "pooling_form"
+    _form_label = "pooling_input_form"
 
     _required_columns: list[str] = [
         "id", "library_name", "library_type", "index_1", "adapter", "pool", "index_kit"
@@ -48,7 +48,6 @@ class PoolingInputForm(HTMXFlaskForm, TableDataForm):
         filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
         filename = secure_filename(filename)
         self.file.data.save("uploads/" + filename)
-        logger.debug(f"Saved file to data/uploads/{filename}")
 
         sep = "\t" if self.separator.data == "tsv" else ","
         
@@ -74,7 +73,7 @@ class PoolingInputForm(HTMXFlaskForm, TableDataForm):
             return self.make_response(**context)
         
         data = {"pooling_table": self.df}
-        index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
+        index_kit_mapping_form = IndexKitMappingForm(uuid=None)
         context = index_kit_mapping_form.prepare(data) | context
 
         return index_kit_mapping_form.make_response(**context)

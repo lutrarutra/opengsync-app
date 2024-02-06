@@ -1,8 +1,6 @@
 
 function select_option(name, id, search_field_id) {
     search_field_id = search_field_id.replace("-search", "");
-    console.log(search_field_id);
-    console.log(id);
 
     // Set value field value
     $(`#${search_field_id}`).val(id);

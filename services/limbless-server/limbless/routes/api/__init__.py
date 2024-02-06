@@ -13,3 +13,4 @@ from .htmx.users_htmx import users_htmx
 from .htmx.libraries_htmx import libraries_htmx
 from .htmx.seq_request_form import seq_request_form_htmx
 from .htmx.features_htmx import features_htmx
+from .htmx.pooling_form import pooling_form_htmx

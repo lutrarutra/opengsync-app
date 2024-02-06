@@ -313,6 +313,9 @@ def delete_seq_request(
                 
         self._session.delete(pool)
 
+    seq_request.requestor.num_seq_requests -= 1
+    self._session.add(seq_request.requestor)
+
     self._session.delete(seq_request)
     if commit:
         self._session.commit()

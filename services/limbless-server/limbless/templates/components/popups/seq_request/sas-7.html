@@ -6,18 +6,20 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
-        <form id="feature_kit-mapping-form">
+        <div id="feature_kit-mapping-form">
+            {% for sub_form in form.input_fields %}
             {{    
                 categorical_mapping(
-                    form=form,
-                    categories=categories,
-                    url=url_for('features_htmx.query_kits'),
-                    selected=selected,
+                    raw_label=sub_form.raw_label,
+                    category=sub_form.feature_kit,
+                    query_url=url_for('features_htmx.query_kits'),
+                    token=sub_form.csrf_token
                 )
             }}
+            {% endfor %}
             {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
             {{ form.csrf_token() }}
-        </form>
+        </div>
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-primary"

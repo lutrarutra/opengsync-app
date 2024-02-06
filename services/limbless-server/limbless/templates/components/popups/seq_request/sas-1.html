@@ -1,4 +1,4 @@
-{% from "components/table_input.jinja2" import table_input %}
+{% from 'components/form_group.jinja2' import form_group %}
 
 <div id="sample-table-submission-container" class="modal-content">
     <div class="modal-header">
@@ -17,7 +17,7 @@
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#premade-library-submission-tab" type="button" role="tab"
                 aria-controls="premade-library-submission-tab" aria-selected="false">
-                Premade Libraries</button>
+                Pooled Libraries</button>
             </li>
         </ul>
         <div class="tab-content pt-3">
@@ -92,7 +92,15 @@
                     </ul>
                 </div>
             </div>
-            {{ table_input(sas_input_form, id="sample-table-input-form") }}
+
+            <form id="sample-table-input-form" enctype="multipart/form-data">
+                {{ sas_input_form.csrf_token() }}
+                {{ form_group(sas_input_form.submission_type) }}
+                <div class="row">
+                    {{ form_group(sas_input_form.separator, class="col-2") }}
+                    {{ form_group(sas_input_form.file, class="col-10") }}
+                </div>
+            </form>
         </div>
         
     </div>
@@ -110,3 +118,6 @@
         </button>
     </div>
 </div>
+<script>
+init_tooltips();
+</script>

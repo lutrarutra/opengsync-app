@@ -32,7 +32,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             data = self.get_data()
 
         data = self.get_data()
-        df = self.get_data()["library_table"]
+        df = self.get_data()["pooling_table"]
 
         samples_data: list[dict[str, str | int | None]] = []
 
@@ -78,7 +78,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
             samples_data.append(_data)
 
-        data["library_table"] = df
+        data["pooling_table"] = df
         self.update_data(data)
 
         return {
@@ -99,7 +99,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
         data = self.get_data()
 
-        library_table = data["library_table"]
+        pooling_table = data["pooling_table"]
         cmo_table = data["cmo_table"] if "cmo_table" in data else None
 
         n_added = 0
@@ -107,7 +107,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
         with DBSession(db.db_handler) as session:
             projects: dict[int | str, models.Project] = {}
-            for project_id, project_name in library_table[["project_id", "project_name"]].drop_duplicates().values.tolist():
+            for project_id, project_name in pooling_table[["project_id", "project_name"]].drop_duplicates().values.tolist():
                 if not pd.isnull(project_id):
                     project_id = int(project_id)
                     if (project := session.get_project(project_id)) is None:
@@ -121,16 +121,16 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                         owner_id=user_id
                     )
                     projects[project.id] = project
-                    library_table.loc[library_table["project_name"] == project_name, "project_id"] = project.id
+                    pooling_table.loc[pooling_table["project_name"] == project_name, "project_id"] = project.id
 
-            if library_table["project_id"].isna().any():
+            if pooling_table["project_id"].isna().any():
                 raise Exception("Project id is None (should not be).")
 
         with DBSession(db.db_handler) as session:
             pools: dict[str, models.Pool] = {}
 
-            if "pool" in library_table.columns:
-                for pool_label, _df in library_table.groupby("pool"):
+            if "pool" in pooling_table.columns:
+                for pool_label, _df in pooling_table.groupby("pool"):
                     pool_label = str(pool_label)
                     pool = session.create_pool(
                         name=pool_label,
@@ -142,7 +142,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                     )
                     pools[pool_label] = pool
 
-            for (sample_name, sample_id, tax_id, project_id, is_cmo_sample), _df in library_table.groupby(["sample_name", "sample_id", "tax_id", "project_id", "is_cmo_sample"], dropna=False):
+            for (sample_name, sample_id, tax_id, project_id, is_cmo_sample), _df in pooling_table.groupby(["sample_name", "sample_id", "tax_id", "project_id", "is_cmo_sample"], dropna=False):
                 if cmo_table is not None:
                     feature_ref = cmo_table.loc[cmo_table["sample_pool"] == sample_name, :]
                 else:

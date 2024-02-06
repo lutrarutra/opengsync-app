@@ -14,12 +14,12 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 from .OrganismMappingForm import OrganismMappingForm
 from .LibraryMappingForm import LibraryMappingForm
-from ..SearchBar import SearchBar
+from ..SearchBar import OptionalSearchBar
 
 
 class ProjectSubForm(FlaskForm):
     raw_label = StringField("Raw Label", validators=[OptionalValidator()])
-    project = FormField(SearchBar, label="Select Existing Project")
+    project = FormField(OptionalSearchBar, label="Select Existing Project")
     new_project = StringField("Create New Project", validators=[OptionalValidator()])
 
 
@@ -63,7 +63,6 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
     
     def validate(self, user_id: int) -> bool:
         if (validated := super().validate()) is False:
-            logger.debug(self.errors)
             return False
         
         with DBSession(db.db_handler) as session:
@@ -155,7 +154,6 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
 
         validated = self.validate(user_id)
         if not validated:
-            context = self.prepare(user_id=user_id) | context
             return self.make_response(**context)
 
         data = self.__parse(seq_request_id=seq_request_id)

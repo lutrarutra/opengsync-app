@@ -79,18 +79,10 @@
             <tr>
                 <th scope="row">
                     {{ request.id }}
-                    {% if request.is_indexed() %}
                     <button type="button" class="btn btn-success table-btn"
                     hx-post="{{ url_for('experiments_htmx.add_seq_request', experiment_id=experiment.id, seq_request_id=request.id) }}">
                     Add
                     </button>
-                    {% else %}
-                    <button type="button" class="btn btn-primary table-btn"
-                    hx-target="#pooling-form-popup"
-                    hx-get="{{ url_for('seq_requests_htmx.pooling_form', experiment_id=experiment.id, seq_request_id=request.id) }}">
-                    Pool
-                    </button>
-                    {% endif %}
                 </th>
                 <td>{{ request.name }}</td>
                 <td>{{ request.requestor.name }}</td>

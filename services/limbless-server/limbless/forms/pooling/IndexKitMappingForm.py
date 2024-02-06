@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional
 from flask import Response
 import pandas as pd
 
@@ -8,14 +8,11 @@ from wtforms.validators import Optional as OptionalValidator
 
 from ... import db, models, logger
 from ..TableDataForm import TableDataForm
-from ...categories import LibraryType
 
 from ..HTMXFlaskForm import HTMXFlaskForm
-from .CMOReferenceInputForm import CMOReferenceInputForm
-from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
 
 from ..SearchBar import SearchBar
+from .PoolMappingForm import PoolMappingForm
 
 
 class IndexKitSubForm(FlaskForm):
@@ -24,7 +21,8 @@ class IndexKitSubForm(FlaskForm):
 
 
 class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "components/popups/seq_request/sas-5.html"
+    _template_path = "components/popups/pooling/pooling-2.html"
+    _form_label = "index_kit_mapping_form"
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
@@ -38,7 +36,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         if not super().validate():
             return False
         
-        df = self.get_data()["library_table"]
+        df = self.get_data()["pooling_table"]
 
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
@@ -69,7 +67,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         if data is None:
             data = self.get_data()
 
-        df = data["library_table"]
+        df = data["pooling_table"]
 
         if "index_kit" not in df.columns:
             df["index_kit"] = None
@@ -107,7 +105,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
     
     def __parse(self) -> dict[str, pd.DataFrame]:
         data = self.get_data()
-        df = data["library_table"]
+        df = data["pooling_table"]
 
         df["index_kit_name"] = None
         df["index_kit_id"] = None
@@ -147,7 +145,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             df.at[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None
             df.at[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 else None
             
-        data["library_table"] = df
+        data["pooling_table"] = df
         self.update_data(data)
 
         return data
@@ -157,19 +155,12 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             return self.make_response(**context)
         
         data = self.__parse()
+        
+        if not self.validate():
+            return self.make_response(**context)
+        
+        data = self.__parse()
+        pool_mapping_form = PoolMappingForm()
+        context = context | pool_mapping_form.prepare(data)
 
-        if data["library_table"]["library_type_id"].isin([
-            LibraryType.MULTIPLEXING_CAPTURE.value.id,
-        ]).any():
-            cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
-            context = cmo_reference_input_form.prepare(data) | context
-            return cmo_reference_input_form.make_response(**context)
-
-        if "pool" in data["library_table"].columns:
-            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            context = pool_mapping_form.prepare(data) | context
-            return pool_mapping_form.make_response(**context)
-
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data) | context
-        return barcode_check_form.make_response(**context)
+        return pool_mapping_form.make_response(**context)

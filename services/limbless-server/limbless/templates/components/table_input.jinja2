@@ -1,4 +1,5 @@
 {% from 'components/form_group.jinja2' import form_group %}
+
 {% macro table_input(table_form, id) -%}
 <form id="{{ id }}" enctype="multipart/form-data">
     {{ table_form.csrf_token() }}

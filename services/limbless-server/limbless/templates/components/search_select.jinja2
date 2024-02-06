@@ -14,6 +14,7 @@
         <input type="search" aria-describedby=""
         class="form-control searchbar-input search-component {% if field.selected.errors %} is-invalid {% endif %}"
         value="{{ field.search_bar.data }}"
+        autocomplete="off"
         name="{{ field.name }}-search"
         id="{{ field.name }}-search"
         hx-include="#{{ field.name }}-search"

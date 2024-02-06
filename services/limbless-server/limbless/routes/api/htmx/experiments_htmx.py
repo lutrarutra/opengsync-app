@@ -102,8 +102,7 @@ def add_seq_request(experiment_id: int, seq_request_id: int):
     if not experiment.is_editable():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if not experiment.is_editable():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+    # TODO: check if it is already linked, shouldnt be, but still
     
     db.db_handler.link_experiment_seq_request(
         experiment_id=experiment_id,
