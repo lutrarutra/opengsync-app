@@ -344,13 +344,13 @@
         </div>
     </div>
 
-    <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
+    <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
-            {% include "components/popups/seq_request/sas-1.html" %}
+            {% include sas_input_form._template_path %}
         </div>
     </div>
 
-    <div class="modal fade" id="process_request-form-popup" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
+    <div class="modal fade" id="process_request-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
         <div class="modal-dialog modal-l modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -368,20 +368,6 @@
         </div>
     </div>
 </div>
-<style>
-    .link {
-        fill: none;
-        stroke: #000;
-        stroke-opacity: .2;
-    }
-    .link:hover {
-        stroke-opacity: .5;
-    }
-
-    .node:hover {
-        cursor: pointer;
-    }
-</style>
 <script>
     $(document).ready(function() {
         $("#request-overview-tab-btn").on("click", function() {

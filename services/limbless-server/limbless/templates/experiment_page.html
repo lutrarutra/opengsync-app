@@ -30,6 +30,10 @@
                 </button>
             </span>
             {% endif %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#pooling-form-popup">
+                Pool Libraries
+            </button>
             <span {% if not experiment.is_editable() %} {{ tooltip("Experiment cannot be edited after it is submitted.")
                 }} {% endif %}>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
@@ -126,26 +130,26 @@
             <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="3">
                 <div class="row">
                     {{
-                    metadata_group_link(
-                    "Sequencing Person Name", experiment.sequencing_person.name,
-                    url_for("users_page.user_page", user_id=experiment.sequencing_person.id),
-                    class="col"
-                    )
+                        metadata_group_link(
+                            "Sequencing Person Name", experiment.sequencing_person.name,
+                            url_for("users_page.user_page", user_id=experiment.sequencing_person.id),
+                            class="col"
+                        )
                     }}
                     {{
-                    metadata_group_email_link(
-                    "Sequencing Person Email", experiment.sequencing_person.email, class="col",
-                    subject="BSF Sequencing Experiment: " + experiment.id | string
-                    )
+                        metadata_group_email_link(
+                            "Sequencing Person Email", experiment.sequencing_person.email, class="col",
+                            subject="BSF Sequencing Experiment: " + experiment.id | string
+                        )
                     }}
                 </div>
                 <div class="row">
                     {{
-                    metadata_group_link(
-                    "Sequencer", experiment.sequencer.name,
-                    url_for("devices_page.sequencer_page", sequencer_id=experiment.sequencer.id),
-                    class="col"
-                    )
+                        metadata_group_link(
+                            "Sequencer", experiment.sequencer.name,
+                            url_for("devices_page.sequencer_page", sequencer_id=experiment.sequencer.id),
+                            class="col"
+                        )
                     }}
                     {{ metadata_group("Sequencer IP", experiment.sequencer.ip, class="col") }}
                 </div>
@@ -192,21 +196,13 @@
             {% include "components/popups/select-experiment-seq_request.html" %}
         </div>
     </div>
-</div>
-<style>
-    .link {
-        fill: none;
-        stroke: #000;
-        stroke-opacity: .2;
-    }
-    .link:hover {
-        stroke-opacity: .5;
-    }
 
-    .node:hover {
-        cursor: pointer;
-    }
-</style>
+    <div class="modal fade" id="pooling-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            {% include pooling_input_form._template_path %}
+        </div>
+    </div>
+</div>
 <script>
     $(document).ready(function() {
         $("#experiment-overview-tab-btn").on("click", function() {    

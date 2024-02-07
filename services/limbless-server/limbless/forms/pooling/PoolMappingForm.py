@@ -6,7 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from ... import logger, models
+from ... import logger, models, db
 from ..TableDataForm import TableDataForm
 
 if TYPE_CHECKING:
@@ -29,7 +29,8 @@ class PoolSubForm(FlaskForm):
 class PoolMappingForm(HTMXFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(PoolSubForm), min_entries=1)
 
-    _template_path = "components/popups/seq_request/sas-8.html"
+    _template_path = "components/popups/pooling/pooling-3.html"
+    _form_label = "pool_mapping_form"
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
@@ -65,20 +66,13 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
             if entry.contact_person_email.data is None:
                 entry.contact_person_email.data = current_user.email
 
-            _data = {}
+            libraries = []
             for _, row in _df.iterrows():
-                library_name = row["sample_name"]
-                if library_name not in _data.keys():
-                    _data[library_name] = []
+                library_id = row["id"]
+                library = db.db_handler.get_library(library_id)
+                libraries.append(library)
 
-                _data[library_name].append({
-                    "library_type": row["library_type"],
-                    "library_volume": row["library_volume"],
-                    "library_concentration": row["library_concentration"],
-                    "library_total_size": row["library_total_size"],
-                })
-
-            pool_libraries.append(_data)
+            pool_libraries.append(libraries)
 
         data["pooling_table"] = df
         self.update_data(data)

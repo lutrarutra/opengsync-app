@@ -63,15 +63,7 @@ class Experiment(SQLModel, table=True):
         return self.status == ExperimentStatus.DRAFT
     
     def is_submittable(self) -> bool:
-        return self.status == ExperimentStatus.DRAFT and self.is_all_pools_indexed()
-    
-    def is_all_pools_indexed(self) -> bool:
-        if len(self.pool_links) == 0:
-            return False
-        for pool_link in self.pool_links:
-            if not pool_link.pool.is_indexed():
-                return False
-        return True
+        return self.status == ExperimentStatus.DRAFT
     
     def timestamp_to_str(self) -> str:
         return self.timestamp.strftime('%Y-%m-%d %H:%M')

@@ -11,7 +11,7 @@
         <div class="input-help">
             <h5>How to?</h5>
             <ol>
-                <li><a href="{{ url_for('seq_requests_htmx.download_pooling_template', seq_request_id=seq_request.id) }}">
+                <li><a href="{{ url_for('pooling_form_htmx.download_pooling_template', experiment_id=experiment.id) }}">
                 Download template</a></li>
                 <li>Fill in the template and <b>save as TSV/CSV-file</b></li>
                 <li>Submit the updated file below</li>

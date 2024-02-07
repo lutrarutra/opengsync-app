@@ -58,38 +58,38 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for sample_data in samples_data %}
-                    {% set sample_id = sample_data["id"] %}
-                    {% if sample_data["error"] %}
-                    <tr {{ tooltip(sample_data["error"], category="error") }}>
-                    {% elif sample_data["warning"] %}
-                    <tr {{ tooltip(sample_data["warning"], category="warning") }}>
-                    {% elif sample_data["info"] %}
-                    <tr {{ tooltip(sample_data["info"]) }}>
+                    {% for library_data in libraries_data %}
+                    {% set library = library_data["library"] %}
+                    {% if library_data["error"] %}
+                    <tr {{ tooltip(library_data["error"], category="error") }}>
+                    {% elif library_data["warning"] %}
+                    <tr {{ tooltip(library_data["warning"], category="warning") }}>
+                    {% elif library_data["info"] %}
+                    <tr {{ tooltip(library_data["info"]) }}>
                     {% else %}
                     <tr>
                     {% endif %}
                         <td>
-                            {% if sample_data["warning"] %}
+                            {% if library_data["warning"] %}
                             ⚠️
                             {% else %}
                             ✅
                             {% endif %}
                         </td>
-                        <td>{{ sample_data["name"] }}</td>
-                        <td>{{ sample_data["library_type"] }}</td>
-                        <td>{{ sample_data["adapter"] if sample_data["adapter"] }}</td>
+                        <td>{{ library.name }}</td>
+                        <td>{{ library.type.value.description }}</td>
+                        <td>{{ library_data["adapter"] if library_data["adapter"] }}</td>
                         {% if show_index_1 %}
-                        <td class="index-cell-1">{{ sample_data["index_1"] if sample_data["index_1"] == sample_data["index_1"] }}</td>
+                        <td class="index-cell-1">{{ library_data["index_1"] if library_data["index_1"] == library_data["index_1"] }}</td>
                         {% endif %}
                         {% if show_index_2 %}
-                        <td class="index-cell-2">{{ sample_data["index_2"] if sample_data["index_2"] == sample_data["index_2"] }}</td>
+                        <td class="index-cell-2">{{ library_data["index_2"] if library_data["index_2"] == library_data["index_2"] }}</td>
                         {% endif %}
                         {% if show_index_3 %}
-                        <td class="index-cell-3">{{ sample_data["index_3"] if sample_data["index_3"] == sample_data["index_3"] }}</td>
+                        <td class="index-cell-3">{{ library_data["index_3"] if library_data["index_3"] == library_data["index_3"] }}</td>
                         {% endif %}
                         {% if show_index_4 %}
-                        <td class="index-cell-4">{{ sample_data["index_4"] if sample_data["index_4"] == sample_data["index_4"] }}</td>
+                        <td class="index-cell-4">{{ library_data["index_4"] if library_data["index_4"] == library_data["index_4"] }}</td>
                         {% endif %}
                     </tr>
                     {% endfor %}
@@ -100,23 +100,18 @@
     <div class="modal-footer">
         <button type="button" class="btn btn-success" hx-target="#index-check-container" hx-swap="outerHTML"
             hx-include="#index-check-form" id="index-check-form-btn"
-            hx-post="{{ url_for('seq_requests_htmx.add_indices', seq_request_id=seq_request.id) }}{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}">
+            hx-post="{{ url_for('pooling_form_htmx.add_indices', experiment_id=experiment.id) }}">
             Submit
         </button>
 
         <a class="btn btn-danger" type="button"
-            {% if experiment %}
-                href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}"
-            {% else %}
-                href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}"
-            {% endif %}>
+            href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
             Cancel
         </a>
     </div>
 </div>
 <script>
     init_tooltips();
-
     $(".reverse-complement").on("change", function(e) {
         const splitted = e.target.id.split("_");
         var index = splitted[splitted.length - 1];

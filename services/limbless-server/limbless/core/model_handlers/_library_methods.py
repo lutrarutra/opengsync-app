@@ -88,6 +88,7 @@ def get_libraries(
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     pool_id: Optional[int] = None, sort_by: Optional[str] = None, descending: bool = False,
+    pooled: Optional[bool] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Library], int]:
     persist_session = self._session is not None
@@ -116,12 +117,22 @@ def get_libraries(
 
     if experiment_id is not None:
         query = query.join(
-            models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.Library.pool_id,
+            models.SeqRequestExperimentLink,
+            models.SeqRequestExperimentLink.seq_request_id == models.Library.seq_request_id,
             isouter=True
         ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+            models.SeqRequestExperimentLink.experiment_id == experiment_id
         ).distinct()
+
+    if pooled is not None:
+        if pooled:
+            query = query.where(
+                models.Library.pool_id != None # noqa
+            )
+        else:
+            query = query.where(
+                models.Library.pool_id == None # noqa
+            )
 
     if pool_id is not None:
         query = query.where(

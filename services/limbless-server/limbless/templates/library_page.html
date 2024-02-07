@@ -9,9 +9,9 @@
             <h1>Library: {{ library.name }} <span class="desc">{{ library.type.value.description }}</span></h1>
         </div>
         <div>
-            <span {% if library.submitted %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
+            <span {% if library.submitted and not current_user.is_insider() %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
                 <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup"
-                {% if library.submitted %}disabled{% endif %}>
+                {% if library.submitted and not current_user.is_insider() %}disabled{% endif %}>
                     Edit Library
                 </button>
             </span>

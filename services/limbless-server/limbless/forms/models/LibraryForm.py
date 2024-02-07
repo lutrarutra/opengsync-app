@@ -17,7 +17,7 @@ class LibraryForm(HTMXFlaskForm):
 
     name = StringField("Name", validators=[DataRequired(), Length(min=3, max=64)])
     adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=32)])
-    library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()])
+    library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], coerce=int)
     index_1 = StringField("Index 1 (i7)", validators=[DataRequired(), Length(min=1, max=32)])
     index_2 = StringField("Index 2 (i5)", validators=[OptionalValidator(), Length(min=1, max=32)])
     index_3 = StringField("Index 3", validators=[OptionalValidator(), Length(min=1, max=32)])
@@ -51,6 +51,7 @@ class LibraryForm(HTMXFlaskForm):
     
     def process_request(self, **context) -> Response:
         if not self.validate():
+            logger.debug(self.errors)
             return self.make_response(**context)
         
         library: models.Library = context["library"]

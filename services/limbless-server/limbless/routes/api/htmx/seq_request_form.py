@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, request, abort, send_file, current_app
 from flask_login import login_required
 
-from .... import db, logger, forms, models
+from .... import db, logger, models
+from ....forms import sas as sas_forms
 from ....categories import HttpResponse
 
 if TYPE_CHECKING:
@@ -57,7 +58,7 @@ def restart_form(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.sas.SASInputForm().make_response(
+    return sas_forms.SASInputForm().make_response(
         seq_request=seq_request
     )
 
@@ -69,7 +70,7 @@ def parse_table(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.SASInputForm(
+    return sas_forms.SASInputForm(
         formdata=request.form | request.files
     ).process_request(
         seq_request=seq_request, user_id=current_user.id
@@ -84,7 +85,7 @@ def select_project(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     logger.debug(request.form)
-    return forms.ProjectMappingForm(formdata=request.form).process_request(
+    return sas_forms.ProjectMappingForm(formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id,
         seq_request_id=seq_request_id
     )
@@ -97,7 +98,7 @@ def map_organisms(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.sas.OrganismMappingForm(formdata=request.form).process_request(
+    return sas_forms.OrganismMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
     )
 
@@ -109,7 +110,7 @@ def map_libraries(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.sas.LibraryMappingForm(formdata=request.form).process_request(
+    return sas_forms.LibraryMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
     )
 
@@ -121,7 +122,7 @@ def map_index_kits(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    return forms.sas.IndexKitMappingForm(formdata=request.form).process_request(
+    return sas_forms.IndexKitMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
     )
 
@@ -133,7 +134,7 @@ def parse_cmo_reference(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    return forms.sas.CMOReferenceInputForm(formdata=request.form | request.files).process_request(
+    return sas_forms.CMOReferenceInputForm(formdata=request.form | request.files).process_request(
         seq_request=seq_request
     )
 
@@ -145,7 +146,7 @@ def map_feature_kits(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    return forms.sas.FeatureKitMappingForm(formdata=request.form).process_request(
+    return sas_forms.FeatureKitMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
     )
 
@@ -157,7 +158,7 @@ def map_pools(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.sas.PoolMappingForm(formdata=request.form).process_request(
+    return sas_forms.PoolMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
     )
 
@@ -169,6 +170,6 @@ def check_barcodes(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.sas.BarcodeCheckForm(formdata=request.form).process_request(
+    return sas_forms.BarcodeCheckForm(formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id
     )

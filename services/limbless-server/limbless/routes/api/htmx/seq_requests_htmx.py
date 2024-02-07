@@ -527,6 +527,7 @@ def get_graph(seq_request_id: int):
         sample_nodes: dict[int, int] = {}
         library_nodes: dict[int, int] = {}
         pool_nodes: dict[int, int] = {}
+        pool_link_widths: dict[int, int] = {}
 
         for sample in samples:
             if sample.project_id not in project_nodes.keys():
@@ -573,6 +574,28 @@ def get_graph(seq_request_id: int):
                             })
                         else:
                             graph["pooled"] = 1
+                            if link.library.pool_id not in pool_nodes.keys():
+                                pool_node = {
+                                    "node": idx,
+                                    "name": link.library.pool.name,         # type: ignore
+                                    "id": f"pool-{link.library.pool.id}"    # type: ignore
+                                }
+                                graph["nodes"].append(pool_node)
+                                pool_nodes[link.library.pool.id] = idx      # type: ignore
+                                pool_link_widths[link.library.pool.id] = 0  # type: ignore
+                                pool_idx = idx
+
+                                idx += 1
+                            else:
+                                pool_idx = pool_nodes[link.library.pool.id]     # type: ignore
+
+                            pool_link_widths[link.library.pool.id] += LINK_WIDTH_UNIT * link.library.num_samples    # type: ignore
+                            
+                            graph["links"].append({
+                                "source": library_nodes[link.library_id],
+                                "target": pool_idx,
+                                "value": LINK_WIDTH_UNIT * link.library.num_samples
+                            })
                     else:
                         library_idx = library_nodes[link.library.id]
                     graph["links"].append({
@@ -586,34 +609,13 @@ def get_graph(seq_request_id: int):
                 "target": sample_nodes[sample.id],
                 "value": LINK_WIDTH_UNIT * n_sample_links
             })
-            
-        pools, _ = session.get_pools(seq_request_id=seq_request_id, limit=None)
 
-        for pool in pools:
-            pool_node = {
-                "node": idx,
-                "name": pool.name,
-                "id": f"pool-{pool.id}"
-            }
-            graph["nodes"].append(pool_node)
-            pool_nodes[pool.id] = idx
-            pool_idx = idx
-            idx += 1
-
-            link_width = 0
-            for library in pool.libraries:
-                graph["links"].append({
-                    "source": library_nodes[library.id],
-                    "target": pool_idx,
-                    "value": LINK_WIDTH_UNIT * library.num_samples
-                })
-                link_width += LINK_WIDTH_UNIT * library.num_samples
-
-            graph["links"].append({
-                "source": pool_idx,
-                "target": seq_request_node["node"],
-                "value": link_width
-            })
+    for pool_id, pool_node in pool_nodes.items():
+        graph["links"].append({
+            "source": pool_node,
+            "target": seq_request_node["node"],
+            "value": pool_link_widths[pool_id]
+        })
 
     return make_response(
         jsonify(graph)

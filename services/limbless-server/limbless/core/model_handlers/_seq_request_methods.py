@@ -299,19 +299,19 @@ def delete_seq_request(
             self._session.add(library.pool)
         self._session.delete(library)
 
-    pools = seq_request.pools
-    for pool in pools:
-        for link in pool.experiment_links:
-            link = self._session.query(models.ExperimentPoolLink).where(
-                models.ExperimentPoolLink.experiment_id == link.experiment_id,
-                models.ExperimentPoolLink.pool_id == link.pool_id,
-                models.ExperimentPoolLink.lane == link.lane,
-            ).first()
-            link.experiment.num_pools -= 1
-            self._session.add(link.experiment)
-            self._session.delete(link)
+    # pools = seq_request.pools
+    # for pool in pools:
+    #     for link in pool.experiment_links:
+    #         link = self._session.query(models.ExperimentPoolLink).where(
+    #             models.ExperimentPoolLink.experiment_id == link.experiment_id,
+    #             models.ExperimentPoolLink.pool_id == link.pool_id,
+    #             models.ExperimentPoolLink.lane == link.lane,
+    #         ).first()
+    #         link.experiment.num_pools -= 1
+    #         self._session.add(link.experiment)
+    #         self._session.delete(link)
                 
-        self._session.delete(pool)
+    #     self._session.delete(pool)
 
     seq_request.requestor.num_seq_requests -= 1
     self._session.add(seq_request.requestor)

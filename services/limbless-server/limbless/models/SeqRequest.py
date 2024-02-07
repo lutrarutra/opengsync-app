@@ -58,11 +58,6 @@ class SeqRequest(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
     )
 
-    pools: list["Pool"] = Relationship(
-        back_populates="seq_request",
-        sa_relationship_kwargs={"lazy": "select"},
-    )
-
     experiments: list["Experiment"] = Relationship(
         back_populates="seq_requests",
         link_model=SeqRequestExperimentLink,

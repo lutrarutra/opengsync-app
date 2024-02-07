@@ -66,6 +66,7 @@ def experiment_page(experiment_id: int):
         )
 
         experiment_form = forms.ExperimentForm(experiment=experiment)
+        pooling_input_form = forms.pooling.PoolingInputForm()
 
         path_list = [
             ("Experiments", url_for("experiments_page.experiments_page")),
@@ -85,6 +86,7 @@ def experiment_page(experiment_id: int):
             libraries=libraries,
             libraries_n_pages=libraries_n_pages,
             libraries_active_page=0,
+            pooling_input_form=pooling_input_form,
             available_seq_requests_n_pages=available_seq_requests_n_pages,
             available_seq_requests_active_page=0,
             available_seq_requests=available_seq_requests,

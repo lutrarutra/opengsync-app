@@ -135,7 +135,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                     pool = session.create_pool(
                         name=pool_label,
                         owner_id=user_id,
-                        seq_request_id=seq_request.id,
                         contact_name=_df["contact_person_name"].iloc[0],
                         contact_email=_df["contact_person_email"].iloc[0],
                         contact_phone=_df["contact_person_phone"].iloc[0],

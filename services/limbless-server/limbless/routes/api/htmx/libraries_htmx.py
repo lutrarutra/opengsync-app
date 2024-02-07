@@ -131,7 +131,7 @@ def edit(library_id):
             return abort(HttpResponse.FORBIDDEN.value.id)
 
     return forms.LibraryForm(request.form).process_request(
-        librray=library
+        library=library
     )
 
 

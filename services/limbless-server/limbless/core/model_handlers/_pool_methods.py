@@ -10,7 +10,6 @@ from .. import exceptions
 def create_pool(
     self, name: str,
     owner_id: int,
-    seq_request_id: int,
     contact_name: str,
     contact_email: str,
     contact_phone: Optional[str] = None,
@@ -23,13 +22,9 @@ def create_pool(
     if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
     
-    if (_ := self._session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Seq request with id {seq_request_id} does not exist")
-    
     pool = models.Pool(
         name=name,
         owner_id=owner_id,
-        seq_request_id=seq_request_id,
         contact_name=contact_name,
         contact_email=contact_email,
         contact_phone=contact_phone,
@@ -63,7 +58,6 @@ def get_pools(
     user_id: Optional[int] = None,
     library_id: Optional[int] = None,
     experiment_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Pool], int]:
@@ -92,11 +86,6 @@ def get_pools(
             isouter=True
         ).where(
             models.ExperimentPoolLink.experiment_id == experiment_id
-        )
-
-    if seq_request_id is not None:
-        query = query.where(
-            models.Pool.seq_request_id == seq_request_id
         )
 
     if sort_by is not None:
