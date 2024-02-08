@@ -2,8 +2,6 @@ from typing import Optional, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..categories import FileType
-
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library

@@ -27,7 +27,7 @@ def create_file(
         name=name,
         type_id=type.value.id,
         description=description,
-        extension=extension,
+        extension=extension.lower(),
         uuid=uuid,
         uploader_id=uploader_id
     )
@@ -70,27 +70,3 @@ def get_files(self, uploader_id: Optional[int] = None) -> list[models.File]:
     if not persist_session:
         self.close_session()
     return res
-
-
-def delete_file(self, file_id: int, commit: bool = True) -> None:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (file := self._session.get(models.File, file_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
-    
-    for link in self._session.query(models.SeqRequestFileLink).filter(models.SeqRequestFileLink.file_id == file_id).all():
-        self._session.delete(link)
-
-    for link in self._session.query(models.ExperimentFileLink).filter(models.ExperimentFileLink.file_id == file_id).all():
-        self._session.delete(link)
-        
-    self._session.delete(file)
-
-    if commit:
-        self._session.commit()
-
-    if not persist_session:
-        self.close_session()
-    return None

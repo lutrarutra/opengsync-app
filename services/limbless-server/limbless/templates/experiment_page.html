@@ -31,7 +31,7 @@
                 </button>
             </span>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#experiment-file-form-popup" {% if not experiment.is_editable() %} disabled {% endif %}>
+                data-bs-target="#experiment-file-form-popup">
                 Add File
             </button>
             <button type="button" class="btn btn-danger"
@@ -88,7 +88,7 @@
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#experiment-file-{{ file.id }}-tab" type="button" role="tab"
                 aria-controls="experiment-file-{{ file.id }}-tab" aria-selected="true"
-                id="experiment-file-{{ file.id }}-tab-btn">{{ file.type.value.name }}</button>
+                id="experiment-file-{{ file.id }}-tab-btn">{{ file.type.value.name if file.type.value.name != "Custom" else file.name }}</button>
             </li>
             {% endfor %}
         </ul>
@@ -180,13 +180,19 @@
             <div class="tab-pane fade show" id="experiment-file-{{ file.id }}-tab" role="tabpanel" tabindex="4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h2>{{ file.type.value.name }}</h2>
+                        <h2>{{ file.type.value.name if file.type.value.name != "Custom" else file.name }}</h2>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-danger"
+                        hx-delete="{{ url_for('experiments_htmx.delete_file', experiment_id=experiment.id, file_id=file.id) }}">
+                            Delete File
+                        </button>
                     </div>
                 </div>
                 {% if file.extension == ".pdf" %}
                 <embed src="{{ url_for('pdf_file',  file_id=file.id) }}" type="application/pdf" width="100%" height="1000px" />
                 {% elif file.extension in [".png", ".jpg", ".jpeg"] %}
-                <img src="{{ url_for('image_file',  file_id=file.id) }}" class="img-fluid" alt="Responsive image">
+                <img src="{{ url_for('img_file',  file_id=file.id) }}" class="img-fluid" alt="Responsive image">
                 {% else %}
                 <h4>File type {{file.extension}} not supported yet.</h4>
                 {% endif %}

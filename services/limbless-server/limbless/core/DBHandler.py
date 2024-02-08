@@ -46,7 +46,7 @@ class DBHandler():
     from .model_handlers._experiment_methods import (
         create_experiment, get_experiment, get_experiments,
         update_experiment, delete_experiment, get_experiment_by_name,
-        get_num_experiments, add_file_to_experiment,
+        get_num_experiments, add_file_to_experiment, remove_file_from_experiment,
     )
 
     from .model_handlers._sample_methods import (
@@ -136,7 +136,6 @@ class DBHandler():
 
     from .model_handlers._file_methods import (
         create_file, get_file, get_files,
-        delete_file
     )
 
     from .pd_handler import (

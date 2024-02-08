@@ -1,3 +1,4 @@
+import os
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, url_for, render_template, flash, abort, request, jsonify
@@ -274,6 +275,27 @@ def upload_file(experiment_id: int):
     return forms.ExperimentFileForm(experiment_id=experiment_id, formdata=request.form | request.files).process_request(
         experiment=experiment, user=current_user
     )
+
+
+@experiments_htmx.route("<int:experiment_id>/delete_file/<int:file_id>", methods=["DELETE"])
+@login_required
+def delete_file(experiment_id: int, file_id: int):
+    if not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if (file := db.db_handler.get_file(file_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    db.db_handler.remove_file_from_experiment(experiment_id=experiment.id, file_id=file_id)
+    if os.path.exists(file.path):
+        os.remove(file.path)
+
+    logger.debug(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
+    flash(f"Deleted file '{file.name}' from experiment.", "success")
+    return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 
 
 @experiments_htmx.route("<int:experiment_id>/get_graph", methods=["GET"])
