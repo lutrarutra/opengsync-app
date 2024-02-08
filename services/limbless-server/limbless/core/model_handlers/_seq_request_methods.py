@@ -6,7 +6,7 @@ from sqlmodel import func
 from sqlalchemy.sql.operators import is_, or_, and_
 
 from ... import models, PAGE_LIMIT, logger
-from ...categories import SeqRequestStatus, SequencingType, FlowCellType
+from ...categories import SeqRequestStatus, SequencingType, FlowCellType, FileType
 from .. import exceptions
 
 
@@ -352,3 +352,39 @@ def query_seq_requests(
     if not persist_session:
         self.close_session()
     return seq_requests
+
+
+def add_file_to_seq_request(
+    self, seq_request_id: int, file_id: int,
+    commit: bool = True
+) -> models.SeqRequestFileLink:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+
+    if (file := self._session.get(models.File, file_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
+    
+    if file.type == FileType.SEQ_AUTH_FORM:
+        if seq_request.seq_auth_form_file_id is not None:
+            raise exceptions.LinkAlreadyExists("SeqRequest already has a Seq Auth Form file linked.")
+        seq_request.seq_auth_form_file_id = file_id
+        self._session.add(seq_request)
+
+    file_link = models.SeqRequestFileLink(
+        seq_request_id=seq_request_id,
+        file_id=file_id
+    )
+    self._session.add(file_link)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(file_link)
+
+    if not persist_session:
+        self.close_session()
+
+    return file_link

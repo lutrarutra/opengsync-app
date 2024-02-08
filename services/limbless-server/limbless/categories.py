@@ -1,4 +1,6 @@
+import os
 from enum import Enum
+
 from .tools.EnumType import ExtendedEnumMeta, DescriptiveEnum
 
 
@@ -166,3 +168,12 @@ class RequestResponse(Enum, metaclass=ExtendedEnumMeta):
     ACCEPTED = DescriptiveEnum(1, "Accepted", "✅")
     REJECTED = DescriptiveEnum(2, "Rejected", "❌")
     PENDING_REVISION = DescriptiveEnum(3, "Pending Revision", "🔍")
+
+
+class FileType(Enum, metaclass=ExtendedEnumMeta):
+    CUSTOM = DescriptiveEnum(0, "Custom", os.path.join("media", "etc"))
+    SEQ_AUTH_FORM = DescriptiveEnum(1, "Sequencing Authorization Form", os.path.join("media", "seq_auth_forms"))
+    BIOANALYZER_REPORT = DescriptiveEnum(2, "Bioanalyzer Report", os.path.join("media", "bioanalyzer_reports"))
+    POST_SEQUENCING_QC_REPORT = DescriptiveEnum(3, "Post-sequencing QC Report", os.path.join("media", "post_seq_qc_reports"))
+
+    

@@ -4,7 +4,7 @@ from typing import Optional
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import ExperimentStatus
+from ...categories import ExperimentStatus, FileType
 
 
 def create_experiment(
@@ -200,3 +200,33 @@ def update_experiment(
     if not persist_session:
         self.close_session()
     return experiment
+
+
+def add_file_to_experiment(
+    self, experiment_id: int, file_id: int,
+    commit: bool = True
+) -> models.ExperimentFileLink:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
+
+    if (_ := self._session.get(models.File, file_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
+    
+    file_link = models.ExperimentFileLink(
+        experiment_id=experiment_id,
+        file_id=file_id
+    )
+    self._session.add(file_link)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(file_link)
+
+    if not persist_session:
+        self.close_session()
+
+    return file_link

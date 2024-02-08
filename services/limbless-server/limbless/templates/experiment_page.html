@@ -12,28 +12,17 @@
         </div>
         <div>
             {% if experiment.status.value.name == "Draft" %}
-            <span {% if not experiment.is_submittable() %}
-            {{ tooltip("At least one pool must be added to a lane and all libraries in all pools must be indexed.", category="success" ) }}
-            {% endif %}>
-                <button type="button" class="btn btn-success" {% if not experiment.is_submittable() %} disabled {% endif
-                    %} hx-post="{{ url_for('experiments_htmx.submit_experiment', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
-                        halt the event
-                        call Swal.fire({
-                            title: 'Submit experiment for Sequencing?',
-                            showDenyButton: true,
-                            text: 'You can no longer edit the experiment after it is submitted. Do you want to proceed?',
-                            confirmButtonText: 'Yes',
-                            denyButtonText: 'No'
-                        })
-                        if result.isConfirmed issueRequest()">
-                    Submit for Sequencing
-                </button>
-            </span>
-            {% endif %}
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#pooling-form-popup">
-                Pool Libraries
+            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                data-bs-target="#submit-experiment-popup">
+                Submit for Sequencing
             </button>
+            {% endif %}
+            {% if experiment.status.value.name == "Sequencing" %}
+            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                data-bs-target="#complete-experiment-form-popup">
+                Complete Experiment
+            </button>
+            {% endif %}
             <span {% if not experiment.is_editable() %} {{ tooltip("Experiment cannot be edited after it is submitted.")
                 }} {% endif %}>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
@@ -41,6 +30,10 @@
                     Edit Experiment
                 </button>
             </span>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#experiment-file-form-popup" {% if not experiment.is_editable() %} disabled {% endif %}>
+                Add File
+            </button>
             <button type="button" class="btn btn-danger"
                 hx-post="{{ url_for('experiments_htmx.delete', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
                 halt the event
@@ -90,6 +83,14 @@
                 aria-controls="experiment-overview-tab" aria-selected="true"
                 id="experiment-overview-tab-btn">Overview</button>
             </li>
+            {% for file in experiment.files %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#experiment-file-{{ file.id }}-tab" type="button" role="tab"
+                aria-controls="experiment-file-{{ file.id }}-tab" aria-selected="true"
+                id="experiment-file-{{ file.id }}-tab-btn">{{ file.type.value.name }}</button>
+            </li>
+            {% endfor %}
         </ul>
         <div class="tab-content pt-3">
             <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
@@ -123,6 +124,12 @@
                         <h2>Libraries</h2>
                     </div>
                     <div>
+                        {% if experiment.is_editable() %}
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#pooling-form-popup">
+                            Pool Libraries
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
                 {% include "components/tables/experiment-library.html" %}
@@ -169,6 +176,22 @@
                 <script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js"></script>
                 <div class="flow-graph-container pt-3" id="graph" style="width: 100%"></div>
             </div>
+            {% for file in experiment.files %}
+            <div class="tab-pane fade show" id="experiment-file-{{ file.id }}-tab" role="tabpanel" tabindex="4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>{{ file.type.value.name }}</h2>
+                    </div>
+                </div>
+                {% if file.extension == ".pdf" %}
+                <embed src="{{ url_for('pdf_file',  file_id=file.id) }}" type="application/pdf" width="100%" height="1000px" />
+                {% elif file.extension in [".png", ".jpg", ".jpeg"] %}
+                <img src="{{ url_for('image_file',  file_id=file.id) }}" class="img-fluid" alt="Responsive image">
+                {% else %}
+                <h4>File type {{file.extension}} not supported yet.</h4>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
     </div>
 
@@ -202,9 +225,106 @@
             {% include pooling_input_form._template_path %}
         </div>
     </div>
+
+    <div class="modal fade" id="complete-experiment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Complete Experiment</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {% include complete_experiment_form._template_path %}
+                </div>
+                <div class="modal-footer" id="popup-footer">
+                    <button type="button" id="parse-table-btn" class="btn btn-success" hx-target="#complete-experiment-form"
+                        hx-swap="outerHTML" hx-include="#complete-experiment-form" hx-encoding="multipart/form-data"
+                        hx-post="{{ url_for('experiments_htmx.complete_experiment', experiment_id=experiment.id) }}">
+                        Submit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="experiment-file-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            {% include file_input_form._template_path %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="submit-experiment-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Submit Experiment for Sequencing</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="library-data-table" class="table-container">
+                        <table class="table table-hover table-cursor">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="col-1">ID</th>
+                                    <th scope="col" class="col-2">Library Name</th>
+                                    <th scope="col" class="col-2">Library Type</th>
+                                    <th scope="col" class="col-1">Lane</th>
+                                    <th scope="col" class="col-1">Index 1</th>
+                                    <th scope="col" class="col-1">Index 2</th>
+                                    <th scope="col" class="col-1">Index 3</th>
+                                    <th scope="col" class="col-1">Index 4</th>
+                                    <th scope="col" class="col-2">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for _, row in libraries_df.iterrows() %}
+                                <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=row['id']) }}';">
+                                    <th scope="row">{{ row["id"] }}</th>
+                                    <td>{{ row["library_name"] }}</td>
+                                    <td>{{ row["library_type"] }}</td>
+                                    <td>{{ row["lane"] }}</td>
+                                    <td>{{ row["index_1"] if row["index_1"] }}</td>
+                                    <td>{{ row["index_2"] if row["index_2"] }}</td>
+                                    <td>{{ row["index_3"] if row["index_3"] }}</td>
+                                    <td>{{ row["index_4"] if row["index_4"] }}</td>
+                                    <td>
+                                        <span {% if row["index_error"] %}
+                                            {{ tooltip(row["index_error"], category="danger") }}
+                                            {% elif row["index_warning"] %}
+                                            {{ tooltip(row["index_warning"], category="warning") }}
+                                            {% endif %}>
+                                        {{ "⛔" if row["index_error"] else "⚠️" if row["index_warning"] else "✅" }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer" id="popup-footer">
+                    <button type="button" class="btn btn-success" {% if not experiment.is_submittable() %} disabled {% endif
+                        %} hx-post="{{ url_for('experiments_htmx.submit_experiment', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
+                            halt the event
+                            call Swal.fire({
+                                title: 'Submit experiment for Sequencing?',
+                                showDenyButton: true,
+                                text: 'You can no longer edit the experiment after it is submitted. Do you want to proceed?',
+                                confirmButtonText: 'Yes',
+                                denyButtonText: 'No'
+                            })
+                            if result.isConfirmed issueRequest()">
+                        Submit for Sequencing
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
+    init_tooltips();
     $(document).ready(function() {
+        $(".dataframe").addClass("table table-hover table-cursor").removeClass("dataframe");
         $("#experiment-overview-tab-btn").on("click", function() {    
             d3.json("{{ url_for('experiments_htmx.get_graph', experiment_id=experiment.id) }}", function(graph) {
 

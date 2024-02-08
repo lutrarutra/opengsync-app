@@ -9,7 +9,6 @@ from .User import User
 from .Experiment import Experiment
 from .Library import Library
 from .Organism import Organism
-from .Links import ExperimentPoolLink, SampleLibraryLink, SeqRequestExperimentLink
 from .IndexKit import IndexKit
 from .SeqRequest import SeqRequest
 from .Contact import Contact
@@ -19,3 +18,9 @@ from .Adapter import Adapter
 from .Barcode import Barcode
 from .Feature import Feature
 from .FeatureKit import FeatureKit
+from .File import File
+
+from .Links import (
+    ExperimentPoolLink, SampleLibraryLink, SeqRequestExperimentLink,
+    ExperimentFileLink, SeqRequestFileLink
+)

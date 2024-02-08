@@ -8,7 +8,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-from .... import db, forms, logger, models, PAGE_LIMIT, SEQ_AUTH_FORMS_DIR
+from .... import db, forms, logger, models, PAGE_LIMIT
 from ....core import DBSession, DBHandler
 from ....categories import HttpResponse, SeqRequestStatus
 
@@ -281,10 +281,26 @@ def upload_auth_form(seq_request_id: int):
         if not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
         
-    if seq_request.seq_auth_form_uuid is not None:
+    if seq_request.seq_auth_form_file_id is not None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    return forms.SeqAuthForm(request.form | request.files).process_request(seq_request=seq_request)
+    return forms.SeqAuthForm(request.form | request.files).process_request(
+        seq_request=seq_request, user=current_user
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/upload_file", methods=["POST"])
+@login_required
+def upload_file(seq_request_id: int):
+    if not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    return forms.SeqRequestFileForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
+        seq_request=seq_request, user=current_user
+    )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/remove_auth_form", methods=["DELETE"])
@@ -293,7 +309,7 @@ def remove_auth_form(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    if seq_request.seq_auth_form_uuid is None:
+    if seq_request.seq_auth_form_file_id is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
     if seq_request.requestor_id != current_user.id:
@@ -304,11 +320,16 @@ def remove_auth_form(seq_request_id: int):
         if not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    filepath = os.path.join(SEQ_AUTH_FORMS_DIR, f"{seq_request.seq_auth_form_uuid}.pdf")
-    if os.path.exists(filepath):
-        os.remove(filepath)
-    seq_request.seq_auth_form_uuid = None
+    if (file := db.db_handler.get_file(seq_request.seq_auth_form_file_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+
+    if os.path.exists(file.path):
+        os.remove(file.path)
+
+    seq_request.seq_auth_form_file_id = None
     seq_request = db.db_handler.update_seq_request(seq_request=seq_request)
+
+    db.db_handler.delete_file(file.id)
 
     flash("Authorization form removed!", "success")
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
@@ -433,8 +454,6 @@ def reverse_complement(seq_request_id: int):
         index = int(index)
     except ValueError:
         return abort(HttpResponse.BAD_REQUEST.value.id)
-    
-    logger.debug(index)
     
     library_id = request.args.get("library_id", None)
     if library_id is not None:

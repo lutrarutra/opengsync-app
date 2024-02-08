@@ -1,5 +1,4 @@
 import os
-import warnings
 from uuid import uuid4
 from typing import TYPE_CHECKING
 
@@ -7,12 +6,12 @@ from flask import Flask, render_template, redirect, request, url_for, session, c
 from flask_login import login_required
 import sass
 
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, categories, PAGE_LIMIT, SEQ_AUTH_FORMS_DIR
+from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger, categories, PAGE_LIMIT
 from .models import User
 from .routes import api, pages
 
 if TYPE_CHECKING:
-    current_user: User = None
+    current_user: User = None   # type: ignore
 else:
     from flask_login import current_user
 
@@ -21,6 +20,10 @@ def create_app():
     app = Flask(__name__, static_folder="/usr/src/app/static")
 
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
+
+    for _, file_type in categories.FileType.as_tuples():
+        if not os.path.exists(file_type.description):   # type: ignore
+            os.makedirs(file_type.description)          # type: ignore
 
     if app.debug:
         logger.debug("Compiling SASS..")
@@ -74,23 +77,47 @@ def create_app():
             recent_experiments=recent_experiments
         )
     
-    @app.route("/auth_forms/<string:uuid>")
+    @app.route("/pdf_file/<int:file_id>")
     @login_required
-    def auth_forms(uuid: str):
-        auth_form_path = os.path.join(
-            current_app.root_path, "..", SEQ_AUTH_FORMS_DIR,
-            f"{uuid}.pdf"
-        )
-        if not os.path.exists(auth_form_path):
-            return abort(404)
+    def pdf_file(file_id: int):
+        if (file := db.db_handler.get_file(file_id)) is None:
+            return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
-        with open(auth_form_path, "rb") as f:
+        if file.uploader_id != current_user.id and not current_user.is_insider():
+            return abort(categories.HttpResponse.FORBIDDEN.value.id)
+        
+        if file.extension != ".pdf":
+            return abort(categories.HttpResponse.BAD_REQUEST.value.id)
+
+        file_path = os.path.join(current_app.root_path, "..", file.path)
+        if not os.path.exists(file_path):
+            return abort(categories.HttpResponse.NOT_FOUND.value.id)
+        
+        with open(file_path, "rb") as f:
             data = f.read()
 
         response = make_response(data)
         response.headers["Content-Type"] = "application/pdf"
         response.headers["Content-Disposition"] = "inline; filename=auth_form.pdf"
         return response
+    
+    @app.route("/img_file/<int:file_id>")
+    @login_required
+    def img_file(file_id: int):
+        if (file := db.db_handler.get_file(file_id)) is None:
+            return abort(categories.HttpResponse.NOT_FOUND.value.id)
+        
+        if file.uploader_id != current_user.id and not current_user.is_insider():
+            return abort(categories.HttpResponse.FORBIDDEN.value.id)
+        
+        if file.extension not in [".png", ".jpg", ".jpeg"]:
+            return abort(categories.HttpResponse.BAD_REQUEST.value.id)
+
+        file_path = os.path.join(current_app.root_path, "..", file.path)
+        if not os.path.exists(file_path):
+            return abort(categories.HttpResponse.NOT_FOUND.value.id)
+        
+        return send_from_directory(os.path.dirname(file_path), os.path.basename(file_path))
 
     @login_manager.unauthorized_handler
     def unauthorized():

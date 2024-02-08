@@ -2,6 +2,8 @@ from typing import Optional, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
+from ..categories import FileType
+
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
@@ -56,3 +58,22 @@ class SeqRequestExperimentLink(SQLModel, table=True):
 
     def __str__(self) -> str:
         return f"SeqRequestExperimentLink(seq_request_id: {self.seq_request_id}, experiment_id: {self.experiment_id})"
+    
+
+class ExperimentFileLink(SQLModel, table=True):
+    file_id: int = Field(
+        foreign_key="file.id", primary_key=True
+    )
+    experiment_id: int = Field(
+        foreign_key="experiment.id", primary_key=True
+    )
+    
+
+class SeqRequestFileLink(SQLModel, table=True):
+    file_id: int = Field(
+        foreign_key="file.id", primary_key=True
+    )
+    seq_request_id: int = Field(
+        foreign_key="seqrequest.id", primary_key=True
+    )
+    

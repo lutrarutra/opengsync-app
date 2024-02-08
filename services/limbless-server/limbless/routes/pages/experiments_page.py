@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required
 
 from ...core import DBSession
-from ... import forms, db, logger, PAGE_LIMIT, models
+from ... import forms, db, logger, PAGE_LIMIT, models, tools
 from ...categories import HttpResponse, SeqRequestStatus
 
 if TYPE_CHECKING:
@@ -73,6 +73,9 @@ def experiment_page(experiment_id: int):
             (f"Experiment {experiment_id}", ""),
         ]
 
+        libraries_df = db.db_handler.get_experiment_libraries_df(experiment_id)
+        libraries_df = tools.check_indices(libraries_df)
+
         return render_template(
             "experiment_page.html",
             experiment=experiment,
@@ -82,14 +85,17 @@ def experiment_page(experiment_id: int):
             pools=pools,
             pools_n_pages=0,
             seq_requests=seq_requests,
+            libraries_df=libraries_df,
             seq_requests_n_pages=seq_requests_n_pages,
             libraries=libraries,
             libraries_n_pages=libraries_n_pages,
             libraries_active_page=0,
+            file_input_form=forms.ExperimentFileForm(experiment_id=experiment_id),
             pooling_input_form=pooling_input_form,
             available_seq_requests_n_pages=available_seq_requests_n_pages,
             available_seq_requests_active_page=0,
             available_seq_requests=available_seq_requests,
+            complete_experiment_form=forms.CompleteExperimentForm(),
             available_seq_requests_current_sort=available_seq_requests_sort,
             available_seq_requests_current_sort_order="desc",
             selected_sequencer=experiment.sequencer.name,

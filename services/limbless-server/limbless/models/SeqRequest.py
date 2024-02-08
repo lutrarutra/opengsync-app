@@ -5,14 +5,14 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import SeqRequestStatus, SequencingType, FlowCellType
-from .Links import SeqRequestExperimentLink
+from .Links import SeqRequestExperimentLink, SeqRequestFileLink
 
 if TYPE_CHECKING:
     from .User import User
     from .Contact import Contact
     from .Library import Library
     from .Experiment import Experiment
-    from .Pool import Pool
+    from .File import File
 
 
 class SeqRequest(SQLModel, table=True):
@@ -82,7 +82,11 @@ class SeqRequest(SQLModel, table=True):
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
-    seq_auth_form_uuid: Optional[str] = Field(default=None, nullable=True, max_length=64)
+    files: list["File"] = Relationship(
+        link_model=SeqRequestFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
+    )
+
+    seq_auth_form_file_id: Optional[int] = Field(nullable=True, default=None)
 
     @property
     def status(self) -> SeqRequestStatus:
@@ -106,7 +110,7 @@ class SeqRequest(SQLModel, table=True):
         return True
     
     def is_authorized(self) -> bool:
-        return self.seq_auth_form_uuid is not None
+        return self.seq_auth_form_file_id is not None
     
     def is_submittable(self) -> bool:
         return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()

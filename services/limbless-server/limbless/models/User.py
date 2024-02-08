@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from .Pool import Pool
     from .Sample import Sample
     from .Library import Library
+    from .File import File
 
 
 class UserMixin:
@@ -94,6 +95,10 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
     )
     libraries: list["Library"] = Relationship(
         back_populates="owner",
+        sa_relationship_kwargs={"lazy": "select"}
+    )
+    files: list["File"] = Relationship(
+        back_populates="uploader",
         sa_relationship_kwargs={"lazy": "select"}
     )
 

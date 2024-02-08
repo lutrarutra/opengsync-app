@@ -1,15 +1,13 @@
 from typing import Optional, TYPE_CHECKING
-from io import StringIO
 
-import pandas as pd
-from flask import Blueprint, redirect, url_for, render_template, flash, request, abort
+from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from .... import db, logger, forms, models, tools, PAGE_LIMIT
-from ....core import DBSession, exceptions
+from .... import db, logger, forms, models, PAGE_LIMIT
+from ....core import DBSession
 from ....core.DBHandler import DBHandler
-from ....categories import UserRole, HttpResponse, LibraryType
+from ....categories import HttpResponse
 
 if TYPE_CHECKING:
     current_user: models.User = None
@@ -135,106 +133,17 @@ def edit(library_id):
     )
 
 
-@libraries_htmx.route("<int:library_id>/edit-adapter-form/<int:sample_id>", methods=["GET"])
-@login_required
-def get_edit_library_sample_adapter_form(library_id: int, sample_id: int):
-    with DBSession(db.db_handler) as session:
-        if (library := session.get_library(library_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-        
-        if (sample := session.get_sample(sample_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-    
-        if sample_id not in [s.id for s in library.samples]:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
-        
-        seq_barcodes = db.db_handler.get_sample_barcodes_from_library(
-            sample_id=sample_id, library_id=library_id
-        )
-        
-    index_form = forms.create_index_form(library)
-    index_form.sample.data = sample_id
-    index_form.adapter.data = seq_barcodes[0].adapter.name
-    
-    for i, index in enumerate(seq_barcodes):
-        if i < len(index_form.barcodes.entries):
-            index_form.barcodes.entries[i].sequence.data = index.sequence
-            index_form.barcodes.entries[i].index_seq_id.data = index.id
-
-    return make_response(
-        render_template(
-            "forms/edit-index.html",
-            index_form=index_form,
-            library=library, sample=sample,
-            selected_adapter=seq_barcodes[0].adapter,
-        ), push_url=False
-    )
-
-
-@libraries_htmx.route("<int:library_id>/edit-adapter", methods=["POST"])
-@login_required
-def edit_adapter(library_id: int):
-    if (library := db.db_handler.get_library(library_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
-    
-    index_form = forms.IndexForm()
-    sample_id = index_form.sample.data
-
-    if sample_id is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
-
-    if (sample := db.db_handler.get_sample(sample_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
-    
-    validated, index_form = index_form.custom_validate(library_id, current_user.id, db.db_handler, action="update")
-
-    if (adapter_id := index_form.adapter.data) is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
-    
-    if (adapter := db.db_handler.get_adapter(adapter_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
-    
-    if not validated:
-        logger.debug("Not valid")
-        return make_response(
-            render_template(
-                "forms/edit-index.html",
-                index_form=index_form,
-                library=library, sample=sample,
-                selected_adapter=adapter
-            ), push_url=False
-        )
-    
-    db.db_handler.unlink_library_sample(library_id=library_id, sample_id=sample_id)
-
-    with DBSession(db.db_handler) as session:
-        for index in adapter.barcodes:
-            session.link_library_sample(
-                library_id=library.id,
-                sample_id=sample.id,
-                barcode_id=index.id,
-            )
-
-    logger.debug(f"Edited adapter for sample '{sample.name}' in library '{library.name}'")
-    flash(f"Edited adapter for sample '{sample.name}' in library '{library.name}'", "success")
-
-    return make_response(
-        redirect=url_for(
-            "libraries_page.library_page", library_id=library.id
-        )
-    )
-
-
 @libraries_htmx.route("query", methods=["POST"])
 @login_required
 def query():
-    field_name = next(iter(request.args.keys()), None)
-    query = request.args.get(field_name, "")
+    field_name = next(iter(request.args.keys()))
+    if (word := request.form.get(field_name, default="")) is None:
+        return abort(HttpResponse.BAD_REQUEST.value.id)
 
     if not current_user.is_insider():
-        results = db.db_handler.query_libraries(query, current_user.id)
+        results = db.db_handler.query_libraries(word, current_user.id)
     else:
-        results = db.db_handler.query_libraries(query)
+        results = db.db_handler.query_libraries(word)
 
     return make_response(
         render_template(
@@ -344,40 +253,5 @@ def table_query():
             template,
             current_query=word, field_name=field_name,
             libraries=libraries, **context
-        ), push_url=False
-    )
-
-
-@libraries_htmx.route("select_library_contact", methods=["POST"])
-@login_required
-def select_library_contact():
-    library_form = forms.LibraryForm()
-
-    if (library_contact_insider_user_id := library_form.library_contact_insider.data) is not None:
-        if (user := db.db_handler.get_user(library_contact_insider_user_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-        library_form.current_user_is_library_contact.data = False
-    elif library_form.current_user_is_library_contact.data:
-        user = current_user
-    else:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
-        
-    library_form.library_contact_name.data = user.name
-    library_form.library_contact_email.data = user.email
-    library_form.current_user_is_library_contact.data = current_user.id == user.id
-
-    if (index_kit_id := library_form.index_kit.data) is not None:
-        if (index_kit := db.db_handler.get_index_kit(index_kit_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
-    else:
-        index_kit = None
-
-    return make_response(
-        render_template(
-            "forms/library.html",
-            library_form=library_form,
-            index_kit_results=db.common_kits,
-            selected_kit=index_kit,
-            selected_user=user
         ), push_url=False
     )

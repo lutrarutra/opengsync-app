@@ -36,10 +36,6 @@ else:
 
 PAGE_LIMIT = 15
 SECRET_KEY = "SECRET_KEY"
-SEQ_AUTH_FORMS_DIR = "media/auth_forms"
-
-if not os.path.exists(SEQ_AUTH_FORMS_DIR):
-    os.mkdir(SEQ_AUTH_FORMS_DIR)
 
 EMAIL_SENDER = os.environ["EMAIL_SENDER"]
 

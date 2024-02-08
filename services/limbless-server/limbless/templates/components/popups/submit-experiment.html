@@ -1,0 +1,31 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div id="submit-experiment-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+               
+            </tr>
+        </thead>
+        <tbody>
+            {% for library in libraries %}
+            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id) }}';">
+                <th scope="row">{{ library.id }}</th>
+                <td>{{ library.name }}</td>
+                <td>
+                    <span {{ tooltip(library.type.value.name) }}>
+                        {{ library.type.value.description }}
+                    </span>
+                </td>
+                <td>{{ library.contact.name }}</td>
+                <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                <td>{{ library.index_kit.name if library.index_kit }}</td>
+                <td>{{ library.num_samples }}</td>
+                <td>{{ library.num_seq_requests }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

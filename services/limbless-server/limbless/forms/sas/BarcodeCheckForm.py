@@ -256,5 +256,5 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             redirect=url_for(
                 "seq_requests_page.seq_request_page",
                 seq_request_id=context["seq_request"].id
-            ),
+            )
         )

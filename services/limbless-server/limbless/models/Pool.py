@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from .Library import Library
     from .User import User
     from .Experiment import Experiment
-    from .SeqRequest import SeqRequest
 
 
 class Pool(SQLModel, SearchResult, table=True):
@@ -22,7 +21,7 @@ class Pool(SQLModel, SearchResult, table=True):
     owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
     owner: "User" = Relationship(
         back_populates="pools",
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
     libraries: List["Library"] = Relationship(
         back_populates="pool",

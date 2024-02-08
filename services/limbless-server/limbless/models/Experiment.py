@@ -5,13 +5,14 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import ExperimentStatus
-from .Links import ExperimentPoolLink, SeqRequestExperimentLink
+from .Links import ExperimentPoolLink, SeqRequestExperimentLink, ExperimentFileLink
 
 if TYPE_CHECKING:
     from .Pool import Pool
     from .Sequencer import Sequencer
     from .User import User
     from .SeqRequest import SeqRequest
+    from .File import File
 
 
 class Experiment(SQLModel, table=True):
@@ -51,6 +52,10 @@ class Experiment(SQLModel, table=True):
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
+
+    files: list["File"] = Relationship(
+        link_model=ExperimentFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
+    )
 
     @property
     def status(self) -> ExperimentStatus:

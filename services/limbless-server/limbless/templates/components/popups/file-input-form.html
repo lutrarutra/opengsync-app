@@ -1,0 +1,27 @@
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+
+<div class="modal-content" id="file-input-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Upload file</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="file-input-form" enctype="multipart/form-data">
+            {{ file_input_form.csrf_token() }}
+            <div class="row">
+                {{ select_input(file_input_form.file_type, class="col-3") }}
+                {{ form_group(file_input_form.file, class="col-9") }}
+            </div>
+            {{ form_group(file_input_form.description) }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <button class="btn btn-success" hx-include="#file-input-form" hx-target="#file-input-form-container" hx-swap="outerHTML"
+        hx-encoding="multipart/form-data" hx-post="{{ file_input_form._post_url }}">
+            Submit
+        </button>
+    </div>
+</div>
+<script>
+    init_tooltips();
+</script>

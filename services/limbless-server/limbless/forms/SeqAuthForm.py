@@ -1,5 +1,4 @@
 import os
-from uuid import uuid4
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
@@ -7,7 +6,8 @@ from wtforms import FileField
 from wtforms.validators import DataRequired
 from flask_wtf.file import FileAllowed
 
-from .. import SEQ_AUTH_FORMS_DIR, logger, models, db
+from .. import logger, models, db
+from ..categories import FileType
 from .HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -40,16 +40,24 @@ class SeqAuthForm(HTMXFlaskForm):
         seq_request: models.SeqRequest = context["seq_request"]
         if not self.validate():
             return self.make_response(**context)
-        
-        uuid = str(uuid4())
-        filepath = os.path.join(SEQ_AUTH_FORMS_DIR, f"{uuid}.pdf")
-        self.file.data.save(filepath)
 
-        seq_request.seq_auth_form_uuid = uuid
-        seq_request = db.db_handler.update_seq_request(seq_request=seq_request)
+        user: models.User = context["user"]
+
+        filename, extension = os.path.splitext(self.file.data.filename)
+
+        db_file = db.db_handler.create_file(
+            name=filename,
+            type=FileType.SEQ_AUTH_FORM,
+            extension=extension,
+            uploader_id=user.id
+        )
+
+        self.file.data.save(db_file.path)
+
+        db.db_handler.add_file_to_seq_request(seq_request.id, db_file.id)
 
         flash("Authorization form uploaded!", "success")
-        logger.debug(f"Uploaded sequencing authorization form for sequencing request '{seq_request.name}': {uuid}")
+        logger.debug(f"Uploaded sequencing authorization form for sequencing request '{seq_request.name}': {db_file.path}")
 
         return make_response(
             redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),

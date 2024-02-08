@@ -46,7 +46,7 @@ class DBHandler():
     from .model_handlers._experiment_methods import (
         create_experiment, get_experiment, get_experiments,
         update_experiment, delete_experiment, get_experiment_by_name,
-        get_num_experiments
+        get_num_experiments, add_file_to_experiment,
     )
 
     from .model_handlers._sample_methods import (
@@ -92,7 +92,7 @@ class DBHandler():
     from .model_handlers._seq_request_methods import (
         create_seq_request, get_seq_request, get_num_seq_requests,
         get_seq_requests, delete_seq_request, update_seq_request,
-        query_seq_requests, submit_seq_request
+        query_seq_requests, submit_seq_request, add_file_to_seq_request
     )
 
     from .model_handlers._contact_methods import (
@@ -132,4 +132,13 @@ class DBHandler():
 
         unlink_experiment_pool,
         unlink_experiment_seq_request,
+    )
+
+    from .model_handlers._file_methods import (
+        create_file, get_file, get_files,
+        delete_file
+    )
+
+    from .pd_handler import (
+        get_experiment_libraries_df
     )
