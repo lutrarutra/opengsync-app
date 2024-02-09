@@ -144,54 +144,13 @@ def delete_experiment(
 
 
 def update_experiment(
-    self, experiment_id: int,
-    name: Optional[str] = None,
-    flowcell: Optional[str] = None,
-    status: Optional[ExperimentStatus] = None,
-    r1_cycles: Optional[int] = None,
-    r2_cycles: Optional[int] = None,
-    i1_cycles: Optional[int] = None,
-    i2_cycles: Optional[int] = None,
-    num_lanes: Optional[int] = None,
-    sequencer_id: Optional[int] = None,
-    sequencing_person_id: Optional[int] = None,
-    commit: bool = True
+    self, experiment: models.Experiment, commit: bool = True
 ) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    experiment = self._session.get(models.Experiment, experiment_id)
-    if not experiment:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-
-    if name is not None:
-        if self._session.query(models.Experiment).where(
-            models.Experiment.name == name
-        ).first() is not None:
-            raise exceptions.NotUniqueValue(f"Experiment with name {name} already exists")
-
-    if name is not None:
-        experiment.name = name
-    if flowcell is not None:
-        experiment.flowcell = flowcell
-    if r1_cycles is not None:
-        experiment.r1_cycles = r1_cycles
-    if i1_cycles is not None:
-        experiment.i1_cycles = i1_cycles
-    if num_lanes is not None:
-        experiment.num_lanes = num_lanes
-    if sequencing_person_id is not None:
-        experiment.sequencing_person_id = sequencing_person_id
-    if status is not None:
-        experiment.status_id = status.value.id
-    
-    if r2_cycles is not None:
-        experiment.r2_cycles = r2_cycles
-    if i2_cycles is not None:
-        experiment.i2_cycles = i2_cycles
-    if sequencer_id is not None:
-        experiment.sequencer_id = sequencer_id
+    self._session.add(experiment)
 
     if commit:
         self._session.commit()

@@ -235,12 +235,10 @@ def submit_experiment(experiment_id: int):
         if not experiment.is_submittable():
             return abort(HttpResponse.FORBIDDEN.value.id)
         
-        session.update_experiment(
-            experiment_id=experiment_id,
-            status=ExperimentStatus.SEQUENCING
-        )
+        experiment.status_id = ExperimentStatus.SEQUENCING.value.id
+        session.update_experiment(experiment)
 
-    logger.debug(f"Submitted experiment on flowcell '{experiment.flowcell}'")
+    logger.info(f"Submitted experiment on flowcell '{experiment.flowcell}'")
     flash(f"Submitted experiment on flowcell '{experiment.flowcell}'.", "success")
 
     return make_response(
@@ -258,8 +256,8 @@ def complete_experiment(experiment_id: int):
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
-    return forms.CompleteExperimentForm(formdata=request.form | request.files).process_request(
-        experiment=experiment
+    return forms.CompleteExperimentForm(formdata=request.form).process_request(
+        experiment=experiment, user=current_user
     )
 
 
@@ -326,9 +324,13 @@ def get_graph(experiment_id: int):
         pool_nodes: dict[int, int] = {}
         seq_request_nodes: dict[int, int] = {}
         lane_nodes: dict[int, int] = {}
+        lane_widths: dict[int, float] = {}
+
+        experiment_lanes = session.get_lanes_in_experiment(experiment_id)
 
         for lane in range(1, experiment.num_lanes + 1):
             lane_libraries_count = 0
+            lane_widths[lane] = 0
             if lane not in lane_nodes.keys():
                 lane_node = {
                     "node": idx,
@@ -393,13 +395,14 @@ def get_graph(experiment_id: int):
                 graph["links"].append({
                     "source": pool_node_idx,
                     "target": lane_node_idx,
-                    "value": LINK_WIDTH_UNIT * len(pool_link.pool.libraries),
+                    "value": LINK_WIDTH_UNIT * len(pool_link.pool.libraries) / len(experiment_lanes[pool_link.pool_id]),
                 })
+                lane_widths[lane] += LINK_WIDTH_UNIT * len(pool_link.pool.libraries) / len(experiment_lanes[pool_link.pool_id])
 
             graph["links"].append({
                 "source": lane_node_idx,
                 "target": experiment_node["node"],
-                "value": LINK_WIDTH_UNIT * lane_libraries_count,
+                "value": lane_widths[lane],
             })
 
     return make_response(

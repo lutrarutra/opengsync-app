@@ -60,17 +60,15 @@ class ExperimentForm(HTMXFlaskForm):
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
         # TODO: check if lane is already in use when removing lanes
-        experiment = db.db_handler.update_experiment(
-            experiment_id=experiment.id,
-            flowcell=self.flowcell.data,
-            r1_cycles=self.r1_cycles.data,
-            r2_cycles=self.r2_cycles.data,
-            i1_cycles=self.i1_cycles.data,
-            i2_cycles=self.i2_cycles.data,
-            num_lanes=self.num_lanes.data,
-            sequencer_id=self.sequencer.selected.data,
-            sequencing_person_id=self.sequencing_person.selected.data,
-        )
+        experiment.flowcell = self.flowcell.data        # type: ignore
+        experiment.r1_cycles = self.r1_cycles.data    # type: ignore
+        experiment.r2_cycles = self.r2_cycles.data  # type: ignore
+        experiment.i1_cycles = self.i1_cycles.data  # type: ignore
+        experiment.i2_cycles = self.i2_cycles.data     # type: ignore
+        experiment.num_lanes = self.num_lanes.data   # type: ignore
+        experiment.sequencer_id = self.sequencer.selected.data
+        experiment.sequencing_person_id = self.sequencing_person.selected.data
+        experiment = db.db_handler.update_experiment(experiment)
 
         logger.debug(f"Edited experiment on flowcell '{experiment.flowcell}'")
         flash(f"Edited experiment on flowcell '{experiment.flowcell}'.", "success")

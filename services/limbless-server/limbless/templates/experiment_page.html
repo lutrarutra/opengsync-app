@@ -233,7 +233,7 @@
     </div>
 
     <div class="modal fade" id="complete-experiment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-dialog modal-l modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5">Complete Experiment</h1>
@@ -244,7 +244,7 @@
                 </div>
                 <div class="modal-footer" id="popup-footer">
                     <button type="button" id="parse-table-btn" class="btn btn-success" hx-target="#complete-experiment-form"
-                        hx-swap="outerHTML" hx-include="#complete-experiment-form" hx-encoding="multipart/form-data"
+                        hx-swap="outerHTML" hx-include="#complete-experiment-form"
                         hx-post="{{ url_for('experiments_htmx.complete_experiment', experiment_id=experiment.id) }}">
                         Submit
                     </button>

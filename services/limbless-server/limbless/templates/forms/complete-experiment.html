@@ -1,7 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group %}
 
-<div id="complete-experiment-form" enctype="multipart/form-data">
+<div id="complete-experiment-form">
     {{ complete_experiment_form.csrf_token() }}
-    {{ form_group(complete_experiment_form.file) }}
     {{ form_group(complete_experiment_form.comment) }}
 </div>
