@@ -115,6 +115,15 @@ class SeqRequest(SQLModel, table=True):
     def is_submittable(self) -> bool:
         return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
     
+    def is_all_libraries_sequenced(self) -> bool:
+        if len(libraries := self.libraries) == 0:
+            return False
+        
+        for library in libraries:
+            if not library.is_sequenced():
+                return False
+        return True
+    
     def submitted_time_to_str(self) -> str:
         if self.submitted_time is None:
             return ""

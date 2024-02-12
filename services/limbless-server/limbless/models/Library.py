@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .CMO import CMO
     from .User import User
     from .IndexKit import IndexKit
+    from .SeqQuality import SeqQuality
 
 
 @dataclass
@@ -72,6 +73,11 @@ class Library(SQLModel, table=True):
     index_3_sequence: Optional[str] = Field(nullable=True)
     index_4_sequence: Optional[str] = Field(nullable=True)
 
+    seq_quality_id: Optional[int] = Field(nullable=True, default=True, foreign_key="seqquality.id")
+    seq_quality: Optional["SeqQuality"] = Relationship(
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
+    )
+
     sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id", "owner_id", "pool_id", "adapter"]
 
     def to_dict(self):
@@ -89,6 +95,9 @@ class Library(SQLModel, table=True):
     
     def is_editable(self) -> bool:
         return not self.submitted
+    
+    def is_sequenced(self) -> bool:
+        return self.seq_quality is not None
     
     @property
     def indices(self) -> List[Optional[Index]]:

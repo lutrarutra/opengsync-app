@@ -305,3 +305,30 @@ def link_library_pool(self, library_id: int, pool_id: int, commit: bool = True):
 
     if not persist_session:
         self.close_session()
+
+
+def update_quality(
+    self, library_id: int, quality: models.SeqQuality,
+    commit: bool = True
+) -> models.Library:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    if (library.seq_quality_id is not None) and (quality.id != library.seq_quality_id):
+        self._session.delete(library.seq_quality)
+    
+    library.seq_quality = quality
+    self._session.add(library)
+    self._session.add(quality)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(quality)
+
+    if not persist_session:
+        self.close_session()
+    return library

@@ -19,6 +19,7 @@ from .Barcode import Barcode
 from .Feature import Feature
 from .FeatureKit import FeatureKit
 from .File import File
+from .SeqQuality import SeqQuality
 
 from .Links import (
     ExperimentPoolLink, SampleLibraryLink, SeqRequestExperimentLink,
