@@ -1,6 +1,9 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Relationship
+
+if TYPE_CHECKING:
+    from .Library import Library
 
 
 class SeqQuality(SQLModel, table=True):
@@ -28,3 +31,8 @@ class SeqQuality(SQLModel, table=True):
     num_i2_reads: Optional[int] = Field(nullable=True)
     mean_quality_pf_i2: Optional[float] = Field(nullable=True)
     q30_perc_i2: Optional[float] = Field(nullable=True)
+
+    library: "Library" = Relationship(
+        back_populates="read_qualities",
+        sa_relationship_kwargs={"lazy": "select"}
+    )

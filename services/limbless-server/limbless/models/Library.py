@@ -73,8 +73,8 @@ class Library(SQLModel, table=True):
     index_3_sequence: Optional[str] = Field(nullable=True)
     index_4_sequence: Optional[str] = Field(nullable=True)
 
-    seq_quality_id: Optional[int] = Field(nullable=True, default=True, foreign_key="seqquality.id")
-    seq_quality: Optional["SeqQuality"] = Relationship(
+    read_qualities: list["SeqQuality"] = Relationship(
+        back_populates="library",
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
@@ -95,9 +95,6 @@ class Library(SQLModel, table=True):
     
     def is_editable(self) -> bool:
         return not self.submitted
-    
-    def is_sequenced(self) -> bool:
-        return self.seq_quality is not None
     
     @property
     def indices(self) -> List[Optional[Index]]:

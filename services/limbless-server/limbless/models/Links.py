@@ -74,4 +74,3 @@ class SeqRequestFileLink(SQLModel, table=True):
     seq_request_id: int = Field(
         foreign_key="seqrequest.id", primary_key=True
     )
-    

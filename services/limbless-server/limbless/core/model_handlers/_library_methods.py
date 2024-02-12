@@ -318,12 +318,11 @@ def update_quality(
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if (library.seq_quality_id is not None) and (quality.id != library.seq_quality_id):
-        self._session.delete(library.seq_quality)
-    
-    library.seq_quality = quality
+    if quality in library.read_qualities:
+        library.read_qualities.remove(quality)
+
+    library.read_qualities.append(quality)
     self._session.add(library)
-    self._session.add(quality)
 
     if commit:
         self._session.commit()
