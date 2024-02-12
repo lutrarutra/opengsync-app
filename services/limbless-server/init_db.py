@@ -312,6 +312,7 @@ def init_db(create_users: bool):
     add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_NT_Set_A.csv")
     add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TN_Set_A.csv")
     add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TT_Set_A.csv")
+    add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TS_Set_A.csv")
     add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Single_Index_Kit_N_Set_A.csv")
     add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Single_Index_Kit_T_Set_A.csv")
 
