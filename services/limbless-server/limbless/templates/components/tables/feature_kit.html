@@ -20,5 +20,14 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("feature_kit-table", "barcodes_htmx.get_kit", barcodes_n_pages, barcodes_active_page, url_args={"sort_by": barcodes_current_sort, "order": barcodes_current_sort_order}) }}
+    {{ 
+        pagination(
+            "feature_kit-table", "feature_kits_htmx.get",
+            feature_kits_n_pages, feature_kits_active_page,
+            url_args={
+                "sort_by": feature_kits_current_sort,
+                "order": feature_kits_current_sort_order
+            }
+        )
+    }}
 </div>

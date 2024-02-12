@@ -15,7 +15,11 @@ def feature_kits_page():
 
     return render_template(
         "feature_kits_page.html",
-        feature_kits=feature_kits, feature_kits_n_pages=n_pages, feature_kits_active_page=0,
+        feature_kits=feature_kits,
+        feature_kits_n_pages=n_pages,
+        feature_kits_active_page=0,
+        feature_kits_current_sort="id",
+        feature_kits_current_sort_order="desc"
     )
 
 

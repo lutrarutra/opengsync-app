@@ -164,6 +164,7 @@ def create_app():
     app.register_blueprint(api.seq_request_form_htmx)
     app.register_blueprint(api.features_htmx)
     app.register_blueprint(api.pooling_form_htmx)
+    app.register_blueprint(api.feature_kits_htmx)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

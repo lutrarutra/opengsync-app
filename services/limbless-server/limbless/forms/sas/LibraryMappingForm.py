@@ -162,6 +162,7 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
 
         if "index_kit" in data["library_table"] and not data["library_table"]["index_kit"].isna().all():
             index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
+            context = index_kit_mapping_form.prepare(data) | context
             return index_kit_mapping_form.make_response(**context)
         
         if data["library_table"]["library_type_id"].isin([

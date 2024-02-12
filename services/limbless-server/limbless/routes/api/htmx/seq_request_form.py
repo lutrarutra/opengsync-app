@@ -9,7 +9,7 @@ from ....forms import sas as sas_forms
 from ....categories import HttpResponse
 
 if TYPE_CHECKING:
-    current_user: models.User = None
+    current_user: models.User = None    # type: ignore
 else:
     from flask_login import current_user
 
@@ -84,7 +84,6 @@ def select_project(seq_request_id: int):
     if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    logger.debug(request.form)
     return sas_forms.ProjectMappingForm(formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id,
         seq_request_id=seq_request_id

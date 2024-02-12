@@ -12,6 +12,7 @@ media/
 .snakemake/
 containers/images/
 **/style/compiled/
+.~lock.*
 poetry.lock
 
 # Byte-compiled / optimized / DLL files

@@ -32,7 +32,7 @@ def libraries_page():
         index_kit_results=db.common_kits,
         library_form=library_form,
         libraries_n_pages=n_pages, libraries_active_page=0,
-        current_sort="id", current_sort_order="desc"
+        libraries_current_sort="id", libraries_current_sort_order="desc"
     )
 
 

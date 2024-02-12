@@ -76,6 +76,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else None for index_kit in index_kits]
+        logger.debug(index_kits)
 
         selected: list[Optional[models.IndexKit]] = []
 

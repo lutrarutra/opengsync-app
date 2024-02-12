@@ -24,9 +24,7 @@ class ResetPasswordForm(FlaskForm):
 
 class UserForm(FlaskForm):
     email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=128)])
-    role = SelectField("Role", choices=UserRole.as_tuples(), default=UserRole.CLIENT, validators=[DataRequired(), Length(max=64)])
-
-    _role_id: int = -1
+    role = SelectField("Role", choices=UserRole.as_selectable(), default=UserRole.CLIENT.value.id, validators=[DataRequired(), Length(max=64)], coerce=int)
 
     def custom_validate(self, db_handler: DBHandler, current_user: models.User) -> tuple[bool, "UserForm"]:
         validated = self.validate()
@@ -38,8 +36,7 @@ class UserForm(FlaskForm):
             validated = False
 
         try:
-            self._role_id = int(self.role.data)
-            if (user_role := UserRole.get(self._role_id)) is None:
+            if (user_role := UserRole.get(self.role.data)) is None:
                 self.role.errors = ("Invalid role.",)
                 validated = False
 

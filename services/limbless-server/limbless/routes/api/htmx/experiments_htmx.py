@@ -10,7 +10,7 @@ from ....categories import HttpResponse, ExperimentStatus
 from ....core.DBSession import DBSession
 
 if TYPE_CHECKING:
-    current_user: models.User = None
+    current_user: models.User = None    # type: ignore
 else:
     from flask_login import current_user
 

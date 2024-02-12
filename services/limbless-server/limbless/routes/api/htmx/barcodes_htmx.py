@@ -4,12 +4,12 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from .... import db, logger, forms, models, PAGE_LIMIT
+from .... import db, logger, models, PAGE_LIMIT
 from ....core import DBSession
-from ....categories import LibraryType, HttpResponse
+from ....categories import HttpResponse
 
 if TYPE_CHECKING:
-    current_user: models.User = None
+    current_user: models.User = None    # type: ignore
 else:
     from flask_login import current_user
 

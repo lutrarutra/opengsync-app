@@ -96,7 +96,7 @@ def connect_similar_strings(
 
     res = []
     for word in data:
-        _word = word.lower().replace(" ", "").replace("_", "")
+        _word = word.lower().replace(" ", "").replace("_", "").replace("-", "")
         if similars is not None and _word in similars.keys():
             res.append((similars[_word], 1.0))
         else:

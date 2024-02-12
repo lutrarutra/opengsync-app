@@ -156,7 +156,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                     for _, row in feature_ref.iterrows():
                         feature = session.get_feature(row["feature_id"])
                         sample = session.create_sample(
-                            name=row["biosample"],
+                            name=row["demux_name"],
                             organism_tax_id=tax_id,
                             owner_id=user_id,
                             project_id=project_id,

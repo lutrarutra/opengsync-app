@@ -20,14 +20,14 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
     _template_path = "components/popups/seq_request/sas-6.html"
     
     _required_columns: list[Union[str, list[str]]] = [
-        "Biosample", "Sample Name",
+        "Demux Name", "Sample Name",
     ]
     _allowed_extensions: list[tuple[str, str]] = [
         ("tsv", "Tab-separated"),
         ("csv", "Comma-separated")
     ]
     _mapping: dict[str, str] = {
-        "Biosample": "biosample",
+        "Demux Name": "demux_name",
         "Sample Name": "sample_pool",
         "Kit": "kit",
         "Feature": "feature_name",
@@ -95,8 +95,8 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
             self.file.errors = ("Column 'Sample Name' must be specified for all rows.",)
             return False
         
-        if self.cmo_ref["Biosample"].isna().any():
-            self.file.errors = ("Column 'Biosample' must be specified for all rows.",)
+        if self.cmo_ref["Demux Name"].isna().any():
+            self.file.errors = ("Column 'Demux Name' must be specified for all rows.",)
             return False
         
         data = self.get_data()
