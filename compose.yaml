@@ -9,13 +9,13 @@ services:
         volumes:
             - static_volume:/usr/src/app/static
         depends_on:
-            limbless-server:
+            limbless-app:
                 condition: service_healthy
                 restart: true
 
-    limbless-server:
-        container_name: limbless-web-server
-        build: ./services/limbless-server
+    limbless-app:
+        container_name: limbless-app
+        build: ./services/limbless-app
         command: "gunicorn -w 4 --bind 0.0.0.0:5000 'wsgi:app'"
         volumes:
             - ./uploads:/usr/src/app/uploads
@@ -32,7 +32,7 @@ services:
                 restart: true
 
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://limbless-server:5000/status"]
+            test: ["CMD", "curl", "-f", "http://limbless-app:5000/status"]
             interval: 10s
             timeout: 10s
             retries: 5

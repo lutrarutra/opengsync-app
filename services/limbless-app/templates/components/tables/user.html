@@ -1,0 +1,70 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+<div id="user-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='user-table', column_name='ID', column_var='id',
+                        query_url=url_for('users_htmx.table_query'), current_query=users_current_query,
+                        field_name=field_name, query_type="number", sort_url_args={},
+                        sort_url='users_htmx.get', current_sort=users_current_sort, current_sort_order=users_current_sort_order
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='user-table', column_name='Name', column_var='last_name',
+                        query_url=url_for('users_htmx.table_query'), current_query=users_current_query,
+                        sort_url='users_htmx.get', sort_url_args={},
+                        current_sort=users_current_sort, current_sort_order=users_current_sort_order, col_size=3
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='user-table', column_name='Email', column_var='email',
+                        query_url=url_for('users_htmx.table_query'), current_query=users_current_query,
+                        sort_url='users_htmx.get', sort_url_args={},
+                        current_sort=users_current_sort, current_sort_order=users_current_sort_order, col_size=3
+                    )
+                
+                }}
+                {{
+                    table_col(
+                        target_id='user-table', column_name='Role', column_var='role_id',
+                        sort_url='users_htmx.get', sort_url_args={},
+                        current_sort=users_current_sort, current_sort_order=users_current_sort_order, col_size=2
+                    )
+                
+                }}
+                {{
+                    table_col(
+                        target_id='user-table', column_name='# Seq Requests', column_var='num_seq_requests',
+                        sort_url='users_htmx.get', sort_url_args={},
+                        current_sort=users_current_sort, current_sort_order=users_current_sort_order, col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='user-table', column_name='# Projects', column_var='num_projects',
+                        sort_url='users_htmx.get', sort_url_args={},
+                        current_sort=users_current_sort, current_sort_order=users_current_sort_order, col_size=1
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr onclick="window.location.href='{{ url_for('users_page.user_page', user_id=user.id) }}';">
+                <th scope="row">{{ user.id }}</th>
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role.value.description }} {{ user.role.value.name }}</td>
+                <td>{{ user.num_seq_requests }}</td>
+                <td>{{ user.num_projects }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("user-table", "users_htmx.get", users_n_pages, users_active_page, url_args={"sort_by": users_current_sort, "order": users_current_sort_order}) }}
+</div>

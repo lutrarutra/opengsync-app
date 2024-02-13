@@ -1,19 +1,19 @@
 version: "3.8"
 
 services:
-    limbless-server:
-        container_name: limbless-web-server
+    limbless-app:
+        container_name: limbless-app
         build:
-            context: ./services/limbless-server
+            context: ./services/limbless-app
             dockerfile: Dockerfile.dev
         command: "flask run --host=0.0.0.0"
         volumes:
-            - ./services/limbless-server/limbless:/usr/src/app/limbless
+            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
             - ./uploads:/usr/src/app/uploads
             - ./media:/usr/src/app/media
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
-            - ./services/limbless-server/static/style:/usr/src/app/static/style
+            - ./services/limbless-app/static/style:/usr/src/app/static/style
         env_file: .dev.env
         ports:
             - 5000:5000
@@ -25,7 +25,7 @@ services:
                 restart: true
 
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://limbless-server:5000/status"]
+            test: ["CMD", "curl", "-f", "http://limbless-app:5000/status"]
             interval: 10s
             timeout: 10s
             retries: 5
