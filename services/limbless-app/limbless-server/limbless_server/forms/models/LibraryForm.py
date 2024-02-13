@@ -67,7 +67,7 @@ class LibraryForm(HTMXFlaskForm):
         library.index_4_sequence = self.index_4.data
         library.adapter = self.adapter.data
 
-        library = db.db_handler.update_library(library)
+        library = db.update_library(library)
         
         logger.debug(f"Updated library '{library.name}'.")
         flash(f"Updated library '{library.name}'.", "success")

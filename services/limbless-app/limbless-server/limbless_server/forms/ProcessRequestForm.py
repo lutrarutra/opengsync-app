@@ -54,15 +54,15 @@ class ProcessRequestForm(HTMXFlaskForm):
 
         if response_type == RequestResponse.ACCEPTED:
             seq_request.status_id = SeqRequestStatus.PREPARATION.value.id
-            seq_request = db.db_handler.update_seq_request(seq_request)
+            seq_request = db.update_seq_request(seq_request)
             flash("Request accepted!", "success")
         elif response_type == RequestResponse.REJECTED:
             seq_request.status_id = SeqRequestStatus.FAILED.value.id
-            seq_request = db.db_handler.update_seq_request(seq_request)
+            seq_request = db.update_seq_request(seq_request)
             flash("Request rejected!", "success")
         elif response_type == RequestResponse.PENDING_REVISION:
             seq_request.status_id = SeqRequestStatus.DRAFT.value.id
-            seq_request = db.db_handler.update_seq_request(seq_request)
+            seq_request = db.update_seq_request(seq_request)
             flash("Request pending revision!", "success")
         else:
             return abort(HttpResponse.INTERNAL_SERVER_ERROR.value.id)

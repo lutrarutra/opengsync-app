@@ -26,7 +26,7 @@ class ExperimentFileForm(FileInputForm):
 
         filename, extension = os.path.splitext(self.file.data.filename)
 
-        db_file = db.db_handler.create_file(
+        db_file = db.create_file(
             name=filename,
             type=file_type,
             extension=extension,
@@ -35,7 +35,7 @@ class ExperimentFileForm(FileInputForm):
 
         self.file.data.save(db_file.path)
 
-        db.db_handler.add_file_to_experiment(experiment.id, db_file.id)
+        db.add_file_to_experiment(experiment.id, db_file.id)
 
         flash("File uploaded successfully.", "success")
         logger.info(f"File '{db_file.uuid}' uploaded by user '{user.id}'.")

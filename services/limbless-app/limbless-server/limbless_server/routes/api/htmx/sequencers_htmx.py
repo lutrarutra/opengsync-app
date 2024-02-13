@@ -22,7 +22,7 @@ def get(page: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         sequencers, n_pages = session.get_sequencers(offset=PAGE_LIMIT * page)
     
     return make_response(
@@ -49,7 +49,7 @@ def update(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if (sequencer := db.db_handler.get_sequencer(sequencer_id)) is None:
+    if (sequencer := db.get_sequencer(sequencer_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     return forms.SequencerForm(request.form).process_request(
@@ -63,7 +63,7 @@ def delete(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HttpResponse.FORBIDDEN.value.id)
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if session.get_sequencer(sequencer_id) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
@@ -90,7 +90,7 @@ def query():
     if query is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    results = db.db_handler.query_sequencers(query)
+    results = db.query_sequencers(query)
     
     return make_response(
         render_template(

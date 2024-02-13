@@ -13,7 +13,7 @@ projects_page_bp = Blueprint("projects_page", __name__)
 def projects_page():
     project_form = forms.ProjectForm()
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if not current_user.is_insider():
             projects, n_pages = session.get_projects(user_id=current_user.id, sort_by="id", descending=True)
         else:
@@ -29,7 +29,7 @@ def projects_page():
 @projects_page_bp.route("/projects/<project_id>")
 @login_required
 def project_page(project_id):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (project := session.get_project(project_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         if not current_user.is_insider() and project.owner_id != current_user.id:

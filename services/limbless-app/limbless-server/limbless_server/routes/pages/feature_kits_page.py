@@ -10,7 +10,7 @@ feature_kits_page_bp = Blueprint("feature_kits_page", __name__)
 @feature_kits_page_bp.route("/feature_kit")
 @login_required
 def feature_kits_page():
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         feature_kits, n_pages = session.get_feature_kits()
 
     return render_template(
@@ -26,7 +26,7 @@ def feature_kits_page():
 @feature_kits_page_bp.route("/feature_kit/<int:feature_kit_id>")
 @login_required
 def feature_kit_page(feature_kit_id: int):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         feature_kit = session.get_feature_kit(feature_kit_id)
 
     path_list = [

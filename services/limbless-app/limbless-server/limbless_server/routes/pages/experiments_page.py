@@ -21,7 +21,7 @@ def experiments_page():
     if not current_user.is_insider():
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    experiments, n_pages = db.db_handler.get_experiments()
+    experiments, n_pages = db.get_experiments()
 
     experiment_form = forms.ExperimentForm(user=current_user)
 
@@ -39,7 +39,7 @@ def experiment_page(experiment_id: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
@@ -73,7 +73,7 @@ def experiment_page(experiment_id: int):
             (f"Experiment {experiment_id}", ""),
         ]
 
-        libraries_df = db.db_handler.get_experiment_libraries_df(experiment_id)
+        libraries_df = db.get_experiment_libraries_df(experiment_id)
         libraries_df = tools.check_indices(libraries_df)
 
         return render_template(

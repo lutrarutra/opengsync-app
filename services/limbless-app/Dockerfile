@@ -1,4 +1,3 @@
-# pull official base image
 FROM python:3.11.3-slim-buster
 
 # set work directory
@@ -15,7 +14,11 @@ RUN apt install libpq-dev -y
 RUN apt install curl -y
 RUN pip install --upgrade pip
 COPY . /usr/src/app/
-RUN pip install -r requirements.txt
+RUN pip install -r /usr/src/app/limbless-server/requirements.txt
+RUN pip install /usr/src/app/limbless-server
+RUN pip install -r /usr/src/app/limbless-db/requirements.txt
+RUN pip install /usr/src/app/limbless-db
+RUN python3 /usr/src/app/compile_sass.py
 RUN chmod +x entrypoint.sh
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

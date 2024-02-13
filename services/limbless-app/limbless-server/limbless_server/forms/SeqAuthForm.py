@@ -46,7 +46,7 @@ class SeqAuthForm(HTMXFlaskForm):
 
         filename, extension = os.path.splitext(self.file.data.filename)
 
-        db_file = db.db_handler.create_file(
+        db_file = db.create_file(
             name=filename,
             type=FileType.SEQ_AUTH_FORM,
             extension=extension,
@@ -55,7 +55,7 @@ class SeqAuthForm(HTMXFlaskForm):
 
         self.file.data.save(db_file.path)
 
-        db.db_handler.add_file_to_seq_request(seq_request.id, db_file.id)
+        db.add_file_to_seq_request(seq_request.id, db_file.id)
 
         flash("Authorization form uploaded!", "success")
         logger.debug(f"Uploaded sequencing authorization form for sequencing request '{seq_request.name}': {db_file.path}")

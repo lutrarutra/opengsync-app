@@ -19,7 +19,7 @@ samples_page_bp = Blueprint("samples_page", __name__)
 @samples_page_bp.route("/samples")
 @login_required
 def samples_page():
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if not current_user.is_insider():
             samples, n_pages = session.get_samples(user_id=current_user.id, sort_by="id", descending=True)
         else:
@@ -35,7 +35,7 @@ def samples_page():
 @samples_page_bp.route("/samples/<sample_id>")
 @login_required
 def sample_page(sample_id):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (sample := session.get_sample(sample_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
 
@@ -44,7 +44,7 @@ def sample_page(sample_id):
 
     sample_form = forms.SampleForm(sample=sample)
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         sample = session.get_sample(sample_id)
         libraries, libraries_n_pages = session.get_libraries(sample_id=sample_id)
 

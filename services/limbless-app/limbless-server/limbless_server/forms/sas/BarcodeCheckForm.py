@@ -105,7 +105,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
         n_added = 0
         n_new_samples = 0
 
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             projects: dict[int | str, models.Project] = {}
             for project_id, project_name in library_table[["project_id", "project_name"]].drop_duplicates().values.tolist():
                 if not pd.isnull(project_id):
@@ -126,7 +126,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             if library_table["project_id"].isna().any():
                 raise Exception("Project id is None (should not be).")
 
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             pools: dict[str, models.Pool] = {}
 
             if "pool" in library_table.columns:

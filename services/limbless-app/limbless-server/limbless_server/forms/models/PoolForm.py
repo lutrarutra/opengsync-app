@@ -3,8 +3,7 @@ from wtforms import StringField
 from wtforms.validators import DataRequired, Length
 
 from limbless_db import DBSession
-from ... import logger
-from ... import db
+from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -16,7 +15,7 @@ class PoolForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
                 logger.error(f"User with id {user_id} does not exist.")
                 return False

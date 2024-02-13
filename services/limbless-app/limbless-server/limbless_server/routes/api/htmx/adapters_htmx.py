@@ -28,7 +28,7 @@ def get(page: int, index_kit_id: Optional[int]):
     if sort_by not in models.Adapter.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if index_kit_id is not None:
             index_kit = session.get_index_kit(index_kit_id)
             if index_kit is None:

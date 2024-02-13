@@ -5,8 +5,8 @@ from wtforms import EmailField, PasswordField, StringField, SelectField
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 
 from limbless_db.core.categories import UserRole
-from limbless_db import models, DBHandler, DBSession
-from .. import bcrypt, db
+from limbless_db import models, DBHandler
+from .. import bcrypt
 
 
 class ResetPasswordForm(FlaskForm):
@@ -58,7 +58,7 @@ class LoginForm(FlaskForm):
         return validated, self
         
     def login(self) -> tuple[Optional[models.User], "LoginForm"]:
-        user = db.db_handler.get_user_by_email(self.email.data)
+        user = db.get_user_by_email(self.email.data)
         # invalid email
         if not user:
             self.email.errors = ("Invalid email or password.",)

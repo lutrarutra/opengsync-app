@@ -26,7 +26,7 @@ def get(page: int):
     if sort_by not in models.User.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         users, n_pages = session.get_users(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
         
         return make_response(
@@ -62,7 +62,7 @@ def query():
 
     only_insiders = request.args.get("only_insiders", None) == "True"
     
-    results = db.db_handler.query_users(query, with_roles=with_roles, only_insiders=only_insiders)
+    results = db.query_users(query, with_roles=with_roles, only_insiders=only_insiders)
     
     return make_response(
         render_template(
@@ -93,16 +93,16 @@ def table_query():
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
     if field_name == "first_name" or field_name == "last_name":
-        users = db.db_handler.query_users(word)
+        users = db.query_users(word)
     elif field_name == "email":
-        users = db.db_handler.query_users_by_email(word)
+        users = db.query_users_by_email(word)
     elif field_name == "id":
         try:
             user_id = int(word)
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
         else:
-            users = [db.db_handler.get_user(user_id)]
+            users = [db.get_user(user_id)]
     else:
         assert False  # This should never happen
 

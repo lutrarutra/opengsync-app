@@ -8,6 +8,8 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from itsdangerous import URLSafeTimedSerializer
 
+from limbless_db import DBHandler
+
 logger.remove()
 
 fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} ({file}:{line} in {function}):
@@ -43,3 +45,11 @@ bcrypt = Bcrypt()
 login_manager = LoginManager()
 mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
+
+db_user = os.environ["POSTGRES_USER"]
+db_password = os.environ["POSTGRES_PASSWORD"]
+db_host = os.environ["POSTGRES_HOST"]
+db_port = os.environ["POSTGRES_PORT"]
+db_name = os.environ["POSTGRES_DB"]
+
+db = DBHandler(f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")

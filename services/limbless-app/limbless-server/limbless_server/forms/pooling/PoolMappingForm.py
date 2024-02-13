@@ -70,7 +70,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
             libraries = []
             for _, row in _df.iterrows():
                 library_id = row["id"]
-                library = db.db_handler.get_library(library_id)
+                library = db.get_library(library_id)
                 libraries.append(library)
 
             pool_libraries.append(libraries)

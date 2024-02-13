@@ -24,7 +24,7 @@ def seq_requests_page():
 
     current_sort = "id"
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if not current_user.is_insider():
             seq_requests, n_pages = session.get_seq_requests(user_id=current_user.id)
         elif current_user.role == UserRole.ADMIN:
@@ -44,7 +44,7 @@ def seq_requests_page():
 @seq_requests_page_bp.route("/seq_requests/<int:seq_request_id>")
 @login_required
 def seq_request_page(seq_request_id: int):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         if seq_request.requestor_id != current_user.id:

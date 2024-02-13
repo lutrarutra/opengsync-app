@@ -40,7 +40,7 @@ def get(page):
         if user_id != current_user.id and not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
         
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             
@@ -48,7 +48,7 @@ def get(page):
             context["user"] = user
     else:
         template = "components/tables/project.html"
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if not current_user.is_insider():
                 user_id = current_user.id
             else:
@@ -80,7 +80,7 @@ def query():
     else:
         _user_id = None
 
-    results = db.db_handler.query_projects(word, user_id=_user_id)
+    results = db.query_projects(word, user_id=_user_id)
 
     return make_response(
         render_template(
@@ -100,7 +100,7 @@ def create():
 @projects_htmx.route("<int:project_id>/edit", methods=["POST"])
 @login_required
 def edit(project_id: int):
-    if (project := db.db_handler.get_project(project_id)) is None:
+    if (project := db.get_project(project_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if project.owner_id != current_user.id and not current_user.is_insider():
@@ -114,7 +114,7 @@ def edit(project_id: int):
 @projects_htmx.route("<int:project_id>/delete", methods=["DELETE"])
 @login_required
 def delete(project_id: int):
-    if (project := db.db_handler.get_project(project_id)) is None:
+    if (project := db.get_project(project_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if project.owner_id != current_user.id and not current_user.is_insider():
@@ -123,7 +123,7 @@ def delete(project_id: int):
     if project.num_samples > 0:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    db.db_handler.delete_project(project_id)
+    db.delete_project(project_id)
     flash(f"Deleted project {project.name}.", "success")
     return make_response(redirect=url_for("projects_page.projects_page"))
 
@@ -173,7 +173,7 @@ def table_query():
             user_id = int(user_id)
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             
@@ -182,7 +182,7 @@ def table_query():
     else:
         template = "components/tables/project.html"
 
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if not current_user.is_insider():
                 user_id = current_user.id
             else:

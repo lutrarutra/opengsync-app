@@ -25,7 +25,7 @@ class SequencerForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             # Editing existing sequencer
             if sequencer is not None:
                 if (_ := session.get_sequencer(sequencer.id)) is None:
@@ -48,7 +48,7 @@ class SequencerForm(HTMXFlaskForm):
         return True
     
     def __create_new_sequencer(self) -> Response:
-        sequencer = db.db_handler.create_sequencer(
+        sequencer = db.create_sequencer(
             name=self.name.data,
             ip=self.ip_address.data,
         )
@@ -58,7 +58,7 @@ class SequencerForm(HTMXFlaskForm):
         return make_response(redirect=url_for("devices_page.devices_page"))
     
     def __update_existing_sequencer(self, sequencer: models.Sequencer) -> Response:
-        db.db_handler.update_sequencer(
+        db.update_sequencer(
             sequencer_id=sequencer.id,
             name=self.name.data,
             ip=self.ip_address.data,

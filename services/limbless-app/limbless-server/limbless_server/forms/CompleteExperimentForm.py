@@ -34,7 +34,7 @@ class CompleteExperimentForm(HTMXFlaskForm):
         
         experiment: models.Experiment = context["experiment"]
         experiment.status_id = categories.ExperimentStatus.FINISHED.value.id
-        experiment = db.db_handler.update_experiment(experiment)
+        experiment = db.update_experiment(experiment)
         
         flash("Experiment completed!.", "success")
         logger.info(f"Experiment '{experiment.id}' completed!.")

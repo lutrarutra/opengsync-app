@@ -37,7 +37,7 @@ def get(page):
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
         
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if (experiment := session.get_experiment(experiment_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             
@@ -49,7 +49,7 @@ def get(page):
 
     else:
         template = "components/tables/pool.html"
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             pools, n_pages = session.get_pools(
                 sort_by=sort_by, descending=descending,
                 offset=offset, 

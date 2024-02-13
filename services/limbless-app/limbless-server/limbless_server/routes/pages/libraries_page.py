@@ -18,7 +18,7 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 @libraries_page_bp.route("/libraries")
 @login_required
 def libraries_page():
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if not current_user.is_insider():
             libraries, n_pages = session.get_libraries(user_id=current_user.id, sort_by="id", descending=True)
         else:
@@ -39,7 +39,7 @@ def libraries_page():
 @libraries_page_bp.route("/libraries/<int:library_id>")
 @login_required
 def library_page(library_id):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (library := session.get_library(library_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         

@@ -30,7 +30,7 @@ class ProjectForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
                 logger.error(f"User with id {user_id} does not exist.")
                 return False
@@ -54,7 +54,7 @@ class ProjectForm(HTMXFlaskForm):
         return True
     
     def __create_new_project(self, user_id: int) -> Response:
-        project = db.db_handler.create_project(
+        project = db.create_project(
             name=self.name.data,
             description=self.description.data,
             owner_id=user_id
@@ -68,7 +68,7 @@ class ProjectForm(HTMXFlaskForm):
         )
     
     def __update_existing_project(self, project: models.Project) -> Response:
-        project = db.db_handler.update_project(
+        project = db.update_project(
             project_id=project.id,
             name=self.name.data,
             description=self.description.data,

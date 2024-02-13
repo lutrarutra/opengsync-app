@@ -50,7 +50,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
         for i, row in df.iterrows():
             library_id = row["id"]
-            library = db.db_handler.get_library(library_id)
+            library = db.get_library(library_id)
 
             _data = {
                 "library": library,
@@ -95,18 +95,18 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
         pooling_table = data["pooling_table"]
 
         for _, row in pooling_table.iterrows():
-            library = db.db_handler.get_library(row["id"])
+            library = db.get_library(row["id"])
             library.index_1_sequence = row["index_1"] if not pd.isna(row["index_1"]) else None
             library.index_2_sequence = row["index_2"] if not pd.isna(row["index_2"]) else None
             library.index_3_sequence = row["index_3"] if not pd.isna(row["index_3"]) else None
             library.index_4_sequence = row["index_4"] if not pd.isna(row["index_4"]) else None
             library.adapter = row["adapter"] if not pd.isna(row["adapter"]) else None
-            library = db.db_handler.update_library(library)
+            library = db.update_library(library)
 
         n_pools = 0
         for pool_label, _df in pooling_table.groupby("pool"):
             pool_label = str(pool_label)
-            pool = db.db_handler.create_pool(
+            pool = db.create_pool(
                 name=pool_label,
                 owner_id=user.id,
                 contact_name=_df["contact_person_name"].iloc[0],
@@ -116,7 +116,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
             for _, row in _df.iterrows():
                 library_id = row["id"]
-                db.db_handler.link_library_pool(
+                db.link_library_pool(
                     library_id=library_id, pool_id=pool.id
                 )
 

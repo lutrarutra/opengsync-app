@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 import pandas as pd
 
-from limbless_db import models, DBSession, PAGE_LIMIT
+from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler
 from limbless_db.core.categories import HttpResponse, UserRole
 from .... import db, logger, forms
 
@@ -37,7 +37,7 @@ def get(page: int):
     samples: list[models.Sample] = []
     context = {}
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (project_id := request.args.get("project_id", None)) is not None:
             template = "components/tables/project-sample.html"
             try:
@@ -84,13 +84,13 @@ def get(page: int):
 @samples_htmx.route("<int:sample_id>/delete", methods=["DELETE"])
 @login_required
 def delete(sample_id: int):
-    if (sample := db.db_handler.get_sample(sample_id)) is None:
+    if (sample := db.get_sample(sample_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not sample.is_editable():
         return abort(HttpResponse.FORBIDDEN.value.id)
 
-    db.db_handler.delete_sample(sample_id)
+    db.delete_sample(sample_id)
 
     logger.info(f"Deleted sample {sample.name} (id: {sample.id})")
     flash(f"Deleted sample {sample.name} (id: {sample.id})", "success")
@@ -110,7 +110,7 @@ def download():
     if (project_id := request.args.get("project_id", None)) is not None:
         try:
             project_id = int(project_id)
-            with DBSession(db.db_handler) as session:
+            with DBSession(db) as session:
                 if (project := session.get_project(project_id)) is None:
                     return abort(HttpResponse.NOT_FOUND.value.id)
                 file_name = f"{project.name}_project_samples.tsv"
@@ -118,7 +118,7 @@ def download():
         except (ValueError, TypeError):
             return abort(HttpResponse.BAD_REQUEST.value.id)
     else:
-        samples, _ = db.db_handler.get_samples(
+        samples, _ = db.get_samples(
             limit=None, user_id=current_user.id
         )
 
@@ -134,7 +134,7 @@ def download():
 @samples_htmx.route("<int:sample_id>/edit", methods=["POST"])
 @login_required
 def edit(sample_id):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (sample := session.get_sample(sample_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
 
@@ -160,7 +160,7 @@ def query():
     else:
         _user_id = None
 
-    results = db.db_handler.query_samples(word, user_id=_user_id)
+    results = db.query_samples(word, user_id=_user_id)
 
     return make_response(
         render_template(
@@ -227,7 +227,7 @@ def table_query():
         return samples
 
     context = {}
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (project_id := request.args.get("project_id", None)) is not None:
             template = "components/tables/project-sample.html"
             try:

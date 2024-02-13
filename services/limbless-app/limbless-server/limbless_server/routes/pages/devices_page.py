@@ -15,7 +15,7 @@ def devices_page():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     sequencer_form = forms.SequencerForm()
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         sequencers, n_pages = session.get_sequencers()
 
     return render_template(
@@ -31,7 +31,7 @@ def sequencer_page(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if (sequencer := db.db_handler.get_sequencer(sequencer_id)) is None:
+    if (sequencer := db.get_sequencer(sequencer_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     sequencer_form = forms.SequencerForm()

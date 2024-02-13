@@ -61,7 +61,7 @@ def logout():
 @auth_htmx.route("register", methods=["POST"])
 def register():
     register_form = forms.RegisterForm()
-    validated, register_form = register_form.custom_validate(db.db_handler)
+    validated, register_form = register_form.custom_validate(db)
 
     if not validated:
         return make_response(
@@ -99,7 +99,7 @@ def custom_register():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
     user_form = forms.UserForm()
-    validated, user_form = user_form.custom_validate(db.db_handler, current_user)
+    validated, user_form = user_form.custom_validate(db, current_user)
 
     if not validated:
         return make_response(
@@ -143,7 +143,7 @@ def complete_registration(token):
             redirect=url_for("auth_page.auth_page"),
         )
     
-    validated, register_form = register_form.custom_validate(db.db_handler)
+    validated, register_form = register_form.custom_validate(db)
     email, user_role = data
 
     if not validated:
@@ -157,7 +157,7 @@ def complete_registration(token):
     
     hashed_password = bcrypt.generate_password_hash(register_form.password.data).decode("utf-8")
 
-    user = db.db_handler.create_user(
+    user = db.create_user(
         email=email,
         hashed_password=hashed_password,
         first_name=register_form.first_name.data,
@@ -178,7 +178,7 @@ def reset_password_email(user_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if (user := db.db_handler.get_user(user_id)) is None:
+    if (user := db.get_user(user_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
         
     token = current_user.generate_reset_token(serializer=serializer)
@@ -210,7 +210,7 @@ def reset_password(token: str):
     validated, reset_password_form = reset_password_form.custom_validate()
     user_id, email, hash = data
 
-    if (user := db.db_handler.get_user(user_id)) is None:
+    if (user := db.get_user(user_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if user.email != email:
@@ -231,7 +231,7 @@ def reset_password(token: str):
     
     hashed_password = bcrypt.generate_password_hash(reset_password_form.password.data).decode("utf-8")
 
-    db.db_handler.update_user(
+    db.update_user(
         user_id=user_id, hashed_password=hashed_password
     )
 

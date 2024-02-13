@@ -48,7 +48,7 @@ def get(page: int):
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
         
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             feature_kit = session.get_feature_kit(feature_kit_id)
             features, n_pages = session.get_features(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending)
         
@@ -77,7 +77,7 @@ def query_kits():
     if (word := request.form.get(field_name)) is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
-    results = db.db_handler.query_feature_kits(word)
+    results = db.query_feature_kits(word)
 
     return make_response(
         render_template(

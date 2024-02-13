@@ -33,7 +33,7 @@ class SampleForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
                 logger.error(f"User with id {user_id} does not exist.")
                 return False
@@ -55,7 +55,7 @@ class SampleForm(HTMXFlaskForm):
         if not self.validate(user_id=user_id, sample=sample):
             return self.make_response(**context)
        
-        sample = db.db_handler.update_sample(
+        sample = db.update_sample(
             sample_id=sample.id,
             name=self.name.data,
             organism_tax_id=self.organism.selected.data

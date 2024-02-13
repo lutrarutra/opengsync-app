@@ -62,10 +62,10 @@ def get(page: int):
         if user_id != current_user.id and not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
         
-        if (user := db.db_handler.get_user(user_id)) is None:
+        if (user := db.get_user(user_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
 
-        seq_requests, n_pages = db.db_handler.get_seq_requests(
+        seq_requests, n_pages = db.get_seq_requests(
             offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
             with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
         )
@@ -78,21 +78,21 @@ def get(page: int):
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
         
-        if (sample := db.db_handler.get_sample(sample_id)) is None:
+        if (sample := db.get_sample(sample_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
         if not current_user.is_insider():
             if sample.owner_id != current_user.id:
                 return abort(HttpResponse.FORBIDDEN.value.id)
         
-        seq_requests, n_pages = db.db_handler.get_seq_requests(
+        seq_requests, n_pages = db.get_seq_requests(
             offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending,
             with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
         )
         context["sample"] = sample
     else:
         template = "components/tables/seq_request.html"
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if not current_user.is_insider():
                 user_id = current_user.id
             else:
@@ -115,7 +115,7 @@ def get(page: int):
 @seq_requests_htmx.route("<int:seq_request_id>/export", methods=["GET"])
 @login_required
 def export(seq_request_id: int):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
@@ -148,7 +148,7 @@ def export(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/export_libraries", methods=["GET"])
 @login_required
 def export_libraries(seq_request_id: int):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         libraries = seq_request.libraries
@@ -170,7 +170,7 @@ def export_libraries(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["POST"])
 @login_required
 def edit(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     if not current_user.is_insider():
@@ -185,14 +185,14 @@ def edit(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/delete", methods=["DELETE"])
 @login_required
 def delete(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    db.db_handler.delete_seq_request(seq_request_id)
+    db.delete_seq_request(seq_request_id)
 
     flash(f"Deleted sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Deleted sequencing request '{seq_request.name}'")
@@ -205,7 +205,7 @@ def delete(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/archive", methods=["POST"])
 @login_required
 def archive(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not current_user.is_insider():
@@ -213,7 +213,7 @@ def archive(seq_request_id: int):
             return abort(HttpResponse.FORBIDDEN.value.id)
     
     seq_request.status_id = SeqRequestStatus.ARCHIVED.value.id
-    seq_request = db.db_handler.update_seq_request(seq_request)
+    seq_request = db.update_seq_request(seq_request)
     flash(f"Archived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Archived sequencing request '{seq_request.name}'")
     return make_response(
@@ -224,7 +224,7 @@ def archive(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/unarchive", methods=["POST"])
 @login_required
 def unarchive(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not current_user.is_insider():
@@ -232,7 +232,7 @@ def unarchive(seq_request_id: int):
     
     seq_request.status_id = SeqRequestStatus.DRAFT.value.id
     seq_request.submitted_time = None
-    seq_request = db.db_handler.update_seq_request(seq_request)
+    seq_request = db.update_seq_request(seq_request)
 
     flash(f"Unarchived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Unarchived sequencing request '{seq_request.name}'")
@@ -245,7 +245,7 @@ def unarchive(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["GET"])
 @login_required
 def submit(seq_request_id: int):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
@@ -275,7 +275,7 @@ def create():
 @seq_requests_htmx.route("<int:seq_request_id>/upload_auth_form", methods=["POST"])
 @login_required
 def upload_auth_form(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if seq_request.requestor_id != current_user.id:
@@ -296,7 +296,7 @@ def upload_file(seq_request_id: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return forms.SeqRequestFileForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
@@ -307,7 +307,7 @@ def upload_file(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/remove_auth_form", methods=["DELETE"])
 @login_required
 def remove_auth_form(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if seq_request.seq_auth_form_file_id is None:
@@ -321,16 +321,16 @@ def remove_auth_form(seq_request_id: int):
         if not current_user.is_insider():
             return abort(HttpResponse.FORBIDDEN.value.id)
 
-    if (file := db.db_handler.get_file(seq_request.seq_auth_form_file_id)) is None:
+    if (file := db.get_file(seq_request.seq_auth_form_file_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     if os.path.exists(file.path):
         os.remove(file.path)
 
     seq_request.seq_auth_form_file_id = None
-    seq_request = db.db_handler.update_seq_request(seq_request=seq_request)
+    seq_request = db.update_seq_request(seq_request=seq_request)
 
-    db.db_handler.delete_file(file.id)
+    db.delete_file(file.id)
 
     flash("Authorization form removed!", "success")
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
@@ -346,7 +346,7 @@ def remove_library(seq_request_id: int):
     if (library_id := request.args.get("library_id")) is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if seq_request.status != SeqRequestStatus.DRAFT:
@@ -358,7 +358,7 @@ def remove_library(seq_request_id: int):
     except ValueError:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (library := session.get_library(library_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
@@ -421,7 +421,7 @@ def table_query():
             user_id = int(user_id)
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.value.id)
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.value.id)
             
@@ -430,7 +430,7 @@ def table_query():
     else:
         template = "components/tables/seq_request.html"
 
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if not current_user.is_insider():
                 user_id = current_user.id
             else:
@@ -466,7 +466,7 @@ def reverse_complement(seq_request_id: int):
     if index < 1 or index > 4:
         return abort(HttpResponse.BAD_REQUEST.value.id)
     
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
@@ -505,7 +505,7 @@ def reverse_complement(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/process_request", methods=["POST"])
 @login_required
 def process_request(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return forms.ProcessRequestForm(formdata=request.form).process_request(
@@ -516,7 +516,7 @@ def process_request(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/get_graph", methods=["GET"])
 @login_required
 def get_graph(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if seq_request.requestor_id != current_user.id:
@@ -525,7 +525,7 @@ def get_graph(seq_request_id: int):
 
     LINK_WIDTH_UNIT = 1
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         samples, _ = session.get_samples(seq_request_id=seq_request_id, limit=None)
 
         graph = {

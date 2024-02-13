@@ -54,13 +54,13 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                     return False
                 continue
             
-            if db.db_handler.get_index_kit(index_kit_id) is None:
+            if db.get_index_kit(index_kit_id) is None:
                 entry.index_kit.selected.errors = ("Not valid index kit selected",)
                 return False
             
             for _, row in _df.iterrows():
                 adapter_name = str(row["adapter"])
-                if (_ := db.db_handler.get_adapter_from_index_kit(adapter_name, index_kit_id)) is None:
+                if (_ := db.get_adapter_from_index_kit(adapter_name, index_kit_id)) is None:
                     entry.index_kit.selected.errors = (f"Unknown adapter '{adapter_name}' does not belong to this index kit.",)
                     return False
 
@@ -91,11 +91,11 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             if index_kit is None:
                 selected_kit = None
             elif entry.index_kit.selected.data is None:
-                selected_kit = next(iter(db.db_handler.query_index_kit(index_kit, 1)), None)
+                selected_kit = next(iter(db.query_index_kit(index_kit, 1)), None)
                 entry.index_kit.selected.data = selected_kit.id if selected_kit else None
                 entry.index_kit.search_bar.data = selected_kit.search_name() if selected_kit else None
             else:
-                selected_kit = db.db_handler.get_index_kit(entry.index_kit.selected.data)
+                selected_kit = db.get_index_kit(entry.index_kit.selected.data)
                 entry.index_kit.search_bar.data = selected_kit.search_name() if selected_kit else None
 
             selected.append(selected_kit)
@@ -120,7 +120,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         for i, index_kit in enumerate(index_kits):
             entry = self.input_fields[i]
             if (selected_id := entry.index_kit.selected.data) is not None:
-                if (selected_kit := db.db_handler.get_index_kit(selected_id)) is None:
+                if (selected_kit := db.get_index_kit(selected_id)) is None:
                     raise Exception(f"Index kit with id '{selected_id}' does not exist.")
                 
                 df.loc[df["index_kit"] == index_kit, "index_kit_id"] = selected_id
@@ -143,7 +143,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 continue
             index_kit_id = int(row["index_kit_id"])
             adapter_name = str(row["adapter"])
-            adapter = db.db_handler.get_adapter_from_index_kit(adapter_name, index_kit_id)
+            adapter = db.get_adapter_from_index_kit(adapter_name, index_kit_id)
             df.at[i, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 else None
             df.at[i, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 else None
             df.at[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None

@@ -47,13 +47,13 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             entry.raw_label.data = raw_label_name
 
             if (selected_id := entry.project.selected.data) is not None:
-                selected_project = db.db_handler.get_project(selected_id)
+                selected_project = db.get_project(selected_id)
             else:
                 if raw_label_name is None or pd.isna(raw_label_name):
                     entry.raw_label.data = "Project"
                     selected_project = None
                 else:
-                    selected_project = next(iter(db.db_handler.query_projects(word=raw_label_name, limit=1, user_id=user_id)), None)
+                    selected_project = next(iter(db.query_projects(word=raw_label_name, limit=1, user_id=user_id)), None)
                     entry.project.selected.data = selected_project.id if selected_project is not None else None
                     entry.project.search_bar.data = selected_project.search_name() if selected_project is not None else None
 
@@ -65,7 +65,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
         if (validated := super().validate()) is False:
             return False
         
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             user_projects = session.get_user(user_id).projects
             user_project_names = [project.name for project in user_projects]
             for field in self.input_fields:
@@ -102,7 +102,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             else:
                 idx = df["project"] == raw_label
             if (project_id := input_field.project.selected.data) is not None:
-                if (project := db.db_handler.get_project(project_id)) is None:
+                if (project := db.get_project(project_id)) is None:
                     raise Exception(f"Project with id {project_id} does not exist.")
                 df.loc[idx, "project_id"] = project.id
                 df.loc[idx, "project_name"] = project.name
@@ -113,7 +113,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             else:
                 raise Exception("Project not selected or created.")
 
-        with DBSession(db.db_handler) as session:
+        with DBSession(db) as session:
             if (_ := session.get_seq_request(seq_request_id)) is None:
                 raise Exception(f"Seq request with id {seq_request_id} does not exist.")
             

@@ -26,7 +26,7 @@ def get(page: int):
     if sort_by not in models.FeatureKit.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         feature_kits, n_pages = session.get_feature_kits(
             offset=PAGE_LIMIT * page,
             sort_by=sort_by, descending=descending

@@ -69,7 +69,7 @@ class ExperimentForm(HTMXFlaskForm):
         experiment.num_lanes = self.num_lanes.data   # type: ignore
         experiment.sequencer_id = self.sequencer.selected.data
         experiment.sequencing_person_id = self.sequencing_person.selected.data
-        experiment = db.db_handler.update_experiment(experiment)
+        experiment = db.update_experiment(experiment)
 
         logger.debug(f"Edited experiment on flowcell '{experiment.flowcell}'")
         flash(f"Edited experiment on flowcell '{experiment.flowcell}'.", "success")
@@ -77,7 +77,7 @@ class ExperimentForm(HTMXFlaskForm):
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 
     def __create_new_experiment(self) -> Response:
-        experiment = db.db_handler.create_experiment(
+        experiment = db.create_experiment(
             flowcell=self.flowcell.data,
             sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,

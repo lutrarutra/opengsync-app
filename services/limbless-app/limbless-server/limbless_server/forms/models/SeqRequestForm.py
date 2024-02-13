@@ -172,7 +172,7 @@ class SeqRequestForm(HTMXFlaskForm):
                 self.bioinformatician_email.flags.required = True
                 return False
 
-        user_requests, _ = db.db_handler.get_seq_requests(user_id=user_id, limit=None)
+        user_requests, _ = db.get_seq_requests(user_id=user_id, limit=None)
 
         if self.flowcell_type.data != -1:
             try:
@@ -232,7 +232,7 @@ class SeqRequestForm(HTMXFlaskForm):
         else:
             seq_type = None
 
-        db.db_handler.update_contact(
+        db.update_contact(
             seq_request.billing_contact_id,
             name=self.billing_contact.data,
             email=self.billing_email.data,
@@ -240,7 +240,7 @@ class SeqRequestForm(HTMXFlaskForm):
             address=self.billing_address.data,
         )
 
-        db.db_handler.update_contact(
+        db.update_contact(
             seq_request.contact_person_id,
             name=self.contact_person_name.data,
             phone=self.contact_person_phone.data,
@@ -249,13 +249,13 @@ class SeqRequestForm(HTMXFlaskForm):
 
         if self.bioinformatician_name.data:
             if (bioinformatician_contact := seq_request.bioinformatician_contact) is None:
-                bioinformatician_contact = db.db_handler.create_contact(
+                bioinformatician_contact = db.create_contact(
                     name=self.bioinformatician_name.data,
                     email=self.bioinformatician_email.data,
                     phone=self.bioinformatician_phone.data,
                 )
             else:
-                db.db_handler.update_contact(
+                db.update_contact(
                     bioinformatician_contact.id,
                     name=self.bioinformatician_name.data,
                     email=self.bioinformatician_email.data,
@@ -315,7 +315,7 @@ class SeqRequestForm(HTMXFlaskForm):
         if self.organization_address.data is not None:
             seq_request.organization_address = self.organization_address.data
 
-        seq_request = db.db_handler.update_seq_request(seq_request)
+        seq_request = db.update_seq_request(seq_request)
 
         flash(f"Updated sequencing request '{seq_request.name}'", "success")
         logger.info(f"Updated sequencing request '{seq_request.name}'")
@@ -325,13 +325,13 @@ class SeqRequestForm(HTMXFlaskForm):
         )
     
     def __create_new_request(self, user_id: int) -> Response:
-        contact_person = db.db_handler.create_contact(
+        contact_person = db.create_contact(
             name=self.contact_person_name.data,
             email=self.contact_person_email.data,
             phone=self.contact_person_phone.data,
         )
 
-        billing_contact = db.db_handler.create_contact(
+        billing_contact = db.create_contact(
             name=self.billing_contact.data,
             email=self.billing_email.data,
             address=self.billing_address.data,
@@ -340,7 +340,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         # Create bioinformatician contact if needed
         if self.bioinformatician_name.data:
-            bioinformatician = db.db_handler.create_contact(
+            bioinformatician = db.create_contact(
                 name=self.bioinformatician_name.data,
                 email=self.bioinformatician_email.data,
                 phone=self.bioinformatician_phone.data,
@@ -362,7 +362,7 @@ class SeqRequestForm(HTMXFlaskForm):
         else:
             flowcell_type = None
 
-        seq_request = db.db_handler.create_seq_request(
+        seq_request = db.create_seq_request(
             name=self.name.data,
             description=self.description.data,
             requestor_id=user_id,

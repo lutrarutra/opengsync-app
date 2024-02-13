@@ -56,7 +56,7 @@ def download_seq_auth_form():
 @seq_request_form_htmx.route("<int:seq_request_id>/restart_form", methods=["GET"])
 @login_required
 def restart_form(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return sas_forms.SASInputForm().make_response(
@@ -68,7 +68,7 @@ def restart_form(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/parse_table", methods=["POST"])
 @login_required
 def parse_table(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return sas_forms.SASInputForm(
@@ -82,7 +82,7 @@ def parse_table(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/project_select", methods=["POST"])
 @login_required
 def select_project(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return sas_forms.ProjectMappingForm(formdata=request.form).process_request(
@@ -95,7 +95,7 @@ def select_project(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/map_organisms", methods=["POST"])
 @login_required
 def map_organisms(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return sas_forms.OrganismMappingForm(formdata=request.form).process_request(
@@ -107,7 +107,7 @@ def map_organisms(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/map_libraries", methods=["POST"])
 @login_required
 def map_libraries(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return sas_forms.LibraryMappingForm(formdata=request.form).process_request(
@@ -119,7 +119,7 @@ def map_libraries(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/map_index_kits", methods=["POST"])
 @login_required
 def map_index_kits(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     return sas_forms.IndexKitMappingForm(formdata=request.form).process_request(
@@ -131,7 +131,7 @@ def map_index_kits(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/parse_cmo_reference", methods=["POST"])
 @login_required
 def parse_cmo_reference(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     return sas_forms.CMOReferenceInputForm(formdata=request.form | request.files).process_request(
@@ -143,7 +143,7 @@ def parse_cmo_reference(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/map_feature_kits", methods=["POST"])
 @login_required
 def map_feature_kits(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
     return sas_forms.FeatureKitMappingForm(formdata=request.form).process_request(
@@ -155,7 +155,7 @@ def map_feature_kits(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/map_pools", methods=["POST"])
 @login_required
 def map_pools(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return sas_forms.PoolMappingForm(formdata=request.form).process_request(
@@ -167,7 +167,7 @@ def map_pools(seq_request_id: int):
 @seq_request_form_htmx.route("<int:seq_request_id>/check_barcodes", methods=["POST"])
 @login_required
 def check_barcodes(seq_request_id: int):
-    if (seq_request := db.db_handler.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return sas_forms.BarcodeCheckForm(formdata=request.form).process_request(

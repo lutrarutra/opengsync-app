@@ -17,7 +17,7 @@ def reset_password_page(token: str):
         return redirect(url_for("auth_page.auth_page"))
     
     user_id, email, hash = data
-    if (user := db.db_handler.get_user(user_id)) is None:
+    if (user := db.get_user(user_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if user.email != email:
@@ -63,7 +63,7 @@ def register_page(token):
         return redirect(url_for("auth_page.auth_page"))
     
     email, user_role = data
-    if (_ := db.db_handler.get_user_by_email(email)) is not None:
+    if (_ := db.get_user_by_email(email)) is not None:
         flash("Email already registered.", "warning")
         return redirect(url_for("auth_page.auth_page"))
 

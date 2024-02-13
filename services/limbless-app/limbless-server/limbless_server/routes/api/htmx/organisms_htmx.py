@@ -21,12 +21,12 @@ def query():
     else:
         try:
             tax_id = int(word)
-            if res := db.db_handler.get_organism(tax_id):
+            if res := db.get_organism(tax_id):
                 q_organisms = [res]
             else:
                 q_organisms = []
         except ValueError:
-            q_organisms = db.db_handler.query_organisms(word)
+            q_organisms = db.query_organisms(word)
 
     return make_response(
         render_template(

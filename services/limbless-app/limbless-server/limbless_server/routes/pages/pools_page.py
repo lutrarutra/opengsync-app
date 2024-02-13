@@ -6,7 +6,7 @@ from flask_login import login_required
 from limbless_db import DBSession
 from limbless_db.models import User
 from limbless_db.core.categories import HttpResponse
-from ... import db
+from ...app import db
 
 if TYPE_CHECKING:
     current_user: User = None  # type: ignore
@@ -19,7 +19,7 @@ pools_page_bp = Blueprint("pools_page", __name__)
 @pools_page_bp.route("/pools")
 @login_required
 def pools_page():
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if not current_user.is_insider():
             pools, n_pages = session.get_pools(user_id=current_user.id, sort_by="id", descending=True)
         else:
@@ -28,7 +28,7 @@ def pools_page():
     return render_template(
         "pools_page.html",
         pools=pools,
-        index_kit_results=db.common_kits,
+        index_kit_results=[],
         pools_n_pages=n_pages, pools_active_page=0,
         current_sort="id", current_sort_order="desc"
     )
@@ -37,7 +37,7 @@ def pools_page():
 @pools_page_bp.route("/pools/<int:pool_id>")
 @login_required
 def pool_page(pool_id: int):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (pool := session.get_pool(pool_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         

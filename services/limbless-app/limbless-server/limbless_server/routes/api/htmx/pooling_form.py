@@ -21,7 +21,7 @@ pooling_form_htmx = Blueprint("pooling_form_htmx", __name__, url_prefix="/api/po
 @pooling_form_htmx.route("<int:experiment_id>/download_pooling_template", methods=["GET"])
 @login_required
 def download_pooling_template(experiment_id: int):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         if (_ := session.get_experiment(experiment_id)) is None:
             return abort(HttpResponse.NOT_FOUND.value.id)
         
@@ -74,7 +74,7 @@ def download_pooling_template(experiment_id: int):
 @pooling_form_htmx.route("<int:experiment_id>/get_pooling_form", methods=["GET"])
 @login_required
 def get_pooling_form(experiment_id: int):
-    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+    if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not current_user.is_insider():
@@ -88,7 +88,7 @@ def get_pooling_form(experiment_id: int):
 @pooling_form_htmx.route("<int:experiment_id>/parse_pooling_form", methods=["POST"])
 @login_required
 def parse_pooling_form(experiment_id: int):
-    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+    if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not current_user.is_insider():
@@ -102,7 +102,7 @@ def parse_pooling_form(experiment_id: int):
 @pooling_form_htmx.route("<int:experiment_id>/map_index_kits", methods=["POST"])
 @login_required
 def map_index_kits(experiment_id: int):
-    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+    if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not current_user.is_insider():
@@ -116,7 +116,7 @@ def map_index_kits(experiment_id: int):
 @pooling_form_htmx.route("<int:experiment_id>/map_pools", methods=["POST"])
 @login_required
 def map_pools(experiment_id: int):
-    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+    if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not current_user.is_insider():
@@ -130,7 +130,7 @@ def map_pools(experiment_id: int):
 @pooling_form_htmx.route("<int:experiment_id>/add_indices", methods=["POST"])
 @login_required
 def add_indices(experiment_id: int):
-    if (experiment := db.db_handler.get_experiment(experiment_id)) is None:
+    if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     if not current_user.is_insider():

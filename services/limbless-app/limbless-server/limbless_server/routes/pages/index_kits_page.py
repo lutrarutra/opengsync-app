@@ -10,7 +10,7 @@ index_kits_page_bp = Blueprint("index_kits_page", __name__)
 @index_kits_page_bp.route("/index_kit")
 @login_required
 def index_kits_page():
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         index_kits, n_pages = session.get_index_kits()
 
     return render_template(
@@ -23,7 +23,7 @@ def index_kits_page():
 @index_kits_page_bp.route("/index_kit/<int:index_kit_id>")
 @login_required
 def index_kit_page(index_kit_id: int):
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         index_kit = session.get_index_kit(index_kit_id)
 
     path_list = [

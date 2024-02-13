@@ -48,12 +48,12 @@ class OrganismMappingForm(HTMXFlaskForm, TableDataForm):
             entry.raw_label.data = raw_organism_name
             
             if (selected_id := entry.organism.selected.data) is not None:
-                selected_organism = db.db_handler.get_organism(selected_id)
+                selected_organism = db.get_organism(selected_id)
             else:
                 if raw_organism_name is None or pd.isna(raw_organism_name):
                     selected_organism = None
                 else:
-                    selected_organism = next(iter(db.db_handler.query_organisms(word=raw_organism_name, limit=1)), None)
+                    selected_organism = next(iter(db.query_organisms(word=raw_organism_name, limit=1)), None)
                     entry.organism.selected.data = selected_organism.id if selected_organism is not None else None
                     entry.organism.search_bar.data = selected_organism.search_name() if selected_organism is not None else None
             

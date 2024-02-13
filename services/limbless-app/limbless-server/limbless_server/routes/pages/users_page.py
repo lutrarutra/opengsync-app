@@ -21,7 +21,7 @@ def users_page():
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.value.id)
     
-    users, n_pages = db.db_handler.get_users()
+    users, n_pages = db.get_users()
 
     return render_template(
         "users_page.html",
@@ -42,7 +42,7 @@ def user_page(user_id: Optional[int]):
         if user_id != current_user.id:
             return abort(HttpResponse.FORBIDDEN.value.id)
         
-    if (user := db.db_handler.get_user(user_id)) is None:
+    if (user := db.get_user(user_id)) is None:
         return abort(HttpResponse.FORBIDDEN.value.id)
 
     path_list = [
@@ -77,8 +77,8 @@ def user_page(user_id: Optional[int]):
                 (f"User {user_id}", ""),
             ]
 
-    projects, _ = db.db_handler.get_projects(user_id=user_id, limit=None)
-    seq_requests, _ = db.db_handler.get_seq_requests(user_id=user_id, limit=None)
+    projects, _ = db.get_projects(user_id=user_id, limit=None)
+    seq_requests, _ = db.get_seq_requests(user_id=user_id, limit=None)
     return render_template(
         "user_page.html", user=user, path_list=path_list,
         projects=projects, seq_requests=seq_requests

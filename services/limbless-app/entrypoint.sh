@@ -1,8 +1,6 @@
 #!/bin/sh
 
-if [ $LIMBLESS_DEBUG -eq 0 ]; then
-    python3 prod_init.py
-else
+if [ $LIMBLESS_DEBUG -eq 1 ]; then
     python3 init_db.py --create_users --add_indices
 fi
 

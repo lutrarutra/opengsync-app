@@ -26,7 +26,7 @@ def get(page: int):
     if sort_by not in models.Barcode.sortable_fields:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
-    with DBSession(db.db_handler) as session:
+    with DBSession(db) as session:
         barcodes, n_pages = session.get_seqbarcodes(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
 
     return make_response(
@@ -46,7 +46,7 @@ def query_index_kits():
     if (word := request.form.get(field_name)) is None:
         return abort(HttpResponse.BAD_REQUEST.value.id)
 
-    results = db.db_handler.query_index_kit(word)
+    results = db.query_index_kit(word)
 
     return make_response(
         render_template(
@@ -68,7 +68,7 @@ def query_adapters(index_kit_id: int, exclude_library_id: Optional[int] = None):
 
     raise NotImplementedError("This function is not implemented yet.")
     # TODO: add exclude_library_id to query_adapters
-    results = db.db_handler.query_adapters(
+    results = db.query_adapters(
         word, index_kit_id=index_kit_id
     )
 

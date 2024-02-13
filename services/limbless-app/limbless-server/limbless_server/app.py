@@ -7,7 +7,7 @@ from flask_login import login_required
 import sass
 
 from limbless_db import categories, models
-from . import htmx, bcrypt, login_manager, mail, db, SECRET_KEY, logger
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db
 from .routes import api, pages
 
 if TYPE_CHECKING:
@@ -16,9 +16,8 @@ else:
     from flask_login import current_user
 
 
-def create_app():
+def create_app() -> Flask:
     app = Flask(__name__, static_folder="/usr/src/app/static", template_folder="/usr/src/app/templates")
-
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
 
     for _, file_type in categories.FileType.as_tuples():
@@ -48,7 +47,7 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id: int) -> models.User:
-        user = db.db_handler.get_user(user_id)
+        user = db.get_user(user_id)
         return user
 
     @app.route("/index_page")
@@ -63,13 +62,13 @@ def create_app():
         if current_user.is_insider():
             show_drafts = False
             _user_id = None
-            recent_experiments, _ = db.db_handler.get_experiments(sort_by="id", descending=False)
+            recent_experiments, _ = db.get_experiments(sort_by="id", descending=False)
         else:
             show_drafts = True
             _user_id = current_user.id
             recent_experiments = None
 
-        recent_seq_requests, _ = db.db_handler.get_seq_requests(user_id=_user_id, sort_by="submitted_time", descending=True, show_drafts=show_drafts)
+        recent_seq_requests, _ = db.get_seq_requests(user_id=_user_id, sort_by="submitted_time", descending=True, show_drafts=show_drafts)
 
         return render_template(
             "index.html",
@@ -80,7 +79,7 @@ def create_app():
     @app.route("/pdf_file/<int:file_id>")
     @login_required
     def pdf_file(file_id: int):
-        if (file := db.db_handler.get_file(file_id)) is None:
+        if (file := db.get_file(file_id)) is None:
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
         if file.uploader_id != current_user.id and not current_user.is_insider():
@@ -104,7 +103,7 @@ def create_app():
     @app.route("/img_file/<int:file_id>")
     @login_required
     def img_file(file_id: int):
-        if (file := db.db_handler.get_file(file_id)) is None:
+        if (file := db.get_file(file_id)) is None:
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
         if file.uploader_id != current_user.id and not current_user.is_insider():
@@ -121,7 +120,7 @@ def create_app():
 
     @login_manager.unauthorized_handler
     def unauthorized():
-        next = url_for(request.endpoint, **request.view_args)
+        next = url_for(request.endpoint, **request.view_args)   # type: ignore
         return redirect(url_for("auth_page.auth_page", next=next))
     
     @app.context_processor
