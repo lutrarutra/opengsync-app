@@ -4,3 +4,4 @@ sqlalchemy2-stubs==0.0.2a35
 sqlmodel==0.0.8
 pandas==2.1.0
 itsdangerous==2.1.2
+psycopg2==2.9.7
