@@ -5,8 +5,8 @@ from wtforms import EmailField, PasswordField, StringField, SelectField
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 
 from limbless_db.core.categories import UserRole
-from limbless_db import models, DBHandler
-from .. import bcrypt
+from limbless_db import models
+from .. import bcrypt, db
 
 
 class ResetPasswordForm(FlaskForm):
@@ -25,12 +25,12 @@ class UserForm(FlaskForm):
     email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=128)])
     role = SelectField("Role", choices=UserRole.as_selectable(), default=UserRole.CLIENT.value.id, validators=[DataRequired(), Length(max=64)], coerce=int)
 
-    def custom_validate(self, db_handler: DBHandler, current_user: models.User) -> tuple[bool, "UserForm"]:
+    def custom_validate(self, current_user: models.User) -> tuple[bool, "UserForm"]:
         validated = self.validate()
         if not validated:
             return False, self
         
-        if db_handler.get_user_by_email(self.email.data):
+        if db.get_user_by_email(self.email.data):
             self.email.errors = ("Email already registered.",)
             validated = False
 
@@ -77,7 +77,7 @@ class LoginForm(FlaskForm):
 class RegisterForm(FlaskForm):
     email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=128)])
         
-    def custom_validate(self, db_handler: DBHandler) -> tuple[bool, "RegisterForm"]:
+    def custom_validate(self) -> tuple[bool, "RegisterForm"]:
         validated = self.validate()
         if not validated:
             return False, self
@@ -87,7 +87,7 @@ class RegisterForm(FlaskForm):
             self.email.errors = ("Specified email domain is not white-listed. Please contact us at bsf@cemm.at to register.",)
             validated = False
         
-        elif db_handler.get_user_by_email(self.email.data):
+        elif db.get_user_by_email(self.email.data):
             self.email.errors = ("Email already registered.",)
             validated = False
             
@@ -100,9 +100,7 @@ class CompleteRegistrationForm(FlaskForm):
     password = PasswordField("Password", validators=[DataRequired(), Length(min=8)])
     confirm = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", "Passwords must match.")])
 
-    def custom_validate(
-        self, db_handler: DBHandler
-    ) -> tuple[bool, "CompleteRegistrationForm"]:
+    def custom_validate(self) -> tuple[bool, "CompleteRegistrationForm"]:
         
         validated = self.validate()
         if not validated:
