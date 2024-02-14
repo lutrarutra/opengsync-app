@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+    limbless-app-test:
+        container_name: limbless-app-test
+        build:
+            context: ./services/limbless-app
+            dockerfile: Dockerfile
+        command: "pytest tests/"
+        volumes:
+            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
+            - ./services/limbless-app/static/style:/usr/src/app/static/style
+            - ./services/limbless-app/templates:/usr/src/app/templates:ro
+        env_file: .test.env
+        ports:
+            - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
+        expose:
+            - ${LIMBLESS_PORT}
+        depends_on:
+            postgres:
+                condition: service_healthy
+                restart: true
+
+    postgres:
+        container_name: limbless-postgres-db-test
+        image: postgres:16rc1-alpine3.17
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+            PGPORT: ${POSTGRES_PORT}
+        volumes:
+            - ./.tmp/postgres:/var/lib/postgresql/data
+        expose:
+            - ${POSTGRES_PORT}
+        ports:
+            - ${POSTGRES_PORT}:${POSTGRES_PORT}
+        restart: always
+        healthcheck:
+            test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
+            interval: 10s
+            timeout: 10s
+            retries: 5

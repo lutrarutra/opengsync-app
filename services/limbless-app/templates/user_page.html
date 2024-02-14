@@ -23,6 +23,8 @@
                 if result.isConfirmed issueRequest()">
                 Change Password
             </button>
+            {% endif %}
+            {% if current_user.id == user.id %}
             <button id="logout-btn" class="btn btn-danger"
             hx-get="{{ url_for('auth_htmx.logout') }}"
             _="on htmx:confirm(issueRequest)

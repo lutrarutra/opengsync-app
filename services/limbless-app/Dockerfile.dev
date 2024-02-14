@@ -18,6 +18,6 @@ RUN pip install -r /usr/src/app/limbless-server/requirements.txt
 RUN pip install -e /usr/src/app/limbless-server
 RUN pip install -r /usr/src/app/limbless-db/requirements.txt
 RUN pip install -e /usr/src/app/limbless-db
-RUN chmod +x entrypoint.sh
+RUN chmod +x /usr/src/app/entrypoint.sh
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

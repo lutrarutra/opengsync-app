@@ -19,6 +19,6 @@ RUN pip install /usr/src/app/limbless-server
 RUN pip install -r /usr/src/app/limbless-db/requirements.txt
 RUN pip install /usr/src/app/limbless-db
 RUN python3 /usr/src/app/compile_sass.py
-RUN chmod +x entrypoint.sh
+RUN chmod +x /usr/src/app/entrypoint.sh
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

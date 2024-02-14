@@ -8,6 +8,8 @@ uploads/
 media/
 .vscode/
 .env
+.test.env
+.tmp/
 .dev.env
 .snakemake/
 containers/images/
