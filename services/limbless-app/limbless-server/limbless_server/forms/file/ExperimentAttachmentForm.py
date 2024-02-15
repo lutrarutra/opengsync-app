@@ -10,7 +10,7 @@ from .FileInputForm import FileInputForm
 from ... import db, logger
 
 
-class ExperimentFileForm(FileInputForm):
+class ExperimentAttachmentForm(FileInputForm):
     def __init__(self, experiment_id: int, formdata: Optional[dict] = None, max_size_mbytes: int = 5):
         FileInputForm.__init__(self, formdata=formdata, max_size_mbytes=max_size_mbytes)
         self._post_url = url_for("experiments_htmx.upload_file", experiment_id=experiment_id)
@@ -30,8 +30,16 @@ class ExperimentFileForm(FileInputForm):
             name=filename,
             type=file_type,
             extension=extension,
-            uploader_id=user.id
+            uploader_id=user.id,
         )
+
+        if self.comment.data and self.comment.data.strip() != "":
+            comment = db.create_comment(
+                text=self.comment.data,
+                author_id=user.id,
+                file_id=db_file.id
+            )
+            db.add_experiment_comment(experiment.id, comment.id)
 
         self.file.data.save(db_file.path)
 

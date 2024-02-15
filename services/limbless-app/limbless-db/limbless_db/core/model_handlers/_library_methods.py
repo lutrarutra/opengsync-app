@@ -25,6 +25,7 @@ def create_library(
     index_3_sequence: Optional[str] = None,
     index_4_sequence: Optional[str] = None,
     adapter: Optional[str] = None,
+    visium_annotation_id: Optional[int] = None,
     commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
@@ -44,6 +45,10 @@ def create_library(
         seq_request.num_libraries += 1
         self._session.add(seq_request)
 
+    if visium_annotation_id is not None:
+        if (_ := self._session.get(models.VisiumAnnotation, visium_annotation_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Visium annotation with id {visium_annotation_id} does not exist")
+
     library = models.Library(
         name=name,
         seq_request_id=seq_request_id,
@@ -58,7 +63,8 @@ def create_library(
         index_2_sequence=index_2_sequence,
         index_3_sequence=index_3_sequence,
         index_4_sequence=index_4_sequence,
-        adapter=adapter
+        adapter=adapter,
+        visium_annotation_id=visium_annotation_id
     )
     self._session.add(library)
 

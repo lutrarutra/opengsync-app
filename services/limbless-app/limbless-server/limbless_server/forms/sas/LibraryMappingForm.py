@@ -16,6 +16,7 @@ from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
 from .BarcodeCheckForm import BarcodeCheckForm
+from .VisiumAnnotationForm import VisiumAnnotationForm
 
 
 class LibrarySubForm(FlaskForm):
@@ -37,6 +38,9 @@ class LibrarySubForm(FlaskForm):
         "snatacseq": 5,
         "snatac": 5,
         "spatial transcriptomic": 6,
+        "spatial transcriptomics": 6,
+        "10xvisium": 6,
+        "visium10x": 6,
         "visium": 6,
         "spatial": 6,
         "bcr": 7,
@@ -172,6 +176,10 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
+        
+        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id).any():
+            visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
+            return visium_annotation_form.make_response(**context)
         
         if "pool" in data["library_table"].columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)

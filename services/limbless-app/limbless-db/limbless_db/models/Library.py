@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from .User import User
     from .IndexKit import IndexKit
     from .SeqQuality import SeqQuality
+    from .VisiumAnnotation import VisiumAnnotation
 
 
 @dataclass
@@ -75,6 +76,11 @@ class Library(SQLModel, table=True):
 
     read_qualities: list["SeqQuality"] = Relationship(
         back_populates="library",
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
+    )
+
+    visium_annotation_id: Optional[int] = Field(nullable=True, default=None, foreign_key="visiumannotation.id")
+    visium_annotation: Optional["VisiumAnnotation"] = Relationship(
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 

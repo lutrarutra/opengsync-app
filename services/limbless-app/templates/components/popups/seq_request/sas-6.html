@@ -49,7 +49,7 @@
         <button class="btn btn-success" type="button"
             hx-include="#cmo-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
-            hx-post="{{ url_for('seq_request_form_htmx.parse_cmo_reference', seq_request_id=seq_request.id) }}{% if experiment %}"?experiment_id={{experiment.id}}"{% endif %}">
+            hx-post="{{ url_for('seq_request_form_htmx.parse_cmo_reference', seq_request_id=seq_request.id) }}">
             Parse
         </button>
         <a class="btn btn-danger" type="button"

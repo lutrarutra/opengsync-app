@@ -293,15 +293,36 @@ def upload_auth_form(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/upload_file", methods=["POST"])
 @login_required
 def upload_file(seq_request_id: int):
-    if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
-    
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.SeqRequestFileForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
+    if not (seq_request.requestor_id == current_user.id or current_user.is_insider()):
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    return forms.SeqRequestAttachmentForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
         seq_request=seq_request, user=current_user
     )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/delete_file/<int:file_id>", methods=["DELETE"])
+@login_required
+def delete_file(seq_request_id: int, file_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if not (seq_request.requestor_id == current_user.id or current_user.is_insider()):
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    if (file := db.get_file(file_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    db.remove_file_from_seq_request(seq_request_id, file_id)
+    if os.path.exists(file.path):
+        os.remove(file.path)
+
+    logger.info(f"Deleted file '{file.name}' from request (id='{seq_request_id}')")
+    flash(f"Deleted file '{file.name}' from experrequestiment.", "success")
+    return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id))
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/remove_auth_form", methods=["DELETE"])

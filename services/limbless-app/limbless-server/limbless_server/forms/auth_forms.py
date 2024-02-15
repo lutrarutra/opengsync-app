@@ -58,7 +58,7 @@ class UserForm(HTMXFlaskForm):
     _template_path = "forms/user.html"
     _form_label = "user_form"
 
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=128)])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.User.email.type.length)])
     role = SelectField("Role", choices=UserRole.as_selectable(), default=UserRole.CLIENT.value.id, validators=[DataRequired()], coerce=int)
 
     def validate(self, user: models.User) -> bool:
@@ -155,7 +155,7 @@ class RegisterForm(HTMXFlaskForm):
     _template_path = "forms/register.html"
     _form_label = "register_form"
     
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=128)])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(models.User.email.type.length)])
 
     def validate(self) -> bool:
         if not super().validate():
@@ -199,8 +199,8 @@ class CompleteRegistrationForm(HTMXFlaskForm):
     _template_path = "forms/complete_register.html"
     _form_label = "complete_registration_form"
 
-    first_name = StringField("First Name", validators=[DataRequired(), Length(max=64)])
-    last_name = StringField("Last Name", validators=[DataRequired(), Length(max=64)])
+    first_name = StringField("First Name", validators=[DataRequired(), Length(max=models.User.first_name.type.length)])
+    last_name = StringField("Last Name", validators=[DataRequired(), Length(max=models.User.last_name.type.length)])
     password = PasswordField("Password", validators=[DataRequired(), Length(min=8)])
     confirm = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", "Passwords must match.")])
 

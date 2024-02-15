@@ -10,6 +10,7 @@ from wtforms import SelectField
 from flask import Response
 from werkzeug.utils import secure_filename
 
+from limbless_db.core.categories import LibraryType
 from ..HTMXFlaskForm import HTMXFlaskForm
 from .ProjectMappingForm import ProjectMappingForm
 
@@ -22,7 +23,7 @@ class SASInputForm(HTMXFlaskForm):
         ("tsv", "Tab-separated"),
         ("csv", "Comma-separated")
     ]
-    separator = SelectField(choices=_allowed_extensions, default="tsv")
+    separator = SelectField(choices=_allowed_extensions, default="tsv", coerce=str)
     submission_type = SelectField(choices=[("", ""), ("pooled", "Pooled Libraries"), ("raw", "Raw Samples")], description="Select 'Pooled Libraries' if you are planning to submit pooled libraries, or 'Raw Samples' if you are planning to submit samples for library preparation.")
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
 
@@ -76,12 +77,22 @@ class SASInputForm(HTMXFlaskForm):
         if validated is False:
             return False
         
+        sep = "\t" if self.separator.data == "tsv" else ","
+        filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
+        filename = secure_filename(filename)
+        filepath = os.path.join(self.upload_path, filename)
+        self.file.data.save(filepath)
+        
         try:
-            self.df = self.__parse()
-
+            self.df = pd.read_csv(filepath, sep=sep, index_col=False, header=0)
         except pd.errors.ParserError as e:
             self.file.errors = (str(e),)
-            return False
+            validated = False
+        finally:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            if not validated:
+                return False
 
         missing_cols = [col for col in feature_mapping.keys() if col not in self.df.columns]
         if len(missing_cols) > 0:
@@ -91,21 +102,11 @@ class SASInputForm(HTMXFlaskForm):
         self.df = self.df.rename(columns=feature_mapping)
         self.df = self.df[feature_mapping.values()]
 
+        if self.submission_type.data == "raw" and (self.df["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id).any():
+            self.file.errors = ("Spatial transcriptomic libraries are not allowed in raw submission.",)
+            return False
+
         return True
-    
-    def __parse(self) -> pd.DataFrame:
-        if self.separator.data == "tsv":
-            sep = "\t"
-        else:
-            sep = ","
-
-        filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
-        filename = secure_filename(filename)
-        self.file.data.save(os.path.join(self.upload_path, filename))
-
-        df = pd.read_csv(os.path.join(self.upload_path, filename), sep=sep, index_col=False, header=0)
-        
-        return df
     
     def process_request(self, **context) -> Response:
         if not self.validate():

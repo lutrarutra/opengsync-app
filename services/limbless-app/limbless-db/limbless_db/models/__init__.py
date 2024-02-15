@@ -1,27 +1,26 @@
-from enum import Enum
+from .Project import Project    # noqa: F401
+from .Sample import Sample  # noqa: F401
+from .Pool import Pool  # noqa: F401
+from .User import User  # noqa: F401
+from .Experiment import Experiment  # noqa: F401
+from .Library import Library    # noqa: F401
+from .Organism import Organism  # noqa: F401
+from .IndexKit import IndexKit  # noqa: F401
+from .SeqRequest import SeqRequest  # noqa: F401
+from .Contact import Contact    # noqa: F401
+from .Sequencer import Sequencer    # noqa: F401
+from .CMO import CMO    # noqa: F401
+from .Adapter import Adapter    # noqa: F401
+from .Barcode import Barcode    # noqa: F401
+from .Feature import Feature    # noqa: F401
+from .FeatureKit import FeatureKit  # noqa: F401
+from .File import File  # noqa: F401
+from .SeqQuality import SeqQuality  # noqa: F401
+from .VisiumAnnotation import VisiumAnnotation  # noqa: F401
+from .Comment import Comment  # noqa: F401
 
-from typing import Union
-
-from .Project import Project
-from .Sample import Sample
-from .Pool import Pool
-from .User import User
-from .Experiment import Experiment
-from .Library import Library
-from .Organism import Organism
-from .IndexKit import IndexKit
-from .SeqRequest import SeqRequest
-from .Contact import Contact
-from .Sequencer import Sequencer
-from .CMO import CMO
-from .Adapter import Adapter
-from .Barcode import Barcode
-from .Feature import Feature
-from .FeatureKit import FeatureKit
-from .File import File
-from .SeqQuality import SeqQuality
-
-from .Links import (
+from .Links import (  # noqa: F401
     ExperimentPoolLink, SampleLibraryLink, SeqRequestExperimentLink,
-    ExperimentFileLink, SeqRequestFileLink
-)
+    ExperimentFileLink, SeqRequestFileLink,
+    ExperimentCommentLink, SeqRequestCommentLink,
+)   

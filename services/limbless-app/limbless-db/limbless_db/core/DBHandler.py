@@ -84,7 +84,8 @@ class DBHandler():
     from .model_handlers._seq_request_methods import (
         create_seq_request, get_seq_request, get_num_seq_requests,
         get_seq_requests, delete_seq_request, update_seq_request,
-        query_seq_requests, submit_seq_request, add_file_to_seq_request
+        query_seq_requests, submit_seq_request,
+        add_file_to_seq_request, remove_file_from_seq_request,
     )
 
     from .model_handlers._contact_methods import (
@@ -128,6 +129,16 @@ class DBHandler():
 
     from .model_handlers._file_methods import (
         create_file, get_file, get_files,
+    )
+
+    from .model_handlers._visium_annotation_methods import (
+        create_visium_annotation, get_visium_annotation
+    )
+
+    from .model_handlers._comment_methods import (
+        create_comment, delete_comment,
+        add_experiment_comment, remove_experiment_comment,
+        add_seq_request_comment, remove_seq_request_comment
     )
 
     from .pd_handler import (

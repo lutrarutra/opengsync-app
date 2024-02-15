@@ -88,7 +88,7 @@ def create_app() -> Flask:
         if file.extension != ".pdf":
             return abort(categories.HttpResponse.BAD_REQUEST.value.id)
 
-        file_path = os.path.join(current_app.root_path, "..", file.path)
+        file_path = os.path.join(current_app.root_path, "..", "..", file.path)
         if not os.path.exists(file_path):
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
@@ -112,7 +112,7 @@ def create_app() -> Flask:
         if file.extension not in [".png", ".jpg", ".jpeg"]:
             return abort(categories.HttpResponse.BAD_REQUEST.value.id)
 
-        file_path = os.path.join(current_app.root_path, "..", file.path)
+        file_path = os.path.join(current_app.root_path, "..", "..", file.path)
         if not os.path.exists(file_path):
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         

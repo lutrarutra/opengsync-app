@@ -37,6 +37,14 @@
             aria-controls="library-metadata-tab" aria-selected="true">
             Metadata</button>
         </li>
+        {% if library.type.value.description == "VISIUM" %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#library-visium-tab" type="button" role="tab"
+            aria-controls="library-visium-tab" aria-selected="true">
+            Visium</button>
+        </li>
+        {% endif %}
     </ul>
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="library-barcodes-tab" role="tabpanel" tabindex="0">
@@ -104,6 +112,13 @@
                         subject="BSF Library: " + library.name + " " + library.type.value.description + " " + " (" + library.id | string + ")"
                     )
                 }}
+            </div>
+        </div>
+        <div class="tab-pane fade show" id="library-visium-tab" role="tabpanel" tabindex="3">
+            <div class="row">
+                {{ metadata_group("Image", library.visium_annotation.image, class="col-4") }}
+                {{ metadata_group("Slide", library.visium_annotation.slide, class="col-4") }}
+                {{ metadata_group("Area", library.visium_annotation.area, class="col-4") }}
             </div>
         </div>
     </div>

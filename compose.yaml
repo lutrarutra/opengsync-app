@@ -21,7 +21,6 @@ services:
         build: ./services/limbless-app
         command: "gunicorn -w 4 --bind ${LIMBLESS_HOST}:${LIMBLESS_PORT} 'wsgi:app'"
         volumes:
-            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
             - ./uploads:/usr/src/app/uploads
             - ./media:/usr/src/app/media
             - ./logs/limbless:/usr/src/app/logs

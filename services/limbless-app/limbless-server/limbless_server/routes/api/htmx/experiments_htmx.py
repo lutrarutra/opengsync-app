@@ -270,7 +270,7 @@ def upload_file(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
     
-    return forms.ExperimentFileForm(experiment_id=experiment_id, formdata=request.form | request.files).process_request(
+    return forms.ExperimentAttachmentForm(experiment_id=experiment_id, formdata=request.form | request.files).process_request(
         experiment=experiment, user=current_user
     )
 
@@ -291,7 +291,7 @@ def delete_file(experiment_id: int, file_id: int):
     if os.path.exists(file.path):
         os.remove(file.path)
 
-    logger.debug(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
+    logger.info(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
     flash(f"Deleted file '{file.name}' from experiment.", "success")
     return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 

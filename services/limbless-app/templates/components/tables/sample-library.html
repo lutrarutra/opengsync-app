@@ -40,16 +40,16 @@
                         col_size=1
                     )
                 }}
-                <th scope="col-1">
+                <th scope="col" class="col-1">
                     Index 1 <span class="desc">i7</span>
                 </th>
-                <th scope="col-1">
+                <th scope="col" class="col-1">
                     Index 2 <span class="desc">i5</span>
                 </th>
-                <th scope="col-1">
+                <th scope="col" class="col-1">
                     Index 3
                 </th>
-                <th scope="col-1">
+                <th scope="col" class="col-1">
                     Index 4
                 </th>
                 {{
@@ -96,8 +96,7 @@
     }
 
     function copy_adapter_to_clipboard() {
-        const library_id = selected_barcode_element_id.split("-")[1];
-        const content = $("#library-" + library_id + "adapter-cell").text().trim();
+        const content = $("#library-" + selected_library_id + "-adapter-cell").text().trim();
         navigator.clipboard.writeText(content);
     }
 
@@ -105,7 +104,7 @@
         e.preventDefault();
         const x = e.pageX;
         const y = e.pageY;
-        selected_library_id = selected_barcode_element_id.split("-")[1];
+        selected_library_id = e.target.id.split("-")[1];
         $("#copy-edit-menu").css({
             display: "block",
             left: x + 8, top: y + 8

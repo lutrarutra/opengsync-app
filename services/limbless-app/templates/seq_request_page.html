@@ -1,4 +1,5 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/files_tab.jinja2' import files_tab %}
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/form_group.jinja2' import form_group %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
@@ -37,6 +38,10 @@
                 </button>
             </span>
             {% endif %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#seq_request-file-form-popup">
+                Add File
+            </button>
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Export
@@ -49,7 +54,7 @@
                 </ul>
             </div>
             <div class="dropdown">
-              <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Manage
                 </button>
                 <ul class="dropdown-menu">
@@ -151,6 +156,18 @@
                 data-bs-target="#request-overview-tab" type="button" role="tab"
                 aria-controls="request-overview-tab" aria-selected="true"
                 id="request-overview-tab-btn">Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#request-files-tab" type="button" role="tab"
+                aria-controls="request-files-tab" aria-selected="true"
+                id="request-files-tab-btn">Files</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#request-comments-tab" type="button" role="tab"
+                aria-controls="request-comments-tab" aria-selected="true"
+                id="request-comments-tab-btn">Comments</button>
             </li>
         </ul>
         <div class="tab-content pt-3">
@@ -323,6 +340,34 @@
                 <script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js"></script>
                 <div class="flow-graph-container pt-3" id="graph" style="width: 100%"></div>
             </div>
+            <div class="tab-pane fade show" id="request-files-tab" role="tabpanel" tabindex="5">
+                {{
+                    files_tab(
+                        context="request", files=seq_request.files,
+                        delete_url="seq_requests_htmx.delete_file",
+                        delete_context={"seq_request_id": seq_request.id},
+                    )
+                }}
+            </div>
+            <div class="tab-pane fade show" id="request-comments-tab" role="tabpanel" tabindex="6">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>Comments</h2>
+                    </div>
+                </div>
+                <div class="p-3" style="display: flex; flex-direction: column; gap: 20px;">
+                    {% for comment in seq_request.comments %}
+                    <div class="row">
+                        <div class="card col-8">
+                            <div class="card-body p-3">
+                                <h6 class="card-subtitle text pb-3">{{ comment.author.role.value.description | safe }} {{ comment.author.name }} &#8212; {{ comment.timestamp_to_str() }}</h6>
+                                <p class="card-text">{{ comment.text }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>  
         </div>
     </div>
 
@@ -347,6 +392,12 @@
     <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             {% include sas_input_form._template_path %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="seq_request-file-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            {% include file_input_form._template_path %}
         </div>
     </div>
 

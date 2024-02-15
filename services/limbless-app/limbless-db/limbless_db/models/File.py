@@ -5,6 +5,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.categories import FileType
 from .User import User
+from .Comment import Comment
 
 
 class File(SQLModel, table=True):
@@ -12,7 +13,6 @@ class File(SQLModel, table=True):
     name: str = Field(nullable=False, max_length=64)
     extension: str = Field(nullable=False, max_length=16)
     type_id: int = Field(nullable=False)
-    description: Optional[str] = Field(nullable=True, max_length=256)
     uuid: str = Field(nullable=False, max_length=64)
     
     uploader_id: int = Field(nullable=False, foreign_key="lims_user.id")

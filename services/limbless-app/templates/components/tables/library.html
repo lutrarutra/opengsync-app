@@ -12,7 +12,7 @@
                         sort_url='libraries_htmx.get', sort_url_args={},
                         current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         query_url=url_for('libraries_htmx.table_query'), current_query=libraries_current_query,
-                        field_name=field_name, query_type="number",
+                        field_name=field_name, query_type="number", col_size=1,
                     )
                 }}
                 {{
@@ -29,10 +29,9 @@
                         target_id='library-table', column_name='Type', column_var='library_type_id',
                         sort_url='libraries_htmx.get', sort_url_args={},
                         current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        col_size=2,
+                        col_size=1,
                     )
                 }}
-                <th scope="col" class="col-1">Preparer</th>
                 {{
                     table_col(
                         target_id='library-table', column_name='Owner', column_var='owner_id',
@@ -41,23 +40,26 @@
                         col_size=2,
                     )
                 }}
-                <th scope="col" class="col-2">Index Kit</th>
                 {{
                     table_col(
-                        target_id='library-table', column_name='# Samples', column_var='num_samples',
+                        target_id='seq_request-library-table', column_name='Adapter', column_var='adapter',
                         sort_url='libraries_htmx.get', sort_url_args={},
                         current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        col_size=1,
+                        col_size=1
                     )
                 }}
-                {{
-                    table_col(
-                        target_id='library-table', column_name='# Requests', column_var='num_seq_requests',
-                        sort_url='libraries_htmx.get', sort_url_args={},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        col_size=1,
-                    )
-                }}
+                <th scope="col" class="col-1">
+                    Index 1 <span class="desc">i7</span>
+                </th>
+                <th scope="col" class="col-1">
+                    Index 2 <span class="desc">i5</span>
+                </th>
+                <th scope="col" class="col-1">
+                    Index 3
+                </th>
+                <th scope="col" class="col-1">
+                    Index 4
+                </th>
             </tr>
         </thead>
         <tbody>
@@ -70,14 +72,71 @@
                         {{ library.type.value.description }}
                     </span>
                 </td>
-                <td>{{ library.contact.name }}</td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                <td>{{ library.index_kit.name if library.index_kit }}</td>
-                <td>{{ library.num_samples }}</td>
-                <td>{{ library.num_seq_requests }}</td>
+                <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.index_1_sequence if library.index_1_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.index_2_sequence if library.index_2_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-3">{{ library.index_3_sequence if library.index_3_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-4">{{ library.index_4_sequence if library.index_4_sequence }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {{ pagination("library-table", "libraries_htmx.get", libraries_n_pages, libraries_active_page, url_args={"sort_by": libraries_current_sort, "order": libraries_current_sort_order}) }}
 </div>
+<script>
+    var selected_library_id = null;
+    var selected_barcode_element_id = null;
+
+    function copy_sequence_to_clipboard() {
+        const library_id = selected_barcode_element_id.split("-")[1];
+        const index_id = selected_barcode_element_id.split("-")[4];
+        const content = $("#library-" + library_id + "-index-cell-" + index_id).text().trim();
+        navigator.clipboard.writeText(content);
+    }
+
+    function copy_adapter_to_clipboard() {
+        const content = $("#library-" + selected_library_id + "-adapter-cell").text().trim();
+        navigator.clipboard.writeText(content);
+    }
+
+    $(document).off("contextmenu", ".adapter-cell").on("contextmenu", ".adapter-cell", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_library_id = e.target.id.split("-")[1];
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).empty().append([
+            `<li><a class='dropdown-item' onclick='copy_adapter_to_clipboard()'>Copy Adapter</a></li>`,
+        ]);
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
+
+    $(document).off("contextmenu", ".barcode-cell").on("contextmenu", ".barcode-cell", function(e) {
+        e.preventDefault();
+        const x = e.pageX;
+        const y = e.pageY;
+        selected_barcode_element_id = e.target.id;
+        $("#copy-edit-menu").css({
+            display: "block",
+            left: x + 8, top: y + 8
+        }).empty().append([
+            `<li><a class='dropdown-item' onclick='copy_sequence_to_clipboard()'>Copy Sequence</a></li>`,
+        ]);
+
+        $("#right-click-bg").css({
+            display: "block"
+        });
+    });
+
+    
+    function copy_library_name_to_clipboard() {
+        const content = $("#library-name-cell-" + selected_sample_id).text().trim();
+        navigator.clipboard.writeText(content);
+    }
+</script>

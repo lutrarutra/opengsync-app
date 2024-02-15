@@ -12,7 +12,7 @@
                         sort_url='seq_requests_htmx.get', sort_url_args={},
                         current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order,
                         query_url=url_for('seq_requests_htmx.table_query'), current_query=seq_requests_current_query,
-                        field_name=field_name, query_type="number",
+                        field_name=field_name, query_type="number", col_size=1,
                     )
                 }}
                 {{
@@ -21,14 +21,15 @@
                         sort_url='seq_requests_htmx.get', sort_url_args={},
                         current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order,
                         query_url=url_for('seq_requests_htmx.table_query'), current_query=seq_requests_current_query,
-                        field_name=field_name, col_size=2,
+                        field_name=field_name, col_size=4,
                     )
                 }}
+                <th scope="col" class="col-2">Technology</th>
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Status', column_var='status',
                         sort_url='seq_requests_htmx.get', sort_url_args={},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=2,
+                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=1,
                     )
                 }}
                 {{
@@ -45,8 +46,6 @@
                         current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=1,
                     )
                 }}
-                <th class="col-2" scope="col">Contact Name</th>
-                <th class="col-1" scope="col">Billing</th>
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='# Libraries', column_var='num_libraries',
@@ -61,11 +60,10 @@
             <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
+                <td>{{ seq_request.technology }}</td>
                 <td>{{ seq_request.status.value.name }} {{ seq_request.status.value.description | safe }}</td>
                 <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.name }} {{ seq_request.requestor.owner_id }}<span class="desc">{{ "me" if current_user.id == seq_request.requestor.owner_id }}</span></td>
                 <td>{{ seq_request.submitted_time_to_str() }}</td>
-                <td {{ tooltip("email: " + seq_request.contact_person.email + (" phone: " + seq_request.contact_person.phone if seq_request.contact_person.phone else "")) }}>{{ seq_request.contact_person.name }}</td>
-                <td {{ tooltip("email: " + seq_request.billing_contact.email + (" phone: " + seq_request.billing_contact.phone if seq_request.billing_contact.phone else "")) }}>{{ seq_request.billing_contact.name }}</td>
                 <td>{{ seq_request.num_libraries }}</td>
             </tr>
             {% endfor %}

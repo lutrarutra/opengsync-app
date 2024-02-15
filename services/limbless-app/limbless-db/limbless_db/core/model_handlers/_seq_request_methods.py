@@ -388,3 +388,25 @@ def add_file_to_seq_request(
         self.close_session()
 
     return file_link
+
+
+def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit: bool = True) -> None:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+
+    if (file := self._session.get(models.File, file_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
+    
+    seq_request.files.remove(file)
+    self._session.add(seq_request)
+
+    if commit:
+        self._session.commit()
+
+    if not persist_session:
+        self.close_session()
+    return None

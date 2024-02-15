@@ -14,7 +14,7 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 
 class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "components/popups/seq_request/sas-9.html"
+    _template_path = "components/popups/seq_request/sas-10.html"
 
     reverse_complement_index_1 = BooleanField("Reverse complement index 1", default=False)
     reverse_complement_index_2 = BooleanField("Reverse complement index 2", default=False)
@@ -73,7 +73,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             if "adapter" in row:
                 _data["adapter"] = row["adapter"]
 
-            if reused_barcodes[i]:
+            if reused_barcodes.at[i]:
                 _data["warning"] += "Index combination is reused in two or more libraries. "
 
             samples_data.append(_data)
@@ -101,6 +101,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
         library_table = data["library_table"]
         cmo_table = data["cmo_table"] if "cmo_table" in data else None
+        visium_ref = data["visium_ref"] if "visium_ref" in data else None
 
         n_added = 0
         n_new_samples = 0
@@ -175,7 +176,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                 else:
                     
                     if sample_id is None:
-                        logger.debug(f"Creating sample '{sample_name}' in project '{project_id}'.")
                         sample = session.create_sample(
                             name=sample_name,
                             organism_tax_id=tax_id,
@@ -185,7 +185,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                         library_samples.append((sample, None))
                         n_new_samples += 1
                     else:
-                        logger.debug(f"Getting sample '{sample_name}' with id '{sample_id}'.")
                         sample = session.get_sample(sample_id)
                         library_samples.append((sample, None))
 
@@ -203,6 +202,20 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                     index_3_sequence = row["index_3"] if "index_3" in row and not pd.isna(row["index_3"]) else None
                     index_4_sequence = row["index_4"] if "index_4" in row and not pd.isna(row["index_4"]) else None
 
+                    if library_type == LibraryType.SPATIAL_TRANSCRIPTOMIC:
+                        if visium_ref is None:
+                            raise Exception("Visium reference table not found.")    # this should not happen
+                        
+                        row = visium_ref[visium_ref["library_name"] == library_name].iloc[0]
+                        visium_annotation = db.create_visium_annotation(
+                            area=row["area"],
+                            image=row["image"],
+                            slide=row["slide"],
+                        )
+                        visium_annotation_id = visium_annotation.id
+                    else:
+                        visium_annotation_id = None
+
                     library = session.create_library(
                         name=library_name,
                         seq_request_id=seq_request.id,
@@ -217,7 +230,9 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                         index_3_sequence=index_3_sequence,
                         index_4_sequence=index_4_sequence,
                         adapter=adapter,
+                        visium_annotation_id=visium_annotation_id,
                     )
+
                     n_added += 1
                 
                     for sample, cmo in library_samples:
@@ -246,6 +261,18 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                             library_id=library.id,
                             pool_id=pools[row["pool"]].id
                         )
+
+        if "comments" in data:
+            comments_df = data["comments"]
+            for _, row in comments_df[comments_df["context"] == "visium_instructions"].iterrows():
+                comment = session.create_comment(
+                    text=row["comment"],
+                    author_id=user_id,
+                )
+                session.add_seq_request_comment(
+                    seq_request_id=seq_request.id,
+                    comment_id=comment.id
+                )
 
         if n_added == 0:
             flash("No libraries added.", "warning")

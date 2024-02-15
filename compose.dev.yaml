@@ -9,11 +9,12 @@ services:
         command: "python3 /usr/src/app/debug.py --host=${LIMBLESS_HOST} --port=${LIMBLESS_PORT}"
         volumes:
             - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
+            - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db
             - ./uploads:/usr/src/app/uploads
             - ./media:/usr/src/app/media
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
-            - ./services/limbless-app/static/style:/usr/src/app/static/style
+            - ./services/limbless-app/static:/usr/src/app/static
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
         env_file: .dev.env
         ports:

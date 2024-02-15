@@ -1,4 +1,5 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_link, metadata_group_email_link %}
+{% from 'components/files_tab.jinja2' import files_tab %}
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
 
@@ -83,14 +84,12 @@
                 aria-controls="experiment-overview-tab" aria-selected="true"
                 id="experiment-overview-tab-btn">Overview</button>
             </li>
-            {% for file in experiment.files %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#experiment-file-{{ file.id }}-tab" type="button" role="tab"
-                aria-controls="experiment-file-{{ file.id }}-tab" aria-selected="true"
-                id="experiment-file-{{ file.id }}-tab-btn">{{ file.type.value.name if file.type.value.name != "Custom" else file.name }}</button>
+                data-bs-target="#experiment-files-tab" type="button" role="tab"
+                aria-controls="experiment-files-tab" aria-selected="true"
+                id="experiment-files-tab-btn">Files</button>
             </li>
-            {% endfor %}
         </ul>
         <div class="tab-content pt-3">
             <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
@@ -176,28 +175,15 @@
                 <script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js"></script>
                 <div class="flow-graph-container pt-3" id="graph" style="width: 100%"></div>
             </div>
-            {% for file in experiment.files %}
-            <div class="tab-pane fade show" id="experiment-file-{{ file.id }}-tab" role="tabpanel" tabindex="4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2>{{ file.type.value.name if file.type.value.name != "Custom" else file.name }}</h2>
-                    </div>
-                    <div>
-                        <button type="button" class="btn btn-danger"
-                        hx-delete="{{ url_for('experiments_htmx.delete_file', experiment_id=experiment.id, file_id=file.id) }}">
-                            Delete File
-                        </button>
-                    </div>
-                </div>
-                {% if file.extension == ".pdf" %}
-                <embed src="{{ url_for('pdf_file',  file_id=file.id) }}" type="application/pdf" width="100%" height="1000px" />
-                {% elif file.extension in [".png", ".jpg", ".jpeg"] %}
-                <img src="{{ url_for('img_file',  file_id=file.id) }}" class="img-fluid" alt="Responsive image">
-                {% else %}
-                <h4>File type {{file.extension}} not supported yet.</h4>
-                {% endif %}
+            <div class="tab-pane fade show" id="experiment-files-tab" role="tabpanel" tabindex="5">
+                {{
+                    files_tab(
+                        context="experiment", files=experiment.files,
+                        delete_url="experiments_htmx.delete_file",
+                        delete_context={"experiment_id": experiment.id},
+                    )
+                }}
             </div>
-            {% endfor %}
         </div>
     </div>
 

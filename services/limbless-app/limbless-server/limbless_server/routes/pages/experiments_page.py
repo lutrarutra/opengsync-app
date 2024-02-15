@@ -90,7 +90,7 @@ def experiment_page(experiment_id: int):
             libraries=libraries,
             libraries_n_pages=libraries_n_pages,
             libraries_active_page=0,
-            file_input_form=forms.ExperimentFileForm(experiment_id=experiment_id),
+            file_input_form=forms.ExperimentAttachmentForm(experiment_id=experiment_id),
             pooling_input_form=pooling_input_form,
             available_seq_requests_n_pages=available_seq_requests_n_pages,
             available_seq_requests_active_page=0,

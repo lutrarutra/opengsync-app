@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.categories import SeqRequestStatus, SequencingType, FlowCellType
-from .Links import SeqRequestExperimentLink, SeqRequestFileLink
+from .Links import SeqRequestExperimentLink, SeqRequestFileLink, SeqRequestCommentLink
 
 if TYPE_CHECKING:
     from .User import User
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from .Library import Library
     from .Experiment import Experiment
     from .File import File
+    from .Comment import Comment
 
 
 class SeqRequest(SQLModel, table=True):
@@ -85,8 +86,13 @@ class SeqRequest(SQLModel, table=True):
     files: list["File"] = Relationship(
         link_model=SeqRequestFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
     )
+    comments: list["Comment"] = Relationship(
+        link_model=SeqRequestCommentLink,
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
+    )
 
     seq_auth_form_file_id: Optional[int] = Field(nullable=True, default=None)
+
 
     @property
     def status(self) -> SeqRequestStatus:
@@ -114,15 +120,6 @@ class SeqRequest(SQLModel, table=True):
     
     def is_submittable(self) -> bool:
         return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
-    
-    def is_all_libraries_sequenced(self) -> bool:
-        if len(libraries := self.libraries) == 0:
-            return False
-        
-        for library in libraries:
-            if not library.is_sequenced():
-                return False
-        return True
     
     def submitted_time_to_str(self) -> str:
         if self.submitted_time is None:

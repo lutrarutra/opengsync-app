@@ -29,7 +29,7 @@ class PoolSubForm(FlaskForm):
 class PoolMappingForm(HTMXFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(PoolSubForm), min_entries=1)
 
-    _template_path = "components/popups/seq_request/sas-8.html"
+    _template_path = "components/popups/seq_request/sas-9.html"
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:

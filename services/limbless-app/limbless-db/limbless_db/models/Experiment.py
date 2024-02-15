@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.categories import ExperimentStatus
-from .Links import ExperimentPoolLink, SeqRequestExperimentLink, ExperimentFileLink
+from .Links import ExperimentPoolLink, SeqRequestExperimentLink, ExperimentFileLink, ExperimentCommentLink
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from .User import User
     from .SeqRequest import SeqRequest
     from .File import File
+    from .Comment import Comment
 
 
 class Experiment(SQLModel, table=True):
@@ -55,6 +56,10 @@ class Experiment(SQLModel, table=True):
 
     files: list["File"] = Relationship(
         link_model=ExperimentFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
+    )
+    comments: list["Comment"] = Relationship(
+        link_model=ExperimentCommentLink,
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
     @property

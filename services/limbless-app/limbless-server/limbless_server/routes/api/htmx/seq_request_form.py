@@ -1,11 +1,13 @@
 import os
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, request, abort, send_file, current_app
+import pandas as pd
+
+from flask import Blueprint, request, abort, send_file, current_app, Response
 from flask_login import login_required
 
 from limbless_db import models
-from limbless_db.core.categories import HttpResponse
+from limbless_db.core.categories import HttpResponse, LibraryType
 from .... import db
 from ....forms import sas as sas_forms
 
@@ -36,6 +38,26 @@ def download_template(type: str):
     )
 
     return send_file(path, mimetype="text/csv", as_attachment=True, download_name=name)
+
+
+# Template sample annotation sheet
+@seq_request_form_htmx.route("download_visium_template/<string:uuid>", methods=["GET"])
+@login_required
+def download_visium_template(uuid: str):
+    form = sas_forms.VisiumAnnotationForm(uuid=uuid)
+    data = form.get_data()
+    df = data["library_table"]
+    df = df[df["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id][["library_name"]]
+    df = df.rename(columns={"library_name": "Library Name"})
+
+    for col in sas_forms.VisiumAnnotationForm._visium_annotation_mapping.keys():
+        if col not in df.columns:
+            df[col] = ""
+
+    return Response(
+        df.to_csv(sep="\t", index=False), mimetype="text/csv",
+        headers={"Content-disposition": "attachment; filename=visium_annotation.tsv"}
+    )
 
 
 # Template sequencing authorization form
@@ -150,8 +172,20 @@ def map_feature_kits(seq_request_id: int):
         seq_request=seq_request
     )
 
-    
+
 # 8. Map pools
+@seq_request_form_htmx.route("<int:seq_request_id>/annotate_visium", methods=["POST"])
+@login_required
+def annotate_visium(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    return sas_forms.VisiumAnnotationForm(formdata=request.form | request.files).process_request(
+        seq_request=seq_request
+    )
+
+    
+# 9. Map pools
 @seq_request_form_htmx.route("<int:seq_request_id>/map_pools", methods=["POST"])
 @login_required
 def map_pools(seq_request_id: int):
@@ -163,7 +197,7 @@ def map_pools(seq_request_id: int):
     )
 
 
-# 9. Check barcodes
+# 10. Check barcodes
 @seq_request_form_htmx.route("<int:seq_request_id>/check_barcodes", methods=["POST"])
 @login_required
 def check_barcodes(seq_request_id: int):

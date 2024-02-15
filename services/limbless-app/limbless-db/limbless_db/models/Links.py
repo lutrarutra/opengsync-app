@@ -74,3 +74,21 @@ class SeqRequestFileLink(SQLModel, table=True):
     seq_request_id: int = Field(
         foreign_key="seqrequest.id", primary_key=True
     )
+
+
+class ExperimentCommentLink(SQLModel, table=True):
+    experiment_id: int = Field(
+        foreign_key="experiment.id", primary_key=True
+    )
+    comment_id: int = Field(
+        foreign_key="comment.id", primary_key=True
+    )
+
+
+class SeqRequestCommentLink(SQLModel, table=True):
+    seq_request_id: int = Field(
+        foreign_key="seqrequest.id", primary_key=True
+    )
+    comment_id: int = Field(
+        foreign_key="comment.id", primary_key=True
+    )

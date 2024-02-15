@@ -10,7 +10,7 @@ from .FileInputForm import FileInputForm
 from ... import db, logger
 
 
-class SeqRequestFileForm(FileInputForm):
+class SeqRequestAttachmentForm(FileInputForm):
     def __init__(self, seq_request_id: int, formdata: Optional[dict] = None, max_size_mbytes: int = 5):
         FileInputForm.__init__(self, formdata=formdata, max_size_mbytes=max_size_mbytes)
         self._post_url = url_for("seq_requests_htmx.upload_file", seq_request_id=seq_request_id)
@@ -30,8 +30,16 @@ class SeqRequestFileForm(FileInputForm):
             name=filename,
             type=file_type,
             extension=extension,
-            uploader_id=user.id
+            uploader_id=user.id,
         )
+
+        if self.comment.data and self.comment.data.strip() != "":
+            comment = db.create_comment(
+                text=self.comment.data,
+                author_id=user.id,
+                file_id=db_file.id
+            )
+            db.add_seq_request_comment(seq_request.id, comment.id)
 
         self.file.data.save(db_file.path)
 

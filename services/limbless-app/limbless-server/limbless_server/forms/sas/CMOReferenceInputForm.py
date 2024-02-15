@@ -1,17 +1,16 @@
-from typing import Optional, Union
-from flask import Response
-import pandas as pd
+import os
 from pathlib import Path
 from uuid import uuid4
+from typing import Optional, Union
 
+import pandas as pd
+
+from flask import Response
 from wtforms import SelectField, FileField
-
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 
-from ... import logger
 from ..TableDataForm import TableDataForm
-
 from ..HTMXFlaskForm import HTMXFlaskForm
 from .FeatureKitMappingForm import FeatureKitMappingForm
 
@@ -62,19 +61,22 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         
         filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
         filename = secure_filename(filename)
-        self.file.data.save("uploads/seq_request/" + filename)
-        logger.debug(f"Saved file to uploads/seq_request/{filename}")
+        filepath = os.path.join("uploads", "seq_request", filename)
+        self.file.data.save(filepath)
 
-        if self.separator.data == "tsv":
-            sep = "\t"
-        else:
-            sep = ","
+        sep = "\t" if self.separator.data == "tsv" else ","
 
         try:
-            self.cmo_ref = pd.read_csv("uploads/seq_request/" + filename, sep=sep, index_col=False, header=0)
+            self.cmo_ref = pd.read_csv(filepath, sep=sep, index_col=False, header=0)
+            validated = True
         except pd.errors.ParserError as e:
             self.file.errors = (str(e),)
-            return False
+            validated = False
+        finally:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            if not validated:
+                return False
         
         missing = []
         for col in CMOReferenceInputForm._required_columns:

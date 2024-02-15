@@ -8,7 +8,7 @@ from .. import exceptions
 
 def create_file(
     self, name: str, type: FileType, uploader_id: int, extension: str,
-    uuid: Optional[str] = None, description: Optional[str] = None, commit: bool = True
+    uuid: Optional[str] = None, commit: bool = True
 ) -> models.File:
     
     persist_session = self._session is not None
@@ -22,12 +22,11 @@ def create_file(
         uuid = str(uuid4())
 
     file = models.File(
-        name=name,
+        name=name[:models.File.name.type.length],
         type_id=type.value.id,
-        description=description,
         extension=extension.lower(),
         uuid=uuid,
-        uploader_id=uploader_id
+        uploader_id=uploader_id,
     )
 
     self._session.add(file)

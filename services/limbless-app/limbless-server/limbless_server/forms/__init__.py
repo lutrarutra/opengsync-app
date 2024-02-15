@@ -13,8 +13,8 @@ from .models.ExperimentForm import ExperimentForm   # noqa
 from .models.SeqRequestForm import SeqRequestForm   # noqa
 from .models.PoolForm import PoolForm   # noqa
 
-from .file.ExperimentFileForm import ExperimentFileForm  # noqa
-from .file.SeqRequestFileForm import SeqRequestFileForm  # noqa
+from .file.ExperimentAttachmentForm import ExperimentAttachmentForm  # noqa
+from .file.SeqRequestAttachmentForm import SeqRequestAttachmentForm  # noqa
 
 from . import sas  # noqa
 from . import pooling  # noqa

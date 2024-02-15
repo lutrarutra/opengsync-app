@@ -1,9 +1,10 @@
-from .OrganismMappingForm import OrganismMappingForm
-from .ProjectMappingForm import ProjectMappingForm
-from .LibraryMappingForm import LibraryMappingForm
-from .IndexKitMappingForm import IndexKitMappingForm
-from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
-from .CMOReferenceInputForm import CMOReferenceInputForm
-from .SASInputForm import SASInputForm
-from .FeatureKitMappingForm import FeatureKitMappingForm
+from .OrganismMappingForm import OrganismMappingForm    # noqa: F401
+from .ProjectMappingForm import ProjectMappingForm  # noqa: F401
+from .VisiumAnnotationForm import VisiumAnnotationForm  # noqa: F401
+from .LibraryMappingForm import LibraryMappingForm  # noqa: F401
+from .IndexKitMappingForm import IndexKitMappingForm    # noqa: F401
+from .PoolMappingForm import PoolMappingForm    # noqa: F401
+from .BarcodeCheckForm import BarcodeCheckForm  # noqa: F401
+from .CMOReferenceInputForm import CMOReferenceInputForm    # noqa: F401
+from .SASInputForm import SASInputForm  # noqa: F401
+from .FeatureKitMappingForm import FeatureKitMappingForm    # noqa: F401
