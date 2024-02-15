@@ -1,13 +1,21 @@
 # limbless
 Web app for NGS sample/library/project tracking
 
-## Installation
-    - `pip install -r requirements.txt`
+## Installation for development
+    - `pip install -r services/limbless-app/limbless-server/requirements.txt`
+    - `pip install -e services/limbless-app/limbless-server`
+    - `pip install -r services/limbless-app/limbless-db/requirements.txt`
+    - `pip install -e services/limbless-app/limbless-db`
 
 ## Run with flask debug server
-    - `docker compose -f compose.dev.yaml up --build`
+    - `chmod +x debug.sh`
+    - `./debug.sh`
+## Unit tests
+    - `chmod +x test.sh`
+    - `./test.sh`
 ## Production
-    - `docker compose -f compose.yaml up --build`
+    - `chmod +x prod.sh`
+    - `./prod.sh`
 
 ## pgAdmin Interface
     - `http://localhost:5050`
@@ -18,7 +26,7 @@ Web app for NGS sample/library/project tracking
     - host: `host.docker.internal` & port: `5432` or
     - Find the IP address of the container:
         1. `docker ps`
-        2. `docker inspect <container id> | grep IPAddress`
+        2. `docker inspect limbless-postgres-db | grep IPAddress`
     - username: `$(POSTGRES_USER)`
     - password: `$(POSTGRES_PASSWORD)`
 

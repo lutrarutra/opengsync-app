@@ -12,6 +12,7 @@ RUN apt update
 RUN apt install build-essential -y
 RUN apt install libpq-dev -y
 RUN apt install curl -y
+RUN apt install postgresql-client -y
 RUN pip install --upgrade pip
 COPY . /usr/src/app/
 RUN pip install -r /usr/src/app/limbless-server/requirements.txt
