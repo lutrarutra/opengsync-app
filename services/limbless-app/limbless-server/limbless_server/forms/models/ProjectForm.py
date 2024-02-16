@@ -14,8 +14,8 @@ class ProjectForm(HTMXFlaskForm):
     _template_path = "forms/project.html"
     _form_label = "project_form"
 
-    name = StringField("Name", validators=[DataRequired(), Length(min=6, max=64)])
-    description = TextAreaField("Description", validators=[DataRequired(), Length(min=1, max=1024)])
+    name = StringField("Name", validators=[DataRequired(), Length(min=6, max=models.Project.name.type.length)])  # type: ignore
+    description = TextAreaField("Description", validators=[DataRequired(), Length(min=1, max=models.Project.description.type.length)])  # type: ignore
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, project: Optional[models.Project] = None):
         super().__init__(formdata=formdata)
@@ -55,8 +55,8 @@ class ProjectForm(HTMXFlaskForm):
     
     def __create_new_project(self, user_id: int) -> Response:
         project = db.create_project(
-            name=self.name.data,
-            description=self.description.data,
+            name=self.name.data,  # type: ignore
+            description=self.description.data,  # type: ignore
             owner_id=user_id
         )
 

@@ -58,7 +58,7 @@ class UserForm(HTMXFlaskForm):
     _template_path = "forms/user.html"
     _form_label = "user_form"
 
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.User.email.type.length)])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.User.email.type.length)])  # type: ignore
     role = SelectField("Role", choices=UserRole.as_selectable(), default=UserRole.CLIENT.value.id, validators=[DataRequired()], coerce=int)
 
     def validate(self, user: models.User) -> bool:
@@ -69,7 +69,7 @@ class UserForm(HTMXFlaskForm):
             self.email.errors = ("Your account does not have rights to create a new user.",)
             return False
         
-        if db.get_user_by_email(self.email.data):
+        if db.get_user_by_email(self.email.data):  # type: ignore
             self.email.errors = ("Email already registered.",)
             return False
 
@@ -92,7 +92,7 @@ class UserForm(HTMXFlaskForm):
         if not self.validate(user):
             return self.make_response(**context)
         
-        email = self.email.data.strip()
+        email = self.email.data.strip()  # type: ignore
         user_role = UserRole.get(self.role.data)
 
         token = models.User.generate_registration_token(email=email, role=user_role, serializer=serializer)
@@ -126,7 +126,7 @@ class LoginForm(HTMXFlaskForm):
             return False
         
         # invalid email
-        if (user := db.get_user_by_email(self.email.data)) is None:
+        if (user := db.get_user_by_email(self.email.data)) is None:  # type: ignore
             self.email.errors = ("Invalid email or password.",)
             self.password.errors = ("Invalid email or password.",)
             return False
@@ -144,7 +144,7 @@ class LoginForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response(**context)
         
-        user = db.get_user_by_email(self.email.data)
+        user = db.get_user_by_email(self.email.data)  # type: ignore
         login_user(user)
 
         flash("Login successful.", "success")
@@ -155,18 +155,18 @@ class RegisterForm(HTMXFlaskForm):
     _template_path = "forms/register.html"
     _form_label = "register_form"
     
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(models.User.email.type.length)])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.User.email.type.length)])  # type: ignore
 
     def validate(self) -> bool:
         if not super().validate():
             return False
         
-        domain = self.email.data.split("@")[-1]
+        domain = self.email.data.split("@")[-1]  # type: ignore
         if domain not in DOMAIN_WHITE_LIST:
             self.email.errors = (f"Specified email domain is not in white-list ({', '.join(DOMAIN_WHITE_LIST)}). Please contact us at bsf@cemm.at to register manually.",)
             return False
         
-        elif db.get_user_by_email(self.email.data) is not None:
+        elif db.get_user_by_email(self.email.data) is not None:  # type: ignore
             self.email.errors = ("Email already registered.",)
             return False
             
@@ -176,7 +176,7 @@ class RegisterForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response(**context)
         
-        email = self.email.data.strip()
+        email = self.email.data.strip()  # type: ignore
         token = models.User.generate_registration_token(
             email=email, role=UserRole.CLIENT, serializer=serializer
         )
@@ -199,8 +199,8 @@ class CompleteRegistrationForm(HTMXFlaskForm):
     _template_path = "forms/complete_register.html"
     _form_label = "complete_registration_form"
 
-    first_name = StringField("First Name", validators=[DataRequired(), Length(max=models.User.first_name.type.length)])
-    last_name = StringField("Last Name", validators=[DataRequired(), Length(max=models.User.last_name.type.length)])
+    first_name = StringField("First Name", validators=[DataRequired(), Length(max=models.User.first_name.type.length)])  # type: ignore
+    last_name = StringField("Last Name", validators=[DataRequired(), Length(max=models.User.last_name.type.length)])  # type: ignore
     password = PasswordField("Password", validators=[DataRequired(), Length(min=8)])
     confirm = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", "Passwords must match.")])
 
@@ -228,8 +228,8 @@ class CompleteRegistrationForm(HTMXFlaskForm):
         user = db.create_user(
             email=email,
             hashed_password=hashed_password,
-            first_name=self.first_name.data,
-            last_name=self.last_name.data,
+            first_name=self.first_name.data,  # type: ignore
+            last_name=self.last_name.data,  # type: ignore
             role=user_role,
         )
 

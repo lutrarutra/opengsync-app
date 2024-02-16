@@ -9,7 +9,7 @@ class Sequencer(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
 
     name: str = Field(nullable=False, max_length=64, unique=True, index=True)
-    ip: Optional[str] = Field(nullable=True, max_length=128, unique=False)
+    ip: Optional[str] = Field(nullable=True, max_length=64, unique=False)
 
     def search_value(self) -> int:
         return self.id

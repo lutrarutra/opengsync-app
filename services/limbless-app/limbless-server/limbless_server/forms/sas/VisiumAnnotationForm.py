@@ -10,6 +10,7 @@ from wtforms.validators import DataRequired, Length
 from flask import Response
 from werkzeug.utils import secure_filename
 
+from limbless_db import models
 from limbless_db.core.categories import LibraryType
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ..TableDataForm import TableDataForm
@@ -28,7 +29,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
 
     separator = SelectField(choices=_allowed_extensions, default="tsv", coerce=str)
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
-    instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=1024)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")
+    instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
 
     _visium_annotation_mapping = {
         "Library Name": "library_name",

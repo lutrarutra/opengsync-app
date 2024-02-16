@@ -15,7 +15,7 @@ class CompleteExperimentForm(HTMXFlaskForm):
     _template_path = "forms/complete-experiment.html"
     _form_label = "complete_experiment_form"
 
-    comment = TextAreaField("Complications, errors, etc..", validators=[OptionalValidator(), Length(min=1, max=1024)], default="")
+    comment = TextAreaField("Complications, errors, etc..", validators=[OptionalValidator(), Length(min=1, max=models.Comment.text.type.length)], default="")  # type: ignore
 
     def __init__(self, formdata: Optional[dict] = None):
         super().__init__(formdata=formdata)

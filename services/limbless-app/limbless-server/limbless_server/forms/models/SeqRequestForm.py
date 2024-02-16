@@ -17,11 +17,11 @@ class SeqRequestForm(HTMXFlaskForm):
     _form_label = "seq_request_form"
 
     name = StringField(
-        "Request Name", validators=[DataRequired(), Length(min=6, max=64)],
+        "Request Name", validators=[DataRequired(), Length(min=6, max=models.SeqRequest.name.type.length)],  # type: ignore
         description="Descriptive title of the samples and experiment."
     )
     description = TextAreaField(
-        "Description", validators=[Length(max=512)],
+        "Description", validators=[Length(max=models.SeqRequest.description.type.length)],  # type: ignore
         description="""
         Summary of the broader project context relevant for the submitted samples.
         Often useful to copy and paste a few relevant sentences from a grant proposal
@@ -29,14 +29,15 @@ class SeqRequestForm(HTMXFlaskForm):
     )
 
     technology = StringField(
-        "Technology", validators=[DataRequired(), Length(max=64)],
+        "Technology", validators=[DataRequired(), Length(max=models.SeqRequest.technology.type.length)],  # type: ignore
         description="List of kits used, e.g. ('10x 5-prime V2', 'Singleron sc-RNAseq', 'Illumina complete long read', etc)."
     )
 
     sequencing_type = SelectField(
         choices=SequencingType.as_selectable(), validators=[DataRequired()],
         default=SequencingType.PAIRED_END.value.id,
-        description="Sequencing type, i.e. Single-end or Paired-end."
+        description="Sequencing type, i.e. Single-end or Paired-end.",
+        coerce=int
     )
 
     num_cycles_read_1 = IntegerField(
@@ -70,12 +71,12 @@ class SeqRequestForm(HTMXFlaskForm):
     )
 
     special_requirements = TextAreaField(
-        "Special Requirements", validators=[OptionalValidator(), Length(max=512)],
+        "Special Requirements", validators=[OptionalValidator(), Length(max=models.SeqRequest.special_requirements.type.length)],  # type: ignore
         description="Special requirements such as a high percentage PhiX spike-in to increase library complexity."
     )
 
     sequencer = StringField(
-        "Sequencer", validators=[OptionalValidator(), Length(max=64)],
+        "Sequencer", validators=[OptionalValidator(), Length(max=models.SeqRequest.sequencer.type.length)],  # type: ignore
         description="Sequencer to use for sequencing."
     )
 
@@ -90,44 +91,44 @@ class SeqRequestForm(HTMXFlaskForm):
     )
 
     contact_person_name = StringField(
-        "Contact Person Name", validators=[DataRequired(), Length(max=64)],
+        "Contact Person Name", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],  # type: ignore
         description="Name of the contact person."
     )
 
     contact_person_email = EmailField(
-        "Contact Person Email", validators=[DataRequired(), Email(), Length(max=128)],
+        "Contact Person Email", validators=[DataRequired(), Email(), Length(max=models.Contact.email.type.length)],  # type: ignore
         description="E-Mail address of primary contact."
     )
     contact_person_phone = StringField(
-        "Contact Person Phone", validators=[Length(max=16)],
+        "Contact Person Phone", validators=[Length(max=models.Contact.phone.type.length)],  # type: ignore
         description="Phone number of primary contact (optional)."
     )
 
     bioinformatician_name = StringField(
-        "Bioinformatician Name", validators=[Length(max=128)],
+        "Bioinformatician Name", validators=[Length(max=models.Contact.name.type.length)],  # type: ignore
         description="Name of the bioinformatician."
     )
 
     bioinformatician_email = EmailField(
-        "Bioinformatician Email", validators=[OptionalValidator(), Email(), Length(max=128)],
+        "Bioinformatician Email", validators=[OptionalValidator(), Email(), Length(max=models.Contact.email.type.length)],  # type: ignore
         description="E-Mail address of the bioinformatician (optional)."
     )
 
     bioinformatician_phone = StringField(
-        "Bioinformatician Phone", validators=[Length(max=16)],
+        "Bioinformatician Phone", validators=[Length(max=models.Contact.phone.type.length)],  # type: ignore
         description="Phone number of the bioinformatician (optional)."
     )
 
     organization_name = StringField(
-        "Organization Name", validators=[DataRequired(), Length(max=64)],
+        "Organization Name", validators=[DataRequired(), Length(max=models.SeqRequest.organization_name.type.length)],  # type: ignore
         description="Name of the organization."
     )
     organization_department = StringField(
-        "Organization Department", validators=[Length(max=64)],
+        "Organization Department", validators=[Length(max=models.SeqRequest.organization_department.type.length)],  # type: ignore
         description="Department of the organization."
     )
     organization_address = StringField(
-        "Organization Address", validators=[DataRequired(), Length(max=128)],
+        "Organization Address", validators=[DataRequired(), Length(max=models.SeqRequest.organization_address.type.length)],  # type: ignore
         description="Address of the organization."
     )
 
@@ -136,24 +137,24 @@ class SeqRequestForm(HTMXFlaskForm):
     )
     
     billing_contact = StringField(
-        "Billing Contact", validators=[DataRequired(), Length(max=64)],
+        "Billing Contact", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],  # type: ignore
         description="Name of the billing contact person, department or institution."
     )
     billing_address = StringField(
-        "Billing Address", validators=[DataRequired(), Length(max=128)],
+        "Billing Address", validators=[DataRequired(), Length(max=models.Contact.address.type.length)],  # type: ignore
         description="Address for billing."
     )
     billing_email = EmailField(
-        "Billing Email", validators=[DataRequired(), Email(), Length(max=128)],
+        "Billing Email", validators=[DataRequired(), Email(), Length(max=models.Contact.email.type.length)],  # type: ignore
         description="E-Mail address for billing."
     )
     billing_phone = StringField(
-        "Billing Phone", validators=[Length(max=16)],
+        "Billing Phone", validators=[Length(max=models.Contact.phone.type.length)],  # type: ignore
         description="Phone number for billing (optional)."
     )
 
     billing_code = StringField(
-        "Billing Code", validators=[Length(max=64)],
+        "Billing Code", validators=[Length(max=models.SeqRequest.billing_code.type.length)],  # type: ignore
         description="Billing code assigned by your institution."
     )
 
@@ -326,13 +327,13 @@ class SeqRequestForm(HTMXFlaskForm):
     
     def __create_new_request(self, user_id: int) -> Response:
         contact_person = db.create_contact(
-            name=self.contact_person_name.data,
+            name=self.contact_person_name.data,  # type: ignore
             email=self.contact_person_email.data,
             phone=self.contact_person_phone.data,
         )
 
         billing_contact = db.create_contact(
-            name=self.billing_contact.data,
+            name=self.billing_contact.data,  # type: ignore
             email=self.billing_email.data,
             address=self.billing_address.data,
             phone=self.billing_phone.data,
@@ -363,10 +364,10 @@ class SeqRequestForm(HTMXFlaskForm):
             flowcell_type = None
 
         seq_request = db.create_seq_request(
-            name=self.name.data,
+            name=self.name.data,  # type: ignore
             description=self.description.data,
             requestor_id=user_id,
-            technology=self.technology.data,
+            technology=self.technology.data,  # type: ignore
             contact_person_id=contact_person.id,
             billing_contact_id=billing_contact.id,
             bioinformatician_contact_id=bioinformatician_contact_id,
@@ -380,8 +381,8 @@ class SeqRequestForm(HTMXFlaskForm):
             sequencer=self.sequencer.data,
             flowcell_type=flowcell_type,
             num_lanes=self.num_lanes.data,
-            organization_name=self.organization_name.data,
-            organization_address=self.organization_address.data,
+            organization_name=self.organization_name.data,  # type: ignore
+            organization_address=self.organization_address.data,  # type: ignore
             organization_department=self.organization_department.data,
         )
 

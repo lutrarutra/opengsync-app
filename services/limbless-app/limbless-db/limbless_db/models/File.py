@@ -1,11 +1,9 @@
 import os
-from typing import Optional
 
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.categories import FileType
 from .User import User
-from .Comment import Comment
 
 
 class File(SQLModel, table=True):

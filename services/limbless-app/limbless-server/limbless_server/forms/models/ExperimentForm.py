@@ -22,7 +22,7 @@ class ExperimentForm(HTMXFlaskForm):
         validators=[DataRequired()],
         description="Type of flowcell to use for sequencing."
     )
-    flowcell = StringField("Flowcell ID", validators=[DataRequired(), Length(min=3, max=64)])
+    flowcell = StringField("Flowcell ID", validators=[DataRequired(), Length(min=3, max=models.Experiment.flowcell.type.length)])  # type: ignore
     num_lanes = IntegerField("Number of Lanes", default=1, validators=[DataRequired(), NumberRange(min=1, max=8)])
     
     r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
@@ -78,13 +78,13 @@ class ExperimentForm(HTMXFlaskForm):
 
     def __create_new_experiment(self) -> Response:
         experiment = db.create_experiment(
-            flowcell=self.flowcell.data,
+            flowcell=self.flowcell.data,  # type: ignore
             sequencer_id=self.sequencer.selected.data,
-            r1_cycles=self.r1_cycles.data,
-            r2_cycles=self.r2_cycles.data,
-            i1_cycles=self.i1_cycles.data,
+            r1_cycles=self.r1_cycles.data,  # type: ignore
+            r2_cycles=self.r2_cycles.data,  # type: ignore
+            i1_cycles=self.i1_cycles.data,  # type: ignore
             i2_cycles=self.i2_cycles.data,
-            num_lanes=self.num_lanes.data,
+            num_lanes=self.num_lanes.data,  # type: ignore
             sequencing_person_id=self.sequencing_person.selected.data
         )
 

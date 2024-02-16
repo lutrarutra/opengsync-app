@@ -21,10 +21,10 @@ from .BarcodeCheckForm import BarcodeCheckForm
 
 class PoolSubForm(FlaskForm):
     raw_label = StringField("Raw Label", validators=[OptionalValidator()])
-    pool_name = StringField("Library (-Pool) Label", validators=[DataRequired(), Length(min=4, max=64)], description="Unique label to identify the pool")
-    contact_person_name = StringField("Contact Person Name", validators=[DataRequired(), Length(max=128)], description="Who prepared the libraries?")
-    contact_person_email = StringField("Contact Person Email", validators=[DataRequired(), Length(max=128)], description="Who prepared the libraries?")
-    contact_person_phone = StringField("Contact Person Phone", validators=[OptionalValidator(), Length(max=16)], description="Who prepared the libraries?")
+    pool_name = StringField("Library (-Pool) Label", validators=[DataRequired(), Length(min=4, max=models.Pool.name.type.length)], description="Unique label to identify the pool")  # type: ignore
+    contact_person_name = StringField("Contact Person Name", validators=[DataRequired(), Length(max=models.Contact.name.type.length)], description="Who prepared the libraries?")  # type: ignore
+    contact_person_email = StringField("Contact Person Email", validators=[DataRequired(), Length(max=models.Contact.email.type.length)], description="Who prepared the libraries?")  # type: ignore
+    contact_person_phone = StringField("Contact Person Phone", validators=[OptionalValidator(), Length(max=models.Contact.phone.type.length)], description="Who prepared the libraries?")  # type: ignore
 
 
 class PoolMappingForm(HTMXFlaskForm, TableDataForm):

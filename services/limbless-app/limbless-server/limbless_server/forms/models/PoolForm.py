@@ -2,14 +2,14 @@ from flask import Response
 from wtforms import StringField
 from wtforms.validators import DataRequired, Length
 
-from limbless_db import DBSession
+from limbless_db import DBSession, models
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
 class PoolForm(HTMXFlaskForm):
     _template_path = "forms/pool.html"
-    name = StringField("Pool Name", validators=[DataRequired(), Length(min=6, max=64)])
+    name = StringField("Pool Name", validators=[DataRequired(), Length(min=6, max=models.Pool.name.type.length)])  # type: ignore
 
     def validate(self, user_id: int, pool_id: int) -> bool:
         if not super().validate():

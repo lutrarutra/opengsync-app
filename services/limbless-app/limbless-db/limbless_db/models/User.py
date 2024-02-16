@@ -40,7 +40,7 @@ class UserMixin:
 
     def get_id(self):
         try:
-            return str(self.id)
+            return str(self.id)  # type: ignore
         except AttributeError:
             raise NotImplementedError("No `id` attribute - override `get_id`") from None
 

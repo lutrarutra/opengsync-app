@@ -14,11 +14,11 @@ class SequencerForm(HTMXFlaskForm):
     _template_path = "forms/sequencer.html"
 
     name = StringField("Sequencer Name", validators=[
-        DataRequired(), Length(min=6, max=64)
+        DataRequired(), Length(min=6, max=models.Sequencer.name.type.length)  # type: ignore
     ])
 
     ip_address = StringField("IP Address", validators=[
-        OptionalValidator(), Length(max=128)
+        OptionalValidator(), Length(max=models.Sequencer.ip.type.length)  # type: ignore
     ])
 
     def validate(self, sequencer: Optional[models.Sequencer]) -> bool:
@@ -49,7 +49,7 @@ class SequencerForm(HTMXFlaskForm):
     
     def __create_new_sequencer(self) -> Response:
         sequencer = db.create_sequencer(
-            name=self.name.data,
+            name=self.name.data,  # type: ignore
             ip=self.ip_address.data,
         )
 

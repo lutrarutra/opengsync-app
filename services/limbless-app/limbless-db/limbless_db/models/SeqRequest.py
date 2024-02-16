@@ -93,7 +93,6 @@ class SeqRequest(SQLModel, table=True):
 
     seq_auth_form_file_id: Optional[int] = Field(nullable=True, default=None)
 
-
     @property
     def status(self) -> SeqRequestStatus:
         return SeqRequestStatus.get(self.status_id)

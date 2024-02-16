@@ -1,4 +1,4 @@
-from typing import Optional, List, TYPE_CHECKING, ClassVar, Union
+from typing import TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
