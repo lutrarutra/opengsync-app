@@ -15,8 +15,14 @@ else:
     from flask_login import current_user
 
 
-def create_app() -> Flask:
-    app = Flask(__name__, static_folder="/usr/src/app/static", template_folder="/usr/src/app/templates")
+def create_app(static_folder: str, template_folder: str) -> Flask:
+    if not os.path.exists(static_folder):
+        raise FileNotFoundError(f"Static folder not found: {static_folder}")
+    
+    if not os.path.exists(template_folder):
+        raise FileNotFoundError(f"Template folder not found: {template_folder}")
+    
+    app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
 
     for _, file_type in categories.FileType.as_tuples():

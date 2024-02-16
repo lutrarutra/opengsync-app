@@ -3,10 +3,6 @@ FROM python:3.11.3-slim-buster
 # set work directory
 WORKDIR /usr/src/app
 
-# set environment variables
-# ENV PYTHONDONTWRITEBYTECODE 1
-# ENV PYTHONUNBUFFERED 1
-
 # install dependencies
 RUN apt update
 RUN apt install build-essential -y
@@ -19,7 +15,6 @@ RUN pip install -r /usr/src/app/limbless-server/requirements.txt
 RUN pip install /usr/src/app/limbless-server
 RUN pip install -r /usr/src/app/limbless-db/requirements.txt
 RUN pip install /usr/src/app/limbless-db
-RUN python3 /usr/src/app/compile_sass.py
 RUN chmod +x /usr/src/app/entrypoint.sh
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

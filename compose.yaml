@@ -19,7 +19,7 @@ services:
     limbless-app:
         container_name: limbless-app
         build: ./services/limbless-app
-        command: "gunicorn -w 4 --bind ${LIMBLESS_HOST}:${LIMBLESS_PORT} 'wsgi:app'"
+        command: gunicorn -w 4 --bind ${LIMBLESS_HOST}:${LIMBLESS_PORT} 'wsgi:create_app(static_folder="/usr/src/app/static", template_folder="/usr/src/app/templates")'
         volumes:
             - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
             - ./uploads:/usr/src/app/uploads
