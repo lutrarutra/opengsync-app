@@ -17,7 +17,7 @@ class LibraryForm(HTMXFlaskForm):
     _form_label = "library_form"
 
     # noqa: C901
-    name = StringField("Name", validators=[DataRequired(), Length(min=3, max=models.Library.name.typ.lengh)])   # type: ignore
+    name = StringField("Name", validators=[DataRequired(), Length(min=3, max=models.Library.name.type.length)])   # type: ignore
     adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=models.Library.adapter.type.length)])   # type: ignore
     library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], coerce=int)  # type: ignore
     index_1 = StringField("Index 1 (i7)", validators=[DataRequired(), Length(min=1, max=models.Library.index_1_sequence.type.length)])  # type: ignore

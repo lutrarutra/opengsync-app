@@ -2,12 +2,14 @@ version: "3.8"
 
 services:
     nginx:
-        container_name: limbless-nginx-proxy
+        container_name: nginx-proxy
         build: ./services/nginx
         ports:
             - 80:80
         volumes:
             - static_volume:/usr/src/app/static:ro
+            - ./media:/usr/src/app/media:ro
+            - ./uploads:/usr/src/app/uploads:ro
         depends_on:
             limbless-app:
                 condition: service_healthy
@@ -46,6 +48,7 @@ services:
             retries: 5
 
     sass-compiler:
+        container_name: sass-compiler
         image: apluslms/develop-sass
         volumes:
             - ./services/limbless-app/static/style/sass:/usr/src/static/style/sass
@@ -53,7 +56,7 @@ services:
         command: "sass --style compressed /usr/src/static/style/sass:/usr/src/app/static/style/compiled"
 
     postgres:
-        container_name: limbless-postgres-db
+        container_name: postgres
         image: postgres:16rc1-alpine3.17
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
@@ -71,7 +74,7 @@ services:
             retries: 5
 
     pgadmin:
-        container_name: limbless-pgadmin
+        container_name: pgadmin
         image: dpage/pgadmin4:latest
         environment:
             PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}

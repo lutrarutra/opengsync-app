@@ -171,9 +171,9 @@ class RequestResponse(Enum, metaclass=ExtendedEnumMeta):
 
 
 class FileType(Enum, metaclass=ExtendedEnumMeta):
-    CUSTOM = DescriptiveEnum(0, "Custom", os.path.join("media", "etc"))
-    SEQ_AUTH_FORM = DescriptiveEnum(1, "Sequencing Authorization Form", os.path.join("media", "seq_auth_forms"))
-    BIOANALYZER_REPORT = DescriptiveEnum(2, "Bioanalyzer Report", os.path.join("media", "bioanalyzer_reports"))
-    POST_SEQUENCING_QC_REPORT = DescriptiveEnum(3, "Post-sequencing QC Report", os.path.join("media", "post_seq_qc_reports"))
+    CUSTOM = DescriptiveEnum(0, "Custom", "etc")
+    SEQ_AUTH_FORM = DescriptiveEnum(1, "Sequencing Authorization Form", "seq_auth_forms")
+    BIOANALYZER_REPORT = DescriptiveEnum(2, "Bioanalyzer Report", "bioanalyzer_reports")
+    POST_SEQUENCING_QC_REPORT = DescriptiveEnum(3, "Post-sequencing QC Report", "post_seq_qc_reports")
 
     

@@ -2,7 +2,7 @@ import os
 from uuid import uuid4
 from typing import TYPE_CHECKING
 
-from flask import Flask, render_template, redirect, request, url_for, session, current_app, abort, make_response, send_from_directory
+from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
 from limbless_db import categories, models
@@ -24,10 +24,15 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     
     app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
+    app.config["MEDIA_FOLDER"] = os.path.join("media")
+    app.config["UPLOADS_FOLDER"] = os.path.join("uploads")
 
     for _, file_type in categories.FileType.as_tuples():
-        if not os.path.exists(file_type.description):   # type: ignore
-            os.makedirs(file_type.description)          # type: ignore
+        if file_type.description is None:
+            continue
+        path = os.path.join(app.config["MEDIA_FOLDER"], file_type.description)
+        if not os.path.exists(path):
+            os.makedirs(path)
 
     logger.info(f"Debug mode: {app.debug}")
 
@@ -90,11 +95,11 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         if file.extension != ".pdf":
             return abort(categories.HttpResponse.BAD_REQUEST.value.id)
 
-        file_path = os.path.join(current_app.root_path, "..", "..", file.path)
-        if not os.path.exists(file_path):
+        if not os.path.exists(file.path):
+            logger.error(f"File not found: {file.path}")
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
-        with open(file_path, "rb") as f:
+        with open(file.path, "rb") as f:
             data = f.read()
 
         response = make_response(data)
@@ -115,11 +120,17 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         if file.extension not in [".png", ".jpg", ".jpeg"]:
             return abort(categories.HttpResponse.BAD_REQUEST.value.id)
 
-        file_path = os.path.join(current_app.root_path, "..", "..", file.path)
-        if not os.path.exists(file_path):
+        if not os.path.exists(file.path):
+            logger.error(f"File not found: {file.path}")
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
-        return send_from_directory(os.path.dirname(file_path), os.path.basename(file_path))
+        with open(file.path, "rb") as f:
+            data = f.read()
+
+        response = make_response(data)
+        response.headers["Content-Type"] = f"image/{file.extension[1:]}"
+        response.headers["Content-Disposition"] = "inline; filename={file.name}"
+        return response
 
     @login_manager.unauthorized_handler
     def unauthorized():

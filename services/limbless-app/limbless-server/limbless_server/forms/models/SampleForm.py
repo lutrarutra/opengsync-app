@@ -16,7 +16,7 @@ class SampleForm(HTMXFlaskForm):
     _template_path = "forms/sample/sample.html"
     _form_label = "sample_form"
 
-    name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=models.Sample.type.length)])  # type: ignore
+    name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=models.Sample.name.type.length)])  # type: ignore
     organism = FormField(SearchBar, label="Select Organism")
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, sample: Optional[models.Sample] = None):

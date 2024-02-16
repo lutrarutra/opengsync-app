@@ -68,7 +68,7 @@ class Library(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select"}
     )
 
-    adapter: Optional[str] = Field(nullable=True)
+    adapter: Optional[str] = Field(nullable=True, max_length=32)
     index_1_sequence: Optional[str] = Field(nullable=True, max_length=32)
     index_2_sequence: Optional[str] = Field(nullable=True, max_length=32)
     index_3_sequence: Optional[str] = Field(nullable=True, max_length=32)
