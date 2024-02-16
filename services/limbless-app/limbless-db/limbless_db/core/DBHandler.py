@@ -39,6 +39,7 @@ class DBHandler():
         create_experiment, get_experiment, get_experiments,
         update_experiment, delete_experiment,
         get_num_experiments, add_file_to_experiment, remove_file_from_experiment,
+        remove_comment_from_experiment,
     )
 
     from .model_handlers._sample_methods import (
@@ -86,6 +87,7 @@ class DBHandler():
         get_seq_requests, delete_seq_request, update_seq_request,
         query_seq_requests, submit_seq_request,
         add_file_to_seq_request, remove_file_from_seq_request,
+        remove_comment_from_seq_request
     )
 
     from .model_handlers._contact_methods import (
@@ -128,7 +130,7 @@ class DBHandler():
     )
 
     from .model_handlers._file_methods import (
-        create_file, get_file, get_files,
+        create_file, get_file, get_files, file_permissions_check
     )
 
     from .model_handlers._visium_annotation_methods import (
@@ -136,7 +138,7 @@ class DBHandler():
     )
 
     from .model_handlers._comment_methods import (
-        create_comment, delete_comment,
+        create_comment, delete_comment, get_comments, get_comment,
         add_experiment_comment, remove_experiment_comment,
         add_seq_request_comment, remove_seq_request_comment
     )

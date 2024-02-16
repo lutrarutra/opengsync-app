@@ -1,5 +1,6 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from 'components/files_tab.jinja2' import files_tab %}
+{% from 'components/comments_tab.jinja2' import comments_tab with context %}
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/form_group.jinja2' import form_group %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
@@ -40,7 +41,7 @@
             {% endif %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#seq_request-file-form-popup">
-                Add File
+                Attach File
             </button>
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -350,23 +351,11 @@
                 }}
             </div>
             <div class="tab-pane fade show" id="request-comments-tab" role="tabpanel" tabindex="6">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2>Comments</h2>
-                    </div>
-                </div>
-                <div class="p-3" style="display: flex; flex-direction: column; gap: 20px;">
-                    {% for comment in seq_request.comments %}
-                    <div class="row">
-                        <div class="card col-8">
-                            <div class="card-body p-3">
-                                <h6 class="card-subtitle text pb-3">{{ comment.author.role.value.description | safe }} {{ comment.author.name }} &#8212; {{ comment.timestamp_to_str() }}</h6>
-                                <p class="card-text">{{ comment.text }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+                {{
+                    comments_tab(
+                        context="request", comments=seq_request.comments,
+                    )
+                }}
             </div>  
         </div>
     </div>
@@ -401,6 +390,12 @@
         </div>
     </div>
 
+    <div class="modal fade" id="seq_request-comment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-l modal-dialog-centered">
+            {% include comment_form._template_path %}
+        </div>
+    </div>
+
     <div class="modal fade" id="process_request-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
         <div class="modal-dialog modal-l modal-dialog-centered">
             <div class="modal-content">
@@ -421,6 +416,7 @@
 </div>
 <script>
     $(document).ready(function() {
+        
         $("#request-overview-tab-btn").on("click", function() {
             d3.json("{{ url_for('seq_requests_htmx.get_graph', seq_request_id=seq_request.id) }}", function(error, graph) {
                 const _h = graph.nodes.length * 30;

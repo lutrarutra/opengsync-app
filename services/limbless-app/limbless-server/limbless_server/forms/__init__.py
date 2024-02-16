@@ -15,6 +15,8 @@ from .models.PoolForm import PoolForm   # noqa
 
 from .file.ExperimentAttachmentForm import ExperimentAttachmentForm  # noqa
 from .file.SeqRequestAttachmentForm import SeqRequestAttachmentForm  # noqa
+from .commment.ExperimentCommentForm import ExperimentCommentForm  # noqa
+from .commment.SeqRequestCommentForm import SeqRequestCommentForm  # noqa
 
 from . import sas  # noqa
 from . import pooling  # noqa

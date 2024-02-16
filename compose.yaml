@@ -21,6 +21,7 @@ services:
         build: ./services/limbless-app
         command: "gunicorn -w 4 --bind ${LIMBLESS_HOST}:${LIMBLESS_PORT} 'wsgi:app'"
         volumes:
+            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
             - ./uploads:/usr/src/app/uploads
             - ./media:/usr/src/app/media
             - ./logs/limbless:/usr/src/app/logs
@@ -34,12 +35,22 @@ services:
             postgres:
                 condition: service_healthy
                 restart: true
+            sass-compiler:
+                condition: service_completed_successfully
+                restart: false
 
         healthcheck:
             test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
             interval: 10s
             timeout: 10s
             retries: 5
+
+    sass-compiler:
+        image: apluslms/develop-sass
+        volumes:
+            - ./services/limbless-app/static/style/sass:/usr/src/static/style/sass
+            - static_volume:/usr/src/app/static
+        command: "sass --style compressed /usr/src/static/style/sass:/usr/src/app/static/style/compiled"
 
     postgres:
         container_name: limbless-postgres-db
@@ -74,7 +85,6 @@ services:
             postgres:
                 condition: service_healthy
                 restart: true
-
 
 volumes:
     static_volume:

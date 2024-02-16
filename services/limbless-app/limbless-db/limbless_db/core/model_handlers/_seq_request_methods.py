@@ -390,6 +390,28 @@ def add_file_to_seq_request(
     return file_link
 
 
+def remove_comment_from_seq_request(self, seq_request_id: int, comment_id: int, commit: bool = True) -> None:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+
+    if (comment := self._session.get(models.Comment, comment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Comment with id '{comment_id}', not found.")
+    
+    seq_request.comments.remove(comment)
+    self._session.add(seq_request)
+
+    if commit:
+        self._session.commit()
+
+    if not persist_session:
+        self.close_session()
+    return None
+
+
 def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit: bool = True) -> None:
     persist_session = self._session is not None
     if not self._session:
@@ -402,6 +424,14 @@ def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit
         raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
     
     seq_request.files.remove(file)
+    
+    comments = self._session.query(models.Comment).where(
+        models.Comment.file_id == file_id
+    ).all()
+
+    for comment in comments:
+        self.remove_comment_from_seq_request(seq_request_id, comment.id, commit=False)
+
     self._session.add(seq_request)
 
     if commit:

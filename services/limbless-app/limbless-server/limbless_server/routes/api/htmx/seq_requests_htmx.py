@@ -290,6 +290,17 @@ def upload_auth_form(seq_request_id: int):
     )
 
 
+@seq_requests_htmx.route("<int:seq_request_id>/add_comment", methods=["POST"])
+@login_required
+def add_comment(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    return forms.SeqRequestCommentForm(formdata=request.form, seq_request_id=seq_request_id).process_request(
+        seq_request=seq_request, user=current_user
+    )
+
+
 @seq_requests_htmx.route("<int:seq_request_id>/upload_file", methods=["POST"])
 @login_required
 def upload_file(seq_request_id: int):
@@ -351,7 +362,7 @@ def remove_auth_form(seq_request_id: int):
     seq_request.seq_auth_form_file_id = None
     seq_request = db.update_seq_request(seq_request=seq_request)
 
-    db.delete_file(file.id)
+    db.remove_file_from_seq_request(seq_request_id, file.id)
 
     flash("Authorization form removed!", "success")
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
@@ -530,7 +541,7 @@ def process_request(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     return forms.ProcessRequestForm(formdata=request.form).process_request(
-        seq_request=seq_request
+        seq_request=seq_request, user=current_user
     )
 
 

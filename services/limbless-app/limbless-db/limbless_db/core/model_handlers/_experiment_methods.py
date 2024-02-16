@@ -176,6 +176,28 @@ def add_file_to_experiment(
     return file_link
 
 
+def remove_comment_from_experiment(self, experiment_id: int, comment_id: int, commit: bool = True) -> None:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
+
+    if (comment := self._session.get(models.Comment, comment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Comment with id '{comment_id}', not found.")
+    
+    experiment.comments.remove(comment)
+    self._session.add(experiment)
+
+    if commit:
+        self._session.commit()
+
+    if not persist_session:
+        self.close_session()
+    return None
+
+
 def remove_file_from_experiment(self, experiment_id: int, file_id: int, commit: bool = True) -> None:
     persist_session = self._session is not None
     if not self._session:
@@ -188,6 +210,14 @@ def remove_file_from_experiment(self, experiment_id: int, file_id: int, commit: 
         raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
     
     experiment.files.remove(file)
+
+    comments = self._session.query(models.Comment).where(
+        models.Comment.file_id == file_id
+    ).all()
+
+    for comment in comments:
+        self.remove_comment_from_experiment(experiment_id, comment.id, commit=False)
+
     self._session.add(experiment)
 
     if commit:

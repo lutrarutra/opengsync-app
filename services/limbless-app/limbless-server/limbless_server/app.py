@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 from flask import Flask, render_template, redirect, request, url_for, session, current_app, abort, make_response, send_from_directory
 from flask_login import login_required
-import sass
 
 from limbless_db import categories, models
 from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db
@@ -23,10 +22,6 @@ def create_app() -> Flask:
     for _, file_type in categories.FileType.as_tuples():
         if not os.path.exists(file_type.description):   # type: ignore
             os.makedirs(file_type.description)          # type: ignore
-
-    if app.debug:
-        logger.debug("Compiling SASS..")
-        sass.compile(dirname=("/usr/src/app/static/style", "/usr/src/app/static/style/compiled"))
 
     logger.info(f"Debug mode: {app.debug}")
 
@@ -83,7 +78,8 @@ def create_app() -> Flask:
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
         if file.uploader_id != current_user.id and not current_user.is_insider():
-            return abort(categories.HttpResponse.FORBIDDEN.value.id)
+            if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
+                return abort(categories.HttpResponse.FORBIDDEN.value.id)
         
         if file.extension != ".pdf":
             return abort(categories.HttpResponse.BAD_REQUEST.value.id)
@@ -107,7 +103,8 @@ def create_app() -> Flask:
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
         if file.uploader_id != current_user.id and not current_user.is_insider():
-            return abort(categories.HttpResponse.FORBIDDEN.value.id)
+            if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
+                return abort(categories.HttpResponse.FORBIDDEN.value.id)
         
         if file.extension not in [".png", ".jpg", ".jpeg"]:
             return abort(categories.HttpResponse.BAD_REQUEST.value.id)

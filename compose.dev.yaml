@@ -14,7 +14,10 @@ services:
             - ./media:/usr/src/app/media
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
-            - ./services/limbless-app/static:/usr/src/app/static
+            - ./services/limbless-app/static/images:/usr/src/app/static/images:ro
+            - ./services/limbless-app/static/js:/usr/src/app/static/js:ro
+            - ./services/limbless-app/static/resources:/usr/src/app/static/resources:ro
+            - compiled_css:/usr/src/app/static/style/compiled:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
         env_file: .dev.env
         ports:
@@ -25,9 +28,24 @@ services:
             postgres:
                 condition: service_healthy
                 restart: true
+            sass-compiler:
+                condition: service_started
+                restart: true
 
         healthcheck:
             test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+
+    sass-compiler:
+        image: apluslms/develop-sass
+        volumes:
+            - ./services/limbless-app/static/style/sass:/usr/src/app/static/style/sass:ro
+            - compiled_css:/usr/src/app/static/style/compiled
+        command: "sass --watch /usr/src/app/static/style/sass:/usr/src/app/static/style/compiled"
+        healthcheck:
+            test: ["CMD", "ps", "cax", "|", "grep", "-wq", "sass"]
             interval: 10s
             timeout: 10s
             retries: 5
@@ -67,3 +85,6 @@ services:
             postgres:
                 condition: service_healthy
                 restart: true
+
+volumes:
+    compiled_css:

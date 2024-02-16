@@ -530,3 +530,38 @@ select {
         cursor: pointer;
     }
 }
+
+.comment-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+
+    .card {
+        padding: 10px 20px 10px 20px;
+        .text {
+            margin: 0;
+        }
+        .comment-body {
+            padding: 10px 0 10px 0;
+        }
+        .btn {
+            border: none;
+            background-color: inherit;
+            margin: 0;
+            padding: 0;
+            font-size: 16px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .info {color: dodgerblue;}
+    }
+
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        .title {
+            font-size: 18px;
+        }
+    }
+}

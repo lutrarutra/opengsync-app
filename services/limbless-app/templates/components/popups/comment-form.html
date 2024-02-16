@@ -1,0 +1,20 @@
+{% from 'components/form_group.jinja2' import form_group %}
+
+<div class="modal-content" id="comment-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Add Comment</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="comment-form">
+            {{ comment_form.csrf_token() }}
+            {{ form_group(comment_form.comment) }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <button class="btn btn-success" hx-include="#comment-form" hx-target="#comment-form-container" hx-swap="outerHTML"
+        hx-encoding="multipart/form-data" hx-post="{{ comment_form._post_url }}">
+            Submit
+        </button>
+    </div>
+</div>

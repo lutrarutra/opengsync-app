@@ -1,5 +1,5 @@
 {% macro files_tab(context, files, delete_url, delete_context) -%}
-<div class="d-flex justify-content-between align-items-center">
+<div class="page-header">
     <div>
         <h2>Files</h2>
     </div>
@@ -22,10 +22,22 @@
                 <h4>{{ file.name }}</h4>
             </div>
             <div>
-                <button type="button" class="btn btn-danger"
-                hx-delete="{{ url_for(delete_url, file_id=file.id, **delete_context) }}">
+                {% if file.type.value.name != "Sequencing Authorization Form" %}
+                <a type="button" class="btn btn-danger"
+                hx-delete="{{ url_for(delete_url, file_id=file.id, **delete_context) }}"
+                _="on htmx:confirm(issueRequest)
+                halt the event
+                call Swal.fire({
+                    title: 'Delete file \'{{ file.name }}\'',
+                    showDenyButton: true,
+                    text: 'Are you sure?',
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'No'
+                })
+                if result.isConfirmed issueRequest()">
                     Delete File
-                </button>
+                </a>
+                {% endif %}
             </div>
         </div>
         {% if file.extension == ".pdf" %}

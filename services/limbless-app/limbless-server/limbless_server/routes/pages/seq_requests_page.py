@@ -79,6 +79,7 @@ def seq_request_page(seq_request_id: int):
         process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
         seq_auth_form = forms.SeqAuthForm()
         file_input_form = forms.SeqRequestAttachmentForm(seq_request_id=seq_request_id)
+        comment_form = forms.SeqRequestCommentForm(seq_request_id=seq_request_id)
 
         return render_template(
             "seq_request_page.html",
@@ -86,6 +87,7 @@ def seq_request_page(seq_request_id: int):
             libraries=libraries,
             samples=samples,
             path_list=path_list,
+            comment_form=comment_form,
             library_results=library_results,
             seq_request_form=seq_request_form,
             file_input_form=file_input_form,

@@ -266,7 +266,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             comments_df = data["comments"]
             for _, row in comments_df[comments_df["context"] == "visium_instructions"].iterrows():
                 comment = session.create_comment(
-                    text=row["comment"],
+                    text=row["text"],
                     author_id=user_id,
                 )
                 session.add_seq_request_comment(

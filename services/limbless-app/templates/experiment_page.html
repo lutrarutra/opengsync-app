@@ -1,5 +1,6 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_link, metadata_group_email_link %}
 {% from 'components/files_tab.jinja2' import files_tab %}
+{% from 'components/comments_tab.jinja2' import comments_tab with context %}
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
 
@@ -89,6 +90,12 @@
                 data-bs-target="#experiment-files-tab" type="button" role="tab"
                 aria-controls="experiment-files-tab" aria-selected="true"
                 id="experiment-files-tab-btn">Files</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#experiment-comments-tab" type="button" role="tab"
+                aria-controls="experiment-comments-tab" aria-selected="true"
+                id="experiment-comments-tab-btn">Comments</button>
             </li>
         </ul>
         <div class="tab-content pt-3">
@@ -184,6 +191,11 @@
                     )
                 }}
             </div>
+            <div class="tab-pane fade show" id="experiment-comments-tab" role="tabpanel" tabindex="6">
+                {{
+                    comments_tab(context="experiment", comments=experiment.comments)
+                }}
+            </div>  
         </div>
     </div>
 
