@@ -24,20 +24,21 @@ seq_request_form_htmx = Blueprint("seq_request_form_htmx", __name__, url_prefix=
 @login_required
 def download_template(type: str):
     if type == "raw":
-        name = "sas_raw_libraries.tsv"
+        name = "raw_sample_annotation.tsv"
+        df = pd.DataFrame(columns=list(sas_forms.SASInputForm._feature_mapping_raw.keys()))
     elif type == "premade":
-        name = "sas_premade_libraries.tsv"
+        df = pd.DataFrame(columns=list(sas_forms.SASInputForm._feature_mapping_premade.keys()))
+        name = "premade_library_annotation.tsv"
     elif type == "cmo":
-        name = "cmo.tsv"
+        df = pd.DataFrame(columns=list(sas_forms.CMOReferenceInputForm._mapping.keys()))
+        name = "cmo_reference.tsv"
     else:
         return abort(HttpResponse.NOT_FOUND.value.id)
-
-    path = os.path.join(
-        current_app.root_path, "..",
-        "static", "resources", "templates", name
+    
+    return Response(
+        df.to_csv(sep="\t", index=False), mimetype="text/csv",
+        headers={"Content-disposition": f"attachment; filename={name}"}
     )
-
-    return send_file(path, mimetype="text/csv", as_attachment=True, download_name=name)
 
 
 # Template sample annotation sheet
