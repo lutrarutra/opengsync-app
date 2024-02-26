@@ -183,8 +183,9 @@
         });
 
         function copy_to_clipboard(uuid) {
-            console.log("copying " + uuid);
-            navigator.clipboard.writeText($("#" + uuid + " input").first().val());
+            const s = $("#" + uuid + " input").first().val();
+            console.log(s);
+            navigator.clipboard.writeText(s);
 
             $(".copied-icon").css({
                 display: "none"

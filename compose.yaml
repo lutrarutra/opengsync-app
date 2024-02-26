@@ -10,6 +10,7 @@ services:
             - static_volume:/usr/src/app/static:ro
             - ./media:/usr/src/app/media:ro
             - ./uploads:/usr/src/app/uploads:ro
+            - ./cert:/usr/src/app/cert:ro
         depends_on:
             limbless-app:
                 condition: service_healthy

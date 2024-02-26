@@ -1,5 +1,6 @@
 import sys
 import os
+import uuid
 
 from loguru import logger
 from flask_htmx import HTMX
@@ -36,7 +37,16 @@ else:
         colorize=False, rotation="1 day"
     )
 
-SECRET_KEY = "SECRET_KEY"
+SECRET_KEY = ""
+if os.path.exists("cert/session.key"):
+    with open("cert/session.key", "r") as f:
+        SECRET_KEY = f.read().strip()
+
+if len(SECRET_KEY) == 0:
+    SECRET_KEY = str(uuid.uuid4())       
+    with open("cert/session.key", "w") as f:
+        f.write(SECRET_KEY)
+
 
 EMAIL_SENDER = os.environ["EMAIL_SENDER"]
 

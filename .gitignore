@@ -11,6 +11,7 @@ media/
 .test.env
 .tmp/
 .dev.env
+cert/
 .snakemake/
 containers/images/
 licensed/
