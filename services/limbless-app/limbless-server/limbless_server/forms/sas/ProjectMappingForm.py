@@ -66,7 +66,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             return False
         
         with DBSession(db) as session:
-            user_projects = session.get_user(user_id).projects
+            user_projects, _ = session.get_projects(user_id=user_id, limit=None)
             user_project_names = [project.name for project in user_projects]
             for field in self.input_fields:
                 if field.project.selected.data is None and not field.new_project.data:

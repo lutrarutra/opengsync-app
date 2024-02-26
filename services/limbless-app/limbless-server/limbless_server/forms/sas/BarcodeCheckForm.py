@@ -206,11 +206,11 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                         if visium_ref is None:
                             raise Exception("Visium reference table not found.")    # this should not happen
                         
-                        row = visium_ref[visium_ref["library_name"] == library_name].iloc[0]
+                        visium_row = visium_ref[visium_ref["library_name"] == library_name].iloc[0]
                         visium_annotation = db.create_visium_annotation(
-                            area=row["area"],
-                            image=row["image"],
-                            slide=row["slide"],
+                            area=visium_row["area"],
+                            image=visium_row["image"],
+                            slide=visium_row["slide"],
                         )
                         visium_annotation_id = visium_annotation.id
                     else:
@@ -255,6 +255,8 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                                 library_id=library.id,
                             )
 
+                    logger.debug(row)
+                    logger.debug(row["pool"])
                     if "pool" in row.keys() and not pd.isna(row["pool"]):
                         session.link_library_pool(
                             library_id=library.id,
