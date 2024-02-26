@@ -139,7 +139,7 @@ def add_indices_from_kit(db_handler: DBHandler, path: str):
 
 
 def init_db(create_users: bool):
-    db_handler = DBHandler(f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
+    db_handler = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
 
     # Tables
     db_handler.create_tables()

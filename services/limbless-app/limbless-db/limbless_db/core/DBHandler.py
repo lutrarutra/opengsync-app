@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from sqlmodel import create_engine, SQLModel, Session
 from sqlalchemy import orm
