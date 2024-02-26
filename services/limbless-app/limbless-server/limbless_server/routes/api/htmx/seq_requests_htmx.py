@@ -2,7 +2,7 @@ import os
 from io import BytesIO
 from typing import Optional, TYPE_CHECKING
 
-from flask import Blueprint, url_for, render_template, flash, abort, request, Response, jsonify
+from flask import Blueprint, url_for, render_template, flash, abort, request, Response, jsonify, current_app
 from flask_htmx import make_response
 from flask_login import login_required
 from werkzeug.utils import secure_filename
@@ -333,8 +333,9 @@ def delete_file(seq_request_id: int, file_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     db.remove_file_from_seq_request(seq_request_id, file_id)
-    if os.path.exists(file.path):
-        os.remove(file.path)
+    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    if os.path.exists(filepath):
+        os.remove(filepath)
 
     logger.info(f"Deleted file '{file.name}' from request (id='{seq_request_id}')")
     flash(f"Deleted file '{file.name}' from experrequestiment.", "success")
@@ -361,8 +362,9 @@ def remove_auth_form(seq_request_id: int):
     if (file := db.get_file(seq_request.seq_auth_form_file_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
 
-    if os.path.exists(file.path):
-        os.remove(file.path)
+    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    if os.path.exists(filepath):
+        os.remove(filepath)
 
     seq_request.seq_auth_form_file_id = None
     seq_request = db.update_seq_request(seq_request=seq_request)

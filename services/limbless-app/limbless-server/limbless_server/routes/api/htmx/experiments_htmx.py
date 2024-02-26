@@ -1,7 +1,7 @@
 import os
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, url_for, render_template, flash, abort, request, jsonify
+from flask import Blueprint, url_for, render_template, flash, abort, request, jsonify, current_app
 from flask_htmx import make_response
 from flask_login import login_required
 
@@ -288,8 +288,9 @@ def delete_file(experiment_id: int, file_id: int):
         return abort(HttpResponse.NOT_FOUND.value.id)
     
     db.remove_file_from_experiment(experiment_id=experiment.id, file_id=file_id)
-    if os.path.exists(file.path):
-        os.remove(file.path)
+    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    if os.path.exists(filepath):
+        os.remove(filepath)
 
     logger.info(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
     flash(f"Deleted file '{file.name}' from experiment.", "success")

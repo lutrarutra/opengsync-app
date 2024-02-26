@@ -95,11 +95,12 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         if file.extension != ".pdf":
             return abort(categories.HttpResponse.BAD_REQUEST.value.id)
 
-        if not os.path.exists(file.path):
-            logger.error(f"File not found: {file.path}")
+        filepath = os.path.join(app.config["MEDIA_FOLDER"], file.path)
+        if not os.path.exists(filepath):
+            logger.error(f"File not found: {filepath}")
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
-        with open(file.path, "rb") as f:
+        with open(filepath, "rb") as f:
             data = f.read()
 
         response = make_response(data)
@@ -120,11 +121,12 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         if file.extension not in [".png", ".jpg", ".jpeg"]:
             return abort(categories.HttpResponse.BAD_REQUEST.value.id)
 
-        if not os.path.exists(file.path):
-            logger.error(f"File not found: {file.path}")
+        filepath = os.path.join(app.config["MEDIA_FOLDER"], file.path)
+        if not os.path.exists(filepath):
+            logger.error(f"File not found: {filepath}")
             return abort(categories.HttpResponse.NOT_FOUND.value.id)
         
-        with open(file.path, "rb") as f:
+        with open(filepath, "rb") as f:
             data = f.read()
 
         response = make_response(data)

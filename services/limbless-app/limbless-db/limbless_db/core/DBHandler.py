@@ -5,9 +5,8 @@ from sqlalchemy import orm
 
 
 class DBHandler():
-    def __init__(self, url: str):
-        self.url = url
-        self._engine = create_engine(self.url)
+    def __init__(self, user: str, password: str, host: str, port: Union[str, int], db: str):
+        self._engine = create_engine(f"postgresql://{user}:{password}@{host}:{port}/{db}")
         self._session: Optional[orm.Session] = None
 
     def create_tables(self) -> None:

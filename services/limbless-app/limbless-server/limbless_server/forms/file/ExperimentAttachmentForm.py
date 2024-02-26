@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 
-from flask import Response, flash, url_for
+from flask import Response, flash, url_for, current_app
 from flask_htmx import make_response
 
 from limbless_db import models
@@ -51,7 +51,8 @@ class ExperimentAttachmentForm(FileInputForm):
             )
             db.add_experiment_comment(experiment.id, comment.id)
 
-        self.file.data.save(db_file.path)
+        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], db_file.path)
+        self.file.data.save(filepath)
 
         db.add_file_to_experiment(experiment.id, db_file.id)
 

@@ -1,6 +1,6 @@
 import os
 
-from flask import Response, url_for, flash
+from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 from wtforms import FileField
 from wtforms.validators import DataRequired
@@ -53,12 +53,13 @@ class SeqAuthForm(HTMXFlaskForm):
             uploader_id=user.id
         )
 
-        self.file.data.save(db_file.path)
+        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], db_file.path)
+        self.file.data.save(filepath)
 
         db.add_file_to_seq_request(seq_request.id, db_file.id)
 
         flash("Authorization form uploaded!", "success")
-        logger.debug(f"Uploaded sequencing authorization form for sequencing request '{seq_request.name}': {db_file.path}")
+        logger.debug(f"Uploaded sequencing authorization form for sequencing request '{seq_request.name}': {filepath}")
 
         return make_response(
             redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),

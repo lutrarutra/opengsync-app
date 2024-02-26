@@ -1,6 +1,5 @@
 import os
 
-from flask import current_app
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.categories import FileType
@@ -26,4 +25,4 @@ class File(SQLModel, table=True):
     
     @property
     def path(self) -> str:
-        return os.path.join(current_app.config["MEDIA_FOLDER"], self.type.value.description, f"{self.uuid}{self.extension}")
+        return os.path.join(self.type.value.description, f"{self.uuid}{self.extension}")

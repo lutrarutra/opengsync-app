@@ -23,6 +23,7 @@ def get_experiment_libraries_df(
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.ExperimentPoolLink.lane.label("lane"),
         models.SeqRequest.id.label("seq_request_id"), models.SeqRequest.name.label("request_name"),
         models.User.id.label("requestor_id"), models.User.email.label("requestor_email"),
+        models.VisiumAnnotation.slide.label("slide"), models.VisiumAnnotation.area.label("area"), models.VisiumAnnotation.image.label("image")
     ).join(
         models.SeqRequest,
         models.SeqRequest.id == models.Library.seq_request_id,
@@ -45,6 +46,9 @@ def get_experiment_libraries_df(
         models.IndexKit,
         models.IndexKit.id == models.Library.index_kit_id,
         isouter=True
+    ).join(
+        models.VisiumAnnotation,
+        models.VisiumAnnotation.id == models.Library.visium_annotation_id
     ).distinct()
 
     library_query = library_query.order_by(models.Library.id)
