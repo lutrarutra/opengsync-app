@@ -31,6 +31,7 @@ services:
             - ./data:/usr/src/app/data:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
             - static_volume:/usr/src/app/static:ro
+            - ./cert:/usr/src/app/cert:ro
         env_file: .env
         expose:
             - ${LIMBLESS_PORT}
