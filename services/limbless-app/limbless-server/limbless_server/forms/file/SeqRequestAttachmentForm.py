@@ -15,12 +15,22 @@ class SeqRequestAttachmentForm(FileInputForm):
         FileInputForm.__init__(self, formdata=formdata, max_size_mbytes=max_size_mbytes)
         self._post_url = url_for("seq_requests_htmx.upload_file", seq_request_id=seq_request_id)
 
-    def process_request(self, **context) -> Response:
-        if not self.validate():
-            return self.make_response(**context)
+    def validate(self, seq_request: models.SeqRequest) -> bool:
+        if not super().validate():
+            return False
         
+        if FileType.get(self.file_type.data) == FileType.SEQ_AUTH_FORM:
+            if seq_request.seq_auth_form_file_id is not None:
+                self.file_type.errors = ("A file of this type has already been uploaded.",)
+                return False
+        return True
+
+    def process_request(self, **context) -> Response:
         user: models.User = context["user"]
         seq_request: models.SeqRequest = context["seq_request"]
+
+        if not self.validate(seq_request):
+            return self.make_response(**context)
 
         file_type = FileType.get(self.file_type.data)
 

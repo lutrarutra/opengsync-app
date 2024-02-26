@@ -67,6 +67,7 @@ def experiment_page(experiment_id: int):
 
         experiment_form = forms.ExperimentForm(experiment=experiment)
         pooling_input_form = forms.pooling.PoolingInputForm()
+        comment_form = forms.ExperimentCommentForm(experiment_id=experiment_id)
 
         path_list = [
             ("Experiments", url_for("experiments_page.experiments_page")),
@@ -90,6 +91,7 @@ def experiment_page(experiment_id: int):
             libraries=libraries,
             libraries_n_pages=libraries_n_pages,
             libraries_active_page=0,
+            comment_form=comment_form,
             file_input_form=forms.ExperimentAttachmentForm(experiment_id=experiment_id),
             pooling_input_form=pooling_input_form,
             available_seq_requests_n_pages=available_seq_requests_n_pages,

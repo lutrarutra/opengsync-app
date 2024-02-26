@@ -48,7 +48,8 @@
     {% endif %}>
         {{ field.label }}
     </a>
-    <select class="form-control select-field" name="{{ field.name }}" id="{{ field.id }}">
+    <select class="form-control select-field {% if field.errors %}is-invalid{% endif %}"
+    name="{{ field.name }}" id="{{ field.id }}">
         {% for choice in field.iter_choices() %}
         <option value="{{ choice[0] }}"
         {% if choice[2] %}
@@ -58,6 +59,13 @@
         </option>
         {% endfor %}
     </select>
+    <div class="invalid-feedback-container">
+        {% if not disabled %}
+        {% for error in field.errors %}
+            <p class="">{{ error }}</p>
+        {% endfor %}
+        {% endif %}
+    </div>
 </div>
 {%- endmacro %}
 

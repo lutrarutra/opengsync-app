@@ -22,7 +22,7 @@ class FileInputForm(HTMXFlaskForm):
         ("jpeg", "JPEG")
     ]
     file_type = SelectField("File Type", choices=FileType.as_selectable(), coerce=int, description="Select the type of file you are uploading.")
-    comment = TextAreaField("Comment", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], description="Provide a brief description of the file.")
+    comment = TextAreaField("Comment", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], description="Provide a brief description of the file.")  # type: ignore
     file = FileField(validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])])
 
     def __init__(self, formdata: Optional[dict] = None, max_size_mbytes: int = 5):

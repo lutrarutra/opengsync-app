@@ -115,12 +115,11 @@ def get(page: int):
 @seq_requests_htmx.route("<int:seq_request_id>/export", methods=["GET"])
 @login_required
 def export(seq_request_id: int):
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
         
-        # FIXME
-        samples = seq_request.samples
+    samples, _ = db.get_samples(seq_request_id=seq_request_id, limit=None)
+    libraries, _ = db.get_libraries(seq_request_id=seq_request_id, limit=None)
     
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
@@ -130,11 +129,14 @@ def export(seq_request_id: int):
 
     metadata_df = pd.DataFrame.from_records([seq_request.to_dict()]).T
     samples_df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
+    libraries_df = pd.DataFrame.from_records([library.to_dict() for library in libraries])
 
     bytes_io = BytesIO()
-    with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:
+    # TODO: export features, CMOs, VISIUM metadata, etc...
+    with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:  # type: ignore
         metadata_df.to_excel(writer, sheet_name="metadata", index=True)
         samples_df.to_excel(writer, sheet_name="samples", index=False)
+        libraries_df.to_excel(writer, sheet_name="libraries", index=False)
 
     bytes_io.seek(0)
     mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -295,6 +297,9 @@ def upload_auth_form(seq_request_id: int):
 def add_comment(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    if seq_request.requestor_id != current_user.id and not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
     
     return forms.SeqRequestCommentForm(formdata=request.form, seq_request_id=seq_request_id).process_request(
         seq_request=seq_request, user=current_user

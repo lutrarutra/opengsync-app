@@ -161,7 +161,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     def status():
         return make_response("OK", 200)
     
-    # app.register_blueprint(api.jobs_bp)
     app.register_blueprint(api.samples_htmx)
     app.register_blueprint(api.projects_htmx)
     app.register_blueprint(api.experiments_htmx)

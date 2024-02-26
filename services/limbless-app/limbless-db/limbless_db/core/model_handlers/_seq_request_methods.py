@@ -129,7 +129,7 @@ def get_seq_requests(
     if with_statuses is not None:
         status_ids = [status.value.id for status in with_statuses]
         query = query.where(
-            models.SeqRequest.status_id.in_(status_ids)
+            models.SeqRequest.status_id.in_(status_ids)  # type: ignore
         )
 
     if not show_drafts:
@@ -211,7 +211,7 @@ def get_num_seq_requests(
     if with_statuses is not None:
         status_ids = [status.value.id for status in with_statuses]
         query = query.where(
-            models.SeqRequest.status_id.in_(status_ids)
+            models.SeqRequest.status_id.in_(status_ids)  # type: ignore
         )
 
     num_seq_requests = query.count()
