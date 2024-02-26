@@ -296,6 +296,18 @@ def delete_file(experiment_id: int, file_id: int):
     return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 
 
+@experiments_htmx.route("<int:experiment_id>/add_comment", methods=["POST"])
+@login_required
+def add_comment(experiment_id: int):
+    if not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.value.id)
+    
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.value.id)
+    
+    return forms.ExperimentCommentForm(experiment_id=experiment_id, formdata=request.form).process_request(user=current_user, experiment=experiment)
+
+
 @experiments_htmx.route("<int:experiment_id>/get_graph", methods=["GET"])
 @login_required
 def get_graph(experiment_id: int):

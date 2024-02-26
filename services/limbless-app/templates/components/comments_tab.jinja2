@@ -4,7 +4,7 @@
         <h2>Comments</h2>
     </div>
     <div>
-        <button type="button" class="btn btn-primary" data-bs-target="#{{context}}-comment-form-popup"
+        <button type="button" class="btn btn-primary" data-bs-target="#comment-form-popup"
             data-bs-toggle="modal">
             New Comment
         </button>
@@ -36,6 +36,11 @@
     </div>
     {% endfor %}
 </div>
+<div class="modal fade" id="comment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal-dialog modal-l modal-dialog-centered">
+        {% include "components/popups/comment-form.html" %}
+    </div>
+</div>   
 <script>
 function open_tab(file_id) {
     $('.nav-tabs button[data-bs-target="#{{context}}-files-tab"]').tab('show');

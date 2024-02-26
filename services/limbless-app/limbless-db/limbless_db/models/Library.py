@@ -87,10 +87,19 @@ class Library(SQLModel, table=True):
     sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id", "owner_id", "pool_id", "adapter"]
 
     def to_dict(self):
-        return {
+        res = {
             "library_id": self.id,
+            "library_name": self.name,
             "library_type": self.type.value,
+            "pool": self.pool.name if self.pool is not None else None,
+            "adapter": self.adapter,
+            "index_1": self.index_1_sequence,
+            "index_2": self.index_2_sequence,
+            "index_3": self.index_3_sequence,
+            "index_4": self.index_4_sequence,
         }
+
+        return res
 
     @property
     def type(self) -> LibraryType:

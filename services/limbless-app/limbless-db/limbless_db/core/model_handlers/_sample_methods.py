@@ -213,7 +213,6 @@ def query_samples(
     if limit is not None:
         query = query.limit(limit)
 
-    logger.debug(query)
     res = query.all()
 
     if not persist_session:

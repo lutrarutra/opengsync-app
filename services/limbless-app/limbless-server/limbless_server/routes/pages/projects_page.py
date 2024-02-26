@@ -49,6 +49,5 @@ def project_page(project_id):
         samples=samples,
         path_list=path_list,
         project_form=project_form,
-        common_organisms=db.common_organisms,
         samples_n_pages=n_pages, samples_active_page=0,
     )

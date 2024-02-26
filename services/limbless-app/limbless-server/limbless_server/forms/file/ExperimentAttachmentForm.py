@@ -15,6 +15,16 @@ class ExperimentAttachmentForm(FileInputForm):
         FileInputForm.__init__(self, formdata=formdata, max_size_mbytes=max_size_mbytes)
         self._post_url = url_for("experiments_htmx.upload_file", experiment_id=experiment_id)
 
+    def validate(self) -> bool:
+        if not super().validate():
+            return False
+        
+        if FileType.get(self.file_type.data) == FileType.SEQ_AUTH_FORM:
+            self.file_type.errors = ("Invalid file type for experiment.",)
+            return False
+            
+        return True
+
     def process_request(self, **context) -> Response:
         if not self.validate():
             return self.make_response(**context)
