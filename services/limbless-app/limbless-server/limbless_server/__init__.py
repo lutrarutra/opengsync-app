@@ -43,7 +43,7 @@ if os.path.exists("cert/session.key"):
         SECRET_KEY = f.read().strip()
 
 if len(SECRET_KEY) == 0:
-    SECRET_KEY = str(uuid.uuid4())       
+    SECRET_KEY = str(uuid.uuid4())
     with open("cert/session.key", "w") as f:
         f.write(SECRET_KEY)
 
