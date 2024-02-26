@@ -237,7 +237,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                 
                     for sample, cmo in library_samples:
                         if cmo is not None:
-                            logger.debug(cmo.pattern)
                             _cmo = session.create_cmo(
                                 sequence=cmo.sequence,
                                 pattern=cmo.pattern,
@@ -256,7 +255,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                                 library_id=library.id,
                             )
 
-                    if "pool" in row and not pd.isna(row["pool"]):
+                    if "pool" in row.keys() and not pd.isna(row["pool"]):
                         session.link_library_pool(
                             library_id=library.id,
                             pool_id=pools[row["pool"]].id

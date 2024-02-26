@@ -182,10 +182,28 @@
             }
         });
 
+        function unsecuredCopyToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Unable to copy to clipboard', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
         function copy_to_clipboard(uuid) {
             const s = $("#" + uuid + " input").first().val();
-            console.log(s);
-            navigator.clipboard.writeText(s);
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(s);
+            } else {
+                unsecuredCopyToClipboard(s);
+            }
 
             $(".copied-icon").css({
                 display: "none"

@@ -14,7 +14,8 @@ if __name__ == "__main__":
 
     app: Flask = create_app(static_folder=args.static, template_folder=args.tempaltes)
 
-    ssl_context = ("cert/server.crt", "cert/server.key")
+    # ssl_context = ("cert/server.crt", "cert/server.key")
+    ssl_context = None
     app.run(host=args.host, port=args.port, debug=True, ssl_context=ssl_context)
 
 exit(0)
