@@ -89,7 +89,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
             return False
         
         library_table = self.get_data()["library_table"]
-        _df = library_table[library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id]
+        _df = library_table[library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id]
         is_annotated = _df["library_name"].isin(self.visium_ref["library_name"])
         if not is_annotated.all():
             self.file.errors = (f"Spatial Transcriptomic annotations missing from following libraries: {', '.join(_df.loc[~is_annotated, 'library_name'])}",)

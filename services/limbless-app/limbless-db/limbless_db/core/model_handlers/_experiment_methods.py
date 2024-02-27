@@ -4,10 +4,11 @@ from typing import Optional
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
+from ..categories import FlowCellType
 
 
 def create_experiment(
-    self, flowcell: str, sequencer_id: int, num_lanes: int,
+    self, flowcell_id: str, flowcell_type: FlowCellType, sequencer_id: int, num_lanes: int,
     r1_cycles: int, i1_cycles: int, sequencing_person_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None,
     commit: bool = True
@@ -20,7 +21,8 @@ def create_experiment(
         raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
 
     experiment = models.Experiment(
-        flowcell=flowcell,
+        flowcell_id=flowcell_id,
+        flowcell_type_id=flowcell_type.id,
         timestamp=datetime.now(),
         sequencer_id=sequencer_id,
         r1_cycles=r1_cycles,

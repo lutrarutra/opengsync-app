@@ -13,13 +13,13 @@
             <h1>Experiment</h1>
         </div>
         <div>
-            {% if experiment.status.value.name == "Draft" %}
+            {% if experiment.status.name == "Draft" %}
             <button type="button" class="btn btn-success" data-bs-toggle="modal"
                 data-bs-target="#submit-experiment-popup">
                 Submit for Sequencing
             </button>
             {% endif %}
-            {% if experiment.status.value.name == "Sequencing" %}
+            {% if experiment.status.name == "Sequencing" %}
             <button type="button" class="btn btn-success" data-bs-toggle="modal"
                 data-bs-target="#complete-experiment-form-popup">
                 Complete Experiment
@@ -167,10 +167,17 @@
                     {{ metadata_group("Sequencer IP", experiment.sequencer.ip, class="col") }}
                 </div>
                 <div class="row">
-                    {{ metadata_group("Flowcell", experiment.flowcell, class="col") }}
-                    {{ metadata_group("Lanes", experiment.num_lanes, class="col") }}
+                    {{ metadata_group("Created", experiment.timestamp.strftime('%Y-%m-%d %H:%M'), class="col-3") }}
+                    {{ metadata_group("Flowcell Type", experiment.flowcell_type, class="col-4") }}
+                    {{ metadata_group("Flowcell ID", experiment.flowcell_id, class="col-3") }}
+                    {{ metadata_group("Lanes", experiment.num_lanes, class="col-2") }}
                 </div>
-                {{ metadata_group("Created", experiment.timestamp.strftime('%Y-%m-%d %H:%M')) }}
+                <div class="row">
+                    {{ metadata_group("R1 Cycles", experiment.r1_cycles, class="col") }}
+                    {{ metadata_group("I1 Cycles", experiment.i1_cycles, class="col") }}
+                    {{ metadata_group("I2 Cycles", experiment.i2_cycles, class="col") }}
+                    {{ metadata_group("R2 Cycles", experiment.r2_cycles, class="col") }}
+                </div>
             </div>
             <div class="tab-pane fade show" id="experiment-overview-tab" role="tabpanel" tabindex="4">
                 <div class="d-flex justify-content-between align-items-center">

@@ -59,7 +59,7 @@ class UserForm(HTMXFlaskForm):
     _form_label = "user_form"
 
     email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.User.email.type.length)])  # type: ignore
-    role = SelectField("Role", choices=UserRole.as_selectable(), default=UserRole.CLIENT.value.id, validators=[DataRequired()], coerce=int)
+    role = SelectField("Role", choices=UserRole.as_selectable(), default=UserRole.CLIENT.id, validators=[DataRequired()], coerce=int)
 
     def validate(self, user: models.User) -> bool:
         if not super().validate():

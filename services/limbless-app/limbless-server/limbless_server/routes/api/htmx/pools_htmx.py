@@ -20,7 +20,7 @@ pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/pools/")
 @login_required
 def get(page):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
@@ -35,11 +35,11 @@ def get(page):
         try:
             experiment_id = int(experiment_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
             
             pools, n_pages = session.get_pools(
                 experiment_id=experiment_id, sort_by=sort_by, descending=descending,

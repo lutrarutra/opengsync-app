@@ -102,7 +102,7 @@ class SASInputForm(HTMXFlaskForm):
         self.df = self.df.rename(columns=feature_mapping)
         self.df = self.df[feature_mapping.values()]
 
-        if self.submission_type.data == "raw" and (self.df["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id).any():
+        if self.submission_type.data == "raw" and (self.df["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             self.file.errors = ("Spatial transcriptomic libraries are not allowed in raw submission.",)
             return False
 

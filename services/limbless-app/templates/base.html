@@ -33,7 +33,7 @@
 
 <body>
     {% if current_user.is_authenticated %}
-        {% set role_name = current_user.role.value.name %}
+        {% set role_name = current_user.role.name %}
     {% else %}
         {% set role_name = "Quest" %}
     {% endif %}

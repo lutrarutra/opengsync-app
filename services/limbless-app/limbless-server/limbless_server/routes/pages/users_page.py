@@ -19,7 +19,7 @@ users_page_bp = Blueprint("users_page", __name__)
 @login_required
 def users_page():
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     users, n_pages = db.get_users()
 
@@ -40,10 +40,10 @@ def user_page(user_id: Optional[int]):
 
     if not current_user.is_insider():
         if user_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.value.id)
+            return abort(HttpResponse.FORBIDDEN.id)
         
     if (user := db.get_user(user_id)) is None:
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
 
     path_list = [
         ("Users", url_for("users_page.users_page")),

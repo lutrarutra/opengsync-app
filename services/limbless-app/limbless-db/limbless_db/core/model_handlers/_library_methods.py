@@ -52,7 +52,7 @@ def create_library(
     library = models.Library(
         name=name,
         seq_request_id=seq_request_id,
-        type_id=library_type.value.id,
+        type_id=library_type.id,
         owner_id=owner_id,
         volume=volume,
         index_kit_id=index_kit_id,

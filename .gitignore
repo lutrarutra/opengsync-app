@@ -12,6 +12,7 @@ media/
 .tmp/
 .dev.env
 cert/
+test.ipynb
 .snakemake/
 containers/images/
 licensed/

@@ -25,7 +25,7 @@ def create_file(
 
     file = models.File(
         name=name[:models.File.name.type.length],
-        type_id=type.value.id,
+        type_id=type.id,
         extension=extension.lower(),
         uuid=uuid,
         uploader_id=uploader_id,

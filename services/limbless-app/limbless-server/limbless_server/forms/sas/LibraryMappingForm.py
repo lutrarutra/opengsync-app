@@ -128,7 +128,7 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
                         selected_library_type = LibraryType.get(similar)
 
             if selected_library_type is not None:
-                self.input_fields[i].library_type.process_data(selected_library_type.value.id)
+                self.input_fields[i].library_type.process_data(selected_library_type.id)
 
         data["library_table"] = df
         self.update_data(data)
@@ -146,11 +146,11 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
         for i, library_type in enumerate(library_types):
             df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].library_type.data)
         
-        df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).value.description)
+        df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).description)
 
         df["is_cmo_sample"] = False
         for sample_name, _df in df.groupby("sample_name"):
-            if LibraryType.MULTIPLEXING_CAPTURE.value.id in _df["library_type_id"].unique():
+            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
                 df.loc[df["sample_name"] == sample_name, "is_cmo_sample"] = True
 
         data["library_table"] = df
@@ -171,13 +171,13 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             return index_kit_mapping_form.make_response(**context)
         
         if data["library_table"]["library_type_id"].isin([
-            LibraryType.MULTIPLEXING_CAPTURE.value.id,
+            LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
         
-        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id).any():
+        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
         

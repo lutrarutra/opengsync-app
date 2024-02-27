@@ -61,7 +61,7 @@
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
                 <td>{{ seq_request.technology }}</td>
-                <td>{{ seq_request.status.value.name }} {{ seq_request.status.value.description | safe }}</td>
+                <td>{{ seq_request.status.name }} {{ seq_request.status.description | safe }}</td>
                 <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.name }} {{ seq_request.requestor.owner_id }}<span class="desc">{{ "me" if current_user.id == seq_request.requestor.owner_id }}</span></td>
                 <td>{{ seq_request.submitted_time_to_str() }}</td>
                 <td>{{ seq_request.num_libraries }}</td>

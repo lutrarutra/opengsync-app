@@ -19,8 +19,8 @@
         <div class="card col-8">
             <div class="comment-header">
                 <p class="text title">
-                {{ comment.author.role.value.description | safe }} {{ comment.author.name }}
-                <span class="desc">{{ comment.author.role.value.name }}</span>
+                {{ comment.author.role.description | safe }} {{ comment.author.name }}
+                <span class="desc">{{ comment.author.role.name }}</span>
             </p>
                 <p class="text text-muted">{{ comment.timestamp_to_str() }}</p>
             </div>

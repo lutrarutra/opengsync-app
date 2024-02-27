@@ -46,17 +46,17 @@ def seq_requests_page():
 def seq_request_page(seq_request_id: int):
     with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+            return abort(HttpResponse.NOT_FOUND.id)
         if seq_request.requestor_id != current_user.id:
             if not current_user.is_insider():
-                return abort(HttpResponse.FORBIDDEN.value.id)
+                return abort(HttpResponse.FORBIDDEN.id)
             
         libraries, libraries_n_pages = session.get_libraries(seq_request_id=seq_request_id, sort_by="id", descending=True)
         samples, samples_n_pages = session.get_samples(seq_request_id=seq_request_id, sort_by="id", descending=True)
 
         if not current_user.is_insider():
             if seq_request.requestor_id != current_user.id:
-                return abort(HttpResponse.FORBIDDEN.value.id)
+                return abort(HttpResponse.FORBIDDEN.id)
 
         seq_request_form = forms.SeqRequestForm(seq_request=seq_request)
 

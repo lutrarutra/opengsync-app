@@ -6,7 +6,7 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.value.description }}</span></h1>
+            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.description }}</span></h1>
         </div>
         <div>
             <span {% if library.submitted and not current_user.is_insider() %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
@@ -37,7 +37,7 @@
             aria-controls="library-metadata-tab" aria-selected="true">
             Metadata</button>
         </li>
-        {% if library.type.value.description == "VISIUM" %}
+        {% if library.type.description == "VISIUM" %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-visium-tab" type="button" role="tab"
@@ -109,7 +109,7 @@
                 {{
                     metadata_group_email_link(
                         "Owner Email", library.owner.email, class="col",
-                        subject="BSF Library: " + library.name + " " + library.type.value.description + " " + " (" + library.id | string + ")"
+                        subject="BSF Library: " + library.name + " " + library.type.description + " " + " (" + library.id | string + ")"
                     )
                 }}
             </div>

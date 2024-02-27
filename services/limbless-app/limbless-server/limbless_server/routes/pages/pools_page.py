@@ -39,10 +39,10 @@ def pools_page():
 def pool_page(pool_id: int):
     with DBSession(db) as session:
         if (pool := session.get_pool(pool_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+            return abort(HttpResponse.NOT_FOUND.id)
         
         if not current_user.is_insider() and pool.owner_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.value.id)
+            return abort(HttpResponse.FORBIDDEN.id)
 
         libraries, libraries_n_pages = session.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
         is_editable = pool.is_editable()

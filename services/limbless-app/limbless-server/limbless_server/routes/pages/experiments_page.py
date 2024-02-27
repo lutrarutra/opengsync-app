@@ -19,7 +19,7 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 @login_required
 def experiments_page():
     if not current_user.is_insider():
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
     
     experiments, n_pages = db.get_experiments()
 
@@ -37,14 +37,14 @@ def experiments_page():
 @login_required
 def experiment_page(experiment_id: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     with DBSession(db) as session:
         if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+            return abort(HttpResponse.NOT_FOUND.id)
         
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.value.id)
+            return abort(HttpResponse.FORBIDDEN.id)
 
         pools = session.get_available_pools_for_experiment(experiment_id)
 

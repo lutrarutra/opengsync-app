@@ -31,9 +31,9 @@ def projects_page():
 def project_page(project_id):
     with DBSession(db) as session:
         if (project := session.get_project(project_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+            return abort(HttpResponse.NOT_FOUND.id)
         if not current_user.is_insider() and project.owner_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.value.id)
+            return abort(HttpResponse.FORBIDDEN.id)
 
         samples, n_pages = session.get_samples(project_id=project_id, sort_by="id", descending=True)
 

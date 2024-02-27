@@ -15,7 +15,7 @@
             <tr onclick="window.location.href='{{ url_for('feature_kits_page.feature_kit_page', feature_kit_id=feature_kit.id) }}';">
                 <th scope="row">{{ feature_kit.id }}</th>
                 <td>{{ feature_kit.name }}</td>
-                <td>{{ feature_kit.type.value.name }}</td>
+                <td>{{ feature_kit.type.name }}</td>
             </tr>
             {% endfor %}
         </tbody>

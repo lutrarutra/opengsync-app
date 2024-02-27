@@ -24,7 +24,7 @@ def get(page: int):
     descending = order == "desc"
 
     if sort_by not in models.User.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     with DBSession(db) as session:
         users, n_pages = session.get_users(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
@@ -45,7 +45,7 @@ def query():
     query = request.form.get(field_name)
 
     if query is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
     
     if (raw_roles := request.args.get("roles", None)) is not None:
         logger.debug(raw_roles)
@@ -76,7 +76,7 @@ def query():
 @login_required
 def table_query():
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     if (word := request.form.get("first_name", None)) is not None:
         field_name = "first_name"
@@ -87,10 +87,10 @@ def table_query():
     elif (word := request.form.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     if word is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     if field_name == "first_name" or field_name == "last_name":
         users = db.query_users(word)
@@ -100,7 +100,7 @@ def table_query():
         try:
             user_id = int(word)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         else:
             users = [db.get_user(user_id)]
     else:

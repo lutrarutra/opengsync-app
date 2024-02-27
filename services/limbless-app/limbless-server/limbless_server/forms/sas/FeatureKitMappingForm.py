@@ -149,7 +149,7 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         data = self.__parse()
 
-        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id).any():
+        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
 

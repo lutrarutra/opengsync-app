@@ -36,7 +36,7 @@ def get(page: int):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Feature.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
     
     features: list[models.Feature] = []
     context = {}
@@ -46,7 +46,7 @@ def get(page: int):
         try:
             feature_kit_id = int(feature_kit_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             feature_kit = session.get_feature_kit(feature_kit_id)
@@ -75,7 +75,7 @@ def query_kits():
     field_name = next(iter(request.form.keys()))
 
     if (word := request.form.get(field_name)) is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     results = db.query_feature_kits(word)
 

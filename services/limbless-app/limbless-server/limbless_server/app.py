@@ -86,19 +86,19 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @login_required
     def pdf_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
-            return abort(categories.HttpResponse.NOT_FOUND.value.id)
+            return abort(categories.HttpResponse.NOT_FOUND.id)
         
         if file.uploader_id != current_user.id and not current_user.is_insider():
             if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
-                return abort(categories.HttpResponse.FORBIDDEN.value.id)
+                return abort(categories.HttpResponse.FORBIDDEN.id)
         
         if file.extension != ".pdf":
-            return abort(categories.HttpResponse.BAD_REQUEST.value.id)
+            return abort(categories.HttpResponse.BAD_REQUEST.id)
 
         filepath = os.path.join(app.config["MEDIA_FOLDER"], file.path)
         if not os.path.exists(filepath):
             logger.error(f"File not found: {filepath}")
-            return abort(categories.HttpResponse.NOT_FOUND.value.id)
+            return abort(categories.HttpResponse.NOT_FOUND.id)
         
         with open(filepath, "rb") as f:
             data = f.read()
@@ -112,19 +112,19 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @login_required
     def img_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
-            return abort(categories.HttpResponse.NOT_FOUND.value.id)
+            return abort(categories.HttpResponse.NOT_FOUND.id)
         
         if file.uploader_id != current_user.id and not current_user.is_insider():
             if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
-                return abort(categories.HttpResponse.FORBIDDEN.value.id)
+                return abort(categories.HttpResponse.FORBIDDEN.id)
         
         if file.extension not in [".png", ".jpg", ".jpeg"]:
-            return abort(categories.HttpResponse.BAD_REQUEST.value.id)
+            return abort(categories.HttpResponse.BAD_REQUEST.id)
 
         filepath = os.path.join(app.config["MEDIA_FOLDER"], file.path)
         if not os.path.exists(filepath):
             logger.error(f"File not found: {filepath}")
-            return abort(categories.HttpResponse.NOT_FOUND.value.id)
+            return abort(categories.HttpResponse.NOT_FOUND.id)
         
         with open(filepath, "rb") as f:
             data = f.read()

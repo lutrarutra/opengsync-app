@@ -14,7 +14,7 @@ organisms_htmx = Blueprint("organisms_htmx", __name__, url_prefix="/api/organism
 def query():
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     if word.strip() == "":
         q_organisms = db.common_organisms

@@ -25,7 +25,7 @@ def get(page):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Library.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
     
     libraries: list[models.Library] = []
     context = {}
@@ -35,11 +35,11 @@ def get(page):
         try:
             seq_request_id = int(seq_request_id)
         except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
             libraries, n_pages = session.get_libraries(
                 offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending
             )
@@ -49,11 +49,11 @@ def get(page):
         try:
             experiment_id = int(experiment_id)
         except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
             libraries, n_pages = session.get_libraries(
                 offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending
             )
@@ -63,11 +63,11 @@ def get(page):
         try:
             sample_id = int(sample_id)
         except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             if (sample := session.get_sample(sample_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
             libraries, n_pages = session.get_libraries(
                 offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending
             )
@@ -77,11 +77,11 @@ def get(page):
         try:
             experiment_id = int(experiment_id)
         except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
             libraries, n_pages = session.get_libraries(
                 offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending
             )
@@ -91,11 +91,11 @@ def get(page):
         try:
             pool_id = int(pool_id)
         except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             if (pool := session.get_pool(pool_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
             libraries, n_pages = session.get_libraries(
                 offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending
             )
@@ -123,9 +123,9 @@ def get(page):
 def edit(library_id):
     with DBSession(db) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+            return abort(HttpResponse.NOT_FOUND.id)
         if not library.is_editable() and not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.value.id)
+            return abort(HttpResponse.FORBIDDEN.id)
 
     return forms.LibraryForm(request.form).process_request(
         library=library
@@ -137,7 +137,7 @@ def edit(library_id):
 def query():
     field_name = next(iter(request.args.keys()))
     if (word := request.form.get(field_name, default="")) is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     if not current_user.is_insider():
         results = db.query_libraries(word, current_user.id)
@@ -160,10 +160,10 @@ def table_query():
     elif (word := request.form.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
     
     if word is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     def __get_libraries(
         session: DBHandler, word: str | int, field_name: str, sample_id: Optional[int] = None,
@@ -206,10 +206,10 @@ def table_query():
         try:
             seq_request_id = int(seq_request_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         with DBSession(db) as session:
             if (seq_request := session.get_library(seq_request_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
                 
             libraries = __get_libraries(session, word, field_name, seq_request_id=seq_request_id)
         context["seq_request"] = seq_request
@@ -218,10 +218,10 @@ def table_query():
         try:
             experiment_id = int(seq_request_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         with DBSession(db) as session:
             if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
                 
             libraries = __get_libraries(session, word, field_name, experiment_id=experiment_id)
             context["experiment"] = experiment
@@ -230,10 +230,10 @@ def table_query():
         try:
             sample_id = int(sample_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         with DBSession(db) as session:
             if (sample := session.get_sample(sample_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
                 
             libraries = __get_libraries(session, word, field_name, sample_id=sample_id)
             context["sample"] = sample

@@ -37,10 +37,10 @@ def samples_page():
 def sample_page(sample_id):
     with DBSession(db) as session:
         if (sample := session.get_sample(sample_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+            return abort(HttpResponse.NOT_FOUND.id)
 
         if not current_user.is_insider() and sample.owner_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.value.id)
+            return abort(HttpResponse.FORBIDDEN.id)
 
     sample_form = forms.SampleForm(sample=sample)
 

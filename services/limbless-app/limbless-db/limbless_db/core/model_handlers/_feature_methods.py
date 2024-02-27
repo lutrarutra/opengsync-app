@@ -37,7 +37,7 @@ def create_feature(
         sequence=sequence,
         pattern=pattern,
         read=read,
-        type_id=type.value.id,
+        type_id=type.id,
         target_name=target_name,
         target_id=target_id,
         feature_kit_id=feature_kit_id

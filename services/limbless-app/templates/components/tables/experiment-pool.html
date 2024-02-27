@@ -50,14 +50,14 @@
                     {% for lane in range(1, experiment.num_lanes+1) %}
                         {% if pool.id in experiment_lanes.keys() and lane in experiment_lanes[pool.id] %}
                         <button type="button" class="btn btn-primary table-btn"
-                        {% if experiment.status.value.name == "Draft" %}
+                        {% if experiment.status.name == "Draft" %}
                         hx-delete="{{ url_for('experiments_htmx.remove_pool', experiment_id=experiment.id, pool_id=pool.id, lane=lane) }}"
                         {% endif %}>
                             {{ lane }}
                         </button>
                         {% else %}
                         <button type="button" class="btn btn-outline-primary table-btn"
-                        {% if experiment.status.value.name == "Draft" %}
+                        {% if experiment.status.name == "Draft" %}
                         hx-post="{{ url_for('experiments_htmx.add_pool', experiment_id=experiment.id, pool_id=pool.id, lane=lane) }}"
                         {% endif %}>
                             {{ lane }}

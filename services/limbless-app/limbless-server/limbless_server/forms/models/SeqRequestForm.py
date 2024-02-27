@@ -35,7 +35,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
     sequencing_type = SelectField(
         choices=SequencingType.as_selectable(), validators=[DataRequired()],
-        default=SequencingType.PAIRED_END.value.id,
+        default=SequencingType.PAIRED_END.id,
         description="Sequencing type, i.e. Single-end or Paired-end.",
         coerce=int
     )
@@ -207,8 +207,8 @@ class SeqRequestForm(HTMXFlaskForm):
         self.num_lanes.data = seq_request.num_lanes
         self.special_requirements.data = seq_request.special_requirements
         self.sequencer.data = seq_request.sequencer
-        self.sequencing_type.data = seq_request.sequencing_type.value.id
-        self.flowcell_type.data = seq_request.flowcell_type.value.id if seq_request.flowcell_type is not None else -1
+        self.sequencing_type.data = seq_request.sequencing_type.id
+        self.flowcell_type.data = seq_request.flowcell_type.id if seq_request.flowcell_type is not None else -1
         self.contact_person_name.data = seq_request.contact_person.name
         self.contact_person_email.data = seq_request.contact_person.email
         self.contact_person_phone.data = seq_request.contact_person.phone
@@ -275,7 +275,7 @@ class SeqRequestForm(HTMXFlaskForm):
             seq_request.technology = self.technology.data
 
         if seq_type is not None:
-            seq_request.sequencing_type_id = seq_type.value.id
+            seq_request.sequencing_type_id = seq_type.id
 
         if self.num_cycles_read_1.data is not None:
             seq_request.num_cycles_read_1 = self.num_cycles_read_1.data
@@ -299,7 +299,7 @@ class SeqRequestForm(HTMXFlaskForm):
             seq_request.sequencer = self.sequencer.data
 
         if flowcell_type is not None:
-            seq_request.flowcell_type_id = flowcell_type.value.id
+            seq_request.flowcell_type_id = flowcell_type.id
 
         if self.num_lanes.data is not None:
             seq_request.num_lanes = self.num_lanes.data

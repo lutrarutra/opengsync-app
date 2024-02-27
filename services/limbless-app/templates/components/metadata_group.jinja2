@@ -5,7 +5,7 @@
 
 {% macro metadata_group(label, value, class="") -%}
 {% set guid = random_guid() %}
-<div class="{{class}} form-group" id="{{guid}}">
+<div class="{{class}} form-group metadata-group" id="{{guid}}">
     <label>{{ label }}</label>
     <div class="copyable-input">
         <input class="form-control" type="text" value="{{ value if value else '' }}" readonly>
@@ -26,7 +26,7 @@
 {%- endmacro %}
 
 {% macro metadata_group_select(label, value, options, class="") -%}
-<div class="{{class}} form-group">
+<div class="{{class}} form-group metadata-group">
     <label>{{ label }}</label>
     <select class="form-control" readonly>
         {% for option in options %}
@@ -37,7 +37,7 @@
 {%- endmacro %}
 
 {% macro metadata_group_textarea(label, value, class="") -%}
-<div class="{{class}} form-group">
+<div class="{{class}} form-group metadata-group">
     <label>{{ label }}</label>
     <textarea class="form-control" readonly>{{ value }}</textarea>
 </div>
@@ -45,7 +45,7 @@
 
 {% macro metadata_group_link(label, value, url, class="") -%}
 {% set guid = random_guid() %}
-<div class="{{class}} form-group" id="{{guid}}">
+<div class="{{class}} form-group metadata-group" id="{{guid}}">
     <label>{{ label }}</label>
     <div class="copyable-input">
         <a href="{{ url }}" style="text-decoration: none; width: 100%;">
@@ -69,7 +69,7 @@
 
 {% macro metadata_group_email_link(label, email, class="", subject="") -%}
 {% set guid = random_guid() %}
-<div class="{{class}} form-group" id="{{guid}}">
+<div class="{{class}} form-group metadata-group" id="{{guid}}">
     <label>{{ label }}</label>
     <div class="copyable-input">
         <a style="text-decoration: none; width: 100%;"

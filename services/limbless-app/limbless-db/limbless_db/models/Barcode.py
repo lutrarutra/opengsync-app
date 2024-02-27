@@ -45,4 +45,4 @@ class Barcode(SQLModel, SearchResult, table=True):
         return self.sequence
     
     def search_description(self) -> Optional[str]:
-        return self.type.value.name
+        return self.type.name

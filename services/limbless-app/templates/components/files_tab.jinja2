@@ -10,7 +10,7 @@
         <button class="nav-link {% if loop.index0 == 0 %}active{% endif %}" data-bs-toggle="tab"
         data-bs-target="#{{context}}-file-{{ file.id }}-tab" type="button" role="tab"
         aria-controls="{{context}}-file-{{ file.id }}-tab" aria-selected="true">
-        {{ file.type.value.name if file.type.value.name != "Custom" else file.name }}</button>
+        {{ file.type.name if file.type.name != "Custom" else file.name }}</button>
     </li>
     {% endfor %}
 </ul>
@@ -22,7 +22,7 @@
                 <h4>{{ file.name }}</h4>
             </div>
             <div>
-                {% if file.type.value.name != "Sequencing Authorization Form" %}
+                {% if file.type.name != "Sequencing Authorization Form" %}
                 <a type="button" class="btn btn-danger"
                 hx-delete="{{ url_for(delete_url, file_id=file.id, **delete_context) }}"
                 _="on htmx:confirm(issueRequest)

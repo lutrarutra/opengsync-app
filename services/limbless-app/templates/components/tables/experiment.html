@@ -60,12 +60,12 @@
             {% for experiment in experiments %}
             <tr onclick="window.location.href='{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}';">
                 <th scope="row">{{ experiment.id }}</th>
-                <td>{{ experiment.status.value.name }} {{ experiment.status.value.description | safe }}</td>
+                <td>{{ experiment.status.name }} {{ experiment.status.description | safe }}</td>
                 <td>
                     {{ experiment.sequencing_person.name }} <span class="desc">{{ "me" if current_user.id == experiment.sequencing_person.owner_id }}</span>
                 </td>
                 <td>{{ experiment.sequencer.name }}</td>
-                <td>{{ experiment.flowcell }}</td>
+                <td>{{ experiment.flowcell_id }}</td>
                 <td>{{ experiment.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>{{ experiment.num_lanes }}</td>
                 <td>{{ experiment.num_pools }}</td>

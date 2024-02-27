@@ -41,7 +41,7 @@ def register():
 @login_required
 def custom_register():
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     return forms.UserForm(request.form).process_request(user=current_user)
     
@@ -55,10 +55,10 @@ def complete_registration(token: str):
 @login_required
 def reset_password_email(user_id: int):
     if (user := db.get_user(user_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     if current_user.role != UserRole.ADMIN and current_user.id != user_id:
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
         
     token = current_user.generate_reset_token(serializer=serializer)
     url = url_for("auth_page.reset_password_page", token=token, _external=True)

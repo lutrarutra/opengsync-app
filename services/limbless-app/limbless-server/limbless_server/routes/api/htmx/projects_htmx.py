@@ -25,7 +25,7 @@ def get(page):
     offset = page * PAGE_LIMIT
 
     if sort_by not in models.Project.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
     
     projects: list[models.Project] = []
     context = {}
@@ -35,14 +35,14 @@ def get(page):
         try:
             user_id = int(user_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         
         if user_id != current_user.id and not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.value.id)
+            return abort(HttpResponse.FORBIDDEN.id)
         
         with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
             
             projects, n_pages = session.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
             context["user"] = user
@@ -70,10 +70,10 @@ def get(page):
 def query():
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name)) is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     if word is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     if current_user.role == UserRole.CLIENT:
         _user_id = current_user.id
@@ -101,10 +101,10 @@ def create():
 @login_required
 def edit(project_id: int):
     if (project := db.get_project(project_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     return forms.ProjectForm(request.form).process_request(
         user_id=current_user.id, project=project
@@ -115,13 +115,13 @@ def edit(project_id: int):
 @login_required
 def delete(project_id: int):
     if (project := db.get_project(project_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
 
     if project.num_samples > 0:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
     
     db.delete_project(project_id)
     flash(f"Deleted project {project.name}.", "success")
@@ -136,10 +136,10 @@ def table_query():
     elif (word := request.form.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
     
     if word is None:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     def __get_projects(
         session: DBHandler, word: str | int, field_name: str,
@@ -172,10 +172,10 @@ def table_query():
         try:
             user_id = int(user_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.value.id)
+            return abort(HttpResponse.BAD_REQUEST.id)
         with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
             
             projects = __get_projects(session, word, field_name, user_id=user_id)
             context["user"] = user

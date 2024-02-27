@@ -54,7 +54,7 @@ def get_experiment_libraries_df(
     library_query = library_query.order_by(models.Library.id)
 
     df = pd.read_sql(library_query.statement, library_query.session.bind)
-    df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).value.name)
+    df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).name)
     
     if not persist_session:
         self.close_session()

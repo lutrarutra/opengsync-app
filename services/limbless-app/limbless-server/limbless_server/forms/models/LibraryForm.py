@@ -61,7 +61,7 @@ class LibraryForm(HTMXFlaskForm):
         library_type = LibraryType.get(int(self.library_type.data))
 
         library.name = self.name.data   # type: ignore
-        library.type_id = library_type.value.id
+        library.type_id = library_type.id
         library.index_1_sequence = self.index_1.data
         library.index_2_sequence = self.index_2.data
         library.index_3_sequence = self.index_3.data

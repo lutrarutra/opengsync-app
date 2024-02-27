@@ -14,7 +14,7 @@
             <h1>{{ seq_request.name }}</h1>
         </div>
         <div>
-            {% if seq_request.status.value.name == "Draft" %}
+            {% if seq_request.status.name == "Draft" %}
             <span
             {% if not seq_request.is_submittable() %}
                 {% if not seq_request.is_authorized() %}
@@ -39,6 +39,9 @@
                 </button>
             </span>
             {% endif %}
+            {% if current_user.is_insider() and seq_request.status.name == "Submitted" %}
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#process_request-form-popup">Process</button>
+            {% endif %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#seq_request-file-form-popup">
                 Attach File
@@ -60,15 +63,15 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li>
-                        <span {% if seq_request.status.value.name != "Draft" and not current_user.is_insider() %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
+                        <span {% if seq_request.status.name != "Draft" and not current_user.is_insider() %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
                             <button class="dropdown-item"
                             data-bs-toggle="modal"
                             data-bs-target="#seq_request-form-popup"
-                            {% if seq_request.status.value.name != "Draft" and not current_user.is_insider() %}disabled{% endif %}>Edit</button>
+                            {% if seq_request.status.name != "Draft" and not current_user.is_insider() %}disabled{% endif %}>Edit</button>
                         </span>
                     </li>
                     <li>
-                        <span {% if seq_request.status.value.name != "Draft" %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
+                        <span {% if seq_request.status.name != "Draft" %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
                             <button class="dropdown-item"
                             hx-delete="{{ url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id) }}"
                             _="on htmx:confirm(issueRequest)
@@ -81,7 +84,7 @@
                                 denyButtonText: 'No'
                             })
                             if result.isConfirmed issueRequest()"
-                            {% if seq_request.status.value.name != "Draft" %}disabled{% endif %}>Delete</button>
+                            {% if seq_request.status.name != "Draft" %}disabled{% endif %}>Delete</button>
                         </span>
                     </li>
                     <li>
@@ -97,15 +100,9 @@
                             denyButtonText: 'No'
                     })
                         if result.isConfirmed issueRequest()"
-                        {% if seq_request.status.value.name == "Draft" or seq_request.status.value.name == "Archived" %}disabled{% endif %}>Archive</button>
+                        {% if seq_request.status.name == "Draft" or seq_request.status.name == "Archived" %}disabled{% endif %}>Archive</button>
                     </li>
-                    {% if current_user.is_insider() and seq_request.status.value.name == "Submitted" %}
-                    <li>
-                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#process_request-form-popup">
-                        Process</button>
-                    </li>
-                    {% endif %}
-                    {% if current_user.is_insider() and seq_request.status.value.name == "Archived" %}
+                    {% if current_user.is_insider() and seq_request.status.name == "Archived" %}
                     <li>
                         <button class="dropdown-item"
                         hx-post="{{ url_for('seq_requests_htmx.unarchive', seq_request_id=seq_request.id) }}"
@@ -178,7 +175,7 @@
                         <h2>Libraries <img {{ tooltip('Right click on a library name to remove.') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                     </div>
                     <div>
-                        {% if seq_request.status.value.name == "Draft" %}
+                        {% if seq_request.status.name == "Draft" %}
                         <button type="button"  class="btn btn-primary" data-bs-toggle="modal"
                             data-bs-target="#sample-table-form-popup">
                             Add Libraries
@@ -211,7 +208,7 @@
                     </div>
                     <div class="row">
                         {{ metadata_group("Sequencer", seq_request.sequencer, class="col-5") }}
-                        {{ metadata_group("Flowcell Type", seq_request.flowcell_type.value.name if seq_request.flowcell_type else None, class="col-5") }}
+                        {{ metadata_group("Flowcell Type", seq_request.flowcell_type.name if seq_request.flowcell_type else None, class="col-5") }}
                         {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-2") }}
                     </div>
 
@@ -304,7 +301,7 @@
                     </div>
                     <div>
                         {% if seq_request.is_authorized() %}
-                        {% if seq_request.status.value.name == "Draft" or current_user.is_insider() %}
+                        {% if seq_request.status.name == "Draft" or current_user.is_insider() %}
                         <a type="button" class="btn btn-danger" hx-delete="{{ url_for('seq_requests_htmx.remove_auth_form', seq_request_id=seq_request.id) }}"
                         _="on htmx:confirm(issueRequest)
                         halt the event
@@ -325,7 +322,7 @@
                         </a>
                     </div>
                 </div>
-                {% if not seq_request.is_authorized() and seq_request.status.value.name == "Draft" %}
+                {% if not seq_request.is_authorized() and seq_request.status.name == "Draft" %}
                 {% include "forms/seq_request/seq_auth.html" %}
                 {% else %}
                 <embed src="{{ url_for('pdf_file', file_id=seq_request.seq_auth_form_file_id) }}" width="100%" height="1000px">

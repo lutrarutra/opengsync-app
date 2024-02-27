@@ -21,7 +21,7 @@ def create_barcode(
         sequence=sequence,
         adapter=adapter,
         index_kit_id=index_kit_id,
-        type_id=barcode_type.value.id
+        type_id=barcode_type.id
     )
 
     self._session.add(barcode)

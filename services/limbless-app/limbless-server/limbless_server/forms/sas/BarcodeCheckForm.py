@@ -255,8 +255,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                                 library_id=library.id,
                             )
 
-                    logger.debug(row)
-                    logger.debug(row["pool"])
                     if "pool" in row.keys() and not pd.isna(row["pool"]):
                         session.link_library_pool(
                             library_id=library.id,

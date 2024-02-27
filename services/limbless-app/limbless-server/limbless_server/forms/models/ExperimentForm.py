@@ -20,9 +20,10 @@ class ExperimentForm(HTMXFlaskForm):
     flowcell_type = SelectField(
         "Flowcell Type", choices=FlowCellType.as_selectable(),
         validators=[DataRequired()],
-        description="Type of flowcell to use for sequencing."
+        description="Type of flowcell to use for sequencing.",
+        coerce=int
     )
-    flowcell = StringField("Flowcell ID", validators=[DataRequired(), Length(min=3, max=models.Experiment.flowcell.type.length)])  # type: ignore
+    flowcell = StringField("Flowcell ID", validators=[DataRequired(), Length(min=3, max=models.Experiment.flowcell_id.type.length)])  # type: ignore
     num_lanes = IntegerField("Number of Lanes", default=1, validators=[DataRequired(), NumberRange(min=1, max=8)])
     
     r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
@@ -42,7 +43,7 @@ class ExperimentForm(HTMXFlaskForm):
             self.sequencing_person.search_bar.data = user.search_name()
 
         if experiment is not None:
-            self.flowcell.data = experiment.flowcell
+            self.flowcell.data = experiment.flowcell_id
             self.sequencer.selected.data = experiment.sequencer.id
             self.sequencer.search_bar.data = experiment.sequencer.name
             self.r1_cycles.data = experiment.r1_cycles
@@ -50,6 +51,7 @@ class ExperimentForm(HTMXFlaskForm):
             self.i1_cycles.data = experiment.i1_cycles
             self.i2_cycles.data = experiment.i2_cycles
             self.num_lanes.data = experiment.num_lanes
+            self.flowcell_type.data = experiment.flowcell_type.id
             self.sequencing_person.selected.data = experiment.sequencing_person_id
             self.sequencing_person.search_bar.data = experiment.sequencing_person.name
 
@@ -60,8 +62,8 @@ class ExperimentForm(HTMXFlaskForm):
         return validated
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
-        # TODO: check if lane is already in use when removing lanes
-        experiment.flowcell = self.flowcell.data        # type: ignore
+        experiment.flowcell_id = self.flowcell.data        # type: ignore
+        experiment.flowcell_type_id = self.flowcell_type.data
         experiment.r1_cycles = self.r1_cycles.data    # type: ignore
         experiment.r2_cycles = self.r2_cycles.data  # type: ignore
         experiment.i1_cycles = self.i1_cycles.data  # type: ignore
@@ -71,14 +73,15 @@ class ExperimentForm(HTMXFlaskForm):
         experiment.sequencing_person_id = self.sequencing_person.selected.data
         experiment = db.update_experiment(experiment)
 
-        logger.debug(f"Edited experiment on flowcell '{experiment.flowcell}'")
-        flash(f"Edited experiment on flowcell '{experiment.flowcell}'.", "success")
+        logger.debug(f"Edited experiment on flowcell '{experiment.flowcell_id}'")
+        flash(f"Edited experiment on flowcell '{experiment.flowcell_id}'.", "success")
 
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 
     def __create_new_experiment(self) -> Response:
         experiment = db.create_experiment(
-            flowcell=self.flowcell.data,  # type: ignore
+            flowcell_id=self.flowcell.data,  # type: ignore
+            flowcell_type=FlowCellType.get(self.flowcell_type.data),
             sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,  # type: ignore
             r2_cycles=self.r2_cycles.data,  # type: ignore
@@ -88,8 +91,8 @@ class ExperimentForm(HTMXFlaskForm):
             sequencing_person_id=self.sequencing_person.selected.data
         )
 
-        logger.debug(f"Created experiment on flowcell '{experiment.flowcell}'")
-        flash(f"Created experiment on flowcell '{experiment.flowcell}'.", "success")
+        logger.debug(f"Created experiment on flowcell '{experiment.flowcell_id}'")
+        flash(f"Created experiment on flowcell '{experiment.flowcell_id}'.", "success")
 
         return make_response(
             redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),

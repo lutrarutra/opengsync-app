@@ -45,8 +45,9 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
 
             entry = self.input_fields[i]
             entry.raw_label.data = raw_label_name
+            project_select_field: OptionalSearchBar = entry.project  # type: ignore
 
-            if (selected_id := entry.project.selected.data) is not None:
+            if (selected_id := project_select_field.selected.data) is not None:
                 selected_project = db.get_project(selected_id)
             else:
                 if raw_label_name is None or pd.isna(raw_label_name):
@@ -54,8 +55,8 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
                     selected_project = None
                 else:
                     selected_project = next(iter(db.query_projects(word=raw_label_name, limit=1, user_id=user_id)), None)
-                    entry.project.selected.data = selected_project.id if selected_project is not None else None
-                    entry.project.search_bar.data = selected_project.search_name() if selected_project is not None else None
+                    project_select_field.selected.data = selected_project.id if selected_project is not None else None
+                    project_select_field.search_bar.data = selected_project.search_name() if selected_project is not None else None
 
         self.update_data(data)
 
@@ -69,14 +70,16 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             user_projects, _ = session.get_projects(user_id=user_id, limit=None)
             user_project_names = [project.name for project in user_projects]
             for field in self.input_fields:
-                if field.project.selected.data is None and not field.new_project.data:
+                project_select_field: OptionalSearchBar = field.project  # type: ignore
+
+                if project_select_field.selected.data is None and not field.new_project.data:
                     field.new_project.errors = ("Please select or create a project.",)
-                    field.project.selected.errors = ("Please select or create a project.",)
+                    project_select_field.selected.errors = ("Please select or create a project.",)
                     validated = False
 
-                if field.project.selected.data is not None and field.new_project.data.strip():
+                if project_select_field.selected.data is not None and field.new_project.data.strip():
                     field.new_project.errors = ("Please select or create a project, not both.",)
-                    field.project.selected.errors = ("Please select or create a project, not both.",)
+                    project_select_field.selected.errors = ("Please select or create a project, not both.",)
                     validated = False
 
                 if field.new_project.data:
@@ -95,13 +98,13 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
         projects = df["project"].unique().tolist()
 
         for i, raw_label in enumerate(projects):
-            input_field = self.input_fields[i]
+            project_select_field: OptionalSearchBar = self.input_fields[i].project  # type: ignore
             
             if pd.isnull(raw_label):
                 idx = df["project"].isna()
             else:
                 idx = df["project"] == raw_label
-            if (project_id := input_field.project.selected.data) is not None:
+            if (project_id := project_select_field.selected.data) is not None:
                 if (project := db.get_project(project_id)) is None:
                     raise Exception(f"Project with id {project_id} does not exist.")
                 df.loc[idx, "project_id"] = project.id

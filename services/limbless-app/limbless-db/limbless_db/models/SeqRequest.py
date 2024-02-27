@@ -130,7 +130,7 @@ class SeqRequest(SQLModel, table=True):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "status": self.status.value.name,
+            "status": self.status.name,
             "submitted_time": self.submitted_time_to_str(),
             "requestor": self.requestor.name,
             "person_contact": f"{self.contact_person.name} ({self.contact_person.email})",

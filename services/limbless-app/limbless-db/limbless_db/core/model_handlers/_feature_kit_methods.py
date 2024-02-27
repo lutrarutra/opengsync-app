@@ -21,7 +21,7 @@ def create_feature_kit(
 
     feature_kit = models.FeatureKit(
         name=name,
-        type_id=type.value.id,
+        type_id=type.id,
     )
     self._session.add(feature_kit)
     self._session.commit()

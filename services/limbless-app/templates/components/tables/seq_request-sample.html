@@ -38,8 +38,8 @@
                     {% for library_link in sample.library_links %}
                     {% set library = library_link.library %}
                     {% if seq_request.id == library.seq_request_id %}
-                        <li {{ tooltip(library.type.value.name) }}>
-                            {{ library.type.value.description }}
+                        <li {{ tooltip(library.type.name) }}>
+                            {{ library.type.description }}
                         </li>
                     {% endif %}
                     {% endfor %}

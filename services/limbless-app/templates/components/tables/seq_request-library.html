@@ -85,8 +85,8 @@
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
                 <td>{{ library.pool.name if library.pool_id else "" }}</td>
                 <td>
-                    <span {{ tooltip(library.type.value.name) }}>
-                        {{ library.type.value.description }}
+                    <span {{ tooltip(library.type.name) }}>
+                        {{ library.type.description }}
                     </span>
                 </td>
                 <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
@@ -222,7 +222,7 @@
             display: "block",
             left: x + 8, top: y + 8
         }).empty().append([
-            {% if seq_request.status.value.name == "Draft" %}
+            {% if seq_request.status.name == "Draft" %}
             `<li><a class='dropdown-item' onclick='remove_library()'>Remove</a></li>`
             {% else %}
             `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`

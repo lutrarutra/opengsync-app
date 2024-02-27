@@ -69,8 +69,8 @@
                 <th scope="row">{{ library.id }}</th>
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
                 <td>
-                    <span {{ tooltip(library.type.value.name) }}>
-                        {{ library.type.value.description }}
+                    <span {{ tooltip(library.type.name) }}>
+                        {{ library.type.description }}
                     </span>
                 </td>
                 <td>{% if library.is_pooled() %}{{ library.pool.name }}{% else %}❌{% endif %}</td>

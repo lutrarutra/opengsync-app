@@ -40,11 +40,11 @@ def libraries_page():
 def library_page(library_id):
     with DBSession(db) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+            return abort(HttpResponse.NOT_FOUND.id)
         
         if not current_user.is_insider():
             if library.owner_id != current_user.id:
-                return abort(HttpResponse.FORBIDDEN.value.id)
+                return abort(HttpResponse.FORBIDDEN.id)
             
         if library.type == LibraryType.SPATIAL_TRANSCRIPTOMIC:
             library.visium_annotation

@@ -31,7 +31,7 @@ def create_user(
         first_name=first_name,
         last_name=last_name,
         password=hashed_password,
-        role_id=role.value.id,
+        role_id=role.id,
     )
 
     self._session.add(user)
@@ -133,7 +133,7 @@ def update_user(
     if hashed_password is not None:
         user.password = hashed_password
     if role is not None:
-        user.role_id = role.value.id
+        user.role_id = role.id
 
     if commit:
         self._session.commit()
@@ -178,11 +178,11 @@ def query_users(
 
     if only_insiders:
         query = query.where(
-            User.role != UserRole.CLIENT.value.id
+            User.role != UserRole.CLIENT.id
         )
 
     if with_roles is not None:
-        status_ids = [role.value.id for role in with_roles]
+        status_ids = [role.id for role in with_roles]
         query = query.where(
             User.role.in_(status_ids)
         )

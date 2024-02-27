@@ -104,21 +104,21 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
     sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
 
     def is_insider(self) -> bool:
-        return self.role in UserRole.insiders
+        return self.role.is_insider()
 
     def generate_reset_token(self, serializer: URLSafeTimedSerializer) -> str:
         return str(serializer.dumps({"id": self.id, "email": self.email, "hash": self.password}))
 
     @staticmethod
     def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, role: UserRole = UserRole.CLIENT) -> str:
-        return str(serializer.dumps({"email": email, "role": role.value.id}))
+        return str(serializer.dumps({"email": email, "role": role.id}))
 
     @staticmethod
     def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> Optional[tuple[str, UserRole]]:
         try:
             data = serializer.loads(token, max_age=3600)
             email = data["email"]
-            role = UserRole.get(data.get("role", UserRole.CLIENT.value.id))
+            role = UserRole.get(data.get("role", UserRole.CLIENT.id))
         except SignatureExpired:
             return None
         except BadSignature:

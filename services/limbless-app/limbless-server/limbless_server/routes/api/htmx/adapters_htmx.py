@@ -26,13 +26,13 @@ def get(page: int, index_kit_id: Optional[int]):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Adapter.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.value.id)
+        return abort(HttpResponse.BAD_REQUEST.id)
 
     with DBSession(db) as session:
         if index_kit_id is not None:
             index_kit = session.get_index_kit(index_kit_id)
             if index_kit is None:
-                return abort(HttpResponse.NOT_FOUND.value.id)
+                return abort(HttpResponse.NOT_FOUND.id)
 
         adapters, n_pages = session.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending)
 

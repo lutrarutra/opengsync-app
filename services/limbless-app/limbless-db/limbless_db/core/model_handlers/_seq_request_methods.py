@@ -57,7 +57,7 @@ def create_seq_request(
         description=description,
         requestor_id=requestor_id,
         technology=technology,
-        sequencing_type_id=seq_type.value.id,
+        sequencing_type_id=seq_type.id,
         num_cycles_read_1=num_cycles_read_1,
         num_cycles_index_1=num_cycles_index_1,
         num_cycles_index_2=num_cycles_index_2,
@@ -66,11 +66,11 @@ def create_seq_request(
         num_lanes=num_lanes,
         special_requirements=special_requirements,
         sequencer=sequencer,
-        flowcell_type_id=flowcell_type.value.id if flowcell_type is not None else None,
+        flowcell_type_id=flowcell_type.id if flowcell_type is not None else None,
         billing_contact_id=billing_contact_id,
         contact_person_id=contact_person_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
-        status_id=SeqRequestStatus.DRAFT.value.id,
+        status_id=SeqRequestStatus.DRAFT.id,
         submitted_time=None,
         organization_name=organization_name,
         organization_department=organization_department,
@@ -127,14 +127,14 @@ def get_seq_requests(
         )
 
     if with_statuses is not None:
-        status_ids = [status.value.id for status in with_statuses]
+        status_ids = [status.id for status in with_statuses]
         query = query.where(
             models.SeqRequest.status_id.in_(status_ids)  # type: ignore
         )
 
     if not show_drafts:
         query = query.where(
-            models.SeqRequest.status_id != SeqRequestStatus.DRAFT.value.id
+            models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id
         )
 
     if sample_id is not None:
@@ -209,7 +209,7 @@ def get_num_seq_requests(
         )
 
     if with_statuses is not None:
-        status_ids = [status.value.id for status in with_statuses]
+        status_ids = [status.id for status in with_statuses]
         query = query.where(
             models.SeqRequest.status_id.in_(status_ids)  # type: ignore
         )
@@ -232,7 +232,7 @@ def submit_seq_request(
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
-    seq_request.status_id = SeqRequestStatus.SUBMITTED.value.id
+    seq_request.status_id = SeqRequestStatus.SUBMITTED.id
     seq_request.submitted_time = datetime.now()
     for library in seq_request.libraries:
         library.submitted = True

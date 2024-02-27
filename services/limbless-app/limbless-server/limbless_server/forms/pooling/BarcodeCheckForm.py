@@ -89,7 +89,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             "show_index_4": "index_4" in df.columns,
         }
     
-    def __parse(self, experiment: models.Experiment, user: models.User) -> dict[str, pd.DataFrame]:
+    def __parse(self, user: models.User) -> dict[str, pd.DataFrame]:
         data = self.get_data()
 
         pooling_table = data["pooling_table"]
@@ -133,7 +133,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
         
         experiment: models.Experiment = context["experiment"]
         user: models.User = context["user"]
-        self.__parse(experiment, user)
+        self.__parse(user)
         
         return make_response(
             redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id)

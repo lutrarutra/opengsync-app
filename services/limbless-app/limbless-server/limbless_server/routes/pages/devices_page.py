@@ -12,7 +12,7 @@ devices_page_bp = Blueprint("devices_page", __name__)
 @login_required
 def devices_page():
     if current_user.role != UserRole.ADMIN:
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     sequencer_form = forms.SequencerForm()
     with DBSession(db) as session:
@@ -29,10 +29,10 @@ def devices_page():
 @login_required
 def sequencer_page(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     if (sequencer := db.get_sequencer(sequencer_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     sequencer_form = forms.SequencerForm()
     sequencer_form.name.data = sequencer.name

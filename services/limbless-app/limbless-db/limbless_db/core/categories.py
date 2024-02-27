@@ -1,28 +1,46 @@
-import os
 from enum import Enum
 
 from .EnumType import ExtendedEnumMeta, DescriptiveEnum
 
 
-class UserResourceRelation(Enum, metaclass=ExtendedEnumMeta):
+class CustomEnum(Enum, metaclass=ExtendedEnumMeta):
+    @property
+    def id(self) -> int:
+        return self.value.id
+
+    @property
+    def name(self) -> str:
+        return self.value.name
+    
+    @property
+    def description(self) -> str:
+        return self.value.description
+    
+    @property
+    def enum_label(self) -> str:
+        return self.__dict__["_name_"]
+    
+    def __str__(self) -> str:
+        return f"{self.name}" + (f" ({self.description})" if self.description else "") + f" [{self.id}]"
+
+
+class UserResourceRelation(CustomEnum):
     OWNER = DescriptiveEnum(1, "Owner")
     CONTRIBUTOR = DescriptiveEnum(2, "Contributor")
     VIEWER = DescriptiveEnum(3, "Viewer")
 
 
-class UserRole(Enum, metaclass=ExtendedEnumMeta):
+class UserRole(CustomEnum):
     ADMIN = DescriptiveEnum(1, "Admin", "🤓")
     BIOINFORMATICIAN = DescriptiveEnum(2, "Bioinformatician", "👨🏾‍💻")
     TECHNICIAN = DescriptiveEnum(3, "Technician", "🧑🏽‍🔬")
     CLIENT = DescriptiveEnum(4, "Client", "👶🏾")
 
-    @classmethod
-    @property
-    def insiders(cls):
-        return [cls.ADMIN, cls.BIOINFORMATICIAN, cls.TECHNICIAN]
+    def is_insider(self) -> bool:
+        return self in (UserRole.ADMIN, UserRole.BIOINFORMATICIAN, UserRole.TECHNICIAN)
 
 
-class LibraryType(Enum, metaclass=ExtendedEnumMeta):
+class LibraryType(CustomEnum):
     CUSTOM = DescriptiveEnum(0, "Custom")
     SC_RNA_SEQ = DescriptiveEnum(1, "Single-cell RNA-seq", "scRNA-seq")
     SN_RNA_SEQ = DescriptiveEnum(2, "Single-nucleus RNA-seq", "snRNA-seq")
@@ -65,10 +83,10 @@ class LibraryType(Enum, metaclass=ExtendedEnumMeta):
             104: "RBS",
             105: "CITE",
             106: "ATAC",
-        }[library_type.value.id]
+        }[library_type.id]
 
 
-class FlowCellType(Enum, metaclass=ExtendedEnumMeta):
+class FlowCellType(CustomEnum):
     OTHER = DescriptiveEnum(0, "Other")
     NOVASEQ_SP = DescriptiveEnum(1, "NovaSeq SP")
     NOVASEQ_S1 = DescriptiveEnum(2, "NovaSeq S1")
@@ -81,12 +99,12 @@ class FlowCellType(Enum, metaclass=ExtendedEnumMeta):
     MI_SEQ_V2_NANO = DescriptiveEnum(9, "MiSeq V2 Nano")
 
 
-class IndexKitType(Enum, metaclass=ExtendedEnumMeta):
+class IndexKitType(CustomEnum):
     CUSTOM = DescriptiveEnum(0, "Custom")
     TENX = DescriptiveEnum(1, "10x")
 
 
-class OrganismCategory(Enum, metaclass=ExtendedEnumMeta):
+class OrganismCategory(CustomEnum):
     UNCLASSIFIED = DescriptiveEnum(0, "Unclassified")
     ARCHAEA = DescriptiveEnum(1, "Archaea")
     BACTERIA = DescriptiveEnum(2, "Bacteria")
@@ -95,12 +113,12 @@ class OrganismCategory(Enum, metaclass=ExtendedEnumMeta):
     OTHER = DescriptiveEnum(5, "Other")
 
 
-class AccessType(Enum, metaclass=ExtendedEnumMeta):
+class AccessType(CustomEnum):
     READWRITE = DescriptiveEnum(1, "Read/Write")
     READ = DescriptiveEnum(2, "Read")
 
 
-class SeqRequestStatus(Enum, metaclass=ExtendedEnumMeta):
+class SeqRequestStatus(CustomEnum):
     DRAFT = DescriptiveEnum(0, "Draft", description="✍🏼")
     SUBMITTED = DescriptiveEnum(1, "Submitted", description="🚀")
     PREPARATION = DescriptiveEnum(2, "Sequencing Preparation", description="🧪")
@@ -111,7 +129,7 @@ class SeqRequestStatus(Enum, metaclass=ExtendedEnumMeta):
     FAILED = DescriptiveEnum(7, "Failed", description="❌")
 
 
-class ExperimentStatus(Enum, metaclass=ExtendedEnumMeta):
+class ExperimentStatus(CustomEnum):
     DRAFT = DescriptiveEnum(0, "Draft", description="✍🏼")
     SEQUENCING = DescriptiveEnum(1, "Sequencing", description="🧬")
     FINISHED = DescriptiveEnum(2, "Finished", description="✅")
@@ -119,7 +137,7 @@ class ExperimentStatus(Enum, metaclass=ExtendedEnumMeta):
     FAILED = DescriptiveEnum(4, "Failed", description="❌")
 
 
-class HttpResponse(Enum, metaclass=ExtendedEnumMeta):
+class HttpResponse(CustomEnum):
     OK = DescriptiveEnum(200, "OK")
     BAD_REQUEST = DescriptiveEnum(400, "Bad Request")
     UNAUTHORIZED = DescriptiveEnum(401, "Unauthorized")
@@ -129,7 +147,7 @@ class HttpResponse(Enum, metaclass=ExtendedEnumMeta):
     INTERNAL_SERVER_ERROR = DescriptiveEnum(500, "Internal Server Error")
     
 
-class BarcodeType(Enum, metaclass=ExtendedEnumMeta):
+class BarcodeType(CustomEnum):
     INDEX_1 = DescriptiveEnum(1, "Index 1")
     INDEX_2 = DescriptiveEnum(2, "Index 2")
     INDEX_3 = DescriptiveEnum(3, "Index 3")
@@ -140,16 +158,16 @@ class BarcodeType(Enum, metaclass=ExtendedEnumMeta):
     @staticmethod
     def mapping(type_id: int) -> str:
         return {
-            BarcodeType.INDEX_1.value.id: "index_1",
-            BarcodeType.INDEX_2.value.id: "index_2",
-            BarcodeType.INDEX_3.value.id: "index_3",
-            BarcodeType.INDEX_4.value.id: "index_4",
-            # BarcodeType.INDEX_I7.value.id: "index_1",
-            # BarcodeType.INDEX_I5.value.id: "index_2",
+            BarcodeType.INDEX_1.id: "index_1",
+            BarcodeType.INDEX_2.id: "index_2",
+            BarcodeType.INDEX_3.id: "index_3",
+            BarcodeType.INDEX_4.id: "index_4",
+            # BarcodeType.INDEX_I7.id: "index_1",
+            # BarcodeType.INDEX_I5.id: "index_2",
         }[type_id]
     
 
-class FeatureType(Enum, metaclass=ExtendedEnumMeta):
+class FeatureType(CustomEnum):
     CUSTOM = DescriptiveEnum(0, "Custom")
     CMO = DescriptiveEnum(1, "Cell Multiplexing Oligo", "CMO")
     ANTIBODY = DescriptiveEnum(2, "Antibody", "ABC")
@@ -158,19 +176,19 @@ class FeatureType(Enum, metaclass=ExtendedEnumMeta):
     PRIMER_CAPTURE = DescriptiveEnum(5, "Primer Capture", "PRIMER")
     
 
-class SequencingType(Enum, metaclass=ExtendedEnumMeta):
+class SequencingType(CustomEnum):
     OTHER = DescriptiveEnum(0, "Other", "⚙️")
     SINGLE_END = DescriptiveEnum(1, "Single-end", "➡️")
     PAIRED_END = DescriptiveEnum(2, "Paired-end", "🔁")
 
 
-class RequestResponse(Enum, metaclass=ExtendedEnumMeta):
+class RequestResponse(CustomEnum):
     ACCEPTED = DescriptiveEnum(1, "Accepted", "✅")
     REJECTED = DescriptiveEnum(2, "Rejected", "❌")
     PENDING_REVISION = DescriptiveEnum(3, "Pending Revision", "🔍")
 
 
-class FileType(Enum, metaclass=ExtendedEnumMeta):
+class FileType(CustomEnum):
     CUSTOM = DescriptiveEnum(0, "Custom", "etc")
     SEQ_AUTH_FORM = DescriptiveEnum(1, "Sequencing Authorization Form", "seq_auth_forms")
     BIOANALYZER_REPORT = DescriptiveEnum(2, "Bioanalyzer Report", "bioanalyzer_reports")

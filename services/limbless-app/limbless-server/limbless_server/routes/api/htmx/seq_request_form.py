@@ -33,7 +33,7 @@ def download_template(type: str):
         df = pd.DataFrame(columns=list(sas_forms.CMOReferenceInputForm._mapping.keys()))
         name = "cmo_reference.tsv"
     else:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return Response(
         df.to_csv(sep="\t", index=False), mimetype="text/csv",
@@ -48,7 +48,7 @@ def download_visium_template(uuid: str):
     form = sas_forms.VisiumAnnotationForm(uuid=uuid)
     data = form.get_data()
     df = data["library_table"]
-    df = df[df["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id][["library_name"]]
+    df = df[df["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id][["library_name"]]
     df = df.rename(columns={"library_name": "Library Name"})
 
     for col in sas_forms.VisiumAnnotationForm._visium_annotation_mapping.keys():
@@ -80,7 +80,7 @@ def download_seq_auth_form():
 @login_required
 def restart_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.SASInputForm().make_response(
         seq_request=seq_request
@@ -92,7 +92,7 @@ def restart_form(seq_request_id: int):
 @login_required
 def parse_table(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.SASInputForm(
         formdata=request.form | request.files
@@ -106,7 +106,7 @@ def parse_table(seq_request_id: int):
 @login_required
 def select_project(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.ProjectMappingForm(formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id,
@@ -119,7 +119,7 @@ def select_project(seq_request_id: int):
 @login_required
 def map_organisms(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.OrganismMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -131,7 +131,7 @@ def map_organisms(seq_request_id: int):
 @login_required
 def map_libraries(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.LibraryMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -143,7 +143,7 @@ def map_libraries(seq_request_id: int):
 @login_required
 def map_index_kits(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
 
     return sas_forms.IndexKitMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -155,7 +155,7 @@ def map_index_kits(seq_request_id: int):
 @login_required
 def parse_cmo_reference(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
 
     return sas_forms.CMOReferenceInputForm(formdata=request.form | request.files).process_request(
         seq_request=seq_request
@@ -167,7 +167,7 @@ def parse_cmo_reference(seq_request_id: int):
 @login_required
 def map_feature_kits(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
 
     return sas_forms.FeatureKitMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -179,7 +179,7 @@ def map_feature_kits(seq_request_id: int):
 @login_required
 def annotate_visium(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.VisiumAnnotationForm(formdata=request.form | request.files).process_request(
         seq_request=seq_request
@@ -191,7 +191,7 @@ def annotate_visium(seq_request_id: int):
 @login_required
 def map_pools(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.PoolMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -203,7 +203,7 @@ def map_pools(seq_request_id: int):
 @login_required
 def check_barcodes(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.BarcodeCheckForm(formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id

@@ -23,10 +23,10 @@ pooling_form_htmx = Blueprint("pooling_form_htmx", __name__, url_prefix="/api/po
 def download_pooling_template(experiment_id: int):
     with DBSession(db) as session:
         if (_ := session.get_experiment(experiment_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.value.id)
+            return abort(HttpResponse.NOT_FOUND.id)
         
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.value.id)
+            return abort(HttpResponse.FORBIDDEN.id)
         
         unpooled_libraries, _ = session.get_libraries(experiment_id=experiment_id, limit=None, pooled=False)
     
@@ -51,7 +51,7 @@ def download_pooling_template(experiment_id: int):
         if not library.is_pooled():
             data["id"].append(library.id)
             data["library_name"].append(library.name)
-            data["library_type"].append(library.type.value.description)
+            data["library_type"].append(library.type.description)
             data["pool"].append("")
             data["index_kit"].append("")
             data["adapter"].append("")
@@ -75,10 +75,10 @@ def download_pooling_template(experiment_id: int):
 @login_required
 def get_pooling_form(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     return pooling_forms.PoolingInputForm().make_response(
         experiment=experiment
@@ -89,10 +89,10 @@ def get_pooling_form(experiment_id: int):
 @login_required
 def parse_pooling_form(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
         
     return pooling_forms.PoolingInputForm(request.form | request.files).process_request(
         experiment=experiment
@@ -103,10 +103,10 @@ def parse_pooling_form(experiment_id: int):
 @login_required
 def map_index_kits(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
         
     return pooling_forms.IndexKitMappingForm(request.form).process_request(
         experiment=experiment
@@ -117,10 +117,10 @@ def map_index_kits(experiment_id: int):
 @login_required
 def map_pools(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
         
     return pooling_forms.PoolMappingForm(request.form).process_request(
         experiment=experiment
@@ -131,10 +131,10 @@ def map_pools(experiment_id: int):
 @login_required
 def add_indices(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.value.id)
+        return abort(HttpResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.value.id)
+        return abort(HttpResponse.FORBIDDEN.id)
     
     return pooling_forms.BarcodeCheckForm(request.form).process_request(
         experiment=experiment, user=current_user

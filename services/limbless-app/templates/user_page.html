@@ -5,10 +5,10 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>User: {{ user.email }} ({{ user.role.value.name }} {{ user.role.value.description }})</h1>
+            <h1>User: {{ user.email }} ({{ user.role.name }} {{ user.role.description }})</h1>
         </div>
         <div>
-            {% if current_user.id == user.id or current_user.role.value.name == "Admin" %}
+            {% if current_user.id == user.id or current_user.role.name == "Admin" %}
             <button id="reset-btn" class="btn btn-warning"
             hx-get="{{ url_for('auth_htmx.reset_password_email', user_id=user.id) }}"
             _="on htmx:confirm(issueRequest)

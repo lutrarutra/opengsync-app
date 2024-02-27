@@ -89,7 +89,7 @@
                 <td>{{ request.technology }}</td>
                 <td>{{ request.submitted_time_to_str() }}</td>
                 <td>{{ request.sequencer }}</td>
-                <td>{{ request.flowcell_type.value.name if request.flowcell_type else "" }}</td>
+                <td>{{ request.flowcell_type.name if request.flowcell_type else "" }}</td>
                 <td>{{ request.num_libraries }}</td>
             </tr>
             {% endfor %}

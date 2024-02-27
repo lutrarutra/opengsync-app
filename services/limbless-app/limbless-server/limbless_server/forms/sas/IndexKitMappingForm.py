@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional
 from flask import Response
 import pandas as pd
 
@@ -9,7 +9,7 @@ from wtforms.validators import Optional as OptionalValidator
 from limbless_db import models
 from limbless_db.core.categories import LibraryType
 
-from ... import db, logger
+from ... import db
 from ..TableDataForm import TableDataForm
 from ..HTMXFlaskForm import HTMXFlaskForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
@@ -47,21 +47,22 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         for i, entry in enumerate(self.input_fields):
             raw_index_kit_label = index_kits[i]
             _df = df[df["index_kit"] == raw_index_kit_label]
+            index_kit_search_field: SearchBar = entry.index_kit  # type: ignore
 
-            if (index_kit_id := entry.index_kit.selected.data) is None:
+            if (index_kit_id := index_kit_search_field.selected.data) is None:
                 if (pd.isnull(_df["index_1"]) & pd.isnull(_df["index_1"])).any():
-                    entry.index_kit.selected.errors = ("You must specify either an index kit or indices manually",)
+                    index_kit_search_field.selected.errors = ("You must specify either an index kit or indices manually",)
                     return False
                 continue
             
             if db.get_index_kit(index_kit_id) is None:
-                entry.index_kit.selected.errors = ("Not valid index kit selected",)
+                index_kit_search_field.selected.errors = ("Not valid index kit selected",)
                 return False
             
             for _, row in _df.iterrows():
                 adapter_name = str(row["adapter"])
                 if (_ := db.get_adapter_from_index_kit(adapter_name, index_kit_id)) is None:
-                    entry.index_kit.selected.errors = (f"Unknown adapter '{adapter_name}' does not belong to this index kit.",)
+                    index_kit_search_field.selected.errors = (f"Unknown adapter '{adapter_name}' does not belong to this index kit.",)
                     return False
 
         return True
@@ -77,7 +78,6 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else None for index_kit in index_kits]
-        logger.debug(index_kits)
 
         selected: list[Optional[models.IndexKit]] = []
 
@@ -86,17 +86,18 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 self.input_fields.append_entry()
 
             entry = self.input_fields[i]
+            index_kit_search_field: SearchBar = entry.index_kit  # type: ignore
             entry.raw_label.data = index_kit
 
             if index_kit is None:
                 selected_kit = None
-            elif entry.index_kit.selected.data is None:
+            elif index_kit_search_field.selected.data is None:
                 selected_kit = next(iter(db.query_index_kit(index_kit, 1)), None)
-                entry.index_kit.selected.data = selected_kit.id if selected_kit else None
-                entry.index_kit.search_bar.data = selected_kit.search_name() if selected_kit else None
+                index_kit_search_field.selected.data = selected_kit.id if selected_kit else None
+                index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
             else:
-                selected_kit = db.get_index_kit(entry.index_kit.selected.data)
-                entry.index_kit.search_bar.data = selected_kit.search_name() if selected_kit else None
+                selected_kit = db.get_index_kit(index_kit_search_field.selected.data)
+                index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
 
             selected.append(selected_kit)
 
@@ -119,7 +120,9 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         for i, index_kit in enumerate(index_kits):
             entry = self.input_fields[i]
-            if (selected_id := entry.index_kit.selected.data) is not None:
+            index_kit_search_field: SearchBar = entry.index_kit  # type: ignore
+
+            if (selected_id := index_kit_search_field.selected.data) is not None:
                 if (selected_kit := db.get_index_kit(selected_id)) is None:
                     raise Exception(f"Index kit with id '{selected_id}' does not exist.")
                 
@@ -137,6 +140,11 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         if "index_4" not in df.columns:
             df["index_4"] = None
+
+        df["index_1"] = df["index_1"].astype(str)
+        df["index_2"] = df["index_2"].astype(str)
+        df["index_3"] = df["index_3"].astype(str)
+        df["index_4"] = df["index_4"].astype(str)
 
         for i, row in df.iterrows():
             if pd.isnull(row["index_kit_id"]):
@@ -161,13 +169,13 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         data = self.__parse()
 
         if data["library_table"]["library_type_id"].isin([
-            LibraryType.MULTIPLEXING_CAPTURE.value.id,
+            LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
         
-        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.value.id).any():
+        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
 

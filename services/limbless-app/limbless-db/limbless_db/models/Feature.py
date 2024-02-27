@@ -43,4 +43,4 @@ class Feature(SQLModel, SearchResult, table=True):
         return self.id
     
     def search_description(self) -> Optional[str]:
-        return self.type.value.name
+        return self.type.name
