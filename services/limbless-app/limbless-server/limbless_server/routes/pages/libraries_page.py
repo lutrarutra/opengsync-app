@@ -46,8 +46,16 @@ def library_page(library_id):
             if library.owner_id != current_user.id:
                 return abort(HttpResponse.FORBIDDEN.id)
             
+        context = dict()
         if library.type == LibraryType.SPATIAL_TRANSCRIPTOMIC:
             library.visium_annotation
+        elif library.type == LibraryType.ANTIBODY_CAPTURE:
+            features, features_n_pages = session.get_features(library_id=library.id)
+            context["features"] = features
+            context["features_n_pages"] = features_n_pages
+            context["features_active_page"] = 0
+            context["features_current_sort"] = "id"
+            context["features_current_sort_order"] = "desc"
 
     path_list = [
         ("Libraries", url_for("libraries_page.libraries_page")),
@@ -87,4 +95,5 @@ def library_page(library_id):
         library=library,
         path_list=path_list,
         library_form=library_form,
+        **context
     )

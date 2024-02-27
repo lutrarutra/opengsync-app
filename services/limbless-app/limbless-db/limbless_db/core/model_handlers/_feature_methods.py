@@ -66,7 +66,8 @@ def get_feature(self, feature_id: int) -> models.Feature:
 
 
 def get_features(
-    self, feature_kit_id: Optional[int],
+    self, feature_kit_id: Optional[int] = None,
+    library_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None
 ) -> tuple[list[models.Feature], int]:
@@ -80,6 +81,14 @@ def get_features(
     if feature_kit_id is not None:
         query = query.where(
             models.Feature.feature_kit_id == feature_kit_id
+        )
+
+    if library_id is not None:
+        query = query.join(
+            models.LibraryFeatureLink,
+            models.LibraryFeatureLink.feature_id == models.Feature.id
+        ).where(
+            models.LibraryFeatureLink.library_id == library_id
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1

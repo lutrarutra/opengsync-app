@@ -44,6 +44,13 @@
             aria-controls="library-visium-tab" aria-selected="true">
             Visium</button>
         </li>
+        {% elif library.type.description == "ABC" %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#library-abc-tab" type="button" role="tab"
+            aria-controls="library-abc-tab" aria-selected="true">
+            Feature Capture
+            </button>
         {% endif %}
     </ul>
     <div class="tab-content pt-3">
@@ -114,6 +121,7 @@
                 }}
             </div>
         </div>
+        {% if library.type.description == "VISIUM" %}
         <div class="tab-pane fade show" id="library-visium-tab" role="tabpanel" tabindex="3">
             <div class="row">
                 {{ metadata_group("Image", library.visium_annotation.image, class="col-4") }}
@@ -121,6 +129,11 @@
                 {{ metadata_group("Area", library.visium_annotation.area, class="col-4") }}
             </div>
         </div>
+        {% elif library.type.description == "ABC" %}
+        <div class="tab-pane fade show" id="library-abc-tab" role="tabpanel" tabindex="4">
+            {% include "components/tables/library-feature.html" %}
+        </div>
+        {% endif %}
     </div>
 
     <div class="modal fade" id="library-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">

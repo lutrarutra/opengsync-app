@@ -119,12 +119,14 @@ class DBHandler():
         get_available_pools_for_experiment,
 
         link_experiment_pool,
+        link_feature_library,
         link_sample_library,
         link_experiment_seq_request,
 
         is_sample_in_seq_request,
 
         unlink_experiment_pool,
+        unlink_feature_library,
         unlink_experiment_seq_request,
     )
 

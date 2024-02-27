@@ -7,7 +7,7 @@ from flask import url_for, flash
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.core.categories import LibraryType
+from limbless_db.core.categories import LibraryType, FeatureType
 from ... import db, logger
 from ..TableDataForm import TableDataForm
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -102,6 +102,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
         library_table = data["library_table"]
         cmo_table = data["cmo_table"] if "cmo_table" in data else None
         visium_ref = data["visium_ref"] if "visium_ref" in data else None
+        feature_table = data["feature_table"] if "feature_table" in data else None
 
         n_added = 0
         n_new_samples = 0
@@ -232,6 +233,28 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                         adapter=adapter,
                         visium_annotation_id=visium_annotation_id,
                     )
+
+                    if feature_table is not None:
+                        feature_ref = feature_table[(feature_table["library_name"] == library_name) | feature_table["library_name"].isna()]
+                        for _, feature_row in feature_ref.iterrows():
+                            logger.debug(feature_row)
+                            if pd.isna(feature_id := feature_row["feature_id"]):
+                                _feature = session.create_feature(
+                                    name=feature_row["feature_name"],
+                                    sequence=feature_row["sequence"],
+                                    pattern=feature_row["pattern"],
+                                    target_id=feature_row["feature_name"],
+                                    target_name=feature_row["feature_name"],
+                                    read=feature_row["read"],
+                                    type=FeatureType.ANTIBODY
+                                )
+                            else:
+                                _feature = session.get_feature(feature_id)
+                            
+                            session.link_feature_library(
+                                feature_id=_feature.id,
+                                library_id=library.id
+                            )
 
                     n_added += 1
                 

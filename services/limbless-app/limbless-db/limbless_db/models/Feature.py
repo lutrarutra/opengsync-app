@@ -21,10 +21,10 @@ class Feature(SQLModel, SearchResult, table=True):
 
     type_id: int = Field(nullable=False)
 
-    feature_kit_id: Optional[int] = Field(nullable=False, foreign_key="featurekit.id")
+    feature_kit_id: Optional[int] = Field(nullable=True, foreign_key="featurekit.id")
     feature_kit: Optional["FeatureKit"] = Relationship(
         back_populates="features",
-        sa_relationship_kwargs={"lazy": "joined"},
+        sa_relationship_kwargs={"lazy": "select"},
     )
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "target_name", "target_id", "feature_kit_id"]

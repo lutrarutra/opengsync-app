@@ -16,7 +16,7 @@ from .FeatureKitMappingForm import FeatureKitMappingForm
 
 
 class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "components/popups/seq_request/sas-6.html"
+    _template_path = "components/popups/seq_request/sas-6.1.html"
     
     _required_columns: list[Union[str, list[str]]] = [
         "Demux Name", "Sample Name",
@@ -87,12 +87,6 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 self.file.errors = (f"Missing column(s): [{', '.join(missing)}]",)
                 return False
         
-        specified_with_name = (~self.cmo_ref["Kit"].isna() & ~self.cmo_ref["Feature"].isna())
-        specified_manually = (~self.cmo_ref["Sequence"].isna() & ~self.cmo_ref["Pattern"].isna() & ~self.cmo_ref["Read"].isna())
-        if (~(specified_with_name | specified_manually)).any():
-            self.file.errors = ("Columns 'Kit + Feature' or 'Sequence + Pattern Read'  must be specified for all rows.",)
-            return False
-        
         if self.cmo_ref["Sample Name"].isna().any():
             self.file.errors = ("Column 'Sample Name' must be specified for all rows.",)
             return False
@@ -109,6 +103,12 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 "Values in 'Sample Name'-column in feature reference must be found in 'Sample Name'-column of sample annotation sheet.",
                 "Missing values: " + ", ".join(self.cmo_ref["Sample Name"][libraries_not_mapped].unique().tolist())
             )
+            return False
+        
+        specified_with_name = (~self.cmo_ref["Kit"].isna() & ~self.cmo_ref["Feature"].isna())
+        specified_manually = (~self.cmo_ref["Sequence"].isna() & ~self.cmo_ref["Pattern"].isna() & ~self.cmo_ref["Read"].isna())
+        if (~(specified_with_name | specified_manually)).any():
+            self.file.errors = ("Columns 'Kit + Feature' or 'Sequence + Pattern Read'  must be specified for all rows.",)
             return False
         
         return True

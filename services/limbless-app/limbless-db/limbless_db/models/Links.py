@@ -92,3 +92,12 @@ class SeqRequestCommentLink(SQLModel, table=True):
     comment_id: int = Field(
         foreign_key="comment.id", primary_key=True
     )
+
+
+class LibraryFeatureLink(SQLModel, table=True):
+    library_id: int = Field(
+        foreign_key="library.id", primary_key=True
+    )
+    feature_id: int = Field(
+        foreign_key="feature.id", primary_key=True
+    )

@@ -32,6 +32,9 @@ def download_template(type: str):
     elif type == "cmo":
         df = pd.DataFrame(columns=list(sas_forms.CMOReferenceInputForm._mapping.keys()))
         name = "cmo_reference.tsv"
+    elif type == "feature":
+        df = pd.DataFrame(columns=list(sas_forms.FeatureKitReferenceInputForm._mapping.keys()))
+        name = "feature_reference.tsv"
     else:
         return abort(HttpResponse.NOT_FOUND.id)
     
@@ -150,7 +153,7 @@ def map_index_kits(seq_request_id: int):
     )
 
 
-# 6. Specify Features
+# 6.1. Specify Features
 @seq_request_form_htmx.route("<int:seq_request_id>/parse_cmo_reference", methods=["POST"])
 @login_required
 def parse_cmo_reference(seq_request_id: int):
@@ -158,6 +161,18 @@ def parse_cmo_reference(seq_request_id: int):
         return abort(HttpResponse.NOT_FOUND.id)
 
     return sas_forms.CMOReferenceInputForm(formdata=request.form | request.files).process_request(
+        seq_request=seq_request
+    )
+
+
+# 6.2. Specify Features
+@seq_request_form_htmx.route("<int:seq_request_id>/parse_feature_reference", methods=["POST"])
+@login_required
+def parse_feature_reference(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.id)
+
+    return sas_forms.FeatureKitReferenceInputForm(formdata=request.form | request.files).process_request(
         seq_request=seq_request
     )
 

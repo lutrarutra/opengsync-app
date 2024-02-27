@@ -173,12 +173,80 @@ def is_sample_in_seq_request(
 
     res = query.first() is not None
 
-    logger.debug(query.first())
-
     if not persist_session:
         self.close_session()
 
     return res
+
+
+def link_feature_library(
+    self, feature_id: int, library_id: int,
+    commit: bool = True
+) -> models.LibraryFeatureLink:
+    
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Feature, feature_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Feature with id {feature_id} does not exist")
+    
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    if self._session.query(models.LibraryFeatureLink).where(
+        models.LibraryFeatureLink.feature_id == feature_id,
+        models.LibraryFeatureLink.library_id == library_id,
+    ).first():
+        raise exceptions.LinkAlreadyExists(f"Feature with id {feature_id} and Library with id {library_id} are already linked")
+    
+    feature_library_link = models.LibraryFeatureLink(
+        feature_id=feature_id, library_id=library_id,
+    )
+
+    self._session.add(feature_library_link)
+    library.num_features += 1
+    self._session.add(library)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(feature_library_link)
+
+    if not persist_session:
+        self.close_session()
+
+    return feature_library_link
+
+
+def unlink_feature_library(
+    self, feature_id: int, library_id: int,
+    commit: bool = True
+):
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Feature, feature_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Feature with id {feature_id} does not exist")
+    
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    if (link := self._session.query(models.LibraryFeatureLink).where(
+        models.LibraryFeatureLink.feature_id == feature_id,
+        models.LibraryFeatureLink.library_id == library_id,
+    ).first()) is None:
+        raise exceptions.LinkDoesNotExist(f"Feature with id {feature_id} and Library with id {library_id} are not linked")
+    
+    self._session.delete(link)
+    library.num_features -= 1
+    self._session.add(library)
+
+    if commit:
+        self._session.commit()
+
+    if not persist_session:
+        self.close_session()
 
 
 def link_experiment_pool(

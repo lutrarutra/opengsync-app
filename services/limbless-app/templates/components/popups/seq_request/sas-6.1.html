@@ -4,7 +4,7 @@
 
 <div id="cmo-reference-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >6. CMO Reference Input Form</h1>
+        <h1 class="modal-title fs-5" >6.1. CMO Reference Input Form</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
@@ -18,10 +18,10 @@
 
             <h5>Modify Columns</h5>
             <ul>
-                <li>Biosample <span class="desc">Name of the biosample</span></li>
-                <li>Library Name <span class="desc">the library from annotation sheet that this CMO belongs to</span></li>
-                <li>Feature <span class="desc">Name of the CMO feature. If using common kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
-                <li>Kit <span class="desc">name of a common feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
+                <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
+                <li>Sample Name <span class="desc">The sample from annotation sheet that this CMO belongs to, must mach one and only one value from 'Sample Name'-column from sample annotation sheet</span></li>
+                <li>Feature <span class="desc">Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+                <li>Kit <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
                 <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
                 <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
                 <li>Read <span class="desc">e.g. 'R2'</span></li>
@@ -31,8 +31,8 @@
             <ul>
                 <li>Two ways to specify CMOs:</li>
                 <ol>
-                    <li>If using common kit from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a>: specify columns <b>Biosample, Library Name, Feature, Kit</b></li>
-                    <li>If using custom kit: specify columns <b>Biosample, Library Name, Sequence, Pattern, Read</b></li>
+                    <li>If using predefined kit from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a>: specify columns <b>Demux Name, Sample Name, Feature, Kit</b></li>
+                    <li>If using custom kit: specify columns <b>Demux Name, Sample Name, Sequence, Pattern, Read</b></li>
                 </ol>
             </ul>
         </div>

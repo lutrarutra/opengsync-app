@@ -1,0 +1,13 @@
+Library Name	Kit	Feature	Sequence	Pattern	Read
+		Feature 1	AAAACCC	NNNPC	R2
+		Feature 2	AAAACCA	NNNPC	R2
+		Feature 3	AAAAAAC	NNNPC	R2
+		Feature 4	AAAAACC	NNNPC	R2
+		Feature 5	AACACCC	NNNPC	R2
+		Feature 6	ACCACCC	NNNPC	R2
+		Feature 7	ACAACCC	NNNPC	R2
+		Feature 9	CCCACCC	NNNPC	R2
+		Feature 10	CCCCCCC	NNNPC	R2
+		Feature 11	AAAAAAA	NNNPC	R2
+		Feature 12	AAACCAA	NNNPC	R2
+		Feature 13	CAAACCA	NNNPC	R2

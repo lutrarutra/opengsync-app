@@ -38,12 +38,8 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
             return False
         
         data = self.get_data()
-        for table_name in ["feature_table", "cmo_table"]:
-            if table_name not in data.keys():
-                continue
-            df = data[table_name]
-        
-            kits = df["kit"].unique().tolist()
+        if (cmo_table := data.get("cmo_table")) is not None:
+            kits = cmo_table["kit"].unique().tolist()
             kits = [feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in kits]
             
             for i, entry in enumerate(self.input_fields):
@@ -58,12 +54,28 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
                     feature_kit_search_field.selected.errors = ("Not valid feature kit selected")
                     return False
                 
-                _df = df[df["kit"] == raw_feature_kit_label]
+                _df = cmo_table[cmo_table["kit"] == raw_feature_kit_label]
                 for _, row in _df.iterrows():
                     feature_name = str(row["feature_name"])
                     if (_ := db.get_feature_from_kit_by_feature_name(feature_name, selected_kit.id)) is None:
                         feature_kit_search_field.selected.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
                         return False
+        
+        if (feature_table := data.get("feature_table")) is not None:
+            kits = feature_table["kit"].unique().tolist()
+            kits = [feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in kits]
+
+            for i, entry in enumerate(self.input_fields):
+                raw_feature_kit_label = kits[i]
+                feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
+
+                if (feature_kit_id := feature_kit_search_field.selected.data) is None:
+                    feature_kit_search_field.selected.errors = ("Not valid feature kit selected")
+                    return False
+                
+                if (selected_kit := db.get_feature_kit(feature_kit_id)) is None:
+                    feature_kit_search_field.selected.errors = ("Not valid feature kit selected")
+                    return False
 
         return validated
     
@@ -71,14 +83,9 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
         if data is None:
             data = self.get_data()
 
-        kits = []
-
-        for table_name in ["feature_table", "cmo_table"]:
-            if table_name not in data.keys():
-                continue
-            df = data[table_name]
-
-            kits.extend([feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in df["kit"].unique().tolist()])
+        if (cmo_table := data.get("cmo_table")) is not None:
+            kits = cmo_table["kit"].unique().tolist()
+            kits = [feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in kits]
 
             for i, raw_feature_kit_label in enumerate(kits):
                 if i > len(self.input_fields) - 1:
@@ -98,7 +105,29 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
                     selected_kit = db.get_feature_kit(feature_kit_search_field.selected.data)
                     feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
 
-            data[table_name] = df
+            data["cmo_table"] = cmo_table
+
+        if (feature_table := data.get("feature_table")) is not None:
+            kits = feature_table["kit"].unique().tolist()
+            kits = [feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in kits]
+
+            for i, raw_feature_kit_label in enumerate(kits):
+                if i > len(self.input_fields) - 1:
+                    self.input_fields.append_entry()
+
+                entry = self.input_fields[i]
+                feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
+                entry.raw_label.data = raw_feature_kit_label
+
+                if raw_feature_kit_label is None:
+                    selected_kit = None
+                elif feature_kit_search_field.selected.data is None:
+                    selected_kit = next(iter(db.query_feature_kits(raw_feature_kit_label, 1)), None)
+                    feature_kit_search_field.selected.data = selected_kit.id if selected_kit else None
+                    feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
+                else:
+                    selected_kit = db.get_feature_kit(feature_kit_search_field.selected.data)
+                    feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
 
         self.update_data(data)
 
@@ -107,16 +136,11 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
     def __parse(self) -> dict[str, pd.DataFrame]:
         data = self.get_data()
 
-        for table_name in ["feature_table", "cmo_table"]:
-            if table_name not in data.keys():
-                continue
-            
-            df = data[table_name]
-            df["feature_kit_name"] = None
-            df["feature_kit_id"] = None
-
-            kits = df["kit"].unique().tolist()
+        if (cmo_table := data.get("cmo_table")) is not None:
+            kits = cmo_table["kit"].unique().tolist()
             kits = [feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in kits]
+            cmo_table["feature_kit_name"] = None
+            cmo_table["feature_kit_id"] = None
 
             for i, feature_kit in enumerate(kits):
                 entry = self.input_fields[i]
@@ -126,21 +150,72 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
                     if (selected_kit := db.get_feature_kit(selected_id)) is None:
                         raise Exception(f"Feature kit with id '{selected_id}' does not exist.")
                     
-                    df.loc[df["kit"] == feature_kit, "feature_kit_id"] = selected_id
-                    df.loc[df["kit"] == feature_kit, "feature_kit_name"] = selected_kit.name
+                    cmo_table.loc[cmo_table["kit"] == feature_kit, "feature_kit_id"] = selected_id
+                    cmo_table.loc[cmo_table["kit"] == feature_kit, "feature_kit_name"] = selected_kit.name
 
                 else:
                     raise Exception("Feature kit not selected.")
-
-            df["feature_id"] = None
-            for i, row in df.iterrows():
+                
+            cmo_table["feature_id"] = None
+            for i, row in cmo_table.iterrows():
                 feature_kit_id = int(row["feature_kit_id"])
                 feature_name = str(row["feature_name"])
                 feature = db.get_feature_from_kit_by_feature_name(feature_name, feature_kit_id)
 
-                df.at[i, "feature_id"] = feature.id
+                cmo_table.at[i, "feature_id"] = feature.id
+
+            data["cmo_table"] = cmo_table
+
+        if (feature_table := data.get("feature_table")) is not None:
+            kits = feature_table["kit"].unique().tolist()
+            kits = [feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in kits]
+
+            feature_table["feature_kit_name"] = None
+            feature_table["feature_kit_id"] = None
+
+            for i, feature_kit in enumerate(kits):
+                entry = self.input_fields[i]
+                feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
+
+                if (selected_id := feature_kit_search_field.selected.data) is not None:
+                    if (selected_kit := db.get_feature_kit(selected_id)) is None:
+                        raise Exception(f"Feature kit with id '{selected_id}' does not exist.")
+                    
+                    feature_table.loc[feature_table["kit"] == feature_kit, "feature_kit_id"] = selected_id
+                    feature_table.loc[feature_table["kit"] == feature_kit, "feature_kit_name"] = selected_kit.name
+
+                else:
+                    raise Exception("Feature kit not selected.")
                 
-            data[table_name] = df
+            feature_table["feature_id"] = None
+            feature_data = {
+                "library_name": [],
+                "feature_id": [],
+                "feature_kit_id": [],
+            }
+            for i, row in feature_table.iterrows():
+                feature_kit_id = int(row["feature_kit_id"])
+                feature_name = row["feature_name"]
+                if pd.isna(feature_name):
+                    features, _ = db.get_features(feature_kit_id=feature_kit_id, limit=None)
+                    for feature in features:
+                        feature_data["library_name"].append(row["library_name"])
+                        feature_data["feature_kit_id"].append(feature_kit_id)
+                        feature_data["feature_id"].append(feature.id)
+                else:
+                    feature = db.get_feature_from_kit_by_feature_name(str(feature_name), feature_kit_id)
+                    if pd.isna(row["library_name"]):
+                        abc_libraries = data["library_table"][data["library_table"]["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id]["library_name"].unique().tolist()
+                        for abc_library_name in abc_libraries:
+                            feature_data["library_name"].append(abc_library_name)
+                            feature_data["feature_kit_id"].append(feature_kit_id)
+                            feature_data["feature_id"].append(feature.id)
+                    else:
+                        feature_data["library_name"].append(row["library_name"])
+                        feature_data["feature_kit_id"].append(feature_kit_id)
+                        feature_data["feature_id"].append(feature.id)
+
+            data["feature_table"] = pd.DataFrame(feature_data)
 
         self.update_data(data)
 

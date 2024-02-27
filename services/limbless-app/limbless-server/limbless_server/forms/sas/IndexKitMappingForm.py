@@ -13,6 +13,7 @@ from ... import db
 from ..TableDataForm import TableDataForm
 from ..HTMXFlaskForm import HTMXFlaskForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
+from .FeatureKitReferenceInputForm import FeatureKitReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
 from .BarcodeCheckForm import BarcodeCheckForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -174,6 +175,12 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
+        
+        if (data["library_table"]["library_type_id"].isin([
+            LibraryType.ANTIBODY_CAPTURE.id,
+        ])).any():
+            feature_kit_reference_input_form = FeatureKitReferenceInputForm(uuid=self.uuid)
+            return feature_kit_reference_input_form.make_response(**context)
         
         if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)

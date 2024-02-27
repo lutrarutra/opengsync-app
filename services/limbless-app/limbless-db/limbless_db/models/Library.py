@@ -1,19 +1,21 @@
-from typing import Optional, List, TYPE_CHECKING, ClassVar
+from typing import Optional, TYPE_CHECKING, ClassVar
 from dataclasses import dataclass
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..core.categories import LibraryType
+from .Links import LibraryFeatureLink
+from .SeqRequest import SeqRequest
+from limbless_db.core.categories import LibraryType
 
 if TYPE_CHECKING:
-    from .SeqRequest import SeqRequest
     from .Pool import Pool
     from .Links import SampleLibraryLink
     from .CMO import CMO
     from .User import User
     from .IndexKit import IndexKit
-    from .SeqQuality import SeqQuality
+    from .Feature import Feature
     from .VisiumAnnotation import VisiumAnnotation
+    from .SeqQuality import SeqQuality
 
 
 @dataclass
@@ -45,6 +47,7 @@ class Library(SQLModel, table=True):
     )
 
     num_samples: int = Field(nullable=False, default=0)
+    num_features: int = Field(nullable=False, default=0)
 
     owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
     owner: "User" = Relationship(
@@ -59,6 +62,10 @@ class Library(SQLModel, table=True):
 
     cmos: list["CMO"] = Relationship(
         back_populates="library",
+        sa_relationship_kwargs={"lazy": "select"}
+    )
+    features: list["Feature"] = Relationship(
+        link_model=LibraryFeatureLink,
         sa_relationship_kwargs={"lazy": "select"}
     )
 
@@ -84,7 +91,7 @@ class Library(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "type_id", "owner_id", "pool_id", "adapter"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "owner_id", "pool_id", "adapter"]
 
     def to_dict(self):
         res = {
@@ -112,7 +119,7 @@ class Library(SQLModel, table=True):
         return not self.submitted
     
     @property
-    def indices(self) -> List[Optional[Index]]:
+    def indices(self) -> list[Optional[Index]]:
         return [
             Index(self.index_1_sequence, self.adapter) if self.index_1_sequence is not None else None,
             Index(self.index_2_sequence, self.adapter) if self.index_2_sequence is not None else None,

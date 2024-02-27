@@ -53,7 +53,18 @@ def get(page: int):
             features, n_pages = session.get_features(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending)
         
         context["feature_kit"] = feature_kit
-
+    elif (library_id := request.args.get("library_id")) is not None:
+        template = "components/tables/library-feature.html"
+        try:
+            library_id = int(library_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.id)
+        
+        with DBSession(db) as session:
+            library = session.get_library(library_id)
+            features, n_pages = session.get_features(library_id=library_id, offset=offset, sort_by=sort_by, descending=descending)
+        
+        context["library"] = library
     else:
         raise NotImplementedError()
     
@@ -66,23 +77,4 @@ def get(page: int):
             features_active_page=page,
             **context
         )
-    )
-
-
-@features_htmx.route("query_kits", methods=["POST"])
-@login_required
-def query_kits():
-    field_name = next(iter(request.form.keys()))
-
-    if (word := request.form.get(field_name)) is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
-
-    results = db.query_feature_kits(word)
-
-    return make_response(
-        render_template(
-            "components/search_select_results.html",
-            results=results,
-            field_name=field_name
-        ), push_url=False
     )

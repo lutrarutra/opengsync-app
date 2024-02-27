@@ -6,7 +6,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.core.categories import HttpResponse
-from .... import db
+from .... import db, logger
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -38,5 +38,27 @@ def get(page: int):
             feature_kits=feature_kits,
             feature_kits_n_pages=n_pages, feature_kits_active_page=page,
             feature_kits_current_sort=sort_by, feature_kits_current_sort_order=order
+        ), push_url=False
+    )
+
+
+@feature_kits_htmx.route("query", methods=["POST"])
+@login_required
+def query():
+    field_name = next(iter(request.form.keys()))
+    if (word := request.form.get(field_name, default="")) is None:
+        return abort(HttpResponse.BAD_REQUEST.id)
+
+    if (word := request.form.get(field_name)) is None:
+        return abort(HttpResponse.BAD_REQUEST.id)
+
+    results = db.query_feature_kits(word)
+    logger.debug(word)
+
+    return make_response(
+        render_template(
+            "components/search_select_results.html",
+            results=results,
+            field_name=field_name
         ), push_url=False
     )
