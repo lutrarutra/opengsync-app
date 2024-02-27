@@ -1,0 +1,7 @@
+Sample Name	Library Name	Organism	Project	Library Type	Pool	Index Kit	Adapter	Index 1 (i7)	Index 2 (i5)	Index 3	Index 4	Library Volume [uL]	Library DNA Concentration [nM]	Library Total Size [bp]
+multi_sample_A	multi_sample_A_GEX	human	Test ABC Project	sc rna-seq	gex_abc_pool	Dual Index TN	SI-TN-A1							
+multi_sample_B	multi_sample_B_GEX	human	Test ABC Project	sc rna-seq	gex_abc_pool	Dual Index TN	SI-TN-A2							
+multi_sample_C	multi_sample_C_GEX	human	Test ABC Project	sc rna-seq	gex_abc_pool	Dual Index TN	SI-TN-A3							
+multi_sample_A	multi_sample_A_ABC	human	Test ABC Project	antibody feature	gex_abc_pool	Dual Index TN	SI-TN-A4							
+multi_sample_B	multi_sample_B_ABC	human	Test ABC Project	antibody feature	gex_abc_pool	Dual Index TN	SI-TN-A5							
+multi_sample_C	multi_sample_C_ABC	human	Test ABC Project	antibody feature	gex_abc_pool	Dual Index TN	SI-TN-A6							

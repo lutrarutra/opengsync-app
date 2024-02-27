@@ -48,20 +48,21 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
             
             for i, entry in enumerate(self.input_fields):
                 raw_feature_kit_label = kits[i]
+                feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
 
-                if (feature_kit_id := entry.feature_kit.selected.data) is None:
-                    entry.feature_kit.selected.errors = ("Not valid feature kit selected")
+                if (feature_kit_id := feature_kit_search_field.selected.data) is None:
+                    feature_kit_search_field.selected.errors = ("Not valid feature kit selected")
                     return False
                 
                 if (selected_kit := db.get_feature_kit(feature_kit_id)) is None:
-                    entry.feature_kit.selected.errors = ("Not valid feature kit selected")
+                    feature_kit_search_field.selected.errors = ("Not valid feature kit selected")
                     return False
                 
                 _df = df[df["kit"] == raw_feature_kit_label]
                 for _, row in _df.iterrows():
                     feature_name = str(row["feature_name"])
                     if (_ := db.get_feature_from_kit_by_feature_name(feature_name, selected_kit.id)) is None:
-                        entry.feature_kit.selected.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
+                        feature_kit_search_field.selected.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
                         return False
 
         return validated
@@ -84,17 +85,18 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
                     self.input_fields.append_entry()
 
                 entry = self.input_fields[i]
+                feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
                 entry.raw_label.data = raw_feature_kit_label
 
                 if raw_feature_kit_label is None:
                     selected_kit = None
-                elif entry.feature_kit.selected.data is None:
+                elif feature_kit_search_field.selected.data is None:
                     selected_kit = next(iter(db.query_feature_kits(raw_feature_kit_label, 1)), None)
-                    entry.feature_kit.selected.data = selected_kit.id if selected_kit else None
-                    entry.feature_kit.search_bar.data = selected_kit.search_name() if selected_kit else None
+                    feature_kit_search_field.selected.data = selected_kit.id if selected_kit else None
+                    feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
                 else:
-                    selected_kit = db.get_feature_kit(entry.feature_kit.selected.data)
-                    entry.feature_kit.search_bar.data = selected_kit.search_name() if selected_kit else None
+                    selected_kit = db.get_feature_kit(feature_kit_search_field.selected.data)
+                    feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
 
             data[table_name] = df
 
@@ -118,7 +120,9 @@ class FeatureKitMappingForm(HTMXFlaskForm, TableDataForm):
 
             for i, feature_kit in enumerate(kits):
                 entry = self.input_fields[i]
-                if (selected_id := entry.feature_kit.selected.data) is not None:
+                feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
+
+                if (selected_id := feature_kit_search_field.selected.data) is not None:
                     if (selected_kit := db.get_feature_kit(selected_id)) is None:
                         raise Exception(f"Feature kit with id '{selected_id}' does not exist.")
                     

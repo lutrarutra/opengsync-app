@@ -143,5 +143,5 @@ class DBHandler():
     )
 
     from .pd_handler import (
-        get_experiment_libraries_df
+        get_experiment_libraries_df, get_experiment_samples_df
     )
