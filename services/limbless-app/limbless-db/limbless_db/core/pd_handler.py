@@ -55,6 +55,8 @@ def get_experiment_libraries_df(
 
     df = pd.read_sql(library_query.statement, library_query.session.bind)
     df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).value.name)
+
+    df = df.dropna(axis="columns", how="all")
     
     if not persist_session:
         self.close_session()
@@ -128,6 +130,8 @@ def get_experiment_samples_df(
 
     df = pd.read_sql(query.statement, query.session.bind)
     df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).value.name)
+
+    df = df.dropna(axis="columns", how="all")
     
     if not persist_session:
         self.close_session()
