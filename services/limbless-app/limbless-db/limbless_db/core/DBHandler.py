@@ -5,7 +5,7 @@ from sqlalchemy import orm
 
 
 class DBHandler():
-    def __init__(self, user: str, password: str, host: str, port: Union[str, int], db: str):
+    def __init__(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432):
         self._engine = create_engine(f"postgresql://{user}:{password}@{host}:{port}/{db}")
         self._session: Optional[orm.Session] = None
 
