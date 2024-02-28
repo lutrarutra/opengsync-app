@@ -289,8 +289,8 @@
                             </thead>
                             <tbody>
                                 {% for _, row in libraries_df.iterrows() %}
-                                <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=row['id']) }}';">
-                                    <th scope="row">{{ row["id"] }}</th>
+                                <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=row['library_id']) }}';">
+                                    <th scope="row">{{ row["library_id"] }}</th>
                                     <td>{{ row["library_name"] }}</td>
                                     <td>{{ row["library_type"] }}</td>
                                     <td>{{ row["lane"] }}</td>

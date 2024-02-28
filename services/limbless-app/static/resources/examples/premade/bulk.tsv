@@ -1,0 +1,32 @@
+Sample Name	Library Name	Organism	Project	Library Type	Pool	Index Kit	Adapter	Index 1 (i7)	Index 2 (i5)	Index 3	Index 4	Library Volume [uL]	Library DNA Concentration [nM]	Library Total Size [bp]
+FB_untreated _1	FB_untreated _1	human		bulk	R0195			CTGTACCA	AGTCTGTG					
+FB_untreated _2	FB_untreated _2	human		bulk	R0195			AGACCTTG	GCACGTAA					
+FB_untreated _3	FB_untreated _3	human		bulk	R0195			AGGATAGC	AACCTTGG					
+FB_24h_BCM _1	FB_24h_BCM _1	human		bulk	R0195			CCTTCCAT	ATTGCGTG					
+FB_24h_BCM _2	FB_24h_BCM _2	human		bulk	R0195			GTCCTTGA	TCAGACGA					
+FB_24h_BCM _3	FB_24h_BCM _3	human		bulk	R0195			TGCGTAAC	GATAGGCT					
+FB_48h_BCM_i _1	FB_48h_BCM_i _1	human		bulk	R0195			CACAGACT	TGGTACAG					
+FB_48h_BCM_i _2	FB_48h_BCM_i _2	human		bulk	R0195			TTACGTGC	CAAGGTCT					
+FB_48h_BCM_i _3	FB_48h_BCM_i _3	human		bulk	R0195			CCAAGGTT	GCTATCCT					
+CTRL1_day0	CTRL1_day0	human		bulk	R0194			TACTCCAG	CCTATACC					
+CTRL2_day0	CTRL2_day0	human		bulk	R0194			GGAAGAGA	TTCTCTCG					
+CTRL3_day0	CTRL3_day0	human		bulk	R0194			GCGTTAGA	GTATGCTG					
+iPSC1_day0	iPSC1_day0	human		bulk	R0194			ATCTGACC	AAGTCGAG					
+iPSC2_day0	iPSC2_day0	human		bulk	R0194			AACCAGAG	AACCGAAG					
+iPSC3_day0	iPSC3_day0	human		bulk	R0194			GTACCACA	TGTTGTGG					
+sample_1	library_1	human		bulk	SS2_pool_VS_02-24			TAAGGCGA	CTCCTTAC					
+Sample_2	Library_2	human		bulk	SS2_pool_VS_02-24			CGTACTAG	CTCCTTAC					
+Sample_3	Library_3	human		bulk	SS2_pool_VS_02-24			AGGCAGAA	CTCCTTAC					
+Sample_8	Library_8	human		bulk	SS2_pool_VS_02-24			TCCTGAGC	CTCCTTAC					
+Sample_9	Library_9	human		bulk	SS2_pool_VS_02-24			GGACTCCT	CTCCTTAC					
+Sample_10	Library_10	human		bulk	SS2_pool_VS_02-24			TAGGCATG	CTCCTTAC					
+Sample_4	Library_4	human		bulk	SS2_pool_VS_02-24			TAAGGCGA	TATGCAGT					
+Sample_5	Library_5	human		bulk	SS2_pool_VS_02-24			CGTACTAG	TATGCAGT					
+Sample_6	Library_6	human		bulk	SS2_pool_VS_02-24			AGGCAGAA	TATGCAGT					
+Sample_7	Library_7	human		bulk	SS2_pool_VS_02-24			TCCTGAGC	TATGCAGT					
+Sample_11	Library_11	human		bulk	SS2_pool_VS_02-24			GGACTCCT	TATGCAGT					
+Sample_12	Library_12	human		bulk	SS2_pool_VS_02-24			TAGGCATG	TATGCAGT					
+Sample_13	Library_13	human		bulk	SS2_pool_VS_02-24			CTCTCTAC	TATGCAGT					
+Sample_14	Library_14	human		bulk	SS2_pool_VS_02-24			CGAGGCTG	TATGCAGT					
+Sample_15	Library_15	human		bulk	SS2_pool_VS_02-24			TAAGGCGA	ATAGAGAG					
+Sample_16	Library_16	human		bulk	SS2_pool_VS_02-24			CGTACTAG	ATAGAGAG					
