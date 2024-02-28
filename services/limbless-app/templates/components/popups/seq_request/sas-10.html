@@ -94,6 +94,9 @@
         </form>
     </div>
     <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
         <button type="button" class="btn btn-success" hx-target="#index-check-container" hx-swap="outerHTML"
             hx-include="#index-check-form" id="index-check-form-btn"
             hx-post="{{ url_for('seq_request_form_htmx.check_barcodes', seq_request_id=seq_request.id) }}">

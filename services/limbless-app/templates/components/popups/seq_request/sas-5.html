@@ -34,6 +34,9 @@
         </div>
     </div>
     <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
         <button type="button" class="btn btn-primary"
             hx-target="#index_kit-mapping-form-container" hx-swap="outerHTML"
             hx-include="#index_kit-mapping-form"

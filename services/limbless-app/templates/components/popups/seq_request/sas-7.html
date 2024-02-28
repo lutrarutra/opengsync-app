@@ -22,6 +22,9 @@
         </div>
     </div>
     <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
         <button type="button" class="btn btn-primary"
             hx-target="#feature_kit-mapping-form-container" hx-swap="outerHTML"
             hx-include="#feature_kit-mapping-form"

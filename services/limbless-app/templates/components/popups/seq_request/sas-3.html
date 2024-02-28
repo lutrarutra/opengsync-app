@@ -28,6 +28,9 @@
         </div>
     </div>
     <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
         <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
             hx-target="#sample-table-organism-map-container" hx-swap="outerHTML"
             hx-include="#sample-organism-category-mapping-form"

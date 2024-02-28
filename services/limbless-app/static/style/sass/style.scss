@@ -151,6 +151,16 @@ body {
     cursor: pointer;
 }
 
+.modal-footer {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    .footer-id {
+        margin-right: auto;
+        background-color: transparent;
+    }
+}
+
 .modal-xl {
     min-width: 80vw;
     .modal-content {

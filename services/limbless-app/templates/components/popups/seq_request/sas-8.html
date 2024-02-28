@@ -35,6 +35,9 @@
         </form>
     </div>
     <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
         <button class="btn btn-success" type="button"
             hx-include="#cmo-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
             hx-encoding="multipart/form-data"

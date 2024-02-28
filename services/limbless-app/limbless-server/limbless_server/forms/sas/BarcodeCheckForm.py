@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from flask import Response
 import pandas as pd
@@ -237,7 +238,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                     if feature_table is not None:
                         feature_ref = feature_table[(feature_table["library_name"] == library_name) | feature_table["library_name"].isna()]
                         for _, feature_row in feature_ref.iterrows():
-                            logger.debug(feature_row)
                             if pd.isna(feature_id := feature_row["feature_id"]):
                                 _feature = session.create_feature(
                                     name=feature_row["feature_name"],
@@ -300,6 +300,9 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             flash("No libraries added.", "warning")
         else:
             flash(f"Added {n_added} libraries to sequencing request.", "success")
+
+        if os.path.exists(self.path):
+            os.remove(self.path)
 
         return make_response(
             redirect=url_for(

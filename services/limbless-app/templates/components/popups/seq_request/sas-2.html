@@ -31,6 +31,9 @@
         </div>
     </div>
     <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
         <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
             hx-target="#project-select-form-container" hx-swap="outerHTML"
             hx-include="#project-select-form"
