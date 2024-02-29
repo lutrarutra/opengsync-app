@@ -5,7 +5,7 @@ from sqlmodel import func, text
 from sqlalchemy.sql.operators import or_, and_
 
 from ... import models, PAGE_LIMIT
-from ...core.categories import LibraryType
+from ...core.categories import LibraryType, LibraryStatus
 from .. import exceptions
 
 
@@ -48,6 +48,11 @@ def create_library(
     if visium_annotation_id is not None:
         if (_ := self._session.get(models.VisiumAnnotation, visium_annotation_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Visium annotation with id {visium_annotation_id} does not exist")
+        
+    if pool_id is not None:
+        library_status_id = LibraryStatus.POOLED.id
+    else:
+        library_status_id = LibraryStatus.DRAFT.id
 
     library = models.Library(
         name=name,
@@ -64,6 +69,7 @@ def create_library(
         index_3_sequence=index_3_sequence,
         index_4_sequence=index_4_sequence,
         adapter=adapter,
+        status_id=library_status_id,
         visium_annotation_id=visium_annotation_id
     )
     self._session.add(library)
@@ -304,6 +310,7 @@ def link_library_pool(self, library_id: int, pool_id: int, commit: bool = True):
         self._session.add(pool)
         
     library.pool_id = pool_id
+    library.status_id = LibraryStatus.POOLED.id
     self._session.add(library)
 
     if commit:

@@ -6,7 +6,7 @@ from sqlmodel import func
 from sqlalchemy.sql.operators import is_, or_, and_
 
 from ... import models, PAGE_LIMIT
-from ...core.categories import SeqRequestStatus, SequencingType, FlowCellType, FileType
+from ...core.categories import SeqRequestStatus, SequencingType, FlowCellType, FileType, LibraryStatus
 from .. import exceptions
 
 
@@ -32,7 +32,6 @@ def create_seq_request(
     bioinformatician_contact_id: Optional[int] = None,
     organization_department: Optional[str] = None,
     billing_code: Optional[str] = None,
-    commit: bool = True
 ) -> models.SeqRequest:
 
     persist_session = self._session is not None
@@ -254,7 +253,7 @@ def submit_seq_request(
     seq_request.status_id = SeqRequestStatus.SUBMITTED.id
     seq_request.submitted_time = datetime.now()
     for library in seq_request.libraries:
-        library.submitted = True
+        library.status_id = LibraryStatus.SUBMITTED.id
         self._session.add(library)
 
     if commit:

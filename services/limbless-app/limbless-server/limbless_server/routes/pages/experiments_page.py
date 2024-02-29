@@ -75,7 +75,8 @@ def experiment_page(experiment_id: int):
         ]
 
         libraries_df = db.get_experiment_libraries_df(experiment_id)
-        libraries_df = tools.check_indices(libraries_df)
+        if len(libraries_df) > 0:
+            libraries_df = tools.check_indices(libraries_df)
 
         return render_template(
             "experiment_page.html",

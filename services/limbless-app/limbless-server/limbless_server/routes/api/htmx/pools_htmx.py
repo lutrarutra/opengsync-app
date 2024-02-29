@@ -16,9 +16,9 @@ else:
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/pools/")
 
 
-@pools_htmx.route("get", methods=["GET"])
+@pools_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
-def get(page):
+def get(page: int):
     if not current_user.is_insider():
         return abort(HttpResponse.FORBIDDEN.id)
     
@@ -43,21 +43,22 @@ def get(page):
             
             pools, n_pages = session.get_pools(
                 experiment_id=experiment_id, sort_by=sort_by, descending=descending,
-                offset=offset, 
+                offset=offset,
             )
             context["experiment"] = experiment
-
+            context["experiment_lanes"] = session.get_lanes_in_experiment(experiment_id)
     else:
         template = "components/tables/pool.html"
         with DBSession(db) as session:
             pools, n_pages = session.get_pools(
                 sort_by=sort_by, descending=descending,
-                offset=offset, 
+                offset=offset,
             )
 
     return make_response(
         render_template(
             template, pools=pools, pools_n_pages=n_pages,
+            pools_current_sort=sort_by, pools_current_sort_order=order,
             pools_active_page=page, **context
         )
     )

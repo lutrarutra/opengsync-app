@@ -6,12 +6,12 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.description }}</span></h1>
+            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.description }} &mdash; {{ library.status.name }} {{ library.status.desc }}</span></h1>
         </div>
         <div>
-            <span {% if library.submitted and not current_user.is_insider() %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
+            <span {% if not library.is_editable() and not current_user.is_insider() %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
                 <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup"
-                {% if library.submitted and not current_user.is_insider() %}disabled{% endif %}>
+                {% if not library.is_editable() and not current_user.is_insider() %}disabled{% endif %}>
                     Edit Library
                 </button>
             </span>

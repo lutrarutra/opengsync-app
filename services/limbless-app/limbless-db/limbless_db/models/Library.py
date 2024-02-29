@@ -5,7 +5,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import LibraryFeatureLink
 from .SeqRequest import SeqRequest
-from limbless_db.core.categories import LibraryType
+from limbless_db.core.categories import LibraryType, LibraryStatus
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -27,9 +27,9 @@ class Index:
 class Library(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64)
-    type_id: int = Field(nullable=False)
     
-    submitted: bool = Field(nullable=False, default=False)
+    type_id: int = Field(nullable=False)
+    status_id: int = Field(nullable=False, default=0)
 
     volume: Optional[int] = Field(nullable=True, default=None)
     dna_concentration: Optional[float] = Field(nullable=True, default=None)
@@ -107,6 +107,10 @@ class Library(SQLModel, table=True):
         }
 
         return res
+    
+    @property
+    def status(self) -> LibraryStatus:
+        return LibraryStatus.get(self.status_id)
 
     @property
     def type(self) -> LibraryType:
@@ -116,7 +120,7 @@ class Library(SQLModel, table=True):
         return self.num_samples > 1
     
     def is_editable(self) -> bool:
-        return not self.submitted
+        return self.status == LibraryStatus.DRAFT
     
     @property
     def indices(self) -> list[Optional[Index]]:

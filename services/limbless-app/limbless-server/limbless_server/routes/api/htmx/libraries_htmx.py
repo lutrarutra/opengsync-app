@@ -6,7 +6,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler
 from limbless_db.core.categories import HttpResponse
-from .... import db, forms
+from .... import db, forms, logger
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -18,7 +18,7 @@ libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/librarie
 
 @libraries_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
-def get(page):
+def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
     descending = order == "desc"
@@ -208,7 +208,7 @@ def table_query():
         except ValueError:
             return abort(HttpResponse.BAD_REQUEST.id)
         with DBSession(db) as session:
-            if (seq_request := session.get_library(seq_request_id)) is None:
+            if (seq_request := session.get_seq_request(seq_request_id)) is None:
                 return abort(HttpResponse.NOT_FOUND.id)
                 
             libraries = __get_libraries(session, word, field_name, seq_request_id=seq_request_id)

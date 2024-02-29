@@ -19,9 +19,8 @@ class ExperimentForm(HTMXFlaskForm):
     sequencer = FormField(SearchBar, label="Select Sequencer", description="Select the sequencer that will be used for sequencing.")
     flowcell_type = SelectField(
         "Flowcell Type", choices=FlowCellType.as_selectable(),
-        validators=[DataRequired()],
         description="Type of flowcell to use for sequencing.",
-        coerce=int
+        coerce=int, default=0
     )
     flowcell = StringField("Flowcell ID", validators=[DataRequired(), Length(min=3, max=models.Experiment.flowcell_id.type.length)])  # type: ignore
     num_lanes = IntegerField("Number of Lanes", default=1, validators=[DataRequired(), NumberRange(min=1, max=8)])
@@ -56,6 +55,7 @@ class ExperimentForm(HTMXFlaskForm):
             self.sequencing_person.search_bar.data = experiment.sequencing_person.name
 
     def validate(self) -> bool:
+        logger.debug(self.flowcell_type.data)
         if (validated := super().validate()) is False:
             return False
         
@@ -73,7 +73,6 @@ class ExperimentForm(HTMXFlaskForm):
         experiment.sequencing_person_id = self.sequencing_person.selected.data
         experiment = db.update_experiment(experiment)
 
-        logger.debug(f"Edited experiment on flowcell '{experiment.flowcell_id}'")
         flash(f"Edited experiment on flowcell '{experiment.flowcell_id}'.", "success")
 
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
@@ -91,7 +90,6 @@ class ExperimentForm(HTMXFlaskForm):
             sequencing_person_id=self.sequencing_person.selected.data
         )
 
-        logger.debug(f"Created experiment on flowcell '{experiment.flowcell_id}'")
         flash(f"Created experiment on flowcell '{experiment.flowcell_id}'.", "success")
 
         return make_response(

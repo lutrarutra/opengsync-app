@@ -36,19 +36,25 @@
                 data-bs-target="#experiment-file-form-popup">
                 Add File
             </button>
-            <button type="button" class="btn btn-danger"
-                hx-post="{{ url_for('experiments_htmx.delete', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Delete Experiment',
-                    showDenyButton: true,
-                    text: 'Proceed?',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()">
-                Delete Experiment
-            </button>
+            <span
+            {% if not experiment.is_deleteable() %}
+            {{ tooltip("Only draft experiments can be deleted.", category="danger") }}
+            {% endif %}>
+                <button type="button" class="btn btn-danger"
+                    hx-delete="{{ url_for('experiments_htmx.delete', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Delete Experiment',
+                        showDenyButton: true,
+                        text: 'Proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                    {% if not experiment.is_deleteable() %}disabled{% endif %}>
+                    Delete Experiment
+                </button>
+            </span>
         </div>
     </div>
 

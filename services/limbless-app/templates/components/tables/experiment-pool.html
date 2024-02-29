@@ -8,7 +8,7 @@
                     table_col(
                         target_id='experiment-pool-table', column_name='ID', column_var='id',
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
                         query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
                         field_name=field_name, query_type="number"
                     )
@@ -18,7 +18,7 @@
                     table_col(
                         target_id='experiment-pool-table', column_name='Pool Name', column_var='name',
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
                         query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
                         field_name=field_name, col_size=2
                     )
@@ -27,7 +27,7 @@
                     table_col(
                         target_id='experiment-pool-table', column_name='Owner', column_var='owner_id',
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id":experiment.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
                         col_size=2,
                     )
                 }}
@@ -35,7 +35,7 @@
                     table_col(
                         target_id='experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id":experiment.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
                         col_size=2,
                     )
                 }}
@@ -73,7 +73,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("experiment-pool-table", "pools_htmx.get", pools_n_pages, pools_active_page, url_args={"sort_by": samples_current_sort, "order": samples_current_sort_order, "experiment_id": experiment.id}) }}
+    {{ pagination("experiment-pool-table", "pools_htmx.get", pools_n_pages, pools_active_page, url_args={"sort_by": pools_current_sort, "order": pools_current_sort_order, "experiment_id": experiment.id}) }}
 </div>
 <script>
     $(".table-btn").on("click", function(e) {

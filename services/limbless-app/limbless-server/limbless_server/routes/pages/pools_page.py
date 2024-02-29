@@ -69,6 +69,9 @@ def pool_page(pool_id: int):
             "pool_page.html",
             pool=pool, libraries=libraries,
             libraries_n_pages=libraries_n_pages,
+            libraries_active_page=0,
+            libraries_current_sort="id",
+            libraries_current_sort_order="desc",
             path_list=path_list, is_editable=is_editable,
             open_index_form=open_index_form,
             pooling_input_form=pooling_input_form

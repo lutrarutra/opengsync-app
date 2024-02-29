@@ -91,6 +91,24 @@ def get(page: int):
             with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
         )
         context["sample"] = sample
+    elif (experiment_id := request.args.get("experiment_id")) is not None:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.id)
+        
+        template = "components/tables/experiment-seq_request.html"
+        try:
+            experiment_id = int(experiment_id)
+        except ValueError:
+            return abort(HttpResponse.BAD_REQUEST.id)
+        
+        if (experiment := db.get_experiment(experiment_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.id)
+        
+        seq_requests, n_pages = db.get_seq_requests(
+            offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
+            with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
+        )
+        context["experiment"] = experiment
     else:
         template = "components/tables/seq_request.html"
         with DBSession(db) as session:

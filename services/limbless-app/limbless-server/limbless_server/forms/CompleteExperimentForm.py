@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from wtforms import TextAreaField
 from wtforms.validators import Optional as OptionalValidator, Length
 
-from limbless_db import models, categories
+from limbless_db import models, categories, DBSession
 from .HTMXFlaskForm import HTMXFlaskForm
 from .. import logger, db
 
@@ -33,8 +33,7 @@ class CompleteExperimentForm(HTMXFlaskForm):
             return self.make_response(**context)
         
         experiment: models.Experiment = context["experiment"]
-        experiment.status_id = categories.ExperimentStatus.FINISHED.id
-        experiment = db.update_experiment(experiment)
+        experiment = db.complete_experiment(experiment.id)
         
         flash("Experiment completed!.", "success")
         logger.info(f"Experiment '{experiment.id}' completed!.")

@@ -19,17 +19,21 @@ tab_10_colors = [
 
 def check_indices(df: pd.DataFrame) -> pd.DataFrame:
     indices_present = []
+
+    for idx in ["index_1", "index_2", "index_3", "index_4"]:
+        if idx not in df.columns:
+            df[idx] = None
     
-    if not df["index_1"].isna().all():
+    if "index_1" in df.columns and not df["index_1"].isna().all():
         indices_present.append("index_1")
 
-    if not df["index_2"].isna().all():
+    if "index_2" in df.columns and not df["index_2"].isna().all():
         indices_present.append("index_2")
 
-    if not df["index_3"].isna().all():
+    if "index_3" in df.columns and not df["index_3"].isna().all():
         indices_present.append("index_3")
 
-    if not df["index_4"].isna().all():
+    if "index_4" in df.columns and not df["index_4"].isna().all():
         indices_present.append("index_4")
     
     duplicate_barcode_combinations = (df[indices_present + ["lane"]].duplicated(keep=False))

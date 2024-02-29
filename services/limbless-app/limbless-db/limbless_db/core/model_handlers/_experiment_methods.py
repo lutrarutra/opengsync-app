@@ -4,7 +4,7 @@ from typing import Optional
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ..categories import FlowCellType
+from ..categories import FlowCellType, ExperimentStatus, LibraryStatus, SeqRequestStatus
 
 
 def create_experiment(
@@ -145,6 +145,48 @@ def update_experiment(
 
     if not persist_session:
         self.close_session()
+    return experiment
+
+
+def complete_experiment(self, experiment_id: int) -> models.Experiment:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+
+    experiment.status_id = ExperimentStatus.FINISHED.id
+    self._session.add(experiment)
+
+    seq_requests: list[models.SeqRequest] = []
+
+    for link in experiment.pool_links:
+        for library in link.pool.libraries:
+            library.status_id = LibraryStatus.SEQUENCED.id
+            if library.seq_request not in seq_requests:
+                seq_requests.append(library.seq_request)
+            self._session.add(library)
+
+    self._session.commit()
+    self._session.refresh(experiment)
+
+    for seq_request in seq_requests:
+        sequenced = True
+        for library in seq_request.libraries:
+            if library.status != LibraryStatus.SEQUENCED:
+                sequenced = False
+                break
+        
+        if sequenced:
+            seq_request.status_id = SeqRequestStatus.DATA_PROCESSING.id
+            self._session.add(seq_request)
+
+    self._session.commit()
+
+    if not persist_session:
+        self.close_session()
+
     return experiment
 
 

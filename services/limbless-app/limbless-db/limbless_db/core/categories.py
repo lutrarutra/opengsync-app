@@ -125,12 +125,11 @@ class AccessType(CustomEnum):
 class SeqRequestStatus(CustomEnum):
     DRAFT = DescriptiveEnum(0, "Draft", description="✍🏼")
     SUBMITTED = DescriptiveEnum(1, "Submitted", description="🚀")
-    PREPARATION = DescriptiveEnum(2, "Sequencing Preparation", description="🧪")
-    SEQUENCING = DescriptiveEnum(3, "Sequencing", description="🧬")
-    DATA_PROCESSING = DescriptiveEnum(4, "Data Processing", description="👨🏽‍💻")
-    FINISHED = DescriptiveEnum(5, "Finished", description="✅")
-    ARCHIVED = DescriptiveEnum(6, "Archived", description="🗃️")
-    FAILED = DescriptiveEnum(7, "Failed", description="❌")
+    PREPARATION = DescriptiveEnum(2, "Sequencing Preparation", description="🧬")
+    DATA_PROCESSING = DescriptiveEnum(3, "Data Processing", description="👨🏽‍💻")
+    FINISHED = DescriptiveEnum(4, "Finished", description="✅")
+    ARCHIVED = DescriptiveEnum(5, "Archived", description="🗃️")
+    FAILED = DescriptiveEnum(6, "Failed", description="❌")
 
 
 class ExperimentStatus(CustomEnum):
@@ -202,5 +201,14 @@ class FileType(CustomEnum):
 class DeliveryStatus(CustomEnum):
     PENDING = DescriptiveEnum(0, "Pending", "🕒")
     DISPATCHED = DescriptiveEnum(1, "Dispatched", "📬")
+
+
+class LibraryStatus(CustomEnum):
+    DRAFT = DescriptiveEnum(0, "Draft", "✍🏼")
+    SUBMITTED = DescriptiveEnum(1, "Submitted", "🚀")
+    POOLED = DescriptiveEnum(2, "Pooled", "🧪")
+    SEQUENCED = DescriptiveEnum(3, "Sequenced", "🧬")
+    SHARED = DescriptiveEnum(4, "Shared", "📬")
+    FAILED = DescriptiveEnum(10, "Failed", "❌")
 
     

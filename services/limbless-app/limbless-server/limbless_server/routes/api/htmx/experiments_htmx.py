@@ -66,7 +66,7 @@ def edit(experiment_id: int):
     )
 
 
-@experiments_htmx.route("delete/<int:experiment_id>", methods=["POST"])
+@experiments_htmx.route("delete/<int:experiment_id>", methods=["DELETE"])
 @login_required
 def delete(experiment_id: int):
     if not current_user.is_insider():

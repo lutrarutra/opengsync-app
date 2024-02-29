@@ -177,8 +177,6 @@ class SeqRequestForm(HTMXFlaskForm):
 
         if self.flowcell_type.data != -1:
             try:
-                logger.debug(self.flowcell_type.data)
-                
                 FlowCellType.get(int(self.flowcell_type.data))
             except ValueError:
                 self.flowcell_type.errors = ("Invalid flowcell type",)
@@ -263,7 +261,10 @@ class SeqRequestForm(HTMXFlaskForm):
                     phone=self.bioinformatician_phone.data,
                 )
 
-        flowcell_type = FlowCellType.get(int(self.flowcell_type.data))
+        if self.flowcell_type.data != -1:
+            flowcell_type = FlowCellType.get(self.flowcell_type.data)
+        else:
+            flowcell_type = None
 
         if self.name.data is not None:
             seq_request.name = self.name.data

@@ -47,6 +47,7 @@ def sample_page(sample_id):
     with DBSession(db) as session:
         sample = session.get_sample(sample_id)
         libraries, libraries_n_pages = session.get_libraries(sample_id=sample_id)
+        seq_requests, seq_requests_n_pages = session.get_seq_requests(sample_id=sample_id, sort_by="id", descending=True)
 
     path_list = [
         ("Samples", url_for("samples_page.samples_page")),
@@ -72,5 +73,7 @@ def sample_page(sample_id):
         path_list=path_list, sample=sample,
         libraries=libraries,
         selected_organism=sample.organism,
-        libraries_n_pages=libraries_n_pages
+        libraries_n_pages=libraries_n_pages,
+        seq_requests=seq_requests,
+        seq_requests_n_pages=seq_requests_n_pages
     )

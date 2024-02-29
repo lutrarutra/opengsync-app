@@ -101,7 +101,7 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "select"}
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
+    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
 
     def is_insider(self) -> bool:
         return self.role.is_insider()

@@ -70,9 +70,11 @@ def download_visium_template(uuid: str):
 def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
 
+    if current_app.static_folder is None:
+        return abort(HttpResponse.INTERNAL_SERVER_ERROR.id)
+    
     path = os.path.join(
-        current_app.root_path,
-        "static", "resources", "templates", name
+        current_app.static_folder, "resources", "templates", name
     )
 
     return send_file(path, mimetype="pdf", as_attachment=True, download_name=name)

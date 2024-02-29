@@ -26,7 +26,15 @@
                 }}
                 {{
                     table_col(
-                        target_id='library-table', column_name='Type', column_var='library_type_id',
+                        target_id='library-table', column_name='Type', column_var='type_id',
+                        sort_url='libraries_htmx.get', sort_url_args={},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='Status', column_var='status_id',
                         sort_url='libraries_htmx.get', sort_url_args={},
                         current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
                         col_size=1,
@@ -69,8 +77,11 @@
                 <td>{{ library.name }}</td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
-                        {{ library.type.description }}
+                        {{ library.type.desc }}
                     </span>
+                </td>
+                <td>
+                    {{ library.status.desc }} {{ library.status.name }}
                 </td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
                 <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
@@ -85,6 +96,7 @@
     {{ pagination("library-table", "libraries_htmx.get", libraries_n_pages, libraries_active_page, url_args={"sort_by": libraries_current_sort, "order": libraries_current_sort_order}) }}
 </div>
 <script>
+    init_tooltips();
     var selected_library_id = null;
     var selected_barcode_element_id = null;
 
@@ -133,8 +145,6 @@
             display: "block"
         });
     });
-
-    
     function copy_library_name_to_clipboard() {
         const content = $("#library-name-cell-" + selected_sample_id).text().trim();
         navigator.clipboard.writeText(content);
