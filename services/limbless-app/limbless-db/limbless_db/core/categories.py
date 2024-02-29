@@ -17,6 +17,10 @@ class CustomEnum(Enum, metaclass=ExtendedEnumMeta):
         return self.value.description
     
     @property
+    def desc(self) -> str:
+        return self.value.description
+    
+    @property
     def enum_label(self) -> str:
         return self.__dict__["_name_"]
     
@@ -193,5 +197,10 @@ class FileType(CustomEnum):
     SEQ_AUTH_FORM = DescriptiveEnum(1, "Sequencing Authorization Form", "seq_auth_forms")
     BIOANALYZER_REPORT = DescriptiveEnum(2, "Bioanalyzer Report", "bioanalyzer_reports")
     POST_SEQUENCING_QC_REPORT = DescriptiveEnum(3, "Post-sequencing QC Report", "post_seq_qc_reports")
+
+
+class DeliveryStatus(CustomEnum):
+    PENDING = DescriptiveEnum(0, "Pending", "🕒")
+    DISPATCHED = DescriptiveEnum(1, "Dispatched", "📬")
 
     

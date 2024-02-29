@@ -49,8 +49,10 @@ def create_seq_request(
         raise exceptions.ElementDoesNotExist(f"Contact with id '{contact_person_id}', not found.")
 
     if bioinformatician_contact_id is not None:
-        if self._session.get(models.Contact, bioinformatician_contact_id) is None:
+        if (bioinformatician_contact := self._session.get(models.Contact, bioinformatician_contact_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Contact with id '{bioinformatician_contact_id}', not found.")
+    else:
+        bioinformatician_contact = None
         
     seq_request = models.SeqRequest(
         name=name,
@@ -80,9 +82,26 @@ def create_seq_request(
 
     requestor.num_seq_requests += 1
     self._session.add(seq_request)
-    if commit:
-        self._session.commit()
-        self._session.refresh(seq_request)
+    self._session.add(requestor)
+
+    self._session.commit()
+    self._session.refresh(seq_request)
+
+    share_link = models.SeqRequestShareEmailLink(
+        seq_request_id=seq_request.id,
+        email=requestor.email
+    )
+    self._session.add(share_link)
+
+    if bioinformatician_contact is not None:
+        bioinformatician_share_link = models.SeqRequestShareEmailLink(
+            seq_request_id=seq_request.id,
+            email=bioinformatician_contact.email
+        )
+        self._session.add(bioinformatician_share_link)
+
+    self._session.commit()
+    self._session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()
@@ -440,3 +459,51 @@ def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit
     if not persist_session:
         self.close_session()
     return None
+
+
+def add_seq_request_share_email(self, seq_request_id: int, email: str, commit: bool = True) -> models.SeqRequestShareEmailLink:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+    
+    if self._session.get(models.SeqRequestShareEmailLink, (seq_request_id, email)):
+        raise exceptions.LinkAlreadyExists(f"SeqRequest with id '{seq_request_id}' already has a share link with email '{email}'.")
+
+    share_link = models.SeqRequestShareEmailLink(
+        seq_request_id=seq_request_id,
+        email=email
+    )
+    self._session.add(share_link)
+
+    if commit:
+        self._session.commit()
+        self._session.refresh(share_link)
+
+    if not persist_session:
+        self.close_session()
+
+    return share_link
+
+
+def remove_seq_request_share_email(self, seq_request_id: int, email: str, commit: bool = True) -> models.SeqRequestShareEmailLink:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+    
+    if (share_link := self._session.get(models.SeqRequestShareEmailLink, (seq_request_id, email))) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}' does not have a share link with email '{email}'.")
+
+    self._session.delete(share_link)
+
+    if commit:
+        self._session.commit()
+
+    if not persist_session:
+        self.close_session()
+    return share_link

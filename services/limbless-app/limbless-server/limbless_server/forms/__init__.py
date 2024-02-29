@@ -4,6 +4,7 @@ from .SeqAuthForm import SeqAuthForm    # noqa
 from .SearchBar import SearchBar    # noqa
 from .ProcessRequestForm import ProcessRequestForm  # noqa
 from .CompleteExperimentForm import CompleteExperimentForm  # noqa
+from .SeqRequestShareEmailForm import SeqRequestShareEmailForm  # noqa
 
 from .models.LibraryForm import LibraryForm # noqa E261
 from .models.SequencerForm import SequencerForm # noqa E261

@@ -4,7 +4,7 @@ import pandas as pd
 from flask_wtf import FlaskForm
 from flask import Response
 from wtforms import StringField, FieldList, FormField
-from wtforms.validators import Optional as OptionalValidator
+from wtforms.validators import Optional as OptionalValidator, Length
 
 from limbless_db import models, DBSession
 from ... import db, logger
@@ -20,7 +20,7 @@ from ..SearchBar import OptionalSearchBar
 class ProjectSubForm(FlaskForm):
     raw_label = StringField("Raw Label", validators=[OptionalValidator()])
     project = FormField(OptionalSearchBar, label="Select Existing Project")
-    new_project = StringField("Create New Project", validators=[OptionalValidator()])
+    new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.name.type.length)])  # type: ignore
 
 
 # 3. Map sample to existing/new projects

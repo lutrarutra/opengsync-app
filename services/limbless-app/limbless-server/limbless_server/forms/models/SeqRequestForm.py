@@ -398,7 +398,6 @@ class SeqRequestForm(HTMXFlaskForm):
         seq_request: Optional[models.SeqRequest] = context.get("seq_request")
 
         if not self.validate(user_id=user_id, seq_request=seq_request):
-            logger.debug(self.errors)
             return self.make_response(**context)
         
         if seq_request is not None:

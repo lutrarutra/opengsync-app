@@ -10,6 +10,7 @@ import pandas as pd
 
 from limbless_db import models, DBSession, DBHandler, PAGE_LIMIT
 from limbless_db.core.categories import HttpResponse, SeqRequestStatus
+from limbless_db.core import exceptions
 from .... import db, forms, logger
 
 if TYPE_CHECKING:
@@ -549,6 +550,47 @@ def process_request(seq_request_id: int):
     
     return forms.ProcessRequestForm(formdata=request.form).process_request(
         seq_request=seq_request, user=current_user
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/add_share_email", methods=["POST"])
+@login_required
+def add_share_email(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HttpResponse.NOT_FOUND.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.id)
+    
+    logger.debug(request.form)
+    return forms.SeqRequestShareEmailForm(formdata=request.form).process_request(
+        seq_request=seq_request
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/remove_share_email/<string:email>", methods=["DELETE"])
+@login_required
+def remove_share_email(seq_request_id: int, email: str):
+    with DBSession(db) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HttpResponse.NOT_FOUND.id)
+        
+        if len(seq_request.share_email_links) == 1:
+            return abort(HttpResponse.FORBIDDEN.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HttpResponse.FORBIDDEN.id)
+        
+    try:
+        db.remove_seq_request_share_email(seq_request_id, email)
+    except exceptions.ElementDoesNotExist:
+        return abort(HttpResponse.NOT_FOUND.id)
+
+    flash(f"Removed shared email '{email}' from sequencing request '{seq_request.name}'", "success")
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
     )
 
 

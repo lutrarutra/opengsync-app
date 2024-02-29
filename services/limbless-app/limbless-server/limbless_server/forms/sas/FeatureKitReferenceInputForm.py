@@ -42,9 +42,9 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
         "Read": "read",
     }
 
-    separator = SelectField(choices=_allowed_extensions, default="tsv")
-    feature_kit = FormField(OptionalSearchBar, label="1. Select Predefined Kit for all Feature Caputre Libraries")
-    file = FileField(label="2/3. File with custom features", validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
+    separator = SelectField(choices=_allowed_extensions, default="tsv", description="Tab-separated ('\\t') or comma-separated (',') file.")
+    feature_kit = FormField(OptionalSearchBar, label="1. Select Predefined Kit for all Feature Caputre Libraries", description="All features from this kit will be used for all feature capture libraries in sample annotation sheet.")
+    file = FileField(label="2/3. File with custom features", validators=[FileAllowed([ext for ext, _ in _allowed_extensions])], description="Define custom features or use different predefined kits for each feature capture library.")
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:

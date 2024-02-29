@@ -83,7 +83,11 @@
             <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}';">
                 <th scope="row">{{ library.id }}</th>
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
-                <td>{{ library.pool.name if library.pool_id else "" }}</td>
+                <td>
+                {% if library.pool_id %}
+                    {{ library.pool.name }} <b>[{{ library.pool_id }}]</b>
+                {% endif %}
+                </td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
                         {{ library.type.description }}

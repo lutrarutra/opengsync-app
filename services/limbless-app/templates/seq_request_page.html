@@ -167,6 +167,12 @@
                 aria-controls="request-comments-tab" aria-selected="true"
                 id="request-comments-tab-btn">Comments</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#request-share-tab" type="button" role="tab"
+                aria-controls="request-share-tab" aria-selected="true"
+                id="request-share-tab-btn">Share</button>
+            </li>
         </ul>
         <div class="tab-content pt-3">
             <div class="tab-pane fade show active" id="request-libraries-tab" role="tabpanel" tabindex="0">
@@ -354,6 +360,43 @@
                     )
                 }}
             </div>  
+            <div class="tab-pane fade show" id="request-share-tab" role="tabpanel" tabindex="7">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>The data will be shared with following emails:</h2>
+                    </div>
+                    <div>
+                     <button class="btn btn-success"  data-bs-toggle="modal"
+                        data-bs-target="#seq_request_share_email-form-popup" type="button" role="tab"
+                        aria-controls="seq_request_share_email-form-popup" aria-selected="true"
+                        id="seq_request_share_email-form-popup-btn">Add Email</button>
+                    </div>
+                </div>     
+                {% set only_one = seq_request.share_email_links | length == 1 %}
+                <div class="share-email-list">
+                    {% for share_email_link in seq_request.share_email_links %}
+                    <div class="row">
+                        <div class="col-7">
+                            {{ metadata_group_email_link("Recipient", share_email_link.email, class="col") }}
+                        </div>
+                        <div class="col-4">
+                            {{ metadata_group("Status", share_email_link.status.desc + " " + share_email_link.status.name, class="col") }}
+                        </div>
+                        <div class="col-1 remove-btn-container">
+                            <span
+                            {% if only_one %}
+                                {{ tooltip('Atleast one email is required. Add another email to remove this.', category='danger') }}
+                            {% endif %}>
+                                <button class="btn btn-danger" {% if only_one %}disabled{% endif %}
+                                hx-delete="{{ url_for('seq_requests_htmx.remove_share_email', seq_request_id=seq_request.id, email=share_email_link.email) }}">
+                                    Remove
+                                </button>
+                            </span>
+                        </div>        
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>  
         </div>
     </div>
 
@@ -390,6 +433,12 @@
     <div class="modal fade" id="seq_request-comment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
         <div class="modal-dialog modal-l modal-dialog-centered">
             {% include comment_form._template_path %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="seq_request_share_email-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-l modal-dialog-centered">
+            {% include seq_request_share_email_form._template_path %}
         </div>
     </div>
 

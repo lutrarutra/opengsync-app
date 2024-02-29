@@ -25,6 +25,7 @@ services:
             - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
         expose:
             - ${LIMBLESS_PORT}
+        restart: always
         depends_on:
             postgres:
                 condition: service_healthy

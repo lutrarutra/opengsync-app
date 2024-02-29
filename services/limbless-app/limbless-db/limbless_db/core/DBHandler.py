@@ -6,7 +6,12 @@ from sqlalchemy import orm
 
 class DBHandler():
     def __init__(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432):
-        self._engine = create_engine(f"postgresql://{user}:{password}@{host}:{port}/{db}")
+        self._url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+        self._engine = create_engine(self._url)
+        try:
+            self._engine.connect()
+        except Exception as e:
+            raise Exception(f"Could not connect to DB '{self._url}':\n{e}")
         self._session: Optional[orm.Session] = None
 
     def create_tables(self) -> None:
@@ -86,7 +91,7 @@ class DBHandler():
         get_seq_requests, delete_seq_request, update_seq_request,
         query_seq_requests, submit_seq_request,
         add_file_to_seq_request, remove_file_from_seq_request,
-        remove_comment_from_seq_request
+        remove_comment_from_seq_request, add_seq_request_share_email, remove_seq_request_share_email
     )
 
     from .model_handlers._contact_methods import (
@@ -145,5 +150,8 @@ class DBHandler():
     )
 
     from .pd_handler import (
-        get_experiment_libraries_df, get_experiment_samples_df
+        get_experiment_libraries_df, get_experiment_samples_df,
+        get_pool_libraries_df, get_seq_request_libraries_df,
+        get_seq_requestor_df, get_seq_request_share_emails_df,
+        get_library_features_df, get_library_cmos_df
     )

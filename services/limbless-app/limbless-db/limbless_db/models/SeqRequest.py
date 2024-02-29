@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.categories import SeqRequestStatus, SequencingType, FlowCellType
-from .Links import SeqRequestExperimentLink, SeqRequestFileLink, SeqRequestCommentLink
+from .Links import SeqRequestExperimentLink, SeqRequestFileLink, SeqRequestCommentLink, SeqRequestShareEmailLink
 
 if TYPE_CHECKING:
     from .User import User
@@ -88,6 +88,9 @@ class SeqRequest(SQLModel, table=True):
     )
     comments: list["Comment"] = Relationship(
         link_model=SeqRequestCommentLink,
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
+    )
+    share_email_links: list[SeqRequestShareEmailLink] = Relationship(
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 

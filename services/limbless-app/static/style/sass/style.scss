@@ -161,6 +161,25 @@ body {
     }
 }
 
+.share-email-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    justify-content: center;
+    .row {
+        width: 100%;
+        padding: 0 100px 0 100px;
+        .remove-btn-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            button {
+                margin-top: 6px;
+            }
+        }
+    }
+}
+
 .modal-xl {
     min-width: 80vw;
     .modal-content {

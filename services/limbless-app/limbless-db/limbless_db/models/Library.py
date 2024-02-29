@@ -37,7 +37,7 @@ class Library(SQLModel, table=True):
 
     index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
     index_kit: Optional["IndexKit"] = Relationship(
-        sa_relationship_kwargs={"lazy": "joined"}
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     pool_id: Optional[int] = Field(nullable=True, foreign_key="pool.id")

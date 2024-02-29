@@ -2,6 +2,8 @@ from typing import Optional, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
+from ..core.categories import DeliveryStatus
+
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
@@ -101,3 +103,16 @@ class LibraryFeatureLink(SQLModel, table=True):
     feature_id: int = Field(
         foreign_key="feature.id", primary_key=True
     )
+
+
+class SeqRequestShareEmailLink(SQLModel, table=True):
+    seq_request_id: int = Field(
+        foreign_key="seqrequest.id", primary_key=True
+    )
+    email: str = Field(primary_key=True, max_length=128)
+    
+    status_id: int = Field(nullable=False, default=0)
+
+    @property
+    def status(self) -> DeliveryStatus:
+        return DeliveryStatus.get(self.status_id)
