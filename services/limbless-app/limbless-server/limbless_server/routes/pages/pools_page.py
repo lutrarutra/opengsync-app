@@ -6,7 +6,9 @@ from flask_login import login_required
 from limbless_db import DBSession
 from limbless_db.models import User
 from limbless_db.core.categories import HttpResponse
+
 from ...app import db
+from ...forms import pooling as pooling_forms
 
 if TYPE_CHECKING:
     current_user: User = None  # type: ignore
@@ -61,6 +63,7 @@ def pool_page(pool_id: int):
                 ]
 
         open_index_form = request.args.get("index_form", None) == "open"
+        pooling_input_form = pooling_forms.PoolingInputForm()
 
         return render_template(
             "pool_page.html",
@@ -68,4 +71,5 @@ def pool_page(pool_id: int):
             libraries_n_pages=libraries_n_pages,
             path_list=path_list, is_editable=is_editable,
             open_index_form=open_index_form,
+            pooling_input_form=pooling_input_form
         )
