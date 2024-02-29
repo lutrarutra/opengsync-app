@@ -152,6 +152,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return dict(
             ExperimentStatus=categories.ExperimentStatus,
             SeqRequestStatus=categories.SeqRequestStatus,
+            LibraryStatus=categories.LibraryStatus,
             UserRole=categories.UserRole,
         )
     

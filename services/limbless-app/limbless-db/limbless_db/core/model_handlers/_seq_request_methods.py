@@ -253,7 +253,8 @@ def submit_seq_request(
     seq_request.status_id = SeqRequestStatus.SUBMITTED.id
     seq_request.submitted_time = datetime.now()
     for library in seq_request.libraries:
-        library.status_id = LibraryStatus.SUBMITTED.id
+        if library.status == LibraryStatus.DRAFT:
+            library.status_id = LibraryStatus.SUBMITTED.id
         self._session.add(library)
 
     if commit:

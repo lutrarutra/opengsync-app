@@ -91,7 +91,7 @@ class Library(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "owner_id", "pool_id", "adapter"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter"]
 
     def to_dict(self):
         res = {

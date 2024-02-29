@@ -1,12 +1,14 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
+{% from "components/status_bar.jinja2" import library_status_bar with context %}
+
 {% extends "base.html" %}
 {% set active_page = "libraries-page" %}
 {% block content %}
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.description }} &mdash; {{ library.status.name }} {{ library.status.desc }}</span></h1>
+            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.description }}</span></h1>
         </div>
         <div>
             <span {% if not library.is_editable() and not current_user.is_insider() %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
@@ -16,6 +18,10 @@
                 </button>
             </span>
         </div>
+    </div>
+
+    <div class="status_bar">
+        {{ library_status_bar(library) }}
     </div>
 
     <ul class="nav nav-tabs" role="tablist">
