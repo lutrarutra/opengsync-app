@@ -21,16 +21,17 @@ def experiments_page():
     if not current_user.is_insider():
         return abort(HttpResponse.BAD_REQUEST.id)
     
-    experiments, n_pages = db.get_experiments()
+    with DBSession(db) as session:
+        experiments, n_pages = session.get_experiments()
 
-    experiment_form = forms.ExperimentForm(user=current_user)
+        experiment_form = forms.ExperimentForm(user=current_user)
 
-    return render_template(
-        "experiments_page.html", experiment_form=experiment_form,
-        experiments=experiments,
-        experiments_n_pages=n_pages, experiments_active_page=0,
-        experiments_current_sort="id", experiments_current_sort_order="desc"
-    )
+        return render_template(
+            "experiments_page.html", experiment_form=experiment_form,
+            experiments=experiments,
+            experiments_n_pages=n_pages, experiments_active_page=0,
+            experiments_current_sort="id", experiments_current_sort_order="desc"
+        )
 
 
 @experiments_page_bp.route("/experiments/<experiment_id>")

@@ -1,5 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
 <div id="experiment-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -18,17 +20,11 @@
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
-                <th class="col-2" scope="col">Sequencing Person</th>
+                <th class="col-1" scope="col">Sequencing Person</th>
+                <th class="col-5" scope="col">Pools</th>
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Sequencer', column_var='sequencer_id',
-                        sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
-                    )
-                }}
-                {{
-                    table_col(
-                        target_id='experiment-table', column_name='Flowcell', column_var='flowcell',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
@@ -64,8 +60,16 @@
                 <td>
                     {{ experiment.sequencing_person.name }} <span class="desc">{{ "me" if current_user.id == experiment.sequencing_person.owner_id }}</span>
                 </td>
+                <td>
+                    <ul class="h-list">
+                    {% for pool_link in experiment.pool_links %}
+                    <li {{ tooltip("Lane: " + pool_link.lane | string) }}>
+                        {{ pool_link.pool.name }}
+                    </li>
+                    {% endfor %}
+                    </ul>
+                </td>
                 <td>{{ experiment.sequencer.name }}</td>
-                <td>{{ experiment.flowcell_id }}</td>
                 <td>{{ experiment.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>{{ experiment.num_lanes }}</td>
                 <td>{{ experiment.num_pools }}</td>
