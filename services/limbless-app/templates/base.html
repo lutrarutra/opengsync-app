@@ -58,15 +58,15 @@
                 <a class="nav-link {{'active' if active_page == 'projects-page' else ''}}" id="project-page" href="{{ url_for('projects_page.projects_page') }}">Projects</a>
             </div>
             <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'seq_requests-page' else ''}}" id="seq_requests-page" href="{{ url_for('seq_requests_page.seq_requests_page') }}">Requests</a>
+            </div>
+            {% if current_user.is_authenticated and current_user.is_insider() %}
+            <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'samples-page' else ''}}" id="samples-page" href="{{ url_for('samples_page.samples_page') }}">Samples</a>
             </div>
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'libraries-page' else ''}}" id="libraries-page" href="{{ url_for('libraries_page.libraries_page') }}">Libraries</a>
             </div>
-            <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'seq_requests-page' else ''}}" id="seq_requests-page" href="{{ url_for('seq_requests_page.seq_requests_page') }}">Requests</a>
-            </div>
-            {% if current_user.is_authenticated and current_user.is_insider() %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" id="experiments-page" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>
             </div>
