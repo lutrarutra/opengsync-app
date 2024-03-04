@@ -51,20 +51,19 @@ def add_features_from_kit(db_handler: DBHandler, path: str, feature_type: catego
     df = pd.read_csv(path, sep="\t", comment="#")
     kit_name = titlecase_with_acronyms(os.path.basename(path).split(".")[0].replace("_", " "))
 
-    if db_handler.get_feature_kit_by_name(kit_name) is not None:
+    if (kit := db_handler.get_feature_kit_by_name(kit_name)) is not None:
         print(f"Feature kit {kit_name} is already present in the DB.")
-        return
-    
-    if db_handler.get_feature_kit_by_name(kit_name) is not None:
-        print(f"Feature kit {kit_name} is already present in the DB.")
-        return
-    
-    kit = db_handler.create_feature_kit(name=kit_name, type=feature_type)
+    else:
+        kit = db_handler.create_feature_kit(name=kit_name, type=feature_type)
     
     for _, row in df.iterrows():
         if pd.isnull(row["barcode_id"]):
             print(f"Barcode name is null for row {row}, {kit_name}")
             raise Exception(f"Barcode name is null for row {row}.")
+            
+        if db_handler.get_feature_from_kit_by_feature_name(feature_kit_id=kit.id, feature_name=str(row["barcode_id"])) is not None:
+            print(f"Feature {row['barcode_id']} is already present in the DB.")
+            continue
         
         db_handler.create_feature(
             name=str(row["barcode_id"]),
@@ -322,10 +321,10 @@ def init_db(create_users: bool):
     add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V3_MM10_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
     add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V4_MM10_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
     add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody.tsv", categories.FeatureType.ANTIBODY)
-    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody_Multiplex.tsv", categories.FeatureType.ANTIBODY)
+    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody_Multiplex.tsv", categories.FeatureType.CMO)
     add_features_from_kit(db_handler, "data/feature-kits/TotalSeqB_Antibody.tsv", categories.FeatureType.ANTIBODY)
     add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody.tsv", categories.FeatureType.ANTIBODY)
-    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody_Multiplex.tsv", categories.FeatureType.ANTIBODY)
+    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody_Multiplex.tsv", categories.FeatureType.CMO)
 
     print("DB initialization finished.")
 
