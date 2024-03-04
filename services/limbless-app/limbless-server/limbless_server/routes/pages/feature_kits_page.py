@@ -11,7 +11,7 @@ feature_kits_page_bp = Blueprint("feature_kits_page", __name__)
 @login_required
 def feature_kits_page():
     with DBSession(db) as session:
-        feature_kits, n_pages = session.get_feature_kits()
+        feature_kits, n_pages = session.get_feature_kits(sort_by="id", descending=True)
 
     return render_template(
         "feature_kits_page.html",
@@ -34,7 +34,7 @@ def feature_kit_page(feature_kit_id: int):
         (f"{feature_kit_id}", ""),
     ]
 
-    features, features_n_pages = session.get_features(feature_kit_id=feature_kit_id)
+    features, features_n_pages = session.get_features(feature_kit_id=feature_kit_id, sort_by="id", descending=True)
 
     return render_template(
         "feature_kit_page.html",
