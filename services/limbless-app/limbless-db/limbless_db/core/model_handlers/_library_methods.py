@@ -321,8 +321,8 @@ def link_library_pool(self, library_id: int, pool_id: int, commit: bool = True):
 
 
 def set_library_seq_quality(
-    self, library_id: int, experiment_id: int, lane: int,
-    num_lane_reads: int, num_total_reads: int,
+    self, library_id: Optional[int], experiment_id: int, lane: int,
+    num_lane_reads: int, num_library_reads: int,
     mean_quality_pf_r1: float, q30_perc_r1: float,
     mean_quality_pf_i1: float, q30_perc_i1: float,
     mean_quality_pf_r2: Optional[float], q30_perc_r2: Optional[float],
@@ -333,8 +333,9 @@ def set_library_seq_quality(
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    if library_id is not None:
+        if (_ := self._session.get(models.Library, library_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
         
     if (quality := self._session.query(models.SeqQuality).where(
         models.SeqQuality.library_id == library_id,
@@ -342,7 +343,7 @@ def set_library_seq_quality(
         models.SeqQuality.lane == lane,
     ).first()) is not None:
         quality.num_lane_reads = num_lane_reads
-        quality.num_total_reads = num_total_reads
+        quality.num_library_reads = num_library_reads
         quality.mean_quality_pf_r1 = mean_quality_pf_r1
         quality.q30_perc_r1 = q30_perc_r1
         quality.mean_quality_pf_i1 = mean_quality_pf_i1
@@ -355,7 +356,7 @@ def set_library_seq_quality(
     else:
         quality = models.SeqQuality(
             library_id=library_id, lane=lane, experiment_id=experiment_id,
-            num_lane_reads=num_lane_reads, num_total_reads=num_total_reads,
+            num_lane_reads=num_lane_reads, num_library_reads=num_library_reads,
             mean_quality_pf_r1=mean_quality_pf_r1, q30_perc_r1=q30_perc_r1,
             mean_quality_pf_i1=mean_quality_pf_i1, q30_perc_i1=q30_perc_i1,
             mean_quality_pf_r2=mean_quality_pf_r2, q30_perc_r2=q30_perc_r2,

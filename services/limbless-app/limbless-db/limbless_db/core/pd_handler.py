@@ -66,9 +66,7 @@ def get_experiment_libraries_df(
     return df
 
 
-def get_experiment_samples_df(
-    self, experiment_id: int
-) -> pd.DataFrame:
+def get_experiment_samples_df(self, experiment_id: int) -> pd.DataFrame:
         
     persist_session = self._session is not None
     if not self._session:
@@ -341,6 +339,38 @@ def get_seq_request_libraries_df(self, seq_request: int) -> pd.DataFrame:
     df = df.dropna(axis="columns", how="all")
     df = df.sort_values(by=["pool_name", "owner_email", "library_name"])
     
+    if not persist_session:
+        self.close_session()
+
+    return df
+
+
+def get_experiment_seq_qualities_df(self, experiment_id: int) -> pd.DataFrame:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+    
+    query = self._session.query(
+        models.Library.id.label("library_id"), models.Library.name.label("library_name"),
+        models.SeqQuality.lane, models.SeqQuality.num_lane_reads, models.SeqQuality.num_library_reads,
+        models.SeqQuality.mean_quality_pf_r1, models.SeqQuality.q30_perc_r1,
+        models.SeqQuality.mean_quality_pf_r2, models.SeqQuality.q30_perc_r2,
+        models.SeqQuality.mean_quality_pf_i1, models.SeqQuality.q30_perc_i1,
+        models.SeqQuality.mean_quality_pf_i2, models.SeqQuality.q30_perc_i2,
+    ).join(
+        models.Library,
+        models.Library.id == models.SeqQuality.library_id,
+        isouter=True
+    ).where(
+        models.SeqQuality.experiment_id == experiment_id
+    )
+
+    query = query.order_by(models.SeqQuality.lane, models.Library.id)
+    df = pd.read_sql(query.statement, query.session.bind)
+
     if not persist_session:
         self.close_session()
 

@@ -23,13 +23,9 @@ Web app for NGS sample/library/project tracking
     - password: `$(PGADMIN_PASSWORD)`
 
 ## pgAdmin Server Setup
-    - host: `host.docker.internal` & port: `5432` or
+    - host: `postgres` & port: `5432` or
     - Find the IP address of the container:
         1. `docker ps`
         2. `docker inspect limbless-postgres-db | grep IPAddress`
     - username: `$(POSTGRES_USER)`
     - password: `$(POSTGRES_PASSWORD)`
-
-If host `host.docker.internal` does not work, try `docker inspect limbless_postgres_1 | grep IPAddress` and use the IP address of the container:
-    - `docker ps`
-    - `docker inspect <container_id> | grep IPAddress`

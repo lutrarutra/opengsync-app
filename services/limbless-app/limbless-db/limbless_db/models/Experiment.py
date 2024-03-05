@@ -95,3 +95,6 @@ class Experiment(SQLModel, table=True):
     
     def timestamp_to_str(self) -> str:
         return self.timestamp.strftime('%Y-%m-%d %H:%M')
+    
+    def __str__(self) -> str:
+        return f"Experiment(id={self.id}, num_lanes={self.num_lanes}, num_pools={self.num_pools})"
