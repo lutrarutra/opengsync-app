@@ -371,6 +371,10 @@ def get_experiment_seq_qualities_df(self, experiment_id: int) -> pd.DataFrame:
     query = query.order_by(models.SeqQuality.lane, models.Library.id)
     df = pd.read_sql(query.statement, query.session.bind)
 
+    df.loc[df["library_name"].isna(), "library_id"] = -1
+    df.loc[df["library_name"].isna(), "library_name"] = "Undetermined"
+    df["library_id"] = df["library_id"].astype(int)
+
     if not persist_session:
         self.close_session()
 
