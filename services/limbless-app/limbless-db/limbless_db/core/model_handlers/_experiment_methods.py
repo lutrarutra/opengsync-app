@@ -4,12 +4,12 @@ from typing import Optional
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ..categories import FlowCellType, ExperimentStatus, LibraryStatus, SeqRequestStatus
+from ..categories import FlowCellType, ExperimentStatus, LibraryStatus, SeqRequestStatus, AssayType
 
 
 def create_experiment(
-    self, flowcell_id: str, flowcell_type: FlowCellType, sequencer_id: int, num_lanes: int,
-    r1_cycles: int, i1_cycles: int, sequencing_person_id: int,
+    self, flowcell_id: Optional[str], flowcell_type: FlowCellType, sequencer_id: int,
+    num_lanes: int, r1_cycles: int, i1_cycles: int, sequencing_person_id: int, assay_type: AssayType,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None,
     commit: bool = True
 ) -> models.Experiment:
@@ -30,7 +30,8 @@ def create_experiment(
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
         num_lanes=num_lanes,
-        sequencing_person_id=sequencing_person_id
+        sequencing_person_id=sequencing_person_id,
+        assay_type_id=assay_type.id
     )
 
     self._session.add(experiment)

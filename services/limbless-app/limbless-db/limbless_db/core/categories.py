@@ -211,4 +211,12 @@ class LibraryStatus(CustomEnum):
     SHARED = DescriptiveEnum(4, "Shared", "📬")
     FAILED = DescriptiveEnum(10, "Failed", "❌")
 
+
+class AssayType(CustomEnum):
+    CUSTOM = DescriptiveEnum(0, "Custom", "CUSTOM")
+    RNA = DescriptiveEnum(1, "RNA", "RNA")
+    VISIUM = DescriptiveEnum(2, "Visium", "VISIUM")
+    ATAC = DescriptiveEnum(3, "ATAC", "ATAC")
+
+
     

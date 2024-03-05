@@ -4,7 +4,7 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..core.categories import ExperimentStatus, FlowCellType
+from ..core.categories import ExperimentStatus, FlowCellType, AssayType
 from .Links import ExperimentPoolLink, SeqRequestExperimentLink, ExperimentFileLink, ExperimentCommentLink
 
 if TYPE_CHECKING:
@@ -14,13 +14,17 @@ if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
     from .File import File
     from .Comment import Comment
+    from .SeqQuality import SeqQuality
 
 
 class Experiment(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     
-    flowcell_id: str = Field(nullable=False, max_length=64)
+    flowcell_id: Optional[str] = Field(nullable=True, max_length=64)
     flowcell_type_id: int = Field(nullable=False)
+
+    assay_type_id: int = Field(nullable=False)
+
     r1_cycles: int = Field(nullable=False)
     r2_cycles: Optional[int] = Field(nullable=True)
     i1_cycles: int = Field(nullable=False)
@@ -63,9 +67,18 @@ class Experiment(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
+    read_qualities: list["SeqQuality"] = Relationship(
+        back_populates="experiment",
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
+    )
+
     @property
     def status(self) -> ExperimentStatus:
         return ExperimentStatus.get(self.status_id)
+    
+    @property
+    def assay_type(self) -> AssayType:
+        return AssayType.get(self.assay_type_id)
     
     @property
     def flowcell_type(self) -> FlowCellType:

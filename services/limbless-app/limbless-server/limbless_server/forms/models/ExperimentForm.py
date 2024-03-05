@@ -6,9 +6,9 @@ from wtforms import StringField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.core.categories import FlowCellType
+from limbless_db.core.categories import FlowCellType, AssayType
 from ..HTMXFlaskForm import HTMXFlaskForm
-from ... import db, logger
+from ... import db
 from ..SearchBar import SearchBar
 
 
@@ -22,8 +22,12 @@ class ExperimentForm(HTMXFlaskForm):
         description="Type of flowcell to use for sequencing.",
         coerce=int, default=0
     )
-    flowcell = StringField("Flowcell ID", validators=[DataRequired(), Length(min=3, max=models.Experiment.flowcell_id.type.length)])  # type: ignore
+    flowcell = StringField("Flowcell ID", validators=[OptionalValidator(), Length(min=3, max=models.Experiment.flowcell_id.type.length)])  # type: ignore
     num_lanes = IntegerField("Number of Lanes", default=1, validators=[DataRequired(), NumberRange(min=1, max=8)])
+    assay_type = SelectField(
+        "Assay Type", choices=AssayType.as_selectable(),
+        coerce=int, default=AssayType.RNA.id
+    )
     
     r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
     r2_cycles = IntegerField("R2 Cycles", validators=[OptionalValidator()])
@@ -55,15 +59,15 @@ class ExperimentForm(HTMXFlaskForm):
             self.sequencing_person.search_bar.data = experiment.sequencing_person.name
 
     def validate(self) -> bool:
-        logger.debug(self.flowcell_type.data)
         if (validated := super().validate()) is False:
             return False
         
         return validated
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
-        experiment.flowcell_id = self.flowcell.data        # type: ignore
+        experiment.flowcell_id = self.flowcell.data
         experiment.flowcell_type_id = self.flowcell_type.data
+        experiment.assay_type_id = AssayType.get(self.assay_type.data).id
         experiment.r1_cycles = self.r1_cycles.data    # type: ignore
         experiment.r2_cycles = self.r2_cycles.data  # type: ignore
         experiment.i1_cycles = self.i1_cycles.data  # type: ignore
@@ -78,8 +82,9 @@ class ExperimentForm(HTMXFlaskForm):
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 
     def __create_new_experiment(self) -> Response:
+        assay_type = AssayType.get(self.assay_type.data)
         experiment = db.create_experiment(
-            flowcell_id=self.flowcell.data,  # type: ignore
+            flowcell_id=self.flowcell.data,
             flowcell_type=FlowCellType.get(self.flowcell_type.data),
             sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,  # type: ignore
@@ -87,7 +92,8 @@ class ExperimentForm(HTMXFlaskForm):
             i1_cycles=self.i1_cycles.data,  # type: ignore
             i2_cycles=self.i2_cycles.data,
             num_lanes=self.num_lanes.data,  # type: ignore
-            sequencing_person_id=self.sequencing_person.selected.data
+            sequencing_person_id=self.sequencing_person.selected.data,
+            assay_type=assay_type
         )
 
         flash(f"Created experiment on flowcell '{experiment.flowcell_id}'.", "success")

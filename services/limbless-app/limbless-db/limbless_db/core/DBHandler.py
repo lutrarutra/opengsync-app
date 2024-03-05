@@ -60,7 +60,7 @@ class DBHandler():
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
-        link_library_pool
+        link_library_pool, set_library_seq_quality
     )
 
     from .model_handlers._user_methods import (

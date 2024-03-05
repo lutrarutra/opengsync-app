@@ -15,12 +15,13 @@
             search_select_field(
                 experiment_form.sequencer,
                 query_url=url_for('sequencers_htmx.query'),
-                class="col-4"
+                class="col-3"
             ) 
         }}
         {{ select_input(experiment_form.flowcell_type, class="col-3") }}
-        {{ form_group(experiment_form.flowcell, class="col-3") }}
-        {{ form_group(experiment_form.num_lanes, class="col-2") }}
+        {{ select_input(experiment_form.assay_type, class="col-2") }}
+        {{ form_group(experiment_form.num_lanes, class="col-1") }}
+        {{ form_group(experiment_form.flowcell, class="col-2") }}
     </div>
 
     <div class="row">

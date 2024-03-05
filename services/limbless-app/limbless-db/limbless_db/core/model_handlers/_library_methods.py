@@ -320,27 +320,53 @@ def link_library_pool(self, library_id: int, pool_id: int, commit: bool = True):
         self.close_session()
 
 
-def update_quality(
-    self, library_id: int, quality: models.SeqQuality,
-    commit: bool = True
-) -> models.Library:
+def set_library_seq_quality(
+    self, library_id: int, experiment_id: int, lane: int,
+    num_lane_reads: int, num_total_reads: int,
+    mean_quality_pf_r1: float, q30_perc_r1: float,
+    mean_quality_pf_i1: float, q30_perc_i1: float,
+    mean_quality_pf_r2: Optional[float], q30_perc_r2: Optional[float],
+    mean_quality_pf_i2: Optional[float], q30_perc_i2: Optional[float]
+) -> models.SeqQuality:
+    
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (_ := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    
-    if quality in library.read_qualities:
-        library.read_qualities.remove(quality)
+        
+    if (quality := self._session.query(models.SeqQuality).where(
+        models.SeqQuality.library_id == library_id,
+        models.SeqQuality.experiment_id == experiment_id,
+        models.SeqQuality.lane == lane,
+    ).first()) is not None:
+        quality.num_lane_reads = num_lane_reads
+        quality.num_total_reads = num_total_reads
+        quality.mean_quality_pf_r1 = mean_quality_pf_r1
+        quality.q30_perc_r1 = q30_perc_r1
+        quality.mean_quality_pf_i1 = mean_quality_pf_i1
+        quality.q30_perc_i1 = q30_perc_i1
+        quality.mean_quality_pf_r2 = mean_quality_pf_r2
+        quality.q30_perc_r2 = q30_perc_r2
+        quality.mean_quality_pf_i2 = mean_quality_pf_i2
+        quality.q30_perc_i2 = q30_perc_i2
 
-    library.read_qualities.append(quality)
-    self._session.add(library)
+    else:
+        quality = models.SeqQuality(
+            library_id=library_id, lane=lane, experiment_id=experiment_id,
+            num_lane_reads=num_lane_reads, num_total_reads=num_total_reads,
+            mean_quality_pf_r1=mean_quality_pf_r1, q30_perc_r1=q30_perc_r1,
+            mean_quality_pf_i1=mean_quality_pf_i1, q30_perc_i1=q30_perc_i1,
+            mean_quality_pf_r2=mean_quality_pf_r2, q30_perc_r2=q30_perc_r2,
+            mean_quality_pf_i2=mean_quality_pf_i2, q30_perc_i2=q30_perc_i2
+        )
 
-    if commit:
-        self._session.commit()
-        self._session.refresh(quality)
+    self._session.add(quality)
+    self._session.commit()
+    self._session.refresh(quality)
 
     if not persist_session:
         self.close_session()
-    return library
+
+    return quality
