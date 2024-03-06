@@ -103,6 +103,12 @@
                 aria-controls="experiment-comments-tab" aria-selected="true"
                 id="experiment-comments-tab-btn">Comments</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#experiment-num_reads-tab" type="button" role="tab"
+                aria-controls="experiment-num_reads-tab" aria-selected="true"
+                id="experiment-num_reads-tab-btn"># Reads</button>
+            </li>
         </ul>
         <div class="tab-content pt-3">
             <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
@@ -208,6 +214,9 @@
                 {{
                     comments_tab(context="experiment", comments=experiment.comments)
                 }}
+            </div>  
+            <div class="tab-pane fade show" id="experiment-num_reads-tab" role="tabpanel" tabindex="7">
+                {% include "components/plots/experiment_library_reads.html" %}
             </div>  
         </div>
     </div>

@@ -180,6 +180,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.features_htmx)
     app.register_blueprint(api.pooling_form_htmx)
     app.register_blueprint(api.feature_kits_htmx)
+    app.register_blueprint(api.plots_api)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)
