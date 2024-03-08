@@ -75,7 +75,6 @@ def seq_request_page(seq_request_id: int):
                     (f"Request {seq_request_id}", ""),
                 ]
 
-        sas_input_form = forms.sas.SASInputForm()
         process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
         seq_auth_form = forms.SeqAuthForm()
         file_input_form = forms.SeqRequestAttachmentForm(seq_request_id=seq_request_id)
@@ -93,7 +92,6 @@ def seq_request_page(seq_request_id: int):
             seq_request_share_email_form=seq_request_share_email_form,
             seq_request_form=seq_request_form,
             file_input_form=file_input_form,
-            sas_input_form=sas_input_form,
             process_request_form=process_request_form,
             seq_auth_form=seq_auth_form,
             libraries_n_pages=libraries_n_pages, libraries_active_page=0,

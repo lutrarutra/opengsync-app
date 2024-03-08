@@ -76,7 +76,7 @@ def get_experiment_samples_df(self, experiment_id: int) -> pd.DataFrame:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     
     query = self._session.query(
-        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"), models.Organism.scientific_name.label("organism"), models.Sample.organism_id.label("tax_id"),
+        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"), models.Sample.organism_id.label("tax_id"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.adapter, models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
         models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
@@ -92,9 +92,6 @@ def get_experiment_samples_df(self, experiment_id: int) -> pd.DataFrame:
     ).join(
         models.Sample,
         models.Sample.id == models.SampleLibraryLink.sample_id
-    ).join(
-        models.Organism,
-        models.Organism.tax_id == models.Sample.organism_id
     ).join(
         models.CMO,
         models.CMO.id == models.SampleLibraryLink.cmo_id,
@@ -277,7 +274,6 @@ def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
     
     query = self._session.query(
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"), models.Sample.organism_id.label("tax_id"),
-        models.Organism.scientific_name.label("scientific_name"), models.Organism.common_name.label("common_name"), 
         models.CMO.id.label("cmo_id"), models.CMO.sequence.label("sequence"), models.CMO.pattern.label("pattern"), models.CMO.read.label("read"),
     ).join(
         models.SampleLibraryLink,
@@ -287,9 +283,6 @@ def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
     ).join(
         models.CMO,
         models.CMO.id == models.SampleLibraryLink.cmo_id
-    ).join(
-        models.Organism,
-        models.Organism.tax_id == models.Sample.organism_id
     ).distinct()
 
     df = pd.read_sql(query.statement, query.session.bind)

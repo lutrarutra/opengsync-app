@@ -1,0 +1,44 @@
+
+{% extends "base.html" %}
+{% set active_page = "pools-page" %}
+{% block content %}
+
+<div class="container" style="height: 100%;">
+    <!-- Your grid container -->
+    <div id="grid" class="spreadsheet-grid"></div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        const library_types = {{ LibraryType.descriptions() | tojson }};
+        const organisms = {{ Organism.names() | tojson }};
+        library_types[0] = "Custom";
+
+        var data = [
+            ["P14_hash1-12_r1_well1_GEX", "mouse", "", "{{ LibraryType.SC_RNA_SEQ.desc }}", "FR_015_HT", "Dual Index Kit Plate TT Set A", "SI-TT-A1", "", "", "", "", null, null, null],
+        ];
+
+        jspreadsheet(document.getElementById('grid'), {
+            data: data,
+            columns: [
+                { type: "text", title: "Library Name", width: 120 },
+                { type: "dropdown", title: "Organism", width: 100, source: organisms, autocomplete: true },
+                { type: "text", title: "Project", width: 100 },
+                { type: "dropdown", title:"Library Type", width: 100, source: library_types, autocomplete: true},
+                { type: "text", title: "Pool", width: 100 },
+                { type: "text", title: "Index Kit", width: 100 },
+                { type: "text", title: "Adapter", width: 100 },
+                { type: "text", title: "Index 1 (i7)", width: 100 },
+                { type: "text", title: "Index 2 (i5)", width: 100 },
+                { type: "text", title: "Index 3", width: 80 },
+                { type: "text", title: "Index 4", width: 80 },
+                { type: "numeric", title: "Library Volume [uL]", width: 120 },
+                { type: "numeric", title: "Library DNA Concentration [nM]", width: 120 },
+                { type: "numeric", title: "Library Total Size [bp]", width: 120 },
+            ],
+            minSpareRows: 10,
+        });
+    });
+</script>
+
+{% endblock content %}

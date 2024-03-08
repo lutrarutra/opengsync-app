@@ -45,7 +45,7 @@ class UserRole(CustomEnum):
 
 
 class LibraryType(CustomEnum):
-    CUSTOM = DescriptiveEnum(0, "Custom")
+    CUSTOM = DescriptiveEnum(0, "Custom", "Custom")
     SC_RNA_SEQ = DescriptiveEnum(1, "Single-cell RNA-seq", "scRNA-seq")
     SN_RNA_SEQ = DescriptiveEnum(2, "Single-nucleus RNA-seq", "snRNA-seq")
     MULTIPLEXING_CAPTURE = DescriptiveEnum(3, "Multiplexing Capture", "CMO")
@@ -217,6 +217,15 @@ class AssayType(CustomEnum):
     RNA = DescriptiveEnum(1, "RNA", "RNA")
     VISIUM = DescriptiveEnum(2, "Visium", "VISIUM")
     ATAC = DescriptiveEnum(3, "ATAC", "ATAC")
+
+
+class Organism(CustomEnum):
+    CUSTOM = DescriptiveEnum(0, "Custom")
+    HUMAN = DescriptiveEnum(9606, "Human", "Homo sapiens")
+    MOUSE = DescriptiveEnum(10090, "Mouse", "Mus musculus")
+    YEAST = DescriptiveEnum(4932, "Yeast", "Saccharomyces cerevisiae")
+    ECOLI = DescriptiveEnum(562, "E. Coli", "Escherichia coli")
+    PIG = DescriptiveEnum(9823, "Pig", "Sus scrofa")
 
 
     

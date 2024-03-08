@@ -4,7 +4,6 @@ from .Pool import Pool  # noqa: F401
 from .User import User  # noqa: F401
 from .Experiment import Experiment  # noqa: F401
 from .Library import Library    # noqa: F401
-from .Organism import Organism  # noqa: F401
 from .IndexKit import IndexKit  # noqa: F401
 from .SeqRequest import SeqRequest  # noqa: F401
 from .Contact import Contact    # noqa: F401

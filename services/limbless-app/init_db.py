@@ -38,7 +38,6 @@ label_search_columns: dict[str, list[str]] = {
     str(models.SeqRequest.__tablename__): ["name"],
     str(models.Library.__tablename__): ["name"],
     str(models.Pool.__tablename__): ["name"],
-    str(models.Organism.__tablename__): ["scientific_name", "common_name"],
     str(models.Barcode.__tablename__): ["sequence", "adapter"],
     str(models.IndexKit.__tablename__): ["name"],
     str(models.User.__tablename__): ["email", "last_name", "first_name"],
@@ -248,46 +247,6 @@ def init_db(create_users: bool):
             USING
                 gin ((first_name || ' ' || last_name) gin_trgm_ops);COMMIT;
         """))
-
-    if db_handler.get_organism(10090) is None:
-        db_handler.create_organism(
-            tax_id=10090,
-            scientific_name="Mus musculus",
-            common_name="House mouse",
-            category=categories.OrganismCategory.EUKARYOTA,
-        )
-
-    if db_handler.get_organism(9606) is None:
-        db_handler.create_organism(
-            tax_id=9606,
-            scientific_name="Homo sapiens",
-            common_name="Human",
-            category=categories.OrganismCategory.EUKARYOTA,
-        )
-
-    if db_handler.get_organism(4932) is None:
-        db_handler.create_organism(
-            tax_id=4932,
-            scientific_name="Saccharomyces cerevisiae",
-            common_name="Baker's yeast",
-            category=categories.OrganismCategory.EUKARYOTA,
-        )
-
-    if db_handler.get_organism(1773) is None:
-        db_handler.create_organism(
-            tax_id=1773,
-            scientific_name="Mycobacterium tuberculosis",
-            common_name=None,
-            category=categories.OrganismCategory.BACTERIA,
-        )
-
-    if db_handler.get_organism(5833) is None:
-        db_handler.create_organism(
-            tax_id=5833,
-            scientific_name="Plasmodium falciparum",
-            common_name=None,
-            category=categories.OrganismCategory.EUKARYOTA,
-        )
 
     # Indices
     print("Adding barcodes from known kits.")

@@ -200,6 +200,12 @@ body {
     }
 }
 
+.spreadsheet-grid {
+    overflow-x: auto;
+    overflow-y: auto;
+    width: 100%;
+}
+
 .modal-l {
     min-width: 60vw;
     .modal-content {

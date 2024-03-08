@@ -50,9 +50,9 @@
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
                 <td>
                     <span class="organism-col">
-                        <p>{{ sample.organism.scientific_name }}</p>
-                        <p>{{ "[" + sample.organism.tax_id | string + "]" }}</p>
-                        <p>{{ ("(" + sample.organism.common_name + ")" if sample.organism.common_name else "") }}</p>
+                        <p>{{ sample.organism.name }}</p>
+                        <p>{{ "[" + sample.organism_id | string + "]" }}</p>
+                        <p>{{ ("(" + sample.organism.desc + ")" if sample.organism.desc else "") }}</p>
                     </span>
                 </td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>

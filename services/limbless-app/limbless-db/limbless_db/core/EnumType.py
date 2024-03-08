@@ -1,7 +1,7 @@
 from enum import Enum, EnumMeta
 from dataclasses import dataclass
 
-from typing import TypeVar, Tuple, Type, Union
+from typing import TypeVar, Tuple, Type
 
 T = TypeVar('T', bound=Enum)
 
@@ -22,6 +22,12 @@ class ExtendedEnumMeta(EnumMeta):
     
     def as_selectable(cls: Type[T]) -> list[Tuple[int, str]]:
         return [(c.value.id, c.value.name + (f" ({c.value.description})" if c.value.description else "")) for c in cls]
+    
+    def names(cls: Type[T]) -> list[str]:
+        return [c.value.name for c in cls]
+    
+    def descriptions(cls: Type[T]) -> list[str]:
+        return [c.value.description for c in cls]
 
     def get(cls: Type[T], id: int) -> T:
         for member in cls:

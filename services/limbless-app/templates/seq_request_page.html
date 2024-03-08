@@ -182,9 +182,17 @@
                     </div>
                     <div>
                         {% if seq_request.status.name == "Draft" %}
-                        <button type="button"  class="btn btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#sample-table-form-popup">
-                            Add Libraries
+                        <button type="button" class="btn btn-primary"
+                        data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
+                        hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type='raw') }}"
+                        hx-target="#data-submission-modal" hx-swap="outerHTML">
+                            Add Raw Samples
+                        </button>
+                        <button type="button"  class="btn btn-primary"
+                        data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
+                        hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type='pooled') }}"
+                        hx-target="#data-submission-modal" hx-swap="outerHTML">
+                            Add Pooled Libraries
                         </button>
                         {% endif %}
                     </div>
@@ -418,9 +426,8 @@
         </div>
     </div>
 
-    <div class="modal fade" id="sample-table-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            {% include sas_input_form._template_path %}
+    <div class="modal fade" id="data-submission-modal-container" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen" id="data-submission-modal">
         </div>
     </div>
 

@@ -26,8 +26,8 @@ class SampleForm(HTMXFlaskForm):
 
     def __fill_form(self, sample: models.Sample):
         self.name.data = sample.name
-        self.organism.selected.data = sample.organism.tax_id
-        self.organism.search_bar.data = sample.organism.search_name()
+        self.organism.selected.data = sample.organism_id
+        self.organism.search_bar.data = sample.organism.name
 
     def validate(self, user_id: int, sample: models.Sample) -> bool:
         if not super().validate():

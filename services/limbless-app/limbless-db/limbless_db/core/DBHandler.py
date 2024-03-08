@@ -70,12 +70,6 @@ class DBHandler():
         query_users, query_users_by_email,
     )
 
-    from .model_handlers._organism_methods import (
-        create_organism, get_organism, get_organisms,
-        get_organisms_by_name, query_organisms,
-        get_num_organisms
-    )
-
     from .model_handlers._barcode_methods import (
         create_barcode, get_num_seqbarcodes, get_seqbarcodes,
         update_barcode, reverse_complement,

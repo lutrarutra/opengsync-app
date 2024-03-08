@@ -1,5 +1,5 @@
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 
@@ -81,16 +81,24 @@ def download_seq_auth_form():
 
 
 # 0. Restart form
-@seq_request_form_htmx.route("<int:seq_request_id>/restart_form", methods=["GET"])
+@seq_request_form_htmx.route("<int:seq_request_id>/restart_form/<string:type>", methods=["GET"])
 @login_required
-def restart_form(seq_request_id: int):
+def restart_form(seq_request_id: int, type: Literal["raw", "pooled"]):
+    if type not in ["raw", "pooled"]:
+        return abort(HttpResponse.BAD_REQUEST.id)
+    
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.id)
     
-    return sas_forms.SASInputForm().make_response(
-        seq_request=seq_request
+    if current_user.id != seq_request.requestor_id and not current_user.is_insider():
+        return abort(HttpResponse.FORBIDDEN.id)
+    
+    form = sas_forms.SASInputForm(type=type)
+    
+    return form.make_response(
+        seq_request=seq_request, type=type, columns=form.get_columns()
     )
-
+        
 
 # 1. Input sample annotation sheet
 @seq_request_form_htmx.route("<int:seq_request_id>/parse_table", methods=["POST"])

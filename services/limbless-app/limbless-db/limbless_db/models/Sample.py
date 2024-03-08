@@ -4,8 +4,9 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.SearchResult import SearchResult
 
+from ..core.categories import Organism
+
 if TYPE_CHECKING:
-    from .Organism import Organism
     from .Project import Project
     from .Links import SampleLibraryLink
     from .User import User
@@ -16,8 +17,7 @@ class Sample(SQLModel, SearchResult, table=True):
     name: str = Field(nullable=False, max_length=64, index=True)
     num_libraries: int = Field(nullable=False, default=0)
 
-    organism_id: int = Field(nullable=False, foreign_key="organism.tax_id")
-    organism: "Organism" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
+    organism_id: int = Field(nullable=False)
 
     project_id: int = Field(nullable=False, foreign_key="project.id")
     project: "Project" = Relationship(
@@ -38,12 +38,17 @@ class Sample(SQLModel, SearchResult, table=True):
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id", "num_libraries"]
 
+    @property
+    def organism(self) -> Organism:
+        return Organism.get(self.organism_id)
+
     def to_dict(self):
+        organism = self.organism
         data = {
             "id": self.id,
             "name": self.name,
-            "organism": self.organism.scientific_name,
-            "organism_tax_id": self.organism.tax_id,
+            "organism": organism.name,
+            "organism_tax_id": organism.id,
             "project": self.project.name,
         }
         return data

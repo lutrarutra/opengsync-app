@@ -55,6 +55,11 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     def load_user(user_id: int) -> models.User:
         user = db.get_user(user_id)
         return user
+    
+    if app.debug:
+        @app.route("/test")
+        def test():
+            return render_template("test.html")
 
     @app.route("/index_page")
     def _index_page():
@@ -154,6 +159,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             SeqRequestStatus=categories.SeqRequestStatus,
             LibraryStatus=categories.LibraryStatus,
             UserRole=categories.UserRole,
+            Organism=categories.Organism,
+            LibraryType=categories.LibraryType,
         )
     
     @app.before_request
@@ -169,7 +176,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.experiments_htmx)
     app.register_blueprint(api.pools_htmx)
     app.register_blueprint(api.auth_htmx)
-    app.register_blueprint(api.organisms_htmx)
     app.register_blueprint(api.barcodes_htmx)
     app.register_blueprint(api.seq_requests_htmx)
     app.register_blueprint(api.adapters_htmx)
