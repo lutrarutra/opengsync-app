@@ -1,6 +1,7 @@
 import io
 import os
 import re
+import yaml
 import hashlib
 from typing import Optional
 
@@ -53,7 +54,7 @@ def mkdir(path: str) -> str:
     return path
 
 
-def parse_config_tables(path: str, sep: Optional[str] = None) -> dict[str, pd.DataFrame]:
+def parse_config_tables(path: str, sep: Optional[str] = None) -> dict[str, pd.DataFrame | dict]:
     if sep is None:
         ext = path.split(".")[-1]
         if ext == "csv":
@@ -65,26 +66,27 @@ def parse_config_tables(path: str, sep: Optional[str] = None) -> dict[str, pd.Da
 
     with open(path, "r") as f:
         content = f.read()
-        matches = re.findall(r"\[(.*?)\]\n(.*?)(?=\n\[|$)", content, re.DOTALL)
 
         # Construct a dictionary where keys are labels and values are the corresponding strings
         result = dict()
-        for label, text in matches:
+
+        matches = re.findall(r"\[(.*?)\]([yt])\n(.*?)(?=\n\[|$)", content, re.DOTALL)
+        for label, type, text in matches:
             content = text.strip()
-            if not content:
-                result[label.strip()] = ""
-            elif content.count(sep) > 0:
+            if type == "y":
+                result[label.strip()] = yaml.safe_load(io.StringIO(content))
+            elif type == "t":
                 result[label.strip()] = pd.read_csv(
                     io.StringIO(content), delimiter=sep, index_col=None, header=0,
                     comment="#"
                 )
             else:
-                result[label.strip()] = content
+                raise Exception(f"Unsupported type: {type}, use 't' for table and 'y' for yaml...")
 
         return result
 
 
-def write_config_tables_from_sections(path: str, sections: dict[str, pd.DataFrame], sep: Optional[str] = None, overwrite: bool = False):
+def write_config_tables_from_sections(path: str, sections: dict[str, pd.DataFrame | dict], sep: Optional[str] = None, overwrite: bool = False):
     if sep is None:
         ext = path.split(".")[-1]
         if ext == "csv":
@@ -97,8 +99,15 @@ def write_config_tables_from_sections(path: str, sections: dict[str, pd.DataFram
     buffer = io.StringIO()
 
     for header, content in sections.items():
-        buffer.write(f"[{header}]\n")
-        content.to_csv(buffer, index=False, sep=sep)
+        if isinstance(content, pd.DataFrame):
+            buffer.write(f"[{header}]t\n")
+            content.to_csv(buffer, index=False, sep=sep)
+        elif isinstance(content, dict):
+            buffer.write(f"[{header}]y\n")
+            yaml.dump(content, buffer)
+        else:
+            raise TypeError(f"Unsupported type: {type(content)}")
+
         buffer.write("\n\n")
 
     write_file(path, buffer.getvalue(), overwrite=overwrite)

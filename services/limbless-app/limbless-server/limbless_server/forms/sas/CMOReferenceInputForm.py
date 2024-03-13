@@ -44,7 +44,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
 
-    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
         if data is None:
             data = self.get_data()
 

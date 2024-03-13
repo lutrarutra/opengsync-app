@@ -68,11 +68,11 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         return True
     
-    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
         if data is None:
             data = self.get_data()
 
-        df = data["library_table"]
+        df: pd.DataFrame = data["library_table"]  # type: ignore
 
         if "index_kit" not in df.columns:
             df["index_kit"] = None
@@ -109,9 +109,9 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             "selected": selected
         }
     
-    def __parse(self) -> dict[str, pd.DataFrame]:
+    def __parse(self) -> dict[str, pd.DataFrame | dict]:
         data = self.get_data()
-        df = data["library_table"]
+        df: pd.DataFrame = data["library_table"]  # type: ignore
 
         df["index_kit_name"] = None
         df["index_kit_id"] = None

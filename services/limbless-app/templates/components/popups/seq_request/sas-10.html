@@ -2,7 +2,7 @@
 <div id="index-check-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">10. Confirm Libraries</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#data-submission-modal-container")></button>
     </div> 
     <div class="modal-body">
         <form id="index-check-form">
@@ -16,40 +16,16 @@
                         <th scope="col" class="col-2">Library Type</th>
                         <th scope="col" class="col-1">Adapter</th>
                         {% if show_index_1 %}
-                        <th scope="col" class="col-1">
-                            <div class="form-check form-switch">
-                                {{ form.reverse_complement_index_1(class="form-check-input reverse-complement",) }}
-                                <label class="form-check-label">RC</label>
-                            </div>
-                            Index 1
-                        </th>
+                        <th scope="col" class="col-1">Index 1</th>
                         {% endif %}
                         {% if show_index_2 %}
-                        <th scope="col" class="col-1">
-                            <div class="form-check form-switch">
-                                {{ form.reverse_complement_index_2(class="form-check-input reverse-complement") }}
-                                <label class="form-check-label">RC</label>
-                            </div>
-                            Index 2
-                        </th>
+                        <th scope="col" class="col-1">Index 2</th>
                         {% endif %}
                         {% if show_index_3 %}
-                        <th scope="col" class="col-1">
-                            <div class="form-check form-switch">
-                                {{ form.reverse_complement_index_3(class="form-check-input reverse-complement") }}
-                                <label class="form-check-label">RC</label>
-                            </div>
-                            Index 3
-                        </th>
+                        <th scope="col" class="col-1">Index 3</th>
                         {% endif %}
                         {% if show_index_4 %}
-                        <th scope="col" class="col-1">
-                            <div class="form-check form-switch">
-                                {{ form.reverse_complement_index_4(class="form-check-input reverse-complement") }}
-                                <label class="form-check-label">RC</label>
-                            </div>
-                            Index 4
-                        </th>
+                        <th scope="col" class="col-1">Index 4</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -104,7 +80,7 @@
         </button>
 
         <button type="button" class="btn btn-danger" hx-target="#index-check-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}"
+            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type=type) }}"
             _="on htmx:confirm(issueRequest)
             halt the event
             call Swal.fire({
@@ -121,12 +97,4 @@
 </div>
 <script>
     init_tooltips();
-
-    $(".reverse-complement").on("change", function(e) {
-        const splitted = e.target.id.split("_");
-        var index = splitted[splitted.length - 1];
-        $(`.index-cell-${index}`).each(function() {
-            $(this).text(reverse_complement($(this).text()));
-        });
-    });
 </script>

@@ -185,13 +185,13 @@
                         <button type="button" class="btn btn-primary"
                         data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
                         hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type='raw') }}"
-                        hx-target="#data-submission-modal" hx-swap="outerHTML">
+                        hx-target="#data-submission-modal" hx-swap="innerHTML">
                             Add Raw Samples
                         </button>
                         <button type="button"  class="btn btn-primary"
                         data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
                         hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type='pooled') }}"
-                        hx-target="#data-submission-modal" hx-swap="outerHTML">
+                        hx-target="#data-submission-modal" hx-swap="innerHTML">
                             Add Pooled Libraries
                         </button>
                         {% endif %}
@@ -426,30 +426,30 @@
         </div>
     </div>
 
-    <div class="modal fade" id="data-submission-modal-container" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal fade" id="data-submission-modal-container" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-fullscreen" id="data-submission-modal">
         </div>
     </div>
 
-    <div class="modal fade" id="seq_request-file-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal fade" id="seq_request-file-form-popup" aria-hidden="true" aria-labelledby="">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             {% include file_input_form._template_path %}
         </div>
     </div>
 
-    <div class="modal fade" id="seq_request-comment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal fade" id="seq_request-comment-form-popup" aria-hidden="true" aria-labelledby="">
         <div class="modal-dialog modal-l modal-dialog-centered">
             {% include comment_form._template_path %}
         </div>
     </div>
 
-    <div class="modal fade" id="seq_request_share_email-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal fade" id="seq_request_share_email-form-popup" aria-hidden="true" aria-labelledby="">
         <div class="modal-dialog modal-l modal-dialog-centered">
             {% include seq_request_share_email_form._template_path %}
         </div>
     </div>
 
-    <div class="modal fade" id="process_request-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal fade" id="process_request-form-popup" aria-hidden="true" aria-labelledby="">
         <div class="modal-dialog modal-l modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">

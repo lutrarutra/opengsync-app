@@ -5,7 +5,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession
 from limbless_db.core.categories import UserRole, HttpResponse
-from ... import forms, db
+from ... import forms, db, logger
 
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 

@@ -1,7 +1,9 @@
-from typing import Optional, Union
+from typing import Optional, Union, TypeVar
 import difflib
 
 import pandas as pd
+
+from .. import logger
 
 tab_10_colors = [
     "#1f77b4",
@@ -88,6 +90,36 @@ def make_numeric(val: Union[int, float, str, None]) -> Union[int, float, None]:
             except ValueError:
                 return None
     return None
+
+
+T = TypeVar('T')
+
+
+def mapstr(
+    word: str, tuples: list[tuple[str, T]], cutoff: float = 0.5,
+    cap_sensitive: bool = False, filter_non_alphanumeric: bool = True,
+) -> T | None:
+    
+    if pd.isna(word):
+        return None
+
+    if not cap_sensitive:
+        tuples = [(k.lower(), v) for k, v in tuples]
+
+    if filter_non_alphanumeric:
+        tuples = [("".join(c for c in k if c.isalnum()), v) for k, v in tuples]
+
+    tuples = [(k.replace(" ", "").replace("_", "").replace("-", ""), v) for k, v in tuples]
+
+    tt = dict(tuples)
+
+    logger.debug(tt)
+    matches = difflib.get_close_matches(word, tt.keys(), n=1, cutoff=cutoff)
+    logger.debug(matches)
+    if (match := next(iter(matches), None)) is None:
+        return None
+
+    return tt[match]
 
 
 def connect_similar_strings(

@@ -32,12 +32,12 @@ class TableDataForm():
 
         return os.path.join("uploads", "seq_request", self.file_uuid.data + ".tsv")
 
-    def get_data(self) -> dict[str, pd.DataFrame]:
+    def get_data(self) -> dict[str, pd.DataFrame | dict]:
         if self.__data is None:
             self.__data = iot.parse_config_tables(self.path, sep="\t")
 
         return self.__data
     
-    def update_data(self, data: dict[str, pd.DataFrame]):
+    def update_data(self, data: dict[str, pd.DataFrame | dict]):
         self.__data = data
         iot.write_config_tables_from_sections(self.path, data, sep="\t", overwrite=True)

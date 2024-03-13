@@ -14,6 +14,7 @@ class HTMXFlaskForm(FlaskForm):
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None):
         super().__init__(formdata=ImmutableMultiDict(formdata))
+        self.formdata = formdata
 
     def process_request(self, **context) -> Response:
         raise NotImplementedError("You must implement this method in your subclass.")

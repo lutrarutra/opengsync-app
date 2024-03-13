@@ -37,7 +37,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
 
-    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
         if data is None:
             data = self.get_data()
 
@@ -73,9 +73,6 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
 
                 _data[library_name].append({
                     "library_type": row["library_type"],
-                    "library_volume": row["library_volume"],
-                    "library_concentration": row["library_concentration"],
-                    "library_total_size": row["library_total_size"],
                 })
 
             pool_libraries.append(_data)
@@ -103,9 +100,9 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
 
         return validated, self
 
-    def __parse(self) -> dict[str, pd.DataFrame]:
+    def __parse(self) -> dict[str, pd.DataFrame | dict]:
         data = self.get_data()
-        df = data["library_table"]
+        df: pd.DataFrame = data["library_table"]  # type: ignore
 
         df["contact_person_name"] = None
         df["contact_person_email"] = None

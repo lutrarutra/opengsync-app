@@ -8,7 +8,8 @@ from flask_login import login_required
 
 from limbless_db import models
 from limbless_db.core.categories import HttpResponse, LibraryType
-from .... import db
+
+from .... import db, logger
 from ....forms import sas as sas_forms
 
 if TYPE_CHECKING:
@@ -101,14 +102,18 @@ def restart_form(seq_request_id: int, type: Literal["raw", "pooled"]):
         
 
 # 1. Input sample annotation sheet
-@seq_request_form_htmx.route("<int:seq_request_id>/parse_table", methods=["POST"])
+@seq_request_form_htmx.route("<int:seq_request_id>/parse_table/<string:type>", methods=["POST"])
 @login_required
-def parse_table(seq_request_id: int):
+def parse_table(seq_request_id: int, type: Literal["raw", "pooled"]):
+    if type not in ["raw", "pooled"]:
+        return abort(HttpResponse.BAD_REQUEST.id)
+    
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HttpResponse.NOT_FOUND.id)
     
     return sas_forms.SASInputForm(
-        formdata=request.form | request.files
+        type=type,
+        formdata=request.form | request.files,
     ).process_request(
         seq_request=seq_request, user_id=current_user.id
     )

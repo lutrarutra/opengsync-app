@@ -108,15 +108,6 @@ class IndexKitType(CustomEnum):
     TENX = DescriptiveEnum(1, "10x")
 
 
-class OrganismCategory(CustomEnum):
-    UNCLASSIFIED = DescriptiveEnum(0, "Unclassified")
-    ARCHAEA = DescriptiveEnum(1, "Archaea")
-    BACTERIA = DescriptiveEnum(2, "Bacteria")
-    EUKARYOTA = DescriptiveEnum(3, "Eukaryota")
-    VIRUSES = DescriptiveEnum(4, "Viruses")
-    OTHER = DescriptiveEnum(5, "Other")
-
-
 class AccessType(CustomEnum):
     READWRITE = DescriptiveEnum(1, "Read/Write")
     READ = DescriptiveEnum(2, "Read")
@@ -220,7 +211,7 @@ class AssayType(CustomEnum):
 
 
 class Organism(CustomEnum):
-    CUSTOM = DescriptiveEnum(0, "Custom")
+    CUSTOM = DescriptiveEnum(0, "Custom", "Custom")
     HUMAN = DescriptiveEnum(9606, "Human", "Homo sapiens")
     MOUSE = DescriptiveEnum(10090, "Mouse", "Mus musculus")
     YEAST = DescriptiveEnum(4932, "Yeast", "Saccharomyces cerevisiae")

@@ -3,7 +3,7 @@
 <div id="library-type-mapping-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">4. Map Library Types</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#data-submission-modal-container")></button>
     </div>
     <div class="modal-body">
         <div class="input-help">
@@ -35,22 +35,6 @@
             hx-include="#library-type-category-mapping-form"
             hx-post="{{ url_for('seq_request_form_htmx.map_libraries', seq_request_id=seq_request.id) }}">
             Map Library Types
-        </button>
-        
-        <button type="button"class="btn btn-danger"
-            hx-target="#library-type-mapping-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}"
-            _="on htmx:confirm(issueRequest)
-            halt the event
-            call Swal.fire({
-                title: 'Cancel Request Form',
-                showDenyButton: true,
-                text: 'Do you want to proceed?',
-                confirmButtonText: 'Yes',
-                denyButtonText: 'No'
-            })
-            if result.isConfirmed issueRequest()">
-            Cancel
         </button>
     </div>
 </div>

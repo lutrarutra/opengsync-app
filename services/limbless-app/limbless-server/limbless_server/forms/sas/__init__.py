@@ -7,3 +7,5 @@ from .CMOReferenceInputForm import CMOReferenceInputForm    # noqa: F401
 from .SASInputForm import SASInputForm  # noqa: F401
 from .FeatureKitMappingForm import FeatureKitMappingForm    # noqa: F401
 from .FeatureKitReferenceInputForm import FeatureKitReferenceInputForm  # noqa: F401
+from .LibraryMappingForm import LibraryMappingForm  # noqa: F401
+from .OrganismMappingForm import OrganismMappingForm  # noqa: F401

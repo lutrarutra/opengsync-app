@@ -18,6 +18,7 @@ from .CMOReferenceInputForm import CMOReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
 from .BarcodeCheckForm import BarcodeCheckForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
+from .OrganismMappingForm import OrganismMappingForm
 
 
 class ProjectSubForm(FlaskForm):
@@ -28,7 +29,7 @@ class ProjectSubForm(FlaskForm):
 
 # 3. Map sample to existing/new projects
 class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "components/popups/seq_request/sas-3.html"
+    _template_path = "components/popups/seq_request/sas-2.html"
     
     input_fields = FieldList(FormField(ProjectSubForm), min_entries=1)
 
@@ -36,7 +37,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=None)
 
-    def prepare(self, user_id: int, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+    def prepare(self, user_id: int, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
         if data is None:
             data = self.get_data()
         
@@ -92,9 +93,10 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
 
         return validated
     
-    def __parse(self, seq_request_id: int) -> dict[str, pd.DataFrame]:
+    def __parse(self, seq_request_id: int) -> dict[str, pd.DataFrame | dict]:
         data = self.get_data()
-        df = data["library_table"]
+        logger.debug(data)
+        df: pd.DataFrame = data["library_table"]  # type: ignore
 
         df["project_name"] = None
         df["project_id"] = None
@@ -163,24 +165,30 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             return self.make_response(**context)
 
         data = self.__parse(seq_request_id=seq_request_id)
+        library_table: pd.DataFrame = data["library_table"]  # type: ignore
 
-        if "index_kit" in data["library_table"] and not data["library_table"]["index_kit"].isna().all():
+        if library_table["tax_id"].isna().any():
+            organism_mapping_form = OrganismMappingForm()
+            context = organism_mapping_form.prepare(data) | context
+            return organism_mapping_form.make_response(**context)
+
+        if "index_kit" in library_table and not library_table["index_kit"].isna().all():
             index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
             context = index_kit_mapping_form.prepare(data) | context
             return index_kit_mapping_form.make_response(**context)
         
-        if data["library_table"]["library_type_id"].isin([
+        if library_table["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
         
-        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+        if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
         
-        if "pool" in data["library_table"].columns:
+        if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)

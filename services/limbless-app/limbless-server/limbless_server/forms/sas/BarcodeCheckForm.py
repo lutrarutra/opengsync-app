@@ -3,7 +3,6 @@ from typing import Optional
 from flask import Response
 import pandas as pd
 
-from wtforms import BooleanField
 from flask import url_for, flash
 from flask_htmx import make_response
 
@@ -17,23 +16,18 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
     _template_path = "components/popups/seq_request/sas-10.html"
 
-    reverse_complement_index_1 = BooleanField("Reverse complement index 1", default=False)
-    reverse_complement_index_2 = BooleanField("Reverse complement index 2", default=False)
-    reverse_complement_index_3 = BooleanField("Reverse complement index 3", default=False)
-    reverse_complement_index_4 = BooleanField("Reverse complement index 4", default=False)
-
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, uuid=uuid)
     
-    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
         if data is None:
             data = self.get_data()
 
         data = self.get_data()
-        df = self.get_data()["library_table"]
+        df: pd.DataFrame = self.get_data()["library_table"]
 
         samples_data: list[dict[str, str | int | None]] = []
 
@@ -84,10 +78,10 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
         return {
             "samples_data": samples_data,
-            "show_index_1": "index_1" in df.columns,
-            "show_index_2": "index_2" in df.columns,
-            "show_index_3": "index_3" in df.columns,
-            "show_index_4": "index_4" in df.columns,
+            "show_index_1": "index_1" in df.columns and not df["index_1"].isna().all(),
+            "show_index_2": "index_2" in df.columns and not df["index_2"].isna().all(),
+            "show_index_3": "index_3" in df.columns and not df["index_3"].isna().all(),
+            "show_index_4": "index_4" in df.columns and not df["index_4"].isna().all(),
         }
     
     def process_request(self, **context) -> Response:
@@ -195,9 +189,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
                     library_name = row["library_name"]
                     index_kit_id = int(row["index_kit_id"]) if "index_kit_id" in row and not pd.isna(row["index_kit_id"]) else None
-                    library_volume = row["library_volume"] if "library_volume" in row and not pd.isna(row["library_volume"]) else None
-                    dna_concentration = row["library_concentration"] if "library_concentration" in row and not pd.isna(row["library_concentration"]) else None
-                    total_size = row["library_total_size"] if "library_total_size" in row and not pd.isna(row["library_total_size"]) else None
                     adapter = row["adapter"] if "adapter" in row and not pd.isna(row["adapter"]) else None
                     index_1_sequence = row["index_1"] if "index_1" in row and not pd.isna(row["index_1"]) else None
                     index_2_sequence = row["index_2"] if "index_2" in row and not pd.isna(row["index_2"]) else None
@@ -224,9 +215,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                         library_type=library_type,
                         index_kit_id=index_kit_id,
                         owner_id=user_id,
-                        volume=library_volume,
-                        dna_concentration=dna_concentration,
-                        total_size=total_size,
                         index_1_sequence=index_1_sequence,
                         index_2_sequence=index_2_sequence,
                         index_3_sequence=index_3_sequence,

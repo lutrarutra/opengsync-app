@@ -41,3 +41,4 @@ plotly-express==0.4.1
 scipy==1.12.0
 statsmodels==0.14.1
 tenacity==8.2.3
+pyyaml==6.0.1

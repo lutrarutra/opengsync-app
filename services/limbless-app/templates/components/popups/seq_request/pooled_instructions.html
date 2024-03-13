@@ -1,23 +1,37 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
 <div class="input-help">
     <h5>How to?</h5>
-    <ol>
-        <li>Read instructions, download the template below, and fill in the needed columns.</li>
-        <li>Submit the modified template below.</li>
-    </ol>
+    <ul>
+        <li>Fill in the required columns and submit as a file or live spreadsheet.</li>
+    </ul>
 
     <h5>Required Columns</h5>
     <ul>
         <li><b>Sample Name</b> <span class="desc">Biological Sample, e.g. sample_KO, sample_WT, ...</span></li>
         <li><b>Library Name</b> <span class="desc">Name of the library, e.g. sample_KO_GEX, sample_KO_CMO, sample_WT_GEX, ...</span></li>
-        <li><b>Library type</b> <span class="desc">E.g. scRNA-seq, ATAC-seq, WES, etc.</span></li>
+        <li>
+            <b>Library type:</b>
+            <ul class="h-list" style="width: 60%; padding-left: 15px;">
+            {% for _, library_type in LibraryType.as_tuples() %}
+                <li><span {{ tooltip(library_type.name) }} style="cursor: help;">{{ library_type.description }}</span></li>
+            {% endfor %}
+            </ul>
+        </li>
         <li><b>Pool</b> <span class="desc">Indicates how libraries were pooled, e.g. rows '1,1,1,2,2,2' means 2 pools are created with 3 samples in each</span></li>
         <li><b>Index 1</b> or <b>Adapter</b> + <b>Library Kit</b></li>
     </ul>
 
     <h5>Optional Columns (can be left blank)</h5>
     <ul>
-        <li>Organism <span class="desc">Must be specified if samples from two or more organisms are present</span></li>
-        <li>Project <span class="desc">Must be specified if request contains samples from two or more projects</span></li>
+        <li><b>Organism</b> <span class="desc">Must be specified if samples from two or more organisms are present.</span>
+            <ul class="h-list" style="width: 60%; padding-left: 15px;">
+            {% for _, organism in Organism.as_tuples() %}
+                <li><span {{ tooltip(organism.description) }} style="cursor: help;">{{ organism.name }}</span></li>
+            {% endfor %}
+            </ul>
+        </li>
+        <li><b>Project</b> <span class="desc">Must be specified if request contains samples from two or more projects.</span></li>
         <li>Adapter <span class="desc">Index adapter, e.g. 'SI-TT-A1'</span></li>
         <li>Index 1 <span class="desc">Index 1 (i7 for 10x) sequence, e.g. 'GTAACATGCG'</span></li>
         <li>Index 2 <span class="desc">Index 2 (i5 for 10x) sequence, e.g. 'AGTGTTACCT'</span></li>
@@ -30,12 +44,14 @@
 
     <h5>Important</h5>
     <ul>
+        <li><b>Do not</b> reverse complement indices. We will do it downstream if needed.</li>
         <li><b>'Sample Name'</b>-column denotes a biological sample/specimen that was prepared into one or more libraries.</li>
         <li>Multiple rows can have same value in <b>'Sample Name'</b>-column if multiple libraries are created from a single biological sample/specimen.</li>
-        <li>White-spaces in <b>'Sample Name'</b>-column will be replaced with '_' automatically. Also non-alphanumeric characters (except '_', '-', '.') will be filtered.</li>
+        <li>White-spaces in <b>'Sample Name' & 'Library Name'</b>-columns will be replaced with '_' automatically. Also non-alphanumeric characters (except '_', '-', '.') will be filtered.</li>
         <li>If you are using a common library kit, one found in <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page, it is enough to only specify <b>Adapter</b>-column (without <b>Index 1/2/3/4</b>-columns.)</li>
         <li>If a single library has different adapters for its indices, you can specify different adapters using <b>'Adapter 1/2/3/4'</b>-columns.</li>
         <li>If a common index kit is specified with <b>'Adapter'</b> and <b>'Index 1/2/3/4</b>-columns, this app will warn if there are errors in barcode sequences, e.g. typos or reused indices.</li>
         <li>In edge cases, please contact us at <a href="mailto:bsf@cemm.at">bsf@cemm.at</a></li>
     </ul>
 </div>
+<script>init_tooltips();</script>

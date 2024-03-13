@@ -3,7 +3,7 @@
 <div id="index_kit-mapping-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">5. Map Index Kits</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#data-submission-modal-container")></button>
     </div>
     <div class="modal-body">
         <div class="input-help">
@@ -46,7 +46,7 @@
         
         <button type="button"class="btn btn-danger"
             hx-target="#index_kit-mapping-form-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id) }}"
+            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type=type) }}"
             _="on htmx:confirm(issueRequest)
             halt the event
             call Swal.fire({
