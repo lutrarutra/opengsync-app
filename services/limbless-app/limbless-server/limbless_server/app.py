@@ -27,10 +27,10 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.config["MEDIA_FOLDER"] = os.path.join("media")
     app.config["UPLOADS_FOLDER"] = os.path.join("uploads")
 
-    for _, file_type in categories.FileType.as_tuples():
-        if file_type.description is None:
+    for file_type in categories.FileType.as_list():
+        if file_type.dir is None:
             continue
-        path = os.path.join(app.config["MEDIA_FOLDER"], file_type.description)
+        path = os.path.join(app.config["MEDIA_FOLDER"], file_type.dir)
         if not os.path.exists(path):
             os.makedirs(path)
 
@@ -91,19 +91,19 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @login_required
     def pdf_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
-            return abort(categories.HttpResponse.NOT_FOUND.id)
+            return abort(categories.HTTPResponse.NOT_FOUND.id)
         
         if file.uploader_id != current_user.id and not current_user.is_insider():
             if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
-                return abort(categories.HttpResponse.FORBIDDEN.id)
+                return abort(categories.HTTPResponse.FORBIDDEN.id)
         
         if file.extension != ".pdf":
-            return abort(categories.HttpResponse.BAD_REQUEST.id)
+            return abort(categories.HTTPResponse.BAD_REQUEST.id)
 
         filepath = os.path.join(app.config["MEDIA_FOLDER"], file.path)
         if not os.path.exists(filepath):
             logger.error(f"File not found: {filepath}")
-            return abort(categories.HttpResponse.NOT_FOUND.id)
+            return abort(categories.HTTPResponse.NOT_FOUND.id)
         
         with open(filepath, "rb") as f:
             data = f.read()
@@ -117,19 +117,19 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @login_required
     def img_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
-            return abort(categories.HttpResponse.NOT_FOUND.id)
+            return abort(categories.HTTPResponse.NOT_FOUND.id)
         
         if file.uploader_id != current_user.id and not current_user.is_insider():
             if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
-                return abort(categories.HttpResponse.FORBIDDEN.id)
+                return abort(categories.HTTPResponse.FORBIDDEN.id)
         
         if file.extension not in [".png", ".jpg", ".jpeg"]:
-            return abort(categories.HttpResponse.BAD_REQUEST.id)
+            return abort(categories.HTTPResponse.BAD_REQUEST.id)
 
         filepath = os.path.join(app.config["MEDIA_FOLDER"], file.path)
         if not os.path.exists(filepath):
             logger.error(f"File not found: {filepath}")
-            return abort(categories.HttpResponse.NOT_FOUND.id)
+            return abort(categories.HTTPResponse.NOT_FOUND.id)
         
         with open(filepath, "rb") as f:
             data = f.read()
@@ -159,7 +159,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             SeqRequestStatus=categories.SeqRequestStatus,
             LibraryStatus=categories.LibraryStatus,
             UserRole=categories.UserRole,
-            Organism=categories.Organism,
+            DataDeliveryMode=categories.DataDeliveryMode,
+            GenomeRef=categories.GenomeRef,
             LibraryType=categories.LibraryType,
         )
     

@@ -2,7 +2,7 @@ from typing import Optional, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..core.categories import DeliveryStatus
+from ..categories import DeliveryStatus, DeliveryStatusEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -47,18 +47,6 @@ class ExperimentPoolLink(SQLModel, table=True):
     def __str__(self) -> str:
         return f"ExperimentPoolLink(experiment_id: {self.experiment_id}, pool_id: {self.pool_id}, lane: {self.lane})"
 
-
-class SeqRequestExperimentLink(SQLModel, table=True):
-    seq_request_id: int = Field(
-        foreign_key="seqrequest.id", primary_key=True
-    )
-    experiment_id: int = Field(
-        foreign_key="experiment.id", primary_key=True
-    )
-
-    def __str__(self) -> str:
-        return f"SeqRequestExperimentLink(seq_request_id: {self.seq_request_id}, experiment_id: {self.experiment_id})"
-    
 
 class ExperimentFileLink(SQLModel, table=True):
     file_id: int = Field(
@@ -114,5 +102,5 @@ class SeqRequestShareEmailLink(SQLModel, table=True):
     status_id: int = Field(nullable=False, default=0)
 
     @property
-    def status(self) -> DeliveryStatus:
+    def status(self) -> DeliveryStatusEnum:
         return DeliveryStatus.get(self.status_id)

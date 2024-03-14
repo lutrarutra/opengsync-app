@@ -4,7 +4,7 @@ from sqlmodel import Field, SQLModel, Relationship
 from itsdangerous import SignatureExpired, BadSignature, URLSafeTimedSerializer
 
 from ..core.SearchResult import SearchResult
-from ..core.categories import UserRole
+from ..categories import UserRole, UserRoleEnum
 
 if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
@@ -110,11 +110,11 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
         return str(serializer.dumps({"id": self.id, "email": self.email, "hash": self.password}))
 
     @staticmethod
-    def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, role: UserRole = UserRole.CLIENT) -> str:
+    def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, role: UserRoleEnum = UserRole.CLIENT) -> str:
         return str(serializer.dumps({"email": email, "role": role.id}))
 
     @staticmethod
-    def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> Optional[tuple[str, UserRole]]:
+    def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> Optional[tuple[str, UserRoleEnum]]:
         try:
             data = serializer.loads(token, max_age=3600)
             email = data["email"]
@@ -139,7 +139,7 @@ class User(UserMixin, SQLModel, SearchResult, table=True):
         return id, email, hash
 
     @property
-    def role(self) -> UserRole:
+    def role(self) -> UserRoleEnum:
         return UserRole.get(self.role_id)
     
     @property

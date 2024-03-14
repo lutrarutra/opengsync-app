@@ -4,14 +4,14 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..core.categories import SeqRequestStatus, SequencingType, FlowCellType
-from .Links import SeqRequestExperimentLink, SeqRequestFileLink, SeqRequestCommentLink, SeqRequestShareEmailLink
+from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum
+from .Links import SeqRequestFileLink, SeqRequestCommentLink, SeqRequestShareEmailLink
 
 if TYPE_CHECKING:
     from .User import User
     from .Contact import Contact
     from .Library import Library
-    from .Experiment import Experiment
+    from .Pool import Pool
     from .File import File
     from .Comment import Comment
 
@@ -24,17 +24,18 @@ class SeqRequest(SQLModel, table=True):
     status_id: int = Field(nullable=False, default=0)
     submitted_time: Optional[datetime] = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True))
 
-    technology: str = Field(nullable=False, max_length=64)
     sequencing_type_id: int = Field(nullable=False)
+    read_length: Optional[int] = Field(nullable=True)
+    num_lanes: Optional[int] = Field(nullable=True)
+
     num_cycles_read_1: Optional[int] = Field(nullable=True)
     num_cycles_index_1: Optional[int] = Field(nullable=True)
     num_cycles_index_2: Optional[int] = Field(nullable=True)
     num_cycles_read_2: Optional[int] = Field(nullable=True)
-    read_length: Optional[int] = Field(nullable=True)
-    num_lanes: Optional[int] = Field(nullable=True)
-    special_requirements: Optional[str] = Field(nullable=True, max_length=512)
-    sequencer: Optional[str] = Field(nullable=True, max_length=64)
-    flowcell_type_id: Optional[int] = Field(nullable=True)
+    
+    special_requirements: Optional[str] = Field(nullable=True, max_length=1024)
+
+    data_delivery_mode_id: int = Field(nullable=False)
 
     organization_name: str = Field(nullable=False, max_length=128)
     organization_address: str = Field(nullable=False, max_length=256)
@@ -58,12 +59,6 @@ class SeqRequest(SQLModel, table=True):
         back_populates="seq_request",
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
     )
-
-    experiments: list["Experiment"] = Relationship(
-        back_populates="seq_requests",
-        link_model=SeqRequestExperimentLink,
-        sa_relationship_kwargs={"lazy": "select"},
-    )
     
     contact_person_id: int = Field(nullable=False, foreign_key="contact.id")
     contact_person: "Contact" = Relationship(
@@ -83,6 +78,10 @@ class SeqRequest(SQLModel, table=True):
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
+    pools: list["Pool"] = Relationship(
+        back_populates="seq_request",
+        sa_relationship_kwargs={"lazy": "select"},
+    )
     files: list["File"] = Relationship(
         link_model=SeqRequestFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
     )
@@ -97,18 +96,16 @@ class SeqRequest(SQLModel, table=True):
     seq_auth_form_file_id: Optional[int] = Field(nullable=True, default=None)
 
     @property
-    def status(self) -> SeqRequestStatus:
+    def status(self) -> SeqRequestStatusEnum:
         return SeqRequestStatus.get(self.status_id)
     
     @property
-    def sequencing_type(self) -> SequencingType:
-        return SequencingType.get(self.sequencing_type_id)
+    def sequencing_type(self) -> ReadTypeEnum:
+        return ReadType.get(self.sequencing_type_id)
     
     @property
-    def flowcell_type(self) -> Optional[FlowCellType]:
-        if self.flowcell_type_id is None:
-            return None
-        return FlowCellType.get(self.flowcell_type_id)
+    def data_delivery_mode(self) -> DataDeliveryModeEnum:
+        return DataDeliveryMode.get(self.data_delivery_mode_id)
     
     def is_indexed(self) -> bool:
         for library in self.libraries:

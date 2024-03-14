@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required, current_user
 
 from limbless_db import DBSession
-from limbless_db.core.categories import UserRole, HttpResponse
+from limbless_db.categories import UserRole, HTTPResponse
 from ... import forms, db
 
 devices_page_bp = Blueprint("devices_page", __name__)
@@ -12,7 +12,7 @@ devices_page_bp = Blueprint("devices_page", __name__)
 @login_required
 def devices_page():
     if current_user.role != UserRole.ADMIN:
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     sequencer_form = forms.SequencerForm()
     with DBSession(db) as session:
@@ -29,10 +29,10 @@ def devices_page():
 @login_required
 def sequencer_page(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (sequencer := db.get_sequencer(sequencer_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     sequencer_form = forms.SequencerForm()
     sequencer_form.name.data = sequencer.name

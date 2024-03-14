@@ -4,7 +4,7 @@ from flask_login import login_required
 
 from limbless_db import DBSession
 from limbless_db.models import User
-from limbless_db.core.categories import HttpResponse, LibraryType
+from limbless_db.categories import HTTPResponse, LibraryType
 from ... import db, forms
 
 if TYPE_CHECKING:
@@ -40,11 +40,11 @@ def libraries_page():
 def library_page(library_id):
     with DBSession(db) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         if not current_user.is_insider():
             if library.owner_id != current_user.id:
-                return abort(HttpResponse.FORBIDDEN.id)
+                return abort(HTTPResponse.FORBIDDEN.id)
             
         context = dict()
         if library.type == LibraryType.SPATIAL_TRANSCRIPTOMIC:

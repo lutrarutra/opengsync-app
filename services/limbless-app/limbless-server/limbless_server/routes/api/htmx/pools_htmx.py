@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 from .... import db
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/pools/")
 @login_required
 def get(page: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     order = request.args.get("order", "desc")
@@ -35,11 +35,11 @@ def get(page: int):
         try:
             experiment_id = int(experiment_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.id)
+                return abort(HTTPResponse.NOT_FOUND.id)
             
             pools, n_pages = session.get_pools(
                 experiment_id=experiment_id, sort_by=sort_by, descending=descending,

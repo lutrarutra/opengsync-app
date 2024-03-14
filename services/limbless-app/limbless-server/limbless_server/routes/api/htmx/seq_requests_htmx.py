@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 
 from limbless_db import models, DBSession, DBHandler, PAGE_LIMIT
-from limbless_db.core.categories import HttpResponse, SeqRequestStatus
+from limbless_db.categories import HTTPResponse, SeqRequestStatus
 from limbless_db.core import exceptions
 from .... import db, forms, logger
 
@@ -31,7 +31,7 @@ def get(page: int):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.SeqRequest.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     seq_requests: list[models.SeqRequest] = []
     context = {}
@@ -40,7 +40,7 @@ def get(page: int):
         try:
             with_status = SeqRequestStatus.get(int(with_status))
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
         with_statuses = [with_status]
     else:
         with_statuses = None
@@ -49,7 +49,7 @@ def get(page: int):
         try:
             exclude_experiment_id = int(exclude_experiment_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
     else:
         exclude_experiment_id = None
 
@@ -58,13 +58,13 @@ def get(page: int):
         try:
             user_id = int(user_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
         if user_id != current_user.id and not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
         if (user := db.get_user(user_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
 
         seq_requests, n_pages = db.get_seq_requests(
             offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
@@ -77,14 +77,14 @@ def get(page: int):
         try:
             sample_id = int(sample_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
         if (sample := db.get_sample(sample_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         if not current_user.is_insider():
             if sample.owner_id != current_user.id:
-                return abort(HttpResponse.FORBIDDEN.id)
+                return abort(HTTPResponse.FORBIDDEN.id)
         
         seq_requests, n_pages = db.get_seq_requests(
             offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending,
@@ -93,16 +93,16 @@ def get(page: int):
         context["sample"] = sample
     elif (experiment_id := request.args.get("experiment_id")) is not None:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
         template = "components/tables/experiment-seq_request.html"
         try:
             experiment_id = int(experiment_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
         if (experiment := db.get_experiment(experiment_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         seq_requests, n_pages = db.get_seq_requests(
             offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
@@ -135,14 +135,14 @@ def get(page: int):
 @login_required
 def export(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
         
     samples, _ = db.get_samples(seq_request_id=seq_request_id, limit=None)
     libraries, _ = db.get_libraries(seq_request_id=seq_request_id, limit=None)
     
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     file_name = secure_filename(f"{seq_request.name}_request.xlsx")
 
@@ -171,12 +171,12 @@ def export(seq_request_id: int):
 def export_libraries(seq_request_id: int):
     with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         libraries = seq_request.libraries
 
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
 
@@ -192,11 +192,11 @@ def export_libraries(seq_request_id: int):
 @login_required
 def edit(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.SeqRequestForm(request.form).process_request(
         seq_request=seq_request, user_id=current_user.id
@@ -207,11 +207,11 @@ def edit(seq_request_id: int):
 @login_required
 def delete(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     db.delete_seq_request(seq_request_id)
 
@@ -227,11 +227,11 @@ def delete(seq_request_id: int):
 @login_required
 def archive(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
         if seq_request.requestor_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     seq_request.status_id = SeqRequestStatus.ARCHIVED.id
     seq_request = db.update_seq_request(seq_request)
@@ -246,10 +246,10 @@ def archive(seq_request_id: int):
 @login_required
 def unarchive(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     seq_request.status_id = SeqRequestStatus.DRAFT.id
     seq_request.submitted_time = None
@@ -268,14 +268,14 @@ def unarchive(seq_request_id: int):
 def submit(seq_request_id: int):
     with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         if seq_request.requestor_id != current_user.id:
             if not current_user.is_insider():
-                return abort(HttpResponse.FORBIDDEN.id)
+                return abort(HTTPResponse.FORBIDDEN.id)
         
         if not seq_request.is_submittable():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
         session.submit_seq_request(seq_request_id)
 
@@ -297,14 +297,14 @@ def create():
 @login_required
 def upload_auth_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.requestor_id != current_user.id:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
     if seq_request.seq_auth_form_file_id is not None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     return forms.SeqAuthForm(request.form | request.files).process_request(
         seq_request=seq_request, user=current_user
@@ -315,10 +315,10 @@ def upload_auth_form(seq_request_id: int):
 @login_required
 def add_comment(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.SeqRequestCommentForm(formdata=request.form, seq_request_id=seq_request_id).process_request(
         seq_request=seq_request, user=current_user
@@ -329,10 +329,10 @@ def add_comment(seq_request_id: int):
 @login_required
 def upload_file(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if not (seq_request.requestor_id == current_user.id or current_user.is_insider()):
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.SeqRequestAttachmentForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
         seq_request=seq_request, user=current_user
@@ -343,13 +343,13 @@ def upload_file(seq_request_id: int):
 @login_required
 def delete_file(seq_request_id: int, file_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if not (seq_request.requestor_id == current_user.id or current_user.is_insider()):
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (file := db.get_file(file_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     db.remove_file_from_seq_request(seq_request_id, file_id)
     filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
@@ -365,21 +365,21 @@ def delete_file(seq_request_id: int, file_id: int):
 @login_required
 def remove_auth_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.seq_auth_form_file_id is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if seq_request.requestor_id != current_user.id:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
     if seq_request.status != SeqRequestStatus.DRAFT:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     if (file := db.get_file(seq_request.seq_auth_form_file_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
     if os.path.exists(filepath):
@@ -402,27 +402,27 @@ def remove_auth_form(seq_request_id: int):
 @login_required
 def remove_library(seq_request_id: int):
     if (library_id := request.args.get("library_id")) is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.status != SeqRequestStatus.DRAFT:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     try:
         library_id = int(library_id)
     except ValueError:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     with DBSession(db) as session:
         if (library := session.get_library(library_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         if seq_request.requestor_id != current_user.id:
             if not current_user.is_insider():
-                return abort(HttpResponse.FORBIDDEN.id)
+                return abort(HTTPResponse.FORBIDDEN.id)
             
         session.delete_library(library_id)
 
@@ -442,10 +442,10 @@ def table_query():
     elif (word := request.form.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if word is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
     def __get_seq_requests(
         session: DBHandler, word: str | int, field_name: str,
@@ -478,10 +478,10 @@ def table_query():
         try:
             user_id = int(user_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
         with DBSession(db) as session:
             if (user := session.get_user(user_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.id)
+                return abort(HTTPResponse.NOT_FOUND.id)
             
             seq_requests = __get_seq_requests(session, word, field_name, user_id=user_id)
             context["user"] = user
@@ -508,29 +508,29 @@ def table_query():
 @login_required
 def reverse_complement(seq_request_id: int):
     if (index := request.args.get("index", None)) is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     try:
         index = int(index)
     except ValueError:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     library_id = request.args.get("library_id", None)
     if library_id is not None:
         try:
             library_id = int(library_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
     
     if index < 1 or index > 4:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         if seq_request.requestor_id != current_user.id:
             if not current_user.is_insider():
-                return abort(HttpResponse.FORBIDDEN.id)
+                return abort(HTTPResponse.FORBIDDEN.id)
             
         if library_id is not None:
             libraries = [session.get_library(library_id)]
@@ -564,7 +564,7 @@ def reverse_complement(seq_request_id: int):
 @login_required
 def process_request(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.ProcessRequestForm(formdata=request.form).process_request(
         seq_request=seq_request, user=current_user
@@ -575,11 +575,11 @@ def process_request(seq_request_id: int):
 @login_required
 def add_share_email(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.requestor_id != current_user.id:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     logger.debug(request.form)
     return forms.SeqRequestShareEmailForm(formdata=request.form).process_request(
@@ -592,19 +592,19 @@ def add_share_email(seq_request_id: int):
 def remove_share_email(seq_request_id: int, email: str):
     with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         if len(seq_request.share_email_links) == 1:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     if seq_request.requestor_id != current_user.id:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
     try:
         db.remove_seq_request_share_email(seq_request_id, email)
     except exceptions.ElementDoesNotExist:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     flash(f"Removed shared email '{email}' from sequencing request '{seq_request.name}'", "success")
     return make_response(
@@ -616,11 +616,11 @@ def remove_share_email(seq_request_id: int, email: str):
 @login_required
 def get_graph(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.requestor_id != current_user.id:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     LINK_WIDTH_UNIT = 1
 

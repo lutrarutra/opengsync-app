@@ -6,7 +6,7 @@ from sqlmodel import func
 from .. import exceptions
 from ... import PAGE_LIMIT
 from ...models import User
-from ...core.categories import UserRole
+from ...categories import UserRole
 
 
 def create_user(

@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.sql.operators import and_
 
-from ...core.categories import FileType
+from ...categories import FileType
 from ... import models
 from .. import exceptions
 

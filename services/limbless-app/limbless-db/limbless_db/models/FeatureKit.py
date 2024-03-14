@@ -4,7 +4,7 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.SearchResult import SearchResult
-from ..core.categories import FeatureType
+from ..categories import FeatureType
 
 if TYPE_CHECKING:
     from .Feature import Feature

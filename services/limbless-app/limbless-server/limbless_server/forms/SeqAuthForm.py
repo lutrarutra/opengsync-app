@@ -6,7 +6,7 @@ from wtforms import FileField
 from wtforms.validators import DataRequired
 from flask_wtf.file import FileAllowed
 
-from limbless_db.core.categories import FileType
+from limbless_db.categories import FileType
 from limbless_db import models
 from .. import logger, db
 from .HTMXFlaskForm import HTMXFlaskForm

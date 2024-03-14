@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, request, url_for, flash,
 from flask_login import current_user
 
 from limbless_db import models
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 from ... import forms, db, logger, serializer
 
 auth_page_bp = Blueprint("auth_page", __name__)

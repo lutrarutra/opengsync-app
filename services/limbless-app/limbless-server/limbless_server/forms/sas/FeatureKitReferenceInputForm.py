@@ -20,7 +20,7 @@ from .FeatureKitMappingForm import FeatureKitMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .PoolMappingForm import PoolMappingForm
 from .BarcodeCheckForm import BarcodeCheckForm
-from limbless_db.core.categories import LibraryType
+from limbless_db.categories import LibraryType
 from ..SearchBar import OptionalSearchBar
 
 

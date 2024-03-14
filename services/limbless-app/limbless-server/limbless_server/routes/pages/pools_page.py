@@ -5,7 +5,7 @@ from flask_login import login_required
 
 from limbless_db import DBSession
 from limbless_db.models import User
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 
 from ...app import db
 from ...forms import pooling as pooling_forms
@@ -41,10 +41,10 @@ def pools_page():
 def pool_page(pool_id: int):
     with DBSession(db) as session:
         if (pool := session.get_pool(pool_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         if not current_user.is_insider() and pool.owner_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
 
         libraries, libraries_n_pages = session.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
         is_editable = pool.is_editable()

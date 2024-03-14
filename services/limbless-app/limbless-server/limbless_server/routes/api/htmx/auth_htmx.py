@@ -6,7 +6,7 @@ from flask_mail import Message
 from flask_login import logout_user, login_required
 
 from limbless_db import models
-from limbless_db.core.categories import HttpResponse, UserRole
+from limbless_db.categories import HTTPResponse, UserRole
 from .... import db, forms, logger, mail, serializer, EMAIL_SENDER
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ def register():
 @login_required
 def custom_register():
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.UserForm(request.form).process_request(user=current_user)
     
@@ -55,10 +55,10 @@ def complete_registration(token: str):
 @login_required
 def reset_password_email(user_id: int):
     if (user := db.get_user(user_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if current_user.role != UserRole.ADMIN and current_user.id != user_id:
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     token = current_user.generate_reset_token(serializer=serializer)
     url = url_for("auth_page.reset_password_page", token=token, _external=True)

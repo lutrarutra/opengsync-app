@@ -7,7 +7,7 @@ from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.core.categories import LibraryType
+from limbless_db.categories import LibraryType
 
 from ... import db
 from ..TableDataForm import TableDataForm

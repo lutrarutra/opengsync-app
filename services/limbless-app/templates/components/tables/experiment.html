@@ -20,7 +20,7 @@
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
-                <th class="col-1" scope="col">Sequencing Person</th>
+                <th class="col-1" scope="col">Operator</th>
                 <th class="col-5" scope="col">Pools</th>
                 {{
                     table_col(
@@ -58,7 +58,7 @@
                 <th scope="row">{{ experiment.id }}</th>
                 <td>{{ experiment.status.name }} {{ experiment.status.description | safe }}</td>
                 <td>
-                    {{ experiment.sequencing_person.name }} <span class="desc">{{ "me" if current_user.id == experiment.sequencing_person.owner_id }}</span>
+                    {{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator.owner_id }}</span>
                 </td>
                 <td>
                     <ul class="h-list">

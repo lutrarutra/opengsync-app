@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.core.categories import HttpResponse, ExperimentStatus
+from limbless_db.categories import HTTPResponse, ExperimentStatus
 from .... import db, forms, logger
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ def get(page: int):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Experiment.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     with DBSession(db) as session:
         experiments, n_pages = session.get_experiments(
@@ -47,7 +47,7 @@ def get(page: int):
 @login_required
 def create():
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.ExperimentForm(formdata=request.form).process_request()
 
@@ -56,10 +56,10 @@ def create():
 @login_required
 def edit(experiment_id: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.ExperimentForm(formdata=request.form).process_request(
         experiment=experiment
@@ -70,13 +70,13 @@ def edit(experiment_id: int):
 @login_required
 def delete(experiment_id: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if not experiment.is_deleteable():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     db.delete_experiment(experiment_id)
 
@@ -88,54 +88,23 @@ def delete(experiment_id: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/add_seq_request/<int:seq_request_id>", methods=["POST"])
-@login_required
-def add_seq_request(experiment_id: int, seq_request_id: int):
-    if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
-    
-    if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
-    
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
-    
-    if not experiment.is_editable():
-        return abort(HttpResponse.FORBIDDEN.id)
-    
-    # TODO: check if it is already linked, shouldnt be, but still
-    
-    db.link_experiment_seq_request(
-        experiment_id=experiment_id,
-        seq_request_id=seq_request_id,
-    )
-
-    logger.debug(f"Added request '{seq_request.name}' to experiment (id='{experiment_id}')")
-    flash(f"Added request '{seq_request.name}' to experiment.", "success")
-
-    return make_response(
-        redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id),
-        push_url=False
-    )
-
-
 @experiments_htmx.route("<int:experiment_id>/add_pool/<int:pool_id>/<int:lane>", methods=["POST"])
 @login_required
 def add_pool(experiment_id: int, pool_id: int, lane: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if (pool := db.get_pool(pool_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if lane > experiment.num_lanes or lane < 1:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not experiment.is_editable():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     db.link_experiment_pool(
         experiment_id=experiment_id,
@@ -156,19 +125,19 @@ def add_pool(experiment_id: int, pool_id: int, lane: int):
 @login_required
 def remove_pool(experiment_id: int, pool_id: int, lane: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if (pool := db.get_pool(pool_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if lane > experiment.num_lanes or lane < 1:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not experiment.is_editable():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     db.unlink_experiment_pool(
         experiment_id=experiment_id,
@@ -185,55 +154,18 @@ def remove_pool(experiment_id: int, pool_id: int, lane: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/remove_seq_request", methods=["DELETE"])
-@login_required
-def remove_seq_request(experiment_id: int):
-    if (request_id := request.args.get("request_id", None)) is not None:
-        try:
-            seq_request_id = int(request_id)
-        except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
-    else:
-        return abort(HttpResponse.BAD_REQUEST.id)
-
-    if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
-    
-    if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
-    
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
-    
-    if not experiment.is_editable():
-        return abort(HttpResponse.FORBIDDEN.id)
-    
-    db.unlink_experiment_seq_request(
-        experiment_id=experiment_id,
-        seq_request_id=seq_request_id,
-    )
-
-    logger.debug(f"Removed request '{seq_request.name}' from experiment (id='{experiment_id}')")
-    flash(f"Removed request '{seq_request.name}' from experiment.", "success")
-
-    return make_response(
-        redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
-        push_url=False
-    )
-
-
 @experiments_htmx.route("<int:experiment_id>/submit_experiment", methods=["POST"])
 @login_required
 def submit_experiment(experiment_id: int):
     with DBSession(db) as session:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
         if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         if not experiment.is_submittable():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
         experiment.status_id = ExperimentStatus.SEQUENCING.id
         session.update_experiment(experiment)
@@ -251,10 +183,10 @@ def submit_experiment(experiment_id: int):
 def complete_experiment(experiment_id: int):
     with DBSession(db) as session:
         if not current_user.is_insider():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
         if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
     return forms.CompleteExperimentForm(formdata=request.form).process_request(
         experiment=experiment, user=current_user
@@ -265,10 +197,10 @@ def complete_experiment(experiment_id: int):
 @login_required
 def upload_file(experiment_id: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.ExperimentAttachmentForm(experiment_id=experiment_id, formdata=request.form | request.files).process_request(
         experiment=experiment, user=current_user
@@ -279,13 +211,13 @@ def upload_file(experiment_id: int):
 @login_required
 def delete_file(experiment_id: int, file_id: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if (file := db.get_file(file_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     db.remove_file_from_experiment(experiment_id=experiment.id, file_id=file_id)
     filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
@@ -301,10 +233,10 @@ def delete_file(experiment_id: int, file_id: int):
 @login_required
 def add_comment(experiment_id: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.ExperimentCommentForm(experiment_id=experiment_id, formdata=request.form).process_request(user=current_user, experiment=experiment)
 
@@ -313,13 +245,13 @@ def add_comment(experiment_id: int):
 @login_required
 def get_graph(experiment_id: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     LINK_WIDTH_UNIT = 1
     
     with DBSession(db) as session:
         if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
     
         graph = {
             "nodes": [],

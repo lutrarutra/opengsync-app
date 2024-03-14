@@ -6,7 +6,7 @@ from wtforms import TextAreaField, EmailField, SelectField
 from wtforms.validators import Optional as OptionalValidator, DataRequired, Length
 
 from limbless_db import models
-from limbless_db.core.categories import RequestResponse, SeqRequestStatus, HttpResponse
+from limbless_db.categories import RequestResponse, SeqRequestStatus, HTTPResponse
 from .. import logger, db
 from .HTMXFlaskForm import HTMXFlaskForm
 
@@ -70,7 +70,7 @@ class ProcessRequestForm(HTMXFlaskForm):
             seq_request = db.update_seq_request(seq_request)
             flash("Request pending revision!", "success")
         else:
-            return abort(HttpResponse.INTERNAL_SERVER_ERROR.id)
+            return abort(HTTPResponse.INTERNAL_SERVER_ERROR.id)
         
         if self.notification_comment.data:
             comment = db.create_comment(

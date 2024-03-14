@@ -5,7 +5,7 @@ from flask_mail import Message
 from wtforms import EmailField, PasswordField, StringField, SelectField
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 
-from limbless_db.core.categories import UserRole
+from limbless_db.categories import UserRole
 from limbless_db import models
 from .. import bcrypt, db, serializer, logger, EMAIL_SENDER, mail, DOMAIN_WHITE_LIST
 from .HTMXFlaskForm import HTMXFlaskForm

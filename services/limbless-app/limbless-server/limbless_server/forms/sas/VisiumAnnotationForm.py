@@ -11,7 +11,7 @@ from flask import Response
 from werkzeug.utils import secure_filename
 
 from limbless_db import models
-from limbless_db.core.categories import LibraryType
+from limbless_db.categories import LibraryType
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ..TableDataForm import TableDataForm
 from .PoolMappingForm import PoolMappingForm

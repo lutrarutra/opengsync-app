@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 
 from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler
-from limbless_db.core.categories import HttpResponse, UserRole
+from limbless_db.categories import HTTPResponse, UserRole
 from .... import db, logger, forms
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ def get(page: int):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Sample.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     samples: list[models.Sample] = []
     context = {}
@@ -43,9 +43,9 @@ def get(page: int):
             try:
                 project_id = int(project_id)
             except (ValueError, TypeError):
-                return abort(HttpResponse.BAD_REQUEST.id)
+                return abort(HTTPResponse.BAD_REQUEST.id)
             if (project := session.get_project(project_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.id)
+                return abort(HTTPResponse.NOT_FOUND.id)
             samples, n_pages = session.get_samples(
                 offset=offset, project_id=project_id, sort_by=sort_by, descending=descending
             )
@@ -56,10 +56,10 @@ def get(page: int):
             try:
                 seq_request_id = int(seq_request_id)
             except (ValueError, TypeError):
-                return abort(HttpResponse.BAD_REQUEST.id)
+                return abort(HTTPResponse.BAD_REQUEST.id)
             
             if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.id)
+                return abort(HTTPResponse.NOT_FOUND.id)
             samples, n_pages = session.get_samples(
                 offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending
             )
@@ -85,10 +85,10 @@ def get(page: int):
 @login_required
 def delete(sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if not sample.is_editable():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     db.delete_sample(sample_id)
 
@@ -112,11 +112,11 @@ def download():
             project_id = int(project_id)
             with DBSession(db) as session:
                 if (project := session.get_project(project_id)) is None:
-                    return abort(HttpResponse.NOT_FOUND.id)
+                    return abort(HTTPResponse.NOT_FOUND.id)
                 file_name = f"{project.name}_project_samples.tsv"
                 samples = project.samples
         except (ValueError, TypeError):
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
     else:
         samples, _ = db.get_samples(
             limit=None, user_id=current_user.id
@@ -136,10 +136,10 @@ def download():
 def edit(sample_id):
     with DBSession(db) as session:
         if (sample := session.get_sample(sample_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
 
         if not sample.is_editable():
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.SampleForm(request.form).process_request(
         user_id=current_user.id, sample=sample
@@ -153,7 +153,7 @@ def query():
     word = request.form.get(field_name)
 
     if word is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
     if current_user.role == UserRole.CLIENT:
         _user_id = current_user.id
@@ -179,10 +179,10 @@ def table_query():
     elif (word := request.form.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if word is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not current_user.is_insider():
         _user_id = current_user.id
@@ -234,10 +234,10 @@ def table_query():
                 project_id = int(project_id)
 
             except (ValueError, TypeError):
-                return abort(HttpResponse.BAD_REQUEST.id)
+                return abort(HTTPResponse.BAD_REQUEST.id)
             
             if (project := session.get_project(project_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.id)
+                return abort(HTTPResponse.NOT_FOUND.id)
                 
             samples = __get_samples(session, word, field_name, project_id=project_id, seq_request_id=None)
             context["project"] = project
@@ -247,10 +247,10 @@ def table_query():
             try:
                 seq_request_id = int(seq_request_id)
             except (ValueError, TypeError):
-                return abort(HttpResponse.BAD_REQUEST.id)
+                return abort(HTTPResponse.BAD_REQUEST.id)
             
             if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HttpResponse.NOT_FOUND.id)
+                return abort(HTTPResponse.NOT_FOUND.id)
             
             samples = __get_samples(session, word, field_name, project_id=None, seq_request_id=seq_request_id)
             context["seq_request"] = seq_request

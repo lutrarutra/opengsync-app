@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 from .... import db
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ def get(page: int):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Feature.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     features: list[models.Feature] = []
     context = {}
@@ -46,7 +46,7 @@ def get(page: int):
         try:
             feature_kit_id = int(feature_kit_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             feature_kit = session.get_feature_kit(feature_kit_id)
@@ -58,7 +58,7 @@ def get(page: int):
         try:
             library_id = int(library_id)
         except ValueError:
-            return abort(HttpResponse.BAD_REQUEST.id)
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
         with DBSession(db) as session:
             library = session.get_library(library_id)

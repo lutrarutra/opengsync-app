@@ -3,14 +3,9 @@
 
 <div id="experiment-form">
     {{ experiment_form.csrf_token() }}
-    {{
-        search_select_field(
-            experiment_form.sequencing_person,
-            query_url=url_for('users_htmx.query', only_insiders=True)
-        ) 
-    }}
-    
+        
     <div class="row">
+        {{ form_group(experiment_form.name, class="col-3") }}
         {{ 
             search_select_field(
                 experiment_form.sequencer,
@@ -19,10 +14,15 @@
             ) 
         }}
         {{ select_input(experiment_form.flowcell_type, class="col-3") }}
-        {{ select_input(experiment_form.assay_type, class="col-2") }}
-        {{ form_group(experiment_form.num_lanes, class="col-2") }}
-        {{ form_group(experiment_form.flowcell, class="col-2") }}
+        {{ form_group(experiment_form.flowcell, class="col-3") }}
     </div>
+
+    {{
+        search_select_field(
+            experiment_form.operator,
+            query_url=url_for('users_htmx.query', only_insiders=True)
+        ) 
+    }}
 
     <div class="row">
         {{ form_group(experiment_form.r1_cycles, class="col") }}

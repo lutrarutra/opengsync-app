@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 from ... import models, PAGE_LIMIT
-from ...core.categories import FeatureType
+from ...categories import FeatureType
 from .. import exceptions
 
 

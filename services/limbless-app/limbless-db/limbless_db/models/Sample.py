@@ -4,7 +4,6 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.SearchResult import SearchResult
 
-from ..core.categories import Organism
 
 if TYPE_CHECKING:
     from .Project import Project
@@ -16,8 +15,6 @@ class Sample(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
     num_libraries: int = Field(nullable=False, default=0)
-
-    organism_id: int = Field(nullable=False)
 
     project_id: int = Field(nullable=False, foreign_key="project.id")
     project: "Project" = Relationship(
@@ -38,23 +35,16 @@ class Sample(SQLModel, SearchResult, table=True):
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id", "num_libraries"]
 
-    @property
-    def organism(self) -> Organism:
-        return Organism.get(self.organism_id)
-
     def to_dict(self):
-        organism = self.organism
         data = {
             "id": self.id,
             "name": self.name,
-            "organism": organism.name,
-            "organism_tax_id": organism.id,
             "project": self.project.name,
         }
         return data
 
     def __str__(self):
-        return f"Sample(id: {self.id}, name:{self.name}, organism:{self.organism})"
+        return f"Sample(id: {self.id}, name:{self.name})"
 
     def search_value(self) -> int:
         return self.id

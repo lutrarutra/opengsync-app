@@ -120,13 +120,11 @@ class DBHandler():
         link_experiment_pool,
         link_feature_library,
         link_sample_library,
-        link_experiment_seq_request,
 
         is_sample_in_seq_request,
 
         unlink_experiment_pool,
         unlink_feature_library,
-        unlink_experiment_seq_request,
     )
 
     from .model_handlers._file_methods import (
@@ -141,6 +139,10 @@ class DBHandler():
         create_comment, delete_comment, get_comments, get_comment,
         add_experiment_comment, remove_experiment_comment,
         add_seq_request_comment, remove_seq_request_comment
+    )
+
+    from .model_handlers._seq_run_methods import (
+        create_seq_run, get_seq_run, get_seq_runs
     )
 
     from .pd_handler import (

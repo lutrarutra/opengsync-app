@@ -69,11 +69,6 @@
                     type="button" role="tab" aria-controls="pools-tab" aria-selected="true">
                     Pools</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="requests-tab-btn" data-bs-toggle="tab" data-bs-target="#requests-tab"
-                    type="button" role="tab" aria-controls="requests-tab" aria-selected="true">
-                    Requests</button>
-            </li>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#libraries-tab"
@@ -121,21 +116,6 @@
                 </div>
                 {% include "components/tables/experiment-pool.html" %}
             </div>
-            <div class="tab-pane fade show" id="requests-tab" role="tabpanel" tabindex="1">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h2>Requests <img {{ tooltip('Right click request name to remove.') }}
-                                src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                    </div>
-                    <div>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#select-experiment-seq_request-popup">
-                            Add Request
-                        </button>
-                    </div>
-                </div>
-                {% include "components/tables/experiment-seq_request.html" %}
-            </div>
             <div class="tab-pane fade show" id="libraries-tab" role="tabpanel" tabindex="2">
                 <div class="d-flex justify-content-between">
                     <div>
@@ -156,14 +136,14 @@
                 <div class="row">
                     {{
                         metadata_group_link(
-                            "Sequencing Person Name", experiment.sequencing_person.name,
-                            url_for("users_page.user_page", user_id=experiment.sequencing_person.id),
+                            "Sequencing Person Name", experiment.operator.name,
+                            url_for("users_page.user_page", user_id=experiment.operator.id),
                             class="col"
                         )
                     }}
                     {{
                         metadata_group_email_link(
-                            "Sequencing Person Email", experiment.sequencing_person.email, class="col",
+                            "Sequencing Person Email", experiment.operator.email, class="col",
                             subject="BSF Sequencing Experiment: " + experiment.id | string
                         )
                     }}
@@ -237,12 +217,6 @@
                         hx-post="{{ url_for('experiments_htmx.edit', experiment_id=experiment.id) }}">Submit</button>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="select-experiment-seq_request-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            {% include "components/popups/select-experiment-seq_request.html" %}
         </div>
     </div>
 

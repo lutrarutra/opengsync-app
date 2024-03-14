@@ -12,7 +12,7 @@ from wtforms.validators import Optional as OptionalValidator
 from flask_wtf.file import FileField, FileAllowed
 from werkzeug.utils import secure_filename
 
-from limbless_db.core.categories import LibraryType, Organism
+from limbless_db.categories import LibraryType, GenomeRef
 
 from ... import logger, tools
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -34,22 +34,23 @@ class SpreadSheetColumn:
 columns = {
     "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 120),
     "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 120),
-    "organism": SpreadSheetColumn("C", "organism", "Organism", "dropdown", 100, Organism.names()),
+    "genome": SpreadSheetColumn("C", "genome", "Genome", "dropdown", 100, GenomeRef.names()),
     "project": SpreadSheetColumn("D", "project", "Project", "text", 100),
-    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 100, LibraryType.descriptions()),
+    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 100, LibraryType.names()),
     "pool": SpreadSheetColumn("F", "pool", "Pool", "text", 100),
     "index_kit": SpreadSheetColumn("G", "index_kit", "Index Kit", "text", 100),
     "adapter": SpreadSheetColumn("H", "adapter", "Adapter", "text", 100),
     "index_1": SpreadSheetColumn("I", "index_1", "Index 1 (i7)", "text", 100),
     "index_2": SpreadSheetColumn("J", "index_2", "Index 2 (i5)", "text", 100),
-    "index_3": SpreadSheetColumn("N", "index_3", "Index 3", "text", 80),
-    "index_4": SpreadSheetColumn("O", "index_4", "Index 4", "text", 80),
+    "index_3": SpreadSheetColumn("K", "index_3", "Index 3", "text", 80),
+    "index_4": SpreadSheetColumn("L", "index_4", "Index 4", "text", 80),
+    "seq_depth": SpreadSheetColumn("F", "seq_depth", "Sequencing Depth", "numeric", 150),
 }
 
 errors = {
     "missing_value": "background-color: #FAD7A0;",
-    "invalid_value": "background-color: #D7BDE2;",
-    "duplicate_value": "background-color: #F5B7B1;",
+    "invalid_value": "background-color: #F5B7B1;",
+    "duplicate_value": "background-color: #D7BDE2;",
     "ok": "background-color: #82E0AA;"
 }
 
@@ -69,7 +70,7 @@ class SASInputForm(HTMXFlaskForm):
     _feature_mapping_premade = {
         "Sample Name": columns["sample_name"],
         "Library Name": columns["library_name"],
-        "Organism": columns["organism"],
+        "Genome": columns["genome"],
         "Project": columns["project"],
         "Library Type": columns["library_type"],
         "Pool": columns["pool"],
@@ -84,9 +85,10 @@ class SASInputForm(HTMXFlaskForm):
     _feature_mapping_raw = {
         "Sample Name": columns["sample_name"],
         "Library Name": columns["library_name"],
-        "Organism": columns["organism"],
+        "genome": columns["genome"],
         "Project": columns["project"],
         "Library Type": columns["library_type"],
+        "Sequencing Depth": columns["seq_depth"],
     }
 
     def __init__(self, type: Literal["raw", "pooled"], formdata: Optional[dict] = None):
@@ -168,6 +170,42 @@ class SASInputForm(HTMXFlaskForm):
                 else:
                     self.file.errors = (f"Library name '{row['library_name']}' is duplicated.",)
 
+            if pd.isna(row["library_type"]):
+                if self.input_type == "spreadsheet":
+                    self.spreadsheet_style[f"{columns['library_type'].column}{i+1}"] = errors["missing_value"]
+                else:
+                    self.file.errors = (f"Row {i+1} is missing a library type.",)
+
+            if pd.isna(row["genome"]):
+                if self.input_type == "spreadsheet":
+                    self.spreadsheet_style[f"{columns['genome'].column}{i+1}"] = errors["missing_value"]
+                else:
+                    self.file.errors = (f"Row {i+1} is missing an genome.",)
+
+            if pd.isna(row["project"]):
+                if self.input_type == "spreadsheet":
+                    self.spreadsheet_style[f"{columns['project'].column}{i+1}"] = errors["missing_value"]
+                else:
+                    self.file.errors = (f"Row {i+1} is missing a project.",)
+            
+            if self.type == "raw":
+                if pd.isna(row["seq_depth"]):
+                    if self.input_type == "spreadsheet":
+                        self.spreadsheet_style[f"{columns['seq_depth'].column}{i+1}"] = errors["missing_value"]
+                    else:
+                        self.file.errors = (f"Row {i+1} is missing a sequencing depth.",)
+                else:
+                    try:
+                        if isinstance(row["seq_depth"], str):
+                            row["seq_depth"] = row["seq_depth"].strip().replace(" ", "")
+
+                        row["seq_depth"] = float(row["seq_depth"])
+                    except ValueError:
+                        if self.input_type == "spreadsheet":
+                            self.spreadsheet_style[f"{columns['seq_depth'].column}{i+1}"] = errors["invalid_value"]
+                        else:
+                            self.file.errors = (f"Row {i+1} has an invalid sequencing depth.",)
+
             if self.type == "pooled":
                 adapter_defined = pd.notna(row["adapter"])
                 index_kit_defined = pd.notna(row["index_kit"])
@@ -192,7 +230,7 @@ class SASInputForm(HTMXFlaskForm):
                     else:
                         self.file.errors = (f"Row {i+1} is missing an adapter and index kit or manually specified indices.",)
 
-            if len(self.spreadsheet_style) != 0:
+            if len(self.spreadsheet_style) != 0 or (self.file.errors is not None and len(self.file.errors) != 0):
                 return False
 
         return True
@@ -241,7 +279,6 @@ class SASInputForm(HTMXFlaskForm):
                 if context["spreadsheet_data"] == []:
                     context["spreadsheet_data"] = [[None]]
             
-            logger.debug(self.errors)
             return self.make_response(**context)
         
         user_id: int = context["user_id"]

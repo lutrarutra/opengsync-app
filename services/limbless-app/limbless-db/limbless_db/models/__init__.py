@@ -17,9 +17,10 @@ from .File import File  # noqa: F401
 from .SeqQuality import SeqQuality  # noqa: F401
 from .VisiumAnnotation import VisiumAnnotation  # noqa: F401
 from .Comment import Comment  # noqa: F401
+from .SeqRun import SeqRun  # noqa: F401
 
 from .Links import (  # noqa: F401
-    ExperimentPoolLink, SampleLibraryLink, SeqRequestExperimentLink,
+    ExperimentPoolLink, SampleLibraryLink,
     ExperimentFileLink, SeqRequestFileLink,
     ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
     SeqRequestShareEmailLink

@@ -78,23 +78,11 @@
             hx-post="{{ url_for('seq_request_form_htmx.check_barcodes', seq_request_id=seq_request.id) }}">
             Submit
         </button>
-
-        <button type="button" class="btn btn-danger" hx-target="#index-check-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type=type) }}"
-            _="on htmx:confirm(issueRequest)
-            halt the event
-            call Swal.fire({
-                title: 'Cancel Request Form',
-                showDenyButton: true,
-                text: 'Do you want to proceed?',
-                confirmButtonText: 'Yes',
-                denyButtonText: 'No'
-            })
-            if result.isConfirmed issueRequest()">
-            Cancel
-        </button>
     </div>
 </div>
 <script>
-    init_tooltips();
+    $(document).ready(function() {
+        window.onbeforeunload = null;
+        init_tooltips();
+    });
 </script>

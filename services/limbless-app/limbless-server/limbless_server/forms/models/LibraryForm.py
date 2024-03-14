@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Length
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.core.categories import LibraryType
+from limbless_db.categories import LibraryType
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -16,7 +16,6 @@ class LibraryForm(HTMXFlaskForm):
     _template_path = "forms/library.html"
     _form_label = "library_form"
 
-    # noqa: C901
     name = StringField("Name", validators=[DataRequired(), Length(min=3, max=models.Library.name.type.length)])   # type: ignore
     adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=models.Library.adapter.type.length)])   # type: ignore
     library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], coerce=int)  # type: ignore
@@ -53,7 +52,6 @@ class LibraryForm(HTMXFlaskForm):
     
     def process_request(self, **context) -> Response:
         if not self.validate():
-            logger.debug(self.errors)
             return self.make_response(**context)
         
         library: models.Library = context["library"]
@@ -70,7 +68,6 @@ class LibraryForm(HTMXFlaskForm):
 
         library = db.update_library(library)
         
-        logger.debug(f"Updated library '{library.name}'.")
         flash(f"Updated library '{library.name}'.", "success")
 
         return make_response(

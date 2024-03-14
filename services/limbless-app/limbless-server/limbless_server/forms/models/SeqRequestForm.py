@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.core.categories import SequencingType, FlowCellType
+from limbless_db.categories import ReadType, DataDeliveryMode
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -28,36 +28,13 @@ class SeqRequestForm(HTMXFlaskForm):
         or the methods section of a previous paper on the same topic."""
     )
 
-    technology = StringField(
-        "Technology", validators=[DataRequired(), Length(max=models.SeqRequest.technology.type.length)],  # type: ignore
-        description="List of kits used, e.g. ('10x 5-prime V2', 'Singleron sc-RNAseq', 'Illumina complete long read', etc)."
-    )
+    data_delivery_mode_id = SelectField("Data Delivery Mode", coerce=int, validators=[OptionalValidator()], choices=DataDeliveryMode.as_selectable())
 
     sequencing_type = SelectField(
-        choices=SequencingType.as_selectable(), validators=[DataRequired()],
-        default=SequencingType.PAIRED_END.id,
+        choices=ReadType.as_selectable(), validators=[DataRequired()],
+        default=ReadType.PAIRED_END.id,
         description="Sequencing type, i.e. Single-end or Paired-end.",
         coerce=int
-    )
-
-    num_cycles_read_1 = IntegerField(
-        "Number of Cycles Read 1", validators=[OptionalValidator(), NumberRange(min=1)],
-        description="Number of cycles for read 1.", default=None
-    )
-
-    num_cycles_index_1 = IntegerField(
-        "Number of Cycles Index 1", validators=[OptionalValidator(), NumberRange(min=1)],
-        description="Number of cycles for index 1.", default=None
-    )
-
-    num_cycles_index_2 = IntegerField(
-        "Number of Cycles Index 2", validators=[OptionalValidator(), NumberRange(min=1)],
-        description="Number of cycles for index 2.", default=None
-    )
-
-    num_cycles_read_2 = IntegerField(
-        "Number of Cycles Read 2", validators=[OptionalValidator(), NumberRange(min=1)],
-        description="Number of cycles for read 2.", default=None
     )
 
     read_length = IntegerField(
@@ -73,17 +50,6 @@ class SeqRequestForm(HTMXFlaskForm):
     special_requirements = TextAreaField(
         "Special Requirements", validators=[OptionalValidator(), Length(max=models.SeqRequest.special_requirements.type.length)],  # type: ignore
         description="Special requirements such as a high percentage PhiX spike-in to increase library complexity."
-    )
-
-    sequencer = StringField(
-        "Sequencer", validators=[OptionalValidator(), Length(max=models.SeqRequest.sequencer.type.length)],  # type: ignore
-        description="Sequencer to use for sequencing."
-    )
-
-    flowcell_type = SelectField(
-        "Flowcell Type", validators=[OptionalValidator()],
-        choices=[(-1, "-")] + FlowCellType.as_selectable(), default=None,
-        description="Type of flowcell to use for sequencing.", coerce=int
     )
 
     current_user_is_contact = BooleanField(
@@ -175,13 +141,6 @@ class SeqRequestForm(HTMXFlaskForm):
 
         user_requests, _ = db.get_seq_requests(user_id=user_id, limit=None)
 
-        if self.flowcell_type.data != -1:
-            try:
-                FlowCellType.get(int(self.flowcell_type.data))
-            except ValueError:
-                self.flowcell_type.errors = ("Invalid flowcell type",)
-                return False
-
         if seq_request is not None:
             for request in user_requests:
                 if seq_request.id == request.id:
@@ -196,17 +155,10 @@ class SeqRequestForm(HTMXFlaskForm):
         self.billing_is_organization.data = False
         self.name.data = seq_request.name
         self.description.data = seq_request.description
-        self.technology.data = seq_request.technology
-        self.num_cycles_read_1.data = seq_request.num_cycles_read_1
-        self.num_cycles_index_1.data = seq_request.num_cycles_index_1
-        self.num_cycles_index_2.data = seq_request.num_cycles_index_2
-        self.num_cycles_read_2.data = seq_request.num_cycles_read_2
         self.read_length.data = seq_request.read_length
         self.num_lanes.data = seq_request.num_lanes
         self.special_requirements.data = seq_request.special_requirements
-        self.sequencer.data = seq_request.sequencer
         self.sequencing_type.data = seq_request.sequencing_type.id
-        self.flowcell_type.data = seq_request.flowcell_type.id if seq_request.flowcell_type is not None else -1
         self.contact_person_name.data = seq_request.contact_person.name
         self.contact_person_email.data = seq_request.contact_person.email
         self.contact_person_phone.data = seq_request.contact_person.phone
@@ -225,7 +177,7 @@ class SeqRequestForm(HTMXFlaskForm):
     def __edit_existing_request(self, seq_request: models.SeqRequest) -> Response:
         if (seq_type_raw := self.sequencing_type.data) is not None:
             try:
-                seq_type = SequencingType.get(int(seq_type_raw))
+                seq_type = ReadType.get(int(seq_type_raw))
             except ValueError:
                 seq_type = None
         else:
@@ -261,46 +213,20 @@ class SeqRequestForm(HTMXFlaskForm):
                     phone=self.bioinformatician_phone.data,
                 )
 
-        if self.flowcell_type.data != -1:
-            flowcell_type = FlowCellType.get(self.flowcell_type.data)
-        else:
-            flowcell_type = None
-
         if self.name.data is not None:
             seq_request.name = self.name.data
 
         if self.description.data is not None:
             seq_request.description = self.description.data
 
-        if self.technology.data is not None:
-            seq_request.technology = self.technology.data
-
         if seq_type is not None:
             seq_request.sequencing_type_id = seq_type.id
-
-        if self.num_cycles_read_1.data is not None:
-            seq_request.num_cycles_read_1 = self.num_cycles_read_1.data
-
-        if self.num_cycles_index_1.data is not None:
-            seq_request.num_cycles_index_1 = self.num_cycles_index_1.data
-
-        if self.num_cycles_index_2.data is not None:
-            seq_request.num_cycles_index_2 = self.num_cycles_index_2.data
-
-        if self.num_cycles_read_2.data is not None:
-            seq_request.num_cycles_read_2 = self.num_cycles_read_2.data
 
         if self.read_length.data is not None:
             seq_request.read_length = self.read_length.data
 
         if self.special_requirements.data is not None:
             seq_request.special_requirements = self.special_requirements.data
-
-        if self.sequencer.data is not None:
-            seq_request.sequencer = self.sequencer.data
-
-        if flowcell_type is not None:
-            seq_request.flowcell_type_id = flowcell_type.id
 
         if self.num_lanes.data is not None:
             seq_request.num_lanes = self.num_lanes.data
@@ -353,16 +279,11 @@ class SeqRequestForm(HTMXFlaskForm):
 
         if (seq_type_id := self.sequencing_type.data) is not None:
             try:
-                seq_type = SequencingType.get(int(seq_type_id))
+                seq_type = ReadType.get(int(seq_type_id))
             except ValueError:
-                seq_type = SequencingType.OTHER
+                seq_type = ReadType.OTHER
         else:
-            seq_type = SequencingType.OTHER
-
-        if self.flowcell_type.data != -1:
-            flowcell_type = FlowCellType.get(int(self.flowcell_type.data))
-        else:
-            flowcell_type = None
+            seq_type = ReadType.OTHER
 
         seq_request = db.create_seq_request(
             name=self.name.data,  # type: ignore
@@ -373,14 +294,8 @@ class SeqRequestForm(HTMXFlaskForm):
             billing_contact_id=billing_contact.id,
             bioinformatician_contact_id=bioinformatician_contact_id,
             seq_type=seq_type,
-            num_cycles_read_1=self.num_cycles_read_1.data,
-            num_cycles_index_1=self.num_cycles_index_1.data,
-            num_cycles_index_2=self.num_cycles_index_2.data,
-            num_cycles_read_2=self.num_cycles_read_2.data,
             read_length=self.read_length.data,
             special_requirements=self.special_requirements.data,
-            sequencer=self.sequencer.data,
-            flowcell_type=flowcell_type,
             num_lanes=self.num_lanes.data,
             organization_name=self.organization_name.data,  # type: ignore
             organization_address=self.organization_address.data,  # type: ignore

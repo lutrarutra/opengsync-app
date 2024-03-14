@@ -2,7 +2,7 @@ import os
 
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..core.categories import FileType
+from ..categories import FileType, FileTypeEnum
 from .User import User
 
 
@@ -20,9 +20,9 @@ class File(SQLModel, table=True):
     )
 
     @property
-    def type(self) -> FileType:
+    def type(self) -> FileTypeEnum:
         return FileType.get(self.type_id)
     
     @property
     def path(self) -> str:
-        return os.path.join(self.type.description, f"{self.uuid}{self.extension}")
+        return os.path.join(self.type.dir, f"{self.uuid}{self.extension}")

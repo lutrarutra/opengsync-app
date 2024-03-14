@@ -4,13 +4,11 @@ from typing import Optional
 from sqlmodel import func
 
 from ... import models, PAGE_LIMIT
-from ..categories import Organism
 from .. import exceptions
 
 
 def create_sample(
     self, name: str,
-    organism_tax_id: int,
     owner_id: int,
     project_id: int,
     commit: bool = True
@@ -26,14 +24,8 @@ def create_sample(
     if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{owner_id}', not found.")
 
-    try:
-        organism = Organism.get(organism_tax_id)
-    except ValueError:
-        raise exceptions.ElementDoesNotExist(f"Organism with id '{organism_tax_id}', not found.")
-
     sample = models.Sample(
         name=name,
-        organism_id=organism.id,
         project_id=project_id,
         owner_id=owner_id
     )
@@ -51,7 +43,7 @@ def create_sample(
     return sample
 
 
-def get_sample(self, sample_id: int) -> models.Sample:
+def get_sample(self, sample_id: int) -> Optional[models.Sample]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -122,7 +114,6 @@ def get_samples(
 def update_sample(
     self, sample_id: int,
     name: Optional[str] = None,
-    organism_tax_id: Optional[int] = None,
     commit: bool = True
 ) -> models.Sample:
     persist_session = self._session is not None
@@ -132,13 +123,6 @@ def update_sample(
     sample = self._session.get(models.Sample, sample_id)
     if not sample:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-
-    if organism_tax_id is not None:
-        try:
-            organism = Organism.get(organism_tax_id)
-        except ValueError:
-            raise exceptions.ElementDoesNotExist(f"Organism with id '{organism_tax_id}', not found.")
-        sample.organism_id = organism.id
 
     if name is not None:
         sample.name = name

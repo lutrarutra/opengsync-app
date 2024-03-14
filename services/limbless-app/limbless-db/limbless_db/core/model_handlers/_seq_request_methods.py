@@ -6,7 +6,7 @@ from sqlmodel import func
 from sqlalchemy.sql.operators import is_, or_, and_
 
 from ... import models, PAGE_LIMIT
-from ...core.categories import SeqRequestStatus, SequencingType, FlowCellType, FileType, LibraryStatus
+from ...categories import SeqRequestStatus, ReadType, FlowCellType, FileType, LibraryStatus
 from .. import exceptions
 
 
@@ -17,7 +17,7 @@ def create_seq_request(
     technology: str,
     contact_person_id: int,
     billing_contact_id: int,
-    seq_type: SequencingType,
+    seq_type: ReadType,
     organization_name: str,
     organization_address: str,
     num_cycles_read_1: Optional[int] = None,
@@ -123,14 +123,13 @@ def get_seq_request(
 
 
 def get_seq_requests(
-    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self,
     with_statuses: Optional[list[SeqRequestStatus]] = None,
     show_drafts: bool = True,
     sample_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
-    exclude_experiment_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    user_id: Optional[int] = None
+    user_id: Optional[int] = None,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.SeqRequest], int]:
 
     persist_session = self._session is not None
@@ -164,27 +163,6 @@ def get_seq_requests(
             and_(
                 models.SampleLibraryLink.library_id == models.Library.id,
                 models.SampleLibraryLink.sample_id == sample_id
-            )
-        )
-
-    if experiment_id is not None:
-        query = query.join(
-            models.SeqRequestExperimentLink,
-            models.SeqRequestExperimentLink.seq_request_id == models.SeqRequest.id,
-            isouter=True
-        ).where(
-            models.SeqRequestExperimentLink.experiment_id == experiment_id
-        )
-
-    if exclude_experiment_id is not None:
-        query = query.join(
-            models.SeqRequestExperimentLink,
-            models.SeqRequestExperimentLink.seq_request_id == models.SeqRequest.id,
-            isouter=True
-        ).where(
-            or_(
-                models.SeqRequestExperimentLink.experiment_id != exclude_experiment_id,
-                is_(models.SeqRequestExperimentLink.experiment_id, None)
             )
         )
 

@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import DBSession, PAGE_LIMIT, exceptions, models
-from limbless_db.core.categories import HttpResponse, UserRole
+from limbless_db.categories import HTTPResponse, UserRole
 from .... import db, forms
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/sequencers/")
@@ -20,7 +20,7 @@ else:
 @login_required
 def get(page: int):
     if current_user.role != UserRole.ADMIN:
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     with DBSession(db) as session:
         sequencers, n_pages = session.get_sequencers(offset=PAGE_LIMIT * page)
@@ -38,7 +38,7 @@ def get(page: int):
 @login_required
 def create():
     if current_user.role != UserRole.ADMIN:
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.SequencerForm(request.form).process_request()
 
@@ -47,10 +47,10 @@ def create():
 @login_required
 def update(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (sequencer := db.get_sequencer(sequencer_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.SequencerForm(request.form).process_request(
         sequencer=sequencer
@@ -61,11 +61,11 @@ def update(sequencer_id: int):
 @login_required
 def delete(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     with DBSession(db) as session:
         if session.get_sequencer(sequencer_id) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
         
         try:
             session.delete_sequencer(sequencer_id)
@@ -88,7 +88,7 @@ def query():
     query = request.form.get(field_name)
 
     if query is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     results = db.query_sequencers(query)
     

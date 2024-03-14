@@ -5,7 +5,7 @@ from sqlmodel import func
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...core.categories import FeatureType
+from ...categories import FeatureType
 
 
 def create_feature_kit(

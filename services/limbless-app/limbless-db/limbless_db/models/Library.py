@@ -5,7 +5,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from .Links import LibraryFeatureLink
 from .SeqRequest import SeqRequest
-from limbless_db.core.categories import LibraryType, LibraryStatus
+from limbless_db.categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -27,13 +27,15 @@ class Index:
 class Library(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64)
-    
+
     type_id: int = Field(nullable=False)
     status_id: int = Field(nullable=False, default=0)
+    genome_ref_id: Optional[int] = Field(nullable=True, default=None)
 
     volume: Optional[int] = Field(nullable=True, default=None)
     dna_concentration: Optional[float] = Field(nullable=True, default=None)
     total_size: Optional[int] = Field(nullable=True, default=None)
+    seq_depth_requested: Optional[float] = Field(nullable=True, default=None)
 
     index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
     index_kit: Optional["IndexKit"] = Relationship(
@@ -97,7 +99,7 @@ class Library(SQLModel, table=True):
         res = {
             "library_id": self.id,
             "library_name": self.name,
-            "library_type": self.type.value,
+            "library_type": self.type.abbreviation,
             "pool": self.pool.name if self.pool is not None else None,
             "adapter": self.adapter,
             "index_1": self.index_1_sequence,
@@ -109,12 +111,18 @@ class Library(SQLModel, table=True):
         return res
     
     @property
-    def status(self) -> LibraryStatus:
+    def status(self) -> LibraryStatusEnum:
         return LibraryStatus.get(self.status_id)
 
     @property
-    def type(self) -> LibraryType:
+    def type(self) -> LibraryTypeEnum:
         return LibraryType.get(self.type_id)
+    
+    @property
+    def genome_ref(self) -> Optional[GenomeRefEnum]:
+        if self.genome_ref_id is None:
+            return None
+        return GenomeRef.get(self.genome_ref_id)
     
     def is_multiplexed(self) -> bool:
         return self.num_samples > 1
@@ -122,6 +130,7 @@ class Library(SQLModel, table=True):
     def is_editable(self) -> bool:
         return self.status == LibraryStatus.DRAFT
     
+    # TODO: Remove
     @property
     def indices(self) -> list[Optional[Index]]:
         return [

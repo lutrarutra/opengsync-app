@@ -7,7 +7,7 @@ from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator, Length
 
 from limbless_db import models, DBSession
-from limbless_db.core.categories import LibraryType
+from limbless_db.categories import LibraryType
 
 from ... import db, logger
 from ..TableDataForm import TableDataForm
@@ -19,6 +19,7 @@ from .PoolMappingForm import PoolMappingForm
 from .BarcodeCheckForm import BarcodeCheckForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .OrganismMappingForm import OrganismMappingForm
+from .LibraryMappingForm import LibraryMappingForm
 
 
 class ProjectSubForm(FlaskForm):
@@ -168,9 +169,14 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
         library_table: pd.DataFrame = data["library_table"]  # type: ignore
 
         if library_table["tax_id"].isna().any():
-            organism_mapping_form = OrganismMappingForm()
+            organism_mapping_form = OrganismMappingForm(uuid=self.uuid)
             context = organism_mapping_form.prepare(data) | context
             return organism_mapping_form.make_response(**context)
+        
+        if library_table["library_type_id"].isna().any():
+            library_mapping_form = LibraryMappingForm(uuid=self.uuid)
+            context = library_mapping_form.prepare(data) | context
+            return library_mapping_form.make_response(**context)
 
         if "index_kit" in library_table and not library_table["index_kit"].isna().all():
             index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)

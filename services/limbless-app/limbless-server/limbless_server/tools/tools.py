@@ -113,7 +113,6 @@ def mapstr(
 
     tt = dict(tuples)
 
-    logger.debug(tt)
     matches = difflib.get_close_matches(word, tt.keys(), n=1, cutoff=cutoff)
     logger.debug(matches)
     if (match := next(iter(matches), None)) is None:

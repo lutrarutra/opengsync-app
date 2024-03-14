@@ -5,7 +5,7 @@ from sqlmodel import func, text
 from sqlalchemy.sql.operators import or_, and_
 
 from ... import models, PAGE_LIMIT
-from ...core.categories import LibraryType, LibraryStatus
+from ...categories import LibraryType, LibraryStatus, GenomeRef
 from .. import exceptions
 
 
@@ -15,6 +15,7 @@ def create_library(
     owner_id: int,
     name: str,
     seq_request_id: int,
+    genome_ref: Optional[GenomeRef] = None,
     volume: Optional[int] = None,
     index_kit_id: Optional[int] = None,
     dna_concentration: Optional[float] = None,
@@ -26,6 +27,7 @@ def create_library(
     index_4_sequence: Optional[str] = None,
     adapter: Optional[str] = None,
     visium_annotation_id: Optional[int] = None,
+    seq_depth_requested: Optional[float] = None,
     commit: bool = True
 ) -> models.Library:
     persist_session = self._session is not None
@@ -57,6 +59,7 @@ def create_library(
     library = models.Library(
         name=name,
         seq_request_id=seq_request_id,
+        genome_ref_id=genome_ref.id if genome_ref is not None else None,
         type_id=library_type.id,
         owner_id=owner_id,
         volume=volume,
@@ -70,7 +73,8 @@ def create_library(
         index_4_sequence=index_4_sequence,
         adapter=adapter,
         status_id=library_status_id,
-        visium_annotation_id=visium_annotation_id
+        visium_annotation_id=visium_annotation_id,
+        seq_depth_requested=seq_depth_requested
     )
     self._session.add(library)
 
@@ -129,11 +133,13 @@ def get_libraries(
 
     if experiment_id is not None:
         query = query.join(
-            models.SeqRequestExperimentLink,
-            models.SeqRequestExperimentLink.seq_request_id == models.Library.seq_request_id,
-            isouter=True
+            models.Pool,
+            models.Pool.id == models.Library.pool_id,
+        ).join(
+            models.ExperimentPoolLink,
+            models.ExperimentPoolLink.pool_id == models.Pool.id
         ).where(
-            models.SeqRequestExperimentLink.experiment_id == experiment_id
+            models.ExperimentPoolLink.experiment_id == experiment_id
         ).distinct()
 
     if pooled is not None:

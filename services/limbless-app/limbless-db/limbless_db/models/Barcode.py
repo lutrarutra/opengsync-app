@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING, ClassVar, List
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.SearchResult import SearchResult
-from ..core.categories import BarcodeType
+from ..categories import BarcodeType, BarcodeTypeEnum
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
@@ -28,7 +28,7 @@ class Barcode(SQLModel, SearchResult, table=True):
         return f"Barcode('{self.sequence}', {self.type})"
     
     @property
-    def type(self) -> BarcodeType:
+    def type(self) -> BarcodeTypeEnum:
         return BarcodeType.get(self.type_id)
     
     @staticmethod

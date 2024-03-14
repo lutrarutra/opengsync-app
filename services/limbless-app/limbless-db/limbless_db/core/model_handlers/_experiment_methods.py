@@ -4,12 +4,12 @@ from typing import Optional
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ..categories import FlowCellType, ExperimentStatus, LibraryStatus, SeqRequestStatus, AssayType
+from ...categories import FlowCellTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus
 
 
 def create_experiment(
-    self, flowcell_id: Optional[str], flowcell_type: FlowCellType, sequencer_id: int,
-    num_lanes: int, r1_cycles: int, i1_cycles: int, sequencing_person_id: int, assay_type: AssayType,
+    self, name: str, flowcell_id: Optional[str], flowcell_type: FlowCellTypeEnum, sequencer_id: int,
+    num_lanes: int, r1_cycles: int, i1_cycles: int, operator_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None,
     commit: bool = True
 ) -> models.Experiment:
@@ -21,6 +21,7 @@ def create_experiment(
         raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
 
     experiment = models.Experiment(
+        name=name,
         flowcell_id=flowcell_id,
         flowcell_type_id=flowcell_type.id,
         timestamp=datetime.now(),
@@ -30,8 +31,7 @@ def create_experiment(
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
         num_lanes=num_lanes,
-        sequencing_person_id=sequencing_person_id,
-        assay_type_id=assay_type.id
+        operator_id=operator_id,
     )
 
     self._session.add(experiment)
@@ -45,15 +45,25 @@ def create_experiment(
     return experiment
 
 
-def get_experiment(self, experiment_id: int) -> models.Experiment:
+def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -> Optional[models.Experiment]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.get(models.Experiment, experiment_id)
+    if id is not None and name is None:
+        experiment = self._session.get(models.Experiment, id)
+    
+    elif name is not None and id is None:
+        experiment = self._session.query(models.Experiment).where(
+            models.Experiment.name == name
+        ).first()
+    else:
+        raise ValueError("Either 'id' or 'name' must be provided, not both.")
+
     if not persist_session:
         self.close_session()
-    return res
+
+    return experiment
 
 
 def get_experiments(
@@ -114,11 +124,6 @@ def delete_experiment(
 
     for link in self._session.query(models.ExperimentPoolLink).where(
         models.ExperimentPoolLink.experiment_id == experiment_id
-    ).all():
-        self._session.delete(link)
-
-    for link in self._session.query(models.SeqRequestExperimentLink).where(
-        models.SeqRequestExperimentLink.experiment_id == experiment_id
     ).all():
         self._session.delete(link)
 

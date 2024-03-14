@@ -7,7 +7,7 @@ from flask import url_for, flash
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.core.categories import LibraryType, FeatureType
+from limbless_db.categories import LibraryType, FeatureType
 from ... import db, logger
 from ..TableDataForm import TableDataForm
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -94,10 +94,10 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
         data = self.get_data()
 
-        library_table = data["library_table"]
-        cmo_table = data["cmo_table"] if "cmo_table" in data else None
-        visium_ref = data["visium_ref"] if "visium_ref" in data else None
-        feature_table = data["feature_table"] if "feature_table" in data else None
+        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        cmo_table: Optional[pd.DataFrame] = data["cmo_table"] if "cmo_table" in data else None  # type: ignore
+        visium_ref: Optional[pd.DataFrame] = data["visium_ref"] if "visium_ref" in data else None  # type: ignore
+        feature_table: Optional[pd.DataFrame] = data["feature_table"] if "feature_table" in data else None  # type: ignore
 
         n_added = 0
         n_new_samples = 0
@@ -132,6 +132,8 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                     pool = session.create_pool(
                         name=pool_label,
                         owner_id=user_id,
+                        seq_request_id=seq_request.id,
+                        num_m_reads_requested=_df["num_m_reads"].iloc[0],
                         contact_name=_df["contact_person_name"].iloc[0],
                         contact_email=_df["contact_person_email"].iloc[0],
                         contact_phone=_df["contact_person_phone"].iloc[0],
@@ -154,7 +156,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                         feature = session.get_feature(row["feature_id"])
                         sample = session.create_sample(
                             name=row["demux_name"],
-                            organism_tax_id=tax_id,
                             owner_id=user_id,
                             project_id=project_id,
                         )
@@ -174,7 +175,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                     if sample_id is None:
                         sample = session.create_sample(
                             name=sample_name,
-                            organism_tax_id=tax_id,
                             project_id=project_id,
                             owner_id=user_id
                         )

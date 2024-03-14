@@ -5,7 +5,7 @@ from flask_login import login_required
 
 from limbless_db import DBSession
 from limbless_db.models import User
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 from ... import db, forms
 
 if TYPE_CHECKING:
@@ -37,10 +37,10 @@ def samples_page():
 def sample_page(sample_id):
     with DBSession(db) as session:
         if (sample := session.get_sample(sample_id)) is None:
-            return abort(HttpResponse.NOT_FOUND.id)
+            return abort(HTTPResponse.NOT_FOUND.id)
 
         if not current_user.is_insider() and sample.owner_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     sample_form = forms.SampleForm(sample=sample)
 

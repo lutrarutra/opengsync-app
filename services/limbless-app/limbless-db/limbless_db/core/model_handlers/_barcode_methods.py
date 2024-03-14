@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 from ... import models, PAGE_LIMIT
-from ...core.categories import BarcodeType
+from ...categories import BarcodeType
 
 
 def create_barcode(

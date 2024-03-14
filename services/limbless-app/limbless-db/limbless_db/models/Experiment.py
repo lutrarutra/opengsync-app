@@ -4,14 +4,13 @@ from typing import Optional, List, TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
-from ..core.categories import ExperimentStatus, FlowCellType, AssayType
-from .Links import ExperimentPoolLink, SeqRequestExperimentLink, ExperimentFileLink, ExperimentCommentLink
+from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum
+from .Links import ExperimentPoolLink, ExperimentFileLink, ExperimentCommentLink
 
 if TYPE_CHECKING:
     from .Pool import Pool
     from .Sequencer import Sequencer
     from .User import User
-    from .SeqRequest import SeqRequest
     from .File import File
     from .Comment import Comment
     from .SeqQuality import SeqQuality
@@ -19,21 +18,20 @@ if TYPE_CHECKING:
 
 class Experiment(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
+    name: str = Field(nullable=False, max_length=32, unique=True)
     
     flowcell_id: Optional[str] = Field(nullable=True, max_length=64)
     flowcell_type_id: int = Field(nullable=False)
-
-    assay_type_id: int = Field(nullable=False)
 
     r1_cycles: int = Field(nullable=False)
     r2_cycles: Optional[int] = Field(nullable=True)
     i1_cycles: int = Field(nullable=False)
     i2_cycles: Optional[int] = Field(nullable=True)
 
-    sequencing_person_id: int = Field(nullable=False, foreign_key="lims_user.id")
-    sequencing_person: "User" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
+    operator_id: int = Field(nullable=False, foreign_key="lims_user.id")
+    operator: "User" = Relationship(sa_relationship_kwargs={"lazy": "select"})
     
-    num_lanes: int = Field(nullable=False, default=0)
+    num_lanes: int = Field(nullable=False)
     num_pools: int = Field(nullable=False, default=0)
 
     timestamp: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
@@ -52,11 +50,6 @@ class Experiment(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select", "overlaps": "experiments,pools,experiment"},
     )
 
-    seq_requests: List["SeqRequest"] = Relationship(
-        back_populates="experiments", link_model=SeqRequestExperimentLink,
-        sa_relationship_kwargs={"lazy": "select"},
-    )
-
     sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
 
     files: list["File"] = Relationship(
@@ -73,15 +66,11 @@ class Experiment(SQLModel, table=True):
     )
 
     @property
-    def status(self) -> ExperimentStatus:
+    def status(self) -> ExperimentStatusEnum:
         return ExperimentStatus.get(self.status_id)
     
     @property
-    def assay_type(self) -> AssayType:
-        return AssayType.get(self.assay_type_id)
-    
-    @property
-    def flowcell_type(self) -> FlowCellType:
+    def flowcell_type(self) -> FlowCellTypeEnum:
         return FlowCellType.get(self.flowcell_type_id)
     
     def is_deleteable(self) -> bool:

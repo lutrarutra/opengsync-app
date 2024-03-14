@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 from .... import db, logger
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ def get(page: int):
     descending = order == "desc"
 
     if sort_by not in models.FeatureKit.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
     with DBSession(db) as session:
         feature_kits, n_pages = session.get_feature_kits(
@@ -47,10 +47,10 @@ def get(page: int):
 def query():
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
     if (word := request.form.get(field_name)) is None:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
     results = db.query_feature_kits(word)
     logger.debug(word)

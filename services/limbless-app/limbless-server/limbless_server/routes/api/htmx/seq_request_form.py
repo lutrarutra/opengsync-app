@@ -7,7 +7,7 @@ from flask import Blueprint, request, abort, send_file, current_app, Response
 from flask_login import login_required
 
 from limbless_db import models
-from limbless_db.core.categories import HttpResponse, LibraryType
+from limbless_db.categories import HTTPResponse, LibraryType
 
 from .... import db, logger
 from ....forms import sas as sas_forms
@@ -37,7 +37,7 @@ def download_template(type: str):
         df = pd.DataFrame(columns=list(sas_forms.FeatureKitReferenceInputForm._mapping.keys()))
         name = "feature_reference.tsv"
     else:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return Response(
         df.to_csv(sep="\t", index=False), mimetype="text/csv",
@@ -72,7 +72,7 @@ def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
 
     if current_app.static_folder is None:
-        return abort(HttpResponse.INTERNAL_SERVER_ERROR.id)
+        return abort(HTTPResponse.INTERNAL_SERVER_ERROR.id)
     
     path = os.path.join(
         current_app.static_folder, "resources", "templates", name
@@ -86,13 +86,13 @@ def download_seq_auth_form():
 @login_required
 def restart_form(seq_request_id: int, type: Literal["raw", "pooled"]):
     if type not in ["raw", "pooled"]:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if current_user.id != seq_request.requestor_id and not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     form = sas_forms.SASInputForm(type=type)
     
@@ -106,10 +106,10 @@ def restart_form(seq_request_id: int, type: Literal["raw", "pooled"]):
 @login_required
 def parse_table(seq_request_id: int, type: Literal["raw", "pooled"]):
     if type not in ["raw", "pooled"]:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return sas_forms.SASInputForm(
         type=type,
@@ -124,7 +124,7 @@ def parse_table(seq_request_id: int, type: Literal["raw", "pooled"]):
 @login_required
 def select_project(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return sas_forms.ProjectMappingForm(formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id,
@@ -137,7 +137,7 @@ def select_project(seq_request_id: int):
 @login_required
 def map_organisms(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return sas_forms.OrganismMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -149,7 +149,7 @@ def map_organisms(seq_request_id: int):
 @login_required
 def map_libraries(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return sas_forms.LibraryMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -161,7 +161,7 @@ def map_libraries(seq_request_id: int):
 @login_required
 def map_index_kits(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return sas_forms.IndexKitMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -173,7 +173,7 @@ def map_index_kits(seq_request_id: int):
 @login_required
 def parse_cmo_reference(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return sas_forms.CMOReferenceInputForm(formdata=request.form | request.files).process_request(
         seq_request=seq_request
@@ -185,7 +185,7 @@ def parse_cmo_reference(seq_request_id: int):
 @login_required
 def parse_feature_reference(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return sas_forms.FeatureKitReferenceInputForm(formdata=request.form | request.files).process_request(
         seq_request=seq_request
@@ -197,7 +197,7 @@ def parse_feature_reference(seq_request_id: int):
 @login_required
 def map_feature_kits(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return sas_forms.FeatureKitMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -209,7 +209,7 @@ def map_feature_kits(seq_request_id: int):
 @login_required
 def annotate_visium(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return sas_forms.VisiumAnnotationForm(formdata=request.form | request.files).process_request(
         seq_request=seq_request
@@ -221,7 +221,7 @@ def annotate_visium(seq_request_id: int):
 @login_required
 def map_pools(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return sas_forms.PoolMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -233,7 +233,7 @@ def map_pools(seq_request_id: int):
 @login_required
 def check_barcodes(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     return sas_forms.BarcodeCheckForm(formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id

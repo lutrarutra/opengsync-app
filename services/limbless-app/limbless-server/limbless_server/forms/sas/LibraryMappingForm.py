@@ -7,7 +7,7 @@ from wtforms import StringField, SelectField, FieldList, FormField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 
-from limbless_db.core.categories import LibraryType
+from limbless_db.categories import LibraryType
 from ... import tools
 from ..TableDataForm import TableDataForm
 from ..HTMXFlaskForm import HTMXFlaskForm

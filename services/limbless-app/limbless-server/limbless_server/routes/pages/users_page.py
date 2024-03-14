@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, url_for, abort, request
 from flask_login import login_required
 
 from limbless_db import models
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 from ... import db, forms
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ users_page_bp = Blueprint("users_page", __name__)
 @login_required
 def users_page():
     if not current_user.is_insider():
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     users, n_pages = db.get_users()
 
@@ -40,10 +40,10 @@ def user_page(user_id: Optional[int]):
 
     if not current_user.is_insider():
         if user_id != current_user.id:
-            return abort(HttpResponse.FORBIDDEN.id)
+            return abort(HTTPResponse.FORBIDDEN.id)
         
     if (user := db.get_user(user_id)) is None:
-        return abort(HttpResponse.FORBIDDEN.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
         ("Users", url_for("users_page.users_page")),

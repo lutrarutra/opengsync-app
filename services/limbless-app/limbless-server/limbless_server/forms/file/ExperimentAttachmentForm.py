@@ -5,7 +5,7 @@ from flask import Response, flash, url_for, current_app
 from flask_htmx import make_response
 
 from limbless_db import models
-from limbless_db.core.categories import FileType
+from limbless_db.categories import FileType
 from .FileInputForm import FileInputForm
 from ... import db, logger
 

@@ -2,7 +2,7 @@ import os
 import pytest
 
 from limbless_db import DBHandler
-from limbless_db.core.categories import UserRole
+from limbless_db.categories import UserRole
 
 
 @pytest.fixture()

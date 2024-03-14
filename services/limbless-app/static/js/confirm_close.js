@@ -10,7 +10,7 @@ function confirm_close_modal(modal_query){
         }).then((result) => {
             if (result.isConfirmed) {
                 $(modal_query).modal("hide");
-                let timerInterval;
+                let time_interval;
                 Swal.fire({
                     title: "Deleted!",
                     text: "Your file has been deleted.",
@@ -19,12 +19,12 @@ function confirm_close_modal(modal_query){
                     timerProgressBar: true,
                     didOpen: () => {
                         const timer = Swal.getPopup().querySelector("b");
-                        timerInterval = setInterval(() => {
+                        time_interval = setInterval(() => {
                             timer.textContent = `${Swal.getTimerLeft()}`;
                         }, 100);
                     },
                     willClose: () => {
-                        clearInterval(timerInterval);
+                        clearInterval(time_interval);
                     }
                 });
             }

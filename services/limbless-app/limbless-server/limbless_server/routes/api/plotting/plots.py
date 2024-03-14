@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 
 from .... import db, logger
 from limbless_db import models
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -31,10 +31,10 @@ def _add_traces(to_figure, from_figure):
 @login_required
 def experiment_library_reads(experiment_id: int):
     if not current_user.is_insider():
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HttpResponse.NOT_FOUND.id)
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     request_args = request.get_json()
     width = request_args.get("width", 700)

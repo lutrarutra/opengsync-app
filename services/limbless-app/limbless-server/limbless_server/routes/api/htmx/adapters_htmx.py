@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.core.categories import HttpResponse
+from limbless_db.categories import HTTPResponse
 from .... import db
 
 if TYPE_CHECKING:
@@ -26,13 +26,13 @@ def get(page: int, index_kit_id: Optional[int]):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Adapter.sortable_fields:
-        return abort(HttpResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
     with DBSession(db) as session:
         if index_kit_id is not None:
             index_kit = session.get_index_kit(index_kit_id)
             if index_kit is None:
-                return abort(HttpResponse.NOT_FOUND.id)
+                return abort(HTTPResponse.NOT_FOUND.id)
 
         adapters, n_pages = session.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending)
 

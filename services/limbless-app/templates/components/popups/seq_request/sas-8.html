@@ -44,24 +44,6 @@
             hx-post="{{ url_for('seq_request_form_htmx.annotate_visium', seq_request_id=seq_request.id) }}">
             Parse
         </button>
-        <a class="btn btn-danger" type="button"
-            {% if experiment %}
-                href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}"
-            {% else %}
-                href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}"
-            {% endif %}
-            _="on htmx:confirm(issueRequest)
-            halt the event
-            call Swal.fire({
-                title: 'Cancel Request Form',
-                showDenyButton: true,
-                text: 'Do you want to proceed?',
-                confirmButtonText: 'Yes',
-                denyButtonText: 'No'
-            })
-            if result.isConfirmed issueRequest()">
-            Cancel
-        </a>
     </div>
 </div>
 <script>

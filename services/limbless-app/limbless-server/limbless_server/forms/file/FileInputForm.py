@@ -6,7 +6,7 @@ from wtforms import SelectField, TextAreaField
 from flask import Response
 
 from limbless_db import models
-from limbless_db.core.categories import FileType
+from limbless_db.categories import FileType
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 

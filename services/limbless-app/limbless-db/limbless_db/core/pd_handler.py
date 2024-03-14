@@ -1,9 +1,10 @@
 import pandas as pd
 
-from sqlalchemy.sql.operators import and_
+from sqlalchemy.sql.operators import and_  # noqa: F401
 
 from .. import models
-from . import exceptions, categories
+from . import exceptions
+from .. import categories
 
 
 def get_experiment_libraries_df(
@@ -29,11 +30,6 @@ def get_experiment_libraries_df(
     ).join(
         models.SeqRequest,
         models.SeqRequest.id == models.Library.seq_request_id,
-    ).join(
-        models.SeqRequestExperimentLink,
-        models.SeqRequestExperimentLink.seq_request_id == models.Library.seq_request_id,
-    ).where(
-        models.SeqRequestExperimentLink.experiment_id == experiment_id
     ).join(
         models.Pool,
         models.Pool.id == models.Library.pool_id,
@@ -99,11 +95,6 @@ def get_experiment_samples_df(self, experiment_id: int) -> pd.DataFrame:
     ).join(
         models.SeqRequest,
         models.SeqRequest.id == models.Library.seq_request_id,
-    ).join(
-        models.SeqRequestExperimentLink,
-        models.SeqRequestExperimentLink.seq_request_id == models.Library.seq_request_id,
-    ).where(
-        models.SeqRequestExperimentLink.experiment_id == experiment_id
     ).join(
         models.Pool,
         models.Pool.id == models.Library.pool_id,

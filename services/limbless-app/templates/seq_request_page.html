@@ -29,11 +29,11 @@
                     call Swal.fire({
                         title: 'Submit request \'{{ seq_request.name }}\'',
                         showDenyButton: true,
+                        icon: 'warning',
                         text: 'You can no longer edit the sequencing request after it is submitted. Do you want to proceed?',
                         confirmButtonText: 'Yes',
                         denyButtonText: 'No'
-                    })
-                    if result.isConfirmed issueRequest()"
+                    }) if result.isConfirmed issueRequest()"
                     {% if not seq_request.is_submittable() %}disabled{% endif %}>
                     Submit Request
                 </button>

@@ -4,17 +4,20 @@ from sqlmodel import Field, SQLModel, Relationship
 
 from ..core.SearchResult import SearchResult
 from .Links import ExperimentPoolLink
-from ..core.categories import ExperimentStatus
+from ..categories import ExperimentStatus
 
 if TYPE_CHECKING:
     from .Library import Library
     from .User import User
     from .Experiment import Experiment
+    from .SeqRequest import SeqRequest
 
 
 class Pool(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
+
+    num_m_reads_requested: Optional[float] = Field(default=None, nullable=True)
     
     num_libraries: int = Field(nullable=False, default=0)
 
@@ -36,6 +39,11 @@ class Pool(SQLModel, SearchResult, table=True):
     experiment_links: List["ExperimentPoolLink"] = Relationship(
         back_populates="pool",
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete", "overlaps": "pools,experiments,pool"},
+    )
+
+    seq_request_id: Optional[int] = Field(nullable=True, foreign_key="seqrequest.id")
+    seq_request: Optional["SeqRequest"] = Relationship(
+        sa_relationship_kwargs={"lazy": "select"}
     )
 
     contact_name: str = Field(nullable=False, max_length=128)

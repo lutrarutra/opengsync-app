@@ -35,9 +35,7 @@ def get_lanes_in_experiment(
     return lanes
 
 
-def get_available_pools_for_experiment(
-    self, experiment_id: int
-) -> list[models.Pool]:
+def get_available_pools_for_experiment(self, experiment_id: int) -> list[models.Pool]:
     
     persist_session = self._session is not None
     if not self._session:
@@ -46,15 +44,7 @@ def get_available_pools_for_experiment(
     if (_ := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
-    query = self._session.query(models.Pool).join(
-        models.Library,
-        models.Library.pool_id == models.Pool.id,
-    ).join(
-        models.SeqRequestExperimentLink,
-        models.SeqRequestExperimentLink.seq_request_id == models.Library.seq_request_id,
-    ).where(
-        models.SeqRequestExperimentLink.experiment_id == experiment_id,
-    ).distinct()
+    query = self._session.query(models.Pool)
 
     pools = query.all()
 
@@ -286,74 +276,6 @@ def link_experiment_pool(
         self.close_session()
 
     return experiment_library_link
-
-
-def link_experiment_seq_request(
-    self, experiment_id: int, seq_request_id: int,
-    commit: bool = True
-) -> models.SeqRequestExperimentLink:
-    
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    if (_ := self._session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
-
-    if self._session.query(models.SeqRequestExperimentLink).where(
-        models.SeqRequestExperimentLink.experiment_id == experiment_id,
-        models.SeqRequestExperimentLink.seq_request_id == seq_request_id,
-    ).first():
-        raise exceptions.LinkAlreadyExists(f"Experiment with id {experiment_id} and SeqRequest with id {seq_request_id} are already linked")
-
-    link = models.SeqRequestExperimentLink(
-        experiment_id=experiment_id, seq_request_id=seq_request_id,
-    )
-    self._session.add(link)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(link)
-
-    if not persist_session:
-        self.close_session()
-
-    return link
-
-
-def unlink_experiment_seq_request(
-    self, experiment_id: int, seq_request_id: int,
-    commit: bool = True
-):
-        
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
-
-    if (links := self._session.query(models.SeqRequestExperimentLink).where(
-        models.SeqRequestExperimentLink.experiment_id == experiment_id,
-        models.SeqRequestExperimentLink.seq_request_id == seq_request_id,
-    ).all()) is None:
-        raise exceptions.LinkDoesNotExist(f"Experiment with id {experiment_id} and SeqRequest with id {seq_request_id} are not linked")
-
-    for link in links:
-        self._session.delete(link)
-
-    self._session.add(seq_request)
-    self._session.add(experiment)
-
-    if commit:
-        self._session.commit()
-
-    if not persist_session:
-        self.close_session()
 
 
 def unlink_experiment_pool(

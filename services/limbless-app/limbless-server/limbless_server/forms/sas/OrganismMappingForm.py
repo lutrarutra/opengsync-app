@@ -6,7 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import FieldList, FormField, StringField, SelectField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from limbless_db.core.categories import Organism
+from limbless_db.categories import GenomeRef
 
 from ... import db, tools
 from ..TableDataForm import TableDataForm
@@ -16,7 +16,7 @@ from .LibraryMappingForm import LibraryMappingForm
 
 class OrganismSubForm(FlaskForm):
     raw_label = StringField("Raw Label", validators=[OptionalValidator()])
-    organism = SelectField("Select Organism", choices=Organism.as_selectable(), validators=[DataRequired()], coerce=int)
+    organism = SelectField("Select Organism", choices=GenomeRef.as_selectable(), validators=[DataRequired()], coerce=int)
 
 
 # 4. Select organism for samples
