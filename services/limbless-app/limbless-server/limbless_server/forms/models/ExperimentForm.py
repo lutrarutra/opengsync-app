@@ -23,7 +23,6 @@ class ExperimentForm(HTMXFlaskForm):
         description="Type of flowcell to use for sequencing.",
         coerce=int, default=0
     )
-    flowcell = StringField("Flowcell ID", validators=[OptionalValidator(), Length(min=3, max=models.Experiment.flowcell_id.type.length)])  # type: ignore
     
     r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
     r2_cycles = IntegerField("R2 Cycles", validators=[OptionalValidator()])
@@ -42,7 +41,7 @@ class ExperimentForm(HTMXFlaskForm):
             self.operator.search_bar.data = user.search_name()
 
         if experiment is not None:
-            self.flowcell.data = experiment.flowcell_id
+            self.name.data = experiment.name
             self.sequencer.selected.data = experiment.sequencer.id
             self.sequencer.search_bar.data = experiment.sequencer.name
             self.r1_cycles.data = experiment.r1_cycles
@@ -67,7 +66,6 @@ class ExperimentForm(HTMXFlaskForm):
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
         flowcell_type = FlowCellType.get(self.flowcell_type.data)
         experiment.name = self.name.data  # type: ignore
-        experiment.flowcell_id = self.flowcell.data
         experiment.flowcell_type_id = self.flowcell_type.data
         experiment.r1_cycles = self.r1_cycles.data    # type: ignore
         experiment.r2_cycles = self.r2_cycles.data  # type: ignore
@@ -75,28 +73,28 @@ class ExperimentForm(HTMXFlaskForm):
         experiment.i2_cycles = self.i2_cycles.data     # type: ignore
         experiment.num_lanes = flowcell_type.num_lanes
         experiment.sequencer_id = self.sequencer.selected.data
-        experiment.sequencing_person_id = self.operator.selected.data
+        experiment.operator_id = self.operator.selected.data
         experiment = db.update_experiment(experiment)
 
-        flash(f"Edited experiment on flowcell '{experiment.flowcell_id}'.", "success")
+        flash(f"Edited experiment '{experiment.name}'.", "success")
 
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 
     def __create_new_experiment(self) -> Response:
+        flowcell_type = FlowCellType.get(self.flowcell_type.data)
         experiment = db.create_experiment(
             name=self.name.data,  # type: ignore
-            flowcell_id=self.flowcell.data,
-            flowcell_type=FlowCellType.get(self.flowcell_type.data),
+            flowcell_type=flowcell_type,
             sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,  # type: ignore
             r2_cycles=self.r2_cycles.data,  # type: ignore
             i1_cycles=self.i1_cycles.data,  # type: ignore
             i2_cycles=self.i2_cycles.data,
-            num_lanes=self.num_lanes.data,  # type: ignore
+            num_lanes=flowcell_type.num_lanes,
             operator_id=self.operator.selected.data,
         )
 
-        flash(f"Created experiment on flowcell '{experiment.flowcell_id}'.", "success")
+        flash(f"Created experiment '{experiment.name}'.", "success")
 
         return make_response(
             redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),

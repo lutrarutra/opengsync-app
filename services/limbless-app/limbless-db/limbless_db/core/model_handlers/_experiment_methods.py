@@ -8,7 +8,7 @@ from ...categories import FlowCellTypeEnum, ExperimentStatus, LibraryStatus, Seq
 
 
 def create_experiment(
-    self, name: str, flowcell_id: Optional[str], flowcell_type: FlowCellTypeEnum, sequencer_id: int,
+    self, name: str, flowcell_type: FlowCellTypeEnum, sequencer_id: int,
     num_lanes: int, r1_cycles: int, i1_cycles: int, operator_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None,
     commit: bool = True
@@ -19,10 +19,14 @@ def create_experiment(
 
     if self._session.get(models.Sequencer, sequencer_id) is None:
         raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
+    
+    status = ExperimentStatus.DRAFT
+    seq_run: models.SeqRun
+    if (seq_run := self.get_seq_run(experiment_name=name)) is not None:
+        status = seq_run.status
 
     experiment = models.Experiment(
         name=name,
-        flowcell_id=flowcell_id,
         flowcell_type_id=flowcell_type.id,
         timestamp=datetime.now(),
         sequencer_id=sequencer_id,
@@ -31,7 +35,9 @@ def create_experiment(
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
         num_lanes=num_lanes,
+        status_id=status.id,
         operator_id=operator_id,
+
     )
 
     self._session.add(experiment)
@@ -59,6 +65,10 @@ def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -
         ).first()
     else:
         raise ValueError("Either 'id' or 'name' must be provided, not both.")
+    
+    if experiment is not None:
+        if (seq_run := self._session.query(models.SeqRun).where(models.SeqRun.experiment_name == experiment.name).first()) is not None:
+            experiment._seq_run_ = seq_run
 
     if not persist_session:
         self.close_session()
@@ -136,59 +146,38 @@ def delete_experiment(
         self.close_session()
 
 
-def update_experiment(
-    self, experiment: models.Experiment, commit: bool = True
-) -> models.Experiment:
+def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     self._session.add(experiment)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(experiment)
-
-    if not persist_session:
-        self.close_session()
-    return experiment
-
-
-def complete_experiment(self, experiment_id: int) -> models.Experiment:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-
-    experiment.status_id = ExperimentStatus.FINISHED.id
-    self._session.add(experiment)
-
-    seq_requests: list[models.SeqRequest] = []
-
-    for link in experiment.pool_links:
-        for library in link.pool.libraries:
-            library.status_id = LibraryStatus.SEQUENCED.id
-            if library.seq_request not in seq_requests:
-                seq_requests.append(library.seq_request)
-            self._session.add(library)
-
     self._session.commit()
     self._session.refresh(experiment)
 
-    for seq_request in seq_requests:
-        sequenced = True
-        for library in seq_request.libraries:
-            if library.status != LibraryStatus.SEQUENCED:
-                sequenced = False
-                break
-        
-        if sequenced:
-            seq_request.status_id = SeqRequestStatus.DATA_PROCESSING.id
-            self._session.add(seq_request)
+    if experiment.status_id == ExperimentStatus.FINISHED.id:
+        seq_requests: list[models.SeqRequest] = []
 
-    self._session.commit()
+        for link in experiment.pool_links:
+            for library in link.pool.libraries:
+                library.status_id = LibraryStatus.SEQUENCED.id
+                if library.seq_request not in seq_requests:
+                    seq_requests.append(library.seq_request)
+                self._session.add(library)
+
+        self._session.commit()
+        self._session.refresh(experiment)
+
+        for seq_request in seq_requests:
+            sequenced = True
+            for library in seq_request.libraries:
+                if library.status != LibraryStatus.SEQUENCED:
+                    sequenced = False
+                    break
+            
+            if sequenced:
+                seq_request.status_id = SeqRequestStatus.DATA_PROCESSING.id
+                self._session.add(seq_request)
 
     if not persist_session:
         self.close_session()

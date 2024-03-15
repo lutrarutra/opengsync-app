@@ -10,28 +10,13 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Experiment</h1>
+            <h1>{{ experiment.name }}</h1>
         </div>
         <div>
-            {% if experiment.status.name == "Draft" %}
-            <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                data-bs-target="#submit-experiment-popup">
-                Submit for Sequencing
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#experiment-form-popup">
+                Edit Experiment
             </button>
-            {% endif %}
-            {% if experiment.status.name == "Sequencing" %}
-            <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                data-bs-target="#complete-experiment-form-popup">
-                Complete Experiment
-            </button>
-            {% endif %}
-            <span {% if not experiment.is_editable() %} {{ tooltip("Experiment cannot be edited after it is submitted.")
-                }} {% endif %}>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                    data-bs-target="#experiment-form-popup" {% if not experiment.is_editable() %} disabled {% endif %}>
-                    Edit Experiment
-                </button>
-            </span>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#experiment-file-form-popup">
                 Add File
@@ -98,6 +83,14 @@
                 aria-controls="experiment-comments-tab" aria-selected="true"
                 id="experiment-comments-tab-btn">Comments</button>
             </li>
+            {% if experiment.seq_run %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#experiment-seq_run-tab" type="button" role="tab"
+                aria-controls="experiment-seq_run-tab" aria-selected="true"
+                id="experiment-seq_run-tab-btn">Run</button>
+            </li>
+            {% endif %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#experiment-num_reads-tab" type="button" role="tab"
@@ -161,7 +154,6 @@
                 <div class="row">
                     {{ metadata_group("Created", experiment.timestamp.strftime('%Y-%m-%d %H:%M'), class="col-3") }}
                     {{ metadata_group("Flowcell Type", experiment.flowcell_type, class="col-4") }}
-                    {{ metadata_group("Flowcell ID", experiment.flowcell_id, class="col-3") }}
                     {{ metadata_group("Lanes", experiment.num_lanes, class="col-2") }}
                 </div>
                 <div class="row">
@@ -195,9 +187,30 @@
                     comments_tab(context="experiment", comments=experiment.comments)
                 }}
             </div>  
-            <div class="tab-pane fade show" id="experiment-num_reads-tab" role="tabpanel" tabindex="7">
-                {% include "components/plots/experiment_library_reads.html" %}
+            {% if experiment.seq_run %}
+            <div class="tab-pane fade show" id="experiment-seq_run-tab" role="tabpanel" tabindex="7">
+                <div class="row">
+                    {{ metadata_group("Run Folder", experiment.seq_run.run_folder, class="col") }}
+                    {{ metadata_group("Flowcell ID", experiment.seq_run.flowcell_id, class="col") }}
+                    {{ metadata_group("Read Type", experiment.seq_run.read_type.name, class="col") }}
+                </div>
+                <div class="row">
+                    {{ metadata_group("RTA Version", experiment.seq_run.rta_version, class="col") }}
+                    {{ metadata_group("Recipe Version", experiment.seq_run.recipe_version, class="col") }}
+                    {{ metadata_group("Side", experiment.seq_run.side, class="col") }}
+                    {{ metadata_group("Mode", experiment.seq_run.flowcell_mode, class="col") }}
+                </div>
+                <div class="row">
+                    {{ metadata_group("R1 Cycles", experiment.seq_run.r1_cycles, class="col") }}
+                    {{ metadata_group("I1 Cycles", experiment.seq_run.i1_cycles, class="col") }}
+                    {{ metadata_group("I2 Cycles", experiment.seq_run.i2_cycles, class="col") }}
+                    {{ metadata_group("R2 Cycles", experiment.seq_run.r2_cycles, class="col") }}
+                </div>
             </div>  
+            {% endif %}
+            <div class="tab-pane fade show" id="experiment-num_reads-tab" role="tabpanel" tabindex="8">
+                {% include "components/plots/experiment_library_reads.html" %}
+            </div>
         </div>
     </div>
 
@@ -226,98 +239,9 @@
         </div>
     </div>
 
-    <div class="modal fade" id="complete-experiment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-l modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">Complete Experiment</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    {% include complete_experiment_form._template_path %}
-                </div>
-                <div class="modal-footer" id="popup-footer">
-                    <button type="button" id="parse-table-btn" class="btn btn-success" hx-target="#complete-experiment-form"
-                        hx-swap="outerHTML" hx-include="#complete-experiment-form"
-                        hx-post="{{ url_for('experiments_htmx.complete_experiment', experiment_id=experiment.id) }}">
-                        Submit
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal fade" id="experiment-file-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             {% include file_input_form._template_path %}
-        </div>
-    </div>
-
-    <div class="modal fade" id="submit-experiment-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">Submit Experiment for Sequencing</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="library-data-table" class="table-container">
-                        <table class="table table-hover table-cursor">
-                            <thead>
-                                <tr>
-                                    <th scope="col" class="col-1">ID</th>
-                                    <th scope="col" class="col-2">Library Name</th>
-                                    <th scope="col" class="col-2">Library Type</th>
-                                    <th scope="col" class="col-1">Lane</th>
-                                    <th scope="col" class="col-1">Index 1</th>
-                                    <th scope="col" class="col-1">Index 2</th>
-                                    <th scope="col" class="col-1">Index 3</th>
-                                    <th scope="col" class="col-1">Index 4</th>
-                                    <th scope="col" class="col-2">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for _, row in libraries_df.iterrows() %}
-                                <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=row['library_id']) }}';">
-                                    <th scope="row">{{ row["library_id"] }}</th>
-                                    <td>{{ row["library_name"] }}</td>
-                                    <td>{{ row["library_type"] }}</td>
-                                    <td>{{ row["lane"] }}</td>
-                                    <td>{{ row["index_1"] if row["index_1"] }}</td>
-                                    <td>{{ row["index_2"] if row["index_2"] }}</td>
-                                    <td>{{ row["index_3"] if row["index_3"] }}</td>
-                                    <td>{{ row["index_4"] if row["index_4"] }}</td>
-                                    <td>
-                                        <span {% if row["index_error"] %}
-                                            {{ tooltip(row["index_error"], category="danger") }}
-                                            {% elif row["index_warning"] %}
-                                            {{ tooltip(row["index_warning"], category="warning") }}
-                                            {% endif %}>
-                                        {{ "⛔" if row["index_error"] else "⚠️" if row["index_warning"] else "✅" }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer" id="popup-footer">
-                    <button type="button" class="btn btn-success" {% if not experiment.is_submittable() %} disabled {% endif
-                        %} hx-post="{{ url_for('experiments_htmx.submit_experiment', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
-                            halt the event
-                            call Swal.fire({
-                                title: 'Submit experiment for Sequencing?',
-                                showDenyButton: true,
-                                text: 'You can no longer edit the experiment after it is submitted. Do you want to proceed?',
-                                confirmButtonText: 'Yes',
-                                denyButtonText: 'No'
-                            })
-                            if result.isConfirmed issueRequest()">
-                        Submit for Sequencing
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 </div>

@@ -15,6 +15,14 @@
                 }}
                 {{
                     table_col(
+                        target_id='experiment-table', column_name='Name', column_var='name',
+                        sort_url='experiments_htmx.get', sort_url_args={},
+                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        col_size=2
+                    )
+                }}
+                {{
+                    table_col(
                         target_id='experiment-table', column_name='Status', column_var='status',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
@@ -56,7 +64,8 @@
             {% for experiment in experiments %}
             <tr onclick="window.location.href='{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}';">
                 <th scope="row">{{ experiment.id }}</th>
-                <td>{{ experiment.status.name }} {{ experiment.status.description | safe }}</td>
+                <td>{{ experiment.name }}</td>
+                <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>
                 <td>
                     {{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator.owner_id }}</span>
                 </td>

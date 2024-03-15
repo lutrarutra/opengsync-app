@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
-from limbless_db import categories, models
+from limbless_db import categories, models, DBSession
 from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db
 from .routes import api, pages
 
@@ -67,25 +67,26 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
 
     @app.route("/")
     def index_page():
-        if not current_user.is_authenticated:
-            return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))
-            
-        if current_user.is_insider():
-            show_drafts = False
-            _user_id = None
-            recent_experiments, _ = db.get_experiments(sort_by="id", descending=False)
-        else:
-            show_drafts = True
-            _user_id = current_user.id
-            recent_experiments = None
+        with DBSession(db) as session:
+            if not current_user.is_authenticated:
+                return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))
+                
+            if current_user.is_insider():
+                show_drafts = False
+                _user_id = None
+                recent_experiments, _ = session.get_experiments(sort_by="id", descending=False)
+            else:
+                show_drafts = True
+                _user_id = current_user.id
+                recent_experiments = None
 
-        recent_seq_requests, _ = db.get_seq_requests(user_id=_user_id, sort_by="submitted_time", descending=True, show_drafts=show_drafts)
+            recent_seq_requests, _ = session.get_seq_requests(user_id=_user_id, sort_by="submitted_time", descending=True, show_drafts=show_drafts)
 
-        return render_template(
-            "index.html",
-            recent_seq_requests=recent_seq_requests,
-            recent_experiments=recent_experiments
-        )
+            return render_template(
+                "index.html",
+                recent_seq_requests=recent_seq_requests,
+                recent_experiments=recent_experiments
+            )
     
     @app.route("/pdf_file/<int:file_id>")
     @login_required

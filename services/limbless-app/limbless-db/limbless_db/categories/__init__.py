@@ -14,4 +14,3 @@ from .RequestResponse import RequestResponse, RequestResponseEnum  # noqa: F401
 from .SeqRequestStatus import SeqRequestStatus, SeqRequestStatusEnum  # noqa: F401
 from .SequencingType import ReadType, ReadTypeEnum  # noqa: F401
 from .UserRole import UserRole, UserRoleEnum  # noqa: F401
-from .SequencingStatus import SequencingStatus, SequencingStatusEnum  # noqa: F401

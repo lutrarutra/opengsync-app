@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING, ClassVar
+from pydantic import PrivateAttr
 
 import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
@@ -14,13 +15,13 @@ if TYPE_CHECKING:
     from .File import File
     from .Comment import Comment
     from .SeqQuality import SeqQuality
+    from .SeqRun import SeqRun
 
 
 class Experiment(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=32, unique=True)
+    name: str = Field(nullable=False, max_length=16, unique=True, index=True)
     
-    flowcell_id: Optional[str] = Field(nullable=True, max_length=64)
     flowcell_type_id: int = Field(nullable=False)
 
     r1_cycles: int = Field(nullable=False)
@@ -50,7 +51,7 @@ class Experiment(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select", "overlaps": "experiments,pools,experiment"},
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "flowcell", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "flowcell_id", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
 
     files: list["File"] = Relationship(
         link_model=ExperimentFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
@@ -64,6 +65,8 @@ class Experiment(SQLModel, table=True):
         back_populates="experiment",
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
+
+    _seq_run_: Optional["SeqRun"] = PrivateAttr()
 
     @property
     def status(self) -> ExperimentStatusEnum:
@@ -84,6 +87,10 @@ class Experiment(SQLModel, table=True):
     
     def timestamp_to_str(self) -> str:
         return self.timestamp.strftime('%Y-%m-%d %H:%M')
+    
+    @property
+    def seq_run(self) -> Optional["SeqRun"]:
+        return self._seq_run_
     
     def __str__(self) -> str:
         return f"Experiment(id={self.id}, num_lanes={self.num_lanes}, num_pools={self.num_pools})"

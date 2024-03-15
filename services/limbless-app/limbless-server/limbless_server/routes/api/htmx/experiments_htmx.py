@@ -154,45 +154,6 @@ def remove_pool(experiment_id: int, pool_id: int, lane: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/submit_experiment", methods=["POST"])
-@login_required
-def submit_experiment(experiment_id: int):
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if not experiment.is_submittable():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        experiment.status_id = ExperimentStatus.SEQUENCING.id
-        session.update_experiment(experiment)
-
-    logger.info(f"Submitted experiment on flowcell '{experiment.flowcell_id}'")
-    flash(f"Submitted experiment on flowcell '{experiment.flowcell_id}'.", "success")
-
-    return make_response(
-        redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
-    )
-
-
-@experiments_htmx.route("<int:experiment_id>/complete_experiment", methods=["POST"])
-@login_required
-def complete_experiment(experiment_id: int):
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-    return forms.CompleteExperimentForm(formdata=request.form).process_request(
-        experiment=experiment, user=current_user
-    )
-
-
 @experiments_htmx.route("<int:experiment_id>/upload_file", methods=["POST"])
 @login_required
 def upload_file(experiment_id: int):

@@ -3,12 +3,12 @@ from typing import Optional
 
 from ...models import SeqRun
 from ... import PAGE_LIMIT
-from ...categories import SequencingStatusEnum, ReadTypeEnum
+from ...categories import ReadTypeEnum, ExperimentStatusEnum
 
 
 def create_seq_run(
     self, experiment_name: str,
-    status: SequencingStatusEnum,
+    status: ExperimentStatusEnum,
     run_folder: str,
     flowcell_id: str,
     read_type: ReadTypeEnum,

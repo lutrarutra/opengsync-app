@@ -16,10 +16,10 @@ class Requestor():
         self.url = f"http://{self.host}:{self.port}/api/seq_run"
 
     def post_seq_run(
-        self, experiment_name: str, status: categories.SequencingStatusEnum,
+        self, experiment_name: str, status: categories.ExperimentStatusEnum,
         run_name: str, flowcell_id: str, read_type: categories.ReadTypeEnum,
         rta_version: str, recipe_version: str, side: str,
-        flowcell_mode: str, r1_cycles: int, r2_cycles: int, i1_cycles: int, i2_cycles: int
+        flowcell_mode: str, r1_cycles: int, r2_cycles: int, i1_cycles: int, i2_cycles: int,
 
     ) -> requests.Response:
         response = requests.post(
@@ -43,8 +43,8 @@ class Requestor():
         )
         return response
 
-    def post_run_completed(self, experiment_name: str) -> requests.Response:
-        response = requests.put(f"{self.url}/{experiment_name}/complete")
+    def update_run_status(self, experiment_name: str, status: categories.ExperimentStatusEnum) -> requests.Response:
+        response = requests.put(f"{self.url}/{experiment_name}/update_status/{status.id}")
         return response
 
 
@@ -129,25 +129,41 @@ def process_run_folder(illumina_run_folder: str, requestor: Requestor) -> None:
         pathlib.Path(completed_runs_path).touch()
 
     runs_statuses = {}
-        
+    
+    archived = []
+    scanned_runs: list[tuple[str, str, int]] = []
     with open(completed_runs_path, "r") as f:
         while (line := f.readline()):
             line = line.strip()
             run = line.split("\t")[0]
-            status = line.split("\t")[1]
+            experiment_name = line.split("\t")[1]
+            status = line.split("\t")[2]
             runs_statuses[run] = int(status)
+            scanned_runs.append((run, experiment_name, int(status)))
+            
+            run_parameters_path = os.path.join(illumina_run_folder, run, "RunParameters.xml")
+            if not os.path.exists(run_parameters_path) and experiment_name not in archived:
+                response = requestor.update_run_status(experiment_name=experiment_name, status=categories.ExperimentStatus.ARCHIVED)
+                print(f"{run} - HTTP[{response.status_code}]: Archived.")
+                archived.append(experiment_name)
 
+    with open(completed_runs_path, "w") as f:
+        for run, experiment_name, status in scanned_runs:
+            if experiment_name in archived:
+                continue
+            f.write(f"{run}\t{experiment_name}\t{status}\n")
+        
     for run_parameters_path in runs:
         run_folder = os.path.dirname(run_parameters_path)
         run_name = os.path.basename(run_folder)
         
         if os.path.exists(os.path.join(run_folder, "RTAComplete.txt")):
-            status = categories.SequencingStatus.DONE
+            status = categories.ExperimentStatus.FINISHED
         else:
-            status = categories.SequencingStatus.RUNNING
+            status = categories.ExperimentStatus.SEQUENCING
 
-        status_change = status.id > runs_statuses[run_name]
         new_run = run_name not in runs_statuses.keys()
+        status_change = not new_run and status.id > runs_statuses[run_name]
 
         if not new_run and not status_change:
             print(f"{run_name} - No changes in status")
@@ -159,8 +175,10 @@ def process_run_folder(illumina_run_folder: str, requestor: Requestor) -> None:
             print(f"{run_name} - ERROR: {e}")
             continue
         
+        experiment_name = parsed_data["experiment_name"]
+        
         if status_change:
-            response = requestor.post_run_completed(experiment_name=parsed_data["experiment_name"])
+            response = requestor.update_run_status(experiment_name=experiment_name, status=status)
         else:
             response = requestor.post_seq_run(run_name=run_name, status=status, **parsed_data)
 
@@ -170,7 +188,11 @@ def process_run_folder(illumina_run_folder: str, requestor: Requestor) -> None:
             elif status_change:
                 print(f"{run_name} - HTTP[{response.status_code}]: Status {runs_statuses[run_name]} -> {status.id}")
             with open(completed_runs_path, "a") as f:
-                f.write(f"{run_name}\t{status.id}\n")
+                f.write(f"{run_name}\t{experiment_name}\t{status.id}\n")
+        elif response.status_code == 201:
+            print(f"{run_name} - HTTP[{response.status_code}]: Run already in DB.")
+            with open(completed_runs_path, "a") as f:
+                f.write(f"{run_name}\t{experiment_name}\t{0}\n")
         else:
             print(f"{run_name} - HTTP[{response.status_code}]: {response.content}")
 

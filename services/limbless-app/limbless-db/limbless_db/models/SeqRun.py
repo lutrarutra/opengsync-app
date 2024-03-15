@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from sqlmodel import Field, SQLModel
 
-from ..categories import SequencingStatusEnum, SequencingStatus, ReadType, ReadTypeEnum
+from ..categories import ExperimentStatus, ExperimentStatusEnum, ReadType, ReadTypeEnum
 
 
 class SeqRun(SQLModel, table=True):
@@ -27,8 +27,8 @@ class SeqRun(SQLModel, table=True):
     sortable_fields: ClassVar[list[str]] = ["id", "experiment_name", "status_id", "read_type_id"]
 
     @property
-    def status(self) -> SequencingStatusEnum:
-        return SequencingStatus.get(self.status_id)
+    def status(self) -> ExperimentStatusEnum:
+        return ExperimentStatus.get(self.status_id)
     
     @property
     def read_type(self) -> ReadTypeEnum:

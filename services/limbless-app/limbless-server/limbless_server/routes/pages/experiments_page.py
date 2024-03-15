@@ -86,7 +86,6 @@ def experiment_page(experiment_id: int):
             file_input_form=forms.ExperimentAttachmentForm(experiment_id=experiment_id),
             pooling_input_form=pooling_input_form,
             available_seq_requests_active_page=0,
-            complete_experiment_form=forms.CompleteExperimentForm(),
             available_seq_requests_current_sort=available_seq_requests_sort,
             available_seq_requests_current_sort_order="desc",
             selected_sequencer=experiment.sequencer.name,

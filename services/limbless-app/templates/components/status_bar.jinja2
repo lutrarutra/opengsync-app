@@ -2,19 +2,19 @@
 {% if seq_request.status.name == 'Draft' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
     <div class="progress-bar progress-bar-striped bg-transparent text-muted" style="width: 100%">
-        {{ SeqRequestStatus.DRAFT.name }} {{ SeqRequestStatus.DRAFT.description | safe }}
+        {{ SeqRequestStatus.DRAFT.name }} {{ SeqRequestStatus.DRAFT.icon | safe }}
     </div>
 </div>
 {% elif seq_request.status.name == 'Archived' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
 <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
-        {{ SeqRequestStatus.ARCHIVED.name }} {{ SeqRequestStatus.ARCHIVED.description | safe }}
+        {{ SeqRequestStatus.ARCHIVED.name }} {{ SeqRequestStatus.ARCHIVED.icon | safe }}
     </div>
 </div>
 {% elif seq_request.status.name == 'Failed' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
-        {{ SeqRequestStatus.FAILED.name }} {{ SeqRequestStatus.FAILED.description | safe }}
+        {{ SeqRequestStatus.FAILED.name }} {{ SeqRequestStatus.FAILED.icon | safe }}
     </div>
 </div>
 {% else %}
@@ -27,7 +27,7 @@
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted  bg-transparent">
         {% endif %}
-        {{ SeqRequestStatus.get(status_id).name }} {{ SeqRequestStatus.get(status_id).description | safe }}
+        {{ SeqRequestStatus.get(status_id).name }} {{ SeqRequestStatus.get(status_id).icon | safe }}
         </div>
     </div>
     {% endfor %}
@@ -39,13 +39,13 @@
 {% if experiment.status.name == 'Archived' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
 <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
-        {{ ExperimentStatus.ARCHIVED.name }} {{ ExperimentStatus.ARCHIVED.description | safe }}
+        {{ ExperimentStatus.ARCHIVED.name }} {{ ExperimentStatus.ARCHIVED.icon | safe }}
     </div>
 </div>
 {% elif experiment.status.name == 'Failed' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
-        {{ ExperimentStatus.FAILED.name }} {{ ExperimentStatus.FAILED.description | safe }}
+        {{ ExperimentStatus.FAILED.name }} {{ ExperimentStatus.FAILED.icon | safe }}
     </div>
 </div>
 {% else %}
@@ -58,7 +58,7 @@
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted  bg-transparent">
         {% endif %}
-        {{ ExperimentStatus.get(status_id).name }} {{ ExperimentStatus.get(status_id).description | safe }}
+        {{ ExperimentStatus.get(status_id).name }} {{ ExperimentStatus.get(status_id).icon | safe }}
         </div>
     </div>
     {% endfor %}
@@ -70,13 +70,13 @@
 {% if library.status.name == 'Draft' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
     <div class="progress-bar progress-bar-striped bg-transparent text-muted" style="width: 100%">
-        {{ LibraryStatus.DRAFT.name }} {{ LibraryStatus.DRAFT.description | safe }}
+        {{ LibraryStatus.DRAFT.name }} {{ LibraryStatus.DRAFT.icon | safe }}
     </div>
 </div>
 {% elif library.status.name == 'Failed' %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
-        {{ LibraryStatus.FAILED.name }} {{ LibraryStatus.FAILED.description | safe }}
+        {{ LibraryStatus.FAILED.name }} {{ LibraryStatus.FAILED.icon | safe }}
     </div>
 </div>
 {% else %}
@@ -89,7 +89,7 @@
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted  bg-transparent">
         {% endif %}
-        {{ LibraryStatus.get(status_id).name }} {{ LibraryStatus.get(status_id).description | safe }}
+        {{ LibraryStatus.get(status_id).name }} {{ LibraryStatus.get(status_id).icon | safe }}
         </div>
     </div>
     {% endfor %}
