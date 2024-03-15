@@ -12,8 +12,8 @@ class HTMXFlaskForm(FlaskForm):
     _template_path: Optional[str] = None
     _form_label: str = "form"
 
-    def __init__(self, formdata: Optional[dict[str, Any]] = None):
-        super().__init__(formdata=ImmutableMultiDict(formdata))
+    def __init__(self, formdata: Optional[dict[str, Any]] = None, **kwargs):
+        super().__init__(formdata=ImmutableMultiDict(formdata), **kwargs)
         self.formdata = formdata
 
     def process_request(self, **context) -> Response:

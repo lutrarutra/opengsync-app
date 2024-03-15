@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from sqlmodel import Field, SQLModel
 
 from ..categories import SequencingStatusEnum, SequencingStatus, ReadType, ReadTypeEnum
@@ -6,7 +8,7 @@ from ..categories import SequencingStatusEnum, SequencingStatus, ReadType, ReadT
 class SeqRun(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     
-    experiment_name: str = Field(nullable=False, max_length=32, unique=True)
+    experiment_name: str = Field(nullable=False, max_length=32, unique=True, index=True)
     status_id: int = Field(nullable=False)
 
     run_folder: str = Field(nullable=False, max_length=64)
@@ -21,6 +23,8 @@ class SeqRun(SQLModel, table=True):
     r2_cycles: int = Field(nullable=False)
     i1_cycles: int = Field(nullable=False)
     i2_cycles: int = Field(nullable=False)
+
+    sortable_fields: ClassVar[list[str]] = ["id", "experiment_name", "status_id", "read_type_id"]
 
     @property
     def status(self) -> SequencingStatusEnum:

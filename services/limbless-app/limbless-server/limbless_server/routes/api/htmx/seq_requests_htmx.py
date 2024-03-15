@@ -19,7 +19,7 @@ else:
     from flask_login import current_user
 
 
-seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/seq_requests/")
+seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hmtx/seq_requests/")
 
 
 @seq_requests_htmx.route("get/<int:page>", methods=["GET"])

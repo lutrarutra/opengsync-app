@@ -14,7 +14,7 @@ else:
     from flask_login import current_user
 
 
-features_htmx = Blueprint("features_htmx", __name__, url_prefix="/api/features/")
+features_htmx = Blueprint("features_htmx", __name__, url_prefix="/api/hmtx/features/")
 
 
 @features_htmx.route("get_kit/<int:page>", methods=["GET"])

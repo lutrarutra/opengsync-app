@@ -13,6 +13,7 @@ from .models.ProjectForm import ProjectForm # noqa
 from .models.ExperimentForm import ExperimentForm   # noqa
 from .models.SeqRequestForm import SeqRequestForm   # noqa
 from .models.PoolForm import PoolForm   # noqa
+from .models.SeqRunForm import SeqRunForm   # noqa
 
 from .file.ExperimentAttachmentForm import ExperimentAttachmentForm  # noqa
 from .file.SeqRequestAttachmentForm import SeqRequestAttachmentForm  # noqa

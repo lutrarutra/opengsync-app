@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
-seq_request_form_htmx = Blueprint("seq_request_form_htmx", __name__, url_prefix="/api/seq_request_form/")
+seq_request_form_htmx = Blueprint("seq_request_form_htmx", __name__, url_prefix="/api/hmtx/seq_request_form/")
 
 
 # Template sample annotation sheet

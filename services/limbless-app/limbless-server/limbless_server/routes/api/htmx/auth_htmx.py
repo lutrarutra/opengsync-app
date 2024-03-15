@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
-auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/auth/")
+auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/hmtx/auth/")
 
 
 @auth_htmx.route("login", methods=["POST"])

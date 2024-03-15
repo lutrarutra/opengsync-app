@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
-pooling_form_htmx = Blueprint("pooling_form_htmx", __name__, url_prefix="/api/pooling_form/")
+pooling_form_htmx = Blueprint("pooling_form_htmx", __name__, url_prefix="/api/hmtx/pooling_form/")
 
 
 @pooling_form_htmx.route("<int:experiment_id>/download_pooling_template", methods=["GET"])

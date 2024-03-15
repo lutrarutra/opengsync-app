@@ -1,3 +1,5 @@
+from .seq_run import seq_run_api
+
 # from .jobs import jobs_bp
 from .htmx.samples_htmx import samples_htmx
 from .htmx.projects_htmx import projects_htmx
@@ -14,5 +16,6 @@ from .htmx.seq_request_form import seq_request_form_htmx
 from .htmx.features_htmx import features_htmx
 from .htmx.pooling_form import pooling_form_htmx
 from .htmx.feature_kits_htmx import feature_kits_htmx
+from .htmx.seq_run_htmx import seq_run_htmx
 
 from .plotting.plots import plots_api

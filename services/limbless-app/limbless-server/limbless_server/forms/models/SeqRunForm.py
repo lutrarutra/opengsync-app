@@ -20,7 +20,7 @@ class SeqRunForm(HTMXFlaskForm):
 
     run_folder = StringField("Run Folder", validators=[DataRequired(), Length(min=1, max=models.SeqRun.run_folder.type.length)])  # type: ignore
     flowcell_id = StringField("Flowcell ID", validators=[DataRequired(), Length(min=1, max=models.SeqRun.flowcell_id.type.length)])  # type: ignore
-    read_type = SelectField("Read Type", choices=models.ReadType.as_selectable(), validators=[DataRequired()], coerce=int)  # type: ignore
+    read_type = SelectField("Read Type", choices=ReadType.as_selectable(), validators=[DataRequired()], coerce=int)  # type: ignore
     rta_version = StringField("RTA Version", validators=[DataRequired(), Length(min=1, max=models.SeqRun.rta_version.type.length)])  # type: ignore
     recipe_version = StringField("Recipe Version", validators=[DataRequired(), Length(min=1, max=models.SeqRun.recipe_version.type.length)])  # type: ignore
     side = StringField("Side", validators=[DataRequired(), Length(min=1, max=models.SeqRun.side.type.length)])  # type: ignore
@@ -31,8 +31,8 @@ class SeqRunForm(HTMXFlaskForm):
     i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
     i2_cycles = IntegerField("I2 Cycles", validators=[DataRequired()])
 
-    def __init__(self, formdata: Optional[dict[str, Any]] = None, seq_run: Optional[models.SeqRun] = None):
-        super().__init__(formdata=formdata)
+    def __init__(self, formdata: Optional[dict[str, Any]] = None, seq_run: Optional[models.SeqRun] = None, csrf_enabled: bool = True):
+        super().__init__(formdata=formdata, meta={"csrf": csrf_enabled})
         if seq_run is not None:
             self.__fill_form(seq_run)
 
@@ -54,13 +54,14 @@ class SeqRunForm(HTMXFlaskForm):
     def validate(self) -> bool:
         if not super().validate():
             return False
+        
+        if db.get_seq_run(experiment_name=self.experiment_name.data) is not None:
+            self.experiment_name.errors = ("experiment_name not unique",)
+            return False
 
         return True
     
-    def create_seq_run(self, **context) -> Response:
-        if not self.validate():
-            return self.make_response(**context)
-        
+    def create_seq_run(self) -> models.SeqRun:
         seq_run = db.create_seq_run(
             experiment_name=self.experiment_name.data,  # type: ignore
             status=SequencingStatus.get(int(self.status.data)),
@@ -77,17 +78,18 @@ class SeqRunForm(HTMXFlaskForm):
             i2_cycles=self.i2_cycles.data  # type: ignore
         )
 
-        flash(f"SeqRun {seq_run.id} created successfully", "success")
-        return make_response(
-            redirect=url_for("")
-        )
+        return seq_run
     
     def process_request(self, **context) -> Response:
         if not self.validate():
             return self.make_response(**context)
         
         if (_ := context.get("seq_run")) is None:
-            return self.create_seq_run(**context)
+            seq_run = self.create_seq_run()
+            flash(f"SeqRun {seq_run.id} created successfully", "success")
+            return make_response(
+                redirect=url_for("")
+            )
         
         raise NotImplementedError("Editing SeqRun is not yet implemented")
 

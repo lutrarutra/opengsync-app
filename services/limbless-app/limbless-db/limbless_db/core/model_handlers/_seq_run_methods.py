@@ -98,3 +98,20 @@ def get_seq_runs(
         self.close_session()
 
     return seq_runs, n_pages
+
+
+def update_seq_run(
+    self, seq_run: SeqRun,
+) -> SeqRun:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    self._session.add(seq_run)
+    self._session.commit()
+    self._session.refresh(seq_run)
+
+    if not persist_session:
+        self.close_session()
+
+    return seq_run

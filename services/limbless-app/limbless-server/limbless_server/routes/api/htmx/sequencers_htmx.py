@@ -8,7 +8,7 @@ from limbless_db import DBSession, PAGE_LIMIT, exceptions, models
 from limbless_db.categories import HTTPResponse, UserRole
 from .... import db, forms
 
-sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/sequencers/")
+sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/hmtx/sequencers/")
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore

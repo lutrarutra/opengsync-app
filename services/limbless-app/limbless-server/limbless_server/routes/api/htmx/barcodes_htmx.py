@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
-barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/barcodes/")
+barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/hmtx/barcodes/")
 
 
 @barcodes_htmx.route("get/<int:page>", methods=["GET"])
