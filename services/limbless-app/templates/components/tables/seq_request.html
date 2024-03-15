@@ -72,7 +72,7 @@
     {{ pagination("seq_request-table", "seq_requests_htmx.get", seq_requests_n_pages, seq_requests_active_page, url_args={"sort_by": seq_requests_current_sort, "order": seq_requests_current_sort_order}) }}
 </div>
 <script>
-    $(document).read(function() {
+    $(document).ready(function() {
         init_tooltips();
     });
 </script>

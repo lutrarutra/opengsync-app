@@ -15,25 +15,16 @@
         {{ form_group(seq_request_form.read_length, class="col-3") }}
     </div>
 
-    <div class="row">
-        {{ form_group(seq_request_form.num_cycles_read_1, class="col") }}
-        {{ form_group(seq_request_form.num_cycles_index_1, class="col") }}
-        {{ form_group(seq_request_form.num_cycles_index_2, class="col") }}
-        {{ form_group(seq_request_form.num_cycles_read_2, class="col") }}
-    </div>
-
     {{ form_group(seq_request_form.special_requirements, class="col") }}
 
     <hr>
     <h4>Data Processing</h4>
-    <div class="row">
-        <ol>
-        {% for mode in DataDeliveryMode.as_list() %}
-            <li>{{ mode.name }} <span class="desc">{{ mode.description}} </span></li>
-        {% endfor %}
-        </ol>
-        {{ form_group(seq_request_form.data_delivery_mode_id, class="col") }}
-    </div>
+    <ol>
+    {% for mode in DataDeliveryMode.as_list() %}
+        <li>{{ mode.name }} <span class="desc">{{ mode.description}} </span></li>
+    {% endfor %}
+    </ol>
+    {{ form_group(seq_request_form.data_delivery_mode_id, class="col") }}
 
     <hr>
     <h4>Contact Person</h4>

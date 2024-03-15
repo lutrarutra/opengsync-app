@@ -32,10 +32,13 @@ def seq_requests_page():
         else:
             seq_requests, n_pages = session.get_seq_requests(user_id=None, show_drafts=False, sort_by=current_sort, descending=True)
 
+    open_form = request.args.get("open_form") is not None
+
     return render_template(
         "seq_requests_page.html",
         seq_request_form=seq_request_form,
         seq_requests=seq_requests,
+        open_form=open_form,
         seq_requests_n_pages=n_pages, seq_requests_active_page=0,
         seq_requests_current_sort=current_sort, seq_requests_current_sort_order="desc"
     )

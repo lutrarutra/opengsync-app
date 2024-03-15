@@ -33,4 +33,12 @@
         </div>
     </div>
 </div>
+{% if open_form %}
+    <script>
+        var myModal = new bootstrap.Modal(document.getElementById('seq_request-form-popup'), {
+            keyboard: false
+        });
+        myModal.show();
+    </script>
+{% endif %}
 {% endblock content %}

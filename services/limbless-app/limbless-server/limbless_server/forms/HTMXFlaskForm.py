@@ -18,7 +18,7 @@ class HTMXFlaskForm(FlaskForm):
 
     def process_request(self, **context) -> Response:
         raise NotImplementedError("You must implement this method in your subclass.")
-    
+
     @classproperty
     def template_path(self) -> str:
         if self._template_path is None:

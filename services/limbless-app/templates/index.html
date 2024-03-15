@@ -27,6 +27,12 @@
             Experiments</button>
         </li>
         {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#workflows-tab" type="button" role="tab"
+            aria-controls="workflows-tab" aria-selected="false">
+            Workflows</button>
+        </li>
     </ul>
 
     <div class="tab-content pt-3">
@@ -74,6 +80,47 @@
             </div>
         </div>
         {% endif %}
+        <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Workflows</h3>
+                </div>
+            </div>
+            <div class="workflow-container">
+                <div class="card" style="width: 250px;">
+                    <div class="card-icon">
+                        <img src="{{ url_for('static', filename='images/new_file.svg') }}" width="60px">
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Create Sequencing Request</h5>
+                        <p class="card-text">Create a new sequencing request.</p>
+                        <a href="{{ url_for('seq_requests_page.seq_requests_page', open_form=1) }}" class="btn btn-primary begin-workflow-btn">Start</a>
+                    </div>
+                </div>
+                {% if current_user.is_insider() %}
+                <div class="card" style="width: 250px;">
+                    <div class="card-icon">
+                        <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="80px">
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Pool Libraries</h5>
+                        <p class="card-text">Create pools from libraries or samples received from clients.</p>
+                        <a href="#" class="btn btn-primary begin-workflow-btn">Start</a>
+                    </div>
+                </div>
+                <div class="card" style="width: 250px;">
+                    <div class="card-icon">
+                        <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="80px">
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Spike-In Pools</h5>
+                        <p class="card-text">Create pools from libraries or samples received from clients.</p>
+                        <a href="#" class="btn btn-primary begin-workflow-btn">Start</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
 </div>

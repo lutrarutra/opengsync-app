@@ -13,7 +13,14 @@ class Requestor():
     def __init__(self, host: str, port: int):
         self.host = host
         self.port = port
-        self.url = f"http://{self.host}:{self.port}/api/seq_run"
+        self.url = f"http://{self.host}:{self.port}"
+
+    def check_connection(self) -> bool:
+        try:
+            response = requests.get(self.url + "/status")
+        except requests.exceptions.ConnectionError:
+            return False
+        return response.status_code == 200
 
     def post_seq_run(
         self, experiment_name: str, status: categories.ExperimentStatusEnum,
@@ -23,7 +30,7 @@ class Requestor():
 
     ) -> requests.Response:
         response = requests.post(
-            self.url + "/create",
+            self.url + "/api/seq_run/create",
             data={
                 "experiment_name": experiment_name,
                 "status": status.id,
@@ -44,7 +51,7 @@ class Requestor():
         return response
 
     def update_run_status(self, experiment_name: str, status: categories.ExperimentStatusEnum) -> requests.Response:
-        response = requests.put(f"{self.url}/{experiment_name}/update_status/{status.id}")
+        response = requests.put(f"{self.url}/api/seq_run/{experiment_name}/update_status/{status.id}")
         return response
 
 
@@ -209,6 +216,10 @@ if __name__ == "__main__":
         raise FileNotFoundError(f"Run folder not found: {args.run_folder}")
 
     requestor = Requestor(args.host, args.port)
+    if not requestor.check_connection():
+        print(f"Host '{requestor.url}' not available.")
+        exit(1)
+        
     process_run_folder(args.run_folder, requestor)
 
 exit(0)
