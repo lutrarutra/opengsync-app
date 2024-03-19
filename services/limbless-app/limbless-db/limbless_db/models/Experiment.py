@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum
-from .Links import ExperimentPoolLink, ExperimentFileLink, ExperimentCommentLink
+from .Links import ExperimentFileLink, ExperimentCommentLink
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from .Comment import Comment
     from .SeqQuality import SeqQuality
     from .SeqRun import SeqRun
+    from .Lane import Lane
 
 
 class Experiment(SQLModel, table=True):
@@ -33,7 +34,6 @@ class Experiment(SQLModel, table=True):
     operator: "User" = Relationship(sa_relationship_kwargs={"lazy": "select"})
     
     num_lanes: int = Field(nullable=False)
-    num_pools: int = Field(nullable=False, default=0)
 
     timestamp: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
 
@@ -43,12 +43,11 @@ class Experiment(SQLModel, table=True):
     sequencer: "Sequencer" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
 
     pools: List["Pool"] = Relationship(
-        back_populates="experiments", link_model=ExperimentPoolLink,
-        sa_relationship_kwargs={"lazy": "select", "overlaps": "experiment_links,pool,experiment"},
+        sa_relationship_kwargs={"lazy": "select"},
     )
-    pool_links: List["ExperimentPoolLink"] = Relationship(
-        back_populates="experiment",
-        sa_relationship_kwargs={"lazy": "select", "overlaps": "experiments,pools,experiment"},
+
+    lanes: list["Lane"] = Relationship(
+        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
     sortable_fields: ClassVar[List[str]] = ["id", "name", "flowcell_id", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
@@ -93,4 +92,4 @@ class Experiment(SQLModel, table=True):
         return self._seq_run_
     
     def __str__(self) -> str:
-        return f"Experiment(id={self.id}, num_lanes={self.num_lanes}, num_pools={self.num_pools})"
+        return f"Experiment(id={self.id}, num_lanes={self.num_lanes})"

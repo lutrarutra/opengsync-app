@@ -8,7 +8,7 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.description }}</span></h1>
+            <h1>Library: {{ library.name }} <span class="desc">{{ library.type.abbreviation }}</span></h1>
         </div>
         <div>
             <span {% if not library.is_editable() and not current_user.is_insider() %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
@@ -43,14 +43,14 @@
             aria-controls="library-metadata-tab" aria-selected="true">
             Metadata</button>
         </li>
-        {% if library.type.description == "VISIUM" %}
+        {% if library.type.abbreviation == "VISIUM" %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-visium-tab" type="button" role="tab"
             aria-controls="library-visium-tab" aria-selected="true">
             Visium</button>
         </li>
-        {% elif library.type.description == "ABC" %}
+        {% elif library.type.abbreviation == "ABC" %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-abc-tab" type="button" role="tab"
@@ -108,7 +108,8 @@
         </div>
         <div class="tab-pane fade show" id="library-metadata-tab" role="tabpanel" tabindex="2">
             <div class="row">
-                {{ metadata_group("Type", library.type.value, class="col") }}
+                {{ metadata_group("Type", library.type, class="col-6") }}
+                {{ metadata_group("Genome Reference", library.genome_ref, class="col-6") }}
             </div>
             <div class="row">
                 {{ 
@@ -122,12 +123,12 @@
                 {{
                     metadata_group_email_link(
                         "Owner Email", library.owner.email, class="col",
-                        subject="BSF Library: " + library.name + " " + library.type.description + " " + " (" + library.id | string + ")"
+                        subject="BSF Library: " + library.name + " " + library.type.abbreviation + " " + " (" + library.id | string + ")"
                     )
                 }}
             </div>
         </div>
-        {% if library.type.description == "VISIUM" %}
+        {% if library.type.abbreviation == "VISIUM" %}
         <div class="tab-pane fade show" id="library-visium-tab" role="tabpanel" tabindex="3">
             <div class="row">
                 {{ metadata_group("Image", library.visium_annotation.image, class="col-4") }}
@@ -135,7 +136,7 @@
                 {{ metadata_group("Area", library.visium_annotation.area, class="col-4") }}
             </div>
         </div>
-        {% elif library.type.description == "ABC" %}
+        {% elif library.type.abbreviation == "ABC" %}
         <div class="tab-pane fade show" id="library-abc-tab" role="tabpanel" tabindex="4">
             {% include "components/tables/library-feature.html" %}
         </div>

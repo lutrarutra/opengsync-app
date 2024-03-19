@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, ExperimentStatus
+from limbless_db.categories import HTTPResponse, PoolStatus
 from .... import db, forms, logger
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ def create():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    return forms.ExperimentForm(formdata=request.form).process_request()
+    return forms.models.ExperimentForm(formdata=request.form).process_request()
 
 
 @experiments_htmx.route("<int:experiment_id>/edit", methods=["POST"])
@@ -61,7 +61,7 @@ def edit(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.ExperimentForm(formdata=request.form).process_request(
+    return forms.models.ExperimentForm(formdata=request.form).process_request(
         experiment=experiment
     )
 
@@ -80,17 +80,17 @@ def delete(experiment_id: int):
 
     db.delete_experiment(experiment_id)
 
-    logger.debug(f"Deleted experiment on flowcell '{experiment.flowcell_id}'")
-    flash(f"Deleted experiment on flowcell '{experiment.flowcell_id}'.", "success")
+    logger.debug(f"Deleted experiment on flowcell '{experiment.name}'")
+    flash(f"Deleted experiment on flowcell '{experiment.name}'.", "success")
     
     return make_response(
         redirect=url_for("experiments_page.experiments_page"),
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/add_pool/<int:pool_id>/<int:lane>", methods=["POST"])
+@experiments_htmx.route("<int:experiment_id>/lane_pool/<int:pool_id>/<int:lane_num>", methods=["POST"])
 @login_required
-def add_pool(experiment_id: int, pool_id: int, lane: int):
+def lane_pool(experiment_id: int, pool_id: int, lane_num: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -100,20 +100,19 @@ def add_pool(experiment_id: int, pool_id: int, lane: int):
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if lane > experiment.num_lanes or lane < 1:
+    if lane_num > experiment.num_lanes or lane_num < 1:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if not experiment.is_editable():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if (lane := db.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.link_experiment_pool(
-        experiment_id=experiment_id,
+    db.link_pool_lane(
+        lane_id=lane.id,
         pool_id=pool.id,
-        lane=lane,
     )
 
     logger.debug(f"Added pool '{pool.name}' to experiment (id='{experiment_id}') on lane '{lane}'")
-    flash(f"Added pool '{pool.name}' to experiment on lane '{lane}'.", "success")
+    flash(f"Added pool '{pool.name}' to lane '{lane}'.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
@@ -121,9 +120,9 @@ def add_pool(experiment_id: int, pool_id: int, lane: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/remove_pool/<int:pool_id>/<int:lane>", methods=["DELETE"])
+@experiments_htmx.route("<int:experiment_id>/unlane_pool/<int:pool_id>/<int:lane_num>", methods=["DELETE"])
 @login_required
-def remove_pool(experiment_id: int, pool_id: int, lane: int):
+def unlane_pool(experiment_id: int, pool_id: int, lane_num: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -133,20 +132,19 @@ def remove_pool(experiment_id: int, pool_id: int, lane: int):
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if lane > experiment.num_lanes or lane < 1:
+    if lane_num > experiment.num_lanes or lane_num < 1:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if not experiment.is_editable():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if (lane := db.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.unlink_experiment_pool(
-        experiment_id=experiment_id,
+    db.unlink_pool_lane(
+        lane_id=lane.id,
         pool_id=pool_id,
-        lane=lane,
     )
 
-    logger.debug(f"Removed pool '{pool.name}' from experiment  (id='{experiment_id}') on lane '{lane}'")
-    flash(f"Removed pool '{pool.name}' from experiment on lane '{lane}'.", "success")
+    logger.debug(f"Removed pool '{pool.name}' from lane '{lane}' (experiment_id='{experiment_id}')")
+    flash(f"Removed pool '{pool.name}' from lane '{lane}'.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
@@ -163,7 +161,7 @@ def upload_file(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.ExperimentAttachmentForm(experiment_id=experiment_id, formdata=request.form | request.files).process_request(
+    return forms.file.ExperimentAttachmentForm(experiment_id=experiment_id, formdata=request.form | request.files).process_request(
         experiment=experiment, user=current_user
     )
 
@@ -199,8 +197,98 @@ def add_comment(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.ExperimentCommentForm(experiment_id=experiment_id, formdata=request.form).process_request(user=current_user, experiment=experiment)
+    return forms.commment.ExperimentCommentForm(experiment_id=experiment_id, formdata=request.form).process_request(user=current_user, experiment=experiment)
 
+
+@experiments_htmx.route("<int:experiment_id>/available_pools", methods=["GET"])
+@login_required
+def available_pools(experiment_id: int):
+    with DBSession(db) as session:
+        if not current_user.is_insider():
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        available_pools, n_available_pools_pages = session.get_pools(sort_by="id", descending=True, status=PoolStatus.ACCEPTED)
+        selected_pools, _ = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id, limit=None)
+
+        return make_response(
+            render_template(
+                "components/popups/select-experiment-pools.html",
+                experiment=experiment, available_pools=available_pools, n_available_pools_pages=n_available_pools_pages,
+                available_pools_active_page=0, selected_pools=selected_pools,
+            ), push_url=False
+        )
+    
+
+@experiments_htmx.route("<int:experiment_id>/add_pool", methods=["POST"])
+@login_required
+def add_pool(experiment_id: int):
+    with DBSession(db) as session:
+        if not current_user.is_insider():
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+        if (pool_id := request.form.get("pool_id")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        try:
+            pool_id = int(pool_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        if (_ := session.get_pool(pool_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+
+        session.link_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
+
+        available_pools, n_available_pools_pages = session.get_pools(sort_by="id", descending=True, status=PoolStatus.ACCEPTED)
+        selected_pools, selected_n_pools = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id, limit=None)
+
+        logger.info(f"Added pool (id='{pool_id}') to experiment (id='{experiment_id}')")
+        flash("Added pool(s) to experiment.", "success")
+
+        return make_response(
+            render_template(
+                "components/popups/select-experiment-pools.html",
+                experiment=experiment, available_pools=available_pools, n_available_pools_pages=n_available_pools_pages,
+                available_pools_active_page=0, selected_pools=selected_pools, selected_n_pools_pages=selected_n_pools, selected_pools_active_page=0
+            ), push_url=False
+        )
+    
+
+@experiments_htmx.route("<int:experiment_id>/remove_pool", methods=["DELETE"])
+@login_required
+def remove_pool(experiment_id: int):
+    with DBSession(db) as session:
+        if not current_user.is_insider():
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        if (pool_id := request.args.get("pool_id")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        try:
+            pool_id = int(pool_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if (_ := session.get_pool(pool_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+
+        session.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
+
+        logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
+        flash("Removed pool from experiment.", "success")
+        return make_response(
+            redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
+        )
+    
 
 @experiments_htmx.route("<int:experiment_id>/get_graph", methods=["GET"])
 @login_required

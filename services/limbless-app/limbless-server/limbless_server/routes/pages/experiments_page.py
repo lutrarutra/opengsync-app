@@ -4,8 +4,10 @@ from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required
 
 from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse, SeqRequestStatus
-from ... import forms, db, tools
+from limbless_db.categories import HTTPResponse
+from ... import forms, db, tools, logger
+
+import time
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -24,7 +26,7 @@ def experiments_page():
     with DBSession(db) as session:
         experiments, n_pages = session.get_experiments()
 
-        experiment_form = forms.ExperimentForm(user=current_user)
+        experiment_form = forms.models.ExperimentForm(user=current_user)
 
         return render_template(
             "experiments_page.html", experiment_form=experiment_form,
@@ -47,47 +49,45 @@ def experiment_page(experiment_id: int):
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
 
-        pools = session.get_available_pools_for_experiment(experiment_id)
-
         available_seq_requests_sort = "submitted_time"
 
-        experiment_lanes = session.get_lanes_in_experiment(experiment_id)
+        pools, pools_n_pages = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id)
 
-        libraries, libraries_n_pages = session.get_libraries(
-            sort_by="id", descending=True, experiment_id=experiment_id
-        )
+        experiment_form = forms.models.ExperimentForm(experiment=experiment)
+        pooling_input_form = forms.workflows.library_pooling.PoolingInputForm()
+        comment_form = forms.commment.ExperimentCommentForm(experiment_id=experiment_id)
+        file_input_form = forms.file.ExperimentAttachmentForm(experiment_id=experiment_id)
 
-        experiment_form = forms.ExperimentForm(experiment=experiment)
-        pooling_input_form = forms.pooling.PoolingInputForm()
-        comment_form = forms.ExperimentCommentForm(experiment_id=experiment_id)
+        experiment_lanes = {}
+        for lane in experiment.lanes:
+            if lane.number not in experiment_lanes.keys():
+                experiment_lanes[lane.number] = []
+            for pool in lane.pools:
+                experiment_lanes[lane.number].append(pool.id)
 
         path_list = [
             ("Experiments", url_for("experiments_page.experiments_page")),
             (f"Experiment {experiment_id}", ""),
         ]
 
-        libraries_df = db.get_experiment_libraries_df(experiment_id)
-        if len(libraries_df) > 0:
-            libraries_df = tools.check_indices(libraries_df)
+        experiment.files
+        experiment.comments
 
-        return render_template(
-            "experiment_page.html",
-            experiment=experiment,
-            experiment_form=experiment_form,
-            experiment_lanes=experiment_lanes,
-            path_list=path_list,
-            pools=pools,
-            pools_n_pages=0,
-            libraries_df=libraries_df,
-            libraries=libraries,
-            libraries_n_pages=libraries_n_pages,
-            libraries_active_page=0,
-            comment_form=comment_form,
-            file_input_form=forms.ExperimentAttachmentForm(experiment_id=experiment_id),
-            pooling_input_form=pooling_input_form,
-            available_seq_requests_active_page=0,
-            available_seq_requests_current_sort=available_seq_requests_sort,
-            available_seq_requests_current_sort_order="desc",
-            selected_sequencer=experiment.sequencer.name,
-            selected_user=experiment.operator,
-        )
+    return render_template(
+        "experiment_page.html",
+        experiment=experiment,
+        experiment_form=experiment_form,
+        path_list=path_list,
+        pools=pools,
+        pools_n_pages=pools_n_pages,
+        libraries_active_page=0,
+        file_input_form=file_input_form,
+        comment_form=comment_form,
+        pooling_input_form=pooling_input_form,
+        available_seq_requests_active_page=0,
+        experiment_lanes=experiment_lanes,
+        available_seq_requests_current_sort=available_seq_requests_sort,
+        available_seq_requests_current_sort_order="desc",
+        selected_sequencer=experiment.sequencer.name,
+        selected_user=experiment.operator,
+    )

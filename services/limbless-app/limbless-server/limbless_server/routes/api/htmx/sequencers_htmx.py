@@ -40,7 +40,7 @@ def create():
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    return forms.SequencerForm(request.form).process_request()
+    return forms.models.SequencerForm(request.form).process_request()
 
 
 @sequencers_htmx.route("update/<int:sequencer_id>", methods=["POST"])
@@ -52,7 +52,7 @@ def update(sequencer_id: int):
     if (sequencer := db.get_sequencer(sequencer_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.SequencerForm(request.form).process_request(
+    return forms.models.SequencerForm(request.form).process_request(
         sequencer=sequencer
     )
 

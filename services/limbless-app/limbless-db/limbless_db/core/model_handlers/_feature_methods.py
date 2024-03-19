@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 from ... import models, PAGE_LIMIT
-from ...categories import FeatureType
+from ...categories import FeatureTypeEnum
 from .. import exceptions
 
 
@@ -12,7 +12,7 @@ def create_feature(
     sequence: str,
     pattern: str,
     read: str,
-    type: FeatureType,
+    type: FeatureTypeEnum,
     feature_kit_id: Optional[int] = None,
     target_name: Optional[str] = None,
     target_id: Optional[str] = None,

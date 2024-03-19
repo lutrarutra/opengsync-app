@@ -156,8 +156,21 @@ body {
     width: 100%;
     flex-direction: row;
     .footer-id {
-        margin-right: auto;
         background-color: transparent;
+        margin-right: auto;
+        width: 30%;
+    }
+    .footer-info {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        flex-grow: 1;
+    }
+    .footer-controls {
+        width: 30%;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
     }
 }
 
@@ -631,6 +644,44 @@ select {
             display: block;
             margin: auto;
 
+        }
+    }
+}
+
+table tbody tr.select-pool.selected {
+    th, td {
+        background-color: #EAFAF1;
+    }
+}
+
+.relative-progress {
+    position: relative;
+
+    .progress-title {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        font-size: 13px;
+        padding-top: 2px;
+    }
+}
+
+.color-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+    .legend-unit {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        .color-square {
+            height: 30px;
+            width: 30px;
+        }
+        .color-label {
+            font-size: 15px;
+            font-weight: 600;
         }
     }
 }

@@ -8,7 +8,7 @@ from limbless_db.models import User
 from limbless_db.categories import HTTPResponse
 
 from ...app import db
-from ...forms import pooling as pooling_forms
+from ...forms import workflows
 
 if TYPE_CHECKING:
     current_user: User = None  # type: ignore
@@ -47,7 +47,6 @@ def pool_page(pool_id: int):
             return abort(HTTPResponse.FORBIDDEN.id)
 
         libraries, libraries_n_pages = session.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
-        is_editable = pool.is_editable()
 
         path_list = [
             ("Pools", url_for("pools_page.pools_page")),
@@ -63,7 +62,7 @@ def pool_page(pool_id: int):
                 ]
 
         open_index_form = request.args.get("index_form", None) == "open"
-        pooling_input_form = pooling_forms.PoolingInputForm()
+        pooling_input_form = workflows.library_pooling.PoolingInputForm()
 
         return render_template(
             "pool_page.html",
@@ -72,7 +71,7 @@ def pool_page(pool_id: int):
             libraries_active_page=0,
             libraries_current_sort="id",
             libraries_current_sort_order="desc",
-            path_list=path_list, is_editable=is_editable,
+            path_list=path_list,
             open_index_form=open_index_form,
             pooling_input_form=pooling_input_form
         )

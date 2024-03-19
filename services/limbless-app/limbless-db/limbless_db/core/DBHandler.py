@@ -85,7 +85,8 @@ class DBHandler():
         get_seq_requests, delete_seq_request, update_seq_request,
         query_seq_requests, submit_seq_request,
         add_file_to_seq_request, remove_file_from_seq_request,
-        remove_comment_from_seq_request, add_seq_request_share_email, remove_seq_request_share_email
+        remove_comment_from_seq_request, add_seq_request_share_email, remove_seq_request_share_email,
+        process_seq_request
     )
 
     from .model_handlers._contact_methods import (
@@ -101,6 +102,10 @@ class DBHandler():
         create_cmo, get_cmo, get_cmos,
     )
 
+    from .model_handlers._lane_methods import (
+        create_lane, get_lane, get_lanes, update_lane, get_experiment_lane
+    )
+
     from .model_handlers._feature_methods import (
         create_feature, get_feature, get_features,
         delete_feature, update_feature, get_feature_from_kit_by_feature_name,
@@ -113,18 +118,18 @@ class DBHandler():
     )
 
     from .model_handlers._link_methods import (
-        get_lanes_in_experiment,
         get_sample_library_links,
-        get_available_pools_for_experiment,
 
-        link_experiment_pool,
+        link_pool_lane,
         link_feature_library,
         link_sample_library,
+        link_pool_experiment,
 
         is_sample_in_seq_request,
 
-        unlink_experiment_pool,
+        unlink_pool_lane,
         unlink_feature_library,
+        unlink_pool_experiment,
     )
 
     from .model_handlers._file_methods import (

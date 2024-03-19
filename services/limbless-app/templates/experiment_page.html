@@ -13,6 +13,12 @@
             <h1>{{ experiment.name }}</h1>
         </div>
         <div>
+            <button type="button" class="btn btn-success"
+            hx-get="{{ url_for('experiments_htmx.available_pools', experiment_id=experiment.id) }}"
+            hx-target="#add-pools-container" data-bs-toggle="modal"
+            data-bs-target="#add-pools-popup">
+                Add Pools
+            </button>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#experiment-form-popup">
                 Edit Experiment
@@ -52,80 +58,70 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="pools-tab-btn" data-bs-toggle="tab" data-bs-target="#pools-tab"
                     type="button" role="tab" aria-controls="pools-tab" aria-selected="true">
-                    Pools</button>
-            </li>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#libraries-tab"
-                    type="button" role="tab" aria-controls="libraries-tab" aria-selected="true">
-                    Libraries</button>
+                    Pools
+                </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="metadata-tab-btn" data-bs-toggle="tab" data-bs-target="#metadata-tab"
                     type="button" role="tab" aria-controls="metadata-tab" aria-selected="false">
-                    Metadata</button>
+                    Metadata
+                </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#experiment-overview-tab" type="button" role="tab"
-                aria-controls="experiment-overview-tab" aria-selected="true"
-                id="experiment-overview-tab-btn">Overview</button>
+                    data-bs-target="#experiment-overview-tab" type="button" role="tab"
+                    aria-controls="experiment-overview-tab" aria-selected="true"
+                    id="experiment-overview-tab-btn">
+                    Overview
+                </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#experiment-files-tab" type="button" role="tab"
-                aria-controls="experiment-files-tab" aria-selected="true"
-                id="experiment-files-tab-btn">Files</button>
+                    data-bs-target="#experiment-files-tab" type="button" role="tab"
+                    aria-controls="experiment-files-tab" aria-selected="true"
+                    id="experiment-files-tab-btn">
+                    Files
+                </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#experiment-comments-tab" type="button" role="tab"
                 aria-controls="experiment-comments-tab" aria-selected="true"
-                id="experiment-comments-tab-btn">Comments</button>
+                id="experiment-comments-tab-btn">
+                    Comments
+                </button>
             </li>
             {% if experiment.seq_run %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#experiment-seq_run-tab" type="button" role="tab"
                 aria-controls="experiment-seq_run-tab" aria-selected="true"
-                id="experiment-seq_run-tab-btn">Run</button>
+                id="experiment-seq_run-tab-btn">
+                    Run
+                </button>
             </li>
             {% endif %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#experiment-num_reads-tab" type="button" role="tab"
                 aria-controls="experiment-num_reads-tab" aria-selected="true"
-                id="experiment-num_reads-tab-btn"># Reads</button>
+                id="experiment-num_reads-tab-btn">
+                    # Reads
+                </button>
             </li>
         </ul>
         <div class="tab-content pt-3">
             <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h2>Pools</h2>
+                        <h2>Pools <img {{ tooltip('Right click on a pool name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                     </div>
                     <div>
                     </div>
                 </div>
                 {% include "components/tables/experiment-pool.html" %}
             </div>
-            <div class="tab-pane fade show" id="libraries-tab" role="tabpanel" tabindex="2">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h2>Libraries</h2>
-                    </div>
-                    <div>
-                        {% if experiment.is_editable() %}
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#pooling-form-popup">
-                            Pool Libraries
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-                {% include "components/tables/experiment-library.html" %}
-            </div>
-            <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="3">
+            <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="1">
                 <div class="row">
                     {{
                         metadata_group_link(
@@ -163,7 +159,7 @@
                     {{ metadata_group("R2 Cycles", experiment.r2_cycles, class="col") }}
                 </div>
             </div>
-            <div class="tab-pane fade show" id="experiment-overview-tab" role="tabpanel" tabindex="4">
+            <div class="tab-pane fade show" id="experiment-overview-tab" role="tabpanel" tabindex="2">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h2>Overview</h2>
@@ -173,7 +169,7 @@
                 <script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js"></script>
                 <div class="flow-graph-container pt-3" id="graph" style="width: 100%"></div>
             </div>
-            <div class="tab-pane fade show" id="experiment-files-tab" role="tabpanel" tabindex="5">
+            <div class="tab-pane fade show" id="experiment-files-tab" role="tabpanel" tabindex="3">
                 {{
                     files_tab(
                         context="experiment", files=experiment.files,
@@ -182,7 +178,7 @@
                     )
                 }}
             </div>
-            <div class="tab-pane fade show" id="experiment-comments-tab" role="tabpanel" tabindex="6">
+            <div class="tab-pane fade show" id="experiment-comments-tab" role="tabpanel" tabindex="4">
                 {{
                     comments_tab(context="experiment", comments=experiment.comments)
                 }}
@@ -208,7 +204,7 @@
                 </div>
             </div>  
             {% endif %}
-            <div class="tab-pane fade show" id="experiment-num_reads-tab" role="tabpanel" tabindex="8">
+            <div class="tab-pane fade show" id="experiment-num_reads-tab" role="tabpanel" tabindex="5">
                 {% include "components/plots/experiment_library_reads.html" %}
             </div>
         </div>
@@ -244,11 +240,21 @@
             {% include file_input_form._template_path %}
         </div>
     </div>
+
+    <div class="modal fade" id="add-pools-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="add-pools-container">
+
+        </div>
+    </div>
 </div>
 <script>
     init_tooltips();
     $(document).ready(function() {
-        $(".dataframe").addClass("table table-hover table-cursor").removeClass("dataframe");
+        $("#add-pools-popup").on("hide.bs.modal", function() {
+            console.log("modal closed");
+            location.reload();
+        });
+
         $("#experiment-overview-tab-btn").on("click", function() {    
             d3.json("{{ url_for('experiments_htmx.get_graph', experiment_id=experiment.id) }}", function(graph) {
 

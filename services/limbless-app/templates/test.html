@@ -1,17 +1,19 @@
-
 {% extends "base.html" %}
-{% set active_page = "pools-page" %}
 {% block content %}
+
+{% from "components/color_legend.jinja2" import color_legend %}
 
 <div class="container" style="height: 100%;">
     <!-- Your grid container -->
-    <div id="grid" class="spreadsheet-grid"></div>
+    {{ color_legend(colors) }}
+    <div id="grid" class="spreadsheet-grid">
+    </div>
 </div>
 
 <script>
     $(document).ready(function() {
-        const library_types = {{ LibraryType.descriptions() | tojson }};
-        const organisms = {{ Organism.names() | tojson }};
+        const library_types = {{ LibraryType.names() | tojson }};
+        const organisms = {{ GenomeRef.names() | tojson }};
         library_types[0] = "Custom";
 
         var data = [

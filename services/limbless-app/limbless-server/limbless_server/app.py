@@ -59,7 +59,13 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     if app.debug:
         @app.route("/test")
         def test():
-            return render_template("test.html")
+            colors = {
+                "dont_change": "#FADBD8",
+                "required": "#E8DAEF",
+                "optional": "#FCF3CF",
+                "overwritable": "#D5F5E3",
+            }
+            return render_template("test.html", colors=colors)
 
     @app.route("/index_page")
     def _index_page():
@@ -173,25 +179,26 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     def status():
         return make_response("OK", 200)
     
-    app.register_blueprint(api.samples_htmx)
-    app.register_blueprint(api.projects_htmx)
-    app.register_blueprint(api.experiments_htmx)
-    app.register_blueprint(api.pools_htmx)
-    app.register_blueprint(api.auth_htmx)
-    app.register_blueprint(api.barcodes_htmx)
-    app.register_blueprint(api.seq_requests_htmx)
-    app.register_blueprint(api.adapters_htmx)
-    app.register_blueprint(api.sequencers_htmx)
-    app.register_blueprint(api.users_htmx)
-    app.register_blueprint(api.libraries_htmx)
-    app.register_blueprint(api.seq_request_form_htmx)
-    app.register_blueprint(api.features_htmx)
-    app.register_blueprint(api.pooling_form_htmx)
-    app.register_blueprint(api.feature_kits_htmx)
-    app.register_blueprint(api.plots_api)
-    app.register_blueprint(api.seq_run_htmx)
-
+    app.register_blueprint(api.htmx.samples_htmx)
+    app.register_blueprint(api.htmx.projects_htmx)
+    app.register_blueprint(api.htmx.experiments_htmx)
+    app.register_blueprint(api.htmx.pools_htmx)
+    app.register_blueprint(api.htmx.auth_htmx)
+    app.register_blueprint(api.htmx.barcodes_htmx)
+    app.register_blueprint(api.htmx.seq_requests_htmx)
+    app.register_blueprint(api.htmx.adapters_htmx)
+    app.register_blueprint(api.htmx.sequencers_htmx)
+    app.register_blueprint(api.htmx.users_htmx)
+    app.register_blueprint(api.htmx.libraries_htmx)
+    app.register_blueprint(api.htmx.features_htmx)
+    app.register_blueprint(api.htmx.feature_kits_htmx)
+    
+    app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.seq_run_api)
+
+    app.register_blueprint(api.workflows.library_pooling_workflow)
+    app.register_blueprint(api.workflows.library_annotation_workflow)
+    app.register_blueprint(api.workflows.lane_pools_workflow)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

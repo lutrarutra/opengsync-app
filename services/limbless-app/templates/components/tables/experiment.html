@@ -51,13 +51,6 @@
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                     )
                 }}
-                {{
-                    table_col(
-                        target_id='experiment-table', column_name='# Pools', column_var='num_pools',
-                        sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
-                    )
-                }}
             </tr>
         </thead>
         <tbody>
@@ -81,7 +74,6 @@
                 <td>{{ experiment.sequencer.name }}</td>
                 <td>{{ experiment.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>{{ experiment.num_lanes }}</td>
-                <td>{{ experiment.num_pools }}</td>
             </tr>
             {% endfor %}
         </tbody>

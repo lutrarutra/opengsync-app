@@ -169,6 +169,10 @@
         $("tr[data-href]").on("click", function(event) {
             window.location.href = this.dataset.href;
         });
+        
+        function redirect(url) {
+            document.location.href = url;
+        }
 
         // right click menu
         $(document).on("click", "#right-click-bg", function(e) {

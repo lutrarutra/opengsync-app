@@ -3,10 +3,10 @@ from datetime import datetime
 from typing import Optional
 
 from sqlmodel import func
-from sqlalchemy.sql.operators import is_, or_, and_
+from sqlalchemy.sql.operators import and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, ReadType, FlowCellType, FileType, LibraryStatus
+from ...categories import SeqRequestStatus, ReadTypeEnum, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus
 from .. import exceptions
 
 
@@ -14,10 +14,10 @@ def create_seq_request(
     self, name: str,
     description: Optional[str],
     requestor_id: int,
-    technology: str,
     contact_person_id: int,
     billing_contact_id: int,
-    seq_type: ReadType,
+    seq_type: ReadTypeEnum,
+    data_delivery_mode: DataDeliveryModeEnum,
     organization_name: str,
     organization_address: str,
     num_cycles_read_1: Optional[int] = None,
@@ -27,8 +27,6 @@ def create_seq_request(
     read_length: Optional[int] = None,
     num_lanes: Optional[int] = None,
     special_requirements: Optional[str] = None,
-    sequencer: Optional[str] = None,
-    flowcell_type: Optional[FlowCellType] = None,
     bioinformatician_contact_id: Optional[int] = None,
     organization_department: Optional[str] = None,
     billing_code: Optional[str] = None,
@@ -57,7 +55,6 @@ def create_seq_request(
         name=name,
         description=description,
         requestor_id=requestor_id,
-        technology=technology,
         sequencing_type_id=seq_type.id,
         num_cycles_read_1=num_cycles_read_1,
         num_cycles_index_1=num_cycles_index_1,
@@ -66,13 +63,12 @@ def create_seq_request(
         read_length=read_length,
         num_lanes=num_lanes,
         special_requirements=special_requirements,
-        sequencer=sequencer,
-        flowcell_type_id=flowcell_type.id if flowcell_type is not None else None,
         billing_contact_id=billing_contact_id,
         contact_person_id=contact_person_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
         status_id=SeqRequestStatus.DRAFT.id,
         submitted_time=None,
+        data_delivery_mode_id=data_delivery_mode.id,
         organization_name=organization_name,
         organization_department=organization_department,
         organization_address=organization_address,
@@ -124,7 +120,7 @@ def get_seq_request(
 
 def get_seq_requests(
     self,
-    with_statuses: Optional[list[SeqRequestStatus]] = None,
+    with_statuses: Optional[list[SeqRequestStatusEnum]] = None,
     show_drafts: bool = True,
     sample_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
@@ -190,7 +186,7 @@ def get_seq_requests(
 
 def get_num_seq_requests(
     self, user_id: Optional[int] = None,
-    with_statuses: Optional[list[SeqRequestStatus]] = None,
+    with_statuses: Optional[list[SeqRequestStatusEnum]] = None,
 ) -> int:
 
     persist_session = self._session is not None
@@ -235,6 +231,10 @@ def submit_seq_request(
             library.status_id = LibraryStatus.SUBMITTED.id
         self._session.add(library)
 
+    for pool in seq_request.pools:
+        pool.status_id = PoolStatus.SUBMITTED.id
+        self._session.add(pool)
+
     if commit:
         self._session.commit()
         self._session.refresh(seq_request)
@@ -270,16 +270,16 @@ def update_seq_request(
 
 
 def delete_seq_request(
-    self, sample_id: int,
+    self, seq_request_id: int,
     commit: bool = True
 ) -> None:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    seq_request = self._session.get(models.SeqRequest, sample_id)
+    seq_request = self._session.get(models.SeqRequest, seq_request_id)
     if not seq_request:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {sample_id} does not exist")
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
 
     libraries = seq_request.libraries
     
@@ -296,19 +296,8 @@ def delete_seq_request(
             self._session.add(library.pool)
         self._session.delete(library)
 
-    # pools = seq_request.pools
-    # for pool in pools:
-    #     for link in pool.experiment_links:
-    #         link = self._session.query(models.ExperimentPoolLink).where(
-    #             models.ExperimentPoolLink.experiment_id == link.experiment_id,
-    #             models.ExperimentPoolLink.pool_id == link.pool_id,
-    #             models.ExperimentPoolLink.lane == link.lane,
-    #         ).first()
-    #         link.experiment.num_pools -= 1
-    #         self._session.add(link.experiment)
-    #         self._session.delete(link)
-                
-    #     self._session.delete(pool)
+    for pool in seq_request.pools:
+        self._session.delete(pool)
 
     seq_request.requestor.num_seq_requests -= 1
     self._session.add(seq_request.requestor)
@@ -485,3 +474,43 @@ def remove_seq_request_share_email(self, seq_request_id: int, email: str, commit
     if not persist_session:
         self.close_session()
     return share_link
+
+
+def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum) -> models.SeqRequest:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+
+    seq_request.status_id = status.id
+    
+    if status == SeqRequestStatus.ACCEPTED:
+        pool_status = PoolStatus.ACCEPTED
+        library_status = LibraryStatus.ACCEPTED
+    elif status == SeqRequestStatus.DRAFT:
+        pool_status = PoolStatus.DRAFT
+        library_status = LibraryStatus.DRAFT
+    elif status == SeqRequestStatus.REJECTED:
+        pool_status = PoolStatus.REJECTED
+        library_status = LibraryStatus.REJECTED
+    else:
+        raise TypeError(f"Cannot process request to '{status}'.")
+
+    for pool in seq_request.pools:
+        pool.status_id = pool_status.id
+        self._session.add(pool)
+
+    for library in seq_request.libraries:
+        library.status_id = library_status.id
+        self._session.add(library)
+
+    self._session.add(seq_request)
+    self._session.commit()
+    self._session.refresh(seq_request)
+
+    if not persist_session:
+        self.close_session()
+
+    return seq_request

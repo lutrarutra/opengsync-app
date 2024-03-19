@@ -1,0 +1,84 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div id="available-experiment-pool-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='available-experiment-pool-table', column_name='ID', column_var='id',
+                        sort_url='pools_htmx.get', sort_url_args={"select": 1},
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
+                        query_url=url_for('pools_htmx.table_query', select=1), current_query=libraries_current_query,
+                        field_name=field_name, query_type="number", col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='available-experiment-pool-table', column_name='Name', column_var='name',
+                        sort_url='pools_htmx.get', sort_url_args={"select": 1},
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
+                        query_url=url_for('pools_htmx.table_query', select=1), current_query=libraries_current_query,
+                        field_name=field_name, query_type="text", col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='available-experiment-pool-table', column_name='# M.Reads', column_var='num_m_reads_requested',
+                        sort_url='pools_htmx.get', sort_url_args={"select": 1},
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
+                        col_size=1,
+                    )
+                }}
+                <th>Library Types</th>
+                {{
+                    table_col(
+                        target_id='available-experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
+                        sort_url='pools_htmx.get', sort_url_args={"select": 1},
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
+                        col_size=1,
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for pool in available_pools %}
+            {% if pool.experiment_id == experiment.id %}
+            <tr class="select-pool selected">
+            {% else %}
+            <tr onclick="add_pool({{ pool.id }})" class="select-pool">
+            {% endif %}
+                <th scope="row">{{ pool.id }}</th>
+                <td>{{ pool.name }}</td>
+                <td class="num-m-reads-cell" id="num-m-reads-cell-{{ pool.id }}">{{ pool.num_m_reads_requested }}</td>
+                <td>
+                    <ul class="h-list">
+                    {% for library_type in pool.list_library_types() %}
+                        <li>
+                            {{ library_type }}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                </td>
+                <td>{{ pool.num_libraries }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("available-experiment-pool-table", "pools_htmx.get", n_available_pools_pages, available_pools_active_page, url_args={"sort_by": available_pools_current_sort, "order": available_pools_current_sort_order, "select": 1}) }}
+    <script>
+        init_tooltips();
+
+        function add_pool(pool_id) {
+            htmx.ajax("POST", "{{ url_for('experiments_htmx.add_pool', experiment_id=experiment.id) }}", {
+                "target": "#add-pools-container",
+                "swap": "innerHTML",
+                "values": {
+                    "pool_id": pool_id,
+                }
+            });
+        }
+    </script>
+</div>

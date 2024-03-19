@@ -1,8 +1,9 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, select_input %}
 <form id="sequencer-form">
     {{ form.csrf_token() }}
     <div class="row">
         {{ form_group(form.name, class="col") }}
+        {{ select_input(form.type, class="col") }}
         {{ form_group(form.ip_address, class="col") }}
     </div>
 </form>

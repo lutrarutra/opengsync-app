@@ -30,14 +30,14 @@ def get(page: int):
     pools: list[models.Pool] = []
     context = {}
     
-    if (experiment_id := request.args.get("experiment_id")) is not None:
-        template = "components/tables/experiment-pool.html"
-        try:
-            experiment_id = int(experiment_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        with DBSession(db) as session:
+    with DBSession(db) as session:
+        if (experiment_id := request.args.get("experiment_id")) is not None:
+            template = "components/tables/experiment-pool.html"
+            try:
+                experiment_id = int(experiment_id)
+            except ValueError:
+                return abort(HTTPResponse.BAD_REQUEST.id)
+            
             if (experiment := session.get_experiment(experiment_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             
@@ -47,21 +47,27 @@ def get(page: int):
             )
             context["experiment"] = experiment
             context["experiment_lanes"] = session.get_lanes_in_experiment(experiment_id)
-    else:
-        template = "components/tables/pool.html"
-        with DBSession(db) as session:
+
+        elif "select" in request.args.keys():
+            template = "components/tables/select-pool.html"
+            pools, n_pages = session.get_pools(
+                sort_by=sort_by, descending=descending,
+                offset=offset,
+            )
+        else:
+            template = "components/tables/pool.html"
             pools, n_pages = session.get_pools(
                 sort_by=sort_by, descending=descending,
                 offset=offset,
             )
 
-    return make_response(
-        render_template(
-            template, pools=pools, pools_n_pages=n_pages,
-            pools_current_sort=sort_by, pools_current_sort_order=order,
-            pools_active_page=page, **context
+        return make_response(
+            render_template(
+                template, pools=pools, pools_n_pages=n_pages,
+                pools_current_sort=sort_by, pools_current_sort_order=order,
+                pools_active_page=page, **context
+            )
         )
-    )
 
 
 @pools_htmx.route("table_query", methods=["POST"])

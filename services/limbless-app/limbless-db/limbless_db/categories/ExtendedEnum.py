@@ -9,7 +9,11 @@ class DBEnum():
     name: str
 
     def __str__(self) -> str:
-        return f"{self.name} [{self.id}]"
+        return f"{self.display_name} [{self.id}]"
+    
+    @property
+    def display_name(self) -> str:
+        return self.name
     
     
 T = TypeVar("T")
@@ -43,13 +47,13 @@ class ExtendedEnum(Generic[T]):
         return list(cls.__enums__[cls.__name__].values())  # type: ignore
     
     @classmethod
-    def as_tuples(cls) -> list[tuple[int, str]]:
+    def as_tuples(cls) -> list[tuple[int, T]]:
         return [(e.id, e) for e in cls.as_list()]  # type: ignore
         
     @classmethod
     def as_selectable(cls) -> list[tuple[int, str]]:
-        return [(e.id, e.name) for e in cls.as_list()]  # type: ignore
+        return [(e.id, e.display_name) for e in cls.as_list()]  # type: ignore
 
     @classmethod
     def names(cls) -> list[str]:
-        return [e.name for e in cls.as_list()]  # type: ignore
+        return [e.display_name for e in cls.as_list()]  # type: ignore

@@ -14,7 +14,7 @@ def devices_page():
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    sequencer_form = forms.SequencerForm()
+    sequencer_form = forms.models.SequencerForm()
     with DBSession(db) as session:
         sequencers, n_pages = session.get_sequencers()
 
@@ -34,9 +34,7 @@ def sequencer_page(sequencer_id: int):
     if (sequencer := db.get_sequencer(sequencer_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    sequencer_form = forms.SequencerForm()
-    sequencer_form.name.data = sequencer.name
-    sequencer_form.ip_address.data = sequencer.ip
+    sequencer_form = forms.models.SequencerForm(sequencer=sequencer)
 
     path_list = [
         ("Devices", url_for("devices_page.devices_page")),

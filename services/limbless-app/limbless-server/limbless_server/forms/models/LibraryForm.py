@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Length
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import LibraryType
+from limbless_db.categories import LibraryType, GenomeRef
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -18,7 +18,8 @@ class LibraryForm(HTMXFlaskForm):
 
     name = StringField("Name", validators=[DataRequired(), Length(min=3, max=models.Library.name.type.length)])   # type: ignore
     adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=models.Library.adapter.type.length)])   # type: ignore
-    library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], coerce=int)  # type: ignore
+    library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), coerce=int)
+    genome = SelectField("Reference Genome", choices=GenomeRef.as_selectable(), coerce=int)
     index_1 = StringField("Index 1 (i7)", validators=[DataRequired(), Length(min=1, max=models.Library.index_1_sequence.type.length)])  # type: ignore
     index_2 = StringField("Index 2 (i5)", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_2_sequence.type.length)])  # type: ignore
     index_3 = StringField("Index 3", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_3_sequence.type.length)])  # type: ignore
@@ -33,6 +34,7 @@ class LibraryForm(HTMXFlaskForm):
         self.name.data = library.name
         self.adapter.data = library.adapter
         self.library_type.data = library.type_id
+        self.genome.data = library.genome_ref_id
         self.index_1.data = library.index_1_sequence
         self.index_2.data = library.index_2_sequence
         self.index_3.data = library.index_3_sequence
@@ -40,12 +42,7 @@ class LibraryForm(HTMXFlaskForm):
 
     def validate(self) -> bool:
         if not super().validate():
-            return False
-        
-        try:
-            LibraryType.get(int(self.library_type.data))
-        except ValueError:
-            self.library_type.errors = ("Invalid library type.",)
+            logger.debug(self.genome.data)
             return False
 
         return True
@@ -56,15 +53,14 @@ class LibraryForm(HTMXFlaskForm):
         
         library: models.Library = context["library"]
 
-        library_type = LibraryType.get(int(self.library_type.data))
-
         library.name = self.name.data   # type: ignore
-        library.type_id = library_type.id
-        library.index_1_sequence = self.index_1.data
-        library.index_2_sequence = self.index_2.data
-        library.index_3_sequence = self.index_3.data
-        library.index_4_sequence = self.index_4.data
-        library.adapter = self.adapter.data
+        library.type_id = LibraryType.get(int(self.library_type.data)).id
+        library.index_1_sequence = self.index_1.data.strip() if self.index_1.data and self.index_1.data.strip() else None
+        library.index_2_sequence = self.index_2.data.strip() if self.index_2.data and self.index_2.data.strip() else None
+        library.index_3_sequence = self.index_3.data.strip() if self.index_3.data and self.index_3.data.strip() else None
+        library.index_4_sequence = self.index_4.data.strip() if self.index_4.data and self.index_4.data.strip() else None
+        library.adapter = self.adapter.data.strip() if self.adapter.data and self.adapter.data.strip() else None
+        library.genome_ref_id = GenomeRef.get(self.genome.data).id
 
         library = db.update_library(library)
         

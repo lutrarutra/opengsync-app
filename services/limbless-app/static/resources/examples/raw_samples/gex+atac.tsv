@@ -1,4 +1,4 @@
-Sample Name	Library Name	Organism	Project	Library Type	Sequencing Depth
+Sample Name	Library Name	Genome	Project	Library Type	Sequencing Depth
 multi_sample_A	multi_sample_A_GEX	human	Test Multiome Prj	sc rna-seq	10
 multi_sample_B	multi_sample_B_GEX	human	Test Multiome Prj	sc rna-seq	10
 multi_sample_C	multi_sample_C_GEX	human	Test Multiome Prj	sc rna-seq	10

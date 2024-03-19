@@ -1,8 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import func
-
+from ...categories import PoolStatus, PoolStatusEnum
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 
@@ -14,6 +13,7 @@ def create_pool(
     num_m_reads_requested: Optional[float],
     contact_name: str,
     contact_email: str,
+    status: PoolStatusEnum = PoolStatus.DRAFT,
     contact_phone: Optional[str] = None,
     commit: bool = True
 ) -> models.Pool:
@@ -36,6 +36,7 @@ def create_pool(
         contact_name=contact_name,
         contact_email=contact_email,
         contact_phone=contact_phone,
+        status_id=status.id
     )
     self._session.add(pool)
     user.num_pools += 1
@@ -68,6 +69,7 @@ def get_pools(
     experiment_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
+    status: Optional[PoolStatusEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Pool], int]:
     persist_session = self._session is not None
@@ -89,17 +91,18 @@ def get_pools(
         )
 
     if experiment_id is not None:
-        query = query.join(
-            models.ExperimentPoolLink,
-            models.Pool.id == models.ExperimentPoolLink.pool_id,
-            isouter=True
-        ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+        query = query.where(
+            models.Pool.experiment_id == experiment_id
         )
 
     if seq_request_id is not None:
         query = query.where(
             models.Pool.seq_request_id == seq_request_id
+        )
+
+    if status is not None:
+        query = query.where(
+            models.Pool.status_id == status.id
         )
 
     if sort_by is not None:

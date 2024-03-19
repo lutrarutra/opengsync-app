@@ -8,7 +8,8 @@ from .. import categories
 
 
 def get_experiment_libraries_df(
-    self, experiment_id: int
+    self, experiment_id: int, include_index_kit: bool = False,
+    include_visium: bool = False, include_seq_request: bool = False
 ) -> pd.DataFrame:
         
     persist_session = self._session is not None
@@ -18,41 +19,65 @@ def get_experiment_libraries_df(
     if (_ := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     
-    library_query = self._session.query(
+    columns = [
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
-        models.Library.adapter, models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
-        models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
+        models.Library.adapter, models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
         models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.ExperimentPoolLink.lane.label("lane"),
-        models.SeqRequest.id.label("seq_request_id"), models.SeqRequest.name.label("request_name"),
-        models.User.id.label("requestor_id"), models.User.email.label("requestor_email"),
-        models.VisiumAnnotation.slide.label("slide"), models.VisiumAnnotation.area.label("area"), models.VisiumAnnotation.image.label("image")
-    ).join(
-        models.SeqRequest,
-        models.SeqRequest.id == models.Library.seq_request_id,
-    ).join(
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.Lane.number.label("lane"),
+    ]
+    if include_seq_request:
+        columns.extend([
+            models.SeqRequest.id.label("seq_request_id"), models.SeqRequest.name.label("request_name"),
+            models.User.id.label("requestor_id"), models.User.email.label("requestor_email"),
+        ])
+
+    if include_index_kit:
+        columns.extend([
+            models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
+        ])
+
+    if include_visium:
+        columns.extend([
+            models.VisiumAnnotation.slide.label("slide"), models.VisiumAnnotation.area.label("area"),
+            models.VisiumAnnotation.image.label("image")
+        ])
+
+    query = self._session.query(*columns).join(
         models.Pool,
         models.Pool.id == models.Library.pool_id,
     ).join(
-        models.User,
-        models.User.id == models.SeqRequest.requestor_id,
-    ).join(
-        models.ExperimentPoolLink,
-        models.ExperimentPoolLink.pool_id == models.Pool.id,
-    ).join(
-        models.IndexKit,
-        models.IndexKit.id == models.Library.index_kit_id,
+        models.LanePoolLink,
+        models.LanePoolLink.pool_id == models.Pool.id,
         isouter=True
     ).join(
-        models.VisiumAnnotation,
-        models.VisiumAnnotation.id == models.Library.visium_annotation_id,
-        isouter=True
-    ).distinct()
+        models.Lane,
+        models.Lane.id == models.LanePoolLink.lane_id,
+    )
 
-    library_query = library_query.order_by(models.Library.id)
+    if include_seq_request:
+        query = query.join(
+            models.User,
+            models.User.id == models.SeqRequest.requestor_id,
+        )
+
+    if include_index_kit:
+        query = query.join(
+            models.IndexKit,
+            models.IndexKit.id == models.Library.index_kit_id,
+            isouter=True
+        )
+    
+    if include_visium:
+        query = query.join(
+            models.VisiumAnnotation,
+            models.VisiumAnnotation.id == models.Library.visium_annotation_id,
+            isouter=True
+        )
+            
+    library_query = query.distinct().order_by(models.Library.id)
 
     df = pd.read_sql(library_query.statement, library_query.session.bind)
-    df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).value.name)
+    df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).abbreviation)
 
     df = df.dropna(axis="columns", how="all")
     
@@ -77,7 +102,7 @@ def get_experiment_samples_df(self, experiment_id: int) -> pd.DataFrame:
         models.Library.adapter, models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
         models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
         models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.ExperimentPoolLink.lane.label("lane"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.Lane.number.label("lane"),
         models.SeqRequest.id.label("seq_request_id"), models.SeqRequest.name.label("request_name"),
         models.User.id.label("requestor_id"), models.User.email.label("requestor_email"),
         models.CMO.sequence.label("cmo_sequence"), models.CMO.pattern.label("cmo_pattern"), models.CMO.read.label("cmo_read"),
@@ -102,8 +127,11 @@ def get_experiment_samples_df(self, experiment_id: int) -> pd.DataFrame:
         models.User,
         models.User.id == models.SeqRequest.requestor_id,
     ).join(
-        models.ExperimentPoolLink,
-        models.ExperimentPoolLink.pool_id == models.Pool.id,
+        models.LanePoolLink,
+        models.LanePoolLink.pool_id == models.Pool.id,
+    ).join(
+        models.Lane,
+        models.Lane.id == models.LanePoolLink.lane_id,
     ).join(
         models.IndexKit,
         models.IndexKit.id == models.Library.index_kit_id,

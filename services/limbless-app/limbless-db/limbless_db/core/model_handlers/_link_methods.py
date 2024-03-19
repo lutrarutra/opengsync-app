@@ -1,57 +1,9 @@
 import math
 from typing import Optional
 
+from ...categories import PoolStatus
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-
-
-def get_lanes_in_experiment(
-    self, experiment_id: int
-) -> dict[int, list[int]]:
-    
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    
-    data = self._session.query(
-        models.ExperimentPoolLink.pool_id,
-        models.ExperimentPoolLink.lane
-    ).where(
-        models.ExperimentPoolLink.experiment_id == experiment_id
-    ).order_by(models.ExperimentPoolLink.lane).all()
-
-    lanes: dict[int, list[int]] = {}
-    for pool_id, lane in data:
-        if pool_id not in lanes:
-            lanes[pool_id] = []
-        lanes[pool_id].append(lane)
-    
-    if not persist_session:
-        self.close_session()
-
-    return lanes
-
-
-def get_available_pools_for_experiment(self, experiment_id: int) -> list[models.Pool]:
-    
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-
-    query = self._session.query(models.Pool)
-
-    pools = query.all()
-
-    if not persist_session:
-        self.close_session()
-    
-    return pools
 
 
 def link_sample_library(
@@ -239,70 +191,103 @@ def unlink_feature_library(
         self.close_session()
 
 
-def link_experiment_pool(
-    self, experiment_id: int, pool_id: int,
-    lane: int, commit: bool = True
-) -> models.ExperimentPoolLink:
+def link_pool_lane(
+    self, lane_id: int, pool_id: int,
+) -> models.LanePoolLink:
 
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    if lane > experiment.num_lanes:
-        raise exceptions.InvalidValue(f"Experiment with id {experiment_id} has only {experiment.num_lanes} lanes")
-    if (_ := self._session.get(models.Pool, pool_id)) is None:
+    if (_ := self._session.get(models.Lane, lane_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Lane with id {lane_id} does not exist")
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-
-    if self._session.query(models.ExperimentPoolLink).where(
-        models.ExperimentPoolLink.experiment_id == experiment_id,
-        models.ExperimentPoolLink.pool_id == pool_id,
-        models.ExperimentPoolLink.lane == lane,
+    
+    if self._session.query(models.LanePoolLink).where(
+        models.LanePoolLink.pool_id == pool_id,
+        models.LanePoolLink.lane_id == lane_id,
     ).first():
-        raise exceptions.LinkAlreadyExists(f"Experiment with id {experiment_id} and Pool with id {pool_id} are already linked.")
+        raise exceptions.LinkAlreadyExists(f"Lane with id '{lane_id}' and Pool with id '{pool_id}' are already linked.")
 
-    experiment_library_link = models.ExperimentPoolLink(
-        experiment_id=experiment_id, pool_id=pool_id, lane=lane,
+    link = models.LanePoolLink(
+        lane_id=lane_id, pool_id=pool_id,
     )
-    self._session.add(experiment_library_link)
-    experiment.num_pools += 1
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(experiment_library_link)
+    pool.status_id = PoolStatus.LANED.id
+    self._session.add(link)
+    self._session.commit()
+    self._session.refresh(link)
 
     if not persist_session:
         self.close_session()
 
-    return experiment_library_link
+    return link
 
 
-def unlink_experiment_pool(
-    self, experiment_id: int, pool_id: int, lane: int,
-    commit: bool = True
-):
+def unlink_pool_lane(self, lane_id, pool_id: int):
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+    if (_ := self._session.get(models.Lane, lane_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Lane with id {lane_id} does not exist")
     if (_ := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-
-    if (link := self._session.query(models.ExperimentPoolLink).where(
-        models.ExperimentPoolLink.experiment_id == experiment_id,
-        models.ExperimentPoolLink.pool_id == pool_id,
-        models.ExperimentPoolLink.lane == lane,
+    
+    if (link := self._session.query(models.LanePoolLink).where(
+        models.LanePoolLink.pool_id == pool_id,
+        models.LanePoolLink.lane_id == lane_id,
     ).first()) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} and Pool with id {pool_id} are not linked")
-
+        raise exceptions.LinkDoesNotExist(f"Lane with id '{lane_id}' and Pool with id '{pool_id}' are not linked.")
+    
     self._session.delete(link)
-    experiment.num_pools -= 1
-    self._session.add(experiment)
-    if commit:
-        self._session.commit()
+    self._session.commit()
+
+    if not persist_session:
+        self.close_session()
+
+
+def link_pool_experiment(self, experiment_id: int, pool_id: int):
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+
+    if pool.experiment_id is not None:
+        raise exceptions.LinkAlreadyExists(f"Pool with id {pool_id} is already linked to an experiment")
+    
+    pool = self._session.get(models.Pool, pool_id)
+    pool.experiment_id = experiment_id
+    pool.status_id = PoolStatus.ASSIGNED.id
+    self._session.add(pool)
+    self._session.commit()
+    self._session.refresh(pool)
+
+    if not persist_session:
+        self.close_session()
+
+
+def unlink_pool_experiment(self, experiment_id: int, pool_id: int):
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+
+    if pool.experiment_id != experiment_id:
+        raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
+
+    pool.experiment_id = None
+    pool.status_id = PoolStatus.ACCEPTED.id
+    self._session.add(pool)
+    self._session.commit()
 
     if not persist_session:
         self.close_session()

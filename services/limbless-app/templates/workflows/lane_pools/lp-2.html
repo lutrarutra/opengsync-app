@@ -1,0 +1,135 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+<div id="barcode-check-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">2. Check Barcode Conflicts</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#lane_pools-workflow-popup")></button>
+    </div> 
+    <div class="modal-body">
+        <form id="barcode-check-form">
+            {{ barcode_check_form.csrf_token() }}
+            {{ barcode_check_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            <table class="table table-hover table-cursor">
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-1">Status</th>
+                        <th scope="col" class="col-2">Name</th>
+                        <th scope="col" class="col-2">Library Type</th>
+                        <th scope="col" class="col-2">Pool</th>
+                        {% if show_adapter %}
+                        <th scope="col" class="col-1">Adapter</th>
+                        {% endif %}
+                        {% if show_index_1 %}
+                        <th scope="col" class="col-1">Index 1</th>
+                        {% endif %}
+                        {% if show_index_2 %}
+                        <th scope="col" class="col-1">Index 2</th>
+                        {% endif %}
+                        {% if show_index_3 %}
+                        <th scope="col" class="col-1">Index 3</th>
+                        {% endif %}
+                        {% if show_index_4 %}
+                        <th scope="col" class="col-1">Index 4</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for _, row in library_table.iterrows() %}
+                    {% set sample_id = row["id"] %}
+                    {% if row["error"] %}
+                    <tr {{ tooltip(row["error"], category="error") }}>
+                    {% elif row["warning"] %}
+                    <tr {{ tooltip(row["warning"], category="warning") }}>
+                    {% else %}
+                    <tr>
+                    {% endif %}
+                        <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %}</td>
+                        <td>{{ row["name"] }}</td>
+                        <td>{{ row["type"] }}</td>
+                        <td>{{ row["pool"] }}</td>
+                        {% if show_adapter %}
+                        <td>{{ row["adapter"] if row["adapter"] }}</td>
+                        {% endif %}
+                        {% if show_index_1 %}
+                        <td class="index-cell-1">{{ row["index_1"] if row["index_1"] }}</td>
+                        {% endif %}
+                        {% if show_index_2 %}
+                        <td class="index-cell-2">{{ row["index_2"] if row["index_2"] }}</td>
+                        {% endif %}
+                        {% if show_index_3 %}
+                        <td class="index-cell-3">{{ row["index_3"] if row["index_3"] }}</td>
+                        {% endif %}
+                        {% if show_index_4 %}
+                        <td class="index-cell-4">{{ row["index_4"] if row["index_4"] }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ barcode_check_form.file_uuid.data }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success" hx-target="#barcode-check-form-container" hx-swap="outerHTML"
+                hx-include="#barcode-check-form"
+                hx-post="{{ url_for('lane_pools_workflow.check_barcodes', experiment_id=experiment.id) }}"
+                {% if warn_user %}
+                _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Warning!',
+                        icon: 'warning',
+                        showDenyButton: true,
+                        text: 'Selected pools have conflicts in indices. Are you sure you want to proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                {% endif %}>
+                Submit
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        init_tooltips();
+    });
+
+    const flowcell_reads_per_lane = {{ experiment.flowcell_type.max_m_reads_per_lane }};
+    var m_reads_selected = {{ m_reads_selected }};
+
+    function update_progress_bar() {
+        const pct = m_reads_selected / flowcell_reads_per_lane * 100;
+        $(`#flowcell-capacity-bar`).children('.progress-bar').css('width', `${pct}%`);
+        $(`#flowcell-capacity-bar`).children('.progress-title').html(`Flowcell Lane Capacity: ${ pct }% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; ${ m_reads_selected }/${ flowcell_reads_per_lane } Million Reads)`);
+    }
+    function select_pool(pool_id) {
+        if ($(`#select-pool-${pool_id}`).hasClass('selected')) {
+            $(`#select-pool-${pool_id}`).removeClass('selected');
+            const m_reads = parseFloat($(`#num-m-reads-cell-${pool_id}`).text());
+            m_reads_selected -= m_reads;
+            update_progress_bar();
+            var selected = $(`#pool_ids`).val().split(',');
+            if (selected.includes(pool_id)) {
+                selected = selected.filter(e => e !== pool_id);
+            }
+            $(`#pool_ids`).val(selected.join(','));
+            
+        } else {
+            $(`#select-pool-${pool_id}`).addClass('selected');
+            const m_reads = parseFloat($(`#num-m-reads-cell-${pool_id}`).text());
+            m_reads_selected += m_reads;
+            update_progress_bar();
+            var selected = $(`#pool_ids`).val().split(',');
+            if (selected.includes(pool_id)) {
+                selected = selected.filter(e => e !== pool_id);
+            } else {
+                selected.push(pool_id);
+            }
+            $(`#pool_ids`).val(selected.join(','));
+        }
+    }
+</script>

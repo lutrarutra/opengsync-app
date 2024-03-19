@@ -15,6 +15,7 @@ class HTMXFlaskForm(FlaskForm):
     def __init__(self, formdata: Optional[dict[str, Any]] = None, **kwargs):
         super().__init__(formdata=ImmutableMultiDict(formdata), **kwargs)
         self.formdata = formdata
+        self._context = {}
 
     def process_request(self, **context) -> Response:
         raise NotImplementedError("You must implement this method in your subclass.")
@@ -30,7 +31,7 @@ class HTMXFlaskForm(FlaskForm):
         return self._form_label
 
     def make_response(self, **context) -> Response:
-        context = context | {self._form_label: self}
+        context = context | {self._form_label: self} | self._context
         return make_response(
             render_template(
                 self.template_path, **context

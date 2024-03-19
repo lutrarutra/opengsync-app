@@ -1,0 +1,42 @@
+{% from "components/categorical_mapping.jinja2" import static_categorical_mapping %}
+
+<div id="map-genome-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">3. Map Organisms</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help">
+            <h5>Instructions</h5>
+            <ul>
+                <li>For each unique 'Raw Label', select an genomic reference from list.</li>
+            </ul>
+        </div>
+        <div id="map-genome-form">
+            {% for sub_form in form.input_fields %}
+            {{    
+                static_categorical_mapping(
+                    raw_label=sub_form.raw_label,
+                    select_field=sub_form.genome,
+                    token=sub_form.csrf_token,
+                )
+            }}
+            {% endfor %}
+            {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ form.csrf_token() }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
+                hx-target="#map-genome-form-container" hx-swap="outerHTML"
+                hx-include="#map-genome-form"
+                hx-post="{{ url_for('library_annotation_workflow.map_genomes', seq_request_id=seq_request.id) }}">
+                Map Genomes
+            </button>
+        </div>
+    </div>
+</div>

@@ -5,17 +5,17 @@ from sqlmodel import func, text
 from sqlalchemy.sql.operators import or_, and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryType, LibraryStatus, GenomeRef
+from ...categories import LibraryTypeEnum, LibraryStatus, GenomeRefEnum
 from .. import exceptions
 
 
 def create_library(
     self,
-    library_type: LibraryType,
+    library_type: LibraryTypeEnum,
     owner_id: int,
     name: str,
     seq_request_id: int,
-    genome_ref: Optional[GenomeRef] = None,
+    genome_ref: Optional[GenomeRefEnum] = None,
     volume: Optional[int] = None,
     index_kit_id: Optional[int] = None,
     dna_concentration: Optional[float] = None,
@@ -135,11 +135,8 @@ def get_libraries(
         query = query.join(
             models.Pool,
             models.Pool.id == models.Library.pool_id,
-        ).join(
-            models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.Pool.id
         ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+            models.Pool.experiment_id == experiment_id
         ).distinct()
 
     if pooled is not None:
@@ -279,11 +276,11 @@ def query_libraries(
 
     if experiment_id is not None:
         query = query.join(
-            models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.Library.pool_id,
+            models.LanePoolLink,
+            models.LanePoolLink.pool_id == models.Library.pool_id,
             isouter=True
         ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+            models.LanePoolLink.experiment_id == experiment_id
         )
 
     query = query.order_by(

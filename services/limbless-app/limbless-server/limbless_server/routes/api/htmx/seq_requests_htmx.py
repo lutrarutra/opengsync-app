@@ -45,14 +45,6 @@ def get(page: int):
     else:
         with_statuses = None
 
-    if (exclude_experiment_id := request.args.get("exclude_experiment_id", None)) is not None:
-        try:
-            exclude_experiment_id = int(exclude_experiment_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-    else:
-        exclude_experiment_id = None
-
     if (user_id := request.args.get("user_id")) is not None:
         template = "components/tables/user-seq_request.html"
         try:
@@ -68,7 +60,7 @@ def get(page: int):
 
         seq_requests, n_pages = db.get_seq_requests(
             offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
-            with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
+            with_statuses=with_statuses
         )
         context["user"] = user
 
@@ -88,27 +80,9 @@ def get(page: int):
         
         seq_requests, n_pages = db.get_seq_requests(
             offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending,
-            with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
+            with_statuses=with_statuses
         )
         context["sample"] = sample
-    elif (experiment_id := request.args.get("experiment_id")) is not None:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        template = "components/tables/experiment-seq_request.html"
-        try:
-            experiment_id = int(experiment_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        if (experiment := db.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        seq_requests, n_pages = db.get_seq_requests(
-            offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
-            with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
-        )
-        context["experiment"] = experiment
     else:
         template = "components/tables/seq_request.html"
         with DBSession(db) as session:
@@ -118,7 +92,7 @@ def get(page: int):
                 user_id = None
             seq_requests, n_pages = session.get_seq_requests(
                 offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
-                show_drafts=True, with_statuses=with_statuses, exclude_experiment_id=exclude_experiment_id
+                show_drafts=True, with_statuses=with_statuses
             )
 
     return make_response(
@@ -198,7 +172,7 @@ def edit(seq_request_id: int):
         if seq_request.requestor_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    return forms.SeqRequestForm(request.form).process_request(
+    return forms.models.SeqRequestForm(request.form).process_request(
         seq_request=seq_request, user_id=current_user.id
     )
 
@@ -290,7 +264,7 @@ def submit(seq_request_id: int):
 @seq_requests_htmx.route("create", methods=["POST"])
 @login_required
 def create():
-    return forms.SeqRequestForm(request.form).process_request(user_id=current_user.id)
+    return forms.models.SeqRequestForm(request.form).process_request(user_id=current_user.id)
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/upload_auth_form", methods=["POST"])
@@ -320,7 +294,7 @@ def add_comment(seq_request_id: int):
     if seq_request.requestor_id != current_user.id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.SeqRequestCommentForm(formdata=request.form, seq_request_id=seq_request_id).process_request(
+    return forms.comment.SeqRequestCommentForm(formdata=request.form, seq_request_id=seq_request_id).process_request(
         seq_request=seq_request, user=current_user
     )
 
@@ -334,7 +308,7 @@ def upload_file(seq_request_id: int):
     if not (seq_request.requestor_id == current_user.id or current_user.is_insider()):
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.SeqRequestAttachmentForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
+    return forms.file.SeqRequestAttachmentForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
         seq_request=seq_request, user=current_user
     )
 
@@ -677,7 +651,7 @@ def get_graph(seq_request_id: int):
                     if link.library.id not in library_nodes.keys():
                         library_node = {
                             "node": idx,
-                            "name": link.library.type.description,
+                            "name": link.library.type.abbreviation,
                             "id": f"library-{link.library.id}"
                         }
                         graph["nodes"].append(library_node)

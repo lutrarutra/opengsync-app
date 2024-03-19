@@ -11,8 +11,9 @@ class SeqRequestStatusEnum(DBEnum):
 class SeqRequestStatus(ExtendedEnum[SeqRequestStatusEnum], enum_type=SeqRequestStatusEnum):
     DRAFT = SeqRequestStatusEnum(0, "Draft", "✍🏼")
     SUBMITTED = SeqRequestStatusEnum(1, "Submitted", "🚀")
-    PREPARATION = SeqRequestStatusEnum(2, "Sequencing Preparation", "🧬")
+    ACCEPTED = SeqRequestStatusEnum(2, "Accepted", "🧬")
     DATA_PROCESSING = SeqRequestStatusEnum(3, "Data Processing", "👨🏽‍💻")
     FINISHED = SeqRequestStatusEnum(4, "Finished", "✅")
     ARCHIVED = SeqRequestStatusEnum(5, "Archived", "🗃️")
-    FAILED = SeqRequestStatusEnum(6, "Failed", "❌")
+    FAILED = SeqRequestStatusEnum(10, "Failed", "❌")
+    REJECTED = SeqRequestStatusEnum(11, "Rejected", "⛔")

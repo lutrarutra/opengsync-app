@@ -3,12 +3,15 @@ from typing import Optional
 
 from sqlmodel import func
 
+
 from ... import models, PAGE_LIMIT
+from ...categories import SequencerTypeEnum
 from .. import exceptions
 
 
 def create_sequencer(
     self, name: str,
+    type: SequencerTypeEnum,
     ip: Optional[str] = None,
     commit: bool = True
 ) -> models.Sequencer:
@@ -22,7 +25,7 @@ def create_sequencer(
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"Sequencer with name '{name}' already exists.")
     
-    sequencer = models.Sequencer(name=name, ip=ip)
+    sequencer = models.Sequencer(name=name, type_id=type.id, ip=ip)
 
     self._session.add(sequencer)
     if commit:
@@ -90,27 +93,14 @@ def get_num_sequencers(self) -> int:
     return count
 
 
-def update_sequencer(
-    self, sequencer_id: int, name: Optional[str] = None,
-    ip: Optional[str] = None, commit: bool = True
-) -> models.Sequencer:
-    
+def update_sequencer(self, sequencer: models.Sequencer) -> models.Sequencer:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-
-    if (sequencer := self._session.get(models.Sequencer, sequencer_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sequencer with id '{sequencer_id}' does not exist.")
     
-    if name is not None:
-        sequencer.name = name
-
-    if ip is not None:
-        sequencer.ip = ip
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(sequencer)
+    self._session.add(sequencer)
+    self._session.commit()
+    self._session.refresh(sequencer)
 
     if not persist_session:
         self.close_session()

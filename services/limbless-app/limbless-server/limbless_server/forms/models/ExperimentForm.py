@@ -94,6 +94,9 @@ class ExperimentForm(HTMXFlaskForm):
             operator_id=self.operator.selected.data,
         )
 
+        for lane_num in range(1, flowcell_type.num_lanes + 1):
+            db.create_lane(lane_num, experiment.id)
+
         flash(f"Created experiment '{experiment.name}'.", "success")
 
         return make_response(

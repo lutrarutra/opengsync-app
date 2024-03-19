@@ -1,0 +1,8 @@
+{% set reads_used_pct = 100 * m_reads_selected / experiment.flowcell_type.max_m_reads_per_lane | int %}
+<div id="flowcell-capacity-bar" class="progress relative-progress" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px; width: 100%;">
+    <div class="progress-title">
+        Flowcell Lane Capacity: {{ reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_selected }}/{{ experiment.flowcell_type.max_m_reads_per_lane }} Million Reads)
+    </div>
+    <div class="progress-bar progress-bar-striped text-dark bg-cemm-blue" style="width: {{ reads_used_pct }}%;">
+    </div>
+</div>

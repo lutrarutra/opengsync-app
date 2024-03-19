@@ -7,7 +7,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class FlowCellTypeEnum(DBEnum):
     manufacturer: str
     num_lanes: int
-    min_m_num_reads: int
+    max_m_reads_per_lane: int
 
 
 # https://emea.illumina.com/systems/sequencing-platforms/novaseq/specifications.html

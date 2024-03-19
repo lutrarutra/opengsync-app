@@ -8,8 +8,6 @@ if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
     from .CMO import CMO
-    from .Experiment import Experiment
-    from .Pool import Pool
 
 
 class SampleLibraryLink(SQLModel, table=True):
@@ -30,22 +28,18 @@ class SampleLibraryLink(SQLModel, table=True):
 
     def __str__(self) -> str:
         return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"
+    
 
-
-class ExperimentPoolLink(SQLModel, table=True):
-    experiment_id: int = Field(
-        foreign_key="experiment.id", primary_key=True
+class LanePoolLink(SQLModel, table=True):
+    lane_id: int = Field(
+        foreign_key="lane.id", primary_key=True
     )
     pool_id: int = Field(
         foreign_key="pool.id", primary_key=True
     )
-    lane: int = Field(nullable=False, primary_key=True)
-
-    experiment: "Experiment" = Relationship()
-    pool: "Pool" = Relationship()
-
+    
     def __str__(self) -> str:
-        return f"ExperimentPoolLink(experiment_id: {self.experiment_id}, pool_id: {self.pool_id}, lane: {self.lane})"
+        return f"LanePoolLink(lane_id: {self.lane_id}, pool_id: {self.pool_id})"
 
 
 class ExperimentFileLink(SQLModel, table=True):

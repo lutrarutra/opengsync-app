@@ -1,0 +1,64 @@
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+{% from "components/table_input.jinja2" import table_input %}
+
+<div id="cmo-reference-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >6.1. CMO Reference Input Form</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#data-submission-modal-container")></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help">
+            <h5>How to?</h5>
+            <ol>
+                <li><a href="{{ url_for('library_annotation_workflow.download_template', type='cmo') }}">Download template</a></li>
+                <li>Fill in the template</li>
+                <li>Submit the file below</li>
+            </ol>
+
+            <h5>Modify Columns</h5>
+            <ul>
+                <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
+                <li>Sample Name <span class="desc">The sample from annotation sheet that this CMO belongs to, must mach one and only one value from 'Sample Name'-column from sample annotation sheet</span></li>
+                <li>Feature <span class="desc">Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+                <li>Kit <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
+                <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
+                <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
+                <li>Read <span class="desc">e.g. 'R2'</span></li>
+            </ul>
+
+            <h5>Important</h5>
+            <ul>
+                <li>Two ways to specify CMOs:</li>
+                <ol>
+                    <li>If using predefined kit from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a>: specify columns <b>Demux Name, Sample Name, Feature, Kit</b></li>
+                    <li>If using custom kit: specify columns <b>Demux Name, Sample Name, Sequence, Pattern, Read</b></li>
+                </ol>
+            </ul>
+        </div>
+        <form id="cmo-reference-form" enctype="multipart/form-data">
+            {{ form.csrf_token() }}
+            <div class="row">
+                {{ form_group(form.separator, class="col-2") }}
+                {{ form_group(form.file, class="col-10") }}
+            </div>
+            {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+        </form>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" type="button"
+                hx-include="#cmo-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data"
+                hx-post="{{ url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id) }}">
+                Parse
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    init_tooltips();
+</script>

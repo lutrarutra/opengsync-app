@@ -10,8 +10,7 @@ from ...categories import FlowCellTypeEnum, ExperimentStatus, LibraryStatus, Seq
 def create_experiment(
     self, name: str, flowcell_type: FlowCellTypeEnum, sequencer_id: int,
     num_lanes: int, r1_cycles: int, i1_cycles: int, operator_id: int,
-    r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None,
-    commit: bool = True
+    r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None
 ) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
@@ -41,9 +40,8 @@ def create_experiment(
     )
 
     self._session.add(experiment)
-    if commit:
-        self._session.commit()
-        self._session.refresh(experiment)
+    self._session.commit()
+    self._session.refresh(experiment)
 
     if not persist_session:
         self.close_session()
@@ -132,11 +130,6 @@ def delete_experiment(
     if not experiment:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
-    for link in self._session.query(models.ExperimentPoolLink).where(
-        models.ExperimentPoolLink.experiment_id == experiment_id
-    ).all():
-        self._session.delete(link)
-
     self._session.delete(experiment)
     
     if commit:
@@ -158,12 +151,13 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
     if experiment.status_id == ExperimentStatus.FINISHED.id:
         seq_requests: list[models.SeqRequest] = []
 
-        for link in experiment.pool_links:
-            for library in link.pool.libraries:
-                library.status_id = LibraryStatus.SEQUENCED.id
-                if library.seq_request not in seq_requests:
-                    seq_requests.append(library.seq_request)
-                self._session.add(library)
+        for lane in experiment.lanes:
+            for pool in lane.pools:
+                for library in pool.libraries:
+                    library.status_id = LibraryStatus.SEQUENCED.id
+                    self._session.add(library)
+                    if library.seq_request not in seq_requests:
+                        seq_requests.append(library.seq_request)
 
         self._session.commit()
         self._session.refresh(experiment)

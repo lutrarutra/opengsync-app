@@ -178,19 +178,19 @@
             <div class="tab-pane fade show active" id="request-libraries-tab" role="tabpanel" tabindex="0">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h2>Libraries <img {{ tooltip('Right click on a library name to remove.') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                        <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                     </div>
                     <div>
                         {% if seq_request.status.name == "Draft" %}
                         <button type="button" class="btn btn-primary"
                         data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
-                        hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type='raw') }}"
+                        hx-get="{{ url_for('library_annotation_workflow.restart_form', seq_request_id=seq_request.id, type='raw') }}"
                         hx-target="#data-submission-modal" hx-swap="innerHTML">
                             Add Raw Samples
                         </button>
                         <button type="button"  class="btn btn-primary"
                         data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
-                        hx-get="{{ url_for('seq_request_form_htmx.restart_form', seq_request_id=seq_request.id, type='pooled') }}"
+                        hx-get="{{ url_for('library_annotation_workflow.restart_form', seq_request_id=seq_request.id, type='pooled') }}"
                         hx-target="#data-submission-modal" hx-swap="innerHTML">
                             Add Pooled Libraries
                         </button>
@@ -331,7 +331,7 @@
                         </a>
                         {% endif %}
                         {% endif %}
-                        <a type="button" class="btn btn-primary" href="{{ url_for('seq_request_form_htmx.download_seq_auth_form') }}">
+                        <a type="button" class="btn btn-primary" href="{{ url_for('library_annotation_workflow.download_seq_auth_form') }}">
                             Download Template
                         </a>
                     </div>
@@ -388,7 +388,7 @@
                             {{ metadata_group_email_link("Recipient", share_email_link.email, class="col") }}
                         </div>
                         <div class="col-4">
-                            {{ metadata_group("Status", share_email_link.status.desc + " " + share_email_link.status.name, class="col") }}
+                            {{ metadata_group("Status", share_email_link.status.name + " " + share_email_link.status.icon, class="col") }}
                         </div>
                         <div class="col-1 remove-btn-container">
                             <span
@@ -426,7 +426,7 @@
         </div>
     </div>
 
-    <div class="modal fade" id="data-submission-modal-container" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal fade" id="data-submission-modal-container" aria-hidden="true" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-fullscreen" id="data-submission-modal">
         </div>
     </div>
@@ -469,7 +469,6 @@
 </div>
 <script>
     $(document).ready(function() {
-        
         $("#request-overview-tab-btn").on("click", function() {
             d3.json("{{ url_for('seq_requests_htmx.get_graph', seq_request_id=seq_request.id) }}", function(error, graph) {
                 const _h = graph.nodes.length * 30;

@@ -1,0 +1,37 @@
+{% from "components/categorical_mapping.jinja2" import categorical_mapping %}
+
+<div id="feature_kit-mapping-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">7. Map Feature Kits</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#data-submission-modal-container")></button>
+    </div>
+    <div class="modal-body">
+        <div id="feature_kit-mapping-form">
+            {% for sub_form in form.input_fields %}
+            {{    
+                categorical_mapping(
+                    raw_label=sub_form.raw_label,
+                    category=sub_form.feature_kit,
+                    query_url=url_for('feature_kits_htmx.query'),
+                    token=sub_form.csrf_token
+                )
+            }}
+            {% endfor %}
+            {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ form.csrf_token() }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-primary"
+                hx-target="#feature_kit-mapping-form-container" hx-swap="outerHTML"
+                hx-include="#feature_kit-mapping-form"
+                hx-post="{{ url_for('library_annotation_workflow.map_feature_kits', seq_request_id=seq_request.id) }}">
+                Map Feature Kits
+            </button>
+        </div>
+    </div>
+</div>

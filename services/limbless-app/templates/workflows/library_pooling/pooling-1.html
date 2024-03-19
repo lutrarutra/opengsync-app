@@ -1,0 +1,62 @@
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+{% from "components/table_input.jinja2" import table_input %}
+
+<div id="pooling-input-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Pooling Form</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="input-help">
+            <h5>How to?</h5>
+            <ol>
+                <li><a href="{{ url_for('library_pooling_workflow.download_pooling_template', experiment_id=experiment.id) }}">
+                Download template</a></li>
+                <li>Fill in the template and <b>save as TSV/CSV-file</b></li>
+                <li>Submit the updated file below</li>
+            </ol>
+
+            <h5>Modify Columns</h5>
+            <ul>
+                <li>pool <span class="desc">Indicates how libraries are pooled, e.g. '1,1,1,2,2,2' means 2 pools are created with 3 samples in each</span></li>
+                <li>adapter <span class="desc">Index adapter, e.g. 'SI-TT-A1'</span></li>
+                <li>index_1 <span class="desc">Index 1 (i7 for 10x) sequence, e.g. 'GTAACATGCG'</span></li>
+                <li>index_2 <span class="desc">Index 2 (i5 for 10x) sequence, e.g. 'AGTGTTACCT'</span></li>
+                <li>index_3 <span class="desc">Index 3 sequence, e.g. for 10x ATAC-seq</span></li>
+                <li>index_4 <span class="desc">Index 4 sequence, e.g. for 10x ATAC-seq</span></li>
+                <li>library_volume <span class="desc">Library Volume [uL]</span></li>
+                <li>library_concentration <span class="desc">Library DNA Concentration [nM]</span></li>
+                <li>library_total_size <span class="desc">Library Total Size [bp]</span></li>
+            </ul>
+
+            <h5>Important</h5>
+            <ul>
+                <li>Rows with no value in <b>pool</b>-column will be ignored</li>
+                <li>Do not modify columns: <b>id</b>, <b>sample_name</b>, <b>library_name</b>, and <b>library_type</b></li>
+                <li>Do not modify column names</li>
+                <li>If you are using a common library kit, one found in <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page, it is enough to only specify <b>adapter</b>-column (without <b>index_1/2/3/4</b>-columns.)</li>
+                <li>If a single library has different adapters for its indices, you need to specify indices manually.</li>
+                <li>If a common index kit is specified with <b>'adapter'</b> and <b>'index_1/2/3/4</b>-columns, this app will warn if there are errors in barcode sequences, e.g. typos or reused indices.</li>
+            </ul>
+        </div>
+        {{ table_input(pooling_input_form, id="pooling-input-form") }}
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-controls">
+            <button class="btn btn-success" type="button"
+                hx-include="#pooling-input-form" hx-target="#pooling-input-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data"
+                hx-post="{{ url_for('library_pooling_workflow.parse_pooling_form', experiment_id=experiment.id) }}">
+                Parse
+            </button>
+            <a class="btn btn-danger" type="button"
+                href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
+                Cancel
+            </a>
+        </div>
+    </div>
+</div>
+<script>
+    init_tooltips();
+</script>

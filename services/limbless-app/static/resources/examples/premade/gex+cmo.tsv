@@ -1,4 +1,4 @@
-Sample Name	Library Name	Organism	Project	Library Type	Pool	Index Kit	Adapter	Index 1 (i7)	Index 2 (i5)	Index 3	Index 4	Library Volume [uL]	Library DNA Concentration [nM]	Library Total Size [bp]
+Sample Name	Library Name	Genome	Project	Library Type	Pool	Index Kit	Adapter	Index 1 (i7)	Index 2 (i5)	Index 3	Index 4	Library Volume [uL]	Library DNA Concentration [nM]	Library Total Size [bp]
 cmo_sample_A	cmo_sample_A_GEX	mouse	Test CMO Prj	GEX	cmo_gex_pool	Dual Index TN	SI-TN-A1							
 cmo_sample_B	cmo_sample_B_GEX	mouse	Test CMO Prj	GEX	cmo_gex_pool	Dual Index TN	SI-TN-A2							
 cmo_sample_C	cmo_sample_C_GEX	mouse	Test CMO Prj	GEX	cmo_gex_pool	Dual Index TN	SI-TN-A3							

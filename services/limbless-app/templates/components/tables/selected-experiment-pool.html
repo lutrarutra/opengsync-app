@@ -1,0 +1,36 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+<div id="selected-experiment-pool-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='selected-experiment-pool-table', column_name='ID', column_var='id',
+                        sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
+                        query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
+                        field_name=field_name, query_type="number"
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='selected-experiment-pool-table', column_name='Pool Name', column_var='name',
+                        sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
+                        query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
+                        field_name=field_name, col_size=11
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for pool in selected_pools %}
+            <tr>
+                <th scope="row">{{ pool.id }}</th>
+                <td>{{ pool.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

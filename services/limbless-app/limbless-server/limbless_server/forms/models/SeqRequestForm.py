@@ -175,14 +175,6 @@ class SeqRequestForm(HTMXFlaskForm):
         self.bioinformatician_phone.data = seq_request.bioinformatician_contact.phone if seq_request.bioinformatician_contact is not None else None
     
     def __edit_existing_request(self, seq_request: models.SeqRequest) -> Response:
-        if (seq_type_raw := self.sequencing_type.data) is not None:
-            try:
-                seq_type = ReadType.get(int(seq_type_raw))
-            except ValueError:
-                seq_type = None
-        else:
-            seq_type = None
-
         db.update_contact(
             seq_request.billing_contact_id,
             name=self.billing_contact.data,
@@ -213,35 +205,17 @@ class SeqRequestForm(HTMXFlaskForm):
                     phone=self.bioinformatician_phone.data,
                 )
 
-        if self.name.data is not None:
-            seq_request.name = self.name.data
-
-        if self.description.data is not None:
-            seq_request.description = self.description.data
-
-        if seq_type is not None:
-            seq_request.sequencing_type_id = seq_type.id
-
-        if self.read_length.data is not None:
-            seq_request.read_length = self.read_length.data
-
-        if self.special_requirements.data is not None:
-            seq_request.special_requirements = self.special_requirements.data
-
-        if self.num_lanes.data is not None:
-            seq_request.num_lanes = self.num_lanes.data
-
-        if self.billing_code.data is not None:
-            seq_request.billing_code = self.billing_code.data
-
-        if self.organization_name.data is not None:
-            seq_request.organization_name = self.organization_name.data
-
-        if self.organization_department.data is not None:
-            seq_request.organization_department = self.organization_department.data
-
-        if self.organization_address.data is not None:
-            seq_request.organization_address = self.organization_address.data
+        seq_request.name = self.name.data   # type: ignore
+        seq_request.description = self.description.data
+        seq_request.sequencing_type_id = ReadType.get(self.sequencing_type.data).id
+        seq_request.data_delivery_mode_id = DataDeliveryMode.get(self.data_delivery_mode_id.data).id
+        seq_request.read_length = self.read_length.data
+        seq_request.special_requirements = self.special_requirements.data
+        seq_request.num_lanes = self.num_lanes.data
+        seq_request.billing_code = self.billing_code.data
+        seq_request.organization_name = self.organization_name.data  # type: ignore
+        seq_request.organization_department = self.organization_department.data
+        seq_request.organization_address = self.organization_address.data  # type: ignore
 
         seq_request = db.update_seq_request(seq_request)
 
@@ -277,23 +251,15 @@ class SeqRequestForm(HTMXFlaskForm):
         else:
             bioinformatician_contact_id = None
 
-        if (seq_type_id := self.sequencing_type.data) is not None:
-            try:
-                seq_type = ReadType.get(int(seq_type_id))
-            except ValueError:
-                seq_type = ReadType.OTHER
-        else:
-            seq_type = ReadType.OTHER
-
         seq_request = db.create_seq_request(
             name=self.name.data,  # type: ignore
             description=self.description.data,
             requestor_id=user_id,
-            technology=self.technology.data,  # type: ignore
             contact_person_id=contact_person.id,
             billing_contact_id=billing_contact.id,
             bioinformatician_contact_id=bioinformatician_contact_id,
-            seq_type=seq_type,
+            seq_type=ReadType.get(self.sequencing_type.data),
+            data_delivery_mode=DataDeliveryMode.get(self.data_delivery_mode_id.data),
             read_length=self.read_length.data,
             special_requirements=self.special_requirements.data,
             num_lanes=self.num_lanes.data,

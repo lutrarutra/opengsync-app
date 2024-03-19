@@ -18,7 +18,7 @@ else:
 @seq_requests_page_bp.route("/seq_requests")
 @login_required
 def seq_requests_page():
-    seq_request_form = forms.SeqRequestForm()
+    seq_request_form = forms.models.SeqRequestForm()
     seq_request_form.contact_person_name.data = current_user.name
     seq_request_form.contact_person_email.data = current_user.email
 
@@ -61,7 +61,7 @@ def seq_request_page(seq_request_id: int):
             if seq_request.requestor_id != current_user.id:
                 return abort(HTTPResponse.FORBIDDEN.id)
 
-        seq_request_form = forms.SeqRequestForm(seq_request=seq_request)
+        seq_request_form = forms.models.SeqRequestForm(seq_request=seq_request)
 
         library_results = []
 
@@ -80,8 +80,8 @@ def seq_request_page(seq_request_id: int):
 
         process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
         seq_auth_form = forms.SeqAuthForm()
-        file_input_form = forms.SeqRequestAttachmentForm(seq_request_id=seq_request_id)
-        comment_form = forms.SeqRequestCommentForm(seq_request_id=seq_request_id)
+        file_input_form = forms.file.SeqRequestAttachmentForm(seq_request_id=seq_request_id)
+        comment_form = forms.commment.SeqRequestCommentForm(seq_request_id=seq_request_id)
         seq_request_share_email_form = forms.SeqRequestShareEmailForm()
 
         return render_template(

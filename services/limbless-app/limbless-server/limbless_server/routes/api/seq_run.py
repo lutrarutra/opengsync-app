@@ -4,7 +4,7 @@ from flask_htmx import make_response
 from limbless_db.categories import HTTPResponse, ExperimentStatus
 from ... import forms, db
 
-seq_run_api = Blueprint("seq_run", __name__, url_prefix="/api/seq_run/")
+seq_run_api = Blueprint("seq_run_api", __name__, url_prefix="/api/seq_run/")
 
 
 @seq_run_api.route("create", methods=["POST"])
