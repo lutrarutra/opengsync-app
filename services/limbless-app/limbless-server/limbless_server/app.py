@@ -6,7 +6,7 @@ from flask import Flask, render_template, redirect, request, url_for, session, a
 from flask_login import login_required
 
 from limbless_db import categories, models, DBSession
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, forms
 from .routes import api, pages
 
 if TYPE_CHECKING:
@@ -91,7 +91,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             return render_template(
                 "index.html",
                 recent_seq_requests=recent_seq_requests,
-                recent_experiments=recent_experiments
+                recent_experiments=recent_experiments,
+                select_experiment_form=forms.workflows.lane_pools.SelectExperimentForm(),
             )
     
     @app.route("/pdf_file/<int:file_id>")

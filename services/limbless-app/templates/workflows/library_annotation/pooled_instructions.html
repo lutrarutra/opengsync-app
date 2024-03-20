@@ -13,8 +13,8 @@
         <li>
             <b>Library type:</b>
             <ul class="h-list" style="width: 60%; padding-left: 15px;">
-            {% for _, library_type in LibraryType.as_tuples() %}
-                <li><span {{ tooltip(library_type.name) }} style="cursor: help;">{{ library_type.description }}</span></li>
+            {% for library_type in LibraryType.as_list() %}
+                <li><span {{ tooltip(library_type.name) }} style="cursor: help;">{{ library_type.abbreviation }}</span></li>
             {% endfor %}
             </ul>
         </li>
@@ -22,10 +22,10 @@
         <li><b>Index 1</b> or <b>Adapter</b> + <b>Library Kit</b></li>
         <li><b>Project</b> <span class="desc">Samples from same project are analysed together. Project can be an existing one or you can create new one.</span></li>
         <li>
-            <b>Genome Reference</b> <span class="desc">Specifies the genome reference used in downstream</span>:
+            <b>Genome Reference</b> <span class="desc">Specifies the reference genome used in downstream</span>:
             <ul class="h-list" style="width: 60%; padding-left: 15px;">
             {% for genome_ref in GenomeRef.as_list() %}
-                <li><span {{ tooltip(genome_ref.organism_latin_name) }} style="cursor: help;">{{ genome_ref.name }}</span></li>
+                <li><span {{ tooltip(genome_ref.organism_latin_name) }} style="cursor: help;">{{ genome_ref.display_name }}</span></li>
             {% endfor %}
             </ul>
         </li>

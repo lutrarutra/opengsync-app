@@ -32,9 +32,8 @@ class SearchResult(ABC):
     def search_name(self) -> str:
         ...
     
-    @abstractmethod
     def search_description(self) -> Optional[str]:
-        ...
+        return None
 
 
 class StaticSearchResult(SearchResult):

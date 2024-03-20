@@ -2,6 +2,8 @@ import math
 from datetime import datetime
 from typing import Optional
 
+from sqlmodel import func
+
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 from ...categories import FlowCellTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus
@@ -177,6 +179,28 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
         self.close_session()
 
     return experiment
+
+
+def query_experiments(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.Experiment]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(models.Experiment)
+
+    query = query.order_by(
+        func.similarity(models.Experiment.name, word).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    experiments = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return experiments
 
 
 def add_file_to_experiment(

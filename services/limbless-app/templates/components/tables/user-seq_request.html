@@ -54,7 +54,7 @@
             <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
-                <td>{{ seq_request.status.name }} {{ seq_request.status.description | safe }}</td>
+                <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
                 <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.name }}</td>
                 <td>{{ seq_request.submitted_time.strftime('%Y-%m-%d %H:%M') if seq_request.submitted_time }}</td>
                 <td {{ tooltip("email: " + seq_request.contact_person.email + (" phone: " + seq_request.contact_person.phone if seq_request.contact_person.phone else "")) }}>{{ seq_request.contact_person.name }}</td>

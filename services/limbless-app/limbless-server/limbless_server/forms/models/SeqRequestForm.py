@@ -140,14 +140,13 @@ class SeqRequestForm(HTMXFlaskForm):
                 return False
 
         user_requests, _ = db.get_seq_requests(user_id=user_id, limit=None)
-
-        if seq_request is not None:
-            for request in user_requests:
-                if seq_request.id == request.id:
-                    continue
-                if request.name == self.name.data:
-                    self.name.errors = ("You already have a request with this name",)
-                    return False
+        for request in user_requests:
+            logger.debug(request.name)
+            if seq_request is not None and seq_request.id == request.id:
+                continue
+            if request.name == self.name.data:
+                self.name.errors = ("You already have a request with this name",)
+                return False
         return True
     
     def __fill_form(self, seq_request: models.SeqRequest):

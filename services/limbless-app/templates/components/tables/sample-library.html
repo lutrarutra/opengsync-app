@@ -69,7 +69,7 @@
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
-                        {{ library.type.description }}
+                        {{ library.type.abbreviation }}
                     </span>
                 </td>
                 <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>

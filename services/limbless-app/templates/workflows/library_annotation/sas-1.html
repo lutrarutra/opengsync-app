@@ -1,3 +1,4 @@
+{% from "components/color_legend.jinja2" import color_legend %}
 {% from 'components/form_group.jinja2' import form_group %}
 
 <div id="sample-table-submission-container" class="modal-content" style="height: 100%;">
@@ -70,6 +71,10 @@
         </div>
     </div>
     <div class="modal-footer">
+        <div class="footer-id"></div>
+        <div class="footer-info">
+            {{ color_legend(colors) }}
+        </div>
         <div class="footer-controls">
             <button type="button" id="parse-spreadsheet-btn" class="btn btn-success">
                 Parse Spreadsheet

@@ -103,6 +103,7 @@
             }
 
             $(document).off("contextmenu", ".pool-name-cell").on("contextmenu", ".pool-name-cell", function(e) {
+                e.preventDefault();
                 const x = e.pageX;
                 const y = e.pageY;
                 selected_pool_id = e.target.id.split("-")[3];

@@ -21,7 +21,7 @@
     <h4>Data Processing</h4>
     <ol>
     {% for mode in DataDeliveryMode.as_list() %}
-        <li>{{ mode.name }} <span class="desc">{{ mode.description}} </span></li>
+        <li>{{ mode.name }} <span class="desc">{{ mode.description }} </span></li>
     {% endfor %}
     </ol>
     {{ form_group(seq_request_form.data_delivery_mode_id, class="col") }}

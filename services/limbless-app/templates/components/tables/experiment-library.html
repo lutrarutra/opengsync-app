@@ -70,7 +70,7 @@
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
-                        {{ library.type.description }}
+                        {{ library.type.abbreviation }}
                     </span>
                 </td>
                 <td>{% if library.is_pooled() %}{{ library.pool.name }}{% else %}❌{% endif %}</td>

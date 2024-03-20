@@ -6,6 +6,7 @@ import sqlalchemy as sa
 from sqlmodel import Field, SQLModel, Relationship
 
 from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum
+from ..core.SearchResult import SearchResult
 from .Links import ExperimentFileLink, ExperimentCommentLink
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from .Lane import Lane
 
 
-class Experiment(SQLModel, table=True):
+class Experiment(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=16, unique=True, index=True)
     
@@ -50,7 +51,7 @@ class Experiment(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "flowcell_id", "timestamp", "status", "sequencer_id", "num_lanes", "num_libraries"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries"]
 
     files: list["File"] = Relationship(
         link_model=ExperimentFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
@@ -93,3 +94,9 @@ class Experiment(SQLModel, table=True):
     
     def __str__(self) -> str:
         return f"Experiment(id={self.id}, num_lanes={self.num_lanes})"
+    
+    def search_name(self) -> str:
+        return self.name
+    
+    def search_value(self) -> int:
+        return self.id

@@ -88,6 +88,26 @@ def delete(experiment_id: int):
     )
 
 
+@experiments_htmx.route("query", methods=["POST"])
+@login_required
+def query():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    field_name = next(iter(request.form.keys()))
+    if (word := request.form.get(field_name)) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    results = db.query_experiments(word)
+
+    return make_response(
+        render_template(
+            "components/search_select_results.html",
+            results=results, field_name=field_name,
+        ), push_url=False
+    )
+
+
 @experiments_htmx.route("<int:experiment_id>/lane_pool/<int:pool_id>/<int:lane_num>", methods=["POST"])
 @login_required
 def lane_pool(experiment_id: int, pool_id: int, lane_num: int):
@@ -111,8 +131,8 @@ def lane_pool(experiment_id: int, pool_id: int, lane_num: int):
         pool_id=pool.id,
     )
 
-    logger.debug(f"Added pool '{pool.name}' to experiment (id='{experiment_id}') on lane '{lane}'")
-    flash(f"Added pool '{pool.name}' to lane '{lane}'.", "success")
+    logger.debug(f"Added pool '{pool.name}' to experiment (id='{experiment_id}') on lane '{lane_num}'")
+    flash(f"Added pool '{pool.name}' to lane '{lane_num}'.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
@@ -143,8 +163,8 @@ def unlane_pool(experiment_id: int, pool_id: int, lane_num: int):
         pool_id=pool_id,
     )
 
-    logger.debug(f"Removed pool '{pool.name}' from lane '{lane}' (experiment_id='{experiment_id}')")
-    flash(f"Removed pool '{pool.name}' from lane '{lane}'.", "success")
+    logger.debug(f"Removed pool '{pool.name}' from lane '{lane_num}' (experiment_id='{experiment_id}')")
+    flash(f"Removed pool '{pool.name}' from lane '{lane_num}'.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
@@ -370,7 +390,7 @@ def get_graph(experiment_id: int):
                     if library.id not in library_nodes.keys():
                         library_node = {
                             "node": idx,
-                            "name": f"{library.type.description}",
+                            "name": f"{library.type.abbreviation}",
                         }
                         graph["nodes"].append(library_node)
                         library_nodes[library.id] = idx

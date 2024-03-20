@@ -43,7 +43,7 @@ class DBHandler():
         create_experiment, get_experiment, get_experiments,
         update_experiment, delete_experiment,
         get_num_experiments, add_file_to_experiment, remove_file_from_experiment,
-        remove_comment_from_experiment
+        remove_comment_from_experiment, query_experiments
     )
 
     from .model_handlers._sample_methods import (

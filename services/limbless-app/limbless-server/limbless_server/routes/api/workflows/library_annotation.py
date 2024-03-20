@@ -97,7 +97,7 @@ def restart_form(seq_request_id: int, type: Literal["raw", "pooled"]):
     form = forms.SASInputForm(type=type)
     
     return form.make_response(
-        seq_request=seq_request, type=type, columns=form.get_columns()
+        seq_request=seq_request, type=type, columns=form.get_columns(), colors=forms.SASInputForm.colors
     )
         
 

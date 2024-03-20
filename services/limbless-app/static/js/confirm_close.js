@@ -9,6 +9,7 @@ function confirm_close_modal(modal_query){
         confirmButtonText: "Yes",
         }).then((result) => {
             if (result.isConfirmed) {
+                window.onbeforeunload = null;
                 $(modal_query).modal("hide");
                 let time_interval;
                 Swal.fire({

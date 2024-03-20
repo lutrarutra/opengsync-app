@@ -46,13 +46,6 @@ columns = {
     "seq_depth": SpreadSheetColumn("F", "seq_depth", "Sequencing Depth", "numeric", 150),
 }
 
-errors = {
-    "missing_value": "background-color: #FAD7A0;",
-    "invalid_value": "background-color: #F5B7B1;",
-    "duplicate_value": "background-color: #D7BDE2;",
-    "ok": "background-color: #82E0AA;"
-}
-
 
 class SASInputForm(HTMXFlaskForm):
     _template_path = "workflows/library_annotation/sas-1.html"
@@ -62,6 +55,12 @@ class SASInputForm(HTMXFlaskForm):
         ("tsv", "Tab-separated"),
         ("csv", "Comma-separated")
     ]
+    colors = {
+        "missing_value": "#FAD7A0",
+        "invalid_value": "#F5B7B1",
+        "duplicate_value": "#D7BDE2",
+        "ok": "#82E0AA"
+    }
     separator = SelectField(choices=_allowed_extensions, default="tsv", coerce=str)
     file = FileField(validators=[OptionalValidator(), FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
@@ -109,6 +108,7 @@ class SASInputForm(HTMXFlaskForm):
             self.file.errors = ("Please upload a file or fill-out spreadsheet.",)
             self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
             return False
+        
         if not validated:
             return False
         
@@ -154,43 +154,43 @@ class SASInputForm(HTMXFlaskForm):
         for i, (_, row) in enumerate(self.df.iterrows()):
             if pd.isna(row["sample_name"]):
                 if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['sample_name'].column}{i+1}"] = errors["missing_value"]
+                    self.spreadsheet_style[f"{columns['sample_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                 else:
                     self.file.errors = (f"Row {i+1} is missing a sample name.",)
                 
             if pd.isna(row["library_name"]):
                 if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = errors["missing_value"]
+                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                 else:
                     self.file.errors = (f"Row {i+1} is missing a library name.",)
             elif library_name_counts[row["library_name"]] > 1:
                 if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = errors["duplicate_value"]
+                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['duplicate_value']};"
                 else:
                     self.file.errors = (f"Library name '{row['library_name']}' is duplicated.",)
 
             if pd.isna(row["library_type"]):
                 if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['library_type'].column}{i+1}"] = errors["missing_value"]
+                    self.spreadsheet_style[f"{columns['library_type'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                 else:
                     self.file.errors = (f"Row {i+1} is missing a library type.",)
 
             if pd.isna(row["genome"]):
                 if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['genome'].column}{i+1}"] = errors["missing_value"]
+                    self.spreadsheet_style[f"{columns['genome'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                 else:
                     self.file.errors = (f"Row {i+1} is missing an genome.",)
 
             if pd.isna(row["project"]):
                 if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['project'].column}{i+1}"] = errors["missing_value"]
+                    self.spreadsheet_style[f"{columns['project'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                 else:
                     self.file.errors = (f"Row {i+1} is missing a project.",)
             
             if self.type == "raw":
                 if pd.isna(row["seq_depth"]):
                     if self.input_type == "spreadsheet":
-                        self.spreadsheet_style[f"{columns['seq_depth'].column}{i+1}"] = errors["missing_value"]
+                        self.spreadsheet_style[f"{columns['seq_depth'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                     else:
                         self.file.errors = (f"Row {i+1} is missing a sequencing depth.",)
                 else:
@@ -201,7 +201,7 @@ class SASInputForm(HTMXFlaskForm):
                         row["seq_depth"] = float(row["seq_depth"])
                     except ValueError:
                         if self.input_type == "spreadsheet":
-                            self.spreadsheet_style[f"{columns['seq_depth'].column}{i+1}"] = errors["invalid_value"]
+                            self.spreadsheet_style[f"{columns['seq_depth'].column}{i+1}"] = f"background-color: {SASInputForm.colors['invalid_value']};"
                         else:
                             self.file.errors = (f"Row {i+1} has an invalid sequencing depth.",)
 
@@ -211,21 +211,21 @@ class SASInputForm(HTMXFlaskForm):
 
                 if pd.isna(row["pool"]):
                     if self.input_type == "spreadsheet":
-                        self.spreadsheet_style[f"{columns['pool'].column}{i+1}"] = errors["missing_value"]
+                        self.spreadsheet_style[f"{columns['pool'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                     else:
                         self.file.errors = (f"Row {i+1} is missing a pool.",)
                 
                 if adapter_defined and not index_kit_defined:
-                    self.spreadsheet_style[f"{columns['index_kit'].column}{i+1}"] = errors["missing_value"]
+                    self.spreadsheet_style[f"{columns['index_kit'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                 elif not adapter_defined and index_kit_defined:
-                    self.spreadsheet_style[f"{columns['adapter'].column}{i+1}"] = errors["missing_value"]
+                    self.spreadsheet_style[f"{columns['adapter'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
 
                 elif not adapter_defined and pd.isna(row["index_1"]):
                     if self.input_type == "spreadsheet":
-                        self.spreadsheet_style[f"{columns['adapter'].column}{i+1}"] = errors["missing_value"]
-                        self.spreadsheet_style[f"{columns['index_kit'].column}{i+1}"] = errors["missing_value"]
-                        self.spreadsheet_style[f"{columns['index_1'].column}{i+1}"] = errors["missing_value"]
-                        self.spreadsheet_style[f"{columns['index_2'].column}{i+1}"] = errors["missing_value"]
+                        self.spreadsheet_style[f"{columns['adapter'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
+                        self.spreadsheet_style[f"{columns['index_kit'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
+                        self.spreadsheet_style[f"{columns['index_1'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
+                        self.spreadsheet_style[f"{columns['index_2'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
                     else:
                         self.file.errors = (f"Row {i+1} is missing an adapter and index kit or manually specified indices.",)
 
@@ -277,6 +277,7 @@ class SASInputForm(HTMXFlaskForm):
                 context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
                 if context["spreadsheet_data"] == []:
                     context["spreadsheet_data"] = [[None]]
+                context["colors"] = SASInputForm.colors
             
             return self.make_response(**context)
         

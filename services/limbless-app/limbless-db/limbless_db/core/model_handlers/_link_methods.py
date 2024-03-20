@@ -231,7 +231,7 @@ def unlink_pool_lane(self, lane_id, pool_id: int):
 
     if (_ := self._session.get(models.Lane, lane_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Lane with id {lane_id} does not exist")
-    if (_ := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
     if (link := self._session.query(models.LanePoolLink).where(
@@ -242,6 +242,12 @@ def unlink_pool_lane(self, lane_id, pool_id: int):
     
     self._session.delete(link)
     self._session.commit()
+    self._session.refresh(pool)
+
+    if len(pool.lanes) == 0:
+        pool.status_id = PoolStatus.ASSIGNED.id
+        self._session.add(pool)
+        self._session.commit()
 
     if not persist_session:
         self.close_session()

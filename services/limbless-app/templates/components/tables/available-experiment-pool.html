@@ -3,7 +3,7 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 
 <div id="available-experiment-pool-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover table">
         <thead>
             <tr>
                 {{
@@ -45,11 +45,7 @@
         </thead>
         <tbody>
             {% for pool in available_pools %}
-            {% if pool.experiment_id == experiment.id %}
-            <tr class="select-pool selected">
-            {% else %}
             <tr onclick="add_pool({{ pool.id }})" class="select-pool">
-            {% endif %}
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
                 <td class="num-m-reads-cell" id="num-m-reads-cell-{{ pool.id }}">{{ pool.num_m_reads_requested }}</td>

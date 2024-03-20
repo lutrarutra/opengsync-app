@@ -14,17 +14,17 @@
         <b>Library type:</b>
         <ul class="h-list" style="width: 60%; padding-left: 15px;">
         {% for _, library_type in LibraryType.as_tuples() %}
-            <li><span {{ tooltip(library_type.name) }} style="cursor: help;">{{ library_type.description }}</span></li>
+            <li><span {{ tooltip(library_type.name) }} style="cursor: help;">{{ library_type.abbreviation }}</span></li>
         {% endfor %}
         </ul>
     </li>
     <li><b>Sequencing Depth</b> <span class="desc">10X: number of cells in thousands / Non-10X: number of reads in millions. Specify numbers only!</span></li>
     <li><b>Project</b> <span class="desc">Samples from same project are analysed together. Project can be an existing one or you can create new one.</span></li>
     <li>
-        <b>Organism:</b>
+        <b>Genome Reference</b> <span class="desc">Specifies the reference genome used in downstream</span>:
         <ul class="h-list" style="width: 60%; padding-left: 15px;">
-        {% for _, organism in Organism.as_tuples() %}
-            <li><span {{ tooltip(organism.description) }} style="cursor: help;">{{ organism.name }}</span></li>
+        {% for genome_ref in GenomeRef.as_list() %}
+            <li><span {{ tooltip(genome_ref.organism_latin_name) }} style="cursor: help;">{{ genome_ref.display_name }}</span></li>
         {% endfor %}
         </ul>
     </li>

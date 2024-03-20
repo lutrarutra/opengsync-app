@@ -150,9 +150,7 @@ def edit(sample_id):
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))
-    word = request.form.get(field_name)
-
-    if word is None:
+    if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     if current_user.role == UserRole.CLIENT:

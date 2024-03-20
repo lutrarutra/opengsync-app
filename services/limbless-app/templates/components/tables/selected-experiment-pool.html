@@ -1,7 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 <div id="selected-experiment-pool-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -19,7 +19,15 @@
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
                         current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
                         query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
-                        field_name=field_name, col_size=11
+                        field_name=field_name, col_size=8
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='experiment-pool-table', column_name='Status', column_var='status_id',
+                        sort_url='pools_htmx.get', sort_url_args={"experiment_id":experiment.id},
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
+                        col_size=3,
                     )
                 }}
             </tr>
@@ -29,6 +37,7 @@
             <tr>
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
+                <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -39,7 +39,7 @@
                     {% set library = library_link.library %}
                     {% if seq_request.id == library.seq_request_id %}
                         <li {{ tooltip(library.type.name) }}>
-                            {{ library.type.description }}
+                            {{ library.type.abbreviation }}
                         </li>
                     {% endif %}
                     {% endfor %}

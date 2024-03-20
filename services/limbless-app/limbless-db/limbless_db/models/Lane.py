@@ -26,3 +26,6 @@ class Lane(SQLModel, table=True):
     )
 
     sortable_fields: ClassVar[list[str]] = ["id", "number", "experiment_id", "phi_x"]
+
+    def __str__(self):
+        return f"Lane(id={self.id}, number={self.number})"
