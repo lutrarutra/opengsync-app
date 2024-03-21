@@ -6,7 +6,8 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse
-from .... import db
+
+from .... import db, forms
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -68,6 +69,19 @@ def get(page: int):
                 pools_active_page=page, **context
             )
         )
+    
+
+@pools_htmx.route("<int:pool_id>/edit", methods=["POST"])
+@login_required
+def edit(pool_id: int):
+    with DBSession(db) as session:
+        if (pool := session.get_pool(pool_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        if not current_user.is_insider() and pool.owner_id != current_user.id:
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+        return forms.models.PoolForm(None, request.form).process_request(pool=pool)
 
 
 @pools_htmx.route("table_query", methods=["POST"])

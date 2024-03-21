@@ -51,12 +51,33 @@
                 {{ metadata_group("Pool Name", pool.name, class="col") }}
                 {{
                     metadata_group_link(
-                        "Owner Name",
+                        "Owner",
                         pool.owner.name,
                         url_for("users_page.user_page", user_id=pool.owner.id, from='pool@' + pool.id | string),
                         class="col"
                     )
                 }}
+                {{ 
+                    metadata_group_email_link("Owner Email", pool.owner.email, class="col")
+                }}
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="pool-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Edit Pool</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {% include pool_form._template_path %}
+                </div>
+                <div class="modal-footer" >
+                    <button  class="btn btn-primary"
+                    hx-include="#pool-form" hx-target="#pool-form" hx-swap="outerHTML"
+                    hx-post="{{ url_for('pools_htmx.edit', pool_id=pool.id) }}">Submit</button>
+                </div>
             </div>
         </div>
     </div>

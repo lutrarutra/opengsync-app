@@ -27,14 +27,6 @@
                 }}
                 {{
                     table_col(
-                        target_id='sample-table', column_name='Organism', column_var='organism_id',
-                        sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
-                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
-                        col_size=5
-                    )
-                }}
-                {{
-                    table_col(
                         target_id='sample-table', column_name='Owner', column_var='owner_id',
                         sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
                         current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
@@ -48,13 +40,6 @@
             <tr onclick="window.location.href=`{{ url_for('samples_page.sample_page', sample_id=sample.id, from='project@' + project.id | string) }}`;">
                 <th scope="row">{{ sample.id }}</th>
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
-                <td>
-                    <span class="organism-col">
-                        <p>{{ sample.organism.name }}</p>
-                        <p>{{ "[" + sample.organism_id | string + "]" }}</p>
-                        <p>{{ ("(" + sample.organism.desc + ")" if sample.organism.desc else "") }}</p>
-                    </span>
-                </td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
             </tr>
             {% endfor %}

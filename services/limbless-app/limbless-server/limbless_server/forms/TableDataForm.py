@@ -12,7 +12,7 @@ from ..tools import io as iot
 class TableDataForm():
     file_uuid = StringField()
 
-    def __init__(self, uuid: Optional[str]):
+    def __init__(self, dirname: str, uuid: Optional[str]):
         if uuid is None:
             if self.file_uuid.data is not None:
                 uuid = self.file_uuid.data
@@ -21,6 +21,10 @@ class TableDataForm():
 
         self.uuid = uuid
         self.file_uuid.data = uuid
+        self._dir = os.path.join("uploads", dirname)
+        
+        if not os.path.exists(self._dir):
+            os.mkdir(self._dir)
 
         self.__data = None
 
@@ -30,7 +34,7 @@ class TableDataForm():
             self.uuid = str(uuid4())
             self.file_uuid.data = self.uuid
 
-        return os.path.join("uploads", "seq_request", self.file_uuid.data + ".tsv")
+        return os.path.join(self._dir, self.file_uuid.data + ".tsv")
 
     def get_data(self) -> dict[str, pd.DataFrame | dict]:
         if self.__data is None:

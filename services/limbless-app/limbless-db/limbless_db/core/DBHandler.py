@@ -151,7 +151,7 @@ class DBHandler():
     )
 
     from .pd_handler import (
-        get_experiment_libraries_df, get_experiment_samples_df,
+        get_experiment_libraries_df,
         get_pool_libraries_df, get_seq_request_libraries_df,
         get_seq_requestor_df, get_seq_request_share_emails_df,
         get_library_features_df, get_library_cmos_df, get_experiment_seq_qualities_df

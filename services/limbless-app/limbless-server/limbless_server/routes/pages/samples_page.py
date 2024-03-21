@@ -42,7 +42,7 @@ def sample_page(sample_id):
         if not current_user.is_insider() and sample.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    sample_form = forms.SampleForm(sample=sample)
+    sample_form = forms.models.SampleForm(sample=sample)
 
     with DBSession(db) as session:
         sample = session.get_sample(sample_id)
@@ -72,7 +72,6 @@ def sample_page(sample_id):
         "sample_page.html", sample_form=sample_form,
         path_list=path_list, sample=sample,
         libraries=libraries,
-        selected_organism=sample.organism,
         libraries_n_pages=libraries_n_pages,
         seq_requests=seq_requests,
         seq_requests_n_pages=seq_requests_n_pages

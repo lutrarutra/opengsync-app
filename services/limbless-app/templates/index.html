@@ -97,39 +97,8 @@
                         <a href="{{ url_for('seq_requests_page.seq_requests_page', open_form=1) }}" class="btn btn-primary begin-workflow-btn">Start</a>
                     </div>
                 </div>
-                {% if current_user.is_insider() %}
-                <div class="card" style="width: 250px;">
-                    <div class="card-icon">
-                        <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="80px">
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title">Pool Libraries</h5>
-                        <p class="card-text">Create pools from libraries or samples received from clients.</p>
-                        <a href="#" class="btn btn-primary begin-workflow-btn">Start</a>
-                    </div>
-                </div>
-                <div class="card" style="width: 250px;">
-                    <div class="card-icon">
-                        <img src="{{ url_for('static', filename='images/licensed/calculator.svg') }}" width="90px">
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title">Lane Pools</h5>
-                        <p class="card-text">Checks barcode conflicts, calculates pooling ratios, in preparation of sequencing multiple pools on a single lane.</p>
-                        <a href="#" class="btn btn-primary begin-workflow-btn" data-bs-toggle="modal"
-                            data-bs-target="#select-experiment-form-popup">Start</a>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
-
-    {% if current_user.is_insider() %}
-    <div class="modal fade" id="select-experiment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-m modal-dialog-centered">
-            {% include "forms/select-experiment-form.html" %}
-        </div>
-    </div>
-    {% endif %}
 </div>
 {% endblock content %}

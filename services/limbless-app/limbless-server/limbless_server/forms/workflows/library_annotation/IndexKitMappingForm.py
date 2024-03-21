@@ -34,7 +34,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
 
     def validate(self) -> bool:
         if not super().validate():

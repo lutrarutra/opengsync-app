@@ -4,11 +4,11 @@ from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required
 
 from limbless_db import DBSession
+from limbless_db.categories import PoolStatus
 from limbless_db.models import User
 from limbless_db.categories import HTTPResponse
 
-from ...app import db
-from ...forms import workflows
+from ... import db, forms
 
 if TYPE_CHECKING:
     current_user: User = None  # type: ignore
@@ -61,8 +61,8 @@ def pool_page(pool_id: int):
                     (f"Pool {pool_id}", ""),
                 ]
 
-        open_index_form = request.args.get("index_form", None) == "open"
-        pooling_input_form = workflows.library_pooling.PoolingInputForm()
+        is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider()
+        pool_form = forms.models.PoolForm(pool=pool)
 
         return render_template(
             "pool_page.html",
@@ -72,6 +72,6 @@ def pool_page(pool_id: int):
             libraries_current_sort="id",
             libraries_current_sort_order="desc",
             path_list=path_list,
-            open_index_form=open_index_form,
-            pooling_input_form=pooling_input_form
+            is_editable=is_editable,
+            pool_form=pool_form
         )

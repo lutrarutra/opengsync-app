@@ -33,7 +33,7 @@ class Sample(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "select"}
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "organism_id", "project_id", "owner_id", "num_libraries"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "project_id", "owner_id", "num_libraries"]
 
     def to_dict(self):
         data = {

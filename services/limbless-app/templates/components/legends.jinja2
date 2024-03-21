@@ -8,3 +8,14 @@
     {% endfor %}
 </div>
 {%- endmacro %}
+
+{% macro icon_legend(icons) -%}
+<div class="color-legend pt-2 pb-2">
+    {% for label, icon in icons.items() %}
+    <span class="legend-unit">
+        <div class="icon">{{ icon }}</div>
+        <div class="icon-label">{{ label.replace("_", " ").title() }}</div>
+    </span>
+    {% endfor %}
+</div>
+{%- endmacro %}

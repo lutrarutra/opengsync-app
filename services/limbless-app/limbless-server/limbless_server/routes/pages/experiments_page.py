@@ -4,7 +4,8 @@ from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required
 
 from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, ExperimentStatus, PoolStatus
+
 from ... import forms, db, tools, logger
 
 import time
@@ -51,7 +52,7 @@ def experiment_page(experiment_id: int):
 
         available_seq_requests_sort = "submitted_time"
 
-        pools, pools_n_pages = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id)
+        pools, _ = db.get_pools(experiment_id=experiment_id, sort_by="id", descending=True, limit=None)
 
         experiment_form = forms.models.ExperimentForm(experiment=experiment)
         pooling_input_form = forms.workflows.library_pooling.PoolingInputForm()
@@ -59,11 +60,21 @@ def experiment_page(experiment_id: int):
         file_input_form = forms.file.ExperimentAttachmentForm(experiment_id=experiment_id)
 
         experiment_lanes = {}
+        lane_capacities = {}
+
         for lane in experiment.lanes:
-            if lane.number not in experiment_lanes.keys():
-                experiment_lanes[lane.number] = []
+            experiment_lanes[lane.number] = []
+            lane_capacities[lane.number] = 0
+            
             for pool in lane.pools:
                 experiment_lanes[lane.number].append(pool.id)
+                lane_capacities[lane.number] += pool.num_m_reads_requested
+
+            lane_capacities[lane.number] = (lane_capacities[lane.number], 100.0 * lane_capacities[lane.number] / experiment.flowcell_type.max_m_reads_per_lane)
+
+        is_sequenceable = experiment.status == ExperimentStatus.DRAFT
+        for pool in pools:
+            is_sequenceable = is_sequenceable and pool.status == PoolStatus.LANED
 
         path_list = [
             ("Experiments", url_for("experiments_page.experiments_page")),
@@ -71,7 +82,7 @@ def experiment_page(experiment_id: int):
         ]
 
         experiment.files
-        experiment.comments
+        experiment.comments    
 
     return render_template(
         "experiment_page.html",
@@ -79,7 +90,6 @@ def experiment_page(experiment_id: int):
         experiment_form=experiment_form,
         path_list=path_list,
         pools=pools,
-        pools_n_pages=pools_n_pages,
         libraries_active_page=0,
         file_input_form=file_input_form,
         comment_form=comment_form,
@@ -90,4 +100,6 @@ def experiment_page(experiment_id: int):
         available_seq_requests_current_sort_order="desc",
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.operator,
+        is_sequenceable=is_sequenceable,
+        lane_capacities=lane_capacities
     )

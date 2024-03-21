@@ -36,7 +36,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
 
     def __init__(self, formdata: Optional[dict] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, uuid=None)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=None)
 
     def prepare(self, user_id: int, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
         if data is None:

@@ -7,7 +7,7 @@ $progress-height: 1.3rem !default;
 @import "responsive.scss";
 @import "colors.scss";
 @import "tooltip.scss";
-
+@import "table.scss";
 
 body {
     background-color: $light;
@@ -155,19 +155,19 @@ body {
     display: flex;
     width: 100%;
     flex-direction: row;
+    justify-content: space-between;
     .footer-id {
         background-color: transparent;
-        margin-right: auto;
-        width: 30%;
+        width: 150px;
     }
     .footer-info {
         display: flex;
         flex-direction: row;
         justify-content: center;
-        flex-grow: 1;
     }
     .footer-controls {
-        width: 30%;
+        width: 150px;
+        overflow-x: visible;
         display: flex;
         flex-direction: row;
         justify-content: flex-end;
@@ -279,29 +279,6 @@ body {
         to   { top: -200px; }
     }
 }
-.table-cursor {
-    thead {
-        tr {
-            th.sortable-col.asc { cursor: n-resize; }
-            th.sortable-col.desc { cursor: s-resize; }
-            th.sortable-col:hover { background-color: $gray-300; }
-            th { cursor: default; }
-        }
-    }
-    tbody {
-        tr { cursor: pointer; }
-        tr.disabled { cursor: not-allowed; }
-        tr .table-cell-tooltip { cursor: pointer; }
-    }
-}
-
-.table tbody {
-    .disabled td, .disabled th {
-        background-color: $gray-200;
-        opacity: 0.7;
-        border: 0;
-    }
-}
 
 
 input.disabled {
@@ -321,87 +298,6 @@ input.disabled:focus {
 .display-form {
     input.disabled {
         background-color: $white;
-    }
-}
-
-.table-container {
-    .pagination {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-    }
-
-    table {
-        .table-select-buttons {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-        }
-        .table-btn {
-            height: 25px;
-            padding: 0px 8px 0px 8px;
-        }
-        width: 100%;
-        * {
-            margin: 0 !important;
-        }
-
-        tr {
-            td, th {
-                padding-top: 8px !important;
-                padding-bottom: 8px !important;
-                white-space: nowrap;
-                overflow: hidden;
-                height: 42px;
-            }
-        }
-        .comma:not(:first-child):before {
-            content: ", ";
-        }
-
-        .comma:empty + .comma:not(:empty):before {
-            content : "";
-        }
-
-        .comma:not(:empty) ~ .comma:empty + .comma:not(:empty):before {
-            content : ",";
-        }
-        .adapter-col {
-            display: flex;
-            span {
-                gap: 7px;
-                display: flex;
-                :nth-child(1) {
-                    font-weight:500;
-                }
-                :nth-child(2) {
-                    color: $gray-500;
-                }
-                :nth-child(3) {
-                    color: $gray-500;
-                }
-            }
-        }
-        .library_type-col {
-            display: flex;
-        }
-
-        .organism-col {
-            display: flex;
-            gap: 7px;
-
-            :nth-child(1) {
-                font-style: italic;
-            }
-
-            :nth-child(2) {
-                font-weight:600;
-            }
-            :nth-child(3) {
-                color: $gray-500;
-            }
-        }
     }
 }
 
@@ -437,17 +333,6 @@ span.desc:empty:after {
         font-size: 14px;
     }
 }
-
-.form-table-container {
-    height: 100%;
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: auto;
-    form table {
-        width: 100%;
-    }
-}
-
 
 .search-select {
     position: relative;
@@ -624,34 +509,47 @@ select {
     gap: 20px;
     justify-content: center;
 
-    .card-body {
+    .card {
         display: flex;
         flex-direction: column;
-        justify-items: center;
-        align-content: space-between;
-        .begin-workflow-btn {
-            margin-top: auto;
-        }
-    }
+        gap: 10px;
 
-    .card-icon {
-        display: block;
-        margin: auto;
-        width: 100px;
-        height: 150px;
-        img {
-            padding-top: 50%;
+        .card-icon {
             display: block;
             margin: auto;
+            width: 100px;
+            height: 150px;
+            img {
+                padding-top: 50%;
+                display: block;
+                margin: auto;
+            }
+        }
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            justify-items: center;
+            flex-basis: 100%;
 
+            .controls-container {
+                margin-top: auto;
+                button {
+                    width: 100%;
+                }
+            }
         }
     }
-}
 
-table tbody tr.select-pool.selected {
-    th, td {
-        background-color: #EAFAF1;
+    .card:hover {
+        cursor: pointer;
+        box-shadow: 0 .25rem .5rem rgba($black, .075);
     }
+
+    .card.disabled:hover {
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
 }
 
 .relative-progress {
@@ -683,5 +581,14 @@ table tbody tr.select-pool.selected {
             font-size: 15px;
             font-weight: 600;
         }
+    }
+}
+
+.flowcell-capacity-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    .flowcell-capacity-bar {
+        width: calc(50% - 5px);
     }
 }

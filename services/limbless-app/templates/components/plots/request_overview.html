@@ -1,0 +1,138 @@
+<div class="flow-graph-container pt-3" id="graph" style="width: 100%"></div>
+<script>
+    $(document).ready(function() {
+        $.getScript("https://d3js.org/d3.v4.min.js", function() {
+            $.getScript("https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js", function() {
+                const nodes = {{ nodes | tojson }};
+                const links = {{ links | tojson }};
+
+                const _h = nodes.length * 30;
+                const _w = $("#graph").width();
+                
+                const contains_pooled_samples = {% if contains_pooled %}true{% else %}false{% endif %};
+                const n_levels = contains_pooled_samples ? 5 : 4;
+
+                var margin = {top: 50, right: 10, bottom: 10, left: 10},
+                    width =  _w - margin.left - margin.right,
+                    height = _h - margin.top - margin.bottom;
+
+                var svg = d3.select("#graph").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                const dx = width / (n_levels - 1);
+
+                svg.append("text")
+                    .attr("x", 30)
+                    .attr("y", -margin.top * 0.5)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "22px")
+                    .text("Project");
+
+                svg.append("text")
+                    .attr("x", dx)
+                    .attr("y", -margin.top * 0.5)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "22px")
+                    .text("Biosample");
+
+                svg.append("text")
+                    .attr("x", dx * 2)
+                    .attr("y", -margin.top * 0.5)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "22px")
+                    .text("Library");
+
+                if (contains_pooled_samples) {
+                    svg.append("text")
+                        .attr("x", dx * 3)
+                        .attr("y", -margin.top * 0.5)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "22px")
+                        .text("Pool");
+                }
+
+                svg.append("text")
+                    .attr("x", dx * (n_levels - 1) - 50)
+                    .attr("y", -margin.top * 0.5)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "22px")
+                    .text("Request");
+
+                // Color scale used
+                var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+                // Set the sankey diagram properties
+                var sankey = d3.sankey()
+                    .nodeWidth(25)
+                    .nodePadding(15)
+                    .size([width, height]);
+                
+                // Constructs a new Sankey generator with the default settings.
+                sankey.nodes(nodes).links(links).layout(20);
+
+                // add in the links
+                var link = svg.append("g")
+                    .selectAll(".link")
+                    .data(links)
+                    .enter()
+                    .append("path")
+                    .attr("class", "link")
+                    .attr("d", sankey.link() )
+                    .style("stroke-width", function(d) { return Math.max(1, d.dy); })
+                    .sort(function(a, b) { return b.dy - a.dy; });
+
+                // add in the nodes
+                var node = svg.append("g")
+                    .selectAll(".node")
+                    .data(nodes)
+                    .enter().append("g")
+                    .attr("class", "node")
+                    .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+                    .call(d3.drag()
+                        .subject(function(d) { return d; })
+                        .on("start", function() { this.parentNode.appendChild(this); })
+                        .on("drag", dragmove)
+                    );
+
+                // add in the title for the nodes
+                node
+                    .append("text")
+                    .attr("x", -6)
+                    .attr("y", function(d) { return d.dy / 2; })
+                    .attr("dy", ".35em")
+                    .attr("text-anchor", "end")
+                    .attr("transform", null)
+                    .text(function(d) { return d.name; })
+                    .filter(function(d) { return d.x < width / 2; })
+                    .attr("x", 6 + sankey.nodeWidth())
+                    .attr("text-anchor", "start");
+
+                // add the rectangles for the nodes
+                var rect = node.append("rect");
+
+                rect.attr("class", "graph-node")
+                    .attr("id", function(d) { return d.id; })
+                    .attr("height", function(d) { return d.dy; })
+                    .attr("width", sankey.nodeWidth())
+                    .style("fill", function(d) { return d.color = color(d.name.replace(/ .*/, "")); })
+                    .style("stroke", function(d) { return d3.rgb(d.color).darker(2); });
+
+                // the function for moving the nodes
+                function dragmove(d) {
+                    d3.select(this)
+                    .attr("transform",
+                            "translate("
+                            + d.x + ","
+                            + (d.y = Math.max(
+                                0, Math.min(height - d.dy, d3.event.y))
+                                ) + ")");
+                    sankey.relayout();
+                    link.attr("d", sankey.link() );
+                }
+            });
+        });
+    });
+</script>

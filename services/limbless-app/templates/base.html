@@ -33,6 +33,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script src="https://unpkg.com/hyperscript.org@0.9.11"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+
     <script>
         function init_tooltips() {
             const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -208,14 +209,18 @@
             document.body.removeChild(textArea);
         }
 
-        function copy_to_clipboard(uuid) {
+        function copy_to_clipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text);
+            } else {
+                unsecuredCopyToClipboard(text);
+            }
+        }
+
+        function copy_value_to_clipboard(uuid) {
             const s = $("#" + uuid + " input").first().val();
 
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(s);
-            } else {
-                unsecuredCopyToClipboard(s);
-            }
+            copy_to_clipboard(s);
 
             $(".copied-icon").css({
                 display: "none"

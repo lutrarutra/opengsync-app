@@ -586,9 +586,9 @@ def remove_share_email(seq_request_id: int, email: str):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/get_graph", methods=["GET"])
+@seq_requests_htmx.route("<int:seq_request_id>/overview", methods=["GET"])
 @login_required
-def get_graph(seq_request_id: int):
+def overview(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -600,19 +600,17 @@ def get_graph(seq_request_id: int):
 
     with DBSession(db) as session:
         samples, _ = session.get_samples(seq_request_id=seq_request_id, limit=None)
-
-        graph = {
-            "nodes": [],
-            "links": [],
-            "pooled": 0,
-        }
+        
+        nodes = []
+        links = []
+        contains_pooled = False
 
         seq_request_node = {
             "node": 0,
             "name": seq_request.name,
             "id": f"seq_request-{seq_request.id}"
         }
-        graph["nodes"].append(seq_request_node)
+        nodes.append(seq_request_node)
 
         idx = 1
 
@@ -629,7 +627,7 @@ def get_graph(seq_request_id: int):
                     "name": sample.project.name,
                     "id": f"project-{sample.project_id}"
                 }
-                graph["nodes"].append(project_node)
+                nodes.append(project_node)
                 project_nodes[sample.project.id] = idx
                 project_idx = idx
                 idx += 1
@@ -641,7 +639,7 @@ def get_graph(seq_request_id: int):
                 "name": sample.name,
                 "id": f"sample-{sample.id}"
             }
-            graph["nodes"].append(sample_node)
+            nodes.append(sample_node)
             sample_nodes[sample.id] = idx
             idx += 1
             n_sample_links = 0
@@ -654,26 +652,26 @@ def get_graph(seq_request_id: int):
                             "name": link.library.type.abbreviation,
                             "id": f"library-{link.library.id}"
                         }
-                        graph["nodes"].append(library_node)
+                        nodes.append(library_node)
                         library_nodes[link.library.id] = idx
                         library_idx = idx
                         idx += 1
 
                         if not link.library.is_pooled():
-                            graph["links"].append({
+                            links.append({
                                 "source": library_idx,
                                 "target": seq_request_node["node"],
                                 "value": LINK_WIDTH_UNIT
                             })
                         else:
-                            graph["pooled"] = 1
+                            contains_pooled = True
                             if link.library.pool_id not in pool_nodes.keys():
                                 pool_node = {
                                     "node": idx,
                                     "name": link.library.pool.name,         # type: ignore
                                     "id": f"pool-{link.library.pool.id}"    # type: ignore
                                 }
-                                graph["nodes"].append(pool_node)
+                                nodes.append(pool_node)
                                 pool_nodes[link.library.pool.id] = idx      # type: ignore
                                 pool_link_widths[link.library.pool.id] = 0  # type: ignore
                                 pool_idx = idx
@@ -684,32 +682,35 @@ def get_graph(seq_request_id: int):
 
                             pool_link_widths[link.library.pool.id] += LINK_WIDTH_UNIT * link.library.num_samples    # type: ignore
                             
-                            graph["links"].append({
+                            links.append({
                                 "source": library_nodes[link.library_id],
                                 "target": pool_idx,
                                 "value": LINK_WIDTH_UNIT * link.library.num_samples
                             })
                     else:
                         library_idx = library_nodes[link.library.id]
-                    graph["links"].append({
+                    links.append({
                         "source": sample_node["node"],
                         "target": library_idx,
                         "value": LINK_WIDTH_UNIT
                     })
 
-            graph["links"].append({
+            links.append({
                 "source": project_idx,
                 "target": sample_nodes[sample.id],
                 "value": LINK_WIDTH_UNIT * n_sample_links
             })
 
     for pool_id, pool_node in pool_nodes.items():
-        graph["links"].append({
+        links.append({
             "source": pool_node,
             "target": seq_request_node["node"],
             "value": pool_link_widths[pool_id]
         })
 
     return make_response(
-        jsonify(graph)
+        render_template(
+            "components/plots/request_overview.html",
+            nodes=nodes, links=links, contains_pooled=contains_pooled
+        )
     )

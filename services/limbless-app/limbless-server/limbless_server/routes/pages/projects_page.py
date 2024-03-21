@@ -11,7 +11,7 @@ projects_page_bp = Blueprint("projects_page", __name__)
 @projects_page_bp.route("/projects")
 @login_required
 def projects_page():
-    project_form = forms.ProjectForm()
+    project_form = forms.models.ProjectForm()
 
     with DBSession(db) as session:
         if not current_user.is_insider():
@@ -42,7 +42,7 @@ def project_page(project_id):
         (f"Project {project_id}", ""),
     ]
 
-    project_form = forms.ProjectForm(project=project)
+    project_form = forms.models.ProjectForm(project=project)
 
     return render_template(
         "project_page.html", project=project,

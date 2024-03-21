@@ -1,135 +1,100 @@
-{% from "components/tooltip.jinja2" import tooltip %}
-<div id="barcode-check-form-container" class="modal-content">
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+
+<div id="pooling-ratio-form-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">2. Check Barcode Conflicts</h1>
+        <h1 class="modal-title fs-5">2. Calculate Pooling Ratios</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#lane_pools-workflow-popup")></button>
-    </div> 
-    <div class="modal-body">
-        <form id="barcode-check-form">
-            {{ barcode_check_form.csrf_token() }}
-            {{ barcode_check_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
-            <table class="table table-hover table-cursor">
+    </div>
+    <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
+        <div id="pooling-ratio-form">
+            {{ pooling_ratio_form.csrf_token() }}
+            {{ pooling_ratio_form.file_uuid(hidden=true) }}
+            {{ pooling_ratio_form.target_concentration() }}
+            
+            <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th scope="col" class="col-1">Status</th>
-                        <th scope="col" class="col-2">Name</th>
-                        <th scope="col" class="col-2">Library Type</th>
-                        <th scope="col" class="col-2">Pool</th>
-                        {% if show_adapter %}
-                        <th scope="col" class="col-1">Adapter</th>
-                        {% endif %}
-                        {% if show_index_1 %}
-                        <th scope="col" class="col-1">Index 1</th>
-                        {% endif %}
-                        {% if show_index_2 %}
-                        <th scope="col" class="col-1">Index 2</th>
-                        {% endif %}
-                        {% if show_index_3 %}
-                        <th scope="col" class="col-1">Index 3</th>
-                        {% endif %}
-                        {% if show_index_4 %}
-                        <th scope="col" class="col-1">Index 4</th>
-                        {% endif %}
+                        <th class="col-2" scope="col">Pool Name</th>
+                        <th class="col-1" scope="col">Lane</th>
+                        <th class="col-1" scope="col">Reads [M]</th>
+                        <th class="col-1" scope="col">Fragment Size [bp]</th>
+                        <th class="col-1" scope="col">QBit</th>
+                        <th class="col-1 bg-light" scope="col">nM Total</th>
+                        <th class="col-1" scope="col">Volume</th>
+                        <th class="col-1" scope="col">QBit After Dilution</th>
+                        <th class="col-1 bg-light" scope="col">nM After Dilution</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for _, row in library_table.iterrows() %}
-                    {% set sample_id = row["id"] %}
-                    {% if row["error"] %}
-                    <tr {{ tooltip(row["error"], category="error") }}>
-                    {% elif row["warning"] %}
-                    <tr {{ tooltip(row["warning"], category="warning") }}>
-                    {% else %}
+                    {% for i, (_, row) in enumerate(df.iterrows()) %}
+                    {% set sub_form = pooling_ratio_form.input_fields[i] %}
+                    {{ sub_form.csrf_token() }}
                     <tr>
-                    {% endif %}
-                        <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %}</td>
-                        <td>{{ row["name"] }}</td>
-                        <td>{{ row["type"] }}</td>
-                        <td>{{ row["pool"] }}</td>
-                        {% if show_adapter %}
-                        <td>{{ row["adapter"] if row["adapter"] }}</td>
-                        {% endif %}
-                        {% if show_index_1 %}
-                        <td class="index-cell-1">{{ row["index_1"] if row["index_1"] }}</td>
-                        {% endif %}
-                        {% if show_index_2 %}
-                        <td class="index-cell-2">{{ row["index_2"] if row["index_2"] }}</td>
-                        {% endif %}
-                        {% if show_index_3 %}
-                        <td class="index-cell-3">{{ row["index_3"] if row["index_3"] }}</td>
-                        {% endif %}
-                        {% if show_index_4 %}
-                        <td class="index-cell-4">{{ row["index_4"] if row["index_4"] }}</td>
-                        {% endif %}
+                        <th>{{ row["pool_name"] }}</th>
+                        <th>{{ row["lane"] }}</th>
+                        <td>{{ form_cell(sub_form.m_reads) }}</td>
+                        <td>{{ form_cell(sub_form.fragment_size, input_class="fragment_size-col") }}</td>
+                        <td>{{ form_cell(sub_form.qbit, input_class="qbit-col") }}</td>
+                        <td class="nm_total-col bg-light"></td>
+                        <td>{{ form_cell(sub_form.volume, input_class="volume-col") }}</td>
+                        <td>{{ form_cell(sub_form.qbit_after_dilution, input_class="qbit_after-col") }}</td>
+                        <td class="nm_total-after-col bg-light"></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        </form>
+        </div>
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ barcode_check_form.file_uuid.data }}
+            {{ pooling_ratio_form.file_uuid.data }}
+        </div>
+        <div class="footer-info">
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-success" hx-target="#barcode-check-form-container" hx-swap="outerHTML"
-                hx-include="#barcode-check-form"
-                hx-post="{{ url_for('lane_pools_workflow.check_barcodes', experiment_id=experiment.id) }}"
-                {% if warn_user %}
-                _="on htmx:confirm(issueRequest)
-                    halt the event
-                    call Swal.fire({
-                        title: 'Warning!',
-                        icon: 'warning',
-                        showDenyButton: true,
-                        text: 'Selected pools have conflicts in indices. Are you sure you want to proceed?',
-                        confirmButtonText: 'Yes',
-                        denyButtonText: 'No'
-                    })
-                    if result.isConfirmed issueRequest()"
-                {% endif %}>
-                Submit
+            <button type="button" class="btn btn-success"
+            hx-post="{{ url_for('lane_pools_workflow.calculate_ratios', experiment_id=experiment.id) }}"
+            hx-target="#pooling-ratio-form-container" hx-swap="outerHTML" hx-include="#pooling-ratio-form">
+                Calculate
             </button>
         </div>
     </div>
+    <script>
+        $(document).ready(function() {
+            init_tooltips();
+
+            function update_nm_total(row) {
+                const fragment_size = row.find(".fragment_size-col").first().closest("input").val();
+                const qbit = row.find(".qbit-col").first().closest("input").val();
+                const qbit_after = row.find(".qbit_after-col").first().closest("input").val();
+
+                if (fragment_size && qbit) {
+                    const nm_total = qbit / (fragment_size * 660) * 1000000;
+                    row.find(".nm_total-col").text(nm_total.toFixed(2));
+                } else {
+                    row.find(".nm_total-col").text("");
+                }
+
+                if (fragment_size && qbit_after) {
+                    const nm_total = qbit_after / (fragment_size * 660) * 1000000;
+                    row.find(".nm_total-after-col").text(nm_total.toFixed(2));
+                } else {
+                    row.find(".nm_total-after-col").text("");
+                }
+            }
+
+            $(".fragment_size-col").on("input", function() {
+                update_nm_total($(this).closest("tr"));
+            });
+
+            $(".qbit-col").on("input", function() {
+                update_nm_total($(this).closest("tr"));
+            });
+
+            $(".qbit_after-col").on("input", function() {
+                update_nm_total($(this).closest("tr"));
+            });
+        });
+    </script>
 </div>
-<script>
-    $(document).ready(function() {
-        init_tooltips();
-    });
-
-    const flowcell_reads_per_lane = {{ experiment.flowcell_type.max_m_reads_per_lane }};
-    var m_reads_selected = {{ m_reads_selected }};
-
-    function update_progress_bar() {
-        const pct = m_reads_selected / flowcell_reads_per_lane * 100;
-        $(`#flowcell-capacity-bar`).children('.progress-bar').css('width', `${pct}%`);
-        $(`#flowcell-capacity-bar`).children('.progress-title').html(`Flowcell Lane Capacity: ${ pct }% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; ${ m_reads_selected }/${ flowcell_reads_per_lane } Million Reads)`);
-    }
-    function select_pool(pool_id) {
-        if ($(`#select-pool-${pool_id}`).hasClass('selected')) {
-            $(`#select-pool-${pool_id}`).removeClass('selected');
-            const m_reads = parseFloat($(`#num-m-reads-cell-${pool_id}`).text());
-            m_reads_selected -= m_reads;
-            update_progress_bar();
-            var selected = $(`#pool_ids`).val().split(',');
-            if (selected.includes(pool_id)) {
-                selected = selected.filter(e => e !== pool_id);
-            }
-            $(`#pool_ids`).val(selected.join(','));
-            
-        } else {
-            $(`#select-pool-${pool_id}`).addClass('selected');
-            const m_reads = parseFloat($(`#num-m-reads-cell-${pool_id}`).text());
-            m_reads_selected += m_reads;
-            update_progress_bar();
-            var selected = $(`#pool_ids`).val().split(',');
-            if (selected.includes(pool_id)) {
-                selected = selected.filter(e => e !== pool_id);
-            } else {
-                selected.push(pool_id);
-            }
-            $(`#pool_ids`).val(selected.join(','));
-        }
-    }
-</script>

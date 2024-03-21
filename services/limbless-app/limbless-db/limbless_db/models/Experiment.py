@@ -51,7 +51,7 @@ class Experiment(SQLModel, SearchResult, table=True):
         sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
     )
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries"]
+    sortable_fields: ClassVar[List[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries", "flowcell_type_id"]
 
     files: list["File"] = Relationship(
         link_model=ExperimentFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},

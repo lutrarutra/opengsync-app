@@ -150,33 +150,16 @@ def delete_pool(
         self.close_session()
 
 
-def update_pool(
-    self, pool_id: int,
-    name: Optional[str] = None,
-    commit: bool = True
-) -> models.Pool:
+def update_pool(self, pool: models.Pool,) -> models.Pool:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    pool = self._session.get(models.Pool, pool_id)
-    if not pool:
-        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-
-    if name is not None:
-        _lib = self._session.query(models.Pool).where(
-            models.Pool.name == name
-        ).first()
-        if _lib is not None and _lib.id != pool_id:
-            raise exceptions.NotUniqueValue(f"Pool with name {name} already exists")
-
-    if name is not None:
-        pool.name = name
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(pool)
+    self._session.add(pool)
+    self._session.commit()
+    self._session.refresh(pool)
 
     if not persist_session:
         self.close_session()
+        
     return pool

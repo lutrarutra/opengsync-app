@@ -9,7 +9,6 @@ from wtforms.validators import DataRequired, Length
 from limbless_db import models, DBSession
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
-from ..SearchBar import SearchBar
 
 
 class SampleForm(HTMXFlaskForm):
@@ -17,7 +16,6 @@ class SampleForm(HTMXFlaskForm):
     _form_label = "sample_form"
 
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=models.Sample.name.type.length)])  # type: ignore
-    organism = FormField(SearchBar, label="Select Organism")
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, sample: Optional[models.Sample] = None):
         super().__init__(formdata=formdata)
@@ -26,8 +24,6 @@ class SampleForm(HTMXFlaskForm):
 
     def __fill_form(self, sample: models.Sample):
         self.name.data = sample.name
-        self.organism.selected.data = sample.organism_id
-        self.organism.search_bar.data = sample.organism.name
 
     def validate(self, user_id: int, sample: models.Sample) -> bool:
         if not super().validate():
@@ -58,7 +54,6 @@ class SampleForm(HTMXFlaskForm):
         sample = db.update_sample(
             sample_id=sample.id,
             name=self.name.data,
-            organism_tax_id=self.organism.selected.data
         )
 
         flash("Changes saved succesfully!", "success")

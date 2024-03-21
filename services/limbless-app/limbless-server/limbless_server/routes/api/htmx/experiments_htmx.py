@@ -310,115 +310,97 @@ def remove_pool(experiment_id: int):
         )
     
 
-@experiments_htmx.route("<int:experiment_id>/get_graph", methods=["GET"])
+@experiments_htmx.route("<int:experiment_id>/overview", methods=["GET"])
 @login_required
-def get_graph(experiment_id: int):
+def overview(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
     LINK_WIDTH_UNIT = 1
     
-    with DBSession(db) as session:
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+    df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_seq_request=True)
     
-        graph = {
-            "nodes": [],
-            "links": [],
+    nodes = []
+    links = []
+
+    experiment_node = {
+        "node": 0,
+        "name": experiment.name
+    }
+    nodes.append(experiment_node)
+    node_idx = 1
+
+    libraries = {}
+    pools = {}
+    for (request_id, request_name), _df in df.groupby(["request_id", "request_name"]):
+        request_node = {
+            "node": node_idx,
+            "name": request_name
         }
-
-        experiment_node = {
-            "node": 0,
-            "name": f"Experiment {experiment.id}",
-        }
-        graph["nodes"].append(experiment_node)
-        idx = 1
-        
-        library_nodes: dict[int, int] = {}
-        pool_nodes: dict[int, int] = {}
-        seq_request_nodes: dict[int, int] = {}
-        lane_nodes: dict[int, int] = {}
-        lane_widths: dict[int, float] = {}
-
-        experiment_lanes = session.get_lanes_in_experiment(experiment_id)
-
-        for lane in range(1, experiment.num_lanes + 1):
-            lane_libraries_count = 0
-            lane_widths[lane] = 0
-            if lane not in lane_nodes.keys():
-                lane_node = {
-                    "node": idx,
-                    "name": f"Lane {lane}",
-                }
-                graph["nodes"].append(lane_node)
-                lane_nodes[lane] = idx
-                lane_node_idx = idx
-                idx += 1
-            else:
-                lane_node_idx = lane_nodes[lane]
-
-            for pool_link in experiment.pool_links:
-                if pool_link.lane != lane:
-                    continue
-                
-                if pool_link.pool.id not in pool_nodes.keys():
+        nodes.append(request_node)
+        node_idx += 1
+        for lane, __df in _df.groupby("lane"):
+            lane_node = {
+                "node": node_idx,
+                "name": f"Lane {lane}"
+            }
+            node_idx += 1
+            nodes.append(lane_node)
+            lane_width = 0
+            for (pool_id, pool_name), ___df in __df.groupby(["pool_id", "pool_name"]):
+                if pool_id not in pools.keys():
                     pool_node = {
-                        "node": idx,
-                        "name": f"{pool_link.pool.name}",
+                        "node": node_idx,
+                        "name": pool_name
                     }
-                    graph["nodes"].append(pool_node)
-                    pool_nodes[pool_link.pool.id] = idx
-                    pool_node_idx = idx
-                    idx += 1
+                    node_idx += 1
+                    nodes.append(pool_node)
+                    pools[pool_id] = pool_node
                 else:
-                    pool_node_idx = pool_nodes[pool_link.pool.id]
+                    pool_node = pools[pool_id]
 
-                for library in pool_link.pool.libraries:
-                    lane_libraries_count += 1
-                    if library.seq_request_id not in seq_request_nodes.keys():
-                        seq_request_node = {
-                            "node": idx,
-                            "name": f"{library.seq_request.name}",
-                        }
-                        graph["nodes"].append(seq_request_node)
-                        seq_request_nodes[library.seq_request.id] = idx
-                        seq_request_node_idx = idx
-                        idx += 1
-                    else:
-                        seq_request_node_idx = seq_request_nodes[library.seq_request.id]
-                    
-                    if library.id not in library_nodes.keys():
-                        library_node = {
-                            "node": idx,
-                            "name": f"{library.type.abbreviation}",
-                        }
-                        graph["nodes"].append(library_node)
-                        library_nodes[library.id] = idx
-                        graph["links"].append({
-                            "source": seq_request_node_idx,
-                            "target": idx,
-                            "value": LINK_WIDTH_UNIT,
-                        })
-                        graph["links"].append({
-                            "source": idx,
-                            "target": pool_node_idx,
-                            "value": LINK_WIDTH_UNIT,
-                        })
-                        idx += 1
-                
-                graph["links"].append({
-                    "source": pool_node_idx,
-                    "target": lane_node_idx,
-                    "value": LINK_WIDTH_UNIT * len(pool_link.pool.libraries) / len(experiment_lanes[pool_link.pool_id]),
+                width = ___df.shape[0] / len(_df[_df["pool_id"] == pool_id]["lane"].unique())
+                links.append({
+                    "source": pool_node["node"],
+                    "target": lane_node["node"],
+                    "value": LINK_WIDTH_UNIT * width
                 })
-                lane_widths[lane] += LINK_WIDTH_UNIT * len(pool_link.pool.libraries) / len(experiment_lanes[pool_link.pool_id])
+                lane_width += width
 
-            graph["links"].append({
-                "source": lane_node_idx,
+                for i, row in ___df.iterrows():
+                    if row["library_id"] not in libraries.keys():
+                        library_node = {
+                            "node": node_idx,
+                            "name": row["library_type"]
+                        }
+                        node_idx += 1
+                        nodes.append(library_node)
+                        libraries[row["library_id"]] = library_node
+                        links.append({
+                            "source": library_node["node"],
+                            "target": pool_node["node"],
+                            "value": LINK_WIDTH_UNIT
+                        })
+                        links.append({
+                            "source": request_node["node"],
+                            "target": library_node["node"],
+                            "value": LINK_WIDTH_UNIT
+                        })
+                    else:
+                        library_node = libraries[row["library_id"]]
+
+            links.append({
+                "source": lane_node["node"],
                 "target": experiment_node["node"],
-                "value": lane_widths[lane],
+                "value": LINK_WIDTH_UNIT * lane_width
             })
 
     return make_response(
-        jsonify(graph)
+        render_template(
+            "components/plots/experiment_overview.html",
+            links=links, nodes=nodes
+        )
     )

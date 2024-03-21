@@ -21,7 +21,7 @@ class Sequencer(SQLModel, SearchResult, table=True):
         return self.id
     
     def search_name(self) -> str:
-        return self.name
+        return f"{self.name} ({self.type.name})"
     
     def search_description(self) -> Optional[str]:
         return self.ip

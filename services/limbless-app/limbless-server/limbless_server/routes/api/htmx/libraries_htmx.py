@@ -127,7 +127,7 @@ def edit(library_id):
         if not library.is_editable() and not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    return forms.LibraryForm(request.form).process_request(
+    return forms.models.LibraryForm(request.form).process_request(
         library=library
     )
 

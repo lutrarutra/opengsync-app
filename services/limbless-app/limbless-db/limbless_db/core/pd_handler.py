@@ -1,3 +1,4 @@
+# pyright: reportMissingImports=false, reportUnusedVariable=false, reportUntypedBaseClass=error
 import pandas as pd
 
 from sqlalchemy.sql.operators import and_  # noqa: F401
@@ -8,26 +9,31 @@ from .. import categories
 
 
 def get_experiment_libraries_df(
-    self, experiment_id: int, include_index_kit: bool = False,
-    include_visium: bool = False, include_seq_request: bool = False
+    self, experiment_id: int,
+    include_sample: bool = False, include_index_kit: bool = False,
+    include_visium: bool = False, include_seq_request: bool = False,
+    include_reads_requested: bool = False
 ) -> pd.DataFrame:
         
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
+    a = 0
+
     if (_ := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     
     columns = [
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
+        models.Library.genome_ref_id.label("reference_id"),
         models.Library.adapter, models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
         models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.Lane.number.label("lane"),
     ]
     if include_seq_request:
         columns.extend([
-            models.SeqRequest.id.label("seq_request_id"), models.SeqRequest.name.label("request_name"),
+            models.SeqRequest.id.label("request_id"), models.SeqRequest.name.label("request_name"),
             models.User.id.label("requestor_id"), models.User.email.label("requestor_email"),
         ])
 
@@ -42,6 +48,17 @@ def get_experiment_libraries_df(
             models.VisiumAnnotation.image.label("image")
         ])
 
+    if include_sample:
+        columns.extend([
+            models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
+            models.CMO.sequence.label("cmo_sequence"), models.CMO.pattern.label("cmo_pattern"), models.CMO.read.label("cmo_read"),
+        ])
+
+    if include_reads_requested:
+        columns.append(
+            models.Pool.num_m_reads_requested.label("pool_reads_requested"),
+        )
+
     query = self._session.query(*columns).join(
         models.Pool,
         models.Pool.id == models.Library.pool_id,
@@ -54,8 +71,24 @@ def get_experiment_libraries_df(
         models.Lane.id == models.LanePoolLink.lane_id,
     )
 
+    if include_sample:
+        query = query.join(
+            models.SampleLibraryLink,
+            models.SampleLibraryLink.library_id == models.Library.id,
+        ).join(
+            models.CMO,
+            models.CMO.id == models.SampleLibraryLink.cmo_id,
+            isouter=True
+        ).join(
+            models.Sample,
+            models.Sample.id == models.SampleLibraryLink.sample_id,
+        )
+
     if include_seq_request:
         query = query.join(
+            models.SeqRequest,
+            models.SeqRequest.id == models.Library.seq_request_id,
+        ).join(
             models.User,
             models.User.id == models.SeqRequest.requestor_id,
         )
@@ -74,78 +107,10 @@ def get_experiment_libraries_df(
             isouter=True
         )
             
-    library_query = query.distinct().order_by(models.Library.id)
-
-    df = pd.read_sql(library_query.statement, library_query.session.bind)
+    library_query = query.order_by(models.Library.id)
+    df = pd.read_sql(str(library_query.statement), self._url)
     df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).abbreviation)
-
-    df = df.dropna(axis="columns", how="all")
-    
-    if not persist_session:
-        self.close_session()
-
-    return df
-
-
-def get_experiment_samples_df(self, experiment_id: int) -> pd.DataFrame:
-        
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    
-    query = self._session.query(
-        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"), models.Sample.organism_id.label("tax_id"),
-        models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
-        models.Library.adapter, models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
-        models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
-        models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.Lane.number.label("lane"),
-        models.SeqRequest.id.label("seq_request_id"), models.SeqRequest.name.label("request_name"),
-        models.User.id.label("requestor_id"), models.User.email.label("requestor_email"),
-        models.CMO.sequence.label("cmo_sequence"), models.CMO.pattern.label("cmo_pattern"), models.CMO.read.label("cmo_read"),
-        models.VisiumAnnotation.slide.label("slide"), models.VisiumAnnotation.area.label("area"), models.VisiumAnnotation.image.label("image")
-    ).join(
-        models.SampleLibraryLink,
-        models.SampleLibraryLink.library_id == models.Library.id
-    ).join(
-        models.Sample,
-        models.Sample.id == models.SampleLibraryLink.sample_id
-    ).join(
-        models.CMO,
-        models.CMO.id == models.SampleLibraryLink.cmo_id,
-        isouter=True
-    ).join(
-        models.SeqRequest,
-        models.SeqRequest.id == models.Library.seq_request_id,
-    ).join(
-        models.Pool,
-        models.Pool.id == models.Library.pool_id,
-    ).join(
-        models.User,
-        models.User.id == models.SeqRequest.requestor_id,
-    ).join(
-        models.LanePoolLink,
-        models.LanePoolLink.pool_id == models.Pool.id,
-    ).join(
-        models.Lane,
-        models.Lane.id == models.LanePoolLink.lane_id,
-    ).join(
-        models.IndexKit,
-        models.IndexKit.id == models.Library.index_kit_id,
-        isouter=True
-    ).join(
-        models.VisiumAnnotation,
-        models.VisiumAnnotation.id == models.Library.visium_annotation_id,
-        isouter=True
-    ).distinct()
-
-    query = query.order_by(models.Library.id)
-
-    df = pd.read_sql(query.statement, query.session.bind)
-    df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).value.name)
+    df["refernece"] = df["reference_id"].apply(lambda x: categories.GenomeRef.get(x).assembly)
 
     df = df.dropna(axis="columns", how="all")
     

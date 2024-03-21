@@ -1,8 +1,9 @@
-{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_link, metadata_group_email_link %}
-{% from 'components/files_tab.jinja2' import files_tab %}
-{% from 'components/comments_tab.jinja2' import comments_tab with context %}
-{% from 'components/tooltip.jinja2' import tooltip %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link %}
+{% from "components/files_tab.jinja2" import files_tab %}
+{% from "components/comments_tab.jinja2" import comments_tab with context %}
+{% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
+{% from "components/spinner.jinja2" import spinner %}
 
 {% extends "base.html" %}
 {% set active_page = "experiments-page" %}
@@ -68,10 +69,18 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#workflows-tab"
+                    type="button" role="tab" aria-controls="workflows-tab" aria-selected="false">
+                    Workflows
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
                     data-bs-target="#experiment-overview-tab" type="button" role="tab"
                     aria-controls="experiment-overview-tab" aria-selected="true"
-                    id="experiment-overview-tab-btn">
+                    hx-get="{{ url_for('experiments_htmx.overview', experiment_id=experiment.id) }}"
+                    hx-target="#experiment-overview-graph-container" hx-trigger="click once"
+                    hx-swap="innerHTML">
                     Overview
                 </button>
             </li>
@@ -119,38 +128,47 @@
                     <div>
                     </div>
                 </div>
+                <div class="flowcell-capacity-container pb-3">
+                {% for lane, (m_reads_selected, reads_used_pct) in lane_capacities.items() %}
+                <div class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;">
+                    <div class="progress-title">
+                        Lane {{ lane }} Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_selected | int }}/{{ experiment.flowcell_type.max_m_reads_per_lane }} Million Reads)
+                    </div>
+                    <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct < 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
+                    </div>  
+                </div>
+                {% endfor %}
+                </div>
+                
                 {% include "components/tables/experiment-pool.html" %}
             </div>
             <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="1">
                 <div class="row">
                     {{
                         metadata_group_link(
-                            "Sequencing Person Name", experiment.operator.name,
+                            "Operator", experiment.operator.name,
                             url_for("users_page.user_page", user_id=experiment.operator.id),
                             class="col"
                         )
                     }}
                     {{
                         metadata_group_email_link(
-                            "Sequencing Person Email", experiment.operator.email, class="col",
+                            "Operator Email", experiment.operator.email, class="col",
                             subject="BSF Sequencing Experiment: " + experiment.id | string
                         )
                     }}
                 </div>
                 <div class="row">
+                    {{ metadata_group("Created", experiment.timestamp.strftime('%Y-%m-%d %H:%M'), class="col-3") }}
                     {{
                         metadata_group_link(
                             "Sequencer", experiment.sequencer.name,
                             url_for("devices_page.sequencer_page", sequencer_id=experiment.sequencer.id),
-                            class="col"
+                            class="col-3"
                         )
                     }}
-                    {{ metadata_group("Sequencer IP", experiment.sequencer.ip, class="col") }}
-                </div>
-                <div class="row">
-                    {{ metadata_group("Created", experiment.timestamp.strftime('%Y-%m-%d %H:%M'), class="col-3") }}
-                    {{ metadata_group("Flowcell Type", experiment.flowcell_type, class="col-4") }}
-                    {{ metadata_group("Lanes", experiment.num_lanes, class="col-2") }}
+                    {{ metadata_group("Flowcell Type", experiment.flowcell_type, class="col-3") }}
+                    {{ metadata_group("Lanes", experiment.num_lanes, class="col-3") }}
                 </div>
                 <div class="row">
                     {{ metadata_group("R1 Cycles", experiment.r1_cycles, class="col") }}
@@ -159,17 +177,46 @@
                     {{ metadata_group("R2 Cycles", experiment.r2_cycles, class="col") }}
                 </div>
             </div>
-            <div class="tab-pane fade show" id="experiment-overview-tab" role="tabpanel" tabindex="2">
+            <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3>Workflows</h3>
+                    </div>
+                </div>
+                <div class="workflow-container">
+                    <div class="card{% if is_sequenceable == false %} text-muted disabled{% endif %}" style="width: 250px;"
+                        {% if is_sequenceable == true %}
+                        data-bs-toggle="modal" data-bs-target="#lane_pools-workflow-popup"
+                        hx-get="{{ url_for('lane_pools_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#lane_pools-workflow-container" hx-swap="innerHTML"
+                        {% else %}
+                        {{ tooltip("All pools must be laned on atleast one lane. Assign lanes for unlaned pools or remove unlaned pools from the experiment.", category="warning") }}
+                        {% endif %}>
+                        <div class="card-icon">
+                            <img src="{{ url_for('static', filename='images/licensed/calculator.svg') }}" width="90px">
+                        </div>
+                        <div class="card-body">
+                            <div class="title-container">
+                                <h5 class="card-title">Lane Pools</h5>
+                            </div>
+                            <div class="text-container">
+                                <p class="card-text">Checks barcode conflicts, calculates pooling ratios, in preparation of sequencing multiple pools on a single lane.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade show" id="experiment-overview-tab" role="tabpanel" tabindex="3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h2>Overview</h2>
                     </div>
-                </div>      
-                <script src="https://d3js.org/d3.v4.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js"></script>
-                <div class="flow-graph-container pt-3" id="graph" style="width: 100%"></div>
+                </div>
+                <div id="experiment-overview-graph-container">
+                    {{ spinner() }}
+                </div>
             </div>
-            <div class="tab-pane fade show" id="experiment-files-tab" role="tabpanel" tabindex="3">
+            <div class="tab-pane fade show" id="experiment-files-tab" role="tabpanel" tabindex="4">
                 {{
                     files_tab(
                         context="experiment", files=experiment.files,
@@ -178,13 +225,13 @@
                     )
                 }}
             </div>
-            <div class="tab-pane fade show" id="experiment-comments-tab" role="tabpanel" tabindex="4">
+            <div class="tab-pane fade show" id="experiment-comments-tab" role="tabpanel" tabindex="5">
                 {{
                     comments_tab(context="experiment", comments=experiment.comments)
                 }}
             </div>  
             {% if experiment.seq_run %}
-            <div class="tab-pane fade show" id="experiment-seq_run-tab" role="tabpanel" tabindex="7">
+            <div class="tab-pane fade show" id="experiment-seq_run-tab" role="tabpanel" tabindex="6">
                 <div class="row">
                     {{ metadata_group("Run Folder", experiment.seq_run.run_folder, class="col") }}
                     {{ metadata_group("Flowcell ID", experiment.seq_run.flowcell_id, class="col") }}
@@ -204,7 +251,7 @@
                 </div>
             </div>  
             {% endif %}
-            <div class="tab-pane fade show" id="experiment-num_reads-tab" role="tabpanel" tabindex="5">
+            <div class="tab-pane fade show" id="experiment-num_reads-tab" role="tabpanel" tabindex="7">
                 {% include "components/plots/experiment_library_reads.html" %}
             </div>
         </div>
@@ -245,6 +292,12 @@
         <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="add-pools-container">
         </div>
     </div>
+
+    <div class="modal fade" id="lane_pools-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="lane_pools-workflow-container">
+            {{ spinner() }}
+        </div>
+    </div>
 </div>
 <script>
     init_tooltips();
@@ -252,134 +305,6 @@
         $("#add-pools-popup").on("hide.bs.modal", function() {
             console.log("modal closed");
             location.reload();
-        });
-
-        $("#experiment-overview-tab-btn").on("click", function() {    
-            d3.json("{{ url_for('experiments_htmx.get_graph', experiment_id=experiment.id) }}", function(graph) {
-
-                const _h = graph.nodes.length * 50;
-                const _w = $("#graph").width();
-
-                var margin = {top: 50, right: 10, bottom: 10, left: 10};
-                var width =  _w - margin.left - margin.right;
-                var height = _h - margin.top - margin.bottom;
-
-                // append the svg object to the body of the page
-                var svg = d3.select("#graph").append("svg")
-                    .attr("width", width + margin.left + margin.right)
-                    .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                    .attr("transform",
-                        "translate(" + margin.left + "," + margin.top + ")");
-
-                const dx = width / (5 - 1);
-
-                svg.append("text")
-                    .attr("x", 30)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Request");
-
-                svg.append("text")
-                    .attr("x", dx)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Library");
-
-                svg.append("text")
-                    .attr("x", dx * 2)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Pool");
-
-                svg.append("text")
-                    .attr("x", dx * 3)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Lane");
-
-                svg.append("text")
-                    .attr("x", dx * 4 - 50)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Experiment");
-
-                // Color scale used
-                var color = d3.scaleOrdinal(d3.schemeCategory20);
-
-                // Set the sankey diagram properties
-                var sankey = d3.sankey().nodeWidth(25).nodePadding(15).size([width, height]);
-
-                sankey.nodes(graph.nodes).links(graph.links).layout(20);
-
-                  // add in the links
-                var link = svg.append("g")
-                    .selectAll(".link")
-                    .data(graph.links)
-                    .enter()
-                    .append("path")
-                    .attr("class", "link")
-                    .attr("d", sankey.link() )
-                    .style("stroke-width", function(d) { return Math.max(1, d.dy); })
-                    .sort(function(a, b) { return b.dy - a.dy; });
-
-                
-                // add in the nodes
-                var node = svg.append("g")
-                    .selectAll(".node")
-                    .data(graph.nodes)
-                    .enter().append("g")
-                    .attr("class", "node")
-                    .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
-                    .call(d3.drag()
-                        .subject(function(d) { return d; })
-                        .on("start", function() { this.parentNode.appendChild(this); })
-                        .on("drag", dragmove));
-
-                // add the rectangles for the nodes
-                node
-                    .append("rect")
-                    .attr("height", function(d) { return d.dy; })
-                    .attr("width", sankey.nodeWidth())
-                    .style("fill", function(d) { return d.color = color(d.name.replace(/ .*/, "")); })
-                    .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
-                    // Add hover text
-                    .append("title")
-                    .text(function(d) { return d.name + "\n" + "There is " + d.value + " stuff in this node"; });
-
-                // add in the title for the nodes
-                    node
-                    .append("text")
-                        .attr("x", -6)
-                        .attr("y", function(d) { return d.dy / 2; })
-                        .attr("dy", ".35em")
-                        .attr("text-anchor", "end")
-                        .attr("transform", null)
-                        .text(function(d) { return d.name; })
-                    .filter(function(d) { return d.x < width / 2; })
-                        .attr("x", 6 + sankey.nodeWidth())
-                        .attr("text-anchor", "start");
-
-                // the function for moving the nodes
-                function dragmove(d) {
-                    d3.select(this)
-                    .attr("transform",
-                            "translate("
-                            + d.x + ","
-                            + (d.y = Math.max(
-                                0, Math.min(height - d.dy, d3.event.y))
-                                ) + ")");
-                    sankey.relayout();
-                    link.attr("d", sankey.link() );
-                }
-
-            });          
-            $("#experiment-overview-tab-btn").off("click");
         });
     });
 </script>

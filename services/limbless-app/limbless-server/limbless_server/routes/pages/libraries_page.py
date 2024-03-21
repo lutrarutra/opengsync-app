@@ -24,7 +24,7 @@ def libraries_page():
         else:
             libraries, n_pages = session.get_libraries(user_id=None, sort_by="id", descending=True)
 
-    library_form = forms.LibraryForm()
+    library_form = forms.models.LibraryForm()
 
     return render_template(
         "libraries_page.html",
@@ -88,7 +88,7 @@ def library_page(library_id):
                 (f"Library {library.id}", ""),
             ]
 
-    library_form = forms.LibraryForm(library=library)
+    library_form = forms.models.LibraryForm(library=library)
 
     return render_template(
         "library_page.html",

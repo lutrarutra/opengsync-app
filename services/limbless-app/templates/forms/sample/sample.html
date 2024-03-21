@@ -1,7 +1,0 @@
-{% from 'components/form_group.jinja2' import form_group %}
-{% from 'components/search_select.jinja2' import search_select_field %}
-<div id="sample-form">
-    {{ sample_form.csrf_token() }}
-    {{ form_group(sample_form.name) }}
-    {{ search_select_field(sample_form.organism) }}
-</div>

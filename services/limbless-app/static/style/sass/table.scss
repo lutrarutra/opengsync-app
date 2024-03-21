@@ -1,0 +1,114 @@
+.table-container {
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+    }
+
+    table {
+        .table-select-buttons {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .table-btn {
+            height: 25px;
+            padding: 0px 8px 0px 8px;
+        }
+        width: 100%;
+        * {
+            margin: 0 !important;
+        }
+
+        tr {
+            td, th {
+                padding-top: 8px !important;
+                padding-bottom: 8px !important;
+                white-space: nowrap;
+                overflow: hidden;
+                height: 42px;
+            }
+        }
+        .comma:not(:first-child):before {
+            content: ", ";
+        }
+
+        .comma:empty + .comma:not(:empty):before {
+            content : "";
+        }
+
+        .comma:not(:empty) ~ .comma:empty + .comma:not(:empty):before {
+            content : ",";
+        }
+        .adapter-col {
+            display: flex;
+            span {
+                gap: 7px;
+                display: flex;
+                :nth-child(1) {
+                    font-weight:500;
+                }
+                :nth-child(2) {
+                    color: $gray-500;
+                }
+                :nth-child(3) {
+                    color: $gray-500;
+                }
+            }
+        }
+        .library_type-col {
+            display: flex;
+        }
+
+        .organism-col {
+            display: flex;
+            gap: 7px;
+
+            :nth-child(1) {
+                font-style: italic;
+            }
+
+            :nth-child(2) {
+                font-weight:600;
+            }
+            :nth-child(3) {
+                color: $gray-500;
+            }
+        }
+    }
+}
+
+.table-cursor {
+    thead {
+        tr {
+            th.sortable-col.asc { cursor: n-resize; }
+            th.sortable-col.desc { cursor: s-resize; }
+            th.sortable-col:hover { background-color: $gray-300; }
+            th { cursor: default; }
+        }
+    }
+    tbody {
+        tr { cursor: pointer; }
+        tr.disabled { cursor: not-allowed; }
+        tr .table-cell-tooltip { cursor: pointer; }
+    }
+}
+
+.table tbody {
+    td, th {
+        vertical-align: middle;
+    }
+    
+    tr.select-pool.selected {
+        th, td {
+            background-color: #EAFAF1;
+        }
+    }
+
+    .disabled td, .disabled th {
+        background-color: $gray-200;
+        opacity: 0.7;
+        border: 0;
+    }
+}
