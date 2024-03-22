@@ -92,7 +92,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
                 "index.html",
                 recent_seq_requests=recent_seq_requests,
                 recent_experiments=recent_experiments,
-                select_experiment_form=forms.workflows.lane_pools.SelectExperimentForm(),
             )
     
     @app.route("/pdf_file/<int:file_id>")
@@ -200,6 +199,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.library_pooling_workflow)
     app.register_blueprint(api.workflows.library_annotation_workflow)
     app.register_blueprint(api.workflows.lane_pools_workflow)
+    app.register_blueprint(api.workflows.pool_qc_workflow)
+    app.register_blueprint(api.workflows.select_experiment_pools_workflow)
+    app.register_blueprint(api.workflows.dilute_pools_workflow)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

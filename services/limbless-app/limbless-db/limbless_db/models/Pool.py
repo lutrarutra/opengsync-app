@@ -18,8 +18,11 @@ class Pool(SQLModel, SearchResult, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, max_length=64, index=True)
     status_id: int = Field(nullable=False, default=0)
-    num_m_reads_requested: Optional[float] = Field(default=None, nullable=True)
     
+    num_m_reads_requested: Optional[float] = Field(default=None, nullable=True)
+    concentration: Optional[float] = Field(default=None, nullable=True)
+    avg_library_size: Optional[int] = Field(default=None, nullable=True)
+
     num_libraries: int = Field(nullable=False, default=0)
 
     owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
@@ -75,3 +78,6 @@ class Pool(SQLModel, SearchResult, table=True):
     @property
     def status(self) -> PoolStatusEnum:
         return PoolStatus.get(self.status_id)
+    
+    def is_qced(self) -> bool:
+        return self.concentration is not None and self.avg_library_size is not None

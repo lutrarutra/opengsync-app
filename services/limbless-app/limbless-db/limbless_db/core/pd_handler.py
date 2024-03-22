@@ -12,17 +12,11 @@ def get_experiment_libraries_df(
     self, experiment_id: int,
     include_sample: bool = False, include_index_kit: bool = False,
     include_visium: bool = False, include_seq_request: bool = False,
-    include_reads_requested: bool = False
 ) -> pd.DataFrame:
         
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-
-    a = 0
-
-    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     
     columns = [
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
@@ -53,11 +47,6 @@ def get_experiment_libraries_df(
             models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
             models.CMO.sequence.label("cmo_sequence"), models.CMO.pattern.label("cmo_pattern"), models.CMO.read.label("cmo_read"),
         ])
-
-    if include_reads_requested:
-        columns.append(
-            models.Pool.num_m_reads_requested.label("pool_reads_requested"),
-        )
 
     query = self._session.query(*columns).join(
         models.Pool,
@@ -106,14 +95,67 @@ def get_experiment_libraries_df(
             models.VisiumAnnotation.id == models.Library.visium_annotation_id,
             isouter=True
         )
+
+    query = query.where(
+        models.Pool.experiment_id == experiment_id
+    )
             
-    library_query = query.order_by(models.Library.id)
-    df = pd.read_sql(str(library_query.statement), self._url)
+    query = query.order_by(models.Library.id)
+    df = pd.read_sql(query.statement, self._url)
     df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).abbreviation)
     df["refernece"] = df["reference_id"].apply(lambda x: categories.GenomeRef.get(x).assembly)
 
     df = df.dropna(axis="columns", how="all")
     
+    if not persist_session:
+        self.close_session()
+
+    return df
+
+
+def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+    
+    query = self._session.query(
+        models.Pool.id, models.Pool.name,
+        models.Pool.status_id, models.Pool.num_libraries,
+        models.Pool.num_m_reads_requested, models.Pool.concentration,
+        models.Pool.avg_library_size,
+    ).where(
+        models.Pool.experiment_id == experiment_id
+    )
+
+    df = pd.read_sql(query.statement, self._url)
+    df["status"] = df["status_id"].apply(lambda x: categories.PoolStatus.get(x).name)
+
+    if not persist_session:
+        self.close_session()
+
+    return df
+
+
+def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+    
+    query = self._session.query(
+        models.Lane.number, models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+        models.Pool.num_m_reads_requested, models.Pool.concentration, models.Pool.avg_library_size,
+    ).where(
+        models.Lane.experiment_id == experiment_id
+    ).join(
+        models.LanePoolLink,
+        models.LanePoolLink.lane_id == models.Lane.id
+    ).join(
+        models.Pool,
+        models.Pool.id == models.LanePoolLink.pool_id
+    )
+
+    df = pd.read_sql(query.statement, self._url)
+
     if not persist_session:
         self.close_session()
 

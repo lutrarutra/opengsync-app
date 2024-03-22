@@ -1,7 +1,9 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
 <div id="selected-experiment-pool-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table table-hover table-cursor">
         <thead>
             <tr>
                 {{
@@ -34,12 +36,28 @@
         </thead>
         <tbody>
             {% for pool in selected_pools %}
-            <tr>
+            <tr {% if pool.status.name == "Assigned" %}
+                onclick="remove_pool({{ pool.id }})"
+                {% else %}
+                class="unselectable-row" {{ tooltip("You need to remove lanes first.", category="danger") }}
+                {% endif %}>
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
-                <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
+                <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    <script>
+        init_tooltips();
+        function remove_pool(pool_id) {
+            htmx.ajax(
+                "DELETE", "{{ url_for('select_experiment_pools_workflow.remove_pool', experiment_id=experiment.id) }}?pool_id=" + pool_id,
+                {
+                    "target": "#select-pools-form",
+                    "swap": "innerHTML"
+                }
+            );
+        }
+    </script>
 </div>

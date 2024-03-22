@@ -50,7 +50,7 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
                 "id": row["sample_id"],
                 "name": row["library_name"],
                 "library_type": row["library_type"],
-                "genome": GenomeRef.get(row["genome_id"]).name,
+                "genome": GenomeRef.get(row["genome_id"]).display_name,
                 "error": None,
                 "warning": "",
                 "info": "",

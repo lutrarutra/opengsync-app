@@ -1,0 +1,20 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div id="select-pools-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Select Pools</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div> 
+    <div class="modal-body" id="select-pools-form">
+        {% include "workflows/select_experiment_pools/container.html" %}
+    </div>
+    <div class="modal-footer">
+        <div class="footer-controls">
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        init_tooltips();
+    });
+</script>

@@ -50,11 +50,11 @@
             {{ form.file_uuid.data }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-success" type="button"
+            <button class="btn btn-primary" type="button"
                 hx-include="#cmo-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
                 hx-encoding="multipart/form-data"
                 hx-post="{{ url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id) }}">
-                Parse
+                Next
             </button>
         </div>
     </div>

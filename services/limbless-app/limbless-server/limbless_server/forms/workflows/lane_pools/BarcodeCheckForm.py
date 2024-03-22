@@ -1,16 +1,12 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response
 from wtforms import StringField
 
-from limbless_db import models
-
+from .LanePoolingForm import LanePoolingForm
 from .... import db
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
-from .PoolingRatioForm import PoolingRatioForm
 
 
 class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
@@ -20,13 +16,11 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
     pool_ids = StringField()
 
     def __init__(self, formdata: dict = {}):
-        uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, "lane_pools", None)
 
     def prepare(self, experiment_id) -> dict:
-
-        df = db.get_experiment_libraries_df(experiment_id, include_reads_requested=True)
+        df = db.get_experiment_libraries_df(experiment_id)
             
         df["error"] = None
         df["warning"] = None
@@ -87,16 +81,16 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
         return True
 
     def process_request(self, **context) -> Response:
+        experiment = context["experiment"]
         if not self.validate():
             return self.make_response()
         
         data = self.get_data()
 
-        df: pd.DataFrame = data["library_table"]  # type: ignore
-        df = df[["pool_id", "pool_name", "lane", "pool_reads_requested"]].drop_duplicates().sort_values(["lane", "pool_id"])
-        data["pool_table"] = df
+        lane_table = db.get_experiment_lanes_df(experiment.id)
+        data["lane_table"] = lane_table
         self.update_data(data)
 
-        lane_pooling_form = PoolingRatioForm(self.uuid)
+        lane_pooling_form = LanePoolingForm(self.uuid)
         context = lane_pooling_form.prepare(data) | context
         return lane_pooling_form.make_response(**context)

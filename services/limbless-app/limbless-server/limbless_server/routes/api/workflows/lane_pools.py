@@ -45,9 +45,9 @@ def check_barcodes(experiment_id: int):
     return wff.BarcodeCheckForm(request.form).process_request(experiment=experiment)
 
 
-@lane_pools_workflow.route("<int:experiment_id>/calculate_ratios", methods=["POST"])
+@lane_pools_workflow.route("<int:experiment_id>/dilute_pools", methods=["POST"])
 @login_required
-def calculate_ratios(experiment_id: int):
+def dilute_pools(experiment_id: int):
     with DBSession(db) as session:
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
@@ -55,12 +55,12 @@ def calculate_ratios(experiment_id: int):
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
-    return wff.PoolingRatioForm(formdata=request.form).process_request(experiment=experiment)
+    return wff.PoolDilutionForm(formdata=request.form).process_request(experiment=experiment)
 
 
-@lane_pools_workflow.route("<int:experiment_id>/confirm_ratios", methods=["POST"])
+@lane_pools_workflow.route("<int:experiment_id>/lane_pools", methods=["POST"])
 @login_required
-def confirm_ratios(experiment_id: int):
+def lane_pools(experiment_id: int):
     with DBSession(db) as session:
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
@@ -68,4 +68,4 @@ def confirm_ratios(experiment_id: int):
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
-    return wff.ConfirmRatiosForm(formdata=request.form).process_request(experiment=experiment)
+    return wff.LanePoolingForm(formdata=request.form).process_request(experiment=experiment)

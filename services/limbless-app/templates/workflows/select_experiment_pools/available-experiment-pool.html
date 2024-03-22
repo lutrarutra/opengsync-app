@@ -3,7 +3,7 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 
 <div id="available-experiment-pool-table" class="table-container">
-    <table class="table table-hover table">
+    <table class="table table-hover table-cursor">
         <thead>
             <tr>
                 {{
@@ -68,13 +68,16 @@
         init_tooltips();
 
         function add_pool(pool_id) {
-            htmx.ajax("POST", "{{ url_for('experiments_htmx.add_pool', experiment_id=experiment.id) }}", {
-                "target": "#add-pools-container",
-                "swap": "innerHTML",
-                "values": {
-                    "pool_id": pool_id,
+            htmx.ajax(
+                "POST", "{{ url_for('select_experiment_pools_workflow.add_pool', experiment_id=experiment.id) }}",
+                {
+                    "target": "#select-pools-form",
+                    "swap": "innerHTML",
+                    "values": {
+                        "pool_id": pool_id,
+                    }
                 }
-            });
+            );
         }
     </script>
 </div>

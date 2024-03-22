@@ -83,13 +83,13 @@ $cemm-green-dark: #75952f;
 .bg-tab-10-9 { background-color: $tab-10-9; }
 .bg-tab-10-10 { background-color: $tab-10-10; }
 
-.bg-cemm-blue { background-color: $cemm-blue; }
-.cemm-blue { color: $cemm-blue; }
-.bg-cemm-secondary { background-color: $cemm-secondary; }
-.cemm-secondary { color: $cemm-secondary; }
-.bg-cemm-yellow { background-color: $cemm-yellow; }
-.cemm-yellow { color: $cemm-yellow; }
-.bg-cemm-red { background-color: $cemm-red; }
-.cemm-red { color: $cemm-red; }
-.bg-cemm-green { background-color: $cemm-green; }
-.cemm-green { color: $cemm-green; }
+.bg-cemm-blue { background-color: $cemm-blue !important; }
+.cemm-blue { color: $cemm-blue !important; }
+.bg-cemm-secondary { background-color: $cemm-secondary !important; }
+.cemm-secondary { color: $cemm-secondary !important; }
+.bg-cemm-yellow { background-color: $cemm-yellow !important; }
+.cemm-yellow { color: $cemm-yellow !important; }
+.bg-cemm-red { background-color: $cemm-red !important; }
+.cemm-red { color: $cemm-red !important; }
+.bg-cemm-green { background-color: $cemm-green !important; }
+.cemm-green { color: $cemm-green !important; }

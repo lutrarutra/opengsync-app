@@ -70,7 +70,7 @@
                     <a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
                         <div class="row banner-title">
                             <div class="title col-4">{{ experiment.id }}. {{ experiment.name }}</div>
-                            <div class="description col-4"> {{ experiment.operator.name }} {{ experiment.operator.email }}</div>
+                            <div class="description col-4"> {{ experiment.operator.name }}</div>
                             <div class="submitted-time col-4">{{ experiment.timestamp_to_str() }} </div>
                         </div>
                         {{ experiment_status_bar(experiment) }}

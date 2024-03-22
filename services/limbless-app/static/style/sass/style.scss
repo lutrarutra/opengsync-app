@@ -1,4 +1,4 @@
-$progress-height: 1.3rem !default;
+$progress-height: 1.2rem !default;
 
 @import "colors.scss";
 @import "scrollbar.css";
@@ -8,6 +8,17 @@ $progress-height: 1.3rem !default;
 @import "colors.scss";
 @import "tooltip.scss";
 @import "table.scss";
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+    -moz-appearance: textfield;
+}
 
 body {
     background-color: $light;
@@ -201,7 +212,7 @@ body {
     .modal-body {
         min-height: 70vh;
         max-height: 75vh;
-        padding: 20px 30px 20px 30px;
+        padding: 5px 10px 10px 5px;
         overflow-y: auto;
 
         .tab-content {
@@ -590,5 +601,34 @@ select {
     gap: 10px;
     .flowcell-capacity-bar {
         width: calc(50% - 5px);
+    }
+}
+
+.input-with-unit {
+    display: flex;
+    input {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    .unit-container {
+        min-width: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        border-left: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    input:focus {
+        box-shadow: 0 0 3px rgba(13,110,253,.25);
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
+
+    input:focus ~ .unit-container {
+        box-shadow: 0 0 3px rgba(13,110,253,.25);
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     }
 }

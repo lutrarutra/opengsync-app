@@ -82,9 +82,9 @@ def download_seq_auth_form():
 
 
 # 0. Restart form
-@library_annotation_workflow.route("<int:seq_request_id>/restart_form/<string:type>", methods=["GET"])
+@library_annotation_workflow.route("<int:seq_request_id>/begin/<string:type>", methods=["GET"])
 @login_required
-def restart_form(seq_request_id: int, type: Literal["raw", "pooled"]):
+def begin(seq_request_id: int, type: Literal["raw", "pooled"]):
     if type not in ["raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     

@@ -99,6 +99,22 @@
     td, th {
         vertical-align: middle;
     }
+
+    td .quantity-container {
+        display: flex;
+        gap: 5px;
+        .unit {
+            color: $gray-500;
+        }
+    }
+    
+    .unselectable-row td, .unselectable-row th {
+        background-color: $gray-100;
+    }
+
+    .unselectable-row:hover {
+        cursor: not-allowed !important;
+    }
     
     tr.select-pool.selected {
         th, td {

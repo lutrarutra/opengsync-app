@@ -1,0 +1,49 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+
+<div id="pool-qc-form-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">1. QC Pools</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#pool_qc-workflow-popup")></button>
+    </div>
+    <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
+        <div id="pool-qc-form">
+            {{ pool_qc_form.csrf_token() }}
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th class="col-1" scope="col">Pool ID</th>
+                        <th class="col-1" scope="col">Pool Name</th>
+                        <th class="col-1" scope="col">Avg. Library Size</th>
+                        <th class="col-1" scope="col">Concentration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i, (_, row) in enumerate(df.iterrows()) %}
+                    {% set sub_form = pool_qc_form.input_fields[i] %}
+                    {{ sub_form.csrf_token() }}
+                    <tr>
+                        <th scope="row">{{ row["id"] }}</th>
+                        <th>{{ row["name"] }}</th>
+                        <td>{{ form_cell(sub_form.avg_library_size, input_class="avg_library_size-col", unit="bp") }}</td>
+                        <td>{{ form_cell(sub_form.concentration, input_class="concentration-col", unit="ng/μL") }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-post="{{ url_for('pool_qc_workflow.qc_pools', experiment_id=experiment.id) }}"
+            hx-target="#pool-qc-form-container" hx-swap="outerHTML" hx-include="#pool-qc-form">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>

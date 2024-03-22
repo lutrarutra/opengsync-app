@@ -282,13 +282,21 @@ def unlink_pool_experiment(self, experiment_id: int, pool_id: int):
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
+    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     if pool.experiment_id != experiment_id:
         raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
+    
+    for lane in experiment.lanes:
+        if (link := self._session.query(models.LanePoolLink).where(
+            models.LanePoolLink.pool_id == pool_id,
+            models.LanePoolLink.lane_id == lane.id,
+        ).first()) is not None:
+            self._session.delete(link)
+            self._session.commit()
 
     pool.experiment_id = None
     pool.status_id = PoolStatus.ACCEPTED.id

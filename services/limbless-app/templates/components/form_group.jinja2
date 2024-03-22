@@ -104,15 +104,19 @@
 {%- endmacro %}
 
 
-{% macro form_cell(field, class='', input_class='') -%}
-<div class="{{class}} form-group">
-{{ 
-    field(
-        class="form-control " + input_class + '' + (" is-invalid" if (field.errors) else ""), 
-        placeholder=field.errors | first,
-        value=field.data if field.data else "",
-        id=field.name, autocomplete="off",
-    ) 
-}}
+{% macro form_cell(field, class='', input_class='', unit='') -%}
+<div class="{{class}} form-group {% if unit != '' %}input-with-unit{% endif %}">
+    {{ 
+        field(
+            class="form-control " + input_class + '' + (" is-invalid" if (field.errors) else ""), 
+            placeholder=field.errors | first,
+            value=field.data if field.data else "",
+            id=field.name, autocomplete="off",
+        ) 
+    }}
+    {% if unit != '' %}
+    <span class="input-group-text unit-container">{{unit}}</span>
+    {% endif %}
 </div>
 {%- endmacro %}
+

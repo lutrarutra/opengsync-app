@@ -26,6 +26,14 @@
                 }}
                 {{
                     table_col(
+                        target_id='experiment-pool-table', column_name='Status', column_var='status_id',
+                        sort_url='pools_htmx.get', sort_url_args={"experiment_id":experiment.id},
+                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
+                        col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
                         target_id='experiment-pool-table', column_name='Owner', column_var='owner_id',
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id":experiment.id},
                         current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
@@ -37,23 +45,24 @@
                         target_id='experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id":experiment.id},
                         current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
-                        col_size=2,
+                        col_size=1,
                     )
                 }}
+                <th class="col-1" scope="col">Qubit Conc.</th>
+                <th class="col-1" scope="col">Library Size</th>
+                <th class="col-1" scope="col">Total Conc.</th>
             </tr>
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr class="table-url-row" dest="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
+            <tr class="table-url-row pool-row" dest="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
                 <th scope="row">{{ pool.id }}</th>
                 <td>
                     <div class="btn-group">
                         {% for lane in range(1, experiment.num_lanes + 1) %}
                         {% if pool.id in experiment_lanes[lane] %}
                         <button type="button" class="btn btn-primary table-btn"
-                        {% if experiment.status.name == "Draft" %}
-                        hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane) }}"
-                        {% endif %}>
+                        hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane) }}">
                             {{ lane }}
                         </button>
                         {% else %}
@@ -66,8 +75,27 @@
                     </div>
                 </td>
                 <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">{{ pool.name }}</td>
+                <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
+                <td class="qubit-col">
+                    <div class="quantity-container">
+                        <div class="value">{{ pool.concentration if pool.concentration }}</div>
+                        <div class="unit">ng/μL</div>
+                    </div>
+                </td>
+                <td class="avg_library_size-col">
+                    <div class="quantity-container">
+                        <div class="value">{{ pool.avg_library_size if pool.avg_library_size }}</div>
+                        <div class="unit">bp</div>
+                    </div>
+                </td>
+                <td class="nm_total-col">
+                    <div class="quantity-container">
+                        <div class="value"></div>
+                        <div class="unit">nM</div>
+                    </div>
+                </td>
             </tr>
             </a>
             {% endfor %}
@@ -75,7 +103,29 @@
     </table>
     {{ pagination("experiment-pool-table", "pools_htmx.get", pools_n_pages, pools_active_page, url_args={"sort_by": pools_current_sort, "order": pools_current_sort_order, "experiment_id": experiment.id}) }}
     <script>
+        init_tooltips();
         let selected_pool_id = null;
+
+        function remove_pool() {
+            Swal.fire({
+                title: `Remove Pool from Experiment?`,
+                showDenyButton: true,
+                text: 'You are removing pool ' + selected_pool_id + ' from the experiment. Do you want to continue?',
+                icon: 'question',
+                confirmButtonText: 'Yes',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                    "DELETE", "{{ url_for('experiments_htmx.remove_pool', experiment_id=experiment.id) }}?pool_id=" + selected_pool_id,
+                    null, {
+                        target: "#experiment-pool-table",
+                        swapStyle: "outerHTML"
+                    });
+                }
+            });
+        }
+
         $(document).ready(function() {
             $(".table-url-row").click(function(e) {
                 if (!$(e.target).is("button")) {
@@ -83,25 +133,22 @@
                 }
             });
 
-            function remove_pool() {
-                Swal.fire({
-                    title: `Remove Pool from Experiment?`,
-                    showDenyButton: true,
-                    text: 'You are removing pool ' + selected_pool_id + ' from the experiment. Do you want to continue?',
-                    icon: 'question',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                }).then(function(e) {
-                    if (e.isConfirmed) {
-                        htmx.ajax(
-                        "DELETE", "{{ url_for('experiments_htmx.remove_pool', experiment_id=experiment.id) }}?pool_id=" + selected_pool_id,
-                        null, {
-                            target: "#experiment-pool-table",
-                            swapStyle: "outerHTML"
-                        });
+            $(".pool-row").each(function(){
+                const avg_library_size = parseFloat($(this).find(".avg_library_size-col").first().find(".value").first().text());
+                const qubit = parseFloat($(this).find(".qubit-col").first().find(".value").first().text());
+
+                if (qubit && avg_library_size) {
+                    const total_conc = qubit / (660 * avg_library_size) * 1e6;
+                    $(this).find(".nm_total-col").first().find(".value").first().text(total_conc.toFixed(2));
+                    if (2 < total_conc && total_conc < 5) {
+                        $(this).find(".nm_total-col").first().find(".value").first().addClass("cemm-green");
+                    } else if (total_conc < 1 || total_conc > 10) {
+                        $(this).find(".nm_total-col").first().find(".value").first().addClass("cemm-red");
+                    } else if (total_conc < 2 || total_conc > 5) {
+                        $(this).find(".nm_total-col").first().find(".value").first().addClass("cemm-yellow");
                     }
-                });
-            }
+                }
+            });
 
             $(document).off("contextmenu", ".pool-name-cell").on("contextmenu", ".pool-name-cell", function(e) {
                 e.preventDefault();
@@ -112,11 +159,7 @@
                     display: "block",
                     left: x + 8, top: y + 8
                 }).empty().append([
-                    {% if experiment.status.name == "Draft" %}
                     `<li><a class='dropdown-item' onclick='remove_pool()'>Remove</a></li>`
-                    {% else %}
-                    `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`
-                    {% endif %}
                 ]);
 
                 $("#right-click-bg").css({

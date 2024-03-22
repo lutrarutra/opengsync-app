@@ -1,0 +1,113 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+
+<div id="pool-dilution-form-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">2. Calculate Pooling Ratios</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#lane_pools-workflow-popup")></button>
+    </div>
+    <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
+        <div id="pool-dilution-form">
+            {{ dilute_pools_form.csrf_token() }}
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th class="col-2" scope="col">Pool Name</th>
+                        <th class="col-1" scope="col">Avg. Library Size</th>
+                        <th class="col-1" scope="col">Qubit Conc.</th>
+                        <th class="col-1 bg-light" scope="col"> Total Conc. [nM]</th>
+                        <th class="col-1" scope="col">Qubit Conc. After Dilution</th>
+                        <th class="col-1 bg-light" scope="col">Total Conc. After Dilution [nM]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i, (_, row) in enumerate(df.iterrows()) %}
+                    {% set sub_form = dilute_pools_form.input_fields[i] %}
+                    {{ sub_form.csrf_token() }}
+                    <tr>
+                        <th scope="row">{{ row["name"] }}</th>
+                        <td class="avg_library_size-col">
+                            <div class="quantity-container">
+                                <div class="value">{{ row["avg_library_size"] }}</div>
+                                <div class="unit">bp</div>
+                            </div>
+                        </td>
+                        <td class="qubit-col">
+                            <div class="quantity-container">
+                                <div class="value">{{ row["concentration"] }}</div>
+                                <div class="unit">ng/μL</div>
+                            </div>
+                        </td>
+                        <td class="nm_total-col bg-light {{ row['concentration_color'] }}">
+                            <div class="quantity-container">
+                                <div class="value">{{ "%0.2f" % row["total_conc_nm"] }}</div>
+                                <div class="unit">nM</div>
+                            </div>
+                        </td>
+                        <td>{{ form_cell(sub_form.qubit_after_dilution, input_class="qubit_after-col", unit="ng/μL") }}</td>
+                        <td class="nm_total-after-col bg-light">
+                            <div class="quantity-container">
+                                <div class="value"></div>
+                                <div class="unit">nM</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-post="{{ url_for('dilute_pools_workflow.dilute', experiment_id=experiment.id) }}"
+            hx-target="#pool-dilution-form-container" hx-swap="outerHTML" hx-include="#pool-dilution-form">
+                Submit
+            </button>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            init_tooltips();
+
+            function update_nm_total(row) {
+                const avg_library_size = parseFloat(row.find(".avg_library_size-col").first().find(".value").first().text());
+                const qubit_after = parseFloat(row.find(".qubit_after-col").first().closest("input").val());
+
+                console.log(avg_library_size, qubit_after);
+
+                if (avg_library_size && qubit_after) {
+                    const nm_total = qubit_after / (avg_library_size * 660) * 1000000;
+                    console.log(nm_total);
+                    row.find(".nm_total-after-col").first().find(".value").first().text(nm_total.toFixed(2));
+                    if (1 < nm_total && nm_total < 5) {
+                        row.find(".nm_total-after-col").first().find(".value").first().removeClass().addClass("value cemm-green");
+                    } else if (nm_total < 1 || nm_total > 10) {
+                        row.find(".nm_total-after-col").first().find(".value").first().removeClass().addClass("value cemm-red");
+                        
+                    } else if (nm_total < 2 || nm_total > 5) {
+                        row.find(".nm_total-after-col").first().find(".value").first().removeClass().addClass("value cemm-yellow");
+                    }
+                } else {
+                    row.find(".nm_total-after-col").first().find(".value").first().text("");
+                }
+            }
+
+            $(".avg_library_size-col").on("input", function() {
+                update_nm_total($(this).closest("tr"));
+            });
+
+            $(".qubit-col").on("input", function() {
+                update_nm_total($(this).closest("tr"));
+            });
+
+            $(".qubit_after-col").on("input", function() {
+                update_nm_total($(this).closest("tr"));
+            });
+        });
+    </script>
+</div>

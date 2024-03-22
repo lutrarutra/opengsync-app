@@ -72,9 +72,17 @@ def experiment_page(experiment_id: int):
 
             lane_capacities[lane.number] = (lane_capacities[lane.number], 100.0 * lane_capacities[lane.number] / experiment.flowcell_type.max_m_reads_per_lane)
 
-        is_sequenceable = experiment.status == ExperimentStatus.DRAFT
+        all_pools_laned = True
+        all_pools_qced = True
         for pool in pools:
-            is_sequenceable = is_sequenceable and pool.status == PoolStatus.LANED
+            all_pools_laned = all_pools_laned and pool.status == PoolStatus.LANED
+            all_pools_qced = all_pools_qced and pool.is_qced()
+            if not all_pools_laned or not all_pools_qced:
+                break
+            
+        can_be_laned = all_pools_laned and all_pools_qced
+
+        can_be_loaded = experiment.status == ExperimentStatus.LANED
 
         path_list = [
             ("Experiments", url_for("experiments_page.experiments_page")),
@@ -82,7 +90,7 @@ def experiment_page(experiment_id: int):
         ]
 
         experiment.files
-        experiment.comments    
+        experiment.comments
 
     return render_template(
         "experiment_page.html",
@@ -100,6 +108,9 @@ def experiment_page(experiment_id: int):
         available_seq_requests_current_sort_order="desc",
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.operator,
-        is_sequenceable=is_sequenceable,
+        can_be_laned=can_be_laned,
+        all_pools_laned=all_pools_laned,
+        all_pools_qced=all_pools_qced,
+        can_be_loaded=can_be_loaded,
         lane_capacities=lane_capacities
     )
