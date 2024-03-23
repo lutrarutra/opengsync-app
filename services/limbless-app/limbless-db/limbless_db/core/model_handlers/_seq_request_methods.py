@@ -2,7 +2,7 @@ import math
 from datetime import datetime
 from typing import Optional
 
-from sqlmodel import func
+import sqlalchemy as sa
 from sqlalchemy.sql.operators import and_
 
 from ... import models, PAGE_LIMIT
@@ -82,14 +82,14 @@ def create_seq_request(
     self._session.commit()
     self._session.refresh(seq_request)
 
-    share_link = models.SeqRequestShareEmailLink(
+    share_link = models.EmailReceiver(
         seq_request_id=seq_request.id,
         email=requestor.email
     )
     self._session.add(share_link)
 
     if bioinformatician_contact is not None:
-        bioinformatician_share_link = models.SeqRequestShareEmailLink(
+        bioinformatician_share_link = models.EmailReceiver(
             seq_request_id=seq_request.id,
             email=bioinformatician_contact.email
         )
@@ -327,7 +327,7 @@ def query_seq_requests(
         )
 
     query = query.order_by(
-        func.similarity(models.SeqRequest.name, word).desc()
+        sa.func.similarity(models.SeqRequest.name, word).desc()
     )
 
     if limit is not None:
@@ -341,9 +341,8 @@ def query_seq_requests(
 
 
 def add_file_to_seq_request(
-    self, seq_request_id: int, file_id: int,
-    commit: bool = True
-) -> models.SeqRequestFileLink:
+    self, seq_request_id: int, file_id: int
+) -> models.SeqRequest:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -360,20 +359,15 @@ def add_file_to_seq_request(
         seq_request.seq_auth_form_file_id = file_id
         self._session.add(seq_request)
 
-    file_link = models.SeqRequestFileLink(
-        seq_request_id=seq_request_id,
-        file_id=file_id
-    )
-    self._session.add(file_link)
+    seq_request.files.append(file)
 
-    if commit:
-        self._session.commit()
-        self._session.refresh(file_link)
+    self._session.commit()
+    self._session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()
 
-    return file_link
+    return seq_request
 
 
 def remove_comment_from_seq_request(self, seq_request_id: int, comment_id: int, commit: bool = True) -> None:
@@ -428,52 +422,49 @@ def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit
     return None
 
 
-def add_seq_request_share_email(self, seq_request_id: int, email: str, commit: bool = True) -> models.SeqRequestShareEmailLink:
+def add_seq_request_share_email(self, seq_request_id: int, email: str) -> models.SeqRequest:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
+    seq_request: models.SeqRequest
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
     
-    if self._session.get(models.SeqRequestShareEmailLink, (seq_request_id, email)):
+    if self._session.get(models.EmailReceiver, (seq_request_id, email)) is not None:
         raise exceptions.LinkAlreadyExists(f"SeqRequest with id '{seq_request_id}' already has a share link with email '{email}'.")
 
-    share_link = models.SeqRequestShareEmailLink(
-        seq_request_id=seq_request_id,
-        email=email
-    )
-    self._session.add(share_link)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(share_link)
+    seq_request.receivers.append(models.EmailReceiver(email=email))
+    self._session.add(seq_request)
+    self._session.commit()
+    self._session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()
 
-    return share_link
+    return seq_request
 
 
-def remove_seq_request_share_email(self, seq_request_id: int, email: str, commit: bool = True) -> models.SeqRequestShareEmailLink:
+def remove_seq_request_share_email(self, seq_request_id: int, id: int) -> models.SeqRequest:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.SeqRequest, seq_request_id)) is None:
+    seq_request: models.SeqRequest
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
     
-    if (share_link := self._session.get(models.SeqRequestShareEmailLink, (seq_request_id, email))) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}' does not have a share link with email '{email}'.")
-
-    self._session.delete(share_link)
-
-    if commit:
-        self._session.commit()
+    if (share_link := self._session.get(models.EmailReceiver, id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Share link with id '{id}', not found.")
+    
+    seq_request.receivers.remove(share_link)
+    self._session.add(seq_request)
+    self._session.commit()
+    self._session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()
-    return share_link
+    return seq_request
 
 
 def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum) -> models.SeqRequest:

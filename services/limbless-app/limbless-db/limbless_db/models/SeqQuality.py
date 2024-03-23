@@ -1,41 +1,37 @@
 from typing import Optional, TYPE_CHECKING
 
-from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from sqlalchemy import BigInteger, Column
+from .Base import Base
 
 if TYPE_CHECKING:
     from .Library import Library
     from .Experiment import Experiment
 
 
-class SeqQuality(SQLModel, table=True):
-    id: int = Field(default=None, nullable=False, primary_key=True)
-    library_id: Optional[int] = Field(nullable=True, foreign_key="library.id")
-    experiment_id: int = Field(nullable=False, foreign_key="experiment.id")
-    lane: int = Field(nullable=False)
+class SeqQuality(Base):
+    __tablename__ = "seqquality"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, nullable=False, primary_key=True)
+    library_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), nullable=True)
+    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=False)
+    lane: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     
-    num_lane_reads: int = Field(nullable=False, sa_column=Column(BigInteger()))
-    num_library_reads: int = Field(nullable=False, sa_column=Column(BigInteger()))
+    num_lane_reads: Mapped[int] = mapped_column(sa.BigInteger, nullable=False)
+    num_library_reads: Mapped[int] = mapped_column(sa.BigInteger, nullable=False)
     
-    mean_quality_pf_r1: Optional[float] = Field(nullable=True)
-    q30_perc_r1: Optional[float] = Field(nullable=True)
+    mean_quality_pf_r1: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    q30_perc_r1: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
-    mean_quality_pf_r2: Optional[float] = Field(nullable=True)
-    q30_perc_r2: Optional[float] = Field(nullable=True)
+    mean_quality_pf_r2: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    q30_perc_r2: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
-    mean_quality_pf_i1: Optional[float] = Field(nullable=True)
-    q30_perc_i1: Optional[float] = Field(nullable=True)
+    mean_quality_pf_i1: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    q30_perc_i1: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
-    mean_quality_pf_i2: Optional[float] = Field(nullable=True)
-    q30_perc_i2: Optional[float] = Field(nullable=True)
+    mean_quality_pf_i2: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    q30_perc_i2: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
-    library: Optional["Library"] = Relationship(
-        back_populates="read_qualities",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
+    library: Mapped[Optional["Library"]] = relationship("Library", back_populates="read_qualities", lazy="select")
 
-    experiment: "Experiment" = Relationship(
-        back_populates="read_qualities",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
+    experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="read_qualities", lazy="select")

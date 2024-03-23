@@ -2,7 +2,7 @@ import math
 from datetime import datetime
 from typing import Optional
 
-from sqlmodel import func
+import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
@@ -189,7 +189,7 @@ def query_experiments(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> lis
     query = self._session.query(models.Experiment)
 
     query = query.order_by(
-        func.similarity(models.Experiment.name, word).desc()
+        sa.func.similarity(models.Experiment.name, word).desc()
     )
 
     if limit is not None:

@@ -1,10 +1,12 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
 
-from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from itsdangerous import SignatureExpired, BadSignature, URLSafeTimedSerializer
 
-from ..core.SearchResult import SearchResult
+from .Base import Base
 from ..categories import UserRole, UserRoleEnum
+
 
 if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
@@ -15,7 +17,7 @@ if TYPE_CHECKING:
     from .File import File
 
 
-class UserMixin:
+class UserMixin():
     """
     This provides default implementations for the methods that Flask-Login
     expects user objects to have.
@@ -62,44 +64,27 @@ class UserMixin:
         return not equal
 
 
-class User(UserMixin, SQLModel, SearchResult, table=True):
+class User(Base, UserMixin):
     __tablename__ = "lims_user"     # type: ignore
-    id: int = Field(default=None, primary_key=True)
-    first_name: str = Field(nullable=False, max_length=64)
-    last_name: str = Field(nullable=False, max_length=64)
-    email: str = Field(nullable=False, unique=True, index=True, max_length=128)
-    password: str = Field(nullable=False, max_length=128)
-    role_id: int = Field(nullable=False)
 
-    num_projects: int = Field(nullable=False, default=0)
-    num_pools: int = Field(nullable=False, default=0)
-    num_samples: int = Field(nullable=False, default=0)
-    num_seq_requests: int = Field(nullable=False, default=0)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    first_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    last_name: Mapped[str] = mapped_column(sa.String(64), nullable=False,)
+    email: Mapped[str] = mapped_column(sa.String(128), nullable=False, unique=True, index=True)
+    password: Mapped[str] = mapped_column(sa.String(128), nullable=False)
+    role_id: Mapped[int] = mapped_column(nullable=False)
 
-    requests: list["SeqRequest"] = Relationship(
-        back_populates="requestor",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
-    projects: list["Project"] = Relationship(
-        back_populates="owner",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
-    pools: list["Pool"] = Relationship(
-        back_populates="owner",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
-    samples: list["Sample"] = Relationship(
-        back_populates="owner",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
-    libraries: list["Library"] = Relationship(
-        back_populates="owner",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
-    files: list["File"] = Relationship(
-        back_populates="uploader",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
+    num_projects: Mapped[int] = mapped_column(nullable=False, default=0)
+    num_pools: Mapped[int] = mapped_column(nullable=False, default=0)
+    num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
+    num_seq_requests: Mapped[int] = mapped_column(nullable=False, default=0)
+
+    requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="requestor", lazy="select")
+    projects: Mapped[list["Project"]] = relationship("Project", back_populates="owner", lazy="select")
+    pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="owner", lazy="select")
+    samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="owner", lazy="select")
+    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="owner", lazy="select")
+    files: Mapped[list["File"]] = relationship("File", back_populates="uploader", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
 

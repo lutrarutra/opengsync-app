@@ -1,11 +1,15 @@
 from typing import Optional
 
-from sqlmodel import Field, SQLModel
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .Base import Base
 
 
-class Contact(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=128)
-    email: Optional[str] = Field(nullable=True, max_length=128)
-    phone: Optional[str] = Field(nullable=True, max_length=32)
-    address: Optional[str] = Field(nullable=True, max_length=128)
+class Contact(Base):
+    __tablename__ = "contact"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
+    email: Mapped[Optional[str]] = mapped_column(sa.String(128), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(sa.String(128), nullable=True)

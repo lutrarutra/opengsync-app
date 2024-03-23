@@ -2,20 +2,23 @@ from typing import Optional, TYPE_CHECKING
 from datetime import datetime
 
 import sqlalchemy as sa
-from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .Base import Base
 
 if TYPE_CHECKING:
     from .User import User
 
 
-class Comment(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    text: str = Field(nullable=False, max_length=512)
-    timestamp: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
-    author_id: int = Field(nullable=False, foreign_key="lims_user.id")
-    file_id: Optional[int] = Field(nullable=True, foreign_key="file.id")
+class Comment(Base):
+    __tablename__ = "comment"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    text: Mapped[str] = mapped_column(sa.String(512), nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    author_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True)
 
-    author: "User" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
+    author: Mapped["User"] = relationship("User", lazy="select")
 
     def timestamp_to_str(self) -> str:
         return self.timestamp.strftime('%Y-%m-%d %H:%M')

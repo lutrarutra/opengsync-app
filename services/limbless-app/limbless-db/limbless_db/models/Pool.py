@@ -1,10 +1,12 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
 
-from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..categories import PoolStatus, PoolStatusEnum
-from ..core.SearchResult import SearchResult
+from .Base import Base
+
 from .Links import LanePoolLink
+from ..categories import PoolStatus, PoolStatusEnum
 
 if TYPE_CHECKING:
     from .Library import Library
@@ -14,46 +16,33 @@ if TYPE_CHECKING:
     from .Lane import Lane
 
 
-class Pool(SQLModel, SearchResult, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=64, index=True)
-    status_id: int = Field(nullable=False, default=0)
+class Pool(Base):
+    __tablename__ = "pool"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
+    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     
-    num_m_reads_requested: Optional[float] = Field(default=None, nullable=True)
-    concentration: Optional[float] = Field(default=None, nullable=True)
-    avg_library_size: Optional[int] = Field(default=None, nullable=True)
+    num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
+    concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
+    avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
 
-    num_libraries: int = Field(nullable=False, default=0)
+    num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
-    owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
-    owner: "User" = Relationship(
-        back_populates="pools",
-        sa_relationship_kwargs={"lazy": "joined"}
-    )
-    libraries: list["Library"] = Relationship(
-        back_populates="pool",
-        sa_relationship_kwargs={"lazy": "select"},
-    )
+    owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="select")
+    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select",)
 
-    lanes: list["Lane"] = Relationship(
-        link_model=LanePoolLink, back_populates="pools",
-        sa_relationship_kwargs={"lazy": "select"},
-    )
+    lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink, back_populates="pools", lazy="select",)
     
-    experiment_id: int = Field(nullable=True, foreign_key="experiment.id", default=None)
-    experiment: "Experiment" = Relationship(
-        back_populates="pools",
-        sa_relationship_kwargs={"lazy": "select"},
-    )
+    experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
+    experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="pools", lazy="select",)
 
-    seq_request_id: Optional[int] = Field(nullable=True, foreign_key="seqrequest.id")
-    seq_request: Optional["SeqRequest"] = Relationship(
-        sa_relationship_kwargs={"lazy": "select"}
-    )
+    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=True)
+    seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", lazy="select")
 
-    contact_name: str = Field(nullable=False, max_length=128)
-    contact_email: str = Field(nullable=False, max_length=128)
-    contact_phone: Optional[str] = Field(nullable=True, max_length=16)
+    contact_name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
+    contact_email: Mapped[str] = mapped_column(sa.String(128), nullable=False)
+    contact_phone: Mapped[Optional[str]] = mapped_column(sa.String(20), nullable=True)
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested"]
 

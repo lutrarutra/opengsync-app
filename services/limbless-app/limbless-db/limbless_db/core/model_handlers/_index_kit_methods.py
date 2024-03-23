@@ -1,7 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import func
+import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
@@ -91,7 +91,7 @@ def query_index_kit(
 
     query = self._session.query(models.IndexKit)
 
-    query = query.order_by(func.similarity(models.IndexKit.name, word).desc())
+    query = query.order_by(sa.func.similarity(models.IndexKit.name, word).desc())
 
     if limit is not None:
         query = query.limit(limit)

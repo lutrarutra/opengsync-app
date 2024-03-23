@@ -1,12 +1,12 @@
 import math
 from typing import Optional
 
-from sqlmodel import func
+import sqlalchemy as sa
 
 from .. import exceptions
 from ... import PAGE_LIMIT
 from ...models import User
-from ...categories import UserRole
+from ...categories import UserRole, UserRoleEnum
 
 
 def create_user(
@@ -14,7 +14,7 @@ def create_user(
     first_name: str,
     last_name: str,
     hashed_password: str,
-    role: UserRole,
+    role: UserRoleEnum,
     commit: bool = True
 ) -> User:
     persist_session = self._session is not None
@@ -118,7 +118,7 @@ def update_user(
     self, user_id: int,
     email: Optional[str] = None,
     hashed_password: Optional[str] = None,
-    role: Optional[UserRole] = None,
+    role: Optional[UserRoleEnum] = None,
     commit: bool = True
 ) -> User:
     persist_session = self._session is not None
@@ -163,7 +163,7 @@ def delete_user(self, user_id: int, commit: bool = True) -> None:
 
 
 def query_users(
-    self, word: str, with_roles: Optional[list[UserRole]] = None,
+    self, word: str, with_roles: Optional[list[UserRoleEnum]] = None,
     only_insiders: bool = False, limit: Optional[int] = PAGE_LIMIT
 ) -> list[User]:
     persist_session = self._session is not None
@@ -173,7 +173,7 @@ def query_users(
     query = self._session.query(User)
 
     query = query.order_by(
-        func.similarity(User.first_name + ' ' + User.last_name, word).desc()
+        sa.func.similarity(User.first_name + ' ' + User.last_name, word).desc()
     )
 
     if only_insiders:
@@ -184,7 +184,7 @@ def query_users(
     if with_roles is not None:
         status_ids = [role.id for role in with_roles]
         query = query.where(
-            User.role.in_(status_ids)
+            User.role_id.in_(status_ids)
         )
 
     if limit is not None:
@@ -206,7 +206,7 @@ def query_users_by_email(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> 
     query = self._session.query(User)
 
     query = query.order_by(
-        func.similarity(User.email, word).desc(),
+        sa.func.similarity(User.email, word).desc(),
     )
 
     if limit is not None:

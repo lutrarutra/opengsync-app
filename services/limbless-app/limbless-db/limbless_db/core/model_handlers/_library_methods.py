@@ -1,7 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import func, text
+import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_
 
 from ... import models, PAGE_LIMIT
@@ -159,14 +159,14 @@ def get_libraries(
     if sort_by is not None:
         if sort_by == "sample_name":
             if descending:
-                attr = text("sample_1_name DESC")
+                attr = sa.text("sample_1_name DESC")
             else:
-                attr = text("sample_1_name")
+                attr = sa.text("sample_1_name")
         elif sort_by == "owner_id":
             if descending:
-                attr = text("user_2_id DESC")
+                attr = sa.text("user_2_id DESC")
             else:
-                attr = text("user_2_id")
+                attr = sa.text("user_2_id")
         else:
             attr = getattr(models.Library, sort_by)
             if descending:
@@ -284,7 +284,7 @@ def query_libraries(
         )
 
     query = query.order_by(
-        func.similarity(models.Library.name, word).desc()
+        sa.func.similarity(models.Library.name, word).desc()
     )
 
     if limit is not None:

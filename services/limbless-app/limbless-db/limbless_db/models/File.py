@@ -1,23 +1,24 @@
 import os
 
-from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .Base import Base
 
 from ..categories import FileType, FileTypeEnum
 from .User import User
 
 
-class File(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=64)
-    extension: str = Field(nullable=False, max_length=16)
-    type_id: int = Field(nullable=False)
-    uuid: str = Field(nullable=False, max_length=64)
+class File(Base):
+    __tablename__ = "file"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    extension: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    uuid: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     
-    uploader_id: int = Field(nullable=False, foreign_key="lims_user.id")
-    uploader: "User" = Relationship(
-        back_populates="files",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
+    uploader_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    uploader: Mapped["User"] = relationship("User", back_populates="files", lazy="select")
 
     @property
     def type(self) -> FileTypeEnum:

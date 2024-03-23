@@ -1,37 +1,33 @@
-from typing import Optional, List, TYPE_CHECKING, ClassVar
+from typing import Optional, TYPE_CHECKING, ClassVar
 
-from sqlmodel import Field, SQLModel, Relationship
-from ..core.SearchResult import SearchResult
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .Base import Base
 
 if TYPE_CHECKING:
     from .Sample import Sample
     from .User import User
 
 
-class Project(SQLModel, SearchResult, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=64, index=True)
-    description: str = Field(default="", max_length=1024)
+class Project(Base):
+    __tablename__ = "project"
 
-    num_samples: int = Field(nullable=False, default=0)
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
+    description: Mapped[Optional[str]] = mapped_column(sa.String(64), default=None, nullable=True)
 
-    samples: List["Sample"] = Relationship(
-        back_populates="project", sa_relationship_kwargs={"lazy": "select"}
-    )
+    num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
 
-    owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
-    owner: "User" = Relationship(
-        back_populates="projects",
-        sa_relationship_kwargs={"lazy": "joined"}
-    )
+    samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
 
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "owner_id", "num_samples"]
+    owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="select")
+
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_samples"]
 
     def search_value(self) -> int:
         return self.id
     
     def search_name(self) -> str:
         return self.name
-    
-    def search_description(self) -> str:
-        return self.description

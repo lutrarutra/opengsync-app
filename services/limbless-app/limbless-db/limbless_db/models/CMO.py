@@ -1,27 +1,27 @@
 from typing import TYPE_CHECKING
 
-from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .Base import Base
 
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
 
 
-class CMO(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    sequence: str = Field(nullable=False, max_length=32)
-    pattern: str = Field(nullable=False, max_length=32)
-    read: str = Field(nullable=False, max_length=8)
+class CMO(Base):
+    __tablename__ = "cmo"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    sequence: Mapped[str] = mapped_column(sa.String(32), nullable=False)
+    pattern: Mapped[str] = mapped_column(sa.String(32), nullable=False)
+    read: Mapped[str] = mapped_column(sa.String(8), nullable=False)
 
-    sample_id: int = Field(nullable=False, foreign_key="sample.id")
-    sample: "Sample" = Relationship(
-        sa_relationship_kwargs={"lazy": "selectin"}
-    )
-    library_id: int = Field(nullable=False, foreign_key="library.id")
-    library: "Library" = Relationship(
-        back_populates="cmos",
-        sa_relationship_kwargs={"lazy": "selectin"}
-    )
+    sample_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sample.id"), nullable=False)
+    sample: Mapped["Sample"] = relationship(lazy="select")
+    
+    library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), nullable=False)
+    library: Mapped["Library"] = relationship("Library", back_populates="cmos", lazy="select")
 
     def __str__(self) -> str:
         return f"CMO(id: {self.id}, sequence: {self.sequence}, pattern: {self.pattern}, read: {self.read}, sample_id: {self.sample_id}, library_id: {self.library_id})"

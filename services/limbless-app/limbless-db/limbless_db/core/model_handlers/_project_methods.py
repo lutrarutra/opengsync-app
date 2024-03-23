@@ -1,7 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import func
+import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
@@ -190,7 +190,7 @@ def query_projects(
         )
 
     query = query.order_by(
-        func.similarity(models.Project.name, word).desc()
+        sa.func.similarity(models.Project.name, word).desc()
     )
 
     if limit is not None:

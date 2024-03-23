@@ -1,28 +1,32 @@
 from typing import ClassVar
 
-from sqlmodel import Field, SQLModel
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .Base import Base
 
 from ..categories import ExperimentStatus, ExperimentStatusEnum, ReadType, ReadTypeEnum
 
 
-class SeqRun(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+class SeqRun(Base):
+    __tablename__ = "seqrun"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     
-    experiment_name: str = Field(nullable=False, max_length=32, unique=True, index=True)
-    status_id: int = Field(nullable=False)
+    experiment_name: Mapped[str] = mapped_column(sa.String(32), nullable=False, unique=True, index=True)
+    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    run_folder: str = Field(nullable=False, max_length=64)
-    flowcell_id: str = Field(nullable=False, max_length=64)
-    read_type_id: int = Field(nullable=False)
-    rta_version: str = Field(nullable=False, max_length=8)
-    recipe_version: str = Field(nullable=False, max_length=8)
-    side: str = Field(nullable=False, max_length=8)
-    flowcell_mode: str = Field(nullable=False, max_length=8)
+    run_folder: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    flowcell_id: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    read_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    rta_version: Mapped[str] = mapped_column(sa.String(8), nullable=False)
+    recipe_version: Mapped[str] = mapped_column(sa.String(8), nullable=False)
+    side: Mapped[str] = mapped_column(sa.String(8), nullable=False)
+    flowcell_mode: Mapped[str] = mapped_column(sa.String(8), nullable=False)
 
-    r1_cycles: int = Field(nullable=False)
-    r2_cycles: int = Field(nullable=False)
-    i1_cycles: int = Field(nullable=False)
-    i2_cycles: int = Field(nullable=False)
+    r1_cycles: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    r2_cycles: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    i1_cycles: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    i2_cycles: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     sortable_fields: ClassVar[list[str]] = ["id", "experiment_name", "status_id", "read_type_id"]
 

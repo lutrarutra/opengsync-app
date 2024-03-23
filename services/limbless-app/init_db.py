@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 
 import pandas as pd
 
-from sqlmodel import SQLModel
 import sqlalchemy as sqla
 
 from limbless_db import DBHandler, models, categories
+from limbless_db.models.Base import Base
 from limbless_server import bcrypt
 
 load_dotenv()
@@ -149,7 +149,7 @@ def init_db(create_users: bool):
     df = pd.read_sql(q, db_handler._engine)
 
     with open("db_structure.txt", "w") as f:
-        for table in SQLModel.metadata.tables.items():
+        for table in Base.metadata.tables.items():
             table_name = table[0]
             if table_name not in df["tablename"].values:
                 raise Exception(f"Table {table[0]} is missing from the DB.")
@@ -163,7 +163,7 @@ def init_db(create_users: bool):
                     raise Exception(f"Column {column_name} is missing from the table {table_name}.")
             
     with open("db_structure.txt", "w") as f:
-        for table in SQLModel.metadata.tables.items():
+        for table in Base.metadata.tables.items():
             table_name = table[0]
             f.write(f"{table_name}\n")
             for column in table[1].columns:

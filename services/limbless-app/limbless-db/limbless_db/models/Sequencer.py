@@ -1,27 +1,21 @@
 from typing import Optional
 
-from sqlmodel import Field, SQLModel
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column
 
-from ..core.SearchResult import SearchResult
+from .Base import Base
+
 from ..categories import SequencerType, SequencerTypeEnum
 
 
-class Sequencer(SQLModel, SearchResult, table=True):
-    id: int = Field(default=None, primary_key=True)
+class Sequencer(Base):
+    __tablename__ = "sequencer"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
 
-    name: str = Field(nullable=False, max_length=32, unique=True, index=True)
-    type_id: int = Field(nullable=False)
-    ip: Optional[str] = Field(nullable=True, max_length=64, unique=False)
+    name: Mapped[str] = mapped_column(sa.String(32), nullable=False, unique=True, index=True)
+    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    ip: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, unique=False)
 
     @property
     def type(self) -> SequencerTypeEnum:
         return SequencerType.get(self.type_id)
-
-    def search_value(self) -> int:
-        return self.id
-    
-    def search_name(self) -> str:
-        return f"{self.name} ({self.type.name})"
-    
-    def search_description(self) -> Optional[str]:
-        return self.ip

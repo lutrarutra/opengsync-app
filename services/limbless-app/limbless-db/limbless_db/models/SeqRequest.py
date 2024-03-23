@@ -2,10 +2,12 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
-from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .Base import Base
 
 from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum
-from .Links import SeqRequestFileLink, SeqRequestCommentLink, SeqRequestShareEmailLink
+from .Links import SeqRequestFileLink, SeqRequestCommentLink, SeqRequestDeliveryLink
 
 if TYPE_CHECKING:
     from .User import User
@@ -16,84 +18,57 @@ if TYPE_CHECKING:
     from .Comment import Comment
 
 
-class SeqRequest(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+class SeqRequest(Base):
+    __tablename__ = "seqrequest"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
 
-    name: str = Field(nullable=False, max_length=128)
-    description: Optional[str] = Field(nullable=True, max_length=1024)
-    status_id: int = Field(nullable=False, default=0)
-    submitted_time: Optional[datetime] = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True))
+    name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
+    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=SeqRequestStatus.DRAFT.id)
+    submitted_time: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True)
 
-    sequencing_type_id: int = Field(nullable=False)
-    read_length: Optional[int] = Field(nullable=True)
-    num_lanes: Optional[int] = Field(nullable=True)
+    sequencing_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
 
-    num_cycles_read_1: Optional[int] = Field(nullable=True)
-    num_cycles_index_1: Optional[int] = Field(nullable=True)
-    num_cycles_index_2: Optional[int] = Field(nullable=True)
-    num_cycles_read_2: Optional[int] = Field(nullable=True)
+    num_lanes: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+
+    num_cycles_read_1: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    num_cycles_index_1: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    num_cycles_index_2: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    num_cycles_read_2: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     
-    special_requirements: Optional[str] = Field(nullable=True, max_length=1024)
+    special_requirements: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
 
-    data_delivery_mode_id: int = Field(nullable=False)
+    data_delivery_mode_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    organization_name: str = Field(nullable=False, max_length=128)
-    organization_address: str = Field(nullable=False, max_length=256)
-    organization_department: Optional[str] = Field(nullable=True, max_length=64)
-    billing_code: Optional[str] = Field(nullable=True, max_length=32)
+    organization_name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
+    organization_address: Mapped[str] = mapped_column(sa.String(256), nullable=False)
+    organization_department: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True)
+    billing_code: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
 
-    num_libraries: int = Field(nullable=False, default=0)
+    requestor_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="select")
 
-    requestor_id: int = Field(nullable=False, foreign_key="lims_user.id")
-    requestor: "User" = Relationship(back_populates="requests", sa_relationship_kwargs={"lazy": "joined"})
+    bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=True)
+    bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.bioinformatician_contact_id]")
 
-    bioinformatician_contact_id: Optional[int] = Field(nullable=True, foreign_key="contact.id")
-    bioinformatician_contact: Optional["Contact"] = Relationship(
-        sa_relationship_kwargs={
-            "lazy": "joined",
-            "foreign_keys": "[SeqRequest.bioinformatician_contact_id]"
-        },
-    )
-
-    libraries: list["Library"] = Relationship(
-        back_populates="seq_request",
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
-    )
+    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select", cascade="delete")
     
-    contact_person_id: int = Field(nullable=False, foreign_key="contact.id")
-    contact_person: "Contact" = Relationship(
-        sa_relationship_kwargs={
-            "lazy": "joined",
-            "foreign_keys": "[SeqRequest.contact_person_id]"
-        },
-    )
+    contact_person_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
+    contact_person: Mapped["Contact"] = relationship(lazy="joined", foreign_keys="[SeqRequest.contact_person_id]")
 
-    billing_contact_id: int = Field(nullable=False, foreign_key="contact.id")
-    billing_contact: "Contact" = Relationship(
-        sa_relationship_kwargs={
-            "lazy": "joined",
-            "foreign_keys": "[SeqRequest.billing_contact_id]"
-        },
-    )
+    billing_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
+    billing_contact: Mapped["Contact"] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.billing_contact_id]")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
-    pools: list["Pool"] = Relationship(
-        back_populates="seq_request",
-        sa_relationship_kwargs={"lazy": "select"},
-    )
-    files: list["File"] = Relationship(
-        link_model=SeqRequestFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
-    )
-    comments: list["Comment"] = Relationship(
-        link_model=SeqRequestCommentLink,
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
-    )
-    share_email_links: list[SeqRequestShareEmailLink] = Relationship(
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
-    )
+    pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
+    files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink, lazy="select", cascade="delete")
+    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink, lazy="select", cascade="delete")
+    receivers: Mapped[list["SeqRequestDeliveryLink"]] = relationship("SeqRequestDeliveryLink", lazy="select", cascade="delete")
 
-    seq_auth_form_file_id: Optional[int] = Field(nullable=True, default=None)
+    seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
 
     @property
     def status(self) -> SeqRequestStatusEnum:

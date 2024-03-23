@@ -21,8 +21,7 @@ from .SeqRun import SeqRun  # noqa: F401
 from .Lane import Lane  # noqa: F401
 
 from .Links import (  # noqa: F401
-    LanePoolLink, SampleLibraryLink,
+    LanePoolLink, SampleLibraryLink, SeqRequestDeliveryLink,
     ExperimentFileLink, SeqRequestFileLink,
     ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
-    SeqRequestShareEmailLink
 )

@@ -1,8 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import func
-
+import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from ...categories import SequencerTypeEnum
@@ -159,7 +158,7 @@ def query_sequencers(
         self.open_session()
 
     query = self._session.query(models.Sequencer).order_by(
-        func.similarity(
+        sa.func.similarity(
             models.Sequencer.name, word
         ).desc()
     )

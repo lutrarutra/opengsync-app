@@ -1,11 +1,13 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
 from dataclasses import dataclass
 
-from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .Links import LibraryFeatureLink
+from .Base import Base
 from .SeqRequest import SeqRequest
-from limbless_db.categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum
+from .Links import LibraryFeatureLink
+from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -24,74 +26,52 @@ class Index:
     adapter: Optional[str]
 
 
-class Library(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=64)
+class Library(Base):
+    __tablename__ = "library"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
-    type_id: int = Field(nullable=False)
-    status_id: int = Field(nullable=False, default=0)
-    genome_ref_id: Optional[int] = Field(nullable=True, default=None)
+    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    genome_ref_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
 
-    volume: Optional[int] = Field(nullable=True, default=None)
-    dna_concentration: Optional[float] = Field(nullable=True, default=None)
-    total_size: Optional[int] = Field(nullable=True, default=None)
-    seq_depth_requested: Optional[float] = Field(nullable=True, default=None)
+    volume: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    dna_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    total_size: Mapped[Optional[int]] = mapped_column(sa.Float, nullable=True, default=None)
+    seq_depth_requested: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
-    index_kit_id: Optional[int] = Field(nullable=True, foreign_key="indexkit.id")
-    index_kit: Optional["IndexKit"] = Relationship(
-        sa_relationship_kwargs={"lazy": "select"}
+    num_samples: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    num_features: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+
+    index_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("indexkit.id"), nullable=True)
+    index_kit: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="select")
+
+    pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True)
+    pool: Mapped[Optional["Pool"]] = relationship("Pool", back_populates="libraries", lazy="select")
+
+    owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
+    owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="select")
+
+    sample_links: Mapped[list["SampleLibraryLink"]] = relationship(
+        "SampleLibraryLink", back_populates="library", lazy="select", cascade="delete",
     )
 
-    pool_id: Optional[int] = Field(nullable=True, foreign_key="pool.id")
-    pool: Optional["Pool"] = Relationship(
-        back_populates="libraries",
-        sa_relationship_kwargs={"lazy": "joined"}
-    )
+    cmos: Mapped[list["CMO"]] = relationship("CMO", back_populates="library", lazy="select")
+    features: Mapped[list["Feature"]] = relationship("Feature", secondary=LibraryFeatureLink, lazy="select")
 
-    num_samples: int = Field(nullable=False, default=0)
-    num_features: int = Field(nullable=False, default=0)
+    seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=False)
+    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")
 
-    owner_id: int = Field(nullable=False, foreign_key="lims_user.id")
-    owner: "User" = Relationship(
-        back_populates="libraries",
-        sa_relationship_kwargs={"lazy": "joined"}
-    )
+    adapter: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    index_1_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    index_2_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    index_3_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    index_4_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
 
-    sample_links: list["SampleLibraryLink"] = Relationship(
-        back_populates="library",
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
-    )
+    read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="delete")
 
-    cmos: list["CMO"] = Relationship(
-        back_populates="library",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
-    features: list["Feature"] = Relationship(
-        link_model=LibraryFeatureLink,
-        sa_relationship_kwargs={"lazy": "select"}
-    )
-
-    seq_request_id: int = Field(nullable=False, foreign_key="seqrequest.id")
-    seq_request: "SeqRequest" = Relationship(
-        back_populates="libraries",
-        sa_relationship_kwargs={"lazy": "select"}
-    )
-
-    adapter: Optional[str] = Field(nullable=True, max_length=32)
-    index_1_sequence: Optional[str] = Field(nullable=True, max_length=32)
-    index_2_sequence: Optional[str] = Field(nullable=True, max_length=32)
-    index_3_sequence: Optional[str] = Field(nullable=True, max_length=32)
-    index_4_sequence: Optional[str] = Field(nullable=True, max_length=32)
-
-    read_qualities: list["SeqQuality"] = Relationship(
-        back_populates="library",
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
-    )
-
-    visium_annotation_id: Optional[int] = Field(nullable=True, default=None, foreign_key="visiumannotation.id")
-    visium_annotation: Optional["VisiumAnnotation"] = Relationship(
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
-    )
+    visium_annotation_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("visiumannotation.id"), nullable=True, default=None)
+    visium_annotation: Mapped[Optional["VisiumAnnotation"]] = relationship("VisiumAnnotation", lazy="select", cascade="delete")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter"]
 

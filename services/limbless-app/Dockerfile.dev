@@ -11,10 +11,10 @@ RUN apt install postgresql-client -y
 RUN apt install curl -y
 RUN pip install --upgrade pip
 COPY . /usr/src/app/
-RUN pip install -r /usr/src/app/limbless-server/requirements.txt
-RUN pip install -e /usr/src/app/limbless-server
 RUN pip install -r /usr/src/app/limbless-db/requirements.txt
 RUN pip install -e /usr/src/app/limbless-db
+RUN pip install -r /usr/src/app/limbless-server/requirements.txt
+RUN pip install -e /usr/src/app/limbless-server
 RUN chmod +x /usr/src/app/entrypoint.sh
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

@@ -1,13 +1,15 @@
 from typing import Optional, Union
 
-from sqlmodel import create_engine, SQLModel, Session
+import sqlalchemy as sa
 from sqlalchemy import orm
+
+from limbless_db.models.Base import Base
 
 
 class DBHandler():
     def __init__(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432):
         self._url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
-        self._engine = create_engine(self._url)
+        self._engine = sa.create_engine(self._url)
         try:
             self._engine.connect()
         except Exception as e:
@@ -15,11 +17,11 @@ class DBHandler():
         self._session: Optional[orm.Session] = None
 
     def create_tables(self) -> None:
-        SQLModel.metadata.create_all(self._engine)
+        Base.metadata.create_all(self._engine)
 
     def open_session(self) -> None:
         if self._session is None:
-            self._session = Session(self._engine, expire_on_commit=False)
+            self._session = orm.Session(self._engine, expire_on_commit=False)
 
     def close_session(self) -> None:
         if self._session is not None:

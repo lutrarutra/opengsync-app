@@ -1,7 +1,8 @@
-SQLAlchemy==1.4.41
-SQLAlchemy-Utils==0.41.1
-sqlalchemy2-stubs==0.0.2a35
-sqlmodel==0.0.8
-pandas==2.1.4
+numba==0.59.1
+numexpr==2.9.0
+numpy==1.26.4
+packaging==24.0
+pandas==2.2.1
 itsdangerous==2.1.2
-psycopg2==2.9.7
+psycopg2==2.9.9
+SQLAlchemy==2.0.28

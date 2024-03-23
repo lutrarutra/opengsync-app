@@ -1,7 +1,7 @@
 import math
 from typing import Optional
 
-from sqlmodel import func
+import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
@@ -140,7 +140,7 @@ def query_feature_kits(
     query = self._session.query(models.FeatureKit)
 
     query = query.order_by(
-        func.similarity(models.FeatureKit.name, word).desc(),
+        sa.func.similarity(models.FeatureKit.name, word).desc(),
     )
 
     if limit is not None:

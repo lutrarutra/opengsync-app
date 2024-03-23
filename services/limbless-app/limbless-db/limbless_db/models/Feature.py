@@ -1,31 +1,31 @@
 
 from typing import TYPE_CHECKING, ClassVar, Optional
 
-from sqlmodel import Field, SQLModel, Relationship
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..core.SearchResult import SearchResult
-from ..categories import FeatureType
+from .Base import Base
+
+from ..categories import FeatureType, FeatureTypeEnum
 
 if TYPE_CHECKING:
     from .FeatureKit import FeatureKit
 
 
-class Feature(SQLModel, SearchResult, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=32, index=True)
-    sequence: str = Field(nullable=False, max_length=32, index=True)
-    pattern: str = Field(nullable=False, max_length=32)
-    read: str = Field(nullable=False, max_length=8)
-    target_name: Optional[str] = Field(nullable=True, max_length=32, index=True)
-    target_id: Optional[str] = Field(nullable=True, max_length=32, index=True)
+class Feature(Base):
+    __tablename__ = "feature"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
+    sequence: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
+    pattern: Mapped[str] = mapped_column(sa.String(32), nullable=False)
+    read: Mapped[str] = mapped_column(sa.String(8), nullable=False)
+    target_name: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, index=True)
+    target_id: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, index=True)
 
-    type_id: int = Field(nullable=False)
+    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    feature_kit_id: Optional[int] = Field(nullable=True, foreign_key="featurekit.id")
-    feature_kit: Optional["FeatureKit"] = Relationship(
-        back_populates="features",
-        sa_relationship_kwargs={"lazy": "select"},
-    )
+    feature_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("featurekit.id"), nullable=True)
+    feature_kit: Mapped[Optional["FeatureKit"]] = relationship("FeatureKit", back_populates="features", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "target_name", "target_id", "feature_kit_id"]
 
@@ -33,7 +33,7 @@ class Feature(SQLModel, SearchResult, table=True):
         return f"Feature('{self.sequence}', {self.pattern}, {self.read}{f', {self.feature_kit.name}' if self.feature_kit else ''})"
     
     @property
-    def type(self) -> FeatureType:
+    def type(self) -> FeatureTypeEnum:
         return FeatureType.get(self.type_id)
     
     def search_name(self) -> str:

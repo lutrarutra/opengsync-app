@@ -1,9 +1,11 @@
 from datetime import datetime
-from typing import Optional, List, TYPE_CHECKING, ClassVar
+from typing import Optional, TYPE_CHECKING, ClassVar
 from pydantic import PrivateAttr
 
 import sqlalchemy as sa
-from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .Base import Base
 
 from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum
 from ..core.SearchResult import SearchResult
@@ -20,51 +22,35 @@ if TYPE_CHECKING:
     from .Lane import Lane
 
 
-class Experiment(SQLModel, SearchResult, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(nullable=False, max_length=16, unique=True, index=True)
+class Experiment(Base):
+    __tablename__ = "experiment"
+    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
     
-    flowcell_type_id: int = Field(nullable=False)
-
-    r1_cycles: int = Field(nullable=False)
-    r2_cycles: Optional[int] = Field(nullable=True)
-    i1_cycles: int = Field(nullable=False)
-    i2_cycles: Optional[int] = Field(nullable=True)
-
-    operator_id: int = Field(nullable=False, foreign_key="lims_user.id")
-    operator: "User" = Relationship(sa_relationship_kwargs={"lazy": "select"})
+    timestamp: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
     
-    num_lanes: int = Field(nullable=False)
+    r1_cycles: Mapped[int] = mapped_column(nullable=False)
+    r2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
+    i1_cycles: Mapped[int] = mapped_column(nullable=False)
+    i2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
 
-    timestamp: datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
+    flowcell_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    num_lanes: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    status_id: int = Field(nullable=False, default=0)
+    operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    operator: Mapped["User"] = relationship("User", lazy="select")
 
-    sequencer_id: int = Field(nullable=False, foreign_key="sequencer.id")
-    sequencer: "Sequencer" = Relationship(sa_relationship_kwargs={"lazy": "joined"})
+    sequencer_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sequencer.id"), nullable=False)
+    sequencer: Mapped["Sequencer"] = relationship("Sequencer", lazy="select")
 
-    pools: List["Pool"] = Relationship(
-        sa_relationship_kwargs={"lazy": "select"},
-    )
+    pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select")
+    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", cascade="delete")
+    files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink, lazy="select", cascade="delete")
+    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink, lazy="select", cascade="delete")
+    read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
 
-    lanes: list["Lane"] = Relationship(
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
-    )
-
-    sortable_fields: ClassVar[List[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries", "flowcell_type_id"]
-
-    files: list["File"] = Relationship(
-        link_model=ExperimentFileLink, sa_relationship_kwargs={"lazy": "select", "cascade": "delete"},
-    )
-    comments: list["Comment"] = Relationship(
-        link_model=ExperimentCommentLink,
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
-    )
-
-    read_qualities: list["SeqQuality"] = Relationship(
-        back_populates="experiment",
-        sa_relationship_kwargs={"lazy": "select", "cascade": "delete"}
-    )
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries", "flowcell_type_id"]
 
     _seq_run_: Optional["SeqRun"] = PrivateAttr()
 
