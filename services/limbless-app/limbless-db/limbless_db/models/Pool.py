@@ -32,7 +32,7 @@ class Pool(Base):
     owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="select")
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select",)
 
-    lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink, back_populates="pools", lazy="select",)
+    lanes: Mapped[list["Lane"]] = relationship("Lane", secondary="lane_pool_link", back_populates="pools", lazy="select")
     
     experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
     experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="pools", lazy="select",)

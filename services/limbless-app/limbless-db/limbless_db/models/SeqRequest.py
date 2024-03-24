@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 
 from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum
-from .Links import SeqRequestFileLink, SeqRequestCommentLink, SeqRequestDeliveryLink
+from .Links import SeqRequestFileLink, SeqRequestCommentLink
 
 if TYPE_CHECKING:
     from .User import User
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from .Pool import Pool
     from .File import File
     from .Comment import Comment
+    from .SeqRequestDeliveryContact import SeqRequestDeliveryContact
 
 
 class SeqRequest(Base):
@@ -64,9 +65,9 @@ class SeqRequest(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
-    files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink, lazy="select", cascade="delete")
-    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink, lazy="select", cascade="delete")
-    receivers: Mapped[list["SeqRequestDeliveryLink"]] = relationship("SeqRequestDeliveryLink", lazy="select", cascade="delete")
+    files: Mapped[list["File"]] = relationship(secondary="seq_request_file_link", lazy="select", cascade="delete")
+    comments: Mapped[list["Comment"]] = relationship("Comment", secondary="seq_request_comment_link", lazy="select", cascade="delete")
+    receiver_contacts: Mapped[list["SeqRequestDeliveryContact"]] = relationship("SeqRequestDeliveryContact", lazy="select", cascade="save-update,delete", back_populates="seq_request")
 
     seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
 
@@ -114,3 +115,9 @@ class SeqRequest(Base):
             "num_libraries": self.num_libraries,
         }
         return data
+    
+    def __str__(self):
+        return f"SeqRequest(id: {self.id}, name:{self.name})"
+    
+    def __repr__(self) -> str:
+        return str(self)

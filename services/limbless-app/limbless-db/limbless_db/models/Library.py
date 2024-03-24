@@ -57,7 +57,7 @@ class Library(Base):
     )
 
     cmos: Mapped[list["CMO"]] = relationship("CMO", back_populates="library", lazy="select")
-    features: Mapped[list["Feature"]] = relationship("Feature", secondary=LibraryFeatureLink, lazy="select")
+    features: Mapped[list["Feature"]] = relationship("Feature", secondary="library_feature_link", lazy="select")
 
     seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=False)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")

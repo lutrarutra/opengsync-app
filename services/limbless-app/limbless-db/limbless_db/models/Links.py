@@ -23,19 +23,6 @@ class SampleLibraryLink(Base):
     cmo: Mapped[Optional["CMO"]] = relationship("CMO")
 
 
-class SeqRequestDeliveryLink(Base):
-    __tablename__ = "seqrequest_delivery_link"
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), nullable=False, primary_key=True)
-    email: Mapped[str] = mapped_column(sa.String(128), primary_key=True, nullable=False, index=True)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=DeliveryStatus.PENDING.id)
-
-    @property
-    def status(self) -> DeliveryStatusEnum:
-        return DeliveryStatus.get(self.status_id)
-
-    def __str__(self) -> str:
-        return f"SeqRequestDeliveryLink(email: {self.email})"
-
 # SampleLibraryLink = sa.Table(
 #     "sample_library_link",
 #     Base.metadata,
@@ -64,113 +51,55 @@ class SeqRequestDeliveryLink(Base):
 #         return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"
     
 
-LanePoolLink = sa.Table(
-    "lane_pool_link",
-    Base.metadata,
-    sa.Column("lane_id", sa.ForeignKey("lane.id"), primary_key=True),
-    sa.Column("pool_id", sa.ForeignKey("pool.id"), primary_key=True),
-)
+class LanePoolLink(Base):
+    __tablename__ = "lane_pool_link"
+    lane_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lane.id"), primary_key=True)
+    pool_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("pool.id"), primary_key=True)
 
-ExperimentFileLink = sa.Table(
-    "experiment_file_link",
-    Base.metadata,
-    sa.Column("file_id", sa.ForeignKey("file.id"), primary_key=True),
-    sa.Column("experiment_id", sa.ForeignKey("experiment.id"), primary_key=True),
-)
-
-SeqRequestFileLink = sa.Table(
-    "seq_request_file_link",
-    Base.metadata,
-    sa.Column("file_id", sa.ForeignKey("file.id"), primary_key=True),
-    sa.Column("seq_request_id", sa.ForeignKey("seqrequest.id"), primary_key=True),
-)
-
-ExperimentCommentLink = sa.Table(
-    "experiment_comment_link",
-    Base.metadata,
-    sa.Column("experiment_id", sa.ForeignKey("experiment.id"), primary_key=True),
-    sa.Column("comment_id", sa.ForeignKey("comment.id"), primary_key=True),
-)
-
-SeqRequestCommentLink = sa.Table(
-    "seq_request_comment_link",
-    Base.metadata,
-    sa.Column("seq_request_id", sa.ForeignKey("seqrequest.id"), primary_key=True),
-    sa.Column("comment_id", sa.ForeignKey("comment.id"), primary_key=True),
-)
-
-LibraryFeatureLink = sa.Table(
-    "library_feature_link",
-    Base.metadata,
-    sa.Column("library_id", sa.ForeignKey("library.id"), primary_key=True),
-    sa.Column("feature_id", sa.ForeignKey("feature.id"), primary_key=True),
-)
-
-# class LanePoolLink(Base):
-#     lane_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("lane.id", primary_key=True
-#     )
-#     pool_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("pool.id", primary_key=True
-#     )
-    
-#     def __str__(self) -> str:
-#         return f"LanePoolLink(lane_id: {self.lane_id}, pool_id: {self.pool_id})"
-
-
-# class ExperimentFileLink(Base):
-#     file_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("file.id", primary_key=True
-#     )
-#     experiment_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("experiment.id", primary_key=True
-#     )
+    def __str__(self) -> str:
+        return f"LanePoolLink(lane_id: {self.lane_id}, pool_id: {self.pool_id})"
     
 
-# class SeqRequestFileLink(Base):
-#     file_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("file.id", primary_key=True
-#     )
-#     seq_request_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("seqrequest.id", primary_key=True
-#     )
+class ExperimentFileLink(Base):
+    __tablename__ = "experiment_file_link"
+    file_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), primary_key=True)
+    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), primary_key=True)
+
+    def __str__(self) -> str:
+        return f"ExperimentFileLink(file_id: {self.file_id}, experiment_id: {self.experiment_id})"
 
 
-# class ExperimentCommentLink(Base):
-#     experiment_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("experiment.id", primary_key=True
-#     )
-#     comment_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("comment.id", primary_key=True
-#     )
+class SeqRequestFileLink(Base):
+    __tablename__ = "seq_request_file_link"
+    file_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), primary_key=True)
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True)
+
+    def __str__(self) -> str:
+        return f"SeqRequestFileLink(file_id: {self.file_id}, seq_request_id: {self.seq_request_id})"
 
 
-# class SeqRequestCommentLink(Base):
-#     seq_request_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("seqrequest.id", primary_key=True
-#     )
-#     comment_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("comment.id", primary_key=True
-#     )
+class ExperimentCommentLink(Base):
+    __tablename__ = "experiment_comment_link"
+    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), primary_key=True)
+    comment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("comment.id"), primary_key=True)
+
+    def __str__(self) -> str:
+        return f"ExperimentCommentLink(experiment_id: {self.experiment_id}, comment_id: {self.comment_id})"
 
 
-# class LibraryFeatureLink(Base):
-#     library_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("library.id", primary_key=True
-#     )
-#     feature_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("feature.id", primary_key=True
-#     )
+class SeqRequestCommentLink(Base):
+    __tablename__ = "seq_request_comment_link"
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True)
+    comment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("comment.id"), primary_key=True)
+
+    def __str__(self) -> str:
+        return f"SeqRequestCommentLink(seq_request_id: {self.seq_request_id}, comment_id: {self.comment_id})"
 
 
-# class SeqRequestShareEmailLink(Base):
-#     seq_request_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("seqrequest.id", primary_key=True
-#     )
-#     email: Mapped[str] = mapped_column(primary_key=True, max_length=128)
-    
-#     status_id: Mapped[int] = mapped_column(nullable=False, default=0)
+class LibraryFeatureLink(Base):
+    __tablename__ = "library_feature_link"
+    library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)
+    feature_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("feature.id"), primary_key=True)
 
-#     @property
-#     def status(self) -> DeliveryStatusEnum:
-#         return DeliveryStatus.get(self.status_id)
+    def __str__(self) -> str:
+        return f"LibraryFeatureLink(library_id: {self.library_id}, feature_id: {self.feature_id})"

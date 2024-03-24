@@ -46,8 +46,8 @@ class Experiment(Base):
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", cascade="delete")
-    files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink, lazy="select", cascade="delete")
-    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink, lazy="select", cascade="delete")
+    files: Mapped[list["File"]] = relationship("File", secondary="experiment_file_link", lazy="select", cascade="delete")
+    comments: Mapped[list["Comment"]] = relationship("Comment", secondary="experiment_comment_link", lazy="select", cascade="delete")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries", "flowcell_type_id"]

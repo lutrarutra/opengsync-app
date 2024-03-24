@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, ReadTypeEnum, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus
+from ...categories import SeqRequestStatus, ReadTypeEnum, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus
 from .. import exceptions
 
 
@@ -76,30 +76,27 @@ def create_seq_request(
     )
 
     requestor.num_seq_requests += 1
+
+    seq_request.receiver_contacts.append(models.SeqRequestDeliveryContact(
+        email=requestor.email,
+        status_id=DeliveryStatus.PENDING.id,
+    ))
+
     self._session.add(seq_request)
     self._session.add(requestor)
-
     self._session.commit()
     self._session.refresh(seq_request)
 
-    share_link = models.EmailReceiver(
-        seq_request_id=seq_request.id,
-        email=requestor.email
-    )
-    self._session.add(share_link)
-
-    if bioinformatician_contact is not None:
-        bioinformatician_share_link = models.EmailReceiver(
-            seq_request_id=seq_request.id,
-            email=bioinformatician_contact.email
-        )
-        self._session.add(bioinformatician_share_link)
-
-    self._session.commit()
-    self._session.refresh(seq_request)
+    # if bioinformatician_contact is not None:
+    #     self._session.add(models.SeqRequestDeliveryContact(
+    #         email=bioinformatician_contact.email,
+    #         status_id=DeliveryStatus.PENDING.id,
+    #         seq_request_id=seq_request.id
+    #     ))
 
     if not persist_session:
         self.close_session()
+
     return seq_request
 
 
