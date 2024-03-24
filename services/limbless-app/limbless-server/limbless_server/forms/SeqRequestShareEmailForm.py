@@ -14,7 +14,7 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
     _template_path = "components/popups/seq_request_share_email_form.html"
     _form_label = "seq_request_share_email_form"
 
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=128)])  # type: ignore
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.SeqRequestDeliveryContact.email.type.length)])
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None):
         super().__init__(formdata=formdata)

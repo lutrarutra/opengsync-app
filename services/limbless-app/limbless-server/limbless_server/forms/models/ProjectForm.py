@@ -14,8 +14,8 @@ class ProjectForm(HTMXFlaskForm):
     _template_path = "forms/project.html"
     _form_label = "project_form"
 
-    name = StringField("Name", validators=[DataRequired(), Length(min=6, max=models.Project.name.type.length)])  # type: ignore
-    description = TextAreaField("Description", validators=[DataRequired(), Length(min=1, max=models.Project.description.type.length)])  # type: ignore
+    name = StringField("Name", validators=[DataRequired(), Length(min=6, max=models.Project.name.type.length)])
+    description = TextAreaField("Description", validators=[DataRequired(), Length(min=1, max=models.Project.description.type.length)])
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, project: Optional[models.Project] = None):
         super().__init__(formdata=formdata)

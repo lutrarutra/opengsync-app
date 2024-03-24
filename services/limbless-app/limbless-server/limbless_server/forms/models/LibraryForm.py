@@ -16,14 +16,14 @@ class LibraryForm(HTMXFlaskForm):
     _template_path = "forms/library.html"
     _form_label = "library_form"
 
-    name = StringField("Name", validators=[DataRequired(), Length(min=3, max=models.Library.name.type.length)])   # type: ignore
-    adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=models.Library.adapter.type.length)])   # type: ignore
+    name = StringField("Name", validators=[DataRequired(), Length(min=3, max=models.Library.name.type.length)])
+    adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=models.Library.adapter.type.length)])
     library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), coerce=int)
     genome = SelectField("Reference Genome", choices=GenomeRef.as_selectable(), coerce=int)
-    index_1 = StringField("Index 1 (i7)", validators=[DataRequired(), Length(min=1, max=models.Library.index_1_sequence.type.length)])  # type: ignore
-    index_2 = StringField("Index 2 (i5)", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_2_sequence.type.length)])  # type: ignore
-    index_3 = StringField("Index 3", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_3_sequence.type.length)])  # type: ignore
-    index_4 = StringField("Index 4", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_4_sequence.type.length)])  # type: ignore
+    index_1 = StringField("Index 1 (i7)", validators=[DataRequired(), Length(min=1, max=models.Library.index_1_sequence.type.length)])
+    index_2 = StringField("Index 2 (i5)", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_2_sequence.type.length)])
+    index_3 = StringField("Index 3", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_3_sequence.type.length)])
+    index_4 = StringField("Index 4", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_4_sequence.type.length)])
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, library: Optional[models.Library] = None):
         super().__init__(formdata=formdata)

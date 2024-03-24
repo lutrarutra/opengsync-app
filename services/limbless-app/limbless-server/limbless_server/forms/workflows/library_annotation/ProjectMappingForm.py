@@ -25,7 +25,7 @@ from .LibraryMappingForm import LibraryMappingForm
 class ProjectSubForm(FlaskForm):
     raw_label = StringField("Raw Label", validators=[OptionalValidator()])
     project = FormField(OptionalSearchBar, label="Select Existing Project")
-    new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.name.type.length)])  # type: ignore
+    new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.name.type.length)])
 
 
 # 3. Map sample to existing/new projects

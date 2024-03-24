@@ -17,11 +17,11 @@ class SeqRequestForm(HTMXFlaskForm):
     _form_label = "seq_request_form"
 
     name = StringField(
-        "Request Name", validators=[DataRequired(), Length(min=6, max=models.SeqRequest.name.type.length)],  # type: ignore
+        "Request Name", validators=[DataRequired(), Length(min=6, max=models.SeqRequest.name.type.length)],
         description="Descriptive title of the samples and experiment."
     )
     description = TextAreaField(
-        "Description", validators=[Length(max=models.SeqRequest.description.type.length)],  # type: ignore
+        "Description", validators=[Length(max=models.SeqRequest.description.type.length)],
         description="""
         Summary of the broader project context relevant for the submitted samples.
         Often useful to copy and paste a few relevant sentences from a grant proposal
@@ -48,7 +48,7 @@ class SeqRequestForm(HTMXFlaskForm):
     )
 
     special_requirements = TextAreaField(
-        "Special Requirements", validators=[OptionalValidator(), Length(max=models.SeqRequest.special_requirements.type.length)],  # type: ignore
+        "Special Requirements", validators=[OptionalValidator(), Length(max=models.SeqRequest.special_requirements.type.length)],
         description="Special requirements such as a high percentage PhiX spike-in to increase library complexity."
     )
 
@@ -57,44 +57,44 @@ class SeqRequestForm(HTMXFlaskForm):
     )
 
     contact_person_name = StringField(
-        "Contact Person Name", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],  # type: ignore
+        "Contact Person Name", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],
         description="Name of the contact person."
     )
 
     contact_person_email = EmailField(
-        "Contact Person Email", validators=[DataRequired(), Email(), Length(max=models.Contact.email.type.length)],  # type: ignore
+        "Contact Person Email", validators=[DataRequired(), Email(), Length(max=models.Contact.email.type.length)],
         description="E-Mail address of primary contact."
     )
     contact_person_phone = StringField(
-        "Contact Person Phone", validators=[Length(max=models.Contact.phone.type.length)],  # type: ignore
+        "Contact Person Phone", validators=[Length(max=models.Contact.phone.type.length)],
         description="Phone number of primary contact (optional)."
     )
 
     bioinformatician_name = StringField(
-        "Bioinformatician Name", validators=[Length(max=models.Contact.name.type.length)],  # type: ignore
+        "Bioinformatician Name", validators=[Length(max=models.Contact.name.type.length)],
         description="Name of the bioinformatician."
     )
 
     bioinformatician_email = EmailField(
-        "Bioinformatician Email", validators=[OptionalValidator(), Email(), Length(max=models.Contact.email.type.length)],  # type: ignore
+        "Bioinformatician Email", validators=[OptionalValidator(), Email(), Length(max=models.Contact.email.type.length)],
         description="E-Mail address of the bioinformatician (optional)."
     )
 
     bioinformatician_phone = StringField(
-        "Bioinformatician Phone", validators=[Length(max=models.Contact.phone.type.length)],  # type: ignore
+        "Bioinformatician Phone", validators=[Length(max=models.Contact.phone.type.length)],
         description="Phone number of the bioinformatician (optional)."
     )
 
     organization_name = StringField(
-        "Organization Name", validators=[DataRequired(), Length(max=models.SeqRequest.organization_name.type.length)],  # type: ignore
+        "Organization Name", validators=[DataRequired(), Length(max=models.SeqRequest.organization_name.type.length)],
         description="Name of the organization."
     )
     organization_department = StringField(
-        "Organization Department", validators=[Length(max=models.SeqRequest.organization_department.type.length)],  # type: ignore
+        "Organization Department", validators=[Length(max=models.SeqRequest.organization_department.type.length)],
         description="Department of the organization."
     )
     organization_address = StringField(
-        "Organization Address", validators=[DataRequired(), Length(max=models.SeqRequest.organization_address.type.length)],  # type: ignore
+        "Organization Address", validators=[DataRequired(), Length(max=models.SeqRequest.organization_address.type.length)],
         description="Address of the organization."
     )
 
@@ -103,24 +103,24 @@ class SeqRequestForm(HTMXFlaskForm):
     )
     
     billing_contact = StringField(
-        "Billing Contact", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],  # type: ignore
+        "Billing Contact", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],
         description="Name of the billing contact person, department or institution."
     )
     billing_address = StringField(
-        "Billing Address", validators=[DataRequired(), Length(max=models.Contact.address.type.length)],  # type: ignore
+        "Billing Address", validators=[DataRequired(), Length(max=models.Contact.address.type.length)],
         description="Address for billing."
     )
     billing_email = EmailField(
-        "Billing Email", validators=[DataRequired(), Email(), Length(max=models.Contact.email.type.length)],  # type: ignore
+        "Billing Email", validators=[DataRequired(), Email(), Length(max=models.Contact.email.type.length)],
         description="E-Mail address for billing."
     )
     billing_phone = StringField(
-        "Billing Phone", validators=[Length(max=models.Contact.phone.type.length)],  # type: ignore
+        "Billing Phone", validators=[Length(max=models.Contact.phone.type.length)],
         description="Phone number for billing (optional)."
     )
 
     billing_code = StringField(
-        "Billing Code", validators=[Length(max=models.SeqRequest.billing_code.type.length)],  # type: ignore
+        "Billing Code", validators=[Length(max=models.SeqRequest.billing_code.type.length)],
         description="Billing code assigned by your institution."
     )
 

@@ -16,13 +16,13 @@ class SequencerForm(HTMXFlaskForm):
     _template_path = "forms/sequencer.html"
 
     name = StringField("Sequencer Name", validators=[
-        DataRequired(), Length(min=6, max=models.Sequencer.name.type.length)  # type: ignore
+        DataRequired(), Length(min=6, max=models.Sequencer.name.type.length)
     ])
 
     type = SelectField("Sequencer Model", choices=SequencerType.as_selectable(), coerce=int)
 
     ip_address = StringField("IP Address", validators=[
-        OptionalValidator(), Length(max=models.Sequencer.ip.type.length)  # type: ignore
+        OptionalValidator(), Length(max=models.Sequencer.ip.type.length)
     ])
 
     def __init__(self, formdata: Optional[dict[str, str]] = None, sequencer: Optional[models.Sequencer] = None):

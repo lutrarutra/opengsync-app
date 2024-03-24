@@ -15,16 +15,16 @@ class SeqRunForm(HTMXFlaskForm):
     _template_path = "forms/seq_run.html"
     _form_label = "seq_run_form"
 
-    experiment_name = StringField("Experiment Name", validators=[DataRequired(), Length(min=3, max=models.SeqRun.experiment_name.type.length)])   # type: ignore
-    status = SelectField("Status", choices=ExperimentStatus.as_selectable(), validators=[DataRequired()], coerce=int)  # type: ignore
+    experiment_name = StringField("Experiment Name", validators=[DataRequired(), Length(min=3, max=models.SeqRun.experiment_name.type.length)])
+    status = SelectField("Status", choices=ExperimentStatus.as_selectable(), validators=[DataRequired()], coerce=int)
 
-    run_folder = StringField("Run Folder", validators=[DataRequired(), Length(min=1, max=models.SeqRun.run_folder.type.length)])  # type: ignore
-    flowcell_id = StringField("Flowcell ID", validators=[DataRequired(), Length(min=1, max=models.SeqRun.flowcell_id.type.length)])  # type: ignore
-    read_type = SelectField("Read Type", choices=ReadType.as_selectable(), validators=[DataRequired()], coerce=int)  # type: ignore
-    rta_version = StringField("RTA Version", validators=[DataRequired(), Length(min=1, max=models.SeqRun.rta_version.type.length)])  # type: ignore
-    recipe_version = StringField("Recipe Version", validators=[DataRequired(), Length(min=1, max=models.SeqRun.recipe_version.type.length)])  # type: ignore
-    side = StringField("Side", validators=[DataRequired(), Length(min=1, max=models.SeqRun.side.type.length)])  # type: ignore
-    flowcell_mode = StringField("Flowcell Mode", validators=[DataRequired(), Length(min=1, max=models.SeqRun.flowcell_mode.type.length)])  # type: ignore
+    run_folder = StringField("Run Folder", validators=[DataRequired(), Length(min=1, max=models.SeqRun.run_folder.type.length)])
+    flowcell_id = StringField("Flowcell ID", validators=[DataRequired(), Length(min=1, max=models.SeqRun.flowcell_id.type.length)])
+    read_type = SelectField("Read Type", choices=ReadType.as_selectable(), validators=[DataRequired()], coerce=int)
+    rta_version = StringField("RTA Version", validators=[DataRequired(), Length(min=1, max=models.SeqRun.rta_version.type.length)])
+    recipe_version = StringField("Recipe Version", validators=[DataRequired(), Length(min=1, max=models.SeqRun.recipe_version.type.length)])
+    side = StringField("Side", validators=[DataRequired(), Length(min=1, max=models.SeqRun.side.type.length)])
+    flowcell_mode = StringField("Flowcell Mode", validators=[DataRequired(), Length(min=1, max=models.SeqRun.flowcell_mode.type.length)])
 
     r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
     r2_cycles = IntegerField("R2 Cycles", validators=[DataRequired()])

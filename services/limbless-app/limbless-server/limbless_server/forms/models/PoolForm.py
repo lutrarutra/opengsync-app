@@ -17,7 +17,7 @@ class PoolForm(HTMXFlaskForm):
     _template_path = "forms/pool.html"
     _form_label = "pool_form"
 
-    name = StringField("Pool Name", validators=[DataRequired(), Length(min=4, max=models.Pool.name.type.length)])  # type: ignore
+    name = StringField("Pool Name", validators=[DataRequired(), Length(min=4, max=models.Pool.name.type.length)])
     num_m_reads_requested = FloatField("Number of M Reads Requested", validators=[DataRequired()])
     status = SelectField("Status", choices=PoolStatus.as_selectable(), coerce=int)
 
