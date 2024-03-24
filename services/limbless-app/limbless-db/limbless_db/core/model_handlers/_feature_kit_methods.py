@@ -5,12 +5,12 @@ import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import FeatureType
+from ...categories import FeatureTypeEnum
 
 
 def create_feature_kit(
     self, name: str,
-    type: FeatureType,
+    type: FeatureTypeEnum,
 ) -> models.FeatureKit:
     persist_session = self._session is not None
     if not self._session:

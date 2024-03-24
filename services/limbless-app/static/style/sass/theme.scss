@@ -13,7 +13,9 @@
 }
 
 .btn-primary:active,
-.btn-primary:hover:active {
+.btn-primary:hover:active,
+.btn-primary:active,
+.btn-primary:focus {
     background-color: $cemm-blue-dark !important;
 }
 
@@ -50,7 +52,10 @@
     border: none;
 }
 
-.btn-warning:hover {
+.btn-warning:hover,
+.btn-warning:active,
+.btn-warning:focus
+.btn-warning:hover:active {
     background-color: $cemm-yellow-darker;
 }
 
@@ -74,7 +79,10 @@
     background-color: $cemm-red-darker;
 }
 
-.btn-danger:hover:active {
+.btn-danger:hover,
+.btn-danger:hover:active,
+.btn-danger:active
+.btn-danger:focus {
     background-color: $cemm-red-dark;
 }
 
@@ -94,6 +102,9 @@
     background-color: $cemm-green-darker;
 }
 
+.btn-success:hover,
+.btn-success:active,
+.btn-success:focus
 .btn-success:hover:active {
     background-color: $cemm-green-dark;
 }

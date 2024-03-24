@@ -4,6 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
+from .Links import LanePoolLink
 
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ class Lane(Base):
     experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=False)
     experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="lanes", lazy="select")
 
-    pools: Mapped[list["Pool"]] = relationship("Pool", secondary="lane_pool_link", back_populates="lanes", lazy="select")
+    pools: Mapped[list["Pool"]] = relationship("Pool", secondary=LanePoolLink.__tablename__, back_populates="lanes", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "number", "experiment_id", "phi_x"]
 

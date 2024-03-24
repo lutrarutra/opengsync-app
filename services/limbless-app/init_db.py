@@ -48,7 +48,7 @@ label_search_columns: dict[str, list[str]] = {
 }
 
 
-def add_features_from_kit(db_handler: DBHandler, path: str, feature_type: categories.FeatureType):
+def add_features_from_kit(db_handler: DBHandler, path: str, feature_type: categories.FeatureTypeEnum):
     df = pd.read_csv(path, sep="\t", comment="#")
     kit_name = titlecase_with_acronyms(os.path.basename(path).split(".")[0].replace("_", " "))
 

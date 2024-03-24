@@ -397,16 +397,15 @@ span.desc:empty:after {
     }
 }
 
-select {
-    .search-select-value {
-        font-weight: 600;
-    }
-    .search-select-desc {
-        color: $gray-500;
-        white-space: nowrap;
-        overflow: hidden;
-    }
+.search-select-value {
+    font-weight: 600;
 }
+.search-select-desc {
+    color: $gray-500;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
 
 .requirement-list {
     color: $danger;

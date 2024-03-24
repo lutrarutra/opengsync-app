@@ -2,12 +2,12 @@ import math
 from typing import Optional
 
 from ... import models, PAGE_LIMIT
-from ...categories import BarcodeType
+from ...categories import BarcodeTypeEnum
 
 
 def create_barcode(
     self, sequence: str,
-    barcode_type: BarcodeType,
+    barcode_type: BarcodeTypeEnum,
     adapter: Optional[str] = None,
     index_kit_id: Optional[int] = None,
     commit: bool = True

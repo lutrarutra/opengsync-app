@@ -8,7 +8,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 
 from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum
-from ..core.SearchResult import SearchResult
 from .Links import ExperimentFileLink, ExperimentCommentLink
 
 if TYPE_CHECKING:
@@ -25,7 +24,7 @@ if TYPE_CHECKING:
 class Experiment(Base):
     __tablename__ = "experiment"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
+    name: Mapped[str] = mapped_column(sa.String(16), sa.ForeignKey("seqrun.experiment_name"), nullable=False, unique=True, index=True)
     
     timestamp: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
     
@@ -43,16 +42,16 @@ class Experiment(Base):
 
     sequencer_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sequencer.id"), nullable=False)
     sequencer: Mapped["Sequencer"] = relationship("Sequencer", lazy="select")
+    
+    seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="select", foreign_keys=[name])
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", cascade="delete")
-    files: Mapped[list["File"]] = relationship("File", secondary="experiment_file_link", lazy="select", cascade="delete")
-    comments: Mapped[list["Comment"]] = relationship("Comment", secondary="experiment_comment_link", lazy="select", cascade="delete")
+    files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink.__tablename__, lazy="select", cascade="delete")
+    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="delete")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries", "flowcell_type_id"]
-
-    _seq_run_: Optional["SeqRun"] = PrivateAttr()
 
     @property
     def status(self) -> ExperimentStatusEnum:
@@ -73,10 +72,6 @@ class Experiment(Base):
     
     def timestamp_to_str(self) -> str:
         return self.timestamp.strftime('%Y-%m-%d %H:%M')
-    
-    @property
-    def seq_run(self) -> Optional["SeqRun"]:
-        return self._seq_run_
     
     def __str__(self) -> str:
         return f"Experiment(id={self.id}, num_lanes={self.num_lanes})"

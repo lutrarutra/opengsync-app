@@ -2,7 +2,7 @@ from typing import Optional, Any
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms import StringField, FormField
+from wtforms import StringField
 from wtforms.validators import DataRequired, Length
 
 

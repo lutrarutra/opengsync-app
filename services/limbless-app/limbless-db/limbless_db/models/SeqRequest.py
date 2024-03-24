@@ -65,8 +65,8 @@ class SeqRequest(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "submitted_time", "num_libraries"]
 
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
-    files: Mapped[list["File"]] = relationship(secondary="seq_request_file_link", lazy="select", cascade="delete")
-    comments: Mapped[list["Comment"]] = relationship("Comment", secondary="seq_request_comment_link", lazy="select", cascade="delete")
+    files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink.__tablename__, lazy="select", cascade="delete")
+    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink.__tablename__, lazy="select", cascade="delete")
     receiver_contacts: Mapped[list["SeqRequestDeliveryContact"]] = relationship("SeqRequestDeliveryContact", lazy="select", cascade="save-update,delete", back_populates="seq_request")
 
     seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)

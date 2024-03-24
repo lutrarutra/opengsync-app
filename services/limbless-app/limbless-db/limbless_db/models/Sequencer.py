@@ -19,3 +19,12 @@ class Sequencer(Base):
     @property
     def type(self) -> SequencerTypeEnum:
         return SequencerType.get(self.type_id)
+    
+    def search_name(self) -> str:
+        return self.name
+    
+    def search_description(self) -> str | None:
+        return self.type.name
+    
+    def search_value(self) -> int:
+        return self.id
