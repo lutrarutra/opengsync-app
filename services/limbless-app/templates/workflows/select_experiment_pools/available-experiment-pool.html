@@ -9,36 +9,36 @@
                 {{
                     table_col(
                         target_id='available-experiment-pool-table', column_name='ID', column_var='id',
-                        sort_url='pools_htmx.get', sort_url_args={"select": 1},
-                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
-                        query_url=url_for('pools_htmx.table_query', select=1), current_query=libraries_current_query,
+                        sort_url='select_experiment_pools_workflow.get', sort_url_args={"experiment_id": experiment.id},
+                        current_sort=available_pools_current_sort, current_sort_order=available_pools_current_sort_order,
+                        query_url=url_for('select_experiment_pools_workflow.table_query', experiment_id=experiment.id), current_query=avialable_pools_current_query,
                         field_name=field_name, query_type="number", col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         target_id='available-experiment-pool-table', column_name='Name', column_var='name',
-                        sort_url='pools_htmx.get', sort_url_args={"select": 1},
-                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
-                        query_url=url_for('pools_htmx.table_query', select=1), current_query=libraries_current_query,
-                        field_name=field_name, query_type="text", col_size=2,
+                        sort_url='select_experiment_pools_workflow.get', sort_url_args={"experiment_id": 1},
+                        current_sort=available_pools_current_sort, current_sort_order=available_pools_current_sort_order,
+                        query_url=url_for('select_experiment_pools_workflow.table_query', experiment_id=experiment.id), current_query=avialable_pools_current_query,
+                        field_name=field_name, query_type="text", col_size=3,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='available-experiment-pool-table', column_name='# M.Reads', column_var='num_m_reads_requested',
-                        sort_url='pools_htmx.get', sort_url_args={"select": 1},
-                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
-                        col_size=1,
+                        target_id='available-experiment-pool-table', column_name='# M. Reads', column_var='num_m_reads_requested',
+                        sort_url='select_experiment_pools_workflow.get', sort_url_args={"experiment_id": experiment.id},
+                        current_sort=available_pools_current_sort, current_sort_order=available_pools_current_sort_order,
+                        col_size=2,
                     )
                 }}
-                <th>Library Types</th>
+                <th scope="col" class="col-2">Owner</th>
                 {{
                     table_col(
                         target_id='available-experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='pools_htmx.get', sort_url_args={"select": 1},
-                        current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
-                        col_size=1,
+                        sort_url='select_experiment_pools_workflow.get', sort_url_args={"experiment_id": experiment.id},
+                        current_sort=available_pools_current_sort, current_sort_order=available_pools_current_sort_order,
+                        col_size=2,
                     )
                 }}
             </tr>
@@ -49,21 +49,13 @@
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
                 <td class="num-m-reads-cell" id="num-m-reads-cell-{{ pool.id }}">{{ pool.num_m_reads_requested }}</td>
-                <td>
-                    <ul class="h-list">
-                    {% for library_type in pool.list_library_types() %}
-                        <li>
-                            {{ library_type }}
-                        </li>
-                    {% endfor %}
-                    </ul>
-                </td>
+                <td>{{ pool.owner.name }}</td>
                 <td>{{ pool.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("available-experiment-pool-table", "pools_htmx.get", n_available_pools_pages, available_pools_active_page, url_args={"sort_by": available_pools_current_sort, "order": available_pools_current_sort_order, "select": 1}) }}
+    {{ pagination("available-experiment-pool-table", "select_experiment_pools_workflow.get", n_available_pools_pages, available_pools_active_page, url_args={"sort_by": available_available_pools_current_sort, "order": available_available_available_pools_current_sort_order, "experiment_id": experiment.id}) }}
     <script>
         init_tooltips();
 

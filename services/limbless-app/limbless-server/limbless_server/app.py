@@ -202,6 +202,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.pool_qc_workflow)
     app.register_blueprint(api.workflows.select_experiment_pools_workflow)
     app.register_blueprint(api.workflows.dilute_pools_workflow)
+    app.register_blueprint(api.workflows.check_barcode_clashes_workflow)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

@@ -11,8 +11,6 @@
                         target_id='selected-experiment-pool-table', column_name='ID', column_var='id',
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
                         current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
-                        query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
-                        field_name=field_name, query_type="number"
                     )
                 }}
                 {{
@@ -20,10 +18,10 @@
                         target_id='selected-experiment-pool-table', column_name='Pool Name', column_var='name',
                         sort_url='pools_htmx.get', sort_url_args={"experiment_id": experiment.id},
                         current_sort=pools_current_sort, current_sort_order=pools_current_sort_order,
-                        query_url=url_for('pools_htmx.table_query', experiment_id=experiment.id), current_query=libraries_current_query,
-                        field_name=field_name, col_size=8
+                        col_size=4
                     )
                 }}
+                <th scope="col" class="col-2">Owner</th>
                 {{
                     table_col(
                         target_id='experiment-pool-table', column_name='Status', column_var='status_id',
@@ -43,6 +41,7 @@
                 {% endif %}>
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
+                <td>{{ pool.owner.name }}</td>
                 <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
             </tr>
             {% endfor %}

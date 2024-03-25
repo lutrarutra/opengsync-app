@@ -7,7 +7,7 @@ from flask_login import login_required
 from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse
 
-from .... import db, forms
+from .... import db, forms, logger
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -46,15 +46,17 @@ def get(page: int):
                 experiment_id=experiment_id, sort_by=sort_by, descending=descending,
                 offset=offset,
             )
-            context["experiment"] = experiment
-            context["experiment_lanes"] = session.get_lanes_in_experiment(experiment_id)
+            experiment_lanes = {}
 
-        elif "select" in request.args.keys():
-            template = "components/tables/select-pool.html"
-            pools, n_pages = session.get_pools(
-                sort_by=sort_by, descending=descending,
-                offset=offset,
-            )
+            for lane in experiment.lanes:
+                experiment_lanes[lane.number] = []
+                for pool in lane.pools:
+                    experiment_lanes[lane.number].append(pool.id)
+
+            context["experiment"] = experiment
+            context["experiment_lanes"] = experiment_lanes
+            context["Pool"] = models.Pool
+
         else:
             template = "components/tables/pool.html"
             pools, n_pages = session.get_pools(
@@ -87,4 +89,60 @@ def edit(pool_id: int):
 @pools_htmx.route("table_query", methods=["POST"])
 @login_required
 def table_query():
-    raise NotImplementedError()
+    if (word := request.form.get("name", None)) is not None:
+        field_name = "name"
+    elif (word := request.form.get("id", None)) is not None:
+        field_name = "id"
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if word is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    context = {}
+    
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        template = "components/tables/experiment-pool.html"
+        try:
+            experiment_id = int(experiment_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        with DBSession(db) as session:
+            if (experiment := session.get_experiment(experiment_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            
+            if field_name == "name":
+                pools = db.query_pools(word, experiment_id=experiment_id)
+            else:
+                try:
+                    pools = [db.get_pool(int(word))]
+                except ValueError:
+                    pools = []
+
+            experiment_lanes = {}
+            for lane in experiment.lanes:
+                experiment_lanes[lane.number] = []
+                
+                for pool in lane.pools:
+                    experiment_lanes[lane.number].append(pool.id)
+
+        context["experiment"] = experiment
+        context["experiment_lanes"] = experiment_lanes
+    else:
+        template = "components/tables/pool.html"
+        if field_name == "name":
+            pools = db.query_pools(word)
+        elif field_name == "id":
+            try:
+                pools = [db.get_pool(int(word))]
+            except ValueError:
+                pools = []
+
+    return make_response(
+        render_template(
+            template, pools=pools, field_name=field_name,
+            current_query=word,
+            Pool=models.Pool, **context,
+        ), push_url=False
+    )

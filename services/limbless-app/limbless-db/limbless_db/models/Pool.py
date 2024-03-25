@@ -29,7 +29,7 @@ class Pool(Base):
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
-    owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="select")
+    owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="joined")
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select",)
 
     lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
@@ -45,6 +45,11 @@ class Pool(Base):
     contact_phone: Mapped[Optional[str]] = mapped_column(sa.String(20), nullable=True)
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested"]
+
+    warning_min_concentration: ClassVar[float] = 1.0
+    warning_max_concentration: ClassVar[float] = 5.0
+    error_min_concentration: ClassVar[float] = 0.5
+    error_max_concentration: ClassVar[float] = 10.0
 
     def to_dict(self):
         return {

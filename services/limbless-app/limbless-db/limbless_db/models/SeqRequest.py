@@ -49,7 +49,7 @@ class SeqRequest(Base):
     billing_code: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
 
     requestor_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
-    requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="select")
+    requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined")
 
     bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=True)
     bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.bioinformatician_contact_id]")

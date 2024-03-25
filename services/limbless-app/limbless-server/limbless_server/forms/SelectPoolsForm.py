@@ -8,7 +8,6 @@ from limbless_db import models, DBSession
 
 from .HTMXFlaskForm import HTMXFlaskForm
 from .. import db, logger
-from .workflows.lane_pools.BarcodeCheckForm import BarcodeCheckForm
 
 
 class SelectPoolsForm(HTMXFlaskForm):

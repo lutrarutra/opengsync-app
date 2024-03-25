@@ -1,0 +1,111 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/legends.jinja2" import icon_legend %}
+
+<div id="barcode-check-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">1. Check Barcode Conflicts</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div> 
+    <div class="modal-body">
+        <form id="barcode-check-form">
+            {{ check_barcode_clashes_form.csrf_token() }}
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-1">Library ID</th>
+                        <th scope="col" class="col-2">Name</th>
+                        <th scope="col" class="col-2">Library Type</th>
+                        <th scope="col" class="col-2">Pool</th>
+                        <th scope="col" class="col-1">Lane</th>
+                        {% if show_adapter %}
+                        <th scope="col" class="col-1">Adapter</th>
+                        {% endif %}
+                        {% if show_index_1 %}
+                        <th scope="col" class="col-1">Index 1</th>
+                        {% endif %}
+                        {% if show_index_2 %}
+                        <th scope="col" class="col-1">Index 2</th>
+                        {% endif %}
+                        {% if show_index_3 %}
+                        <th scope="col" class="col-1">Index 3</th>
+                        {% endif %}
+                        {% if show_index_4 %}
+                        <th scope="col" class="col-1">Index 4</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for _, row in df.iterrows() %}
+                    {% set sample_id = row["id"] %}
+                    {% if row["error"] %}
+                    <tr {{ tooltip(row["error"], category="error") }}>
+                    {% elif row["warning"] %}
+                    <tr {{ tooltip(row["warning"], category="warning") }}>
+                    {% else %}
+                    <tr>
+                    {% endif %}
+                        <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] }}</td>
+                        <td>{{ row["library_name"] }}</td>
+                        <td>{{ row["library_type"] }}</td>
+                        <td>{{ row["pool_name"] }}</td>
+                        <td>{{ row["lane"] }}</td>
+                        {% if show_adapter %}
+                        <td>{{ row["adapter"] if row["adapter"] }}</td>
+                        {% endif %}
+                        {% if show_index_1 %}
+                        <td class="index-cell-1">{{ row["index_1"] if row["index_1"] }}</td>
+                        {% endif %}
+                        {% if show_index_2 %}
+                        <td class="index-cell-2">{{ row["index_2"] if row["index_2"] }}</td>
+                        {% endif %}
+                        {% if show_index_3 %}
+                        <td class="index-cell-3">{{ row["index_3"] if row["index_3"] }}</td>
+                        {% endif %}
+                        {% if show_index_4 %}
+                        <td class="index-cell-4">{{ row["index_4"] if row["index_4"] }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+            {{ icon_legend({ "OK": "✅", "warning": "⚠️", "error": "❌"}) }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success" hx-target="#barcode-check-form-container" hx-swap="outerHTML"
+                hx-include="#barcode-check-form" hx-trigger="confirmed"
+                hx-post="{{ url_for('check_barcode_clashes_workflow.check_barcodes', experiment_id=experiment.id) }}"
+                {% if warn_user %}
+                onClick="
+                    Swal.fire({
+                        title: 'Warning!',
+                        icon: 'warning',
+                        showDenyButton: true,
+                        text: 'Selected pools have conflicts in indices. Are you sure you want to proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.onbeforeunload = null;
+                            htmx.trigger(this, 'confirmed');
+                        }
+                    });"
+                {% endif %}>
+                Submit
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        init_tooltips();
+    });
+</script>

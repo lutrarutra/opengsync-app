@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING, ClassVar
-from pydantic import PrivateAttr
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -24,7 +23,7 @@ if TYPE_CHECKING:
 class Experiment(Base):
     __tablename__ = "experiment"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String(16), sa.ForeignKey("seqrun.experiment_name"), nullable=False, unique=True, index=True)
+    name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
     
     timestamp: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
     
@@ -38,12 +37,16 @@ class Experiment(Base):
     num_lanes: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
-    operator: Mapped["User"] = relationship("User", lazy="select")
+    operator: Mapped["User"] = relationship("User", lazy="joined")
 
     sequencer_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sequencer.id"), nullable=False)
     sequencer: Mapped["Sequencer"] = relationship("Sequencer", lazy="select")
+
+    # check_barcode_clashes_workflow_done: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
+    # qc_pools_workflow_done: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
+    # dilute_pools_workflow_done: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
     
-    seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="select", foreign_keys=[name])
+    seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", cascade="delete")

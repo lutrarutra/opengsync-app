@@ -108,6 +108,38 @@ def query():
     )
 
 
+@experiments_htmx.route("table_query", methods=["POST"])
+@login_required
+def table_query():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (word := request.form.get("name", None)) is not None:
+        field_name = "name"
+    elif (word := request.form.get("id", None)) is not None:
+        field_name = "id"
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if word is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if field_name == "name":
+        experiments = db.query_experiments(word)
+    elif field_name == "id":
+        try:
+            experiments = [db.get_experiment(int(word))]
+        except ValueError:
+            experiments = []
+
+    return make_response(
+        render_template(
+            "components/tables/experiment.html",
+            experiments=experiments, experiments_current_query=word, field_name=field_name
+        ), push_url=False
+    )
+                     
+
 @experiments_htmx.route("<int:experiment_id>/lane_pool/<int:pool_id>/<int:lane_num>", methods=["POST"])
 @login_required
 def lane_pool(experiment_id: int, pool_id: int, lane_num: int):

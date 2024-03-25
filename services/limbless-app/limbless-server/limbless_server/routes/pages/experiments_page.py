@@ -112,5 +112,6 @@ def experiment_page(experiment_id: int):
         all_pools_laned=all_pools_laned,
         all_pools_qced=all_pools_qced,
         can_be_loaded=can_be_loaded,
-        lane_capacities=lane_capacities
+        lane_capacities=lane_capacities,
+        Pool=models.Pool
     )

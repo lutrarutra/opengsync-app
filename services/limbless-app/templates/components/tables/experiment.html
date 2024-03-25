@@ -11,6 +11,9 @@
                         target_id='experiment-table', column_name='ID', column_var='id',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        query_url=url_for("experiments_htmx.table_query"), current_query=current_query,
+                        field_name=field_name, query_type="number"
+                        
                     )
                 }}
                 {{
@@ -18,7 +21,8 @@
                         target_id='experiment-table', column_name='Name', column_var='name',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
-                        col_size=1
+                        query_url=url_for("experiments_htmx.table_query"), current_query=current_query,
+                        field_name=field_name, query_type="text", col_size=3
                     )
                 }}
                 {{
@@ -26,15 +30,16 @@
                         target_id='experiment-table', column_name='Status', column_var='status',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        col_size=2
                     )
                 }}
                 <th class="col-2" scope="col">Operator</th>
-                <th class="col-5" scope="col">Pools</th>
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Created', column_var='timestamp',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        col_size=2
                     )
                 }}
                 {{
@@ -42,6 +47,7 @@
                         target_id='experiment-table', column_name='Flowcell', column_var='flowcell_type_id',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        col_size=2
                     )
                 }}
             </tr>
@@ -54,15 +60,6 @@
                 <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>
                 <td>
                     {{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator.owner_id }}</span>
-                </td>
-                <td>
-                    <ul class="h-list">
-                    {% for pool in experiment.pools %}
-                    <li>
-                        {{ pool.name }}
-                    </li>
-                    {% endfor %}
-                    </ul>
                 </td>
                 <td>{{ experiment.timestamp.strftime('%Y-%m-%d') }}</td>
                 <td>{{ experiment.flowcell_type.name }}</td>

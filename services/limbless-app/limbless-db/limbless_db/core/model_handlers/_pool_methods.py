@@ -1,6 +1,8 @@
 import math
 from typing import Optional
 
+import sqlalchemy as sa
+
 from ...categories import PoolStatus, PoolStatusEnum
 from ... import PAGE_LIMIT, models
 from .. import exceptions
@@ -163,3 +165,29 @@ def update_pool(self, pool: models.Pool,) -> models.Pool:
         self.close_session()
         
     return pool
+
+
+def query_pools(
+    self, name: str, experiment_id: Optional[int] = None,
+    limit: Optional[int] = PAGE_LIMIT
+) -> list[models.Pool]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = sa.select(models.Pool).order_by(
+        sa.func.similarity(models.Pool.name, name).desc()
+    )
+
+    if experiment_id is not None:
+        query = query.where(models.Pool.experiment_id == experiment_id)
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    pools = self._session.execute(query).scalars().all()
+
+    if not persist_session:
+        self.close_session()
+
+    return pools

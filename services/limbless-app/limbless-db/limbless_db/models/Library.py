@@ -48,7 +48,7 @@ class Library(Base):
     index_kit: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="select")
 
     pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True)
-    pool: Mapped[Optional["Pool"]] = relationship("Pool", back_populates="libraries", lazy="select")
+    pool: Mapped[Optional["Pool"]] = relationship("Pool", back_populates="libraries", lazy="joined")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="select")

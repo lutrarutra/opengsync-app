@@ -12,7 +12,7 @@ class SeqRun(Base):
     __tablename__ = "seqrun"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     
-    experiment_name: Mapped[str] = mapped_column(sa.String(32), nullable=False, unique=True, index=True)
+    experiment_name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     run_folder: Mapped[str] = mapped_column(sa.String(64), nullable=False)

@@ -1,23 +1,18 @@
 import pandas as pd
 
-from flask import Response
-from wtforms import StringField
+from flask import Response, url_for
+from flask_htmx import make_response
 
-from .LanePoolingForm import LanePoolingForm
 from .... import db
 from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
 
 
-class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/lane_pools/lp-1.html"
-    _form_label = "barcode_check_form"
-
-    pool_ids = StringField()
+class CheckBarcodeClashesForm(HTMXFlaskForm):
+    _template_path = "workflows/check_barcode_clashes/clashes-1.html"
+    _form_label = "check_barcode_clashes_form"
 
     def __init__(self, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, "lane_pools", None)
 
     def prepare(self, experiment_id) -> dict:
         df = db.get_experiment_libraries_df(experiment_id)
@@ -59,11 +54,6 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
 
         df = df.sort_values(["lane", "pool_name", "library_id"])
 
-        data: dict[str, pd.DataFrame | dict] = dict(
-            library_table=df
-        )
-        self.update_data(data)
-
         return {
             "df": df,
             "show_index_1": "index_1" in indices,
@@ -73,24 +63,10 @@ class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
             "show_adapter": "adapter" in df.columns and not df["adapter"].isna().all(),
             "warn_user": df["error"].notna().any() or df["warning"].notna().any(),
         }
-
-    def validate(self) -> bool:
-        if not super().validate():
-            return False
-        
-        return True
-
+    
     def process_request(self, **context) -> Response:
         experiment = context["experiment"]
         if not self.validate():
             return self.make_response()
-        
-        data = self.get_data()
 
-        lane_table = db.get_experiment_lanes_df(experiment.id)
-        data["lane_table"] = lane_table
-        self.update_data(data)
-
-        lane_pooling_form = LanePoolingForm(self.uuid)
-        context = lane_pooling_form.prepare(data) | context
-        return lane_pooling_form.make_response(**context)
+        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))

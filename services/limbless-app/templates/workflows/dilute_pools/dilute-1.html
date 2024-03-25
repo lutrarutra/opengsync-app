@@ -3,8 +3,8 @@
 
 <div id="pool-dilution-form-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">2. Calculate Pooling Ratios</h1>
-        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#lane_pools-workflow-popup")></button>
+        <h1 class="modal-title fs-5">1. Calculate Pooling Ratios</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
         <div id="pool-dilution-form">
@@ -78,18 +78,16 @@
                 const avg_library_size = parseFloat(row.find(".avg_library_size-col").first().find(".value").first().text());
                 const qubit_after = parseFloat(row.find(".qubit_after-col").first().closest("input").val());
 
-                console.log(avg_library_size, qubit_after);
-
                 if (avg_library_size && qubit_after) {
                     const nm_total = qubit_after / (avg_library_size * 660) * 1000000;
                     console.log(nm_total);
                     row.find(".nm_total-after-col").first().find(".value").first().text(nm_total.toFixed(2));
-                    if (1 < nm_total && nm_total < 5) {
+                    if ({{ warning_min }} < nm_total && nm_total < {{ warning_max }}) {
                         row.find(".nm_total-after-col").first().find(".value").first().removeClass().addClass("value cemm-green");
-                    } else if (nm_total < 1 || nm_total > 10) {
+                    } else if (nm_total < {{ error_min }} || {{ error_max }} < nm_total) {
                         row.find(".nm_total-after-col").first().find(".value").first().removeClass().addClass("value cemm-red");
                         
-                    } else if (nm_total < 2 || nm_total > 5) {
+                    } else if (nm_total < {{ warning_min }} || {{ warning_max }} < nm_total) {
                         row.find(".nm_total-after-col").first().find(".value").first().removeClass().addClass("value cemm-yellow");
                     }
                 } else {
