@@ -1,0 +1,93 @@
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    .modal-header {
+        height: 60px;
+    }
+
+    .modal-body {
+        width: 100%;
+        flex: 1;
+        padding: 5px 15px 5px 15px;
+        .tab-body {
+            height: 100%;
+            width: 100%;
+            .nav-tabls {
+                height: 42px;
+            }
+            .tab-content {
+                padding-top: 10px;
+                height: calc(100% - 45px);
+                overflow-y: auto;
+            }
+        }
+    }
+
+    .modal-footer {
+        height: 60px;
+        display: flex;
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 10px 0 10px;
+        margin: 0;
+
+        .footer-id {
+            background-color: transparent;
+            width: 150px;
+        }
+        .footer-info {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+        .footer-controls {
+            width: 150px;
+            overflow-x: visible;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+        }
+    }
+}
+
+
+
+.modal-l {
+    .modal-content {
+        width: 100%;
+    }
+    .modal-body {
+        height: 50vh;
+        overflow-y: auto;
+
+        .tab-content {
+            height: 100%;
+            .tab-pane {
+                height: 100%;
+            }
+        }
+    }
+}
+
+.modal-xl {
+    min-width: 80vw;
+    .modal-content {
+        width: 100%;
+    }
+    .modal-body {
+        min-height: 70vh;
+        max-height: 75vh;
+        overflow-y: auto;
+
+        .tab-content {
+            height: 100%;
+            .tab-pane {
+                height: 100%;
+            }
+        }
+    }
+}

@@ -65,10 +65,6 @@ def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -
         ).first()
     else:
         raise ValueError("Either 'id' or 'name' must be provided, not both.")
-    
-    if experiment is not None:
-        if (seq_run := self._session.query(models.SeqRun).where(models.SeqRun.experiment_name == experiment.name).first()) is not None:
-            experiment._seq_run_ = seq_run
 
     if not persist_session:
         self.close_session()
@@ -145,6 +141,17 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
+
+    experiment.num_lanes = experiment.flowcell_type.num_lanes
+    for lane in experiment.lanes:
+        if lane.number > experiment.flowcell_type.num_lanes:
+            self._session.delete(lane)
+
+    if len(experiment.lanes) < experiment.flowcell_type.num_lanes:
+        for lane_num in range(experiment.flowcell_type.num_lanes - len(experiment.lanes) + 1, experiment.flowcell_type.num_lanes + 1):
+            lane = models.Lane(number=lane_num, experiment_id=experiment.id)
+            experiment.lanes.append(lane)
+            self._session.add(lane)
 
     self._session.add(experiment)
     self._session.commit()

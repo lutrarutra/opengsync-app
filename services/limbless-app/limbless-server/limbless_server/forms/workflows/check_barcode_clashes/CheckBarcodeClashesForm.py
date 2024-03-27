@@ -1,4 +1,5 @@
-import pandas as pd
+import scipy
+import numpy as np
 
 from flask import Response, url_for
 from flask_htmx import make_response
@@ -28,6 +29,11 @@ class CheckBarcodeClashesForm(HTMXFlaskForm):
         if "index_4" in df.columns and not df["index_4"].isna().all():
             indices.append("index_4")
 
+        df["combined_index"] = ""
+        for index in indices:
+            _max = df[index].str.len().max()
+            df["combined_index"] += df[index].apply(lambda x: x + " " * (_max - len(x)) if x is not None else "")
+
         if "index_2" in df.columns:
             same_barcode_in_different_indices = df["index_1"] == df["index_2"]
             if "index_3" in df.columns:
@@ -43,14 +49,26 @@ class CheckBarcodeClashesForm(HTMXFlaskForm):
 
         df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
 
-        for lane, _df in df.groupby("lane"):
-            for index in indices:
-                reused_barcodes = _df[index].duplicated(keep=False)
-                if reused_barcodes.any():
-                    df.loc[_df[reused_barcodes].index, "warning"] = f"Reused barcode in {index.replace('_', ' ').title()}"
+        df["min_hamming_dist"] = None
+        df["min_idx"] = None
 
-            reused_barcode_combination = _df[indices].duplicated(keep=False)
-            df.loc[_df[reused_barcode_combination].index, "error"] = "Reused barcode combination"
+        def hamming(x, y):
+            return scipy.spatial.distance.hamming(list(x[0]), list(y[0]))
+
+        for lane, _df in df.groupby("lane"):
+            a = np.array(_df["combined_index"]).reshape(-1, 1)
+            dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
+            p_dist = scipy.spatial.distance.squareform(dists)
+            np.fill_diagonal(p_dist, np.nan)
+            min_idx = np.nanargmin(p_dist, axis=0)
+            df.loc[_df.index, "min_idx"] = min_idx
+            df.loc[_df.index, "min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
+
+        df["min_hamming_bases"] = df["min_hamming_dist"] * df["combined_index"].apply(lambda x: len(x))
+        df["min_hamming_bases"] = df["min_hamming_bases"].astype(int)
+
+        df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries on same lane."
+        df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries on same lane."
 
         df = df.sort_values(["lane", "pool_name", "library_id"])
 

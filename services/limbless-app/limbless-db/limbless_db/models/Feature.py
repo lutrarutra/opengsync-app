@@ -19,7 +19,7 @@ class Feature(Base):
     sequence: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
     pattern: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     read: Mapped[str] = mapped_column(sa.String(8), nullable=False)
-    target_name: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, index=True)
+    target_name: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, index=True)
     target_id: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, index=True)
 
     type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)

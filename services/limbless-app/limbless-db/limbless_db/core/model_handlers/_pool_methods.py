@@ -172,6 +172,7 @@ def query_pools(
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Pool]:
     persist_session = self._session is not None
+    raise NotImplementedError("This method is not implemented yet.")
     if not self._session:
         self.open_session()
 

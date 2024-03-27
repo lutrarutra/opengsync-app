@@ -1,59 +1,106 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
 
 <div id="lane-pooling-form-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
         <h1 class="modal-title fs-5">1. Confirm Pooling Ratios</h1>
-        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#lane_pools-workflow-popup")></button>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
-    <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
-        <div id="confirm-ratios-form">
-            {{ confirm_ratios_form.csrf_token() }}
+    <div class="modal-body">
+        <div id="lane-pooling-form" class="tab-body">
+            {{ lane_pooling_form.csrf_token() }}
+            <ul class="nav nav-tabs" role="tablist">
+                {% for lane, _df in df.groupby("lane") %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if lane == 1 %}active{% endif %}" data-bs-toggle="tab"
+                    id="spreadsheet-tab-btn"
+                    data-bs-target="#lane-{{lane}}-tab" type="button" role="tab"
+                    aria-controls="lane-{{lane}}-tab" aria-selected="true">Lane {{lane}}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="tab-content">
+                {% for lane, _df in df.groupby("lane") %}
+                {% set lane_target_sub_form = lane_pooling_form.lane_target_forms[loop.index0] %}
+                <div class="tab-pane fade {% if lane == 1 %} show active{% endif %}" id="lane-{{lane}}-tab" role="tabpanel" tabindex="{{lane}}">
+                    {{ lane_target_sub_form.csrf_token() }}
+                    <div class="row">
+                        {{ form_group(lane_target_sub_form.target_concentration, class="col-3", id="target_concentration-" + lane | string, unit="nM") }}
+                        {{ form_group(lane_target_sub_form.target_total_volume, class="col-3", id="target_total_volume-" + lane | string, unit="μL") }}
+                        {{ metadata_group("Library Volume", "%0.1f" % _df["pipet"].sum(), class="col-3", input_id="total_volume-" + lane | string, unit="μL") }}
+                        {{ metadata_group("EB Volume", "%0.1f" % (lane_target_sub_form.target_total_volume.data - _df["pipet"].sum()), class="col-3", input_id="eb_volume-" + lane | string, unit="μL") }}
+                    </div>
 
-            <table class="table table-hover table-cursor">
-                <thead>
-                    <tr>
-                        <th class="col-2 bg-light" scope="col">Pool Name</th>
-                        <th class="col-1 bg-light" scope="col">Lane</th>
-                        <th class="col-1 bg-light" scope="col">Pipet for 3nM</th>
-                        <th class="col-1" scope="col">Lane Share [%]</th>
-                        <th class="col-1" scope="col">Reads [M]</th>
-                        <th class="col-1" scope="col">Fragment Size</th>
-                        <th class="col-1" scope="col">QBit</th>
-                        <th class="col-1" scope="col">EB + Tween 0.1%</th>
-                        <th class="col-1" scope="col">QBit After Dilution</th>
-                        <th class="col-1" scope="col">Total Con. [nM]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for i, (_, row) in enumerate(df.iterrows()) %}
-                    {% set sub_form = lane_pooling_form.input_fields[i] %}
-                    {{ sub_form.csrf_token() }}
-                    <tr>
-                        <th class="bg-light">{{ row["pool_name"] }}</th>
-                        <th class="bg-light">{{ row["lane"] }}</th>
-                        <td>{{ form_cell(sub_form.m_reads, unit="M") }}</td>
-                        <td>{{ "%0.1f" % (row["share"] * 100.0)  }}</td>
-                        <td class="bg-light">{{ "%0.2f" % row["pipet"] }}</td>
-                        <td>{{ "%0.1f" % row["pool_reads_requested"] }}</td>
-                        <td>{{ row["fragment_size"] }}</td>
-                        <td>{{ "%0.1f" % row["qbit"] }}</td>
-                        <td>{{ "%0.1f" % row["eb_tween"] if row["eb_tween"] else "" }}</td>
-                        <td>{{ "%0.1f" % row["qbit_after_dilution"] if row["qbit_after_dilution"] else "" }}</td>
-                        <td>{{ "%0.1f" % row["conc"] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th class="col-2 bg-light" scope="col">Pool Name</th>
+                                <th class="col-1" scope="col">Reads [M]</th>
+                                <th class="col-1" scope="col">Lane Share [%]</th>
+                                <th class="col-1" scope="col">Qubit Conc.</th>
+                                <th class="col-1" scope="col">Library Size</th>
+                                <th class="col-1" scope="col">Total Conc.</th>
+                                <th class="col-1 bg-light" scope="col">Pipet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i, (_, row) in enumerate(_df.iterrows()) %}
+                            {% set pool_reads_sub_form = lane_pooling_form.pool_reads_forms[i] %}
+                            {{ pool_reads_sub_form.csrf_token() }}
+                            <tr class="pool-row-{{lane}}">
+                                <th class="bg-light">{{ row["pool_name"] }}</th>
+                                <td>{{ form_cell(pool_reads_sub_form.m_reads, unit="M", class="m_reads-col-" + lane | string) }}</td>
+                                <td class="share-col-{{lane}}">
+                                    <div class="quantity-container">
+                                        <div class="value">{{ "%0.1f" % (row["share"] * 100.0)  }}</div>
+                                        <div class="unit">%</div>
+                                    </div>
+                                </td>
+                                <td class="qubit-col-{{lane}}">
+                                    <div class="quantity-container">
+                                        <div class="value">{{ row["qubit_concentration"] }}</div>
+                                        <div class="unit">ng/μL</div>
+                                    </div>
+                                </td>
+                                <td class="avg_library_size-col-{{lane}}">
+                                    <div class="quantity-container">
+                                        <div class="value">{{ row["avg_library_size"] }}</div>
+                                        <div class="unit">bp</div>
+                                    </div>
+                                </td>
+                                <td class="total_conc-col-{{lane}}">
+                                    <div class="quantity-container">
+                                        <div class="value {{ row['total_conc_color'] }}">{{ "%0.2f" % row["total_conc"] }}</div>
+                                        <div class="unit">nM</div>
+                                    </div>
+                                </td>
+                                <td class="bg-light pipet-col-{{lane}}">
+                                    <div class="quantity-container">
+                                        <div class="value">{{ "%0.2f" % row["pipet"] }}</div>
+                                        <div class="unit">μL</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% endfor %}
+            </div>
         </div>
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ confirm_ratios_form.file_uuid.data }}
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-success">
+            <button type="button" class="btn btn-success"
+            hx-target="#lane-pooling-form-container" hx-swap="outerHTML"
+            hx-include="#lane-pooling-form"
+            hx-post="{{ url_for('lane_pools_workflow.lane_pools', experiment_id=experiment.id) }}">
                 Confirm
             </button>
         </div>
@@ -61,6 +108,51 @@
     <script>
         $(document).ready(function() {
            init_tooltips();
+
+            function update_shares(lane) {
+                var total_reads = 0;
+                $(`.pool-row-${lane}`).each(function() {
+                    total_reads += parseFloat($(this).find(`.m_reads-col-${lane}`).first().find("input").first().val());
+                });
+                console.log(total_reads);
+                $(`.pool-row-${lane}`).each(function() {
+                    var reads = parseFloat($(this).find(`.m_reads-col-${lane}`).first().find("input").first().val());
+                    var share = reads / total_reads * 100;
+                    $(this).find(`.share-col-${lane}`).first().find(".value").first().text(share.toFixed(1));
+                });
+            }
+
+            function update_pipet(lane) {
+                var total_volume = 0;
+                var target_total_volume = parseFloat($(`#target_total_volume-${lane}`).val());
+                var target_concentration = parseFloat($(`#target_concentration-${lane}`).val());
+                $(`.pool-row-${lane}`).each(function() {
+                    var total_conc = parseFloat($(this).find(`.total_conc-col-${lane}`).first().find(".value").first().text());
+                    var share = parseFloat($(this).find(`.share-col-${lane}`).first().find(".value").first().text());
+
+                    var pipet = target_concentration / total_conc * share * target_total_volume * 0.01;
+
+                    console.log(target_concentration, target_total_volume, total_conc, share, pipet);
+                    $(this).find(`.pipet-col-${lane}`).first().find(".value").first().text(pipet.toFixed(2));
+                    total_volume += pipet;
+                });
+                $(`#total_volume-${lane}`).val(total_volume.toFixed(2));
+                $(`#eb_volume-${lane}`).val((target_total_volume - total_volume).toFixed(2));
+            }
+
+            {% for lane, _ in df.groupby("lane") %}
+                $("#target_total_volume-{{lane}}").on("input", function() {
+                    update_pipet({{lane}});
+                });
+                $("#target_concentration-{{lane}}").on("input", function() {
+                    update_pipet({{lane}});
+                });
+
+                $(".m_reads-col-{{lane}}").on("input", function() {
+                    update_shares({{lane}});
+                    update_pipet({{lane}});
+                });
+            {% endfor %}
         });
     </script>
 </div>

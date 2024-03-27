@@ -93,3 +93,10 @@ $cemm-green-dark: #75952f;
 .cemm-red { color: $cemm-red !important; }
 .bg-cemm-green { background-color: $cemm-green !important; }
 .cemm-green { color: $cemm-green !important; }
+
+.print-window .cemm-blue,
+.print-window .cemm-secondary,
+.print-window .cemm-yellow,
+.print-window .cemm-red,
+.print-window .cemm-green
+{ color: black !important; }

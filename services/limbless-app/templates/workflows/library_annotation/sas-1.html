@@ -6,8 +6,8 @@
         <h1 class="modal-title fs-5">1. Specify Libraries</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#data-submission-modal-container")></button>
     </div>
-    <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
-        <div style="height: 100%; position: static;">
+    <div class="modal-body">
+        <div class="tab-body">
             <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" data-bs-toggle="tab"
@@ -30,8 +30,8 @@
                     Help</button>
                 </li>
             </ul>
-            <div class="tab-content pt-1" style="height: calc(100% - 45px);">
-                <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0" style="height: 100%;">
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                     <div id="grid" class="spreadsheet-grid">
                         <div class="invalid-feedback-container">
                             {% if not disabled %}
@@ -42,25 +42,25 @@
                         </div>
                     </div>
                 </div>
-                <div class="tab-pane fade show" id="file-tab" role="tabpanel" tabindex="1">
-                    <form id="sample-table-input-form" enctype="multipart/form-data">
+                <div class="tab-pane fade" id="file-tab" role="tabpanel" tabindex="1">
+                    <div id="sample-table-input-form">
                         {{ sas_input_form.csrf_token() }}
                         <div class="row">
                             {{ form_group(sas_input_form.separator, class="col-2") }}
-                            {{ form_group(sas_input_form.file, class="col-8") }}
+                            {{ form_group(sas_input_form.file, class="col-10") }}
                         </div>
-                    {% if type == "raw" %}
-                    <a href="{{ url_for('library_annotation_workflow.download_template', type='raw') }}">
-                        Download Template
-                    </a>
-                    {% elif type == "pooled" %}
-                    <a href="{{ url_for('library_annotation_workflow.download_template', type='premade') }}">
-                        Download Template
-                    </a>
-                    {% endif %}
-                    </form>
+                        {% if type == "raw" %}
+                        <a href="{{ url_for('library_annotation_workflow.download_template', type='raw') }}">
+                            Download Template
+                        </a>
+                        {% elif type == "pooled" %}
+                        <a href="{{ url_for('library_annotation_workflow.download_template', type='premade') }}">
+                            Download Template
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="tab-pane fade show" id="help-tab" role="tabpanel" tabindex="2">
+                <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="2">
                     {% if type == "raw" %}
                     {% include "workflows/library_annotation/raw_instructions.html" %}
                     {% elif type == "pooled" %}
@@ -77,12 +77,12 @@
         </div>
         <div class="footer-controls">
             <button type="button" id="parse-spreadsheet-btn" class="btn btn-primary">
-                Parse Spreadsheet
+                Parse
             </button>
             <button type="button" id="parse-file-btn" class="btn btn-primary" hx-target="#sample-table-submission-container"
                 hx-swap="outerHTML" hx-include="#sample-table-input-form" hx-encoding="multipart/form-data"
                 hx-post="{{ url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, type=type) }}" style="display: none;">
-                Parse File
+                Parse
             </button>
         </div>
     </div>

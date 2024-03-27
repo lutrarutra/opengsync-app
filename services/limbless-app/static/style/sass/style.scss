@@ -8,6 +8,7 @@ $progress-height: 1.2rem !default;
 @import "colors.scss";
 @import "tooltip.scss";
 @import "table.scss";
+@import "modal.scss";
 
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -19,6 +20,34 @@ input::-webkit-inner-spin-button {
 input[type=number] {
     -moz-appearance: textfield;
 }
+
+.print-only { display: none; }
+.print-window .print-only { display: inline; }
+
+@media print {
+    .pagebreak { page-break-before: always; }
+}
+
+.row {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.row>* {
+    padding: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.row>*:first-child {
+    padding-left: 0;
+}
+
+.row>*:last-child {
+    padding-right: 0;
+}
+
 
 body {
     background-color: $light;
@@ -162,29 +191,6 @@ body {
     cursor: pointer;
 }
 
-.modal-footer {
-    display: flex;
-    width: 100%;
-    flex-direction: row;
-    justify-content: space-between;
-    .footer-id {
-        background-color: transparent;
-        width: 150px;
-    }
-    .footer-info {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-    }
-    .footer-controls {
-        width: 150px;
-        overflow-x: visible;
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-end;
-    }
-}
-
 .share-email-list {
     display: flex;
     flex-direction: column;
@@ -204,25 +210,7 @@ body {
     }
 }
 
-.modal-xl {
-    min-width: 80vw;
-    .modal-content {
-        width: 100%;
-    }
-    .modal-body {
-        min-height: 70vh;
-        max-height: 75vh;
-        padding: 5px 10px 10px 5px;
-        overflow-y: auto;
 
-        .tab-content {
-            height: 100%;
-            .tab-pane {
-                height: 100%;
-            }
-        }
-    }
-}
 
 .spreadsheet-grid {
     overflow-x: auto;
@@ -231,26 +219,6 @@ body {
     height: 100%;
     
 }
-
-.modal-l {
-    min-width: 60vw;
-    .modal-content {
-        width: 100%;
-    }
-    .modal-body {
-        height: 50vh;
-        padding: 20px 30px 20px 30px;
-        overflow-y: auto;
-
-        .tab-content {
-            height: 100%;
-            .tab-pane {
-                height: 100%;
-            }
-        }
-    }
-}
-
 
 .htmx-request:hover {
     cursor: wait;
@@ -444,6 +412,10 @@ span.desc:empty:after {
     vertical-align: middle;
 }
 
+.print-window .copyable-input .clipboard-btn {
+    display: none;
+}
+
 .copyable-input {
     display: flex;
     position: relative;
@@ -451,6 +423,12 @@ span.desc:empty:after {
         position: absolute;
         right: 10px;
         top: 5px;
+    }
+}
+
+.copyable-input.input-with-unit {
+    .clipboard-btn {
+        right: 80px;
     }
 }
 

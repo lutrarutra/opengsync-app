@@ -3,13 +3,13 @@ from typing import Optional
 
 from sqlalchemy.sql.operators import and_
 
-from ...categories import FileType
+from ...categories import FileTypeEnum
 from ... import models
 from .. import exceptions
 
 
 def create_file(
-    self, name: str, type: FileType, uploader_id: int, extension: str,
+    self, name: str, type: FileTypeEnum, uploader_id: int, extension: str,
     uuid: Optional[str] = None, commit: bool = True
 ) -> models.File:
     

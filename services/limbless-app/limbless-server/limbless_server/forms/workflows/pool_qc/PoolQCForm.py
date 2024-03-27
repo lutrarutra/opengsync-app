@@ -17,7 +17,7 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 
 class PoolQCSubForm(FlaskForm):
     avg_library_size = IntegerField(validators=[DataRequired(), NumberRange(min=0)])
-    concentration = FloatField(validators=[DataRequired(), NumberRange(min=0)])
+    qubit_concentration = FloatField(validators=[DataRequired(), NumberRange(min=0)])
 
 
 class PoolQCForm(HTMXFlaskForm,):
@@ -38,8 +38,8 @@ class PoolQCForm(HTMXFlaskForm,):
 
             if pd.notna(df.at[idx, "avg_library_size"]):
                 self.input_fields[i].avg_library_size.data = df.at[idx, "avg_library_size"]
-            if pd.notna(df.at[idx, "concentration"]):
-                self.input_fields[i].concentration.data = df.at[idx, "concentration"]
+            if pd.notna(df.at[idx, "qubit_concentration"]):
+                self.input_fields[i].qubit_concentration.data = df.at[idx, "qubit_concentration"]
 
         return {"df": df, "enumerate": enumerate}
     
@@ -59,7 +59,7 @@ class PoolQCForm(HTMXFlaskForm,):
                 raise ValueError(f"Pool with id {row['id']} not found")
                 
             pool.avg_library_size = entry.avg_library_size.data
-            pool.concentration = entry.concentration.data
+            pool.qubit_concentration = entry.qubit_concentration.data
 
             session.update_pool(pool)
 

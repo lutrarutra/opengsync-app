@@ -34,13 +34,13 @@
                         </td>
                         <td class="qubit-col">
                             <div class="quantity-container">
-                                <div class="value">{{ row["concentration"] }}</div>
+                                <div class="value">{{ row["qubit_concentration"] }}</div>
                                 <div class="unit">ng/μL</div>
                             </div>
                         </td>
                         <td class="nm_total-col bg-light {{ row['concentration_color'] }}">
                             <div class="quantity-container">
-                                <div class="value">{{ "%0.2f" % row["total_conc_nm"] }}</div>
+                                <div class="value">{{ "%0.2f" % row["total_conc"] }}</div>
                                 <div class="unit">nM</div>
                             </div>
                         </td>

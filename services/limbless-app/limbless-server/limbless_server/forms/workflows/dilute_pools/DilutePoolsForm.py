@@ -30,10 +30,10 @@ class DilutePoolsForm(HTMXFlaskForm):
     def prepare(self, experiment: models.Experiment) -> dict:
         df = db.get_experiment_pools_df(experiment.id)
 
-        df["total_conc_nm"] = df["concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+        df["total_conc"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
         df["concentration_color"] = "cemm-green"
-        df.loc[(df["total_conc_nm"] < models.Pool.warning_min_concentration) | (models.Pool.warning_max_concentration < df["total_conc_nm"]), "concentration_color"] = "cemm-yellow"
-        df.loc[(df["total_conc_nm"] < models.Pool.error_min_concentration) | (models.Pool.error_max_concentration < df["total_conc_nm"]), "concentration_color"] = "cemm-red"
+        df.loc[(df["total_conc"] < models.Pool.warning_min_concentration) | (models.Pool.warning_max_concentration < df["total_conc"]), "concentration_color"] = "cemm-yellow"
+        df.loc[(df["total_conc"] < models.Pool.error_min_concentration) | (models.Pool.error_max_concentration < df["total_conc"]), "concentration_color"] = "cemm-red"
 
         for i in range(df.shape[0]):
             if i > len(self.input_fields) - 1:
@@ -58,7 +58,7 @@ class DilutePoolsForm(HTMXFlaskForm):
             if (pool := db.get_pool(row["id"])) is None:
                 raise ValueError(f"Pool with id {row['id']} not found")
             
-            pool.concentration = entry.qubit_after_dilution.data
+            pool.qubit_concentration = entry.qubit_after_dilution.data
             db.update_pool(pool)
 
         flash("Dilution successful!", "success")

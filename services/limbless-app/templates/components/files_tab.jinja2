@@ -1,4 +1,6 @@
-{% macro files_tab(context, files, delete_url, delete_context) -%}
+{% from "components/spinner.jinja2" import spinner %}
+
+{% macro files_tab(context_name, files, delete_url, delete_context, context) -%}
 <div class="page-header">
     <div>
         <h2>Files</h2>
@@ -8,15 +10,15 @@
     {% for file in files %}
     <li class="nav-item" role="presentation">
         <button class="nav-link {% if loop.index0 == 0 %}active{% endif %}" data-bs-toggle="tab"
-        data-bs-target="#{{context}}-file-{{ file.id }}-tab" type="button" role="tab"
-        aria-controls="{{context}}-file-{{ file.id }}-tab" aria-selected="true">
+        data-bs-target="#{{context_name}}-file-{{ file.id }}-tab" type="button" role="tab"
+        aria-controls="{{context_name}}-file-{{ file.id }}-tab" aria-selected="true">
         {{ file.type.name if file.type.name != "Custom" else file.name }}</button>
     </li>
     {% endfor %}
 </ul>
 <div class="tab-content pt-3">
     {% for file in files %}
-    <div class="tab-pane fade show {% if loop.index0 == 0 %}active{% endif %}" id="{{context}}-file-{{ file.id }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+    <div class="tab-pane fade show {% if loop.index0 == 0 %}active{% endif %}" id="{{context_name}}-file-{{ file.id }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
         <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
             <div>
                 <h4>{{ file.name }}</h4>
@@ -40,7 +42,11 @@
                 {% endif %}
             </div>
         </div>
-        {% if file.extension == ".pdf" %}
+        {% if file.type.name == "Lane Pooling Table" %}
+        <div hx-get="{{ url_for('experiments_htmx.render_lane_pooling_tables', file_id=file.id, experiment_id=context['experiment'].id) }}" hx-trigger="intersect once">
+            {{ spinner() }}
+        </div>
+        {% elif file.extension == ".pdf" %}
         <embed src="{{ url_for('pdf_file',  file_id=file.id) }}" type="application/pdf" width="100%" height="1000px"/>
         {% elif file.extension in [".png", ".jpg", ".jpeg"] %}
         <img src="{{ url_for('img_file',  file_id=file.id) }}" class="img-fluid" alt="{{file.name}}" style="width: 100%;" loading="lazy">

@@ -45,7 +45,6 @@ def create_user(
 
 
 def get_user(self, user_id: int) -> User:
-    
     persist_session = self._session is not None
     if self._session is None:
         self.open_session()

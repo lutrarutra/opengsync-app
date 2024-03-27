@@ -121,7 +121,7 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
     query = self._session.query(
         models.Pool.id, models.Pool.name,
         models.Pool.status_id, models.Pool.num_libraries,
-        models.Pool.num_m_reads_requested, models.Pool.concentration,
+        models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
         models.Pool.avg_library_size,
     ).where(
         models.Pool.experiment_id == experiment_id
@@ -142,8 +142,8 @@ def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
         self.open_session()
     
     query = self._session.query(
-        models.Lane.number, models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
-        models.Pool.num_m_reads_requested, models.Pool.concentration, models.Pool.avg_library_size,
+        models.Lane.number.label("lane"), models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+        models.Pool.num_m_reads_requested, models.Pool.qubit_concentration, models.Pool.avg_library_size,
     ).where(
         models.Lane.experiment_id == experiment_id
     ).join(

@@ -23,7 +23,7 @@ class Pool(Base):
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
-    concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
+    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
     avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
 
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
@@ -74,4 +74,4 @@ class Pool(Base):
         return PoolStatus.get(self.status_id)
     
     def is_qced(self) -> bool:
-        return self.concentration is not None and self.avg_library_size is not None
+        return self.qubit_concentration is not None and self.avg_library_size is not None

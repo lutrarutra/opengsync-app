@@ -8,6 +8,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class FileTypeEnum(DBEnum):
     dir: str
     extensions: Optional[list[str]] = None
+    render_url: Optional[str] = None
 
 
 class FileType(ExtendedEnum[FileTypeEnum], enum_type=FileTypeEnum):
@@ -15,3 +16,4 @@ class FileType(ExtendedEnum[FileTypeEnum], enum_type=FileTypeEnum):
     SEQ_AUTH_FORM = FileTypeEnum(1, "Sequencing Authorization Form", "seq_auth_forms", ["pdf"])
     BIOANALYZER_REPORT = FileTypeEnum(2, "Bioanalyzer Report", "bioanalyzer_reports", ["pdf"])
     POST_SEQUENCING_QC_REPORT = FileTypeEnum(3, "Post-sequencing QC Report", "post_seq_qc_reports", ["pdf"])
+    LANE_POOLING_TABLE = FileTypeEnum(4, "Lane Pooling Table", "lane_pooling_tables", ["tsv"])

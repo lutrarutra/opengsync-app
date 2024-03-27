@@ -1,12 +1,15 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 
-{% macro form_group(field, class='', id=none, disabled=false, trigger_dest_id=none, autocomplete="on") -%}
+{% macro form_group(field, class='', id=none, disabled=false, trigger_dest_id=none, autocomplete="on", unit=none) -%}
 <div class="{{class}} form-group">
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
     {% endif %}>
         {{ field.label }}
     </a>
+    {% if unit %}
+    <div class="input-with-unit">
+    {% endif %}
     {{ 
         field(
             class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else ""), 
@@ -16,6 +19,10 @@
             id=(id if id else field.name), autocomplete=autocomplete
         ) 
     }}
+    {% if unit %}
+    <span class="input-group-text unit-container">{{unit}}</span>
+    </div>
+    {% endif %}
     <div class="invalid-feedback-container">
         {% if not disabled %}
         {% for error in field.errors %}
@@ -104,7 +111,7 @@
 {%- endmacro %}
 
 
-{% macro form_cell(field, class='', input_class='', unit='') -%}
+{% macro form_cell(field, class='', input_class='', unit=none) -%}
 <div class="{{class}} form-group {% if unit != '' %}input-with-unit{% endif %}">
     {{ 
         field(
@@ -114,7 +121,7 @@
             id=field.name, autocomplete="off",
         ) 
     }}
-    {% if unit != '' %}
+    {% if unit %}
     <span class="input-group-text unit-container">{{unit}}</span>
     {% endif %}
 </div>

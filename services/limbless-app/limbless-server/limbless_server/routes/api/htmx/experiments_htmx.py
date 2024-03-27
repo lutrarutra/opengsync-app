@@ -1,13 +1,17 @@
 import os
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from flask import Blueprint, url_for, render_template, flash, abort, request, current_app
 from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, ExperimentStatus
+
 from .... import db, forms, logger
+from ....tools import io as iot
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -55,15 +59,16 @@ def create():
 @experiments_htmx.route("<int:experiment_id>/edit", methods=["POST"])
 @login_required
 def edit(experiment_id: int):
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    if (experiment := db.get_experiment(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+    with DBSession(db) as session:
+        if not current_user.is_insider():
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.models.ExperimentForm(formdata=request.form).process_request(
-        experiment=experiment
-    )
+        return forms.models.ExperimentForm(formdata=request.form).process_request(
+            experiment=experiment
+        )
 
 
 @experiments_htmx.route("delete/<int:experiment_id>", methods=["DELETE"])
@@ -105,6 +110,34 @@ def query():
             "components/search_select_results.html",
             results=results, field_name=field_name,
         ), push_url=False
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/render_lane_pooling_tables/<int:file_id>", methods=["GET"])
+@login_required
+def render_lane_pooling_tables(experiment_id: int, file_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+        
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+        
+    if (file := db.get_file(file_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    df = pd.read_csv(filepath, sep="\t")
+
+    df["total_conc_color"] = "cemm-green"
+    df.loc[df["total_conc"] < models.Pool.warning_min_concentration, "total_conc_color"] = "cemm-yellow"
+    df.loc[df["total_conc"] > models.Pool.warning_max_concentration, "total_conc_color"] = "cemm-yellow"
+    df.loc[df["total_conc"] < models.Pool.error_min_concentration, "total_conc_color"] = "cemm-red"
+    df.loc[df["total_conc"] > models.Pool.error_max_concentration, "total_conc_color"] = "cemm-red"
+    
+    return make_response(
+        render_template(
+            "components/lane-pooling-ratios.html", experiment=experiment, df=df
+        )
     )
 
 
@@ -305,7 +338,14 @@ def overview(experiment_id: int):
     LINK_WIDTH_UNIT = 1
     
     df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_seq_request=True)
-    
+
+    if df.empty:
+        return make_response(
+            render_template(
+                "components/plots/experiment_overview.html",
+                links=[], nodes=[]
+            )
+        )
     nodes = []
     links = []
 

@@ -4,7 +4,6 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from ..categories import DeliveryStatus, DeliveryStatusEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -22,33 +21,8 @@ class SampleLibraryLink(Base):
     library: Mapped["Library"] = relationship("Library", back_populates="sample_links")
     cmo: Mapped[Optional["CMO"]] = relationship("CMO")
 
-
-# SampleLibraryLink = sa.Table(
-#     "sample_library_link",
-#     Base.metadata,
-#     sa.Column("sample_id", sa.ForeignKey("sample.id"), primary_key=True),
-#     sa.Column("library_id", sa.ForeignKey("library.id"), primary_key=True),
-#     sa.Column("cmo_id", sa.ForeignKey("cmo.id"), nullable=True, default=None),
-# )
-
-# class SampleLibraryLink(Base):
-#     sample_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("sample.id", primary_key=True
-#     )
-#     library_id: Mapped[int] = mapped_column(
-#         sa.ForeignKey("library.id", primary_key=True
-#     )
-#     cmo_id: Mapped[Optional[int]] = mapped_column(
-#         sa.ForeignKey("cmo.id", primary_key=False,
-#         nullable=True, default=None
-#     )
-
-#     sample: "Sample" = relationship(back_populates="library_links")
-#     library: "Library" = relationship(back_populates="sample_links")
-#     cmo: Optional["CMO"] = relationship()
-
-#     def __str__(self) -> str:
-#         return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"
+    def __str__(self) -> str:
+        return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"
     
 
 class LanePoolLink(Base):

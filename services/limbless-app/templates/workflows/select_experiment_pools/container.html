@@ -1,24 +1,26 @@
 <div class="modal-body">
-    <ul class="nav nav-tabs" id="auth-tab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link{% if active_tab == 0 %} active{% endif %}" id="available-tab-btn" data-bs-toggle="tab" data-bs-target="#available-tab"
-                type="button" role="tab" aria-controls="available-tab" aria-selected="{% if active_tab == 0%}true{% else %}false{% endif %}">
-                Available
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link{% if active_tab == 1 %} active{% endif %}" id="selected-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-tab"
-                type="button" role="tab" aria-controls="selected-tab" aria-selected="{% if active_tab == 1 %}true{% else %}false{% endif %}">
-                Selected ({{ selected_pools|length }})
-            </button>
-        </li>
-    </ul>
-    <div class="tab-content pt-3">
-        <div class="tab-pane fade show{% if active_tab == 0 %} active{% endif %}" id="available-tab" role="tabpanel" tabindex="0">
-            {% include "workflows/select_experiment_pools/available-experiment-pool.html" %}
-        </div>
-        <div class="tab-pane fade show{% if active_tab == 1 %} active{% endif %}" id="selected-tab" role="tabpanel" tabindex="1">
-            {% include "workflows/select_experiment_pools/selected-experiment-pool.html" %}
+    <div class="tab-body">
+        <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 0 %} active{% endif %}" id="available-tab-btn" data-bs-toggle="tab" data-bs-target="#available-tab"
+                    type="button" role="tab" aria-controls="available-tab" aria-selected="{% if active_tab == 0%}true{% else %}false{% endif %}">
+                    Available
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 1 %} active{% endif %}" id="selected-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-tab"
+                    type="button" role="tab" aria-controls="selected-tab" aria-selected="{% if active_tab == 1 %}true{% else %}false{% endif %}">
+                    Selected ({{ selected_pools|length }})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content pt-3">
+            <div class="tab-pane fade show{% if active_tab == 0 %} active{% endif %}" id="available-tab" role="tabpanel" tabindex="0">
+                {% include "workflows/select_experiment_pools/available-experiment-pool.html" %}
+            </div>
+            <div class="tab-pane fade show{% if active_tab == 1 %} active{% endif %}" id="selected-tab" role="tabpanel" tabindex="1">
+                {% include "workflows/select_experiment_pools/selected-experiment-pool.html" %}
+            </div>
         </div>
     </div>
 </div>

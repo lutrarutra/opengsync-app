@@ -1,7 +1,6 @@
 numba==0.59.1
 numexpr==2.9.0
 numpy==1.26.4
-packaging==24.0
 pandas==2.2.1
 itsdangerous==2.1.2
 psycopg2==2.9.9

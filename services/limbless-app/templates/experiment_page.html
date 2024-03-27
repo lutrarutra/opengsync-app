@@ -194,19 +194,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card{% if can_be_laned == false %} text-muted disabled{% endif %}" style="width: 250px;"
-                        {% if can_be_laned == true %}
+                    <div class="card{% if all_pools_laned == false %} text-muted disabled{% endif %}" style="width: 250px;"
+                        {% if all_pools_laned == true %}
                         data-bs-toggle="modal" data-bs-target="#check_barcode_clashes-workflow-popup"
                         hx-get="{{ url_for('check_barcode_clashes_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#check_barcode_clashes-workflow-container" hx-swap="innerHTML"
                         {% else %}
-                        {% if all_pools_laned == false and all_pools_qced == false %}
-                        {{ tooltip("All pools must be assigned atleast one lane and 'QC Pools'-workflow must be completed.", category="warning") }}
-                        {% elif all_pools_laned == false %}
                         {{ tooltip("All pools must be assigned atleast one lane.", category="warning") }}
-                        {% else %}
-                        {{ tooltip("'QC Pools'-workflow must be completed first.", category="warning") }}
-                        {% endif %}
                         {% endif %}>
                         <div class="card-icon">
                             <img src="{{ url_for('static', filename='images/licensed/clash.svg') }}" width="90px">
@@ -253,12 +247,17 @@
                         </div>
                     </div>
                     <div class="card{% if can_be_laned == false %} text-muted disabled{% endif %}" style="width: 250px;"
-                        {% if all_pools_laned == true %}
+                        {% if can_be_laned == true %}
                         data-bs-toggle="modal" data-bs-target="#lane_pools-workflow-popup"
                         hx-get="{{ url_for('lane_pools_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#lane_pools-workflow-container" hx-swap="innerHTML"
-                        {% else %}
+                        {% endif %}
+                        {% if all_pools_laned == false and all_pools_qced == false %}
+                        {{ tooltip("All pools must be assigned atleast one lane and 'QC Pools'-workflow must be completed.", category="warning") }}
+                        {% elif all_pools_laned == false %}
                         {{ tooltip("All pools must be assigned atleast one lane.", category="warning") }}
+                        {% else %}
+                        {{ tooltip("'QC Pools'-workflow must be completed first.", category="warning") }}
                         {% endif %}>
                         <div class="card-icon">
                             <img src="{{ url_for('static', filename='images/licensed/calculator.svg') }}" width="90px">
@@ -307,9 +306,10 @@
             <div class="tab-pane fade show" id="experiment-files-tab" role="tabpanel" tabindex="4">
                 {{
                     files_tab(
-                        context="experiment", files=experiment.files,
+                        context_name="experiment", files=experiment.files,
                         delete_url="experiments_htmx.delete_file",
                         delete_context={"experiment_id": experiment.id},
+                        context={ "experiment": experiment }
                     )
                 }}
             </div>

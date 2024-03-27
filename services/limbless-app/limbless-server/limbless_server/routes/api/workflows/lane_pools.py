@@ -29,20 +29,7 @@ def begin(experiment_id: int):
 
     form = wff.LanePoolingForm()
     context = form.prepare(experiment_id)
-    return form.make_response(experiment=experiment, **context)
-
-
-@lane_pools_workflow.route("<int:experiment_id>/dilute_pools", methods=["POST"])
-@login_required
-def dilute_pools(experiment_id: int):
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-
-    return wff.PoolDilutionForm(formdata=request.form).process_request(experiment=experiment)
+    return form.make_response(experiment=experiment, Pool=models.Pool, **context)
 
 
 @lane_pools_workflow.route("<int:experiment_id>/lane_pools", methods=["POST"])
@@ -54,5 +41,7 @@ def lane_pools(experiment_id: int):
         
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
+        
+        experiment.files
 
-    return wff.LanePoolingForm(formdata=request.form).process_request(experiment=experiment)
+    return wff.LanePoolingForm(formdata=request.form).process_request(experiment=experiment, user=current_user)

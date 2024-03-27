@@ -4,7 +4,7 @@
 <div id="pool-qc-form-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
         <h1 class="modal-title fs-5">1. QC Pools</h1>
-        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#pool_qc-workflow-popup")></button>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
         <div id="pool-qc-form">
@@ -15,7 +15,7 @@
                         <th class="col-1" scope="col">Pool ID</th>
                         <th class="col-1" scope="col">Pool Name</th>
                         <th class="col-1" scope="col">Avg. Library Size</th>
-                        <th class="col-1" scope="col">Concentration</th>
+                        <th class="col-1" scope="col">Qubit Conc.</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -26,7 +26,7 @@
                         <th scope="row">{{ row["id"] }}</th>
                         <th>{{ row["name"] }}</th>
                         <td>{{ form_cell(sub_form.avg_library_size, input_class="avg_library_size-col", unit="bp") }}</td>
-                        <td>{{ form_cell(sub_form.concentration, input_class="concentration-col", unit="ng/μL") }}</td>
+                        <td>{{ form_cell(sub_form.qubit_concentration, input_class="concentration-col", unit="ng/μL") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

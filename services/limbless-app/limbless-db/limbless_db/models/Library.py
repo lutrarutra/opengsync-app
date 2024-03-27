@@ -51,7 +51,7 @@ class Library(Base):
     pool: Mapped[Optional["Pool"]] = relationship("Pool", back_populates="libraries", lazy="joined")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="select")
+    owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="joined")
 
     sample_links: Mapped[list["SampleLibraryLink"]] = relationship(
         "SampleLibraryLink", back_populates="library", lazy="select", cascade="delete",
