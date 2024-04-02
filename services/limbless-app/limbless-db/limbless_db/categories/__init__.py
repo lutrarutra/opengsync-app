@@ -16,3 +16,4 @@ from .SequencingType import ReadType, ReadTypeEnum  # noqa: F401
 from .UserRole import UserRole, UserRoleEnum  # noqa: F401
 from .SequencerType import SequencerType, SequencerTypeEnum  # noqa: F401
 from .PoolStatus import PoolStatus, PoolStatusEnum  # noqa: F401
+from .SequencingWorkFlowType import SequencingWorkFlowType, SequencingWorkFlowTypeEnum  # noqa: F401

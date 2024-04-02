@@ -5,10 +5,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 
+from limbless_db.categories import DeliveryStatus, DeliveryStatusEnum
+
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
     from .CMO import CMO
+    from .SeqRequest import SeqRequest
 
 
 class SampleLibraryLink(Base):
@@ -77,3 +80,19 @@ class LibraryFeatureLink(Base):
 
     def __str__(self) -> str:
         return f"LibraryFeatureLink(library_id: {self.library_id}, feature_id: {self.feature_id})"
+    
+
+class SeqRequestDeliveryEmailLink(Base):
+    __tablename__ = "seq_request_delivery_email_link"
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True, nullable=False)
+    email: Mapped[str] = mapped_column(sa.String(128), primary_key=True, nullable=False, index=True)
+    
+    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=DeliveryStatus.PENDING.id)
+    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="delivery_email_links")
+
+    @property
+    def status(self) -> DeliveryStatusEnum:
+        return DeliveryStatus.get(self.status_id)
+
+    def __str__(self) -> str:
+        return f"SeqRequestDeliveryEmail(email: {self.email})"

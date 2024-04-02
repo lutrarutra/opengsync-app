@@ -6,7 +6,7 @@ from wtforms import StringField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import FlowCellType
+from limbless_db.categories import FlowCellType, SequencingWorkFlowType
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ... import db
 from ..SearchBar import SearchBar
@@ -22,6 +22,12 @@ class ExperimentForm(HTMXFlaskForm):
         "Flowcell Type", choices=FlowCellType.as_selectable(),
         description="Type of flowcell to use for sequencing.",
         coerce=int, default=0
+    )
+
+    workflow_type = SelectField(
+        "Workflow Type", choices=SequencingWorkFlowType.as_selectable(),
+        description="Select the workflow type for the experiment.",
+        coerce=int, default=None
     )
     
     r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
@@ -50,7 +56,7 @@ class ExperimentForm(HTMXFlaskForm):
             self.i2_cycles.data = experiment.i2_cycles
             self.flowcell_type.data = experiment.flowcell_type.id
             self.operator.selected.data = experiment.operator_id
-            self.operator.search_bar.data = experiment.operator.name
+            self.operator.search_bar.data = experiment.operator.search_name()
 
     def validate(self, experiment: Optional[models.Experiment]) -> bool:
         if (validated := super().validate()) is False:
@@ -65,6 +71,7 @@ class ExperimentForm(HTMXFlaskForm):
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
         flowcell_type = FlowCellType.get(self.flowcell_type.data)
+        workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
         experiment.name = self.name.data  # type: ignore
         experiment.flowcell_type_id = self.flowcell_type.data
         experiment.r1_cycles = self.r1_cycles.data    # type: ignore
@@ -74,6 +81,7 @@ class ExperimentForm(HTMXFlaskForm):
         experiment.num_lanes = flowcell_type.num_lanes
         experiment.sequencer_id = self.sequencer.selected.data
         experiment.operator_id = self.operator.selected.data
+        experiment.workflow_id = workflow_type.id
         experiment = db.update_experiment(experiment)
 
         flash(f"Edited experiment '{experiment.name}'.", "success")
@@ -82,12 +90,14 @@ class ExperimentForm(HTMXFlaskForm):
 
     def __create_new_experiment(self) -> Response:
         flowcell_type = FlowCellType.get(self.flowcell_type.data)
+        workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
         experiment = db.create_experiment(
             name=self.name.data,  # type: ignore
             flowcell_type=flowcell_type,
+            workflow_type=workflow_type,
             sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,  # type: ignore
-            r2_cycles=self.r2_cycles.data,  # type: ignore
+            r2_cycles=self.r2_cycles.data,
             i1_cycles=self.i1_cycles.data,  # type: ignore
             i2_cycles=self.i2_cycles.data,
             num_lanes=flowcell_type.num_lanes,

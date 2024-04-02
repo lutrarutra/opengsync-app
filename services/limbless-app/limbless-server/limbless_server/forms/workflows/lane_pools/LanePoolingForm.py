@@ -7,7 +7,7 @@ from wtforms import StringField, FloatField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
 from limbless_db import models
-from limbless_db.categories import FileType
+from limbless_db.categories import FileType, ExperimentStatus
 
 from .... import db, logger
 from ....tools import io as iot
@@ -136,6 +136,9 @@ class LanePoolingForm(HTMXFlaskForm):
         db.add_file_to_experiment(experiment.id, db_file.id)
 
         df.to_csv(filepath, sep="\t", index=False)
+
+        experiment.status_id = ExperimentStatus.LANED.id
+        experiment = db.update_experiment(experiment)
 
         logger.debug(f"File '{db_file.path}' uploaded by user '{user.id}'.")
         flash("Laning Completed!", "success")

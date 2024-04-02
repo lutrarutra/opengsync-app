@@ -10,10 +10,8 @@ class ExperimentStatusEnum(DBEnum):
 
 class ExperimentStatus(ExtendedEnum[ExperimentStatusEnum], enum_type=ExperimentStatusEnum):
     DRAFT = ExperimentStatusEnum(0, "Draft", "✍🏼")
-    POOLS_QCED = ExperimentStatusEnum(1, "Pools QCed", "🔬")
-    LANED = ExperimentStatusEnum(2, "Laned", "🚦")
-    LOADED = ExperimentStatusEnum(3, "Loaded", "📦")
-    SEQUENCING = ExperimentStatusEnum(4, "Sequencing", "🧬")
-    FINISHED = ExperimentStatusEnum(5, "Finished", "✅")
+    LOADED = ExperimentStatusEnum(1, "Loaded", "📦")
+    SEQUENCING = ExperimentStatusEnum(2, "Sequencing", "🧬")
+    FINISHED = ExperimentStatusEnum(3, "Finished", "✅")
     ARCHIVED = ExperimentStatusEnum(10, "Archived", "🗃️")
     FAILED = ExperimentStatusEnum(11, "Failed", "❌")

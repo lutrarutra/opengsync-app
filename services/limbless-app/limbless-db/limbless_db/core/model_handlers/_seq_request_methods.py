@@ -67,7 +67,6 @@ def create_seq_request(
         contact_person_id=contact_person_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
         status_id=SeqRequestStatus.DRAFT.id,
-        submitted_time=None,
         data_delivery_mode_id=data_delivery_mode.id,
         organization_name=organization_name,
         organization_department=organization_department,
@@ -77,22 +76,23 @@ def create_seq_request(
 
     requestor.num_seq_requests += 1
 
-    seq_request.receiver_contacts.append(models.SeqRequestDeliveryContact(
+    seq_request.delivery_email_links.append(models.SeqRequestDeliveryEmailLink(
         email=requestor.email,
         status_id=DeliveryStatus.PENDING.id,
     ))
-
     self._session.add(seq_request)
     self._session.add(requestor)
     self._session.commit()
     self._session.refresh(seq_request)
 
-    # if bioinformatician_contact is not None:
-    #     self._session.add(models.SeqRequestDeliveryContact(
-    #         email=bioinformatician_contact.email,
-    #         status_id=DeliveryStatus.PENDING.id,
-    #         seq_request_id=seq_request.id
-    #     ))
+    if bioinformatician_contact is not None:
+        seq_request.delivery_email_links.append(models.SeqRequestDeliveryEmailLink(
+            email=bioinformatician_contact.email,
+            status_id=DeliveryStatus.PENDING.id,
+        ))
+        self._session.add(seq_request)
+        self._session.commit()
+        self._session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()
@@ -428,10 +428,16 @@ def add_seq_request_share_email(self, seq_request_id: int, email: str) -> models
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
     
-    if self._session.get(models.EmailReceiver, (seq_request_id, email)) is not None:
+    if self._session.query(models.SeqRequestDeliveryEmailLink).where(
+        models.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id,
+        models.SeqRequestDeliveryEmailLink.email == email
+    ).first() is not None:
         raise exceptions.LinkAlreadyExists(f"SeqRequest with id '{seq_request_id}' already has a share link with email '{email}'.")
 
-    seq_request.receivers.append(models.EmailReceiver(email=email))
+    seq_request.delivery_email_links.append(models.SeqRequestDeliveryEmailLink(
+        email=email, status_id=DeliveryStatus.PENDING.id
+    ))
+
     self._session.add(seq_request)
     self._session.commit()
     self._session.refresh(seq_request)
@@ -442,7 +448,7 @@ def add_seq_request_share_email(self, seq_request_id: int, email: str) -> models
     return seq_request
 
 
-def remove_seq_request_share_email(self, seq_request_id: int, id: int) -> models.SeqRequest:
+def remove_seq_request_share_email(self, seq_request_id: int, email: str) -> models.SeqRequest:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -451,10 +457,14 @@ def remove_seq_request_share_email(self, seq_request_id: int, id: int) -> models
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
     
-    if (share_link := self._session.get(models.EmailReceiver, id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Share link with id '{id}', not found.")
-    
-    seq_request.receivers.remove(share_link)
+    if (delivery_link := self._session.query(models.SeqRequestDeliveryEmailLink).where(
+        models.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id,
+        models.SeqRequestDeliveryEmailLink.email == email
+    ).first()) is None:
+        raise exceptions.ElementDoesNotExist(f"Share link with '{email}', not found.")
+
+    seq_request.delivery_email_links.remove(delivery_link)
+    self._session.delete(delivery_link)
     self._session.add(seq_request)
     self._session.commit()
     self._session.refresh(seq_request)

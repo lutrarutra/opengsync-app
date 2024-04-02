@@ -2,14 +2,17 @@ from typing import Optional, Union
 
 import sqlalchemy as sa
 from sqlalchemy import orm
+from loguru._logger import Logger
 
 from limbless_db.models.Base import Base
 
 
 class DBHandler():
-    def __init__(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432):
+    def __init__(self, logger: Logger, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432):
         self._url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
+        self.__logger = logger
+
         try:
             self._engine.connect()
         except Exception as e:
@@ -27,6 +30,22 @@ class DBHandler():
         if self._session is not None:
             self._session.close()
             self._session = None
+
+    def debug(self, message: str) -> None:
+        if self.__logger is not None:
+            self.__logger.debug(message)
+
+    def info(self, message: str) -> None:
+        if self.__logger is not None:
+            self.__logger.info(message)
+        else:
+            print(message)
+    
+    def error(self, message: str) -> None:
+        if self.__logger is not None:
+            self.__logger.error(message)
+        else:
+            print(message)
 
     from .model_handlers._sequencer_methods import (
         create_sequencer, get_sequencer, get_sequencers,

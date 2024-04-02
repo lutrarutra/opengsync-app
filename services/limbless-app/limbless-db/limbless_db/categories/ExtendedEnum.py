@@ -8,12 +8,24 @@ class DBEnum():
     id: int
     name: str
 
+    def __post_init__(self) -> None:
+        self.__class__.__hash__ = DBEnum.__hash__  # type: ignore
+
     def __str__(self) -> str:
         return f"{self.display_name} [{self.id}]"
     
     @property
     def display_name(self) -> str:
         return self.name
+    
+    def __lt__(self, other) -> bool:
+        return self.id < other.id
+
+    def __eq__(self, other) -> bool:
+        return self.id == other.id and self.name == other.name
+    
+    def __hash__(self) -> int:
+        return hash(self.id)
     
     
 T = TypeVar("T")

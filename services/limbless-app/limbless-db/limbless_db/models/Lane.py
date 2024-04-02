@@ -16,7 +16,12 @@ class Lane(Base):
     __tablename__ = "lane"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     number: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    
     phi_x: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    total_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    library_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
 
     experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=False)
     experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="lanes", lazy="select")

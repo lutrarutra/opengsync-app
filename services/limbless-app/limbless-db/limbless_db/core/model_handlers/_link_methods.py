@@ -1,7 +1,7 @@
 import math
 from typing import Optional
 
-from ...categories import PoolStatus
+from ...categories import PoolStatus, ExperimentStatus
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
@@ -214,6 +214,7 @@ def link_pool_lane(
         lane_id=lane_id, pool_id=pool_id,
     )
     pool.status_id = PoolStatus.LANED.id
+
     self._session.add(link)
     self._session.commit()
     self._session.refresh(link)
@@ -239,7 +240,7 @@ def unlink_pool_lane(self, lane_id, pool_id: int):
         models.LanePoolLink.lane_id == lane_id,
     ).first()) is None:
         raise exceptions.LinkDoesNotExist(f"Lane with id '{lane_id}' and Pool with id '{pool_id}' are not linked.")
-    
+
     self._session.delete(link)
     self._session.commit()
     self._session.refresh(pool)
@@ -265,8 +266,7 @@ def link_pool_experiment(self, experiment_id: int, pool_id: int):
 
     if pool.experiment_id is not None:
         raise exceptions.LinkAlreadyExists(f"Pool with id {pool_id} is already linked to an experiment")
-    
-    pool = self._session.get(models.Pool, pool_id)
+
     pool.experiment_id = experiment_id
     pool.status_id = PoolStatus.ASSIGNED.id
     self._session.add(pool)

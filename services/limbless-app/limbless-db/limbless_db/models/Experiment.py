@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 
-from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum
+from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum, SequencingWorkFlowType, SequencingWorkFlowTypeEnum
 from .Links import ExperimentFileLink, ExperimentCommentLink
 
 if TYPE_CHECKING:
@@ -35,6 +35,7 @@ class Experiment(Base):
     flowcell_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     num_lanes: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    workflow_id: Mapped[int] = mapped_column(sa.Integer)
 
     operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped["User"] = relationship("User", lazy="joined")
@@ -42,10 +43,6 @@ class Experiment(Base):
     sequencer_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sequencer.id"), nullable=False)
     sequencer: Mapped["Sequencer"] = relationship("Sequencer", lazy="select")
 
-    # check_barcode_clashes_workflow_done: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
-    # qc_pools_workflow_done: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
-    # dilute_pools_workflow_done: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
-    
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select")
@@ -63,6 +60,10 @@ class Experiment(Base):
     @property
     def flowcell_type(self) -> FlowCellTypeEnum:
         return FlowCellType.get(self.flowcell_type_id)
+    
+    @property
+    def workflow(self) -> SequencingWorkFlowTypeEnum:
+        return SequencingWorkFlowType.get(self.workflow_id)
     
     def is_deleteable(self) -> bool:
         return self.status == ExperimentStatus.DRAFT

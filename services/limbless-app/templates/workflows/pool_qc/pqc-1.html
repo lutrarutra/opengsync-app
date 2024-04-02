@@ -13,9 +13,9 @@
                 <thead>
                     <tr>
                         <th class="col-1" scope="col">Pool ID</th>
-                        <th class="col-1" scope="col">Pool Name</th>
-                        <th class="col-1" scope="col">Avg. Library Size</th>
-                        <th class="col-1" scope="col">Qubit Conc.</th>
+                        <th class="col-5" scope="col">Pool Name</th>
+                        <th class="col-3" scope="col">Avg. Library Size</th>
+                        <th class="col-3" scope="col">Qubit Conc.</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -23,7 +23,7 @@
                     {% set sub_form = pool_qc_form.input_fields[i] %}
                     {{ sub_form.csrf_token() }}
                     <tr>
-                        <th scope="row">{{ row["id"] }}</th>
+                        <th scope="row">{{ row["id"] }}{{ sub_form.pool_id(class="form-control", readonly=true, hidden=true) }}</th>
                         <th>{{ row["name"] }}</th>
                         <td>{{ form_cell(sub_form.avg_library_size, input_class="avg_library_size-col", unit="bp") }}</td>
                         <td>{{ form_cell(sub_form.qubit_concentration, input_class="concentration-col", unit="ng/μL") }}</td>

@@ -1,6 +1,6 @@
 from typing import Optional, Any
 
-from flask import Response, url_for
+from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import EmailField
 from wtforms.validators import DataRequired, Length, Email
@@ -14,7 +14,7 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
     _template_path = "components/popups/seq_request_share_email_form.html"
     _form_label = "seq_request_share_email_form"
 
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.SeqRequestDeliveryContact.email.type.length)])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.SeqRequestDeliveryEmailLink.email.type.length)])
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None):
         super().__init__(formdata=formdata)
@@ -32,7 +32,7 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
 
             email = self.email.data.strip()
             
-            if email in [link.email for link in seq_request.share_email_links]:
+            if email in [link.email for link in seq_request.delivery_email_links]:
                 self.email.errors = ("This email adress is already in the list.",)
                 return False
         
@@ -46,4 +46,5 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
         
         db.add_seq_request_share_email(seq_request_id=seq_request.id, email=self.email.data.strip())  # type: ignore
 
+        flash("Email added to the list.", "success")
         return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))

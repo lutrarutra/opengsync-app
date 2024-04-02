@@ -80,9 +80,7 @@ def experiment_page(experiment_id: int):
             if not all_pools_laned or not all_pools_qced:
                 break
             
-        can_be_laned = all_pools_laned and all_pools_qced
-
-        can_be_loaded = experiment.status == ExperimentStatus.LANED
+        can_be_loaded = all_pools_laned and all_pools_qced
 
         path_list = [
             ("Experiments", url_for("experiments_page.experiments_page")),
@@ -108,7 +106,6 @@ def experiment_page(experiment_id: int):
         available_seq_requests_current_sort_order="desc",
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.operator,
-        can_be_laned=can_be_laned,
         all_pools_laned=all_pools_laned,
         all_pools_qced=all_pools_qced,
         can_be_loaded=can_be_loaded,

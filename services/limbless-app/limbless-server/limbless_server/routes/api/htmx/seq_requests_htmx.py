@@ -561,14 +561,14 @@ def add_share_email(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/remove_share_email/<int:link_id>", methods=["DELETE"])
+@seq_requests_htmx.route("<int:seq_request_id>/remove_share_email/<string:email>", methods=["DELETE"])
 @login_required
-def remove_share_email(seq_request_id: int, link_id: int):
+def remove_share_email(seq_request_id: int, email: str):
     with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        if len(seq_request.share_email_links) == 1:
+        if len(seq_request.delivery_email_links) == 1:
             return abort(HTTPResponse.FORBIDDEN.id)
     
     if seq_request.requestor_id != current_user.id:
@@ -576,7 +576,7 @@ def remove_share_email(seq_request_id: int, link_id: int):
             return abort(HTTPResponse.FORBIDDEN.id)
         
     try:
-        db.remove_seq_request_share_email(seq_request_id, link_id)
+        db.remove_seq_request_share_email(seq_request_id, email)
     except exceptions.ElementDoesNotExist:
         return abort(HTTPResponse.NOT_FOUND.id)
 

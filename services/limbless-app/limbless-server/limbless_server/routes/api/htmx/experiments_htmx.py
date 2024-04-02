@@ -337,7 +337,7 @@ def overview(experiment_id: int):
     
     LINK_WIDTH_UNIT = 1
     
-    df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_seq_request=True)
+    df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_seq_request=True, collapse_lanes=False)
 
     if df.empty:
         return make_response(

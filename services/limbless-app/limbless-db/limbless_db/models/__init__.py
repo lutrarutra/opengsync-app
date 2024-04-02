@@ -19,10 +19,10 @@ from .VisiumAnnotation import VisiumAnnotation  # noqa: F401
 from .Comment import Comment  # noqa: F401
 from .SeqRun import SeqRun  # noqa: F401
 from .Lane import Lane  # noqa: F401
-from .SeqRequestDeliveryContact import SeqRequestDeliveryContact  # noqa: F401
 
 from .Links import (  # noqa: F401
     LanePoolLink, SampleLibraryLink,
     ExperimentFileLink, SeqRequestFileLink,
     ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
+    SeqRequestDeliveryEmailLink
 )

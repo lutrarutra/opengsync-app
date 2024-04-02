@@ -6,12 +6,12 @@ import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import FlowCellTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus
+from ...categories import FlowCellTypeEnum, SequencingWorkFlowTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus
 
 
 def create_experiment(
-    self, name: str, flowcell_type: FlowCellTypeEnum, sequencer_id: int,
-    num_lanes: int, r1_cycles: int, i1_cycles: int, operator_id: int,
+    self, name: str, flowcell_type: FlowCellTypeEnum, workflow_type: SequencingWorkFlowTypeEnum,
+    sequencer_id: int, num_lanes: int, r1_cycles: int, i1_cycles: int, operator_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None
 ) -> models.Experiment:
     persist_session = self._session is not None
@@ -38,7 +38,7 @@ def create_experiment(
         num_lanes=num_lanes,
         status_id=status.id,
         operator_id=operator_id,
-
+        workflow_id=workflow_type.id
     )
 
     self._session.add(experiment)
@@ -142,16 +142,17 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
     if not self._session:
         self.open_session()
 
-    experiment.num_lanes = experiment.flowcell_type.num_lanes
-    for lane in experiment.lanes:
-        if lane.number > experiment.flowcell_type.num_lanes:
-            self._session.delete(lane)
+    if experiment.num_lanes != experiment.flowcell_type.num_lanes:
+        experiment.num_lanes = experiment.flowcell_type.num_lanes
+        for lane in experiment.lanes:
+            if lane.number > experiment.flowcell_type.num_lanes:
+                self._session.delete(lane)
 
-    if len(experiment.lanes) < experiment.flowcell_type.num_lanes:
-        for lane_num in range(experiment.flowcell_type.num_lanes - len(experiment.lanes) + 1, experiment.flowcell_type.num_lanes + 1):
-            lane = models.Lane(number=lane_num, experiment_id=experiment.id)
-            experiment.lanes.append(lane)
-            self._session.add(lane)
+        if len(experiment.lanes) < experiment.flowcell_type.num_lanes:
+            for lane_num in range(experiment.flowcell_type.num_lanes - len(experiment.lanes) + 1, experiment.flowcell_type.num_lanes + 1):
+                lane = models.Lane(number=lane_num, experiment_id=experiment.id)
+                experiment.lanes.append(lane)
+                self._session.add(lane)
 
     self._session.add(experiment)
     self._session.commit()

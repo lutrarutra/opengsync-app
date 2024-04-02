@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 
 from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum
-from .Links import SeqRequestFileLink, SeqRequestCommentLink
+from .Links import SeqRequestFileLink, SeqRequestCommentLink, SeqRequestDeliveryEmailLink
 
 if TYPE_CHECKING:
     from .User import User
@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from .Pool import Pool
     from .File import File
     from .Comment import Comment
-    from .SeqRequestDeliveryContact import SeqRequestDeliveryContact
 
 
 class SeqRequest(Base):
@@ -26,7 +25,7 @@ class SeqRequest(Base):
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=SeqRequestStatus.DRAFT.id)
-    submitted_time: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    submitted_time: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
 
     sequencing_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
@@ -67,7 +66,7 @@ class SeqRequest(Base):
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
     files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink.__tablename__, lazy="select", cascade="delete")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink.__tablename__, lazy="select", cascade="delete")
-    receiver_contacts: Mapped[list["SeqRequestDeliveryContact"]] = relationship("SeqRequestDeliveryContact", lazy="select", cascade="save-update,delete", back_populates="seq_request")
+    delivery_email_links: Mapped[list[SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete", back_populates="seq_request")
 
     seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
 

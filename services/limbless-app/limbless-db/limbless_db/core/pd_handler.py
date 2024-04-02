@@ -1,10 +1,10 @@
 # pyright: reportMissingImports=false, reportUnusedVariable=false, reportUntypedBaseClass=error
 import pandas as pd
 
+import sqlalchemy as sa
 from sqlalchemy.sql.operators import and_  # noqa: F401
 
 from .. import models
-from . import exceptions
 from .. import categories
 
 
@@ -12,12 +12,9 @@ def get_experiment_libraries_df(
     self, experiment_id: int,
     include_sample: bool = False, include_index_kit: bool = False,
     include_visium: bool = False, include_seq_request: bool = False,
+    collapse_lanes: bool = True
 ) -> pd.DataFrame:
         
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-    
     columns = [
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("reference_id"),
@@ -48,7 +45,7 @@ def get_experiment_libraries_df(
             models.CMO.sequence.label("cmo_sequence"), models.CMO.pattern.label("cmo_pattern"), models.CMO.read.label("cmo_read"),
         ])
 
-    query = self._session.query(*columns).join(
+    query = sa.select(*columns).join(
         models.Pool,
         models.Pool.id == models.Library.pool_id,
     ).join(
@@ -101,24 +98,22 @@ def get_experiment_libraries_df(
     )
             
     query = query.order_by(models.Library.id)
-    df = pd.read_sql(query.statement, self._url)
-    df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).abbreviation)
-    df["refernece"] = df["reference_id"].apply(lambda x: categories.GenomeRef.get(x).assembly)
-
-    df = df.dropna(axis="columns", how="all")
+    df = pd.read_sql(query, self._engine)
     
-    if not persist_session:
-        self.close_session()
+    df = df.dropna(axis="columns", how="all")
+    if collapse_lanes:
+        df = df.groupby(df.columns.difference(['lane']).tolist(), as_index=False).agg({'lane': list}).rename(columns={'lane': 'lanes'})
+    
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
+    df["refernece"] = df["reference_id"].map(categories.GenomeRef.get)
 
     return df
 
 
 def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-    
-    query = self._session.query(
+    import time
+    start = time.time()
+    query = sa.select(
         models.Pool.id, models.Pool.name,
         models.Pool.status_id, models.Pool.num_libraries,
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
@@ -127,21 +122,15 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
         models.Pool.experiment_id == experiment_id
     )
 
-    df = pd.read_sql(query.statement, self._url)
-    df["status"] = df["status_id"].apply(lambda x: categories.PoolStatus.get(x).name)
-
-    if not persist_session:
-        self.close_session()
+    df = pd.read_sql(query, self._engine)
+    self.debug(f"Query time: {time.time() - start}")
+    df["status"] = df["status_id"].map(categories.PoolStatus.get)
 
     return df
 
 
 def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-    
-    query = self._session.query(
+    query = sa.select(
         models.Lane.number.label("lane"), models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration, models.Pool.avg_library_size,
     ).where(
@@ -154,23 +143,13 @@ def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
         models.Pool.id == models.LanePoolLink.pool_id
     )
 
-    df = pd.read_sql(query.statement, self._url)
-
-    if not persist_session:
-        self.close_session()
+    df = pd.read_sql(query, self._engine)
 
     return df
 
 
 def get_pool_libraries_df(self, pool_id: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.Pool, pool_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    
-    query = self._session.query(
+    query = sa.select(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.adapter, models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
         models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
@@ -193,27 +172,17 @@ def get_pool_libraries_df(self, pool_id: int) -> pd.DataFrame:
 
     query = query.order_by(models.Library.id)
 
-    df = pd.read_sql(query.statement, query.session.bind)
-    df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).name)
+    df = pd.read_sql(query, self._engine)
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
 
     df = df.dropna(axis="columns", how="all")
     df = df.sort_values(by=["library_name"])
-    
-    if not persist_session:
-        self.close_session()
 
     return df
 
 
 def get_seq_requestor_df(self, seq_request: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.SeqRequest, seq_request)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request} does not exist")
-    
-    query = self._session.query(
+    query = sa.select(
         models.SeqRequest.name.label("seq_request_name"),
         models.User.id.label("user_id"), models.User.email.label("email"),
         models.User.first_name.label("first_name"), models.User.last_name.label("last_name"),
@@ -225,47 +194,28 @@ def get_seq_requestor_df(self, seq_request: int) -> pd.DataFrame:
         models.SeqRequest.id == seq_request
     )
 
-    df = pd.read_sql(query.statement, query.session.bind)
-    df["role"] = df["role_id"].apply(lambda x: categories.UserRole.get(x).name)
-
-    if not persist_session:
-        self.close_session()
+    df = pd.read_sql(query, self._engine)
+    df["role"] = df["role_id"].map(categories.UserRole.get)
 
     return df
 
 
 def get_seq_request_share_emails_df(self, seq_request: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.SeqRequest, seq_request)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request} does not exist")
-    
-    query = self._session.query(
-        models.SeqRequestShareEmailLink.email.label("email"), models.SeqRequestShareEmailLink.status_id.label("status_id"),
+    query = sa.select(
+        models.SeqRequestDeliveryEmailLink.email.label("email"),
+        models.SeqRequestDeliveryEmailLink.status_id.label("status_id"),
     ).where(
-        models.SeqRequestShareEmailLink.seq_request_id == seq_request
+        models.SeqRequestDeliveryEmailLink.seq_request_id == seq_request
     )
 
-    df = pd.read_sql(query.statement, query.session.bind)
-    df["status"] = df["status_id"].apply(lambda x: categories.DeliveryStatus.get(x).name)
-
-    if not persist_session:
-        self.close_session()
+    df = pd.read_sql(query, self._engine)
+    df["status"] = df["status_id"].map(categories.DeliveryStatus.get)
 
     return df
 
 
 def get_library_features_df(self, library_id: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    
-    query = self._session.query(
+    query = sa.select(
         models.Feature.id.label("feature_id"), models.Feature.name.label("feature_name"), models.Feature.type_id.label("feature_type_id"),
         models.Feature.target_id.label("target_id"), models.Feature.target_name.label("target_name"),
         models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
@@ -281,26 +231,17 @@ def get_library_features_df(self, library_id: int) -> pd.DataFrame:
         models.LibraryFeatureLink.library_id == library_id
     ).distinct()
 
-    df = pd.read_sql(query.statement, query.session.bind)
-    df["feature_type"] = df["feature_type_id"].apply(lambda x: categories.FeatureType.get(x).name)
-
-    if not persist_session:
-        self.close_session()
+    df = pd.read_sql(query, self._engine)
+    df["feature_type"] = df["feature_type_id"].map(categories.FeatureType.get)
 
     return df
 
 
 def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-    
-    query = self._session.query(
-        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"), models.Sample.organism_id.label("tax_id"),
-        models.CMO.id.label("cmo_id"), models.CMO.sequence.label("sequence"), models.CMO.pattern.label("pattern"), models.CMO.read.label("read"),
+    query = sa.select(
+        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
+        models.CMO.id.label("cmo_id"), models.CMO.sequence.label("sequence"), models.CMO.pattern.label("pattern"),
+        models.CMO.read.label("read"),
     ).join(
         models.SampleLibraryLink,
         models.SampleLibraryLink.sample_id == models.Sample.id
@@ -311,23 +252,13 @@ def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
         models.CMO.id == models.SampleLibraryLink.cmo_id
     ).distinct()
 
-    df = pd.read_sql(query.statement, query.session.bind)
-
-    if not persist_session:
-        self.close_session()
+    df = pd.read_sql(query, self._engine)
 
     return df
 
 
 def get_seq_request_libraries_df(self, seq_request: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.SeqRequest, seq_request)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request} does not exist")
-    
-    query = self._session.query(
+    query = sa.select(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.adapter, models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
         models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
@@ -353,26 +284,16 @@ def get_seq_request_libraries_df(self, seq_request: int) -> pd.DataFrame:
 
     query = query.order_by(models.Library.id)
 
-    df = pd.read_sql(query.statement, query.session.bind)
-    df["library_type"] = df["library_type_id"].apply(lambda x: categories.LibraryType.get(x).name)
+    df = pd.read_sql(query, self._engine)
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
     df = df.dropna(axis="columns", how="all")
     df = df.sort_values(by=["pool_name", "owner_email", "library_name"])
-    
-    if not persist_session:
-        self.close_session()
 
     return df
 
 
 def get_experiment_seq_qualities_df(self, experiment_id: int) -> pd.DataFrame:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    
-    query = self._session.query(
+    query = sa.select(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
         models.SeqQuality.lane, models.SeqQuality.num_lane_reads, models.SeqQuality.num_library_reads,
         models.SeqQuality.mean_quality_pf_r1, models.SeqQuality.q30_perc_r1,
@@ -388,13 +309,10 @@ def get_experiment_seq_qualities_df(self, experiment_id: int) -> pd.DataFrame:
     )
 
     query = query.order_by(models.SeqQuality.lane, models.Library.id)
-    df = pd.read_sql(query.statement, query.session.bind)
+    df = pd.read_sql(query, self._engine)
 
     df.loc[df["library_name"].isna(), "library_id"] = -1
     df.loc[df["library_name"].isna(), "library_name"] = "Undetermined"
     df["library_id"] = df["library_id"].astype(int)
-
-    if not persist_session:
-        self.close_session()
 
     return df

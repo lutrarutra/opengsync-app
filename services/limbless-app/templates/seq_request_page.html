@@ -217,7 +217,7 @@
                                 <h5 class="card-title">Add Raw Samples</h5>
                             </div>
                             <div class="text-container">
-                                <p class="card-text">Workflow to submit raw samples for library preparation, pooling, and sequencing. You can submit this workflow multiple times before submitting the request.</p>
+                                <p class="card-text">Submit raw samples for library preparation, pooling, and sequencing. You can submit this workflow multiple times before submitting the request.</p>
                             </div>
                         </div>
                     </div>
@@ -235,7 +235,7 @@
                                 <h5 class="card-title">Add Pooled Libraries</h5>
                             </div>
                             <div class="text-container">
-                                <p class="card-text">Workflow to specify pooled libraries for sequencing. You can submit this workflow multiple times before submitting the request.</p>
+                                <p class="card-text">Submit pooled libraries for sequencing. You can submit this workflow multiple times before submitting the request.</p>
                             </div>
                         </div>
                     </div>
@@ -419,15 +419,15 @@
                         id="seq_request_share_email-form-popup-btn">Add Email</button>
                     </div>
                 </div>     
-                {% set only_one = seq_request.receivers | length == 1 %}
+                {% set only_one = seq_request.delivery_email_links | length == 1 %}
                 <div class="share-email-list">
-                    {% for receiver in seq_request.receivers %}
+                    {% for link in seq_request.delivery_email_links %}
                     <div class="row">
                         <div class="col-7">
-                            {{ metadata_group_email_link("Recipient", receiver.email, class="col") }}
+                            {{ metadata_group_email_link("Recipient", link.email, class="col") }}
                         </div>
                         <div class="col-4">
-                            {{ metadata_group("Status", receiver.status.name + " " + receiver.status.icon, class="col") }}
+                            {{ metadata_group("Status", link.status.name + " " + link.status.icon, class="col") }}
                         </div>
                         <div class="col-1 remove-btn-container">
                             <span
@@ -435,7 +435,7 @@
                                 {{ tooltip('Atleast one email is required. Add another email to remove this.', category='danger') }}
                             {% endif %}>
                                 <button class="btn btn-danger" {% if only_one %}disabled{% endif %}
-                                hx-delete="{{ url_for('seq_requests_htmx.remove_share_email', seq_request_id=seq_request.id, email=receiver.id) }}">
+                                hx-delete="{{ url_for('seq_requests_htmx.remove_share_email', seq_request_id=seq_request.id, email=link.email) }}">
                                     Remove
                                 </button>
                             </span>
