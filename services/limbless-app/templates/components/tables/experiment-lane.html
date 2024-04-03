@@ -1,0 +1,63 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div id="experiment-lane-table" class="table-container">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th class="col-1" scope="col">ID</th>
+                <th class="col-1" scope="col">Lane</th>
+                <th class="col-1" scope="col"># Pools</th>
+                <th class="col-1" scope="col">Qubit Conc.</th>
+                <th class="col-1" scope="col">Avg. Library Size</th>
+                <th class="col-1" scope="col">Molarity</th>
+                <th class="col-1" scope="col">Library Volume</th>
+                <th class="col-1" scope="col">Total Volume</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lane in lanes %}
+            <tr>
+                <th scope="row">{{ lane.id }}</th>
+                <td>{{ lane.number }}</td>
+                <td>{{ lane.pools | length }}</td>
+                <td class="qubit-col">
+                    <div class="quantity-container">
+                        <div class="value">{{ lane.qubit_concentration if lane.qubit_concentration }}</div>
+                        <div class="unit">ng/μL</div>
+                    </div>
+                </td>
+                <td class="avg_library_size-col">
+                    <div class="quantity-container">
+                        <div class="value">{{ lane.avg_library_size if lane.avg_library_size }}</div>
+                        <div class="unit">bp</div>
+                    </div>
+                </td>
+                <td class="molarity-col">
+                    <div class="quantity-container">
+                        <div class="value">{{ "%.2f" % lane.molarity }}</div>
+                        <div class="unit">nM</div>
+                    </div>
+                </td>
+                <td class="library_volume-col">
+                    <div class="quantity-container">
+                        <div class="value">{{ "%.2f" % lane.library_volume_ul if lane.library_volume_ul }}</div>
+                        <div class="unit">μL</div>
+                    </div>
+                </td>
+                <td class="total_volume_ul-col">
+                    <div class="quantity-container">
+                        <div class="value">{{ "%.2f" % lane.total_volume_ul if lane.total_volume_ul }}</div>
+                        <div class="unit">μL</div>
+                    </div>
+                </td>
+            </tr>
+            </a>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        init_tooltips();
+    </script>
+</div>

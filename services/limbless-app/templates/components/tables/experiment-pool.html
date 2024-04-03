@@ -141,11 +141,11 @@
                 if (qubit && avg_library_size) {
                     const total_conc = qubit / (660 * avg_library_size) * 1e6;
                     $(this).find(".nm_total-col").first().find(".value").first().text(total_conc.toFixed(2));
-                    if ({{ Pool.warning_min_concentration }} < total_conc && total_conc < {{ Pool.warning_max_concentration }}) {
+                    if ({{ Pool.warning_min_molarity }} < total_conc && total_conc < {{ Pool.warning_max_molarity }}) {
                         $(this).find(".nm_total-col").first().find(".value").first().addClass("cemm-green");
-                    } else if (total_conc < {{ Pool.error_min_concentration }} || {{ Pool.error_max_concentration }} < total_conc) {
+                    } else if (total_conc < {{ Pool.error_min_molarity }} || {{ Pool.error_max_molarity }} < total_conc) {
                         $(this).find(".nm_total-col").first().find(".value").first().addClass("cemm-red");
-                    } else if (total_conc < {{ Pool.warning_min_concentration }} || {{ Pool.warning_max_concentration }} < total_conc) {
+                    } else if (total_conc < {{ Pool.warning_min_molarity }} || {{ Pool.warning_max_molarity }} < total_conc) {
                         $(this).find(".nm_total-col").first().find(".value").first().addClass("cemm-yellow");
                     }
                 }

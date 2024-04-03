@@ -9,7 +9,6 @@ from wtforms import IntegerField, FloatField, FieldList, FormField
 from wtforms.validators import NumberRange, Optional as OptionalValidator, DataRequired
 
 from limbless_db import models, DBHandler
-from limbless_db.categories import ExperimentStatus
 
 from .... import db, logger
 from ...HTMXFlaskForm import HTMXFlaskForm

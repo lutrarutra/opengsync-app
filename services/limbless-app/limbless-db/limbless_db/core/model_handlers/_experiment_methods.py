@@ -142,6 +142,9 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
     if not self._session:
         self.open_session()
 
+    self.debug(len(experiment.lanes))
+    self.debug(experiment.flowcell_type.num_lanes)
+    self.debug(experiment.num_lanes)
     if experiment.num_lanes != experiment.flowcell_type.num_lanes:
         experiment.num_lanes = experiment.flowcell_type.num_lanes
         for lane in experiment.lanes:

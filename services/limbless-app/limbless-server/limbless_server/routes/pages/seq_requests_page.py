@@ -81,7 +81,7 @@ def seq_request_page(seq_request_id: int):
         process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
         seq_auth_form = forms.SeqAuthForm()
         file_input_form = forms.file.SeqRequestAttachmentForm(seq_request_id=seq_request_id)
-        comment_form = forms.commment.SeqRequestCommentForm(seq_request_id=seq_request_id)
+        comment_form = forms.comment.SeqRequestCommentForm(seq_request_id=seq_request_id)
         seq_request_share_email_form = forms.SeqRequestShareEmailForm()
 
         return render_template(

@@ -6,4 +6,4 @@ from .ProcessRequestForm import ProcessRequestForm  # noqa
 from .SeqRequestShareEmailForm import SeqRequestShareEmailForm  # noqa
 from .SelectPoolsForm import SelectPoolsForm  # noqa
 
-from . import models, commment, file, workflows  # noqa
+from . import models, comment, file, workflows  # noqa

@@ -138,17 +138,6 @@ def add_pool(experiment_id: int):
         available_pools, n_available_pools_pages = session.get_pools(sort_by="id", descending=True, status=PoolStatus.ACCEPTED)
         selected_pools, _ = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id, limit=None)
 
-        qc_done = len(experiment.pools) > 0
-        for pool in experiment.pools:
-            qc_done = qc_done and pool.is_qced()
-            if qc_done is False:
-                break
-            
-        if qc_done:
-            experiment.status_id = ExperimentStatus.POOLS_QCED.id
-            experiment = session.update_experiment(experiment)
-        experiment = session.update_experiment(experiment)
-
         return make_response(
             render_template(
                 "workflows/select_experiment_pools/container.html",
@@ -184,16 +173,6 @@ def remove_pool(experiment_id: int):
 
         available_pools, n_available_pools_pages = session.get_pools(sort_by="id", descending=True, status=PoolStatus.ACCEPTED)
         selected_pools, _ = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id, limit=None)
-
-        qc_done = len(experiment.pools) > 0
-        for pool in experiment.pools:
-            qc_done = qc_done and pool.is_qced()
-            if qc_done is False:
-                break
-            
-        if qc_done:
-            experiment.status_id = ExperimentStatus.POOLS_QCED.id
-            experiment = session.update_experiment(experiment)
 
         return make_response(
             render_template(

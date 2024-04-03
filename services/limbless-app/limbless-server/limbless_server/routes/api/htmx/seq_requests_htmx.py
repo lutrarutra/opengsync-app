@@ -293,7 +293,7 @@ def add_comment(seq_request_id: int):
     
     if seq_request.requestor_id != current_user.id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    
+
     return forms.comment.SeqRequestCommentForm(formdata=request.form, seq_request_id=seq_request_id).process_request(
         seq_request=seq_request, user=current_user
     )

@@ -46,10 +46,17 @@ class Pool(Base):
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested"]
 
-    warning_min_concentration: ClassVar[float] = 1.0
-    warning_max_concentration: ClassVar[float] = 5.0
-    error_min_concentration: ClassVar[float] = 0.5
-    error_max_concentration: ClassVar[float] = 10.0
+    warning_min_molarity: ClassVar[float] = 1.0
+    warning_max_molarity: ClassVar[float] = 5.0
+    error_min_molarity: ClassVar[float] = 0.5
+    error_max_molarity: ClassVar[float] = 10.0
+
+    @property
+    def molarity(self) -> Optional[float]:
+        if self.avg_library_size is None or self.qubit_concentration is None:
+            return None
+        
+        return self.qubit_concentration / (self.avg_library_size * 660) * 1_000_000
 
     def to_dict(self):
         return {

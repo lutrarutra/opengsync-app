@@ -131,7 +131,22 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
 
 def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
     query = sa.select(
-        models.Lane.number.label("lane"), models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+        models.Lane.id, models.Lane.number.label("lane"),
+        models.Lane.phi_x, models.Lane.qubit_concentration, models.Lane.total_volume_ul,
+        models.Lane.library_volume_ul, models.Lane.avg_library_size,
+    ).where(
+        models.Lane.experiment_id == experiment_id
+    ).order_by(models.Lane.number)
+
+    df = pd.read_sql(query, self._engine)
+
+    return df
+
+
+def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Lane.id, models.Lane.number.label("lane"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration, models.Pool.avg_library_size,
     ).where(
         models.Lane.experiment_id == experiment_id

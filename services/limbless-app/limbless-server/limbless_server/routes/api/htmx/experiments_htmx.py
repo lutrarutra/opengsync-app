@@ -129,10 +129,10 @@ def render_lane_pooling_tables(experiment_id: int, file_id: int):
     df = pd.read_csv(filepath, sep="\t")
 
     df["total_conc_color"] = "cemm-green"
-    df.loc[df["total_conc"] < models.Pool.warning_min_concentration, "total_conc_color"] = "cemm-yellow"
-    df.loc[df["total_conc"] > models.Pool.warning_max_concentration, "total_conc_color"] = "cemm-yellow"
-    df.loc[df["total_conc"] < models.Pool.error_min_concentration, "total_conc_color"] = "cemm-red"
-    df.loc[df["total_conc"] > models.Pool.error_max_concentration, "total_conc_color"] = "cemm-red"
+    df.loc[df["total_conc"] < models.Pool.warning_min_molarity, "total_conc_color"] = "cemm-yellow"
+    df.loc[df["total_conc"] > models.Pool.warning_max_molarity, "total_conc_color"] = "cemm-yellow"
+    df.loc[df["total_conc"] < models.Pool.error_min_molarity, "total_conc_color"] = "cemm-red"
+    df.loc[df["total_conc"] > models.Pool.error_max_molarity, "total_conc_color"] = "cemm-red"
     
     return make_response(
         render_template(
@@ -282,7 +282,7 @@ def add_comment(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.commment.ExperimentCommentForm(experiment_id=experiment_id, formdata=request.form).process_request(user=current_user, experiment=experiment)
+    return forms.comment.ExperimentCommentForm(experiment_id=experiment_id, formdata=request.form).process_request(user=current_user, experiment=experiment)
 
 
 @experiments_htmx.route("<int:experiment_id>/remove_pool", methods=["DELETE"])
@@ -303,23 +303,13 @@ def remove_pool(experiment_id: int):
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (pool := session.get_pool(pool_id)) is None:
+        if (_ := session.get_pool(pool_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
         session.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
 
         logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
         flash("Removed pool from experiment.", "success")
-
-        qc_done = len(experiment.pools) > 0
-        for pool in experiment.pools:
-            qc_done = qc_done and pool.is_qced()
-            if qc_done is False:
-                break
-            
-        if qc_done:
-            experiment.status_id = ExperimentStatus.POOLS_QCED.id
-            experiment = session.update_experiment(experiment)
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
@@ -397,7 +387,7 @@ def overview(experiment_id: int):
                     if row["library_id"] not in libraries.keys():
                         library_node = {
                             "node": node_idx,
-                            "name": row["library_type"]
+                            "name": row["library_type"].name
                         }
                         node_idx += 1
                         nodes.append(library_node)

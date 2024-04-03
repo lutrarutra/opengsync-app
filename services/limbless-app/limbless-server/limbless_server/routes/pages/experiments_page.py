@@ -56,7 +56,7 @@ def experiment_page(experiment_id: int):
 
         experiment_form = forms.models.ExperimentForm(experiment=experiment)
         pooling_input_form = forms.workflows.library_pooling.PoolingInputForm()
-        comment_form = forms.commment.ExperimentCommentForm(experiment_id=experiment_id)
+        comment_form = forms.comment.ExperimentCommentForm(experiment_id=experiment_id)
         file_input_form = forms.file.ExperimentAttachmentForm(experiment_id=experiment_id)
 
         experiment_lanes = {}

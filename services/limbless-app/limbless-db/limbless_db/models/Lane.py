@@ -30,5 +30,16 @@ class Lane(Base):
 
     sortable_fields: ClassVar[list[str]] = ["id", "number", "experiment_id", "phi_x"]
 
+    warning_min_molarity: ClassVar[float] = 1.0
+    warning_max_molarity: ClassVar[float] = 5.0
+    error_min_molarity: ClassVar[float] = 0.5
+    error_max_molarity: ClassVar[float] = 10.0
+
+    @property
+    def molarity(self) -> Optional[float]:
+        if self.qubit_concentration is None or self.avg_library_size is None:
+            return None
+        return self.qubit_concentration / (self.avg_library_size * 660) * 1_000_000
+
     def __str__(self):
         return f"Lane(id={self.id}, number={self.number})"

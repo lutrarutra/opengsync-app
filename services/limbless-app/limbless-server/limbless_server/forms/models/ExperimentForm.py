@@ -48,6 +48,7 @@ class ExperimentForm(HTMXFlaskForm):
 
         if experiment is not None:
             self.name.data = experiment.name
+            self.workflow_type.data = experiment.workflow_id
             self.sequencer.selected.data = experiment.sequencer.id
             self.sequencer.search_bar.data = experiment.sequencer.name
             self.r1_cycles.data = experiment.r1_cycles
@@ -73,12 +74,11 @@ class ExperimentForm(HTMXFlaskForm):
         flowcell_type = FlowCellType.get(self.flowcell_type.data)
         workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
         experiment.name = self.name.data  # type: ignore
-        experiment.flowcell_type_id = self.flowcell_type.data
+        experiment.flowcell_type_id = flowcell_type.id
         experiment.r1_cycles = self.r1_cycles.data    # type: ignore
         experiment.r2_cycles = self.r2_cycles.data  # type: ignore
         experiment.i1_cycles = self.i1_cycles.data  # type: ignore
         experiment.i2_cycles = self.i2_cycles.data     # type: ignore
-        experiment.num_lanes = flowcell_type.num_lanes
         experiment.sequencer_id = self.sequencer.selected.data
         experiment.operator_id = self.operator.selected.data
         experiment.workflow_id = workflow_type.id

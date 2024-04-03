@@ -22,18 +22,18 @@ class DilutePoolsForm(HTMXFlaskForm):
 
     def __init__(self, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        self._context["warning_min"] = models.Pool.warning_min_concentration
-        self._context["warning_max"] = models.Pool.warning_max_concentration
-        self._context["error_min"] = models.Pool.error_min_concentration
-        self._context["error_max"] = models.Pool.error_max_concentration
+        self._context["warning_min"] = models.Pool.warning_min_molarity
+        self._context["warning_max"] = models.Pool.warning_max_molarity
+        self._context["error_min"] = models.Pool.error_min_molarity
+        self._context["error_max"] = models.Pool.error_max_molarity
         
     def prepare(self, experiment: models.Experiment) -> dict:
         df = db.get_experiment_pools_df(experiment.id)
 
         df["total_conc"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
         df["concentration_color"] = "cemm-green"
-        df.loc[(df["total_conc"] < models.Pool.warning_min_concentration) | (models.Pool.warning_max_concentration < df["total_conc"]), "concentration_color"] = "cemm-yellow"
-        df.loc[(df["total_conc"] < models.Pool.error_min_concentration) | (models.Pool.error_max_concentration < df["total_conc"]), "concentration_color"] = "cemm-red"
+        df.loc[(df["total_conc"] < models.Pool.warning_min_molarity) | (models.Pool.warning_max_molarity < df["total_conc"]), "concentration_color"] = "cemm-yellow"
+        df.loc[(df["total_conc"] < models.Pool.error_min_molarity) | (models.Pool.error_max_molarity < df["total_conc"]), "concentration_color"] = "cemm-red"
 
         for i in range(df.shape[0]):
             if i > len(self.input_fields) - 1:

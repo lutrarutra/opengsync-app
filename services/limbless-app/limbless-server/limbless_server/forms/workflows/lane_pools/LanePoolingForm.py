@@ -7,10 +7,9 @@ from wtforms import StringField, FloatField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
 from limbless_db import models
-from limbless_db.categories import FileType, ExperimentStatus
+from limbless_db.categories import FileType
 
 from .... import db, logger
-from ....tools import io as iot
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 DEFAULT_TARGET_NM = 3.0
@@ -38,7 +37,7 @@ class LanePoolingForm(HTMXFlaskForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
 
     def prepare(self, experiment_id: int) -> dict:
-        df = db.get_experiment_lanes_df(experiment_id)
+        df = db.get_experiment_laned_pools_df(experiment_id)
 
         for i, _ in enumerate(df["lane"].unique()):
             if i > len(self.lane_target_forms) - 1:
@@ -59,10 +58,10 @@ class LanePoolingForm(HTMXFlaskForm):
             df.loc[_df.index, "share"] = _df["num_m_reads_requested"] / _df["num_m_reads_requested"].sum()
 
         df["total_conc_color"] = "cemm-green"
-        df.loc[df["total_conc"] < models.Pool.warning_min_concentration, "total_conc_color"] = "cemm-yellow"
-        df.loc[df["total_conc"] > models.Pool.warning_max_concentration, "total_conc_color"] = "cemm-yellow"
-        df.loc[df["total_conc"] < models.Pool.error_min_concentration, "total_conc_color"] = "cemm-red"
-        df.loc[df["total_conc"] > models.Pool.error_max_concentration, "total_conc_color"] = "cemm-red"
+        df.loc[df["total_conc"] < models.Pool.warning_min_molarity, "total_conc_color"] = "cemm-yellow"
+        df.loc[df["total_conc"] > models.Pool.warning_max_molarity, "total_conc_color"] = "cemm-yellow"
+        df.loc[df["total_conc"] < models.Pool.error_min_molarity, "total_conc_color"] = "cemm-red"
+        df.loc[df["total_conc"] > models.Pool.error_max_molarity, "total_conc_color"] = "cemm-red"
 
         df["pipet"] = DEFAULT_TARGET_NM / df["total_conc"] * df["share"] * DEFAULT_TOTAL_VOLUME_TARGET
 
@@ -80,7 +79,7 @@ class LanePoolingForm(HTMXFlaskForm):
         
         experiment: models.Experiment = context["experiment"]
         user: models.User = context["user"]
-        df = db.get_experiment_lanes_df(experiment.id)
+        df = db.get_experiment_laned_pools_df(experiment.id)
 
         for i, pool_reads_form in enumerate(self.pool_reads_forms):
             df.loc[i, "num_m_reads_requested"] = pool_reads_form.m_reads.data
@@ -136,9 +135,6 @@ class LanePoolingForm(HTMXFlaskForm):
         db.add_file_to_experiment(experiment.id, db_file.id)
 
         df.to_csv(filepath, sep="\t", index=False)
-
-        experiment.status_id = ExperimentStatus.LANED.id
-        experiment = db.update_experiment(experiment)
 
         logger.debug(f"File '{db_file.path}' uploaded by user '{user.id}'.")
         flash("Laning Completed!", "success")
