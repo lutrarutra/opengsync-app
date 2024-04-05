@@ -3,7 +3,7 @@
 
 <div id="lane_qc-form-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">1. Load Flow Cell</h1>
+        <h1 class="modal-title fs-5">1. QC Sequencing Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
@@ -13,6 +13,7 @@
                 <thead>
                     <tr>
                         <th class="col-1" scope="col">Lane</th>
+                        <th class="col-1" scope="col">Phi X</th>
                         <th class="col-1" scope="col">Avg. Library Size</th>
                         <th class="col-1" scope="col">Qubit Conc.</th>
                         <th class="col-1 bg-light" scope="col">Molarity</th>
@@ -24,6 +25,7 @@
                     {{ sub_form.csrf_token() }}
                     <tr>
                         <th scope="row">{{ row["lane"] | int }}{{ sub_form.lane_id(class="form-control", readonly=true, hidden=true) }}</th>
+                        <td>{{ form_cell(sub_form.phi_x, unit="%") }}</td>
                         <td>{{ form_cell(sub_form.avg_library_size, input_class="avg_library_size-col", unit="bp") }}</td>
                         <td>{{ form_cell(sub_form.qubit_concentration, input_class="qubit_concentration-col", unit="ng/μL") }}</td>
                         <td class="molarity-col bg-light">

@@ -10,8 +10,8 @@
     </button>
     <div id="lane-pooling-ratios-container">
         {% for (lane, target_concentration, target_total_volume), _df in df.groupby(["lane", "target_concentration", "target_total_volume"]) %}
-        <div class="pagebreak">
-            <h4>Lane {{ lane }} <span class="print-only desc">{{ experiment.name }}</span></h4>
+        <div class="no-break">
+            <h4>{{ experiment.name }} - Lane {{ lane }} <span class="print-only desc">{{ experiment.workflow.name }}</span></h4>
             <div class="row">
                 {{ metadata_group("Target Concentration", target_concentration, class="col-3", unit="nM") }}
                 {{ metadata_group("Target Total Volume", target_total_volume, class="col-3", unit="μL") }}
@@ -26,7 +26,7 @@
                         <th class="col-1" scope="col">Lane Share</th>
                         <th class="col-1" scope="col">Qubit Conc.</th>
                         <th class="col-1" scope="col">Library Size</th>
-                        <th class="col-1" scope="col">Total Conc.</th>
+                        <th class="col-1" scope="col">Molarity</th>
                         <th class="col-1" scope="col">Pipet</th>
                     </tr>
                 </thead>
@@ -60,7 +60,7 @@
                         </td>
                         <td>
                             <div class="quantity-container">
-                                <div class="value {{ row['total_conc_color'] }}">{{ "%0.2f" % row["total_conc"] }}</div>
+                                <div class="value {{ row['molarity_color'] }}">{{ "%0.2f" % row["molarity"] }}</div>
                                 <div class="unit">nM</div>
                             </div>
                         </td>

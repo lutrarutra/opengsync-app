@@ -46,12 +46,12 @@ class Experiment(Base):
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select")
-    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", cascade="delete", order_by="Lane.number")
+    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number")
     files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink.__tablename__, lazy="select", cascade="delete")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="delete")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries", "flowcell_type_id"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries", "flowcell_type_id", "workflow_id"]
 
     @property
     def status(self) -> ExperimentStatusEnum:

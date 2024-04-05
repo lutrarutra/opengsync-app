@@ -40,8 +40,8 @@ class PoolQCForm(HTMXFlaskForm):
 
             if pd.notna(df.at[idx, "avg_library_size"]):
                 self.input_fields[i].avg_library_size.data = int(df.at[idx, "avg_library_size"])
-            if pd.notna(df.at[idx, "qubit_concentration"]):
-                self.input_fields[i].qubit_concentration.data = df.at[idx, "qubit_concentration"]
+            if pd.notna(df.at[idx, "original_qubit_concentration"]):
+                self.input_fields[i].qubit_concentration.data = df.at[idx, "original_qubit_concentration"]
 
         return {"df": df, "enumerate": enumerate}
     
@@ -60,7 +60,7 @@ class PoolQCForm(HTMXFlaskForm):
                 raise ValueError(f"Pool with id {sub_form.pool_id.data} not found")
                 
             pool.avg_library_size = sub_form.avg_library_size.data
-            pool.qubit_concentration = sub_form.qubit_concentration.data
+            pool.original_qubit_concentration = sub_form.qubit_concentration.data
 
             pool = session.update_pool(pool)
 

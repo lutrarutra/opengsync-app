@@ -1,0 +1,136 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+
+<div id="lane-pooling-form-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">1. Confirm Pooling Ratios</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+        <div id="lane-pooling-form">
+            {{ lane_pooling_form.csrf_token() }}
+            <div class="row">
+                {{ form_group(lane_pooling_form.target_molarity, class="col-3", id="target_molarity", unit="nM") }}
+                {{ form_group(lane_pooling_form.target_total_volume, class="col-3", id="target_total_volume", unit="μL") }}
+                {{ metadata_group("Library Volume", "%0.1f" % df["pipet"].sum(), class="col-3", input_id="total_volume", unit="μL") }}
+                {{ metadata_group("EB Volume", "%0.1f" % (lane_pooling_form.target_total_volume.data - df["pipet"].sum()), class="col-3", input_id="eb_volume", unit="μL") }}
+            </div>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th class="col-2 bg-light" scope="col">Pool Name</th>
+                        <th class="col-1" scope="col">Reads</th>
+                        <th class="col-1" scope="col">Share</th>
+                        <th class="col-1" scope="col">Qubit Conc.</th>
+                        <th class="col-1" scope="col">Library Size</th>
+                        <th class="col-1" scope="col">Molarity</th>
+                        <th class="col-1 bg-light" scope="col">Pipet</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i, (_, row) in enumerate(df.iterrows()) %}
+                    {% set pool_reads_sub_form = lane_pooling_form.pool_reads_forms[i] %}
+                    {{ pool_reads_sub_form.csrf_token() }}
+                    <tr class="pool-row">
+                        <th class="bg-light">{{ row["pool_name"] }} {{ pool_reads_sub_form.pool_id(hidden=true, readonly=true) }}</th>
+                        <td>{{ form_cell(pool_reads_sub_form.m_reads, unit="M", class="m_reads-col") }}</td>
+                        <td class="share-col">
+                            <div class="quantity-container">
+                                <div class="value">{{ "%0.1f" % (row["share"] * 100.0)  }}</div>
+                                <div class="unit">%</div>
+                            </div>
+                        </td>
+                        <td class="qubit-col">
+                            <div class="quantity-container">
+                                <div class="value">{{ row["qubit_concentration"] }}</div>
+                                <div class="unit">ng/μL</div>
+                            </div>
+                        </td>
+                        <td class="avg_library_size-col">
+                            <div class="quantity-container">
+                                <div class="value">{{ row["avg_library_size"] }}</div>
+                                <div class="unit">bp</div>
+                            </div>
+                        </td>
+                        <td class="molarity-col">
+                            <div class="quantity-container">
+                                <div class="value {{ row['molarity_color'] }}">{{ "%0.2f" % row["molarity"] }}</div>
+                                <div class="unit">nM</div>
+                            </div>
+                        </td>
+                        <td class="bg-light pipet-col">
+                            <div class="quantity-container">
+                                <div class="value">{{ "%0.2f" % row["pipet"] }}</div>
+                                <div class="unit">μL</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-target="#lane-pooling-form-container" hx-swap="outerHTML"
+            hx-include="#lane-pooling-form"
+            hx-post="{{ url_for('lane_pools_workflow.lane_pools', experiment_id=experiment.id) }}">
+                Confirm
+            </button>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+           init_tooltips();
+
+            function update_shares() {
+                var total_reads = 0;
+                $(`.pool-row`).each(function() {
+                    var r = parseFloat($(this).find(".m_reads-col input").first().val());
+                    total_reads += r;
+                });
+                $(`.pool-row`).each(function() {
+                    var reads = parseFloat($(this).find(".m_reads-col input").first().val());
+                    var share = reads / total_reads * 100;
+                    $(this).find(".share-col .value").first().text(share.toFixed(1));
+                });
+            }
+
+            function update_pipet() {
+                var total_volume = 0;
+                var target_total_volume = parseFloat($(`#target_total_volume`).val());
+                var target_molarity = parseFloat($(`#target_molarity`).val());
+
+                $(`.pool-row`).each(function() {
+                    var molarity = parseFloat($(this).find(".molarity-col .value").first().text());
+                    var share = parseFloat($(this).find(".share-col .value").first().text());
+
+                    var pipet = target_molarity / molarity * share * target_total_volume * 0.01;
+
+                    console.log(target_molarity, target_total_volume, molarity, share, pipet);
+                    $(this).find(".pipet-col .value").first().text(pipet.toFixed(2));
+                    total_volume += pipet;
+                });
+                $(`#total_volume`).val(total_volume.toFixed(2));
+                $(`#eb_volume`).val((target_total_volume - total_volume).toFixed(2));
+            }
+
+            $("#target_total_volume").on("input", function() {
+                update_pipet();
+            });
+            $("#target_molarity").on("input", function() {
+                update_pipet();
+            });
+
+            $(".m_reads-col input").on("input", function() {
+                update_shares();
+                update_pipet();
+            });
+        });
+    </script>
+</div>

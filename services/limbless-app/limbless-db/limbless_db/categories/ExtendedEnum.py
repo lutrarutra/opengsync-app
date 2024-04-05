@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-
 from typing import TypeVar, Generic, Type
+from collections import OrderedDict
 
 
 @dataclass
@@ -41,6 +41,7 @@ class ExtendedEnum(Generic[T]):
                     cls.__enums__[cls.__name__] = {}  # type: ignore
                 cls.__enums__[cls.__name__][getattr(cls, var).id] = getattr(cls, var)  # type: ignore
 
+        cls.__enums__[cls.__name__] = OrderedDict(sorted(cls.__enums__[cls.__name__].items()))  # type: ignore
         return super().__init_subclass__()
     
     @classmethod

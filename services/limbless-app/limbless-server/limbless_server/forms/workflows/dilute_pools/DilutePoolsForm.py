@@ -1,3 +1,5 @@
+import pandas as pd
+
 from flask import Response, url_for, flash
 from flask_wtf import FlaskForm
 from flask_htmx import make_response
@@ -11,7 +13,7 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 
 
 class PoolingRatioSubForm(FlaskForm):
-    qubit_after_dilution = FloatField(validators=[OptionalValidator()])
+    qubit_after_dilution = FloatField("Qubit Concentration After Dilution", validators=[OptionalValidator()])
 
 
 class DilutePoolsForm(HTMXFlaskForm):
@@ -30,10 +32,12 @@ class DilutePoolsForm(HTMXFlaskForm):
     def prepare(self, experiment: models.Experiment) -> dict:
         df = db.get_experiment_pools_df(experiment.id)
 
-        df["total_conc"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
-        df["concentration_color"] = "cemm-green"
-        df.loc[(df["total_conc"] < models.Pool.warning_min_molarity) | (models.Pool.warning_max_molarity < df["total_conc"]), "concentration_color"] = "cemm-yellow"
-        df.loc[(df["total_conc"] < models.Pool.error_min_molarity) | (models.Pool.error_max_molarity < df["total_conc"]), "concentration_color"] = "cemm-red"
+        df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["diluted_qubit_concentration"]) else row["diluted_qubit_concentration"], axis="columns")
+
+        df["molarity"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+        df["molarity_color"] = "cemm-green"
+        df.loc[(df["molarity"] < models.Pool.warning_min_molarity) | (models.Pool.warning_max_molarity < df["molarity"]), "molarity_color"] = "cemm-yellow"
+        df.loc[(df["molarity"] < models.Pool.error_min_molarity) | (models.Pool.error_max_molarity < df["molarity"]), "molarity_color"] = "cemm-red"
 
         for i in range(df.shape[0]):
             if i > len(self.input_fields) - 1:
@@ -58,7 +62,7 @@ class DilutePoolsForm(HTMXFlaskForm):
             if (pool := db.get_pool(row["id"])) is None:
                 raise ValueError(f"Pool with id {row['id']} not found")
             
-            pool.qubit_concentration = entry.qubit_after_dilution.data
+            pool.diluted_qubit_concentration = entry.qubit_after_dilution.data
             db.update_pool(pool)
 
         flash("Dilution successful!", "success")

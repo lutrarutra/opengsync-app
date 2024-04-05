@@ -6,7 +6,7 @@ import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import FlowCellTypeEnum, SequencingWorkFlowTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus
+from ...categories import FlowCellTypeEnum, SequencingWorkFlowTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus, PoolStatus
 
 
 def create_experiment(
@@ -142,20 +142,33 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
     if not self._session:
         self.open_session()
 
-    self.debug(len(experiment.lanes))
-    self.debug(experiment.flowcell_type.num_lanes)
-    self.debug(experiment.num_lanes)
     if experiment.num_lanes != experiment.flowcell_type.num_lanes:
-        experiment.num_lanes = experiment.flowcell_type.num_lanes
-        for lane in experiment.lanes:
-            if lane.number > experiment.flowcell_type.num_lanes:
-                self._session.delete(lane)
-
-        if len(experiment.lanes) < experiment.flowcell_type.num_lanes:
-            for lane_num in range(experiment.flowcell_type.num_lanes - len(experiment.lanes) + 1, experiment.flowcell_type.num_lanes + 1):
+        if experiment.num_lanes > experiment.flowcell_type.num_lanes:
+            for lane in experiment.lanes:
+                if lane.number > experiment.flowcell_type.num_lanes:
+                    self._session.delete(lane)
+        else:
+            print(experiment.flowcell_type.num_lanes, experiment.num_lanes, len(experiment.lanes), flush=True)
+            for lane_num in range(experiment.flowcell_type.num_lanes - experiment.num_lanes + 1, experiment.flowcell_type.num_lanes + 1):
+                if lane_num in [lane.number for lane in experiment.lanes]:
+                    raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
+                print("Creating lane", lane_num, flush=True)
                 lane = models.Lane(number=lane_num, experiment_id=experiment.id)
-                experiment.lanes.append(lane)
                 self._session.add(lane)
+
+        experiment.num_lanes = experiment.flowcell_type.num_lanes
+
+    self._session.add(experiment)
+    self._session.commit()
+    self._session.refresh(experiment)
+    
+    if experiment.workflow.combined_lanes:
+        for lane in experiment.lanes:
+            for pool in experiment.pools:
+                if pool not in lane.pools:
+                    lane.pools.append(pool)
+                    pool.status_id = PoolStatus.LANED.id
+                    self._session.add(lane)
 
     self._session.add(experiment)
     self._session.commit()

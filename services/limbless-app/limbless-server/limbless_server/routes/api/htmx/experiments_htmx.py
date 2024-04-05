@@ -128,11 +128,24 @@ def render_lane_pooling_tables(experiment_id: int, file_id: int):
     filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
     df = pd.read_csv(filepath, sep="\t")
 
-    df["total_conc_color"] = "cemm-green"
-    df.loc[df["total_conc"] < models.Pool.warning_min_molarity, "total_conc_color"] = "cemm-yellow"
-    df.loc[df["total_conc"] > models.Pool.warning_max_molarity, "total_conc_color"] = "cemm-yellow"
-    df.loc[df["total_conc"] < models.Pool.error_min_molarity, "total_conc_color"] = "cemm-red"
-    df.loc[df["total_conc"] > models.Pool.error_max_molarity, "total_conc_color"] = "cemm-red"
+    df["molarity_color"] = "cemm-green"
+    df.loc[df["molarity"] < models.Pool.warning_min_molarity, "molarity_color"] = "cemm-yellow"
+    df.loc[df["molarity"] > models.Pool.warning_max_molarity, "molarity_color"] = "cemm-yellow"
+    df.loc[df["molarity"] < models.Pool.error_min_molarity, "molarity_color"] = "cemm-red"
+    df.loc[df["molarity"] > models.Pool.error_max_molarity, "molarity_color"] = "cemm-red"
+
+    if "lane" not in df.columns:
+        target_molarity = df["target_molarity"].values[0]
+        target_total_volume = df["target_total_volume"].values[0]
+        pipet = df["pipet"].sum()
+        eb_volume = target_total_volume - pipet
+        return make_response(
+            render_template(
+                "components/experiment-pooling-ratios.html", experiment=experiment, df=df,
+                target_molarity=target_molarity, target_total_volume=target_total_volume,
+                pipet=pipet, eb_volume=eb_volume
+            )
+        )
     
     return make_response(
         render_template(

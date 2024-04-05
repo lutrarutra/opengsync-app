@@ -259,7 +259,8 @@ def link_pool_experiment(self, experiment_id: int, pool_id: int):
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.Experiment, experiment_id)) is None:
+    experiment: models.Experiment
+    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
@@ -269,6 +270,15 @@ def link_pool_experiment(self, experiment_id: int, pool_id: int):
 
     pool.experiment_id = experiment_id
     pool.status_id = PoolStatus.ASSIGNED.id
+
+    if experiment.workflow.combined_lanes:
+        for lane in experiment.lanes:
+            link = models.LanePoolLink(
+                lane_id=lane.id, pool_id=pool_id,
+            )
+            pool.status_id = PoolStatus.LANED.id
+            self._session.add(link)
+
     self._session.add(pool)
     self._session.commit()
     self._session.refresh(pool)

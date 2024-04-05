@@ -1,0 +1,76 @@
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+
+<div>
+    <button type="button" class="btn btn-primary" onclick="print_div('lane-pooling-ratios-container')">
+        Print
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer" viewBox="0 0 16 16">
+            <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+            <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/>
+        </svg>
+    </button>
+    <div id="lane-pooling-ratios-container">
+        <h4>{{ experiment.name }} <span class="print-only desc">{{ experiment.workflow.name }}</span></h4>
+        <div class="row">
+            {{ metadata_group("Target Concentration", target_molarity, class="col-3", unit="nM") }}
+            {{ metadata_group("Target Total Volume", target_total_volume, class="col-3", unit="μL") }}
+            {{ metadata_group("Library Volume", "%0.1f" % pipet, class="col-3", unit="μL") }}
+            {{ metadata_group("EB Volume", "%0.1f" % eb_volume, class="col-3", unit="μL") }}
+        </div>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th class="col-2" scope="col">Pool Name</th>
+                    <th class="col-1" scope="col">Reads</th>
+                    <th class="col-1" scope="col">Lane Share</th>
+                    <th class="col-1" scope="col">Qubit Conc.</th>
+                    <th class="col-1" scope="col">Library Size</th>
+                    <th class="col-1" scope="col">Molarity</th>
+                    <th class="col-1" scope="col">Pipet</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for _, row in df.iterrows() %}
+                <tr class="pool-row-{{lane}}">
+                    <th>{{ row["pool_name"] }}</th>
+                    <td>
+                        <div class="quantity-container">
+                            <div class="value">{{ row["num_m_reads_requested"]  }}</div>
+                            <div class="unit">M</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="quantity-container">
+                            <div class="value">{{ "%0.1f" % (row["share"] * 100.0)  }}</div>
+                            <div class="unit">%</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="quantity-container">
+                            <div class="value">{{ row["qubit_concentration"] }}</div>
+                            <div class="unit">ng/μL</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="quantity-container">
+                            <div class="value">{{ row["avg_library_size"] }}</div>
+                            <div class="unit">bp</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="quantity-container">
+                            <div class="value {{ row['molarity_color'] }}">{{ "%0.2f" % row["molarity"] }}</div>
+                            <div class="unit">nM</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="quantity-container">
+                            <div class="value">{{ "%0.2f" % row["pipet"] }}</div>
+                            <div class="unit">μL</div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

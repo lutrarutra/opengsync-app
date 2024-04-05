@@ -36,7 +36,7 @@
                 </td>
                 <td class="molarity-col">
                     <div class="quantity-container">
-                        <div class="value">{{ "%.2f" % lane.molarity }}</div>
+                        <div class="value">{{ "%.2f" % lane.molarity if lane.molarity }}</div>
                         <div class="unit">nM</div>
                     </div>
                 </td>

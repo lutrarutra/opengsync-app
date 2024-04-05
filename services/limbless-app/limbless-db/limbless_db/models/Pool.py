@@ -23,8 +23,9 @@ class Pool(Base):
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
-    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
     avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
+    original_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
+    diluted_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
 
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
@@ -52,17 +53,61 @@ class Pool(Base):
     error_max_molarity: ClassVar[float] = 10.0
 
     @property
-    def molarity(self) -> Optional[float]:
-        if self.avg_library_size is None or self.qubit_concentration is None:
+    def original_molarity(self) -> Optional[float]:
+        if self.avg_library_size is None or self.original_qubit_concentration is None:
             return None
         
-        return self.qubit_concentration / (self.avg_library_size * 660) * 1_000_000
+        return self.original_qubit_concentration / (self.avg_library_size * 660) * 1_000_000
+    
+    @property
+    def diluted_molarity(self) -> Optional[float]:
+        if self.avg_library_size is None or self.diluted_qubit_concentration is None:
+            return None
+        
+        return self.diluted_qubit_concentration / (self.avg_library_size * 660) * 1_000_000
+    
+    @property
+    def qubit_concentration(self) -> Optional[float]:
+        if self.diluted_qubit_concentration is not None:
+            return self.diluted_qubit_concentration
+        return self.original_qubit_concentration
+    
+    @property
+    def molarity(self) -> Optional[float]:
+        if self.diluted_qubit_concentration is not None:
+            return self.diluted_molarity
+        return self.original_molarity
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
         }
+    
+    @property
+    def molarity_color_class(self) -> str:
+        if (molarity := self.molarity) is None:
+            return ""
+        
+        if molarity < self.error_min_molarity or self.error_max_molarity < molarity:
+            return "cemm-red"
+        
+        if molarity < self.warning_min_molarity or self.warning_max_molarity < molarity:
+            return "cemm-yellow"
+        
+        return "cemm-green"
+    
+    @property
+    def qubit_concentration_str(self) -> str:
+        if (q := self.qubit_concentration) is None:
+            return ""
+        return f"{q:.2f}"
+    
+    @property
+    def molarity_str(self) -> str:
+        if (m := self.molarity) is None:
+            return ""
+        return f"{m:.2f}"
     
     def search_value(self) -> int:
         return self.id
@@ -81,4 +126,4 @@ class Pool(Base):
         return PoolStatus.get(self.status_id)
     
     def is_qced(self) -> bool:
-        return self.qubit_concentration is not None and self.avg_library_size is not None
+        return self.original_qubit_concentration is not None and self.avg_library_size is not None

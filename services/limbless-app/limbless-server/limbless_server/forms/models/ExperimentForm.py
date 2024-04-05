@@ -18,11 +18,6 @@ class ExperimentForm(HTMXFlaskForm):
 
     name = StringField("Experiment Name", validators=[DataRequired(), Length(min=3, max=models.Experiment.name.type.length)])
     sequencer = FormField(SearchBar, label="Select Sequencer", description="Select the sequencer that will be used for sequencing.")
-    flowcell_type = SelectField(
-        "Flowcell Type", choices=FlowCellType.as_selectable(),
-        description="Type of flowcell to use for sequencing.",
-        coerce=int, default=0
-    )
 
     workflow_type = SelectField(
         "Workflow Type", choices=SequencingWorkFlowType.as_selectable(),
@@ -55,7 +50,6 @@ class ExperimentForm(HTMXFlaskForm):
             self.r2_cycles.data = experiment.r2_cycles
             self.i1_cycles.data = experiment.i1_cycles
             self.i2_cycles.data = experiment.i2_cycles
-            self.flowcell_type.data = experiment.flowcell_type.id
             self.operator.selected.data = experiment.operator_id
             self.operator.search_bar.data = experiment.operator.search_name()
 
@@ -71,10 +65,9 @@ class ExperimentForm(HTMXFlaskForm):
         return validated
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
-        flowcell_type = FlowCellType.get(self.flowcell_type.data)
         workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
         experiment.name = self.name.data  # type: ignore
-        experiment.flowcell_type_id = flowcell_type.id
+        experiment.flowcell_type_id = workflow_type.flow_cell_type.id
         experiment.r1_cycles = self.r1_cycles.data    # type: ignore
         experiment.r2_cycles = self.r2_cycles.data  # type: ignore
         experiment.i1_cycles = self.i1_cycles.data  # type: ignore
@@ -89,22 +82,21 @@ class ExperimentForm(HTMXFlaskForm):
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 
     def __create_new_experiment(self) -> Response:
-        flowcell_type = FlowCellType.get(self.flowcell_type.data)
         workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
         experiment = db.create_experiment(
             name=self.name.data,  # type: ignore
-            flowcell_type=flowcell_type,
+            flowcell_type=workflow_type.flow_cell_type,
             workflow_type=workflow_type,
             sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,  # type: ignore
             r2_cycles=self.r2_cycles.data,
             i1_cycles=self.i1_cycles.data,  # type: ignore
             i2_cycles=self.i2_cycles.data,
-            num_lanes=flowcell_type.num_lanes,
+            num_lanes=workflow_type.flow_cell_type.num_lanes,
             operator_id=self.operator.selected.data,
         )
 
-        for lane_num in range(1, flowcell_type.num_lanes + 1):
+        for lane_num in range(1, workflow_type.flow_cell_type.num_lanes + 1):
             db.create_lane(lane_num, experiment.id)
 
         flash(f"Created experiment '{experiment.name}'.", "success")

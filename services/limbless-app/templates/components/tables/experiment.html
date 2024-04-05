@@ -44,7 +44,7 @@
                 }}
                 {{
                     table_col(
-                        target_id='experiment-table', column_name='Flowcell', column_var='flowcell_type_id',
+                        target_id='experiment-table', column_name='Workflow', column_var='workflow_id',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                         col_size=2
@@ -62,7 +62,7 @@
                     {{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator.owner_id }}</span>
                 </td>
                 <td>{{ experiment.timestamp.strftime('%Y-%m-%d') }}</td>
-                <td>{{ experiment.flowcell_type.name }}</td>
+                <td>{{ experiment.workflow.name }}</td>
             </tr>
             {% endfor %}
         </tbody>

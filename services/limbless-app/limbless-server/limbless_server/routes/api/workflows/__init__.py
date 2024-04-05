@@ -6,3 +6,4 @@ from .select_experiment_pools import select_experiment_pools_workflow  # noqa: F
 from .dilute_pools import dilute_pools_workflow  # noqa: F401
 from .check_barcode_clashes import check_barcode_clashes_workflow  # noqa: F401
 from .lane_qc import lane_qc_workflow  # noqa: F401
+from .load_flow_cell import load_flow_cell_workflow  # noqa: F401

@@ -18,7 +18,7 @@ class Comment(Base):
     author_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True)
 
-    author: Mapped["User"] = relationship("User", lazy="select")
+    author: Mapped["User"] = relationship("User", lazy="joined")
 
     def timestamp_to_str(self) -> str:
         return self.timestamp.strftime('%Y-%m-%d %H:%M')

@@ -26,6 +26,7 @@ input[type=number] {
 
 @media print {
     .pagebreak { page-break-before: always; }
+    .no-break { page-break-inside: avoid; }
 }
 
 .row {
@@ -57,6 +58,12 @@ body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+}
+
+.form-group{
+    label {
+        white-space: nowrap;
+    }
 }
 
 .banner-container {
@@ -500,6 +507,7 @@ span.desc:empty:after {
     .card {
         display: flex;
         flex-direction: column;
+        width: 250px;
         gap: 10px;
 
         .card-icon {
@@ -526,6 +534,10 @@ span.desc:empty:after {
                 }
             }
         }
+    }
+
+    .card.workflow-completed {
+        background-color: #f6fff2;
     }
 
     .card:hover {
@@ -586,6 +598,7 @@ span.desc:empty:after {
     input {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
+        min-width: 70px;
     }
     .unit-container {
         min-width: 70px;

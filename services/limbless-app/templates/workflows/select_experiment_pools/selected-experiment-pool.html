@@ -34,11 +34,7 @@
         </thead>
         <tbody>
             {% for pool in selected_pools %}
-            <tr {% if pool.status.name == "Assigned" %}
-                onclick="remove_pool({{ pool.id }})"
-                {% else %}
-                class="unselectable-row" {{ tooltip("You need to remove lanes first.", category="danger") }}
-                {% endif %}>
+            <tr onclick="remove_pool({{ pool.id }})">
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
                 <td>{{ pool.owner.name }}</td>

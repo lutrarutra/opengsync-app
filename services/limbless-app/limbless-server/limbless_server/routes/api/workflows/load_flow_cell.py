@@ -7,17 +7,17 @@ from limbless_db import models, DBSession
 from limbless_db.categories import HTTPResponse
 
 from .... import db, logger
-from ....forms.workflows import lane_pools as wff
+from ....forms.workflows import load_flow_cell as wff
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
 else:
     from flask_login import current_user
 
-lane_pools_workflow = Blueprint("lane_pools_workflow", __name__, url_prefix="/api/workflows/lane_pools/")
+load_flow_cell_workflow = Blueprint("load_flow_cell_workflow", __name__, url_prefix="/api/workflows/load_flow_cell/")
 
 
-@lane_pools_workflow.route("<int:experiment_id>/begin", methods=["GET"])
+@load_flow_cell_workflow.route("<int:experiment_id>/begin", methods=["GET"])
 @login_required
 def begin(experiment_id: int):
     with DBSession(db) as session:
@@ -28,16 +28,17 @@ def begin(experiment_id: int):
             return abort(HTTPResponse.NOT_FOUND.id)
 
     if experiment.workflow.combined_lanes:
-        form = wff.UnifiedLanePoolingForm()
+        form = wff.UnifiedLoadFlowCellForm()
     else:
-        form = wff.LanePoolingForm()
+        form = wff.LoadFlowCellForm()
+        
     context = form.prepare(experiment)
-    return form.make_response(experiment=experiment, Pool=models.Pool, **context)
+    return form.make_response(experiment=experiment, **context)
 
 
-@lane_pools_workflow.route("<int:experiment_id>/lane_pools", methods=["POST"])
+@load_flow_cell_workflow.route("<int:experiment_id>/dilute", methods=["POST"])
 @login_required
-def lane_pools(experiment_id: int):
+def dilute(experiment_id: int):
     with DBSession(db) as session:
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
@@ -48,8 +49,8 @@ def lane_pools(experiment_id: int):
         experiment.files
 
     if experiment.workflow.combined_lanes:
-        form = wff.UnifiedLanePoolingForm(formdata=request.form)
+        form = wff.UnifiedLoadFlowCellForm(request.form)
     else:
-        form = wff.LanePoolingForm(formdata=request.form)
+        form = wff.LoadFlowCellForm(request.form)
 
-    return form.process_request(experiment=experiment, user=current_user)
+    return form.process_request(experiment=experiment)

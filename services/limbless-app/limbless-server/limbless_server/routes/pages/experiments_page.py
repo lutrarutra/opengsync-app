@@ -4,11 +4,9 @@ from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required
 
 from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse, ExperimentStatus, PoolStatus
+from limbless_db.categories import HTTPResponse, PoolStatus, FileType
 
 from ... import forms, db, tools, logger
-
-import time
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -62,7 +60,11 @@ def experiment_page(experiment_id: int):
         experiment_lanes = {}
         lane_capacities = {}
 
+        all_lanes_qced = True
+        all_lanes_ready = True
         for lane in experiment.lanes:
+            all_lanes_qced = all_lanes_qced and lane.is_qced()
+            all_lanes_ready = all_lanes_ready and lane.is_ready()
             experiment_lanes[lane.number] = []
             lane_capacities[lane.number] = 0
             
@@ -87,7 +89,11 @@ def experiment_page(experiment_id: int):
             (f"Experiment {experiment_id}", ""),
         ]
 
-        experiment.files
+        laning_completed = False
+        for file in experiment.files:
+            if file.type == FileType.LANE_POOLING_TABLE:
+                laning_completed = True
+                break
         experiment.comments
 
     return render_template(
@@ -109,6 +115,9 @@ def experiment_page(experiment_id: int):
         all_pools_laned=all_pools_laned,
         all_pools_qced=all_pools_qced,
         can_be_loaded=can_be_loaded,
+        all_lanes_qced=all_lanes_qced,
+        all_lanes_ready=all_lanes_ready,
+        laning_completed=laning_completed,
         lane_capacities=lane_capacities,
         Pool=models.Pool
     )

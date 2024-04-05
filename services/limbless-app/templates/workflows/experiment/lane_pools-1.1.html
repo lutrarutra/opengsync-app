@@ -26,10 +26,10 @@
                 <div class="tab-pane fade {% if lane == 1 %} show active{% endif %}" id="lane-{{lane}}-tab" role="tabpanel" tabindex="{{lane}}">
                     {{ lane_target_sub_form.csrf_token() }}
                     <div class="row">
-                        {{ form_group(lane_target_sub_form.target_concentration, class="col-3", id="target_concentration-" + lane | string, unit="nM") }}
-                        {{ form_group(lane_target_sub_form.target_total_volume, class="col-3", id="target_total_volume-" + lane | string, unit="μL") }}
-                        {{ metadata_group("Library Volume", "%0.1f" % _df["pipet"].sum(), class="col-3", input_id="total_volume-" + lane | string, unit="μL") }}
-                        {{ metadata_group("EB Volume", "%0.1f" % (lane_target_sub_form.target_total_volume.data - _df["pipet"].sum()), class="col-3", input_id="eb_volume-" + lane | string, unit="μL") }}
+                        {{ form_group(lane_target_sub_form.target_concentration, class="col-6 col-xl-3", id="target_concentration-" + lane | string, unit="nM") }}
+                        {{ form_group(lane_target_sub_form.target_total_volume, class="col-6 col-xl-3", id="target_total_volume-" + lane | string, unit="μL") }}
+                        {{ metadata_group("Library Volume", "%0.1f" % _df["pipet"].sum(), class="col-6 col-xl-3", input_id="total_volume-" + lane | string, unit="μL") }}
+                        {{ metadata_group("EB Volume", "%0.1f" % (lane_target_sub_form.target_total_volume.data - _df["pipet"].sum()), class="col-6 col-xl-3", input_id="eb_volume-" + lane | string, unit="μL") }}
                     </div>
 
                     <table class="table table-hover">
@@ -40,7 +40,7 @@
                                 <th class="col-1" scope="col">Lane Share [%]</th>
                                 <th class="col-1" scope="col">Qubit Conc.</th>
                                 <th class="col-1" scope="col">Library Size</th>
-                                <th class="col-1" scope="col">Total Conc.</th>
+                                <th class="col-1" scope="col">Molarity</th>
                                 <th class="col-1 bg-light" scope="col">Pipet</th>
                             </tr>
                         </thead>
@@ -49,7 +49,7 @@
                             {% set pool_reads_sub_form = lane_pooling_form.pool_reads_forms[i] %}
                             {{ pool_reads_sub_form.csrf_token() }}
                             <tr class="pool-row-{{lane}}">
-                                <th class="bg-light">{{ row["pool_name"] }}</th>
+                                <th class="bg-light">{{ row["pool_name"] }}{{ pool_reads_sub_form.pool_id(hidden=true, readonly=true) }}</th>
                                 <td>{{ form_cell(pool_reads_sub_form.m_reads, unit="M", class="m_reads-col-" + lane | string) }}</td>
                                 <td class="share-col-{{lane}}">
                                     <div class="quantity-container">
@@ -69,9 +69,9 @@
                                         <div class="unit">bp</div>
                                     </div>
                                 </td>
-                                <td class="total_conc-col-{{lane}}">
+                                <td class="molarity-col-{{lane}}">
                                     <div class="quantity-container">
-                                        <div class="value {{ row['total_conc_color'] }}">{{ "%0.2f" % row["total_conc"] }}</div>
+                                        <div class="value {{ row['molarity_color'] }}">{{ "%0.2f" % row["molarity"] }}</div>
                                         <div class="unit">nM</div>
                                     </div>
                                 </td>
@@ -86,7 +86,6 @@
                         </tbody>
                     </table>
                 </div>
-
                 {% endfor %}
             </div>
         </div>
@@ -127,12 +126,12 @@
                 var target_total_volume = parseFloat($(`#target_total_volume-${lane}`).val());
                 var target_concentration = parseFloat($(`#target_concentration-${lane}`).val());
                 $(`.pool-row-${lane}`).each(function() {
-                    var total_conc = parseFloat($(this).find(`.total_conc-col-${lane}`).first().find(".value").first().text());
+                    var molarity = parseFloat($(this).find(`.molarity-col-${lane}`).first().find(".value").first().text());
                     var share = parseFloat($(this).find(`.share-col-${lane}`).first().find(".value").first().text());
 
-                    var pipet = target_concentration / total_conc * share * target_total_volume * 0.01;
+                    var pipet = target_concentration / molarity * share * target_total_volume * 0.01;
 
-                    console.log(target_concentration, target_total_volume, total_conc, share, pipet);
+                    console.log(target_concentration, target_total_volume, molarity, share, pipet);
                     $(this).find(`.pipet-col-${lane}`).first().find(".value").first().text(pipet.toFixed(2));
                     total_volume += pipet;
                 });
