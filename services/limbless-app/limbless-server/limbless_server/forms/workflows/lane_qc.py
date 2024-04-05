@@ -30,7 +30,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
     def prepare(self, experiment: models.Experiment) -> dict:
         df = db.get_experiment_lanes_df(experiment.id)
         df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
-        df = df.drop(columns=["lane"]).drop_duplicates(subset=["pool_id"]).reset_index(drop=True)
+        df = df.drop(columns=["lane"]).reset_index(drop=True)
 
         row = df.iloc[0]
         self.phi_x.data = row["phi_x"] if pd.notna(row["phi_x"]) else None
@@ -47,16 +47,13 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
             context["df"] = df
             context["enumerate"] = enumerate
             return self.make_response(**context)
-        
-        for sub_form in self.input_fields:
-            if (lane := db.get_lane(sub_form.lane_id.data)) is None:
-                logger.error(f"Lane with id {sub_form.lane_id.data} not found")
-                raise ValueError(f"Lane with id {sub_form.lane_id.data} not found")
-                
-            lane.original_qubit_concentration = sub_form.qubit_concentration.data
-            lane.avg_library_size = sub_form.avg_library_size.data
 
-            lane = db.update_lane(lane)
+        for lane in experiment.lanes:
+            lane.phi_x = self.phi_x.data
+            lane.avg_library_size = self.avg_library_size.data
+            lane.original_qubit_concentration = self.qubit_concentration.data
+
+            db.update_lane(lane)
 
         flash("Flow cell loaded successfully", "success")
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))

@@ -22,7 +22,7 @@ class Project(Base):
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
-    owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="select")
+    owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="joined")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_samples"]
 

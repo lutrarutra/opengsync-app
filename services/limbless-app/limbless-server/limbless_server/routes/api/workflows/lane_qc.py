@@ -27,7 +27,10 @@ def begin(experiment_id: int):
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
-    form = wff.QCLanesForm()
+    if experiment.workflow.combined_lanes:
+        form = wff.UnifiedQCLanesForm()
+    else:
+        form = wff.QCLanesForm()
     context = form.prepare(experiment)
     return form.make_response(experiment=experiment, **context)
 
@@ -42,4 +45,9 @@ def qc(experiment_id: int):
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
-        return wff.QCLanesForm(formdata=request.form).process_request(experiment=experiment, session=session)
+        if experiment.workflow.combined_lanes:
+            form = wff.UnifiedQCLanesForm(formdata=request.form)
+        else:
+            form = wff.QCLanesForm(formdata=request.form)
+            
+        return form.process_request(experiment=experiment, session=session)

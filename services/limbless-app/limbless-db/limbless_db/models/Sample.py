@@ -22,7 +22,7 @@ class Sample(Base):
     project: Mapped["Project"] = relationship("Project", back_populates="samples", lazy="select")
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
-    owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="select")
+    owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="joined")
 
     library_links: Mapped[list["SampleLibraryLink"]] = relationship("SampleLibraryLink", back_populates="sample", lazy="select")
 

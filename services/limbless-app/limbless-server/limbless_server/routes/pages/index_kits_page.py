@@ -28,7 +28,7 @@ def index_kit_page(index_kit_id: int):
 
     path_list = [
         ("Index Kits", url_for("index_kits_page.index_kits_page")),
-        (f"{index_kit_id}", ""),
+        (f"Kit {index_kit_id}", ""),
     ]
 
     adapters, adapters_n_pages = session.get_adapters(index_kit_id=index_kit_id)

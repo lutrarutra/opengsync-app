@@ -63,7 +63,7 @@
                     {% if experiment.workflow.combined_lanes %}
                     <span class="table-btn" {{ tooltip("You cannot edit laning configurations in this workflow.", "top", category="warning") }}>
                     {% endif %}
-                        <div class="btn-group table-btn disabled">
+                        <div class="btn-group table-btn {% if experiment.workflow.combined_lanes %}disabled{% endif %}">
                             {% for lane in range(1, experiment.num_lanes + 1) %}
                             {% if experiment.workflow.combined_lanes %}
                             <button type="button" class="btn btn-primary table-btn disabled">

@@ -1,0 +1,85 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+
+<div id="lane_qc-form-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">1. QC Sequencing Pools</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
+        <div id="lane_qc-form">
+            {{ lane_qc_form.csrf_token() }}
+            <div class="row">
+                {{ form_group(lane_qc_form.phi_x, class="col-4", unit="%") }}
+                {{ form_group(lane_qc_form.avg_library_size, class="col-4 avg_library_size-col", unit="bp") }}
+                {{ form_group(lane_qc_form.qubit_concentration, class="col-4 qubit_concentration-col", unit="ng/μL") }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-post="{{ url_for('lane_qc_workflow.qc', experiment_id=experiment.id) }}"
+            hx-target="#lane_qc-form-container" hx-swap="outerHTML" hx-include="#lane_qc-form">
+                Submit
+            </button>
+        </div>
+    </div>
+    <script>
+        function update_molarity(row) {
+            const avg_library_size = parseFloat(row.find(".avg_library_size-col").first().closest("input").val());
+            const qubit_concentration = parseFloat(row.find(".qubit_concentration-col").first().closest("input").val());
+            const total_volume = parseFloat(row.find(".total_volume_ul-col").first().closest("input").val());
+            const desired_molarity = parseFloat(row.find(".desired_molarity-col").first().closest("input").val());
+
+            if (avg_library_size && qubit_concentration) {
+                const molarity = qubit_concentration / (avg_library_size * 660) * 1000000;
+                row.find(".molarity-col .value").first().text(molarity.toFixed(2));
+
+                if ({{ warning_min }} < molarity && molarity < {{ warning_max }}) {
+                    row.find(".molarity-col .value").first().removeClass().addClass("value fw-bold cemm-green");
+                } else if (molarity < {{ error_min }} || {{ error_max }} < molarity) {
+                    row.find(".molarity-col .value").first().removeClass().addClass("value fw-bold cemm-red");
+                } else if (molarity < {{ warning_min }} || {{ warning_max }} < molarity) {
+                    row.find(".molarity-col .value").first().removeClass().addClass("value fw-bold cemm-yellow");
+                }
+
+                if (total_volume && desired_molarity) {
+                    const library_volume = total_volume * desired_molarity / molarity;
+                    row.find(".library_volume-col .value").first().text(library_volume.toFixed(2));
+
+                    if ({{ warning_min }} < library_volume && library_volume < {{ warning_max }}) {
+                        row.find(".library_volume-col .value").first().removeClass().addClass("value fw-bold cemm-green");
+                    } else if (library_volume < {{ error_min }} || {{ error_max }} < library_volume) {
+                        row.find(".library_volume-col .value").first().removeClass().addClass("value fw-bold cemm-red");
+                    } else if (library_volume < {{ warning_min }} || {{ warning_max }} < library_volume) {
+                        row.find(".library_volume-col .value").first().removeClass().addClass("value fw-bold cemm-yellow");
+                    }
+                } else {
+                    row.find(".library_volume-col .value").first().text("");
+                }
+            } else {
+                row.find(".molarity-col .value").first().text("");
+            }
+        }
+        $(document).ready(function() {
+            init_tooltips();
+
+            $("tbody tr").each(function() {
+                update_molarity($(this));
+            });
+
+            $(".avg_library_size-col").on("input", function() {
+                update_molarity($(this).closest("tr"));
+            });
+
+            $(".qubit_concentration-col").on("input", function() {
+                update_molarity($(this).closest("tr"));
+            });
+        });
+    </script>
+</div>
