@@ -195,6 +195,7 @@ def delete_library(
     if not self._session:
         self.open_session()
 
+    library: models.Library
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
@@ -204,6 +205,17 @@ def delete_library(
         if link.cmo is not None:
             self._session.delete(link.cmo)
         self._session.delete(link)
+
+    for feature in library.features:
+        library.features.remove(feature)
+        if feature.feature_kit_id is None:
+            if self._session.query(
+                models.LibraryFeatureLink
+            ).filter(
+                models.LibraryFeatureLink.feature_id == feature.id,
+                models.LibraryFeatureLink.library_id != library
+            ).count() == 0:
+                self._session.delete(feature)
 
     seq_request = library.seq_request
     seq_request.num_libraries -= 1

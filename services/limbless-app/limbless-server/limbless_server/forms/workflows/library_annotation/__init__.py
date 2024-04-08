@@ -5,7 +5,7 @@ from .PoolMappingForm import PoolMappingForm    # noqa: F401
 from .BarcodeCheckForm import BarcodeCheckForm  # noqa: F401
 from .CMOReferenceInputForm import CMOReferenceInputForm    # noqa: F401
 from .SASInputForm import SASInputForm  # noqa: F401
-from .FeatureKitMappingForm import FeatureKitMappingForm    # noqa: F401
+from .FeatureMappingForm import FeatureMappingForm    # noqa: F401
 from .FeatureKitReferenceInputForm import FeatureKitReferenceInputForm  # noqa: F401
 from .LibraryMappingForm import LibraryMappingForm  # noqa: F401
 from .GenomeRefMappingForm import GenomeRefMappingForm  # noqa: F401

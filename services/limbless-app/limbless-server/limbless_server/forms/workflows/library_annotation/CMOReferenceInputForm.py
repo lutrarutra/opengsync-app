@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
-from .FeatureKitMappingForm import FeatureKitMappingForm
+from .FeatureMappingForm import FeatureMappingForm
 
 
 class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
@@ -134,6 +134,6 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
             self.file.errors = (str(e),)
             return self.make_response(**context)
         
-        feature_kit_mapping_form = FeatureKitMappingForm(uuid=self.uuid)
+        feature_kit_mapping_form = FeatureMappingForm(uuid=self.uuid)
         context = feature_kit_mapping_form.prepare(data) | context
         return feature_kit_mapping_form.make_response(**context)

@@ -1,0 +1,18 @@
+<div class="example-table" id="feature-2-example">
+</div>
+<script>
+    $(document).ready(function() {
+        jspreadsheet(document.getElementById('feature-2-example'), {
+            data: [
+                ["ABC_LIBRARY_1", "TotalSeqA Antibody"],
+                ["ABC_LIBRARY_2", "TotalSeqB Antibody"],
+                ["ABC_LIBRARY_3", "TotalSeqA Antibody"],
+            ],
+            columns: [
+                { type: "text", title: "Library Name", width: 300 },
+                { type: "text", title: "Kit", width: 200 },
+            ],
+            minSpareRows: 10,
+        });
+    });
+</script>

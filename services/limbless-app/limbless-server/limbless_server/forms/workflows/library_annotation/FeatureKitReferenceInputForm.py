@@ -17,7 +17,7 @@ from .... import db, logger
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
-from .FeatureKitMappingForm import FeatureKitMappingForm
+from .FeatureMappingForm import FeatureMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .PoolMappingForm import PoolMappingForm
 from .BarcodeCheckForm import BarcodeCheckForm
@@ -43,7 +43,7 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
     }
 
     separator = SelectField(choices=_allowed_extensions, default="tsv", description="Tab-separated ('\\t') or comma-separated (',') file.")
-    feature_kit = FormField(OptionalSearchBar, label="1. Select Predefined Kit for all Feature Caputre Libraries", description="All features from this kit will be used for all feature capture libraries in sample annotation sheet.")
+    feature_kit = FormField(OptionalSearchBar, label="1. Select a Predefined Kit for all Feature Capture Libraries", description="All features from this kit will be used for all feature capture libraries in sample annotation sheet.")
     file = FileField(label="2/3. File with custom features", validators=[FileAllowed([ext for ext, _ in _allowed_extensions])], description="Define custom features or use different predefined kits for each feature capture library.")
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
@@ -52,7 +52,7 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
 
-    def prepare(self, data: Optional[dict[str, pd.DataFrame]] = None) -> dict:
+    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
         if data is None:
             data = self.get_data()
 
@@ -128,7 +128,7 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 return False
         return True
     
-    def __parse(self) -> dict[str, pd.DataFrame]:
+    def __parse(self) -> dict[str, pd.DataFrame | dict]:
         data = self.get_data()
 
         if self.feature_kit.selected.data:
@@ -141,8 +141,10 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 kit: models.FeatureKit = session.get_feature_kit(self.feature_kit.selected.data)
                 features = kit.features
 
-                _df = self.get_data()["library_table"]
-                _df = _df[_df["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id]
+                data = self.get_data()
+                library_table: pd.DataFrame = data["library_table"]  # type: ignore
+                _df = library_table[library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id]
+                logger.debug(_df)
 
                 for library_name in _df["library_name"]:
                     for feature in features:
@@ -150,13 +152,13 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
                         feature_ref["feature_kit_id"].append(kit.id)
                         feature_ref["feature_id"].append(feature.id)
 
-            self.feature_ref = pd.DataFrame(feature_ref)
+            feature_table = pd.DataFrame(feature_ref)
         else:
             self.feature_ref = self.feature_ref.rename(columns=FeatureKitReferenceInputForm._mapping)
             if "feature_id" not in self.feature_ref.columns:
                 self.feature_ref["feature_id"] = None
 
-        data["feature_table"] = self.feature_ref
+        data["feature_table"] = feature_table
 
         self.update_data(data)
 
@@ -167,17 +169,18 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
             return self.make_response(**context)
 
         data = self.__parse()
+        library_table: pd.DataFrame = data["library_table"]  # type: ignore
         
         if not self.feature_kit.selected.data and (~data["feature_table"]["kit"].isna()).any():
-            feature_kit_mapping_form = FeatureKitMappingForm(uuid=self.uuid)
+            feature_kit_mapping_form = FeatureMappingForm(uuid=self.uuid)
             context = feature_kit_mapping_form.prepare(data) | context
             return feature_kit_mapping_form.make_response(**context)
         
-        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+        if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
 
-        if "pool" in data["library_table"].columns:
+        if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)

@@ -53,7 +53,6 @@ def query():
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     results = db.query_feature_kits(word)
-    logger.debug(word)
 
     return make_response(
         render_template(

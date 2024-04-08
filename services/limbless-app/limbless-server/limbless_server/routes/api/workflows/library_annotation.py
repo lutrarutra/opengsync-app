@@ -199,7 +199,7 @@ def map_feature_kits(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.FeatureKitMappingForm(formdata=request.form).process_request(
+    return forms.FeatureMappingForm(formdata=request.form).process_request(
         seq_request=seq_request
     )
 

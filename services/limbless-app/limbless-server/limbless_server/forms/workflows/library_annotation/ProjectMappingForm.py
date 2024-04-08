@@ -96,7 +96,6 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
     
     def __parse(self, seq_request_id: int) -> dict[str, pd.DataFrame | dict]:
         data = self.get_data()
-        logger.debug(data)
         df: pd.DataFrame = data["library_table"]  # type: ignore
 
         df["project_name"] = None

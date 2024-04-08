@@ -20,3 +20,9 @@ class IndexKit(Base):
 
     def __str__(self):
         return f"IndexKit('{self.name}')"
+    
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.name
