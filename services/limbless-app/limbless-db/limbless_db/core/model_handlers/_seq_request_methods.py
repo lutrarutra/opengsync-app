@@ -222,7 +222,7 @@ def submit_seq_request(
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
     seq_request.status_id = SeqRequestStatus.SUBMITTED.id
-    seq_request.submitted_time = datetime.now()
+    seq_request.submitted_timestamp_utc = datetime.now()
     for library in seq_request.libraries:
         if library.status == LibraryStatus.DRAFT:
             library.status_id = LibraryStatus.SUBMITTED.id

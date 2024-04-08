@@ -29,7 +29,6 @@ def create_experiment(
     experiment = models.Experiment(
         name=name,
         flowcell_type_id=flowcell_type.id,
-        timestamp=datetime.now(),
         sequencer_id=sequencer_id,
         r1_cycles=r1_cycles,
         r2_cycles=r2_cycles,

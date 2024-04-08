@@ -45,7 +45,7 @@
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
-                <td>{{ seq_request.submitted_time_to_str() }}</td>
+                <td>{{ seq_request.submitted_timestamp_str() }}</td>
             </tr>
             {% endfor %}
         </tbody>

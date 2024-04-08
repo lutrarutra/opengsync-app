@@ -3,6 +3,7 @@ import os
 import uuid
 
 from loguru import logger
+import pytz
 from flask_htmx import HTMX
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
@@ -61,6 +62,7 @@ db_password = os.environ["POSTGRES_PASSWORD"]
 db_host = os.environ["POSTGRES_HOST"]
 db_port = os.environ["POSTGRES_PORT"]
 db_name = os.environ["POSTGRES_DB"]
+TIMEZONE = pytz.timezone(os.environ['TIMEZONE'])
 db = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
 
 DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")

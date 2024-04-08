@@ -22,7 +22,7 @@
                 {{ comment.author.role.icon | safe }} {{ comment.author.name }}
                 <span class="desc">{{ comment.author.role.name }}</span>
             </p>
-                <p class="text text-muted">{{ comment.timestamp_to_str() }}</p>
+                <p class="text text-muted">{{ comment.timestamp_str() }}</p>
             </div>
             <div class="comment-body">
                 <p class="text">{{ comment.text }}</p>

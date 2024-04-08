@@ -49,7 +49,7 @@
                         <div class="row banner-title">
                             <div class="title col-4">{{ seq_request.id }}. {{ seq_request.name }}</div>
                             <div class="description col-4"> {{ seq_request.requestor.name }} {{ seq_request.requestor.email }}</div>
-                            <div class="submitted-time col-4">{{ seq_request.submitted_time_to_str() }} </div>
+                            <div class="submitted-time col-4">{{ seq_request.submitted_timestamp_str() }} </div>
                         </div>
                         {{ seq_request_status_bar(seq_request) }}
                     </a>
@@ -71,7 +71,7 @@
                         <div class="row banner-title">
                             <div class="title col-4">{{ experiment.id }}. {{ experiment.name }}</div>
                             <div class="description col-4"> {{ experiment.operator.name }}</div>
-                            <div class="submitted-time col-4">{{ experiment.timestamp_to_str() }} </div>
+                            <div class="submitted-time col-4">{{ experiment.timestamp_str() }} </div>
                         </div>
                         {{ experiment_status_bar(experiment) }}
                     </a>

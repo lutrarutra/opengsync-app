@@ -1,4 +1,5 @@
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link %}
 
 {% macro files_tab(context_name, files, delete_url, delete_context, context) -%}
 <div class="page-header">
@@ -20,12 +21,15 @@
     {% for file in files %}
     <div class="tab-pane fade show {% if loop.index0 == 0 %}active{% endif %}" id="{{context_name}}-file-{{ file.id }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
         <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
-            <div>
-                <h4>{{ file.name }}</h4>
+            <div class="row">
+                {{ metadata_group("Filename", file.name + file.extension, class="col-3") }}
+                {{ metadata_group_link("Uploader", file.uploader.name, url_for('users_page.user_page', user_id=file.uploader_id), class="col-3") }}
+                {{ metadata_group("Size", file.size_str(), class="col-2") }}
+                {{ metadata_group("Time", file.timestamp_str(), class="col-2") }}
             </div>
             <div>
                 {% if file.type.name != "Sequencing Authorization Form" %}
-                <a type="button" class="btn btn-danger"
+                <button type="button" class="btn btn-danger"
                 hx-delete="{{ url_for(delete_url, file_id=file.id, **delete_context) }}"
                 _="on htmx:confirm(issueRequest)
                 halt the event
@@ -33,12 +37,13 @@
                     title: 'Delete file \'{{ file.name }}\'',
                     showDenyButton: true,
                     text: 'Are you sure?',
+                    icon: 'question',
                     confirmButtonText: 'Yes',
                     denyButtonText: 'No'
                 })
                 if result.isConfirmed issueRequest()">
-                    Delete File
-                </a>
+                    Delete
+                </button>
                 {% endif %}
             </div>
         </div>

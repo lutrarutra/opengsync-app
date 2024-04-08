@@ -4,8 +4,8 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from .. import localize
 from .Base import Base
-
 from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum, SequencingWorkFlowType, SequencingWorkFlowTypeEnum
 from .Links import ExperimentFileLink, ExperimentCommentLink
 
@@ -25,7 +25,8 @@ class Experiment(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
     
-    timestamp: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
+    created_timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=False), nullable=False, default=sa.func.now())
+    finished_timestamp_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=False), nullable=True, default=None)
     
     r1_cycles: Mapped[int] = mapped_column(nullable=False)
     r2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
@@ -65,6 +66,16 @@ class Experiment(Base):
     def workflow(self) -> SequencingWorkFlowTypeEnum:
         return SequencingWorkFlowType.get(self.workflow_id)
     
+    @property
+    def created_timestamp(self) -> datetime:
+        return localize(self.created_timestamp_utc)
+    
+    @property
+    def finished_timestamp(self) -> Optional[datetime]:
+        if self.finished_timestamp_utc is None:
+            return None
+        return localize(self.finished_timestamp_utc)
+    
     def is_deleteable(self) -> bool:
         return self.status == ExperimentStatus.DRAFT
     
@@ -74,8 +85,13 @@ class Experiment(Base):
     def is_submittable(self) -> bool:
         return self.status == ExperimentStatus.DRAFT
     
-    def timestamp_to_str(self) -> str:
-        return self.timestamp.strftime('%Y-%m-%d %H:%M')
+    def created_timestamp_str(self) -> str:
+        return self.created_timestamp.strftime('%Y-%m-%d %H:%M')
+    
+    def finished_timestamp_str(self) -> str:
+        if (ts := self.finished_timestamp) is None:
+            return ''
+        return ts.strftime('%Y-%m-%d %H:%M')
     
     def __str__(self) -> str:
         return f"Experiment(id={self.id}, num_lanes={self.num_lanes})"

@@ -27,6 +27,9 @@ if (db_port := os.environ.get("POSTGRES_PORT")) is None:
 if (db_host := os.environ.get("POSTGRES_HOST")) is None:
     raise ValueError("POSTGRES_HOST environment variable is not set.")
 
+if (TIMEZONE := os.environ.get("TIMEZONE")) is None:
+    raise ValueError("TIMEZONE environment variable is not set.")
+
 
 def titlecase_with_acronyms(val: str) -> str:
     return " ".join([c[0].upper() + c[1:] for c in val.split(" ")])

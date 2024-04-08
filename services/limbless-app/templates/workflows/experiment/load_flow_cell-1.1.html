@@ -75,7 +75,7 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
-            hx-post="{{ url_for('load_flow_cell_workflow.dilute', experiment_id=experiment.id) }}"
+            hx-post="{{ url_for('load_flow_cell_workflow.load', experiment_id=experiment.id) }}"
             hx-target="#pool-dilution-form-container" hx-swap="outerHTML" hx-include="#pool-dilution-form">
                 Submit
             </button>

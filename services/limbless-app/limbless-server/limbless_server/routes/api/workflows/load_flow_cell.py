@@ -36,9 +36,9 @@ def begin(experiment_id: int):
     return form.make_response(experiment=experiment, **context)
 
 
-@load_flow_cell_workflow.route("<int:experiment_id>/dilute", methods=["POST"])
+@load_flow_cell_workflow.route("<int:experiment_id>/load", methods=["POST"])
 @login_required
-def dilute(experiment_id: int):
+def load(experiment_id: int):
     with DBSession(db) as session:
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
@@ -48,9 +48,9 @@ def dilute(experiment_id: int):
         
         experiment.files
 
-    if experiment.workflow.combined_lanes:
-        form = wff.UnifiedLoadFlowCellForm(request.form)
-    else:
-        form = wff.LoadFlowCellForm(request.form)
+        if experiment.workflow.combined_lanes:
+            form = wff.UnifiedLoadFlowCellForm(request.form)
+        else:
+            form = wff.LoadFlowCellForm(request.form)
 
-    return form.process_request(experiment=experiment)
+        return form.process_request(experiment=experiment)

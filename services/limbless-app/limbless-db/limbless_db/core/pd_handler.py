@@ -1,4 +1,3 @@
-# pyright: reportMissingImports=false, reportUnusedVariable=false, reportUntypedBaseClass=error
 import pandas as pd
 
 import sqlalchemy as sa

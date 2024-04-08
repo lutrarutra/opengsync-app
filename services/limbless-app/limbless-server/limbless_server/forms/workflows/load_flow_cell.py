@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+from typing import Any, Mapping
 import pandas as pd
 
 from flask import Response, flash, url_for
@@ -27,10 +29,72 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
         self._context["warning_max"] = models.Lane.warning_max_molarity
         self._context["error_min"] = models.Lane.error_min_molarity
         self._context["error_max"] = models.Lane.error_max_molarity
+        self._context["enumerate"] = enumerate
+
+    def __get_params(self, experiment: models.Experiment, df: pd.DataFrame) -> dict:
+        row = df.iloc[0]
+        lane_molarity = row["original_qubit_concentration"] / (row["avg_library_size"] * 660) * 1_000_000
+
+        if pd.notna(row["total_volume_ul"]):
+            self.total_volume_ul.data = row["total_volume_ul"]
+        else:
+            self.total_volume_ul.data = experiment.workflow.volume_target_ul
+
+        if pd.notna(row["sequencing_qubit_concentration"]):
+            self.measured_qubit.data = row["sequencing_qubit_concentration"]
+
+        if pd.notna(row["target_molarity"]):
+            self.target_molarity.data = row["target_molarity"]
+            library_volume = self.total_volume_ul.data * row["target_molarity"] / row["lane_molarity"]
+            eb_volume = self.total_volume_ul.data - row["library_volume"]
+        else:
+            library_volume = None
+            eb_volume = None
+
+        if pd.notna(row["sequencing_qubit_concentration"]) and pd.notna(row["avg_library_size"]):
+            sequencing_molarity = row["sequencing_qubit_concentration"] / (row["avg_library_size"] * 660) * 1_000_000
+        else:
+            sequencing_molarity = None
+
+        return dict(
+            avg_library_size=row["avg_library_size"],
+            lane_molarity=lane_molarity,
+            library_volume=library_volume,
+            eb_volume=eb_volume,
+            sequencing_molarity=sequencing_molarity,
+        )
 
     def prepare(self, experiment: models.Experiment) -> dict:
-        return {}
+        df = db.get_experiment_lanes_df(experiment.id)
+        return self.__get_params(experiment, df)
     
+    def process_request(self, **context) -> Response:
+        experiment: models.Experiment = context["experiment"]
+        
+        if not self.validate():
+            df = db.get_experiment_lanes_df(experiment.id)
+            context = context | self.__get_params(experiment, df)
+            return self.make_response(**context)
+
+        loaded = True
+        for lane in experiment.lanes:
+            lane.total_volume_ul = self.total_volume_ul.data
+            lane.sequencing_qubit_concentration = self.measured_qubit.data
+            lane.target_molarity = self.target_molarity.data
+            if (lane_molarity := lane.original_molarity) is not None and lane.target_molarity is not None and lane.total_volume_ul is not None:
+                lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane_molarity
+            else:
+                loaded = False
+
+            lane = db.update_lane(lane)
+
+        if loaded:
+            experiment.status_id = ExperimentStatus.LOADED.id
+            experiment = db.update_experiment(experiment)
+
+        flash("Saved!", "success")
+        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+
 
 class SubForm(FlaskForm):
     measured_qubit = FloatField("Qubit Concentration After Dilution", validators=[OptionalValidator()])
@@ -76,7 +140,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
             if pd.notna(row["target_molarity"]):
                 entry.target_molarity.data = row["target_molarity"]
                 df.at[idx, "library_volume"] = entry.total_volume_ul.data * row["target_molarity"] / row["lane_molarity"]
-                df.at[idx, "eb_volume"] = entry.total_volume_ul.data - df.at[idx, "library_volume"]
+                df.at[idx, "eb_volume"] = entry.total_volume_ul.data - row["library_volume"]
 
         df["sequencing_molarity"] = df["sequencing_qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
 
@@ -89,9 +153,6 @@ class LoadFlowCellForm(HTMXFlaskForm):
         if not self.validate():
             df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
             df["molarity"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
-            df["molarity_color"] = "cemm-green"
-            df.loc[(df["molarity"] < models.Pool.warning_min_molarity) | (models.Pool.warning_max_molarity < df["molarity"]), "molarity_color"] = "cemm-yellow"
-            df.loc[(df["molarity"] < models.Pool.error_min_molarity) | (models.Pool.error_max_molarity < df["molarity"]), "molarity_color"] = "cemm-red"
             context["df"] = df
             return self.make_response(**context)
         
@@ -114,5 +175,5 @@ class LoadFlowCellForm(HTMXFlaskForm):
             experiment.status_id = ExperimentStatus.LOADED.id
             experiment = db.update_experiment(experiment)
 
-        flash("Lanes successfully diluted", "success")
+        flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))

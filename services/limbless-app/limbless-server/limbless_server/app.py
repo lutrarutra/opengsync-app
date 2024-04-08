@@ -86,7 +86,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
                 _user_id = current_user.id
                 recent_experiments = None
 
-            recent_seq_requests, _ = session.get_seq_requests(user_id=_user_id, sort_by="submitted_time", descending=True, show_drafts=show_drafts)
+            recent_seq_requests, _ = session.get_seq_requests(user_id=_user_id, sort_by="submitted_timestamp_utc", descending=True, show_drafts=show_drafts)
 
             return render_template(
                 "index.html",

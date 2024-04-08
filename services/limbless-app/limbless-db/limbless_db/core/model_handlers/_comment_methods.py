@@ -17,7 +17,6 @@ def create_comment(
         text=text,
         author_id=author_id,
         file_id=file_id,
-        timestamp=datetime.now(),
     )
     self._session.add(comment)
 

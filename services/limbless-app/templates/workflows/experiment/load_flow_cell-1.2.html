@@ -9,63 +9,20 @@
     <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
         <div id="pool-dilution-form">
             {{ load_flow_cell_form.csrf_token() }}
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th class="col-1" scope="col">Lane</th>
-                        <th class="col-1" scope="col">Avg. Library Size</th>
-                        <th class="col-1" scope="col">Lane Molarity</th>
-                        <th class="col-1" scope="col">Target Molarity</th>
-                        <th class="col-1" scope="col">Sequencing Qubit Conc.</th>
-                        <th class="col-1 bg-light" scope="col">Sequencing Molarity</th>
-                        <th class="col-1" scope="col">Total Volume</th>
-                        <th class="col-1" scope="col">Library Volume</th>
-                        <th class="col-1" scope="col">EB Volume</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for i, (_, row) in enumerate(df.iterrows()) %}
-                    {% set sub_form = load_flow_cell_form.input_fields[i] %}
-                    {{ sub_form.csrf_token() }}
-                    <tr>
-                        <th scope="row">{{ row["lane"] }}</th>
-                        <td class="avg_library_size-col">
-                            <div class="quantity-container">
-                                <div class="value">{{ row["avg_library_size"] }}</div>
-                                <div class="unit">bp</div>
-                            </div>
-                        </td>
-                        <td class="lane_molarity-col">
-                            <div class="quantity-container">
-                                <div class="value">{{ "%0.2f" % row["lane_molarity"] }}</div>
-                                <div class="unit">nM</div>
-                            </div>
-                        </td>
-                        <td>{{ form_cell(sub_form.target_molarity, input_class="target_molarity-col", unit="nM") }}</td>
-                        <td>{{ form_cell(sub_form.measured_qubit, input_class="measured_qubit-col", unit="ng/μL") }}</td>
-                        <td class="sequencing_molarity-col bg-light">
-                            <div class="quantity-container">
-                                <div class="value fw-bold">{{ "%.2f" % row["sequencing_molarity"] if row["sequencing_molarity"] }}</div>
-                                <div class="unit">nM</div>
-                            </div>
-                        </td>
-                        <td>{{ form_cell(sub_form.total_volume_ul, input_class="total_volume_ul-col", unit="μL") }}</td>
-                        <td class="library_volume-col bg-light">
-                            <div class="quantity-container">
-                                <div class="value fw-bold">{{ "%.2f" % row["library_volume"] if row["library_volume"] }}</div>
-                                <div class="unit">μL</div>
-                            </div>
-                        </td>
-                        <td class="eb_volume-col bg-light">
-                            <div class="quantity-container">
-                                <div class="value fw-bold">{{ "%.2f" % row["eb_volume"] if row["eb_volume"] }}</div>
-                                <div class="unit">μL</div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="row">
+                {{ form_group(load_flow_cell_form.target_molarity, class="col-6 target_molarity-col", unit="nM") }}
+                {{ form_group(load_flow_cell_form.measured_qubit, class="col-6 measured_qubit-col", unit="ng/μL") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("Avg. Library Size", avg_library_size, "col-4 avg_library_size-col", unit="bp") }}
+                {{ metadata_group("Pool Molarity", '%0.2f' % lane_molarity, "col-4 lane_molarity-col", unit="nM") }}
+                {{ metadata_group("Sequencing Molarity", '%0.2f' % sequencing_molarity if sequencing_molarity, "sequencing_molarity-col col-4", unit="nM") }}
+            </div>
+            <div class="row">
+                {{ form_group(load_flow_cell_form.total_volume_ul, class="col-4 total_volume_ul-col", unit="μL") }}
+                {{ metadata_group("Library Volume", '%0.2f' % library_volume if library_volume, "library_volume-col col-4", unit="μL") }}
+                {{ metadata_group("EB Volume", '%0.2f' % eb_volume if eb_volume, "eb_volume-col col-4", unit="μL") }}
+            </div>
         </div>
     </div>
     <div class="modal-footer">
@@ -75,7 +32,7 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
-            hx-post="{{ url_for('load_flow_cell_workflow.dilute', experiment_id=experiment.id) }}"
+            hx-post="{{ url_for('load_flow_cell_workflow.load', experiment_id=experiment.id) }}"
             hx-target="#pool-dilution-form-container" hx-swap="outerHTML" hx-include="#pool-dilution-form">
                 Submit
             </button>
@@ -85,39 +42,31 @@
         $(document).ready(function() {
             init_tooltips();
 
-            function update_molarity(row) {
-                const measured_qubit = parseFloat(row.find(".measured_qubit-col").first().closest("input").val());
-                const total_volume_ul = parseFloat(row.find(".total_volume_ul-col").first().closest("input").val());
-                const target_molarity = parseFloat(row.find(".target_molarity-col").first().closest("input").val());
-                const avg_library_size = parseFloat(row.find(".avg_library_size-col .value").first().text());
-                const lane_molarity = parseFloat(row.find(".lane_molarity-col .value").first().text());
+            function calculate_ratios() {
+                const row = $("#pool-dilution-form");
+                const measured_qubit = parseFloat(row.find(".measured_qubit-col input").first().val());
+                const total_volume_ul = parseFloat(row.find(".total_volume_ul-col input").first().val());
+                const target_molarity = parseFloat(row.find(".target_molarity-col input").first().val());
+                const avg_library_size = parseFloat(row.find(".avg_library_size-col input").first().val());
+                const lane_molarity = parseFloat(row.find(".lane_molarity-col input").first().val());
 
-                console.log(measured_qubit, total_volume_ul, target_molarity);
                 if (measured_qubit && total_volume_ul && target_molarity) {
                     const library_volume = total_volume_ul * target_molarity / lane_molarity;
                     const eb_volume = total_volume_ul - library_volume;
                     const molarity = (measured_qubit / (660 * avg_library_size)) * 1000000;
-                    row.find(".library_volume-col .value").first().text(library_volume.toFixed(2));
-                    row.find(".eb_volume-col .value").first().text(eb_volume.toFixed(2));
-                    row.find(".sequencing_molarity-col .value").first().text(molarity.toFixed(2));
+                    
+                    row.find(".library_volume-col input").first().val(library_volume.toFixed(2));
+                    row.find(".eb_volume-col input").first().val(eb_volume.toFixed(2));
+                    row.find(".sequencing_molarity-col input").first().val(molarity.toFixed(2));
                 } else {
-                    row.find(".library_volume-col .value").first().text("");
-                    row.find(".eb_volume-col .value").first().text("");
-                    row.find(".sequencing_molarity-col .value").first().text("");
+                    row.find(".library_volume-col input").first().val("");
+                    row.find(".eb_volume-col input").first().val("");
+                    row.find(".sequencing_molarity-col input").first().val("");
                 }
             }
-
-            $(".total_volume_ul-col").on("input", function() {
-                update_molarity($(this).closest("tr"));
-            });
-
-            $(".target_molarity-col").on("input", function() {
-                update_molarity($(this).closest("tr"));
-            });
-
-            $(".measured_qubit-col").on("input", function() {
-                update_molarity($(this).closest("tr"));
-            });
+            $(".total_volume_ul-col").on("input", calculate_ratios);
+            $(".target_molarity-col").on("input", calculate_ratios);
+            $(".measured_qubit-col").on("input", calculate_ratios);
         });
     </script>
 </div>

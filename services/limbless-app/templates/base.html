@@ -81,11 +81,17 @@
                 <a class="nav-link {{'active' if active_page == 'users-page' else ''}}" id="users-page" href="{{ url_for('users_page.users_page') }}">Users</a>
             </div>
             {% endif %}
-            <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" id="barcodes-page" href="{{ url_for('index_kits_page.index_kits_page') }}">Index Kits</a>
-            </div>
-            <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a>
+            <div class="nav-item-dropdown">
+                <p>
+                    Kits&nbsp;
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="#f8f9fa" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                    </svg>
+                </p>
+                <ul>
+                    <li><a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" id="barcodes-page" href="{{ url_for('index_kits_page.index_kits_page') }}">Index Kits</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a></li>
+                </ul>
             </div>
             {% if role_name == "Admin" %}
             <div class="nav-item">
