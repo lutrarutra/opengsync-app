@@ -26,9 +26,9 @@ def create_cmo(
         raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
     
     cmo = models.CMO(
-        sequence=sequence,
-        pattern=pattern,
-        read=read,
+        sequence=sequence.strip(),
+        pattern=pattern.strip(),
+        read=read.strip(),
         sample_id=sample_id,
         library_id=library_id
     )

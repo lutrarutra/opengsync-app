@@ -1,74 +1,76 @@
-{% from "components/tooltip.jinja2" import tooltip %}
-<div id="index-check-container" class="modal-content">
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/categorical_mapping.jinja2" import raw_label_mapping %}
+
+<div id="pool-mapping-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">10. Confirm Libraries</h1>
+        <h1 class="modal-title fs-5">10. Describe Library-Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#data-submission-modal-container")></button>
-    </div> 
-    <div class="modal-body">
-        <form id="index-check-form">
-            {{ form.csrf_token() }}
+    </div>
+    <div class="modal-body" style="height: 100%; overflow-y: hidden;">
+        <form id="pool-mapping-form">
+            <ul class="nav nav-tabs" role="tablist">
+                {% for sub_form in form.input_fields %}
+                <li class="nav-item" role="presentation"> 
+                    <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#pool-form-tab-{{ sub_form.pool_name.data.replace(' ', '_') }}" type="button" role="tab"
+                    aria-controls="pool-form-tab" aria-selected="true">
+                    {{ sub_form.raw_label.data }}</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="tab-content pt-3">
+                {% for sub_form in form.input_fields %}
+                <div class="tab-pane fade show {{ 'active' if loop.first else '' }}" id="pool-form-tab-{{ sub_form.pool_name.data.replace(' ', '_') }}" role="tabpanel" tabindex="{{loop.index0}}">
+                    <div>
+                        <div>
+                            {{ sub_form.csrf_token() }}
+                            {{    
+                                raw_label_mapping(
+                                    raw_label=sub_form.raw_label,
+                                    new_label=sub_form.pool_name,
+                                    token=sub_form.csrf_token
+                                )
+                            }}
+                            {{ form_group(sub_form.num_m_reads) }}
+                            <h5>Who did the pooling and library prep?</h5>
+                            <div class="row">
+                                {{ form_group(sub_form.contact_person_name, class="col-4") }}
+                                {{ form_group(sub_form.contact_person_email, class="col-4") }}
+                                {{ form_group(sub_form.contact_person_phone, class="col-4") }}
+                            </div>
+                        </div>
+                        <div id="pool-library-list-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="col-2">Sample</th>
+                                        <th scope="col" class="col-10">Library Types</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sample, sample_data in pool_libraries[loop.index0].items() %}
+                                    <tr>
+                                        <th scope="row">{{ sample }}</th>
+                                        <td>
+                                            <ul class="h-list">
+                                            {% for library in sample_data %}
+                                                <li>
+                                                    {{ library["library_type"] }}
+                                                </li>
+                                            {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
             {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
-            <table class="table table-hover table-cursor">
-                <thead>
-                    <tr>
-                        <th scope="col" class="col-1">Status</th>
-                        <th scope="col" class="col-2">Name</th>
-                        <th scope="col" class="col-2">Library Type</th>
-                        <th scope="col" class="col-2">Genome</th>
-                        <th scope="col" class="col-1">Adapter</th>
-                        {% if show_index_1 %}
-                        <th scope="col" class="col-1">Index 1</th>
-                        {% endif %}
-                        {% if show_index_2 %}
-                        <th scope="col" class="col-1">Index 2</th>
-                        {% endif %}
-                        {% if show_index_3 %}
-                        <th scope="col" class="col-1">Index 3</th>
-                        {% endif %}
-                        {% if show_index_4 %}
-                        <th scope="col" class="col-1">Index 4</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for sample_data in samples_data %}
-                    {% set sample_id = sample_data["id"] %}
-                    {% if sample_data["error"] %}
-                    <tr {{ tooltip(sample_data["error"], category="error") }}>
-                    {% elif sample_data["warning"] %}
-                    <tr {{ tooltip(sample_data["warning"], category="warning") }}>
-                    {% elif sample_data["info"] %}
-                    <tr {{ tooltip(sample_data["info"]) }}>
-                    {% else %}
-                    <tr>
-                    {% endif %}
-                        <td>
-                            {% if sample_data["warning"] %}
-                            ⚠️
-                            {% else %}
-                            ✅
-                            {% endif %}
-                        </td>
-                        <td>{{ sample_data["name"] }}</td>
-                        <td>{{ sample_data["library_type"] }}</td>
-                        <td>{{ sample_data["genome"] }}</td>
-                        <td>{{ sample_data["adapter"] if sample_data["adapter"] == sample_data["adapter"] }}</td>
-                        {% if show_index_1 %}
-                        <td class="index-cell-1">{{ sample_data["index_1"] if sample_data["index_1"] == sample_data["index_1"] }}</td>
-                        {% endif %}
-                        {% if show_index_2 %}
-                        <td class="index-cell-2">{{ sample_data["index_2"] if sample_data["index_2"] == sample_data["index_2"] }}</td>
-                        {% endif %}
-                        {% if show_index_3 %}
-                        <td class="index-cell-3">{{ sample_data["index_3"] if sample_data["index_3"] == sample_data["index_3"] }}</td>
-                        {% endif %}
-                        {% if show_index_4 %}
-                        <td class="index-cell-4">{{ sample_data["index_4"] if sample_data["index_4"] == sample_data["index_4"] }}</td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {{ form.csrf_token() }}
         </form>
     </div>
     <div class="modal-footer">
@@ -76,19 +78,15 @@
             {{ form.file_uuid.data }}
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-success" hx-target="#index-check-container" hx-swap="outerHTML"
-                hx-include="#index-check-form" id="index-check-form-btn"
-                hx-post="{{ url_for('library_annotation_workflow.check_barcodes', seq_request_id=seq_request.id) }}">
-                Submit
+            <button type="button" class="btn btn-primary"
+                hx-target="#pool-mapping-container" hx-swap="outerHTML"
+                hx-include="#pool-mapping-form"
+                hx-post="{{ url_for('library_annotation_workflow.map_pools', seq_request_id=seq_request.id) }}">
+                Next
             </button>
         </div>
     </div>
 </div>
 <script>
-    $(document).ready(function() {
-        $("#index-check-form-btn").on("click", function() {
-            window.onbeforeunload = null;
-        });
-        init_tooltips();
-    });
+    init_tooltips();
 </script>

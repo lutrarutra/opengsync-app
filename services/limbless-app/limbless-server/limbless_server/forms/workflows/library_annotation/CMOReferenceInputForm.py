@@ -16,7 +16,7 @@ from .FeatureMappingForm import FeatureMappingForm
 
 
 class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_annotation/sas-6.1.html"
+    _template_path = "workflows/library_annotation/sas-6.html"
     
     _required_columns: list[Union[str, list[str]]] = [
         "Demux Name", "Sample Name",

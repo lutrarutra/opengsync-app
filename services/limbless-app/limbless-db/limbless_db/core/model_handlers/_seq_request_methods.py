@@ -52,8 +52,8 @@ def create_seq_request(
         bioinformatician_contact = None
         
     seq_request = models.SeqRequest(
-        name=name,
-        description=description,
+        name=name.strip(),
+        description=description.strip() if description else None,
         requestor_id=requestor_id,
         sequencing_type_id=seq_type.id,
         num_cycles_read_1=num_cycles_read_1,
@@ -68,10 +68,10 @@ def create_seq_request(
         bioinformatician_contact_id=bioinformatician_contact_id,
         status_id=SeqRequestStatus.DRAFT.id,
         data_delivery_mode_id=data_delivery_mode.id,
-        organization_name=organization_name,
-        organization_department=organization_department,
-        organization_address=organization_address,
-        billing_code=billing_code,
+        organization_name=organization_name.strip(),
+        organization_department=organization_department.strip() if organization_department else None,
+        organization_address=organization_address.strip(),
+        billing_code=billing_code.strip() if billing_code else None,
     )
 
     requestor.num_seq_requests += 1

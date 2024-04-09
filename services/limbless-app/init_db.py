@@ -76,8 +76,8 @@ def add_features_from_kit(db_handler: DBHandler, path: str, feature_type: catego
             sequence=row["barcode_sequence"],
             pattern=row["pattern"],
             read=row["read"],
-            target_name=row["barcode_target_name"],
-            target_id=row["barcode_target_id"],
+            target_name=row["barcode_target_name"] if pd.notna(row["barcode_target_name"]) else None,
+            target_id=row["barcode_target_id"] if pd.notna(row["barcode_target_id"]) else None,
         )
 
 

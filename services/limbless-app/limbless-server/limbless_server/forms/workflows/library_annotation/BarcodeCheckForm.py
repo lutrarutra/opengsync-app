@@ -15,7 +15,7 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 
 
 class BarcodeCheckForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_annotation/sas-10.html"
+    _template_path = "workflows/library_annotation/sas-11.html"
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:

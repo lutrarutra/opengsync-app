@@ -20,7 +20,7 @@ def create_feature_kit(
         raise exceptions.NotUniqueValue(f"Feature kit with name '{name}', already exists.")
 
     feature_kit = models.FeatureKit(
-        name=name,
+        name=name.strip(),
         type_id=type.id,
     )
     self._session.add(feature_kit)

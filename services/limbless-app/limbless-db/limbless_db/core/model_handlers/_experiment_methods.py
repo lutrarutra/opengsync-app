@@ -27,7 +27,7 @@ def create_experiment(
         status = seq_run.status
 
     experiment = models.Experiment(
-        name=name,
+        name=name.strip(),
         flowcell_type_id=flowcell_type.id,
         sequencer_id=sequencer_id,
         r1_cycles=r1_cycles,

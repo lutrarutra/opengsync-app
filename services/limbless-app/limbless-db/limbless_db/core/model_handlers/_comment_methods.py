@@ -14,7 +14,7 @@ def create_comment(
         self.open_session()
 
     comment = models.Comment(
-        text=text,
+        text=text.strip(),
         author_id=author_id,
         file_id=file_id,
     )

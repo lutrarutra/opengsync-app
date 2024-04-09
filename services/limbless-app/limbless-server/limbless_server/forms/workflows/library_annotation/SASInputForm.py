@@ -1,7 +1,7 @@
 import os
 from uuid import uuid4
 from pathlib import Path
-from typing import Optional, Literal, Any
+from typing import Optional, Literal
 
 import pandas as pd
 import numpy as np
@@ -14,36 +14,33 @@ from werkzeug.utils import secure_filename
 
 from limbless_db.categories import LibraryType, GenomeRef
 
+from .... import logger
+from ....tools import SpreadSheetColumn, tools
 from ...HTMXFlaskForm import HTMXFlaskForm
 from .ProjectMappingForm import ProjectMappingForm
 
-from dataclasses import dataclass
+raw_columns = {
+    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str),
+    "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 200, str),
+    "genome": SpreadSheetColumn("C", "genome", "Genome", "dropdown", 150, str, GenomeRef.names()),
+    "project": SpreadSheetColumn("D", "project", "Project", "text", 150, str),
+    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 150, str, LibraryType.names()),
+    "seq_depth": SpreadSheetColumn("F", "seq_depth", "Sequencing Depth", "numeric", 150, float),
+}
 
-
-@dataclass
-class SpreadSheetColumn:
-    column: str
-    label: str
-    name: str
-    type: Literal["text", "numeric", "dropdown"]
-    width: float
-    source: Optional[Any] = None
-
-
-columns = {
-    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 120),
-    "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 120),
-    "genome": SpreadSheetColumn("C", "genome", "Genome", "dropdown", 100, GenomeRef.names()),
-    "project": SpreadSheetColumn("D", "project", "Project", "text", 100),
-    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 100, LibraryType.names()),
-    "pool": SpreadSheetColumn("F", "pool", "Pool", "text", 100),
-    "index_kit": SpreadSheetColumn("G", "index_kit", "Index Kit", "text", 100),
-    "adapter": SpreadSheetColumn("H", "adapter", "Adapter", "text", 100),
-    "index_1": SpreadSheetColumn("I", "index_1", "Index 1 (i7)", "text", 100),
-    "index_2": SpreadSheetColumn("J", "index_2", "Index 2 (i5)", "text", 100),
-    "index_3": SpreadSheetColumn("K", "index_3", "Index 3", "text", 80),
-    "index_4": SpreadSheetColumn("L", "index_4", "Index 4", "text", 80),
-    "seq_depth": SpreadSheetColumn("F", "seq_depth", "Sequencing Depth", "numeric", 150),
+pooled_columns = {
+    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str),
+    "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 200, str),
+    "genome": SpreadSheetColumn("C", "genome", "Genome", "dropdown", 150, str, GenomeRef.names()),
+    "project": SpreadSheetColumn("D", "project", "Project", "text", 150, str),
+    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 100, str, LibraryType.names()),
+    "pool": SpreadSheetColumn("F", "pool", "Pool", "text", 100, str),
+    "index_kit": SpreadSheetColumn("G", "index_kit", "Index Kit", "text", 150, str),
+    "adapter": SpreadSheetColumn("H", "adapter", "Adapter", "text", 100, str),
+    "index_1": SpreadSheetColumn("I", "index_1", "Index 1 (i7)", "text", 120, str),
+    "index_2": SpreadSheetColumn("J", "index_2", "Index 2 (i5)", "text", 120, str),
+    "index_3": SpreadSheetColumn("K", "index_3", "Index 3", "text", 80, str),
+    "index_4": SpreadSheetColumn("L", "index_4", "Index 4", "text", 80, str),
 }
 
 
@@ -65,65 +62,58 @@ class SASInputForm(HTMXFlaskForm):
     file = FileField(validators=[OptionalValidator(), FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    _feature_mapping_premade = {
-        "Sample Name": columns["sample_name"],
-        "Library Name": columns["library_name"],
-        "Genome": columns["genome"],
-        "Project": columns["project"],
-        "Library Type": columns["library_type"],
-        "Pool": columns["pool"],
-        "Index Kit": columns["index_kit"],
-        "Adapter": columns["adapter"],
-        "Index 1 (i7)": columns["index_1"],
-        "Index 2 (i5)": columns["index_2"],
-        "Index 3": columns["index_3"],
-        "Index 4": columns["index_4"],
-    }
+    _feature_mapping_raw = dict([(col.name, col) for col in raw_columns.values()])
+    _feature_mapping_pooled = dict([(col.name, col) for col in pooled_columns.values()])
 
-    _feature_mapping_raw = {
-        "Sample Name": columns["sample_name"],
-        "Library Name": columns["library_name"],
-        "Genome": columns["genome"],
-        "Project": columns["project"],
-        "Library Type": columns["library_type"],
-        "Sequencing Depth": columns["seq_depth"],
-    }
-
-    def __init__(self, type: Literal["raw", "pooled"], formdata: Optional[dict] = None):
+    def __init__(self, type: Literal["raw", "pooled"], formdata: Optional[dict] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
         super().__init__(formdata=formdata)
         self.upload_path = os.path.join("uploads", "seq_request")
         self.type = type
         self.spreadsheet_style = dict()
+        self._context["columns"] = self.get_columns()
+        self._context["colors"] = SASInputForm.colors
+        self._context["active_tab"] = "help"
+        self.input_type = input_type
 
         if not os.path.exists(self.upload_path):
             os.makedirs(self.upload_path)
 
     def validate(self) -> bool:
         validated = super().validate()
-        if "spreadsheet" in self.formdata.keys():  # type: ignore
-            self.input_type = "spreadsheet"
-        elif self.file.data is not None:
-            self.input_type = "file"
+
+        if self.type == "raw":
+            columns = raw_columns
+        elif self.type == "pooled":
+            columns = pooled_columns
         else:
-            self.file.errors = ("Please upload a file or fill-out spreadsheet.",)
-            self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
-            return False
+            logger.error("Invalid type.")
+            raise ValueError("Invalid type.")
+
+        if self.input_type is None:
+            logger.error("Input type not specified in constructor.")
+            raise Exception("Input type not specified in constructor.")
+        
+        self._context["active_tab"] = self.input_type
+
+        if self.input_type == "file":
+            if self.file.data is None:
+                self.file.errors = ("Upload a file.",)
+                return False
         
         if not validated:
             return False
         
         if self.input_type == "spreadsheet":
-            self.df = self.__parse_spreadsheet(self.formdata["spreadsheet"])  # type: ignore
-            self.df = self.df.replace(r'^\s*$', None, regex=True)
-            self.df = self.df.dropna(how="all")
+            import json
+            data = json.loads(self.formdata["spreadsheet"])  # type: ignore
+            self.df = pd.DataFrame(data, columns=[col.label for col in self.get_columns()])
 
             if len(self.df) == 0:
                 self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
                 return False
                     
         if self.input_type == "file":
-            col_mapping = SASInputForm._feature_mapping_raw if self.type == "raw" else SASInputForm._feature_mapping_premade
-            
+            col_mapping = SASInputForm._feature_mapping_raw if self.type == "raw" else SASInputForm._feature_mapping_pooled
             sep = "\t" if self.separator.data == "tsv" else ","
             filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
             filename = secure_filename(filename)
@@ -147,8 +137,18 @@ class SASInputForm(HTMXFlaskForm):
                 return False
 
             self.df = self.df.rename(columns=self.columns_mapping())
-            self.df = self.df.replace(r'^\s*$', None, regex=True)
-            self.df = self.df.dropna(how="all")
+
+        self.df = self.df.replace(r'^\s*$', None, regex=True)
+        self.df = self.df.dropna(how="all")
+        logger.debug(self.df)
+        
+        for label, column in columns.items():
+            if column.var_type == str and column.source is None:
+                self.df[label] = self.df[label].apply(tools.make_alpha_numeric)
+            elif column.var_type == float:
+                self.df[label] = self.df[label].apply(tools.parse_float)
+            elif column.var_type == int:
+                self.df[label] = self.df[label].apply(tools.parse_int)
 
         library_name_counts = self.df["library_name"].value_counts()
         for i, (_, row) in enumerate(self.df.iterrows()):
@@ -238,16 +238,12 @@ class SASInputForm(HTMXFlaskForm):
         if self.type == "raw":
             return list(SASInputForm._feature_mapping_raw.values())
         elif self.type == "pooled":
-            return list(SASInputForm._feature_mapping_premade.values())
         
+            return list(SASInputForm._feature_mapping_pooled.values())
         raise ValueError("Invalid type")
     
     def columns_mapping(self):
         return dict([(col.name, col.label) for col in self.get_columns()])
-    
-    def __parse_spreadsheet(self, raw_json: str) -> pd.DataFrame:
-        import json
-        return pd.DataFrame(json.loads(raw_json), columns=[col.label for col in self.get_columns()])
     
     def __map_library_types(self):
         library_type_map = {}
@@ -271,13 +267,11 @@ class SASInputForm(HTMXFlaskForm):
         context["type"] = self.type
 
         if not self.validate() or self.df is None:
-            context["columns"] = self.get_columns()
             if self.input_type == "spreadsheet":
                 context["spreadsheet_style"] = self.spreadsheet_style
                 context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
                 if context["spreadsheet_data"] == []:
                     context["spreadsheet_data"] = [[None]]
-                context["colors"] = SASInputForm.colors
             
             return self.make_response(**context)
         

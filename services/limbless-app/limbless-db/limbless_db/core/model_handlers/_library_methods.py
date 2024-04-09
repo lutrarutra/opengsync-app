@@ -57,7 +57,7 @@ def create_library(
         library_status_id = LibraryStatus.DRAFT.id
 
     library = models.Library(
-        name=name,
+        name=name.strip(),
         seq_request_id=seq_request_id,
         genome_ref_id=genome_ref.id if genome_ref is not None else None,
         type_id=library_type.id,
@@ -67,11 +67,11 @@ def create_library(
         pool_id=pool_id,
         dna_concentration=dna_concentration,
         total_size=total_size,
-        index_1_sequence=index_1_sequence,
-        index_2_sequence=index_2_sequence,
-        index_3_sequence=index_3_sequence,
-        index_4_sequence=index_4_sequence,
-        adapter=adapter,
+        index_1_sequence=index_1_sequence.strip() if index_1_sequence else None,
+        index_2_sequence=index_2_sequence.strip() if index_2_sequence else None,
+        index_3_sequence=index_3_sequence.strip() if index_3_sequence else None,
+        index_4_sequence=index_4_sequence.strip() if index_4_sequence else None,
+        adapter=adapter.strip() if adapter else None,
         status_id=library_status_id,
         visium_annotation_id=visium_annotation_id,
         seq_depth_requested=seq_depth_requested
@@ -288,11 +288,11 @@ def query_libraries(
 
     if experiment_id is not None:
         query = query.join(
-            models.LanePoolLink,
-            models.LanePoolLink.pool_id == models.Library.pool_id,
+            models.Pool,
+            models.Pool.id == models.Library.pool_id,
             isouter=True
         ).where(
-            models.LanePoolLink.experiment_id == experiment_id
+            models.Pool.experiment_id == experiment_id
         )
 
     query = query.order_by(

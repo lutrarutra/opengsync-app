@@ -20,7 +20,7 @@ def create_index_kit(
         raise exceptions.NotUniqueValue(f"index_kit with name '{name}', already exists.")
 
     seq_kit = models.IndexKit(
-        name=name,
+        name=name.strip(),
         num_indices_per_adapter=num_indices_per_adapter
     )
     self._session.add(seq_kit)

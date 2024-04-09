@@ -1,16 +1,26 @@
 <div class="example-table" id="feature-2-example">
+    <div class="input-help">
+        <ul>
+            <li>If using <b>all features</b> from a predefined <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">feature-kit</a>: specify columns <b>Library Name, Kit</b></li>
+        </ul>
+    </div>
 </div>
 <script>
     $(document).ready(function() {
         jspreadsheet(document.getElementById('feature-2-example'), {
             data: [
-                ["ABC_LIBRARY_1", "TotalSeqA Antibody"],
-                ["ABC_LIBRARY_2", "TotalSeqB Antibody"],
-                ["ABC_LIBRARY_3", "TotalSeqA Antibody"],
+                ["ABC_LIBRARY_1", "TotalSeqA Antibody", "", "", "", ""],
+                ["ABC_LIBRARY_2", "TotalSeqB Antibody", "", "", "", ""],
+                ["ABC_LIBRARY_3", "TotalSeqA Antibody", "", "", "", ""],
             ],
             columns: [
-                { type: "text", title: "Library Name", width: 300 },
-                { type: "text", title: "Kit", width: 200 },
+                {% for col in columns %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                {%- endif -%}
+                {% endfor %}
             ],
             minSpareRows: 10,
         });

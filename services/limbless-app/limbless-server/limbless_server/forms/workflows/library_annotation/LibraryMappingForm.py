@@ -164,24 +164,25 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             return self.make_response(**context)
         
         data = self.__parse()
+        library_table: pd.DataFrame = data["library_table"]  # type: ignore
 
-        if "index_kit" in data["library_table"] and not data["library_table"]["index_kit"].isna().all():
+        if "index_kit" in library_table and not library_table["index_kit"].isna().all():
             index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
             context = index_kit_mapping_form.prepare(data) | context
             return index_kit_mapping_form.make_response(**context)
         
-        if data["library_table"]["library_type_id"].isin([
+        if library_table["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
         
-        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+        if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
         
-        if "pool" in data["library_table"].columns:
+        if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)

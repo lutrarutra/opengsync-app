@@ -25,7 +25,7 @@ def create_sample(
         raise exceptions.ElementDoesNotExist(f"User with id '{owner_id}', not found.")
 
     sample = models.Sample(
-        name=name,
+        name=name.strip(),
         project_id=project_id,
         owner_id=owner_id
     )

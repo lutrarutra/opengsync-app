@@ -17,10 +17,10 @@ def create_contact(
         self.open_session()
 
     contact = models.Contact(
-        name=name,
-        email=email,
-        phone=phone,
-        address=address
+        name=name.strip(),
+        email=email.strip() if email else None,
+        phone=phone.strip() if phone else None,
+        address=address.strip() if address else None
     )
 
     self._session.add(contact)

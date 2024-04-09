@@ -19,8 +19,8 @@ def create_project(
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
 
     project = models.Project(
-        name=name,
-        description=description,
+        name=name.strip(),
+        description=description.strip(),
         owner_id=owner_id
     )
 

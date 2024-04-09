@@ -72,23 +72,34 @@ def make_filenameable(val, keep: list[str] = ['-', '.', '_']) -> str:
     return "".join(c for c in str(val) if c.isalnum() or c in keep)
 
 
-def make_alpha_numeric(val, keep: list[str] = []) -> Optional[str]:
-    if pd.isna(val) or val is None:
+def make_alpha_numeric(val, keep: list[str] = [".", "-", "_"], replace_white_spaces_with: Optional[str] = "_") -> Optional[str]:
+    if pd.isna(val) or val is None or val == "":
         return None
+    
+    if replace_white_spaces_with is not None:
+        val = val.strip().replace(" ", replace_white_spaces_with)
     return "".join(c for c in val if c.isalnum() or c in keep)
+    
 
-
-def make_numeric(val: Union[int, float, str, None]) -> Union[int, float, None]:
+def parse_float(val: Union[int, float, str, None]) -> Optional[float]:
     if isinstance(val, int) or isinstance(val, float):
+        return float(val)
+    if isinstance(val, str):
+        try:
+            return float("".join(c for c in val if c.isnumeric() or c == "." or c == "-"))
+        except ValueError:
+            return None
+    return None
+
+
+def parse_int(val: Union[int, str, None]) -> Optional[int]:
+    if isinstance(val, int):
         return val
     if isinstance(val, str):
         try:
-            return int("".join(c for c in val if c.isnumeric() or c == "."))
+            return int("".join(c for c in val if c.isnumeric() or c == "-"))
         except ValueError:
-            try:
-                return float("".join(c for c in val if c.isnumeric() or c == "."))
-            except ValueError:
-                return None
+            return None
     return None
 
 

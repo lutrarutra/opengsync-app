@@ -18,8 +18,8 @@ def create_barcode(
         self.open_session()
 
     barcode = models.Barcode(
-        sequence=sequence,
-        adapter=adapter,
+        sequence=sequence.strip(),
+        adapter=adapter.strip() if adapter else None,
         index_kit_id=index_kit_id,
         type_id=barcode_type.id
     )

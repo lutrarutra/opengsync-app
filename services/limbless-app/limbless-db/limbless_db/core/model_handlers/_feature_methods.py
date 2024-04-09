@@ -33,13 +33,13 @@ def create_feature(
             raise exceptions.NotUniqueValue(f"Feature with name '{name}' already exists in feature kit with id {feature_kit_id}")
 
     feature = models.Feature(
-        name=name,
-        sequence=sequence,
-        pattern=pattern,
-        read=read,
+        name=name.strip(),
+        sequence=sequence.strip(),
+        pattern=pattern.strip(),
+        read=read.strip(),
         type_id=type.id,
-        target_name=target_name,
-        target_id=target_id,
+        target_name=target_name.strip() if target_name else None,
+        target_id=target_id.strip() if target_id else None,
         feature_kit_id=feature_kit_id
     )
     self._session.add(feature)

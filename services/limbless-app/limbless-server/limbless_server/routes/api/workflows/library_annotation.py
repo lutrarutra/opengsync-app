@@ -9,7 +9,7 @@ from flask_login import login_required
 from limbless_db import models
 from limbless_db.categories import HTTPResponse, LibraryType
 
-from .... import db
+from .... import db, logger
 from ....forms.workflows import library_annotation as forms
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
-library_annotation_workflow = Blueprint("library_annotation_workflow", __name__, url_prefix="/api/workflows/seq_request_form/")
+library_annotation_workflow = Blueprint("library_annotation_workflow", __name__, url_prefix="/api/workflows/library_annotation/")
 
 
 # Template sample annotation sheet
@@ -27,8 +27,8 @@ def download_template(type: str):
     if type == "raw":
         name = "raw_sample_annotation.tsv"
         df = pd.DataFrame(columns=list(forms.SASInputForm._feature_mapping_raw.keys()))
-    elif type == "premade":
-        df = pd.DataFrame(columns=list(forms.SASInputForm._feature_mapping_premade.keys()))
+    elif type == "pooled":
+        df = pd.DataFrame(columns=list(forms.SASInputForm._feature_mapping_pooled.keys()))
         name = "premade_library_annotation.tsv"
     elif type == "cmo":
         df = pd.DataFrame(columns=list(forms.CMOReferenceInputForm._mapping.keys()))
@@ -102,18 +102,22 @@ def begin(seq_request_id: int, type: Literal["raw", "pooled"]):
         
 
 # 1. Input sample annotation sheet
-@library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:type>", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:type>/<string:input_type>", methods=["POST"])
 @login_required
-def parse_table(seq_request_id: int, type: Literal["raw", "pooled"]):
+def parse_table(seq_request_id: int, type: Literal["raw", "pooled"], input_type: Literal["file", "spreadsheet"]):
     if type not in ["raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if input_type not in ["file", "spreadsheet"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
     return forms.SASInputForm(
         type=type,
         formdata=request.form | request.files,
+        input_type=input_type
     ).process_request(
         seq_request=seq_request, user_id=current_user.id
     )
@@ -168,7 +172,7 @@ def map_index_kits(seq_request_id: int):
     )
 
 
-# 6.1. Specify Features
+# 6. Specify CMO reference
 @library_annotation_workflow.route("<int:seq_request_id>/parse_cmo_reference", methods=["POST"])
 @login_required
 def parse_cmo_reference(seq_request_id: int):
@@ -180,14 +184,18 @@ def parse_cmo_reference(seq_request_id: int):
     )
 
 
-# 6.2. Specify Features
-@library_annotation_workflow.route("<int:seq_request_id>/parse_feature_reference", methods=["POST"])
+# 7. Specify Features
+@library_annotation_workflow.route("<int:seq_request_id>/select_feature_reference/<string:input_type>", methods=["POST"])
 @login_required
-def parse_feature_reference(seq_request_id: int):
+def select_feature_reference(seq_request_id: int, input_type: Literal["predefined", "spreadsheet", "file"]):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if input_type not in ["predefined", "spreadsheet", "file"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
-    return forms.FeatureKitReferenceInputForm(formdata=request.form | request.files).process_request(
+    logger.debug(request.form)
+    return forms.FeatureKitReferenceInputForm(formdata=request.form | request.files, input_type=input_type).process_request(
         seq_request=seq_request
     )
 

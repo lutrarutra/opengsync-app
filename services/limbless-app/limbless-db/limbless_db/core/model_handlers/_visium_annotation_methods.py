@@ -10,9 +10,9 @@ def create_visium_annotation(
         self.open_session()
 
     visium_annotation = VisiumAnnotation(
-        area=area,
-        image=image,
-        slide=slide
+        area=area.strip(),
+        image=image.strip(),
+        slide=slide.strip()
     )
     self._session.add(visium_annotation)
 

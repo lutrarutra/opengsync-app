@@ -23,7 +23,7 @@ class CMOMappingSubForm(FlaskForm):
 
 
 class CMOMappingForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_annotation/sas-7.html"
+    _template_path = "workflows/library_annotation/sas-8.html"
 
     input_fields = FieldList(FormField(CMOMappingSubForm), min_entries=1)
 

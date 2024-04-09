@@ -29,7 +29,7 @@ def create_adapter(
         raise exceptions.NotUniqueValue(f"adapter with name '{name}', already exists.")
 
     adapter = models.Adapter(
-        name=name,
+        name=name.strip(),
         index_kit_id=index_kit_id,
         barcode_1_id=barcode_1_id,
         barcode_2_id=barcode_2_id,

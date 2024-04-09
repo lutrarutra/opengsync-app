@@ -27,15 +27,15 @@ def create_seq_run(
         self.open_session()
 
     seq_run = SeqRun(
-        experiment_name=experiment_name,
+        experiment_name=experiment_name.strip(),
         status_id=status.id,
-        run_folder=run_folder,
-        flowcell_id=flowcell_id,
+        run_folder=run_folder.strip(),
+        flowcell_id=flowcell_id.strip(),
         read_type_id=read_type.id,
-        rta_version=rta_version,
-        recipe_version=recipe_version,
-        side=side,
-        flowcell_mode=flowcell_mode,
+        rta_version=rta_version.strip(),
+        recipe_version=recipe_version.strip(),
+        side=side.strip(),
+        flowcell_mode=flowcell_mode.strip(),
         r1_cycles=r1_cycles,
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,

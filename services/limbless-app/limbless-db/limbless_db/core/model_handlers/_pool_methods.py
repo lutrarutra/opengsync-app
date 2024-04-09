@@ -31,13 +31,13 @@ def create_pool(
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
     
     pool = models.Pool(
-        name=name,
+        name=name.strip(),
         owner_id=owner_id,
         seq_request_id=seq_request_id,
         num_m_reads_requested=num_m_reads_requested,
-        contact_name=contact_name,
-        contact_email=contact_email,
-        contact_phone=contact_phone,
+        contact_name=contact_name.strip(),
+        contact_email=contact_email.strip(),
+        contact_phone=contact_phone.strip() if contact_phone else None,
         status_id=status.id
     )
     self._session.add(pool)

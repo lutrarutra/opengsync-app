@@ -1,6 +1,6 @@
 from uuid import uuid4
 from typing import Optional
-from datetime import datetime
+from werkzeug.utils import secure_filename
 
 from sqlalchemy.sql.operators import and_
 
@@ -24,10 +24,12 @@ def create_file(
     if uuid is None:
         uuid = str(uuid4())
 
+    name = secure_filename(name).strip()[:models.File.name.type.length]
+
     file = models.File(
-        name=name[:models.File.name.type.length],
+        name=name,
         type_id=type.id,
-        extension=extension.lower(),
+        extension=extension.lower().strip(),
         uuid=uuid,
         uploader_id=uploader_id,
     )

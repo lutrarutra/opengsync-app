@@ -27,9 +27,9 @@ def create_user(
         raise exceptions.NotUniqueValue(f"User with email {email} already exists")
 
     user = User(
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
+        email=email.strip(),
+        first_name=first_name.strip(),
+        last_name=last_name.strip(),
         password=hashed_password,
         role_id=role.id,
     )

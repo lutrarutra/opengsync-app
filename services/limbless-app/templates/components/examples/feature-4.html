@@ -1,28 +1,35 @@
 <div class="example-table" id="feature-4-example">
+    <div class="input-help">
+        <ul>
+            <li>If using custom kit: specify columns <b>Library Name, Feature, Sequence, Pattern, Read</b></li>
+        </ul>
+    </div>
 </div>
 <script>
     $(document).ready(function() {
         jspreadsheet(document.getElementById('feature-4-example'), {
             data: [
-                ["ABC_LIBRARY_1", "custom_feature_1", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_1", "custom_feature_2", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_1", "custom_feature_3", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_1", "custom_feature_4", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_2", "custom_feature_10", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_2", "custom_feature_11", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_2", "custom_feature_12", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_3", "custom_feature_1", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_3", "custom_feature_2", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_3", "custom_feature_3", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_3", "custom_feature_4", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
-                ["ABC_LIBRARY_3", "custom_feature_5", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_1", "", "custom_feature_1", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_1", "", "custom_feature_2", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_1", "", "custom_feature_3", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_1", "", "custom_feature_4", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_2", "", "custom_feature_10", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_2", "", "custom_feature_11", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_2", "", "custom_feature_12", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_3", "", "custom_feature_1", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_3", "", "custom_feature_2", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_3", "", "custom_feature_3", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_3", "", "custom_feature_4", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
+                ["ABC_LIBRARY_3", "", "custom_feature_5", "ACCAACA", "^NNNNNNNNNNNNNNNNNNNNNN(BC)", "R2"],
             ],
             columns: [
-                { type: "text", title: "Library Name", width: 300 },
-                { type: "text", title: "Feature", width: 200 },
-                { type: "text", title: "Sequence", width: 200 },
-                { type: "text", title: "Pattern", width: 200 },
-                { type: "text", title: "Read", width: 200 },
+                {% for col in columns %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                {%- endif -%}
+                {% endfor %}
             ],
             minSpareRows: 10,
         });

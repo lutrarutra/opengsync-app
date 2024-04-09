@@ -20,7 +20,7 @@ from .BarcodeCheckForm import BarcodeCheckForm
 
 
 class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_annotation/sas-8.html"
+    _template_path = "workflows/library_annotation/sas-9.html"
     _form_label = "visium_annotation_form"
 
     _allowed_extensions: list[tuple[str, str]] = [

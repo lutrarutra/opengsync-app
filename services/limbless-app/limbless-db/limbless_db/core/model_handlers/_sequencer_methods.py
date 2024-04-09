@@ -24,7 +24,11 @@ def create_sequencer(
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"Sequencer with name '{name}' already exists.")
     
-    sequencer = models.Sequencer(name=name, type_id=type.id, ip=ip)
+    sequencer = models.Sequencer(
+        name=name.strip(),
+        type_id=type.id,
+        ip=ip.strip() if ip else None
+    )
 
     self._session.add(sequencer)
     if commit:
