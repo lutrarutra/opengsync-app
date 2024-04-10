@@ -16,7 +16,7 @@ from ...SearchBar import OptionalSearchBar
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
+from .complete_workflow import complete_workflow
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .GenomeRefMappingForm import GenomeRefMappingForm
 from .LibraryMappingForm import LibraryMappingForm
@@ -34,11 +34,13 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
     
     input_fields = FieldList(FormField(ProjectSubForm), min_entries=1)
 
-    def __init__(self, formdata: Optional[dict] = None):
+    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=None)
+        if uuid is None:
+            uuid = formdata.get("file_uuid")
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
 
-    def prepare(self, user_id: int, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
+    def prepare(self, user_id: int, data: Optional[dict[str, pd.DataFrame | dict]] = None):
         if data is None:
             data = self.get_data()
         
@@ -62,10 +64,6 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
                     selected_project = next(iter(db.query_projects(word=raw_label_name, limit=1, user_id=user_id)), None)
                     project_select_field.selected.data = selected_project.id if selected_project is not None else None
                     project_select_field.search_bar.data = selected_project.search_name() if selected_project is not None else None
-
-        self.update_data(data)
-
-        return {}
     
     def validate(self, user_id: int) -> bool:
         if (validated := super().validate()) is False:
@@ -195,8 +193,6 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)
-
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data) | context
-        return barcode_check_form.make_response(**context)
+    
+        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])
         

@@ -29,9 +29,6 @@ class Feature(Base):
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "target_name", "target_id", "feature_kit_id"]
 
-    def __str__(self) -> str:
-        return f"Feature('{self.sequence}', {self.pattern}, {self.read}{f', {self.feature_kit.name}' if self.feature_kit else ''})"
-    
     @property
     def type(self) -> FeatureTypeEnum:
         return FeatureType.get(self.type_id)
@@ -44,3 +41,6 @@ class Feature(Base):
     
     def search_description(self) -> Optional[str]:
         return self.type.name
+    
+    def __repr__(self) -> str:
+        return f"Feature(id={self.id}, name={self.name}, sequence={self.sequence}, pattern={self.pattern}, read={self.read}, feature_kit_id={self.feature_kit_id})"

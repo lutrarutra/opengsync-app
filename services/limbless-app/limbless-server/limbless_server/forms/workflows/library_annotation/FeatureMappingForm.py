@@ -13,8 +13,8 @@ from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
+from .complete_workflow import complete_workflow
 
 
 class FeatureMappingSubForm(FlaskForm):
@@ -187,6 +187,4 @@ class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)
 
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data)
-        return barcode_check_form.make_response(**context)
+        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])

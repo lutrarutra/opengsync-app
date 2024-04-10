@@ -16,7 +16,7 @@ from limbless_db.categories import LibraryType
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
 from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
+from .complete_workflow import complete_workflow
 
 
 class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
@@ -43,7 +43,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -61,7 +61,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         sep = "\t" if self.separator.data == "tsv" else ","
 
         try:
-            self.visium_ref = pd.read_csv(filepath, sep=sep)
+            self.visium_table = pd.read_csv(filepath, sep=sep)
             validated = True
         except pd.errors.ParserError as e:
             self.file.errors = (str(e),)
@@ -72,26 +72,26 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
             if not validated:
                 return False
             
-        missing_columns = ~self.visium_ref.columns.isin(self._visium_annotation_mapping.keys())
+        missing_columns = ~self.visium_table.columns.isin(self._visium_annotation_mapping.keys())
         if missing_columns.any():
-            self.file.errors = (f"Missing required columns: {', '.join(self.visium_ref.columns[missing_columns])}.",)
+            self.file.errors = (f"Missing required columns: {', '.join(self.visium_table.columns[missing_columns])}.",)
             return False
         
-        self.visium_ref = self.visium_ref.rename(columns=self._visium_annotation_mapping)
-        self.visium_ref = self.visium_ref[list(self._visium_annotation_mapping.values())]
+        self.visium_table = self.visium_table.rename(columns=self._visium_annotation_mapping)
+        self.visium_table = self.visium_table[list(self._visium_annotation_mapping.values())]
 
-        duplicate_entries = self.visium_ref.duplicated(subset=["library_name"])
+        duplicate_entries = self.visium_table.duplicated(subset=["library_name"])
         if duplicate_entries.any():
-            self.file.errors = (f"Duplicate library entries: {', '.join(self.visium_ref[duplicate_entries]['library_name'])}",)
+            self.file.errors = (f"Duplicate library entries: {', '.join(self.visium_table[duplicate_entries]['library_name'])}",)
             return False
 
-        if self.visium_ref.isna().any().any():
+        if self.visium_table.isna().any().any():
             self.file.errors = ("Missing values in annotation table.",)
             return False
         
         library_table = self.get_data()["library_table"]
         _df = library_table[library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id]
-        is_annotated = _df["library_name"].isin(self.visium_ref["library_name"])
+        is_annotated = _df["library_name"].isin(self.visium_table["library_name"])
         if not is_annotated.all():
             self.file.errors = (f"Spatial Transcriptomic annotations missing from following libraries: {', '.join(_df.loc[~is_annotated, 'library_name'])}",)
             return False
@@ -103,28 +103,33 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
             return self.make_response(**context)
         
         data = self.get_data()
-        data["visium_ref"] = self.visium_ref
-        if "comments" not in data:
-            data["comments"] = pd.DataFrame(columns=["context", "text"])
+        data["visium_table"] = self.visium_table
+        library_table: pd.DataFrame = data["library_table"]  # type: ignore
 
-        data["comments"] = pd.concat([
-            data["comments"],
-            pd.DataFrame({
+        comment_table: pd.DataFrame
+        if (comment_table := data.get("comment_table")) is None:  # type: ignore
+            comment_table = pd.DataFrame({
                 "context": ["visium_instructions"],
                 "text": [self.instructions.data]
             })
-        ])
-
+        else:
+            comment_table = pd.concat([
+                comment_table,
+                pd.DataFrame({
+                    "context": ["visium_instructions"],
+                    "text": [self.instructions.data]
+                })
+            ])
+        
+        data["comment_table"] = comment_table
         self.update_data(data)
 
-        if "pool" in data["library_table"].columns:
+        if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)
         
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data)
-        return barcode_check_form.make_response(**context)
+        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])
 
 
 

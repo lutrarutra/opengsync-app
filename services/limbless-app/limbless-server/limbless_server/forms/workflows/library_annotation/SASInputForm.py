@@ -12,6 +12,7 @@ from wtforms.validators import Optional as OptionalValidator
 from flask_wtf.file import FileField, FileAllowed
 from werkzeug.utils import secure_filename
 
+from limbless_db import models
 from limbless_db.categories import LibraryType, GenomeRef
 
 from .... import logger
@@ -78,7 +79,7 @@ class SASInputForm(HTMXFlaskForm):
         if not os.path.exists(self.upload_path):
             os.makedirs(self.upload_path)
 
-    def validate(self) -> bool:
+    def validate(self, seq_request: models.SeqRequest) -> bool:
         validated = super().validate()
 
         if self.type == "raw":
@@ -102,17 +103,13 @@ class SASInputForm(HTMXFlaskForm):
         
         if not validated:
             return False
-        
+                
         if self.input_type == "spreadsheet":
             import json
             data = json.loads(self.formdata["spreadsheet"])  # type: ignore
             self.df = pd.DataFrame(data, columns=[col.label for col in self.get_columns()])
 
-            if len(self.df) == 0:
-                self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
-                return False
-                    
-        if self.input_type == "file":
+        elif self.input_type == "file":
             col_mapping = SASInputForm._feature_mapping_raw if self.type == "raw" else SASInputForm._feature_mapping_pooled
             sep = "\t" if self.separator.data == "tsv" else ","
             filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
@@ -140,8 +137,13 @@ class SASInputForm(HTMXFlaskForm):
 
         self.df = self.df.replace(r'^\s*$', None, regex=True)
         self.df = self.df.dropna(how="all")
-        logger.debug(self.df)
-        
+        if len(self.df) == 0:
+            if self.input_type == "spreadsheet":
+                self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet.",)
+            elif self.input_type == "file":
+                self.file.errors = ("File is empty.",)
+            return False
+
         for label, column in columns.items():
             if column.var_type == str and column.source is None:
                 self.df[label] = self.df[label].apply(tools.make_alpha_numeric)
@@ -151,6 +153,8 @@ class SASInputForm(HTMXFlaskForm):
                 self.df[label] = self.df[label].apply(tools.parse_int)
 
         library_name_counts = self.df["library_name"].value_counts()
+        seq_request_library_names = [library.name for library in seq_request.libraries]
+
         for i, (_, row) in enumerate(self.df.iterrows()):
             if pd.isna(row["sample_name"]):
                 if self.input_type == "spreadsheet":
@@ -168,6 +172,11 @@ class SASInputForm(HTMXFlaskForm):
                     self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['duplicate_value']};"
                 else:
                     self.file.errors = (f"Library name '{row['library_name']}' is duplicated.",)
+            elif row["library_name"] in seq_request_library_names:
+                if self.input_type == "spreadsheet":
+                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['duplicate_value']};"
+                else:
+                    self.file.errors = (f"Library name '{row['library_name']}' already exists in the request.",)
 
             if pd.isna(row["library_type"]):
                 if self.input_type == "spreadsheet":
@@ -205,7 +214,7 @@ class SASInputForm(HTMXFlaskForm):
                         else:
                             self.file.errors = (f"Row {i+1} has an invalid sequencing depth.",)
 
-            if self.type == "pooled":
+            elif self.type == "pooled":
                 adapter_defined = pd.notna(row["adapter"])
                 index_kit_defined = pd.notna(row["index_kit"])
 
@@ -229,9 +238,10 @@ class SASInputForm(HTMXFlaskForm):
                     else:
                         self.file.errors = (f"Row {i+1} is missing an adapter and index kit or manually specified indices.",)
 
-            if len(self.spreadsheet_style) != 0 or (self.file.errors is not None and len(self.file.errors) != 0):
-                return False
-
+        if len(self.spreadsheet_style) != 0 or (self.file.errors is not None and len(self.file.errors) != 0):
+            return False
+            
+        self.df = self.df[[col.label for col in self.get_columns()]]
         return True
     
     def get_columns(self):
@@ -265,8 +275,10 @@ class SASInputForm(HTMXFlaskForm):
     
     def process_request(self, **context) -> Response:
         context["type"] = self.type
+        user_id: int = context["user_id"]
+        seq_request: models.SeqRequest = context["seq_request"]
 
-        if not self.validate() or self.df is None:
+        if not self.validate(seq_request) or self.df is None:
             if self.input_type == "spreadsheet":
                 context["spreadsheet_style"] = self.spreadsheet_style
                 context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
@@ -274,8 +286,6 @@ class SASInputForm(HTMXFlaskForm):
                     context["spreadsheet_data"] = [[None]]
             
             return self.make_response(**context)
-        
-        user_id: int = context["user_id"]
 
         self.__map_library_types()
         self.__map_organisms()
@@ -286,7 +296,7 @@ class SASInputForm(HTMXFlaskForm):
         )
 
         project_mapping_form = ProjectMappingForm()
-        context = project_mapping_form.prepare(user_id, data) | context
-                
+        project_mapping_form.update_data(data)
+        project_mapping_form.prepare(user_id, data)
         return project_mapping_form.make_response(**context)
         

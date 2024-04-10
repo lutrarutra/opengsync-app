@@ -31,7 +31,7 @@
             {{ form.file_uuid.data }}
         </div>
         <div class="footer-controls">
-            <button type="button" id="map-sample-table-col-btn" class="btn btn-primary"
+            <button type="button" id="submit-map-genome-form-btn" class="btn btn-primary"
                 hx-target="#map-genome-form-container" hx-swap="outerHTML"
                 hx-include="#map-genome-form"
                 hx-post="{{ url_for('library_annotation_workflow.map_genomes', seq_request_id=seq_request.id) }}">
@@ -39,4 +39,13 @@
             </button>
         </div>
     </div>
+    <script>
+        init_tooltips();
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        $("#submit-map-genome-form-btn").on("click", function() {
+            window.onbeforeunload = null;
+        });
+    </script>
 </div>

@@ -52,13 +52,19 @@
         <div class="footer-controls">
             <button class="btn btn-primary" type="button"
                 hx-include="#cmo-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data"
+                hx-encoding="multipart/form-data" id="submit-cmo-reference-form-btn"
                 hx-post="{{ url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id) }}">
                 Next
             </button>
         </div>
     </div>
+    <script>
+        init_tooltips();
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        $("#submit-cmo-reference-form-btn").on("click", function() {
+            window.onbeforeunload = null;
+        });
+    </script>
 </div>
-<script>
-    init_tooltips();
-</script>

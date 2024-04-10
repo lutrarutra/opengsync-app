@@ -15,8 +15,9 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
+from .FeatureKitReferenceInputForm import FeatureKitReferenceInputForm
+from .complete_workflow import complete_workflow
 
 
 class LibrarySubForm(FlaskForm):
@@ -130,9 +131,6 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             if selected_library_type is not None:
                 self.input_fields[i].library_type.process_data(selected_library_type.id)
 
-        data["library_table"] = df
-        self.update_data(data)
-
         return {}
 
     def __parse(self) -> dict[str, pd.DataFrame | dict]:
@@ -178,6 +176,10 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
         
+        if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
+            feature_kit_reference_input_form = FeatureKitReferenceInputForm(uuid=self.uuid)
+            return feature_kit_reference_input_form.make_response(**context)
+        
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
@@ -187,6 +189,4 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)
 
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data) | context
-        return barcode_check_form.make_response(**context)
+        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])

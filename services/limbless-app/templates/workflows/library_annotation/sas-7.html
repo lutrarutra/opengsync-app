@@ -1,6 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 {% from "components/table_input.jinja2" import table_input %}
+{% from "components/legends.jinja2" import color_legend %}
 
 <div id="feature_reference-form-container" class="modal-content">
     <div class="modal-header">
@@ -131,6 +132,9 @@
         <div class="text-nowrap text-muted footer-id">
             {{ form.file_uuid.data }}
         </div>
+        <div class="footer-info">
+            {{ color_legend(colors) }}
+        </div>
         <div class="footer-controls">
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-predefined_kit-form-btn"
                 hx-include="#feature_reference-form" hx-target="#feature_reference-form-container" hx-swap="outerHTML"
@@ -151,6 +155,12 @@
     </div>
     <script>
         init_tooltips();
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        $("#submit-spreadsheet-btn, #submit-file-form-btn, #submit-predefined_kit-form-btn").on("click", function() {
+            window.onbeforeunload = null;
+        });
         $(document).ready(function() {
             $(".example-tab-btn, .help-tab-btn").on("click", function() {
                 $(".submit-form-btn").hide();

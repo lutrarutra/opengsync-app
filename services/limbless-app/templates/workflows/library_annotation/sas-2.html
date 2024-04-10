@@ -37,10 +37,18 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-primary"
                 hx-target="#project-select-form-container" hx-swap="outerHTML"
-                hx-include="#project-select-form"
+                hx-include="#project-select-form" id="submit-project-select-form-btn"
                 hx-post="{{ url_for('library_annotation_workflow.select_project', seq_request_id=seq_request.id, type=type) }}">
                 Next
             </button>
         </div>
     </div>
+    <script>
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        $("#submit-project-select-form-btn").on("click", function() {
+            window.onbeforeunload = null;
+        });
+    </script>
 </div>

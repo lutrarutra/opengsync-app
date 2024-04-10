@@ -6,7 +6,7 @@ import pandas as pd
 from flask import Blueprint, request, abort, send_file, current_app, Response
 from flask_login import login_required
 
-from limbless_db import models
+from limbless_db import models, DBSession
 from limbless_db.categories import HTTPResponse, LibraryType
 
 from .... import db, logger
@@ -107,20 +107,17 @@ def begin(seq_request_id: int, type: Literal["raw", "pooled"]):
 def parse_table(seq_request_id: int, type: Literal["raw", "pooled"], input_type: Literal["file", "spreadsheet"]):
     if type not in ["raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
     if input_type not in ["file", "spreadsheet"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    return forms.SASInputForm(
-        type=type,
-        formdata=request.form | request.files,
-        input_type=input_type
-    ).process_request(
-        seq_request=seq_request, user_id=current_user.id
-    )
+    with DBSession(db) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        return forms.SASInputForm(
+            type=type, input_type=input_type,
+            formdata=request.form | request.files,
+        ).process_request(seq_request=seq_request, user_id=current_user.id)
 
 
 # 2. Select project
@@ -144,7 +141,7 @@ def map_genomes(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.GenomeRefMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request
+        seq_request=seq_request, user_id=current_user.id
     )
 
 
@@ -156,7 +153,7 @@ def map_libraries(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.LibraryMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request
+        seq_request=seq_request, user_id=current_user.id
     )
 
 
@@ -168,7 +165,7 @@ def map_index_kits(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.IndexKitMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request
+        seq_request=seq_request, user_id=current_user.id
     )
 
 
@@ -180,7 +177,7 @@ def parse_cmo_reference(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.CMOReferenceInputForm(formdata=request.form | request.files).process_request(
-        seq_request=seq_request
+        seq_request=seq_request, user_id=current_user.id
     )
 
 
@@ -194,9 +191,8 @@ def select_feature_reference(seq_request_id: int, input_type: Literal["predefine
     if input_type not in ["predefined", "spreadsheet", "file"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    logger.debug(request.form)
     return forms.FeatureKitReferenceInputForm(formdata=request.form | request.files, input_type=input_type).process_request(
-        seq_request=seq_request
+        seq_request=seq_request, user_id=current_user.id
     )
 
 
@@ -208,7 +204,7 @@ def map_feature_kits(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.FeatureMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request
+        seq_request=seq_request, user_id=current_user.id
     )
 
 
@@ -220,7 +216,7 @@ def annotate_visium(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.VisiumAnnotationForm(formdata=request.form | request.files).process_request(
-        seq_request=seq_request
+        seq_request=seq_request, user_id=current_user.id
     )
 
     
@@ -232,17 +228,5 @@ def map_pools(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.PoolMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request
-    )
-
-
-# 10. Check barcodes
-@library_annotation_workflow.route("<int:seq_request_id>/check_barcodes", methods=["POST"])
-@login_required
-def check_barcodes(seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    return forms.BarcodeCheckForm(formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id
     )

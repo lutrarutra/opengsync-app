@@ -187,10 +187,7 @@ def get_libraries(
     return libraries, n_pages
 
 
-def delete_library(
-    self, library_id: int,
-    commit: bool = True
-):
+def delete_library(self, library_id: int):
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -199,31 +196,45 @@ def delete_library(
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
+    link: models.SampleLibraryLink
     for link in library.sample_links:
         link.sample.num_libraries -= 1
         self._session.add(link.sample)
         if link.cmo is not None:
             self._session.delete(link.cmo)
+        if link.sample.num_libraries == 0:
+            self._session.delete(link.sample)
         self._session.delete(link)
 
+    if library.pool is not None:
+        library.pool.num_libraries -= 1
+        if library.pool.num_libraries == 0:
+            self._session.delete(library.pool)
+        else:
+            self._session.add(library.pool)
+
+    orhpan_features = []
     for feature in library.features:
-        library.features.remove(feature)
+        print(feature, flush=True)
         if feature.feature_kit_id is None:
-            if self._session.query(
-                models.LibraryFeatureLink
-            ).filter(
-                models.LibraryFeatureLink.feature_id == feature.id,
-                models.LibraryFeatureLink.library_id != library
-            ).count() == 0:
-                self._session.delete(feature)
+            count = self._session.query(models.LibraryFeatureLink).where(
+                models.LibraryFeatureLink.feature_id == feature.id
+            ).count()
+
+            print(feature.name, count, flush=True)
+            if count == 1:
+                orhpan_features.append(feature)
 
     seq_request = library.seq_request
     seq_request.num_libraries -= 1
     self._session.add(seq_request)
-        
     self._session.delete(library)
-    if commit:
-        self._session.commit()
+    self._session.commit()
+
+    for orphan_feature in orhpan_features:
+        self._session.delete(orphan_feature)
+
+    self._session.commit()
 
     if not persist_session:
         self.close_session()

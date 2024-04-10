@@ -16,7 +16,7 @@ from ...SearchBar import SearchBar
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .FeatureKitReferenceInputForm import FeatureKitReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
+from .complete_workflow import complete_workflow
 from .VisiumAnnotationForm import VisiumAnnotationForm
 
 
@@ -74,9 +74,6 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         df: pd.DataFrame = data["library_table"]  # type: ignore
 
-        if "index_kit" not in df.columns:
-            df["index_kit"] = None
-
         index_kits = df["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else None for index_kit in index_kits]
 
@@ -101,8 +98,6 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
 
             selected.append(selected_kit)
-
-        self.update_data(data)
 
         return {
             "categories": index_kits,
@@ -168,29 +163,28 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             return self.make_response(**context)
         
         data = self.__parse()
+        library_table: pd.DataFrame = data["library_table"]  # type: ignore
 
-        if data["library_table"]["library_type_id"].isin([
+        if library_table["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
             context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
         
-        if (data["library_table"]["library_type_id"].isin([
+        if (library_table["library_type_id"].isin([
             LibraryType.ANTIBODY_CAPTURE.id,
         ])).any():
             feature_kit_reference_input_form = FeatureKitReferenceInputForm(uuid=self.uuid)
             return feature_kit_reference_input_form.make_response(**context)
         
-        if (data["library_table"]["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+        if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
 
-        if "pool" in data["library_table"].columns:
+        if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)
 
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data) | context
-        return barcode_check_form.make_response(**context)
+        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])

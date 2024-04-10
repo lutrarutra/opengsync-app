@@ -33,10 +33,19 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-primary"
                 hx-target="#library-type-mapping-container" hx-swap="outerHTML"
-                hx-include="#library-type-category-mapping-form"
+                hx-include="#library-type-category-mapping-form" id="sumit-library-type-mapping-form-btn"
                 hx-post="{{ url_for('library_annotation_workflow.map_libraries', seq_request_id=seq_request.id) }}">
                 Next
             </button>
         </div>
     </div>
+    <script>
+        init_tooltips();
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        $("#sumit-library-type-mapping-form-btn").on("click", function() {
+            window.onbeforeunload = null;
+        });
+    </script>
 </div>

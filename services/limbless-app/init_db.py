@@ -141,7 +141,7 @@ def add_indices_from_kit(db_handler: DBHandler, path: str):
         )
 
 
-def init_db(create_users: bool):
+def init_db(create_users: bool, add_kits: bool):
     db_handler = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
 
     # Tables
@@ -253,42 +253,43 @@ def init_db(create_users: bool):
                 gin ((first_name || ' ' || last_name) gin_trgm_ops);COMMIT;
         """))
 
-    # Indices
-    print("Adding barcodes from known kits.")
-    add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_NN_Set_A.csv")
-    add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_NT_Set_A.csv")
-    add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TN_Set_A.csv")
-    add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TT_Set_A.csv")
-    add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TS_Set_A.csv")
-    add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Single_Index_Kit_N_Set_A.csv")
-    add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Single_Index_Kit_T_Set_A.csv")
+    if add_kits:
+        # Indices
+        print("Adding barcodes from known kits.")
+        add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_NN_Set_A.csv")
+        add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_NT_Set_A.csv")
+        add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TN_Set_A.csv")
+        add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TT_Set_A.csv")
+        add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Dual_Index_Kit_TS_Set_A.csv")
+        add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Single_Index_Kit_N_Set_A.csv")
+        add_indices_from_kit(db_handler, "data/index-kits/10x_kits/Single_Index_Kit_T_Set_A.csv")
 
-    # Feature Kits
-    print("Adding feature kits.")
-    add_features_from_kit(db_handler, "data/feature-kits/CAR_CRISPR_EP_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/CMO_hastags_florian.tsv", categories.FeatureType.CMO)
-    add_features_from_kit(db_handler, "data/feature-kits/CMO_multiome_hashtags.tsv", categories.FeatureType.CMO)
-    add_features_from_kit(db_handler, "data/feature-kits/LCMV_gene_barcode.tsv", categories.FeatureType.GENE_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/LCMV_primer_barcode.tsv", categories.FeatureType.PRIMER_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/LMO_multiome_hashtags.tsv", categories.FeatureType.CMO)
-    add_features_from_kit(db_handler, "data/feature-kits/LMO_multiome_hashtags_EWS.tsv", categories.FeatureType.CMO)
-    add_features_from_kit(db_handler, "data/feature-kits/MF_AK_smallCROPSeq.tsv", categories.FeatureType.CUSTOM)
-    add_features_from_kit(db_handler, "data/feature-kits/MF_AK_smallCROPSeq_reverse.tsv", categories.FeatureType.CUSTOM)
-    add_features_from_kit(db_handler, "data/feature-kits/MultiSeq_LMO.tsv", categories.FeatureType.CMO)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_PT129_5p_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_PT129_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V1_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V1_MM10_ALT.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V2_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V2_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V3_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V3_MM10_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V4_MM10_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
-    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody.tsv", categories.FeatureType.ANTIBODY)
-    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody_Multiplex.tsv", categories.FeatureType.CMO)
-    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqB_Antibody.tsv", categories.FeatureType.ANTIBODY)
-    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody.tsv", categories.FeatureType.ANTIBODY)
-    add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody_Multiplex.tsv", categories.FeatureType.CMO)
+        # Feature Kits
+        print("Adding feature kits.")
+        add_features_from_kit(db_handler, "data/feature-kits/CAR_CRISPR_EP_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/CMO_hastags_florian.tsv", categories.FeatureType.CMO)
+        add_features_from_kit(db_handler, "data/feature-kits/CMO_multiome_hashtags.tsv", categories.FeatureType.CMO)
+        add_features_from_kit(db_handler, "data/feature-kits/LCMV_gene_barcode.tsv", categories.FeatureType.GENE_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/LCMV_primer_barcode.tsv", categories.FeatureType.PRIMER_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/LMO_multiome_hashtags.tsv", categories.FeatureType.CMO)
+        add_features_from_kit(db_handler, "data/feature-kits/LMO_multiome_hashtags_EWS.tsv", categories.FeatureType.CMO)
+        add_features_from_kit(db_handler, "data/feature-kits/MF_AK_smallCROPSeq.tsv", categories.FeatureType.CUSTOM)
+        add_features_from_kit(db_handler, "data/feature-kits/MF_AK_smallCROPSeq_reverse.tsv", categories.FeatureType.CUSTOM)
+        add_features_from_kit(db_handler, "data/feature-kits/MultiSeq_LMO.tsv", categories.FeatureType.CMO)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_PT129_5p_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_PT129_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V1_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V1_MM10_ALT.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V2_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V2_MM10_GRCH38.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V3_MM10.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V3_MM10_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/PT_CRISPR_V4_MM10_reverse.tsv", categories.FeatureType.CRISPR_CAPTURE)
+        add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody.tsv", categories.FeatureType.ANTIBODY)
+        add_features_from_kit(db_handler, "data/feature-kits/TotalSeqA_Antibody_Multiplex.tsv", categories.FeatureType.CMO)
+        add_features_from_kit(db_handler, "data/feature-kits/TotalSeqB_Antibody.tsv", categories.FeatureType.ANTIBODY)
+        add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody.tsv", categories.FeatureType.ANTIBODY)
+        add_features_from_kit(db_handler, "data/feature-kits/TotalSeqC_Antibody_Multiplex.tsv", categories.FeatureType.CMO)
 
     print("DB initialization finished.")
 
@@ -296,9 +297,9 @@ def init_db(create_users: bool):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--create_users", action="store_true")
-    parser.add_argument("--add_indices", action="store_true")
+    parser.add_argument("--add_kits", action="store_true")
     args = parser.parse_args()
 
-    init_db(args.create_users)
+    init_db(args.create_users, args.add_kits)
     
 exit(0)

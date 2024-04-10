@@ -4,6 +4,7 @@ from uuid import uuid4
 from typing import Optional, Union, Literal
 
 import pandas as pd
+import numpy as np
 
 from flask import Response
 from wtforms import SelectField, FileField, FormField, StringField
@@ -22,17 +23,17 @@ from ...SearchBar import OptionalSearchBar
 from .FeatureMappingForm import FeatureMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
+from .complete_workflow import complete_workflow
 from limbless_db.categories import LibraryType
 
 
 columns = {
     "library_name": SpreadSheetColumn("A", "library_name", "Library Name", "text", 170, str),
-    "Kit": SpreadSheetColumn("B", "kit", "Kit", "text", 170, str),
-    "Feature": SpreadSheetColumn("C", "feature", "Feature", "text", 150, str),
-    "Sequence": SpreadSheetColumn("D", "sequence", "Sequence", "text", 150, str),
-    "Pattern": SpreadSheetColumn("E", "pattern", "Pattern", "text", 200, str),
-    "Read": SpreadSheetColumn("E", "read", "Read", "text", 100, str),
+    "kit": SpreadSheetColumn("B", "kit", "Kit", "text", 170, str),
+    "feature": SpreadSheetColumn("C", "feature", "Feature", "text", 150, str),
+    "sequence": SpreadSheetColumn("D", "sequence", "Sequence", "text", 150, str),
+    "pattern": SpreadSheetColumn("E", "pattern", "Pattern", "text", 200, str),
+    "read": SpreadSheetColumn("F", "read", "Read", "text", 100, str),
 }
 
 
@@ -54,6 +55,13 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
         "Read": "read",
     }
 
+    colors = {
+        "missing_value": "#FAD7A0",
+        "invalid_value": "#F5B7B1",
+        "duplicate_value": "#D7BDE2",
+        "ok": "#82E0AA"
+    }
+
     separator = SelectField(choices=_allowed_extensions, default="tsv", description="Tab-separated ('\\t') or comma-separated (',') file.")
     feature_kit = FormField(OptionalSearchBar, label="1. Select a Predefined Kit for all Feature Capture Libraries", description="All features from this kit will be used for all feature capture libraries in sample annotation sheet.")
     file = FileField(label="File", validators=[FileAllowed([ext for ext, _ in _allowed_extensions])], description="Define custom features or use different predefined kits for each feature capture library.")
@@ -67,9 +75,8 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
         self._context["columns"] = list(columns.values())
         self.input_type = input_type
         self._context["active_tab"] = "help"
-
-    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
-        return {}
+        self._context["colors"] = FeatureKitReferenceInputForm.colors
+        self.spreadsheet_style = dict()
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -133,30 +140,6 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 self.spreadsheet_dummy.errors = ("File is empty.",)
                 return False
             
-            too_much_specified = (
-                (self.feature_table["kit"].notna() & self.feature_table["sequence"].notna()) |
-                (self.feature_table["kit"].notna() & self.feature_table["pattern"].notna()) |
-                (self.feature_table["kit"].notna() & self.feature_table["read"].notna())
-            )
-            if too_much_specified.any():
-                self.file.errors = ("Columns 'Kit (+ Feature, optional)' or 'Feature + Sequence + Pattern + Read', not both, must be specified for all rows.",)
-                return False
-
-            unknown_libraries = ~self.feature_table["library_name"].isin(library_table["library_name"])
-            unknown_libraries = unknown_libraries & ~self.feature_table["library_name"].isna()
-            if unknown_libraries.any():
-                unmapped = self.feature_table["library_name"][unknown_libraries].unique().tolist()
-                self.file.errors = (
-                    "Unknown Library Names: " + ", ".join(unmapped),
-                )
-                return False
-            
-            specified_with_name = ~self.feature_table["kit"].isna()
-            specified_manually = (~self.feature_table["feature"].isna() & ~self.feature_table["sequence"].isna() & ~self.feature_table["pattern"].isna() & ~self.feature_table["read"].isna())
-            if (~(specified_with_name | specified_manually)).any():
-                self.file.errors = ("Columns 'Kit + Feature' or 'Sequence + Pattern Read'  must be specified for all rows.",)
-                return False
-            
             if os.path.exists(filepath):
                 os.remove(filepath)
 
@@ -171,7 +154,43 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
                 return False
             
-        return True
+        too_much_specified = (
+            (self.feature_table["kit"].notna() & self.feature_table["sequence"].notna()) |
+            (self.feature_table["kit"].notna() & self.feature_table["pattern"].notna()) |
+            (self.feature_table["kit"].notna() & self.feature_table["read"].notna())
+        )
+        if too_much_specified.any():
+            if self.input_type == "file":
+                self.file.errors = ("Columns 'Kit (+ Feature, optional)' or 'Feature + Sequence + Pattern + Read', not both, must be specified for all rows.",)
+            else:
+                self.spreadsheet_dummy.errors = ("Columns 'Kit (+ Feature, optional)' or 'Feature + Sequence + Pattern + Read', not both, must be specified for all rows.",)
+
+        for i, (_, row) in enumerate(self.feature_table.iterrows()):
+            if pd.notna(row["library_name"]) and row["library_name"] not in library_table["library_name"].values:
+                if self.input_type == "file":
+                    self.file.errors = (f"Row {i+1} has an invalid 'Library Name'.",)
+                else:
+                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = f"background-color: {FeatureKitReferenceInputForm.colors['invalid_value']};"
+                    self.spreadsheet_dummy.errors = (f"Library Name specified in Row {i+1} is not found in annotation sheet.",)
+
+            kit_feature = pd.notna(row["kit"])
+            custom_feature = pd.notna(row["feature"]) & pd.notna(row["sequence"]) & pd.notna(row["pattern"]) & pd.notna(row["read"])
+            if not (kit_feature | custom_feature):
+                if self.input_type == "file":
+                    self.file.errors = (f"Row {i+1} must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified.",)
+                else:
+                    self.spreadsheet_style[f"{columns['kit'].column}{i+1}"] = f"background-color: {FeatureKitReferenceInputForm.colors['missing_value']};"
+                    self.spreadsheet_style[f"{columns['feature'].column}{i+1}"] = f"background-color: {FeatureKitReferenceInputForm.colors['missing_value']};"
+                    self.spreadsheet_style[f"{columns['sequence'].column}{i+1}"] = f"background-color: {FeatureKitReferenceInputForm.colors['missing_value']};"
+                    self.spreadsheet_style[f"{columns['pattern'].column}{i+1}"] = f"background-color: {FeatureKitReferenceInputForm.colors['missing_value']};"
+                    self.spreadsheet_style[f"{columns['read'].column}{i+1}"] = f"background-color: {FeatureKitReferenceInputForm.colors['missing_value']};"
+                    self.spreadsheet_dummy.errors = (f"Row {i+1} must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified.",)
+
+        if self.input_type == "file":
+            validated = validated and len(self.file.errors) == 0
+        elif self.input_type == "spreadsheet":
+            validated = validated and (len(self.spreadsheet_dummy.errors) == 0 and len(self.spreadsheet_style) == 0)
+        return validated
     
     def __parse(self) -> dict[str, pd.DataFrame | dict]:
         data = self.get_data()
@@ -238,6 +257,11 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
     
     def process_request(self, **context) -> Response:
         if not self.validate():
+            if self.input_type == "spreadsheet":
+                self._context["spreadsheet_style"] = self.spreadsheet_style
+                context["spreadsheet_data"] = self.feature_table.replace(np.nan, "").values.tolist()
+                if context["spreadsheet_data"] == []:
+                    context["spreadsheet_data"] = [[None]]
             return self.make_response(**context)
 
         data = self.__parse()
@@ -258,7 +282,5 @@ class FeatureKitReferenceInputForm(HTMXFlaskForm, TableDataForm):
             context = pool_mapping_form.prepare(data) | context
             return pool_mapping_form.make_response(**context)
 
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data)
-        return barcode_check_form.make_response(**context)
+        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])
         

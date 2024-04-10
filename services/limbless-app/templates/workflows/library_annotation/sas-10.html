@@ -1,4 +1,5 @@
 {% from "components/form_group.jinja2" import form_group %}
+{% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/categorical_mapping.jinja2" import raw_label_mapping %}
 
 <div id="pool-mapping-container" class="modal-content">
@@ -43,23 +44,61 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th scope="col" class="col-2">Sample</th>
-                                        <th scope="col" class="col-10">Library Types</th>
+                                        <th scope="col" class="col-2">Library</th>
+                                        <th scope="col" class="col-1">Library Type</th>
+                                        <th scope="col" class="col-1">Genome</th>
+                                        <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
+                                        {% if show_adapter %}
+                                        <th scope="col" class="col-1">Adapter</th>
+                                        {% endif %}
+                                        {% if show_index_1 %}
+                                        <th scope="col" class="col-1">Index 1</th>
+                                        {% endif %}
+                                        {% if show_index_2 %}
+                                        <th scope="col" class="col-1">Index 2</th>
+                                        {% endif %}
+                                        {% if show_index_3 %}
+                                        <th scope="col" class="col-1">Index 3</th>
+                                        {% endif %}
+                                        {% if show_index_4 %}
+                                        <th scope="col" class="col-1">Index 4</th>
+                                        {% endif %}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for sample, sample_data in pool_libraries[loop.index0].items() %}
+                                    {% for idx, row in library_table[library_table["pool"] == pools[loop.index0]].iterrows() %}
+                                    {% if row["error"] %}
+                                    <tr {{ tooltip(row["error"], category="error") }}>
+                                    {% elif row["warning"] %}
+                                    <tr {{ tooltip(row["warning"], category="warning") }}>
+                                    {% else %}
                                     <tr>
-                                        <th scope="row">{{ sample }}</th>
-                                        <td>
-                                            <ul class="h-list">
-                                            {% for library in sample_data %}
-                                                <li>
-                                                    {{ library["library_type"] }}
-                                                </li>
-                                            {% endfor %}
-                                            </ul>
-                                        </td>
+                                    {% endif %}
+                                        <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_name"] }}</td>
+                                        <td>{{ row["library_type"] }}</td>
+                                        <td>{{ row["genome_ref"] }}</td>
+                                        <td {% if row["min_hamming_bases"] < 1 %}
+                                        class="cemm-red"
+                                        {% elif row["min_hamming_bases"] < 2 %}
+                                        class="cemm-yellow"
+                                        {% else %}
+                                        class="cemm-green"
+                                        {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
+                                        {% if show_adapter %}
+                                        <td>{{ row["adapter"] if row["adapter"] }}</td>
+                                        {% endif %}
+                                        {% if show_index_1 %}
+                                        <td class="index-cell-1">{{ row["index_1"] if row["index_1"] }}</td>
+                                        {% endif %}
+                                        {% if show_index_2 %}
+                                        <td class="index-cell-2">{{ row["index_2"] if row["index_2"] }}</td>
+                                        {% endif %}
+                                        {% if show_index_3 %}
+                                        <td class="index-cell-3">{{ row["index_3"] if row["index_3"] }}</td>
+                                        {% endif %}
+                                        {% if show_index_4 %}
+                                        <td class="index-cell-4">{{ row["index_4"] if row["index_4"] }}</td>
+                                        {% endif %}
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -80,13 +119,18 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-primary"
                 hx-target="#pool-mapping-container" hx-swap="outerHTML"
-                hx-include="#pool-mapping-form"
+                hx-include="#pool-mapping-form" id="submit-pool-mapping-form-btn"
                 hx-post="{{ url_for('library_annotation_workflow.map_pools', seq_request_id=seq_request.id) }}">
                 Next
             </button>
         </div>
     </div>
+    <script>
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        $("#submit-pool-mapping-form-btn").on("click", function() {
+            window.onbeforeunload = null;
+        });
+    </script>
 </div>
-<script>
-    init_tooltips();
-</script>

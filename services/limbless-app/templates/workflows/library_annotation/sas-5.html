@@ -40,10 +40,19 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-primary"
                 hx-target="#index_kit-mapping-form-container" hx-swap="outerHTML"
-                hx-include="#index_kit-mapping-form"
+                hx-include="#index_kit-mapping-form" id="submit-library-index_kit-mapping-form-btn"
                 hx-post="{{ url_for('library_annotation_workflow.map_index_kits', seq_request_id=seq_request.id) }}">
                 Next
             </button>
         </div>
     </div>
+    <script>
+        init_tooltips();
+        window.onbeforeunload = function() {
+            return "Data will be lost if you leave the page, are you sure?";
+        };
+        $("#submit-library-index_kit-mapping-form-btn").on("click", function() {
+            window.onbeforeunload = null;
+        });
+    </script>
 </div>

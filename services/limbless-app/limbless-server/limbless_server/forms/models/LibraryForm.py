@@ -42,7 +42,6 @@ class LibraryForm(HTMXFlaskForm):
 
     def validate(self) -> bool:
         if not super().validate():
-            logger.debug(self.genome.data)
             return False
 
         return True

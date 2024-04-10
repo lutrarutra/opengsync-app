@@ -1,16 +1,19 @@
 from typing import Optional, TYPE_CHECKING
-from flask import Response
+
 import pandas as pd
 
+from flask import Response
 from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField, FloatField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator, NumberRange
 
 from limbless_db import models
+from limbless_db.categories import GenomeRef
 
+from .... import tools
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
-from .BarcodeCheckForm import BarcodeCheckForm
+from .complete_workflow import complete_workflow
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -44,47 +47,34 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
         if data is None:
             data = self.get_data()
 
-        df = data["library_table"]
+        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        pools = library_table["pool"].unique().tolist()
 
-        df["pool"] = df["pool"].apply(lambda x: str(x) if x and not pd.isna(x) and not pd.isnull(x) else "__NONE__")
-
-        pool_libraries = []
-        raw_pool_labels = df["pool"].unique().tolist()
-
-        for i, raw_pool_label in enumerate(raw_pool_labels):
-            _df = df[df["pool"] == raw_pool_label]
-
+        for i, raw_pool_label in enumerate(pools):
             if i > len(self.input_fields) - 1:
                 self.input_fields.append_entry()
 
-            raw_pool_label = raw_pool_label if raw_pool_label != "__NONE__" else f"Pool {i+1}"
             entry = self.input_fields[i]
             entry.raw_label.data = raw_pool_label
 
             if entry.pool_name.data is None:
-                entry.pool_name.data = raw_pool_label if raw_pool_label != "__NONE__" else ""
+                entry.pool_name.data = raw_pool_label
             if entry.contact_person_name.data is None:
                 entry.contact_person_name.data = current_user.name
             if entry.contact_person_email.data is None:
                 entry.contact_person_email.data = current_user.email
 
-            _data = {}
-            for _, row in _df.iterrows():
-                library_name = row["sample_name"]
-                if library_name not in _data.keys():
-                    _data[library_name] = []
-
-                _data[library_name].append({
-                    "library_type": row["library_type"],
-                })
-
-            pool_libraries.append(_data)
-
-        data["library_table"] = df
-        self.update_data(data)
+        library_table = tools.check_indices(library_table, "pool")
+        library_table["genome_ref"] = library_table["genome_id"].map(GenomeRef.get)
 
         return {
-            "pool_libraries": pool_libraries,
+            "library_table": library_table,
+            "pools": pools,
+            "show_index_1": "index_1" in library_table.columns and not library_table["index_1"].isna().all(),
+            "show_index_2": "index_2" in library_table.columns and not library_table["index_2"].isna().all(),
+            "show_index_3": "index_3" in library_table.columns and not library_table["index_3"].isna().all(),
+            "show_index_4": "index_4" in library_table.columns and not library_table["index_4"].isna().all(),
+            "show_adapter": "adapter" in library_table.columns and not library_table["adapter"].isna().all(),
         }
 
     def validate(self):
@@ -102,31 +92,6 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
             labels.append(pool_label)
 
         return validated, self
-
-    def __parse(self) -> dict[str, pd.DataFrame | dict]:
-        data = self.get_data()
-        df: pd.DataFrame = data["library_table"]  # type: ignore
-
-        df["contact_person_name"] = None
-        df["contact_person_email"] = None
-        df["contact_person_phone"] = None
-
-        df["pool"] = df["pool"].astype(str)
-        raw_pool_labels = df["pool"].unique().tolist()
-        for i, entry in enumerate(self.input_fields):
-            df.loc[df["pool"] == raw_pool_labels[i], "contact_person_name"] = entry.contact_person_name.data
-            df.loc[df["pool"] == raw_pool_labels[i], "contact_person_email"] = entry.contact_person_email.data
-            df.loc[df["pool"] == raw_pool_labels[i], "contact_person_phone"] = entry.contact_person_phone.data
-            df.loc[df["pool"] == raw_pool_labels[i], "num_m_reads"] = entry.num_m_reads.data
-
-        for i, entry in enumerate(self.input_fields):
-            pool_label = entry.pool_name.data
-            df.loc[df["pool"] == raw_pool_labels[i], "pool"] = pool_label
-
-        data["library_table"] = df
-        self.update_data(data)
-
-        return data
     
     def process_request(self, **context) -> Response:
         validated = self.validate()
@@ -134,8 +99,38 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
             context = context | self.prepare()
             return self.make_response(**context)
         
-        data = self.__parse()
+        data = self.get_data()
+        library_table: pd.DataFrame = data["library_table"]  # type: ignore
 
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data) | context
-        return barcode_check_form.make_response(**context)
+        library_table["contact_person_name"] = None
+        library_table["contact_person_email"] = None
+        library_table["contact_person_phone"] = None
+
+        library_table["pool"] = library_table["pool"].astype(str)
+        library_table["pool"] = library_table["pool"].apply(tools.make_alpha_numeric)
+        raw_pool_labels = library_table["pool"].unique().tolist()
+
+        pool_data = {
+            "name": [],
+            "num_m_reads": [],
+            "contact_person_name": [],
+            "contact_person_email": [],
+            "contact_person_phone": [],
+        }
+
+        for i, entry in enumerate(self.input_fields):
+            pool_data["name"].append(entry.pool_name.data)
+            pool_data["num_m_reads"].append(entry.num_m_reads.data)
+            pool_data["contact_person_name"].append(entry.contact_person_name.data)
+            pool_data["contact_person_email"].append(entry.contact_person_email.data)
+            pool_data["contact_person_phone"].append(entry.contact_person_phone.data)
+
+        for i, entry in enumerate(self.input_fields):
+            pool_label = entry.pool_name.data
+            library_table.loc[library_table["pool"] == raw_pool_labels[i], "pool"] = pool_label
+
+        data["library_table"] = library_table
+        data["pool_table"] = pd.DataFrame(pool_data)
+        self.update_data(data)
+        
+        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])

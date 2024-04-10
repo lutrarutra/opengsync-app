@@ -2,8 +2,9 @@ from typing import Optional, Union, TypeVar
 import difflib
 
 import pandas as pd
+import scipy
+import numpy as np
 
-from .. import logger
 
 tab_10_colors = [
     "#1f77b4",
@@ -19,47 +20,53 @@ tab_10_colors = [
 ]
 
 
-def check_indices(df: pd.DataFrame) -> pd.DataFrame:
-    indices_present = []
+def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFrame:
+    df["error"] = None
+    df["warning"] = None
 
-    for idx in ["index_1", "index_2", "index_3", "index_4"]:
-        if idx not in df.columns:
-            df[idx] = None
-    
-    if "index_1" in df.columns and not df["index_1"].isna().all():
-        indices_present.append("index_1")
-
+    indices = ["index_1"]
     if "index_2" in df.columns and not df["index_2"].isna().all():
-        indices_present.append("index_2")
+        indices.append("index_2")
 
-    if "index_3" in df.columns and not df["index_3"].isna().all():
-        indices_present.append("index_3")
+    df["combined_index"] = ""
+    for index in indices:
+        _max = df[index].str.len().max()
+        df["combined_index"] += df[index].apply(lambda x: x + " " * (_max - len(x)) if x is not None else "")
 
-    if "index_4" in df.columns and not df["index_4"].isna().all():
-        indices_present.append("index_4")
+    if "index_2" in df.columns:
+        same_barcode_in_different_indices = df["index_1"] == df["index_2"]
+
+    df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
+
+    df["min_hamming_dist"] = None
+    df["min_idx"] = None
+
+    def hamming(x, y):
+        return scipy.spatial.distance.hamming(list(x[0]), list(y[0]))
     
-    duplicate_barcode_combinations = (df[indices_present + ["lane"]].duplicated(keep=False))
-    
-    df["index_warning"] = None
-    df["index_error"] = None
+    if groupby is None:
+        a = np.array(df["combined_index"]).reshape(-1, 1)
+        dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
+        p_dist = scipy.spatial.distance.squareform(dists)
+        np.fill_diagonal(p_dist, np.nan)
+        min_idx = np.nanargmin(p_dist, axis=0)
+        df["min_idx"] = min_idx
+        df["min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
+    else:
+        for _, _df in df.groupby(groupby):
+            a = np.array(_df["combined_index"]).reshape(-1, 1)
+            dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
+            p_dist = scipy.spatial.distance.squareform(dists)
+            np.fill_diagonal(p_dist, np.nan)
+            min_idx = np.nanargmin(p_dist, axis=0)
+            df.loc[_df.index, "min_idx"] = min_idx
+            df.loc[_df.index, "min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
 
-    for idx, row in df.iterrows():
-        if row["index_1"] == row["index_2"]:
-            df.at[idx, "index_warning"] = "Index 1 and 2 are the same for the sample."
-        if row["index_1"] == row["index_3"]:
-            df.at[idx, "index_warning"] = "Index 1 and 3 are the same for the sample."
-        if row["index_1"] == row["index_4"]:
-            df.at[idx, "index_warning"] = "Index 1 and 4 are the same for the sample."
-        if row["index_2"] == row["index_3"] and row["index_2"] is not None:
-            df.at[idx, "index_warning"] = "Index 2 and 3 are the same for the sample."
-        if row["index_2"] == row["index_4"] and row["index_2"] is not None:
-            df.at[idx, "index_warning"] = "Index 2 and 4 are the same for the sample."
-        if row["index_3"] == row["index_4"] and row["index_3"] is not None:
-            df.at[idx, "index_warning"] = "Index 3 and 4 are the same for the sample."
-        if row[indices_present].isna().all():
-            df.at[idx, "index_error"] = "No indices are present for the sample."
-        if duplicate_barcode_combinations[idx]:
-            df.at[idx, "index_error"] = "Duplicate barcode combination for two or more samples in lane."
+    df["min_hamming_bases"] = df["min_hamming_dist"] * df["combined_index"].apply(lambda x: len(x))
+    df["min_hamming_bases"] = df["min_hamming_bases"].astype(int)
+
+    df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries on same lane."
+    df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries on same lane."
 
     return df
 

@@ -50,7 +50,6 @@
                         </thead>
                         <tbody>
                             {% for _, row in _df.iterrows() %}
-                            {% set sample_id = row["id"] %}
                             {% if row["error"] %}
                             <tr {{ tooltip(row["error"], category="error") }}>
                             {% elif row["warning"] %}
@@ -64,7 +63,7 @@
                                 <td>{{ row["pool_name"] }}</td>
                                 <td {% if row["min_hamming_bases"] < 1 %}
                                 class="cemm-red"
-                                {% elif row["min_hamming_bases"] < 2%}
+                                {% elif row["min_hamming_bases"] < 2 %}
                                 class="cemm-yellow"
                                 {% else %}
                                 class="cemm-green"
