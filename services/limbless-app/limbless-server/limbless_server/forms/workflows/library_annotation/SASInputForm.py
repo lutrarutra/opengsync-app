@@ -275,7 +275,7 @@ class SASInputForm(HTMXFlaskForm):
     
     def process_request(self, **context) -> Response:
         context["type"] = self.type
-        user_id: int = context["user_id"]
+        user: models.User = context["user"]
         seq_request: models.SeqRequest = context["seq_request"]
 
         if not self.validate(seq_request) or self.df is None:
@@ -297,6 +297,6 @@ class SASInputForm(HTMXFlaskForm):
 
         project_mapping_form = ProjectMappingForm()
         project_mapping_form.update_data(data)
-        project_mapping_form.prepare(user_id, data)
+        project_mapping_form.prepare(user, data)
         return project_mapping_form.make_response(**context)
         

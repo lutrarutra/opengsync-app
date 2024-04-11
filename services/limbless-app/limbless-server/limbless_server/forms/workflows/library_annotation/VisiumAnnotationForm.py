@@ -16,7 +16,7 @@ from limbless_db.categories import LibraryType
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
 from .PoolMappingForm import PoolMappingForm
-from .complete_workflow import complete_workflow
+from .CompleteSASForm import CompleteSASForm
 
 
 class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
@@ -126,10 +126,12 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
 
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            context = pool_mapping_form.prepare(data) | context
+            pool_mapping_form.prepare(data)
             return pool_mapping_form.make_response(**context)
         
-        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])
+        complete_sas_form = CompleteSASForm(uuid=self.uuid)
+        complete_sas_form.prepare(data)
+        return complete_sas_form.make_response(**context)
 
 
 

@@ -42,24 +42,24 @@
                     <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                     data-bs-target="#feature-2-example-tab" type="button" role="tab"
                     aria-controls="feature-2-example-tab" aria-selected="true">
-                    2. Example</button>
+                    Example 2</button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                     data-bs-target="#feature-3-example-tab" type="button" role="tab"
                     aria-controls="feature-3-example-tab" aria-selected="true">
-                    3. Example</button>
+                    Example 3</button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                     data-bs-target="#feature-4-example-tab" type="button" role="tab"
                     aria-controls="feature-4-example-tab" aria-selected="true">
-                    4. Example</button>
+                    Example 4</button>
                 </li>
             </ul>
             <div class="tab-content" id="feature_reference-form" enctype="multipart/form-data">
                 {{ form.csrf_token() }}
-                {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+                {{ form.file_uuid(hidden=True, readonly=True) }}
                 <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
                     <div class="input-help">
                         <h5>How to?</h5>
@@ -92,7 +92,7 @@
                         <div class="invalid-feedback-container">
                             {% if not disabled %}
                             {% for error in form.spreadsheet_dummy.errors %}
-                                <p class="">{{ error }}</p>
+                                <p>{{ error }}</p>
                             {% endfor %}
                             {% endif %}
                         </div>
@@ -112,7 +112,7 @@
                     </div>
                     <div class="row">
                         {{ form_group(form.separator, class="col-2") }}
-                        {{ form_group(form.file, class="col-4") }}
+                        {{ form_group(form.file, class="col-10") }}
                     </div>
                 </div>
                 
@@ -155,12 +155,6 @@
     </div>
     <script>
         init_tooltips();
-        window.onbeforeunload = function() {
-            return "Data will be lost if you leave the page, are you sure?";
-        };
-        $("#submit-spreadsheet-btn, #submit-file-form-btn, #submit-predefined_kit-form-btn").on("click", function() {
-            window.onbeforeunload = null;
-        });
         $(document).ready(function() {
             $(".example-tab-btn, .help-tab-btn").on("click", function() {
                 $(".submit-form-btn").hide();
@@ -178,7 +172,7 @@
                 $("#submit-spreadsheet-btn").show();
             });
 
-            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]"}};
+            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
             const csrf_token = "{{ form.csrf_token._value() }}";
 
             var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {

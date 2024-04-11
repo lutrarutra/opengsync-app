@@ -6,7 +6,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
-from limbless_db.categories import LibraryType
+from limbless_db import models
+from limbless_db.categories import LibraryType, FeatureType
 
 from .... import db, logger
 from ...TableDataForm import TableDataForm
@@ -14,7 +15,7 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .PoolMappingForm import PoolMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .complete_workflow import complete_workflow
+from .CompleteSASForm import CompleteSASForm
 
 
 class FeatureMappingSubForm(FlaskForm):
@@ -22,7 +23,7 @@ class FeatureMappingSubForm(FlaskForm):
     feature_kit = FormField(SearchBar, label="Select Feature Kit")
 
 
-class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
+class KitMappingForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-8.html"
 
     input_fields = FieldList(FormField(FeatureMappingSubForm), min_entries=1)
@@ -33,48 +34,50 @@ class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
     
-    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
+    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None):
         if data is None:
             data = self.get_data()
 
-        feature_table: pd.DataFrame = data["feature_table"]  # type: ignore
+        kit_table: pd.DataFrame = data["kit_table"]  # type: ignore
 
-        kits = feature_table["kit"].unique().tolist()
-        kits = [feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in kits]
-
-        for i, raw_feature_kit_label in enumerate(kits):
+        for i, (_, row) in enumerate(kit_table.iterrows()):
+            if pd.notna(row["kit_id"]):
+                continue
+            
             if i > len(self.input_fields) - 1:
                 self.input_fields.append_entry()
 
+            raw_kit_label = row["kit"]
+
             entry = self.input_fields[i]
             feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
-            entry.raw_label.data = raw_feature_kit_label
+            entry.raw_label.data = raw_kit_label
 
-            if raw_feature_kit_label is None:
+            if raw_kit_label is None:
                 selected_kit = None
             elif feature_kit_search_field.selected.data is None:
-                selected_kit = next(iter(db.query_feature_kits(raw_feature_kit_label, 1)), None)
+                selected_kit = next(iter(db.query_feature_kits(raw_kit_label, 1)), None)
                 feature_kit_search_field.selected.data = selected_kit.id if selected_kit else None
                 feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
             else:
                 selected_kit = db.get_feature_kit(feature_kit_search_field.selected.data)
                 feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
-
-        return {}
     
     def validate(self) -> bool:
         validated = super().validate()
         if not validated:
             return False
         data = self.get_data()
-        feature_table: pd.DataFrame = data["feature_table"]  # type: ignore
+        self.kit_table: pd.DataFrame = data["kit_table"]  # type: ignore
+        self.feature_table: pd.DataFrame = data.get("feature_table")  # type: ignore
+        self.cmo_table: pd.DataFrame = data.get("cmo_table")  # type: ignore
 
-        kits = feature_table["kit"].unique().tolist()
-        kits = [feature_kit if feature_kit and not pd.isna(feature_kit) else None for feature_kit in kits]
-
-        for i, entry in enumerate(self.input_fields):
-            raw_feature_kit_label = kits[i]
-            feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
+        for i, (_, row) in enumerate(self.kit_table.iterrows()):
+            if pd.notna(row["kit_id"]):
+                continue
+            
+            raw_kit_label = row["kit"]
+            feature_kit_search_field: SearchBar = self.input_fields[i].feature_kit  # type: ignore
 
             if (kit_id := feature_kit_search_field.selected.data) is None:
                 feature_kit_search_field.selected.errors = ("Not valid feature kit selected")
@@ -84,7 +87,7 @@ class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
                 logger.error(f"Feature kit with ID {kit_id} not found.")
                 raise Exception()
             
-            for _, row in feature_table[feature_table["kit"] == raw_feature_kit_label].iterrows():
+            for _, row in self.kit_table[self.kit_table["kit"] == raw_kit_label].iterrows():
                 if pd.isna(feature_name := row["feature"]):
                     continue
                 
@@ -92,9 +95,7 @@ class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
                     feature_kit_search_field.selected.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
                     return False
 
-            feature_table.loc[feature_table["kit"] == raw_feature_kit_label, "kit_id"] = kit_id
-            
-        self.feature_table = feature_table
+            self.kit_table.loc[self.kit_table["kit"] == self.kit_table, "kit_id"] = kit_id
 
         return validated
     
@@ -104,6 +105,9 @@ class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
             return self.make_response(**context)
 
         data = self.get_data()
+
+
+
         library_table: pd.DataFrame = data["library_table"]  # type: ignore
         
         feature_data = {
@@ -119,6 +123,16 @@ class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
 
         abc_libraries_df = library_table[library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id]
 
+        def add_feature(library_name: str, kit: models.FeatureKit, feature: models.Feature):
+            feature_data["library_name"].append(library_name)
+            feature_data["kit_id"].append(kit.id)
+            feature_data["feature_id"].append(feature.id)
+            feature_data["kit"].append(kit.name)
+            feature_data["feature"].append(feature.name)
+            feature_data["sequence"].append(feature.sequence)
+            feature_data["pattern"].append(feature.pattern)
+            feature_data["read"].append(feature.read)
+
         for i, row in self.feature_table.iterrows():
             if pd.isna(kit_id := row["kit_id"]):
                 feature_data["library_name"].append(row["library_name"])
@@ -131,49 +145,25 @@ class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
                 feature_data["kit"].append(None)
                 continue
 
-            kit_id = int(kit_id)
+            if (kit := db.get_feature_kit(kit_id)) is None:
+                logger.error(f"Feature kit with ID {kit_id} not found.")
+                raise Exception()
             
             if pd.isna(feature_name := row["feature"]):
                 features, _ = db.get_features(feature_kit_id=kit_id, limit=None)
                 for feature in features:
                     if pd.isna(library_name := row["library_name"]):
                         for library_name in abc_libraries_df["library_name"]:
-                            feature_data["library_name"].append(library_name)
-                            feature_data["kit_id"].append(kit_id)
-                            feature_data["feature_id"].append(feature.id)
-                            feature_data["kit"].append(row["kit"])
-                            feature_data["feature"].append(None)
-                            feature_data["sequence"].append(None)
-                            feature_data["pattern"].append(None)
-                            feature_data["read"].append(None)
+                            add_feature(library_name, kit, feature)
                     else:
-                        feature_data["library_name"].append(library_name)
-                        feature_data["kit_id"].append(kit_id)
-                        feature_data["feature_id"].append(feature.id)
-                        feature_data["kit"].append(row["kit"])
-                        feature_data["feature"].append(None)
-                        feature_data["sequence"].append(None)
-                        feature_data["pattern"].append(None)
-                        feature_data["read"].append(None)
+                        add_feature(library_name, kit, feature)
             else:
                 feature = db.get_feature_from_kit_by_feature_name(feature_name, kit_id)
                 if pd.isna(row["library_name"]):
                     for library_name in abc_libraries_df["library_name"]:
-                        feature_data["library_name"].append(library_name)
-                        feature_data["kit_id"].append(kit_id)
-                        feature_data["feature_id"].append(feature.id)
-                        feature_data["feature"].append(None)
-                        feature_data["sequence"].append(None)
-                        feature_data["pattern"].append(None)
-                        feature_data["read"].append(None)
+                        add_feature(library_name, kit, feature)
                 else:
-                    feature_data["library_name"].append(row["library_name"])
-                    feature_data["kit_id"].append(kit_id)
-                    feature_data["feature_id"].append(feature.id)
-                    feature_data["feature"].append(None)
-                    feature_data["sequence"].append(None)
-                    feature_data["pattern"].append(None)
-                    feature_data["read"].append(None)
+                    add_feature(row["library_name"], kit, feature)
 
         data["feature_table"] = pd.DataFrame(feature_data)
         self.update_data(data)
@@ -184,7 +174,9 @@ class FeatureMappingForm(HTMXFlaskForm, TableDataForm):
 
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            context = pool_mapping_form.prepare(data) | context
+            pool_mapping_form.prepare(data)
             return pool_mapping_form.make_response(**context)
 
-        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])
+        complete_sas_form = CompleteSASForm(uuid=self.uuid)
+        complete_sas_form.prepare(data)
+        return complete_sas_form.make_response(**context)

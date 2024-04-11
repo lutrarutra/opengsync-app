@@ -1,10 +1,10 @@
-Demux Name	Sample Name	Feature	Kit	Sequence	Pattern	Read
-lung_sample_A	cmo_sample_A	251	Totalseq C anitbody multiplex			
-heart_sample_A	cmo_sample_A	252	Totalseq C anitbody multiplex			
-kidney_sample_A	cmo_sample_A	253	Totalseq C anitbody multiplex			
-lung_sample_B	cmo_sample_B	251	Totalseq C anitbody multiplex			
-heart_sample_B	cmo_sample_B	252	Totalseq C anitbody multiplex			
-kidney_sample_B	cmo_sample_B	253	Totalseq C anitbody multiplex			
-lung_sample_C	cmo_sample_C	251	Totalseq C anitbody multiplex			
-heart_sample_C	cmo_sample_C	252	Totalseq C anitbody multiplex			
-kidney_sample_C	cmo_sample_C	253	Totalseq C anitbody multiplex			
+Demultiplexing Name	Sample Name	Kit	Feature	Sequence	Pattern	Read
+lung_sample_A	cmo_sample_A	Totalseq C anitbody multiplex	251			
+heart_sample_A	cmo_sample_A	Totalseq C anitbody multiplex	252			
+kidney_sample_A	cmo_sample_A	Totalseq C anitbody multiplex	253			
+lung_sample_B	cmo_sample_B	Totalseq C anitbody multiplex	251			
+heart_sample_B	cmo_sample_B	Totalseq C anitbody multiplex	252			
+kidney_sample_B	cmo_sample_B	Totalseq C anitbody multiplex	253			
+lung_sample_C	cmo_sample_C	Totalseq C anitbody multiplex	251			
+heart_sample_C	cmo_sample_C	Totalseq C anitbody multiplex	252			
+kidney_sample_C	cmo_sample_C	Totalseq C anitbody multiplex	253			

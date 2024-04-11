@@ -14,9 +14,9 @@ from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .CMOReferenceInputForm import CMOReferenceInputForm
-from .FeatureKitReferenceInputForm import FeatureKitReferenceInputForm
+from .FeatureReferenceInputForm import FeatureReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
-from .complete_workflow import complete_workflow
+from .CompleteSASForm import CompleteSASForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 
 
@@ -169,14 +169,13 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
-            context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
         
         if (library_table["library_type_id"].isin([
             LibraryType.ANTIBODY_CAPTURE.id,
         ])).any():
-            feature_kit_reference_input_form = FeatureKitReferenceInputForm(uuid=self.uuid)
-            return feature_kit_reference_input_form.make_response(**context)
+            kit_reference_input_form = KitMappingForm(uuid=self.uuid)
+            return kit_reference_input_form.make_response(**context)
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
@@ -184,7 +183,9 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            context = pool_mapping_form.prepare(data) | context
+            pool_mapping_form.prepare(data)
             return pool_mapping_form.make_response(**context)
 
-        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])
+        complete_sas_form = CompleteSASForm(uuid=self.uuid)
+        complete_sas_form.prepare(data)
+        return complete_sas_form.make_response(**context)

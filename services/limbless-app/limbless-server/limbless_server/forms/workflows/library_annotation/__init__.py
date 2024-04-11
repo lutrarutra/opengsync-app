@@ -4,7 +4,8 @@ from .IndexKitMappingForm import IndexKitMappingForm    # noqa: F401
 from .PoolMappingForm import PoolMappingForm    # noqa: F401
 from .CMOReferenceInputForm import CMOReferenceInputForm    # noqa: F401
 from .SASInputForm import SASInputForm  # noqa: F401
-from .FeatureMappingForm import FeatureMappingForm    # noqa: F401
-from .FeatureKitReferenceInputForm import FeatureKitReferenceInputForm  # noqa: F401
+from .KitMappingForm import KitMappingForm    # noqa: F401
+from .FeatureReferenceInputForm import FeatureReferenceInputForm  # noqa: F401
 from .LibraryMappingForm import LibraryMappingForm  # noqa: F401
 from .GenomeRefMappingForm import GenomeRefMappingForm  # noqa: F401
+from .CompleteSASForm import CompleteSASForm  # noqa: F401

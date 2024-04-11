@@ -13,7 +13,7 @@ from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .PoolMappingForm import PoolMappingForm
-from .BarcodeCheckForm import BarcodeCheckForm
+from .CompleteSASForm import CompleteSASForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 
 
@@ -163,9 +163,9 @@ class CMOMappingForm(HTMXFlaskForm, TableDataForm):
 
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            context = pool_mapping_form.prepare(data) | context
+            pool_mapping_form.prepare(data)
             return pool_mapping_form.make_response(**context)
 
-        barcode_check_form = BarcodeCheckForm(uuid=self.uuid)
-        context = barcode_check_form.prepare(data)
-        return barcode_check_form.make_response(**context)
+        complete_sas_form = CompleteSASForm(uuid=self.uuid)
+        complete_sas_form.prepare(data)
+        return complete_sas_form.make_response(**context)

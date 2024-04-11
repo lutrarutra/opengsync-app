@@ -31,7 +31,7 @@
                 {{ form_group(visium_annotation_form.separator, class="col-2") }}
                 {{ form_group(visium_annotation_form.file, class="col-10") }}
             </div>
-            {{ visium_annotation_form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ visium_annotation_form.file_uuid(hidden=True, readonly=True) }}
         </form>
     </div>
     <div class="modal-footer">
@@ -48,11 +48,6 @@
         </div>
     </div>
     <script>
-        window.onbeforeunload = function() {
-            return "Data will be lost if you leave the page, are you sure?";
-        };
-        $("#submit-cmo-reference-form-btn").on("click", function() {
-            window.onbeforeunload = null;
-        });
+        init_tooltips();
     </script>
 </div>

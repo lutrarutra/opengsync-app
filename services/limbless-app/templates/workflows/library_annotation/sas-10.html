@@ -108,7 +108,7 @@
                 </div>
                 {% endfor %}
             </div>
-            {{ form.file_uuid(class="form-control", hidden=True, readonly=True) }}
+            {{ form.file_uuid(hidden=True, readonly=True) }}
             {{ form.csrf_token() }}
         </form>
     </div>
@@ -126,11 +126,6 @@
         </div>
     </div>
     <script>
-        window.onbeforeunload = function() {
-            return "Data will be lost if you leave the page, are you sure?";
-        };
-        $("#submit-pool-mapping-form-btn").on("click", function() {
-            window.onbeforeunload = null;
-        });
+        init_tooltips();
     </script>
 </div>

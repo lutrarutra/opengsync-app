@@ -311,10 +311,20 @@ span.desc:empty:after {
     display: flex;
     flex-direction: column;
     min-height: 25px;
+    max-height: 100px;
+    overflow-y: auto;
+    padding-top: 1px;
+    width: 100%;
+    overflow-x: auto;
 
     p {
-        height: 8px;
+        margin: 0;
+        padding: 0;
+        height: 25px;
+        vertical-align: middle;
         width: 100%;
+        white-space: nowrap;
+        text-wrap: nowrap;
         color: $danger;
         font-size: 14px;
     }

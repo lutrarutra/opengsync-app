@@ -16,7 +16,7 @@ from ...SearchBar import OptionalSearchBar
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
-from .complete_workflow import complete_workflow
+from .CompleteSASForm import CompleteSASForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .GenomeRefMappingForm import GenomeRefMappingForm
 from .LibraryMappingForm import LibraryMappingForm
@@ -40,7 +40,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             uuid = formdata.get("file_uuid")
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
 
-    def prepare(self, user_id: int, data: Optional[dict[str, pd.DataFrame | dict]] = None):
+    def prepare(self, user: models.User, data: Optional[dict[str, pd.DataFrame | dict]] = None):
         if data is None:
             data = self.get_data()
         
@@ -61,16 +61,16 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
                     entry.raw_label.data = "Project"
                     selected_project = None
                 else:
-                    selected_project = next(iter(db.query_projects(word=raw_label_name, limit=1, user_id=user_id)), None)
+                    selected_project = next(iter(db.query_projects(word=raw_label_name, limit=1, user_id=user.id)), None)
                     project_select_field.selected.data = selected_project.id if selected_project is not None else None
                     project_select_field.search_bar.data = selected_project.search_name() if selected_project is not None else None
     
-    def validate(self, user_id: int) -> bool:
+    def validate(self, user: models.User) -> bool:
         if (validated := super().validate()) is False:
             return False
         
         with DBSession(db) as session:
-            user_projects, _ = session.get_projects(user_id=user_id, limit=None)
+            user_projects, _ = session.get_projects(user_id=user.id, limit=None)
             user_project_names = [project.name for project in user_projects]
             for field in self.input_fields:
                 project_select_field: OptionalSearchBar = field.project  # type: ignore
@@ -92,7 +92,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
 
         return validated
     
-    def __parse(self, seq_request_id: int) -> dict[str, pd.DataFrame | dict]:
+    def __parse(self) -> dict[str, pd.DataFrame | dict]:
         data = self.get_data()
         df: pd.DataFrame = data["library_table"]  # type: ignore
 
@@ -120,9 +120,6 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
                 raise Exception("Project not selected or created.")
 
         with DBSession(db) as session:
-            if (_ := session.get_seq_request(seq_request_id)) is None:
-                raise Exception(f"Seq request with id {seq_request_id} does not exist.")
-            
             # projects: dict[int, models.Project] = {}
             project_samples: dict[int, dict[str, models.Sample]] = {}
             for project_id in df["project_id"].unique():
@@ -153,14 +150,13 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
         return data
     
     def process_request(self, **context) -> Response:
-        user_id = context.pop("user_id")
-        seq_request_id = context.pop("seq_request_id")
+        user: models.User = context["user"]
 
-        validated = self.validate(user_id)
+        validated = self.validate(user)
         if not validated:
             return self.make_response(**context)
 
-        data = self.__parse(seq_request_id=seq_request_id)
+        data = self.__parse()
         library_table: pd.DataFrame = data["library_table"]  # type: ignore
 
         if library_table["genome_id"].isna().any():
@@ -182,7 +178,6 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
-            context = cmo_reference_input_form.prepare(data) | context
             return cmo_reference_input_form.make_response(**context)
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
@@ -191,8 +186,10 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
         
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            context = pool_mapping_form.prepare(data) | context
+            pool_mapping_form.prepare(data)
             return pool_mapping_form.make_response(**context)
     
-        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])
+        complete_sas_form = CompleteSASForm(uuid=self.uuid)
+        complete_sas_form.prepare(data)
+        return complete_sas_form.make_response(**context)
         

@@ -13,7 +13,7 @@ from limbless_db.categories import GenomeRef
 from .... import tools
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
-from .complete_workflow import complete_workflow
+from .CompleteSASForm import CompleteSASForm
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -43,7 +43,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
 
-    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
+    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None):
         if data is None:
             data = self.get_data()
 
@@ -67,15 +67,13 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
         library_table = tools.check_indices(library_table, "pool")
         library_table["genome_ref"] = library_table["genome_id"].map(GenomeRef.get)
 
-        return {
-            "library_table": library_table,
-            "pools": pools,
-            "show_index_1": "index_1" in library_table.columns and not library_table["index_1"].isna().all(),
-            "show_index_2": "index_2" in library_table.columns and not library_table["index_2"].isna().all(),
-            "show_index_3": "index_3" in library_table.columns and not library_table["index_3"].isna().all(),
-            "show_index_4": "index_4" in library_table.columns and not library_table["index_4"].isna().all(),
-            "show_adapter": "adapter" in library_table.columns and not library_table["adapter"].isna().all(),
-        }
+        self._context["library_table"] = library_table
+        self._context["pools"] = pools
+        self._context["show_index_1"] = "index_1" in library_table.columns and not library_table["index_1"].isna().all()
+        self._context["show_index_2"] = "index_2" in library_table.columns and not library_table["index_2"].isna().all()
+        self._context["show_index_3"] = "index_3" in library_table.columns and not library_table["index_3"].isna().all()
+        self._context["show_index_4"] = "index_4" in library_table.columns and not library_table["index_4"].isna().all()
+        self._context["show_adapter"] = "adapter" in library_table.columns and not library_table["adapter"].isna().all()
 
     def validate(self):
         validated = super().validate()
@@ -96,7 +94,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
     def process_request(self, **context) -> Response:
         validated = self.validate()
         if not validated:
-            context = context | self.prepare()
+            self.prepare()
             return self.make_response(**context)
         
         data = self.get_data()
@@ -133,4 +131,6 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
         data["pool_table"] = pd.DataFrame(pool_data)
         self.update_data(data)
         
-        return complete_workflow(self, user_id=context["user_id"], seq_request=context["seq_request"])
+        complete_sas_form = CompleteSASForm(uuid=self.uuid)
+        complete_sas_form.prepare(data)
+        return complete_sas_form.make_response(**context)

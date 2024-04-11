@@ -108,36 +108,37 @@ def get(page: int):
 @seq_requests_htmx.route("<int:seq_request_id>/export", methods=["GET"])
 @login_required
 def export(seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+    with DBSession(db) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+            
+        samples, _ = session.get_samples(seq_request_id=seq_request_id, limit=None)
+        libraries, _ = session.get_libraries(seq_request_id=seq_request_id, limit=None)
         
-    samples, _ = db.get_samples(seq_request_id=seq_request_id, limit=None)
-    libraries, _ = db.get_libraries(seq_request_id=seq_request_id, limit=None)
-    
-    if not current_user.is_insider():
-        if seq_request.requestor_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
+        if not current_user.is_insider():
+            if seq_request.requestor_id != current_user.id:
+                return abort(HTTPResponse.FORBIDDEN.id)
 
-    file_name = secure_filename(f"{seq_request.name}_request.xlsx")
+        file_name = secure_filename(f"{seq_request.name}_request.xlsx")
 
-    metadata_df = pd.DataFrame.from_records([seq_request.to_dict()]).T
-    samples_df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
-    libraries_df = pd.DataFrame.from_records([library.to_dict() for library in libraries])
+        metadata_df = pd.DataFrame.from_records([seq_request.to_dict()]).T
+        samples_df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
+        libraries_df = pd.DataFrame.from_records([library.to_dict() for library in libraries])
 
-    bytes_io = BytesIO()
-    # TODO: export features, CMOs, VISIUM metadata, etc...
-    with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:  # type: ignore
-        metadata_df.to_excel(writer, sheet_name="metadata", index=True)
-        samples_df.to_excel(writer, sheet_name="samples", index=False)
-        libraries_df.to_excel(writer, sheet_name="libraries", index=False)
+        bytes_io = BytesIO()
+        # TODO: export features, CMOs, VISIUM metadata, etc...
+        with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:  # type: ignore
+            metadata_df.to_excel(writer, sheet_name="metadata", index=True)
+            samples_df.to_excel(writer, sheet_name="samples", index=False)
+            libraries_df.to_excel(writer, sheet_name="libraries", index=False)
 
-    bytes_io.seek(0)
-    mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        
-    return Response(
-        bytes_io, mimetype=mimetype,
-        headers={"Content-disposition": f"attachment; filename={file_name}"}
-    )
+        bytes_io.seek(0)
+        mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            
+        return Response(
+            bytes_io, mimetype=mimetype,
+            headers={"Content-disposition": f"attachment; filename={file_name}"}
+        )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/export_libraries", methods=["GET"])
@@ -148,18 +149,18 @@ def export_libraries(seq_request_id: int):
             return abort(HTTPResponse.NOT_FOUND.id)
         libraries = seq_request.libraries
 
-    if not current_user.is_insider():
-        if seq_request.requestor_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
-    file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
+        if not current_user.is_insider():
+            if seq_request.requestor_id != current_user.id:
+                return abort(HTTPResponse.FORBIDDEN.id)
+        
+        file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
 
-    df = pd.DataFrame.from_records([library.to_dict() for library in libraries])
+        df = pd.DataFrame.from_records([library.to_dict() for library in libraries])
 
-    return Response(
-        df.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": f"attachment; filename={file_name}"}
-    )
+        return Response(
+            df.to_csv(sep="\t", index=False), mimetype="text/csv",
+            headers={"Content-disposition": f"attachment; filename={file_name}"}
+        )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["POST"])
@@ -226,7 +227,7 @@ def unarchive(seq_request_id: int):
         return abort(HTTPResponse.FORBIDDEN.id)
     
     seq_request.status_id = SeqRequestStatus.DRAFT.id
-    seq_request.submitted_time = None
+    seq_request.submitted_timestamp_utc = None
     seq_request = db.update_seq_request(seq_request)
 
     flash(f"Unarchived sequencing request '{seq_request.name}'", "success")

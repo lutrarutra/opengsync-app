@@ -34,7 +34,7 @@ def download_template(type: str):
         df = pd.DataFrame(columns=list(forms.CMOReferenceInputForm._mapping.keys()))
         name = "cmo_reference.tsv"
     elif type == "feature":
-        df = pd.DataFrame(columns=list(forms.FeatureKitReferenceInputForm._mapping.keys()))
+        df = pd.DataFrame(columns=list(forms.FeatureReferenceInputForm._mapping.keys()))
         name = "feature_reference.tsv"
     else:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -117,7 +117,7 @@ def parse_table(seq_request_id: int, type: Literal["raw", "pooled"], input_type:
         return forms.SASInputForm(
             type=type, input_type=input_type,
             formdata=request.form | request.files,
-        ).process_request(seq_request=seq_request, user_id=current_user.id)
+        ).process_request(seq_request=seq_request, user=current_user)
 
 
 # 2. Select project
@@ -128,7 +128,7 @@ def select_project(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.ProjectMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user_id=current_user.id,
+        seq_request=seq_request, user=current_user,
         seq_request_id=seq_request_id
     )
 
@@ -141,7 +141,7 @@ def map_genomes(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.GenomeRefMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user_id=current_user.id
+        seq_request=seq_request, user=current_user
     )
 
 
@@ -153,7 +153,7 @@ def map_libraries(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.LibraryMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user_id=current_user.id
+        seq_request=seq_request, user=current_user
     )
 
 
@@ -165,19 +165,22 @@ def map_index_kits(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.IndexKitMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user_id=current_user.id
+        seq_request=seq_request, user=current_user
     )
 
 
 # 6. Specify CMO reference
-@library_annotation_workflow.route("<int:seq_request_id>/parse_cmo_reference", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/parse_cmo_reference/<string:input_type>", methods=["POST"])
 @login_required
-def parse_cmo_reference(seq_request_id: int):
+def parse_cmo_reference(seq_request_id: int, input_type: Literal["spreadsheet", "file"]):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-
-    return forms.CMOReferenceInputForm(formdata=request.form | request.files).process_request(
-        seq_request=seq_request, user_id=current_user.id
+    
+    if input_type not in ["spreadsheet", "file"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    return forms.CMOReferenceInputForm(formdata=request.form | request.files, input_type=input_type).process_request(
+        seq_request=seq_request, user=current_user
     )
 
 
@@ -191,24 +194,24 @@ def select_feature_reference(seq_request_id: int, input_type: Literal["predefine
     if input_type not in ["predefined", "spreadsheet", "file"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    return forms.FeatureKitReferenceInputForm(formdata=request.form | request.files, input_type=input_type).process_request(
-        seq_request=seq_request, user_id=current_user.id
+    return forms.FeatureReferenceInputForm(formdata=request.form | request.files, input_type=input_type).process_request(
+        seq_request=seq_request, user=current_user
     )
 
 
-# 7. Map Feature Kits
+# 8. Map Feature Kits
 @library_annotation_workflow.route("<int:seq_request_id>/map_feature_kits", methods=["POST"])
 @login_required
 def map_feature_kits(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.FeatureMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user_id=current_user.id
+    return forms.KitMappingForm(formdata=request.form).process_request(
+        seq_request=seq_request, user=current_user
     )
 
 
-# 8. Map pools
+# 9. Map pools
 @library_annotation_workflow.route("<int:seq_request_id>/annotate_visium", methods=["POST"])
 @login_required
 def annotate_visium(seq_request_id: int):
@@ -216,11 +219,11 @@ def annotate_visium(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.VisiumAnnotationForm(formdata=request.form | request.files).process_request(
-        seq_request=seq_request, user_id=current_user.id
+        seq_request=seq_request, user=current_user
     )
 
     
-# 9. Map pools
+# 10. Map pools
 @library_annotation_workflow.route("<int:seq_request_id>/map_pools", methods=["POST"])
 @login_required
 def map_pools(seq_request_id: int):
@@ -228,5 +231,17 @@ def map_pools(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.PoolMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user_id=current_user.id
+        seq_request=seq_request, user=current_user
+    )
+
+
+# 11. Confirm SAS
+@library_annotation_workflow.route("<int:seq_request_id>/complete", methods=["POST"])
+@login_required
+def complete(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    return forms.CompleteSASForm(formdata=request.form).process_request(
+        seq_request=seq_request, user=current_user
     )
