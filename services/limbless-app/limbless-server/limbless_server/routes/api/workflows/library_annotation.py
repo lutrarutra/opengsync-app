@@ -50,9 +50,8 @@ def download_template(type: str):
 @login_required
 def download_visium_template(uuid: str):
     form = forms.VisiumAnnotationForm(uuid=uuid)
-    data = form.get_data()
-    df = data["library_table"]
-    df = df[df["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id][["library_name"]]
+    library_table = form.tables["library_table"]
+    df = library_table[library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id][["library_name"]]
     df = df.rename(columns={"library_name": "Library Name"})
 
     for col in forms.VisiumAnnotationForm._visium_annotation_mapping.keys():

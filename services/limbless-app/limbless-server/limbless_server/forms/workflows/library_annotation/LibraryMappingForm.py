@@ -16,7 +16,7 @@ from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FeatureReferenceInputForm import FeatureReferenceInputForm
+from .KitMappingForm import KitMappingForm
 from .CompleteSASForm import CompleteSASForm
 
 
@@ -92,22 +92,16 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
     
     input_fields = FieldList(FormField(LibrarySubForm), min_entries=1)
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
 
-    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
-        if data is None:
-            data = self.get_data()
+    def prepare(self):
+        library_table = self.tables["library_table"]
 
-        df = data["library_table"]
-        
-        library_types = df["library_type"].unique().tolist()
-        library_types = [library_type if library_type and not pd.isna(library_type) else "Library" for library_type in library_types]
-
-        for i, library_type in enumerate(library_types):
+        for i, library_type in enumerate(library_table["library_type"].unique().tolist()):
             if i > len(self.input_fields) - 1:
                 self.input_fields.append_entry()
 
@@ -130,64 +124,54 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
 
             if selected_library_type is not None:
                 self.input_fields[i].library_type.process_data(selected_library_type.id)
-
-        return {}
-
-    def __parse(self) -> dict[str, pd.DataFrame | dict]:
-        data = self.get_data()
-        df: pd.DataFrame = data["library_table"]  # type: ignore
-
-        df.loc[df["library_type"].isna(), "library_type"] = "Library"
-        library_types = df["library_type"].unique()
-        library_types = [library_type if library_type and not pd.isna(library_type) else None for library_type in library_types]
-        df["library_type_id"] = None
-        for i, library_type in enumerate(library_types):
-            df.loc[df["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].library_type.data)
-        
-        df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(x).abbreviation)
-
-        df["is_cmo_sample"] = False
-        for sample_name, _df in df.groupby("sample_name"):
-            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
-                df.loc[df["sample_name"] == sample_name, "is_cmo_sample"] = True
-
-        data["library_table"] = df
-        self.update_data(data)
-
-        return data
     
     def process_request(self, **context) -> Response:
         validated = self.validate()
         if not validated:
             return self.make_response(**context)
         
-        data = self.__parse()
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        library_table = self.tables["library_table"]
+
+        library_table.loc[library_table["library_type"].isna(), "library_type"] = "Library"
+        library_types = library_table["library_type"].unique()
+        library_types = [library_type if library_type and not pd.isna(library_type) else None for library_type in library_types]
+        library_table["library_type_id"] = None
+        for i, library_type in enumerate(library_types):
+            library_table.loc[library_table["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].library_type.data)
+        
+        library_table["library_type"] = library_table["library_type_id"].apply(lambda x: LibraryType.get(x).abbreviation)
+
+        library_table["is_cmo_sample"] = False
+        for sample_name, _df in library_table.groupby("sample_name"):
+            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
+                library_table.loc[library_table["sample_name"] == sample_name, "is_cmo_sample"] = True
+
+        self.update_table("library_table", library_table)
 
         if "index_kit" in library_table and not library_table["index_kit"].isna().all():
-            index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
-            context = index_kit_mapping_form.prepare(data) | context
+            index_kit_mapping_form = IndexKitMappingForm(previous_form=self, uuid=self.uuid)
+            index_kit_mapping_form.prepare()
             return index_kit_mapping_form.make_response(**context)
         
         if library_table["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
-            cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
+            cmo_reference_input_form = CMOReferenceInputForm(previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response(**context)
         
         if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
-            kit_reference_input_form = KitMappingForm(uuid=self.uuid)
+            kit_reference_input_form = KitMappingForm(previous_form=self, uuid=self.uuid)
             return kit_reference_input_form.make_response(**context)
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
         
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            pool_mapping_form.prepare(data)
+            pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
+            pool_mapping_form.prepare()
             return pool_mapping_form.make_response(**context)
 
-        complete_sas_form = CompleteSASForm(uuid=self.uuid)
-        complete_sas_form.prepare(data)
+        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form.prepare()
         return complete_sas_form.make_response(**context)

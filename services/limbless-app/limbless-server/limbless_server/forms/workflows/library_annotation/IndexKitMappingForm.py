@@ -30,24 +30,24 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
 
     def validate(self) -> bool:
         if not super().validate():
             return False
         
-        df = self.get_data()["library_table"]
+        library_table = self.tables["library_table"]
 
-        index_kits = df["index_kit"].unique().tolist()
+        index_kits = library_table["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
         
         for i, entry in enumerate(self.input_fields):
             raw_index_kit_label = index_kits[i]
-            _df = df[df["index_kit"] == raw_index_kit_label]
+            _df = library_table[library_table["index_kit"] == raw_index_kit_label]
             index_kit_search_field: SearchBar = entry.index_kit  # type: ignore
 
             if (index_kit_id := index_kit_search_field.selected.data) is None:
@@ -68,13 +68,10 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         return True
     
-    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
-        if data is None:
-            data = self.get_data()
+    def prepare(self):
+        library_table = self.tables["library_table"]
 
-        df: pd.DataFrame = data["library_table"]  # type: ignore
-
-        index_kits = df["index_kit"].unique().tolist()
+        index_kits = library_table["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else None for index_kit in index_kits]
 
         selected: list[Optional[models.IndexKit]] = []
@@ -99,19 +96,19 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
             selected.append(selected_kit)
 
-        return {
-            "categories": index_kits,
-            "selected": selected
-        }
-    
-    def __parse(self) -> dict[str, pd.DataFrame | dict]:
-        data = self.get_data()
-        df: pd.DataFrame = data["library_table"]  # type: ignore
+        self._context["categories"] = index_kits
+        self._context["selected"] = selected
+        
+    def process_request(self, **context) -> Response:
+        if not self.validate():
+            return self.make_response(**context)
+        
+        library_table = self.tables["library_table"]
 
-        df["index_kit_name"] = None
-        df["index_kit_id"] = None
+        library_table["index_kit_name"] = None
+        library_table["index_kit_id"] = None
 
-        index_kits = df["index_kit"].unique().tolist()
+        index_kits = library_table["index_kit"].unique().tolist()
         index_kits = [index_kit if index_kit and not pd.isna(index_kit) else "Index Kit" for index_kit in index_kits]
 
         for i, index_kit in enumerate(index_kits):
@@ -122,70 +119,61 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 if (selected_kit := db.get_index_kit(selected_id)) is None:
                     raise Exception(f"Index kit with id '{selected_id}' does not exist.")
                 
-                df.loc[df["index_kit"] == index_kit, "index_kit_id"] = selected_id
-                df.loc[df["index_kit"] == index_kit, "index_kit_name"] = selected_kit.name
+                library_table.loc[library_table["index_kit"] == index_kit, "index_kit_id"] = selected_id
+                library_table.loc[library_table["index_kit"] == index_kit, "index_kit_name"] = selected_kit.name
                 
-        if "index_1" not in df.columns:
-            df["index_1"] = None
+        if "index_1" not in library_table.columns:
+            library_table["index_1"] = None
 
-        if "index_2" not in df.columns:
-            df["index_2"] = None
+        if "index_2" not in library_table.columns:
+            library_table["index_2"] = None
             
-        if "index_3" not in df.columns:
-            df["index_3"] = None
+        if "index_3" not in library_table.columns:
+            library_table["index_3"] = None
 
-        if "index_4" not in df.columns:
-            df["index_4"] = None
+        if "index_4" not in library_table.columns:
+            library_table["index_4"] = None
 
-        df["index_1"] = df["index_1"].astype(str)
-        df["index_2"] = df["index_2"].astype(str)
-        df["index_3"] = df["index_3"].astype(str)
-        df["index_4"] = df["index_4"].astype(str)
+        library_table["index_1"] = library_table["index_1"].astype(str)
+        library_table["index_2"] = library_table["index_2"].astype(str)
+        library_table["index_3"] = library_table["index_3"].astype(str)
+        library_table["index_4"] = library_table["index_4"].astype(str)
 
-        for i, row in df.iterrows():
+        for i, row in library_table.iterrows():
             if pd.isnull(row["index_kit_id"]):
                 continue
             index_kit_id = int(row["index_kit_id"])
             adapter_name = str(row["adapter"])
             adapter = db.get_adapter_from_index_kit(adapter_name, index_kit_id)
-            df.at[i, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 else None
-            df.at[i, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 else None
-            df.at[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None
-            df.at[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 else None
+            library_table.at[i, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 else None
+            library_table.at[i, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 else None
+            library_table.at[i, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 else None
+            library_table.at[i, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 else None
             
-        data["library_table"] = df
-        self.update_data(data)
-
-        return data
-        
-    def process_request(self, **context) -> Response:
-        if not self.validate():
-            return self.make_response(**context)
-        
-        data = self.__parse()
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        self.update_table("library_table", library_table)
+        self.update_data()
 
         if library_table["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
-            cmo_reference_input_form = CMOReferenceInputForm(uuid=self.uuid)
+            cmo_reference_input_form = CMOReferenceInputForm(previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response(**context)
         
         if (library_table["library_type_id"].isin([
             LibraryType.ANTIBODY_CAPTURE.id,
         ])).any():
-            kit_reference_input_form = KitMappingForm(uuid=self.uuid)
-            return kit_reference_input_form.make_response(**context)
+            feature_reference_input_form = FeatureReferenceInputForm(previous_form=self, uuid=self.uuid)
+            return feature_reference_input_form.make_response(**context)
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
 
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            pool_mapping_form.prepare(data)
+            pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
+            pool_mapping_form.prepare()
             return pool_mapping_form.make_response(**context)
 
-        complete_sas_form = CompleteSASForm(uuid=self.uuid)
-        complete_sas_form.prepare(data)
+        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form.prepare()
         return complete_sas_form.make_response(**context)

@@ -290,13 +290,10 @@ class SASInputForm(HTMXFlaskForm):
         self.__map_library_types()
         self.__map_organisms()
 
-        data: dict[str, pd.DataFrame | dict] = dict(
-            metadata=dict(type=self.type),
-            library_table=self.df
-        )
-
         project_mapping_form = ProjectMappingForm()
-        project_mapping_form.update_data(data)
-        project_mapping_form.prepare(user, data)
+        project_mapping_form.add_table("library_table", self.df)
+        project_mapping_form.metadata = dict(workflow="library_annotation", type=self.type)
+        project_mapping_form.update_data()
+        project_mapping_form.prepare(user)
         return project_mapping_form.make_response(**context)
         

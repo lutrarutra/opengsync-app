@@ -3,11 +3,11 @@ from typing import Optional
 
 import pandas as pd
 
-from flask import Response, url_for, flash
+from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType
+from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType
 
 from .... import db, logger
 from ...TableDataForm import TableDataForm
@@ -18,19 +18,22 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-11.html"
     _form_label = "complete_sas_form"
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
 
-    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None):
-        library_table: pd.DataFrame = data.get("library_table")  # type: ignore
-        pool_table: pd.DataFrame = data.get("pool_table")  # type: ignore
-        feature_table: pd.DataFrame = data.get("feature_table")  # type: ignore
-        cmo_table: pd.DataFrame = data.get("cmo_table")  # type: ignore
-        visium_table: pd.DataFrame = data.get("visium_table")  # type: ignore
-        comment_table: pd.DataFrame = data.get("comment_table")  # type: ignore
+    def prepare(self):
+        library_table = self.tables["library_table"]
+        project_table = self.tables["project_table"]
+        pool_table = self.tables.get("pool_table")
+        feature_table = self.tables.get("feature_table")
+        cmo_table = self.tables.get("cmo_table")
+        visium_table = self.tables.get("visium_table")
+        comment_table = self.tables.get("comment_table")
+
+        sample_table = self.get_sample_table(library_table, project_table, cmo_table)
 
         self._context["library_table"] = library_table
         self._context["pool_table"] = pool_table
@@ -38,6 +41,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         self._context["cmo_table"] = cmo_table
         self._context["visium_table"] = visium_table
         self._context["comment_table"] = comment_table
+        self._context["sample_table"] = sample_table
 
         input_type = "raw" if "pool" not in library_table.columns else "pooled"
 
@@ -46,15 +50,34 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         links = []
         node_idx = 0
 
+        project_nodes = {}
         pool_nodes = {}
 
-        for sample_name, _df in library_table.groupby("sample_name"):
-            sample_node = {
-                "node": node_idx,
-                "name": sample_name,
-            }
-            nodes.append(sample_node)
-            node_idx += 1
+        for (sample_name, project), _df in library_table.groupby(["sample_name", "project"]):
+            sample_pool = []
+            if (project_node := project_nodes.get(project)) is None:
+                project_node = {
+                    "node": node_idx,
+                    "name": project_table[project_table["project"] == project].iloc[0]["name"],
+                }
+                project_nodes[project] = project_node
+                nodes.append(project_node)
+                node_idx += 1
+
+            for _, row in sample_table[sample_table["sample_pool"] == sample_name].iterrows():
+                sample_node = {
+                    "node": node_idx,
+                    "name": row["sample_name"],
+                }
+                sample_pool.append(sample_node)
+                nodes.append(sample_node)
+                node_idx += 1
+
+                links.append({
+                    "source": project_node["node"],
+                    "target": sample_node["node"],
+                    "value": LINK_WIDTH_UNIT * len(library_table[library_table["sample_name"] == sample_name]),
+                })
 
             for _, row in _df.iterrows():
                 library_node = {
@@ -63,12 +86,12 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                 }
                 nodes.append(library_node)
                 node_idx += 1
-
-                links.append({
-                    "source": sample_node["node"],
-                    "target": library_node["node"],
-                    "value": LINK_WIDTH_UNIT,
-                })
+                for sample_node in sample_pool:
+                    links.append({
+                        "source": sample_node["node"],
+                        "target": library_node["node"],
+                        "value": LINK_WIDTH_UNIT,
+                    })
                 if input_type == "raw":
                     continue
                 
@@ -84,29 +107,190 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                 links.append({
                     "source": library_node["node"],
                     "target": pool_node["node"],
-                    "value": LINK_WIDTH_UNIT,
+                    "value": LINK_WIDTH_UNIT * len(sample_pool),
                 })
+
         self._context["nodes"] = nodes
         self._context["links"] = links
 
+    def get_sample_table(self, library_table: pd.DataFrame, project_table: pd.DataFrame, cmo_table: Optional[pd.DataFrame]) -> pd.DataFrame:
+        sample_data = {
+            "sample_name": [],
+            "sample_pool": [],
+            "project_name": [],
+            "sample_id": [],
+            "project_id": [],
+            "library_types": [],
+            "is_cmo_sample": [],
+            "sequence": [],
+            "pattern": [],
+            "read": [],
+        }
+
+        def add_sample(
+            sample_name: str,
+            sample_pool: str,
+            project_name: str,
+            project_id: str,
+            is_cmo_sample: bool,
+            library_types: list[str],
+            sample_id: Optional[int] = None,
+            sequence: Optional[str] = None,
+            pattern: Optional[str] = None,
+            read: Optional[str] = None,
+        ):
+            sample_data["sample_name"].append(sample_name)
+            sample_data["sample_pool"].append(sample_pool)
+            sample_data["project_name"].append(project_name)
+            sample_data["project_id"].append(project_id)
+            sample_data["sample_id"].append(sample_id)
+            sample_data["library_types"].append(library_types)
+            sample_data["is_cmo_sample"].append(is_cmo_sample)
+            sample_data["sequence"].append(sequence)
+            sample_data["pattern"].append(pattern)
+            sample_data["read"].append(read)
+
+        for (sample_name, sample_id, project, is_cmo_sample), _df in library_table.groupby(["sample_name", "sample_id", "project", "is_cmo_sample"], dropna=False):
+            library_types = [LibraryType.get(library_type_id).abbreviation for library_type_id in _df["library_type_id"].unique()]
+            project_row = project_table[project_table["project"] == project].iloc[0]
+            if not is_cmo_sample:
+                add_sample(
+                    sample_name=sample_name,
+                    sample_pool=sample_name,
+                    project_name=project_row["name"],
+                    sample_id=sample_id,
+                    project_id=project_row["id"],
+                    library_types=library_types,
+                    is_cmo_sample=False
+                )
+            else:
+                if cmo_table is None:
+                    logger.error(f"{self.uuid}: CMO reference table not found.")
+                    raise Exception("CMO reference should not be None.")
+                
+                for _, cmo in cmo_table[cmo_table["sample_name"] == sample_name].iterrows():
+                    add_sample(
+                        sample_name=cmo["demux_name"],
+                        sample_pool=sample_name,
+                        project_name=project_row["name"],
+                        project_id=project_row["id"],
+                        library_types=library_types,
+                        is_cmo_sample=True,
+                        sequence=cmo["sequence"],
+                        pattern=cmo["pattern"],
+                        read=cmo["read"],
+                    )
+
+        return pd.DataFrame(sample_data)
+
     def process_request(self, **context) -> Response:
-        data = self.get_data()
         if not self.validate():
-            self.prepare(data)
+            self.prepare()
             return self.make_response(**context)
         
         user: models.User = context["user"]
         seq_request: models.SeqRequest = context["seq_request"]
 
-        library_table: pd.DataFrame = data.get("library_table")  # type: ignore
-        pool_table: pd.DataFrame = data.get("pool_table")  # type: ignore
-        cmo_table: Optional[pd.DataFrame] = data.get("cmo_table")  # type: ignore
-        visium_table: Optional[pd.DataFrame] = data.get("visium_table")  # type: ignore
-        feature_table: Optional[pd.DataFrame] = data.get("feature_table")  # type: ignore
-        comment_table: Optional[pd.DataFrame] = data.get("comment_table")  # type: ignore
+        library_table = self.tables["library_table"]
+        project_table = self.tables["project_table"]
+        pool_table = self.tables.get("pool_table")
+        feature_table = self.tables.get("feature_table")
+        cmo_table = self.tables.get("cmo_table")
+        visium_table = self.tables.get("visium_table")
+        comment_table = self.tables.get("comment_table")
 
-        n_added = 0
-        n_new_samples = 0
+        sample_table = self.get_sample_table(library_table, project_table, cmo_table)
+
+        if visium_table is not None:
+            visium_table["id"] = None
+            with DBSession(db) as session:
+                for idx, visium_row in visium_table.iterrows():
+                    visium_annotation = db.create_visium_annotation(
+                        area=visium_row["area"],
+                        image=visium_row["image"],
+                        slide=visium_row["slide"],
+                    )
+                    visium_table.at[idx, "id"] = visium_annotation.id
+
+        with DBSession(db) as session:
+            for idx, row in project_table.iterrows():
+                if pd.isna(row["id"]):
+                    project = session.create_project(
+                        name=row["project_name"],
+                        description="",
+                        owner_id=user.id
+                    )
+                    project_table.at[idx, "id"] = project.id
+
+        with DBSession(db) as session:
+            for idx, row in sample_table.iterrows():
+                if pd.isna(row["sample_id"]):
+                    sample = session.create_sample(
+                        name=row["sample_name"],
+                        project_id=row["project"],
+                        owner_id=user.id
+                    )
+                    sample_table.at[idx, "sample_id"] = sample.id
+
+        with DBSession(db) as session:
+            library_table["library_id"] = None
+            for idx, row in library_table.iterrows():
+                if visium_table is not None:
+                    visium_row = visium_table[visium_table["library_name"] == row["library_name"]].iloc[0]
+                    visium_annotation_id = visium_row["id"]
+                else:
+                    visium_annotation_id = None
+
+                library = session.create_library(
+                    name=row["library_name"],
+                    seq_request_id=seq_request.id,
+                    library_type=LibraryType.get(row["library_type_id"]),
+                    owner_id=user.id,
+                    genome_ref=GenomeRef.get(row["genome_id"]),
+                    index_1_sequence=row["index_1"].strip() if pd.notna(row["index_1"]) else None,
+                    index_2_sequence=row["index_2"].strip() if pd.notna(row["index_2"]) else None,
+                    index_3_sequence=row["index_3"].strip() if pd.notna(row["index_3"]) else None,
+                    index_4_sequence=row["index_4"].strip() if pd.notna(row["index_4"]) else None,
+                    adapter=row["adapter"].strip() if pd.notna(row["adapter"]) else None,
+                    visium_annotation_id=visium_annotation_id,
+                    seq_depth_requested=row["seq_depth"] if pd.notna(row["seq_depth"]) else None,
+                )
+                library_table.at[idx, "library_id"] = library.id
+
+        if pool_table is not None:
+            pool_table["pool_id"] = None
+            with DBSession(db) as session:
+                for idx, row in pool_table.iterrows():
+                    pool = session.create_pool(
+                        name=row["pool_name"],
+                        owner_id=user.id,
+                        seq_request_id=seq_request.id,
+                        num_m_reads_requested=row["num_m_reads"],
+                        contact_name=row["contact_person_name"],
+                        contact_email=row["contact_person_email"],
+                        contact_phone=row["contact_person_phone"] if pd.notna(row["contact_person_phone"]) else None,
+                    )
+                    pool_table.at[idx, "pool_id"] = pool.id
+
+        if cmo_table is not None:
+            with DBSession(db) as session:
+                for idx, row in cmo_table.iterrows():
+                    sample_row = sample_table[sample_table["sample_name"] == row["sample_name"]].iloc[0]
+                    libraries = library_table[library_table["sample_name"] == row["sample_name"]]
+                    for _, library_row in libraries.iterrows():
+                        cmo = session.create_cmo(
+                            sequence=row["sequence"].strip(),
+                            pattern=row["pattern"].strip(),
+                            read=row["read"].strip(),
+                            sample_id=sample_row["sample_id"],
+                            library_id=library_row["library_id"],
+                        )
+                        session.link_sample_library(
+                            sample_id=sample_row["sample_id"],
+                            library_id=library_row["library_id"],
+                            cmo_id=cmo.id,
+                        )
+
         if feature_table is not None:
             custom_features = feature_table[feature_table["feature_id"].isna()]
             with DBSession(db) as session:
@@ -121,173 +305,17 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     feature_id = feature.id
                     feature_table.loc[_df.index, "feature_id"] = feature_id
 
-        with DBSession(db) as session:
-            projects: dict[int | str, models.Project] = {}
-            for project_id, project_name in library_table[["project_id", "project_name"]].drop_duplicates().values.tolist():
-                if not pd.isnull(project_id):
-                    project_id = int(project_id)
-                    if (project := session.get_project(project_id)) is None:
-                        raise Exception(f"Project with id {project_id} does not exist.")
-                    
-                    projects[project_id] = project
-                else:
-                    project = session.create_project(
-                        name=project_name,
-                        description="",
-                        owner_id=user.id
-                    )
-                    projects[project.id] = project
-                    library_table.loc[library_table["project_name"] == project_name, "project_id"] = project.id
-
-            if library_table["project_id"].isna().any():
-                raise Exception("Project id is None (should not be).")
-
-        with DBSession(db) as session:
-            pools: dict[str, models.Pool] = {}
-
-            if pool_table is not None:
-                for _, row in pool_table.iterrows():
-                    pool = session.create_pool(
-                        name=row["name"],
-                        owner_id=user.id,
-                        seq_request_id=seq_request.id,
-                        num_m_reads_requested=row["num_m_reads"] if pd.notna(row["num_m_reads"]) else None,
-                        contact_name=row["contact_person_name"],
-                        contact_email=row["contact_person_email"],
-                        contact_phone=row["contact_person_phone"] if pd.notna(row["contact_person_phone"]) else None,
-                    )
-                    pools[row["name"]] = pool
-
-            for (sample_name, sample_id, project_id, is_cmo_sample), _df in library_table.groupby(["sample_name", "sample_id", "project_id", "is_cmo_sample"], dropna=False):
-                if cmo_table is not None:
-                    feature_ref = cmo_table.loc[cmo_table["sample_pool"] == sample_name, :]
-                else:
-                    feature_ref = pd.DataFrame()
-                library_samples: list[tuple[models.Sample, Optional[models.CMO]]] = []
-
-                sample_id = int(sample_id) if not pd.isna(sample_id) else None
-                project_id = int(project_id)
-
-                if is_cmo_sample:
-                    for _, row in feature_ref.iterrows():
-                        feature = session.get_feature(row["feature_id"])
-                        sample = session.create_sample(
-                            name=row["demux_name"],
-                            owner_id=user.id,
-                            project_id=project_id,
+            with DBSession(db) as session:
+                for _, feature_row in feature_table.iterrows():
+                    libraries = library_table[library_table["library_name"] == feature_row["library_name"]]
+                    for _, library_row in libraries.iterrows():
+                        session.link_feature_library(
+                            feature_id=feature_row["feature_id"],
+                            library_id=library_row["library_id"]
                         )
-                        # Temporary data object
-                        cmo = models.CMO(
-                            sequence=feature.sequence,
-                            pattern=feature.pattern,
-                            read=feature.read,
-                            sample_id=0,
-                            library_id=0,
-                        )
-                        
-                        library_samples.append((sample, cmo))
-                        n_new_samples += 1
-                else:
-                    
-                    if sample_id is None:
-                        sample = session.create_sample(
-                            name=sample_name,
-                            project_id=project_id,
-                            owner_id=user.id
-                        )
-                        library_samples.append((sample, None))
-                        n_new_samples += 1
-                    else:
-                        if (sample := session.get_sample(sample_id)) is None:
-                            logger.error(f"Sample with id {sample_id} does not exist.")
-                            raise Exception(f"Sample with id {sample_id} does not exist.")
-                        library_samples.append((sample, None))
-
-                for _, row in _df.iterrows():
-                    library_type = LibraryType.get(row["library_type_id"])
-                    genome_ref = GenomeRef.get(row["genome_id"])
-
-                    library_name = row["library_name"]
-                    index_kit_id = int(row["index_kit_id"]) if "index_kit_id" in row and not pd.isna(row["index_kit_id"]) else None
-                    adapter = row["adapter"].strip() if "adapter" in row and not pd.isna(row["adapter"]) else None
-                    index_1_sequence = row["index_1"].strip() if "index_1" in row and not pd.isna(row["index_1"]) else None
-                    index_2_sequence = row["index_2"].strip() if "index_2" in row and not pd.isna(row["index_2"]) else None
-                    index_3_sequence = row["index_3"].strip() if "index_3" in row and not pd.isna(row["index_3"]) else None
-                    index_4_sequence = row["index_4"].strip() if "index_4" in row and not pd.isna(row["index_4"]) else None
-
-                    if library_type == LibraryType.SPATIAL_TRANSCRIPTOMIC:
-                        if visium_table is None:
-                            raise Exception("Visium reference table not found.")    # this should not happen
-                        
-                        visium_row = visium_table[visium_table["library_name"] == library_name].iloc[0]
-                        visium_annotation = db.create_visium_annotation(
-                            area=visium_row["area"],
-                            image=visium_row["image"],
-                            slide=visium_row["slide"],
-                        )
-                        visium_annotation_id = visium_annotation.id
-                    else:
-                        visium_annotation_id = None
-
-                    library = session.create_library(
-                        name=library_name,
-                        seq_request_id=seq_request.id,
-                        library_type=library_type,
-                        index_kit_id=index_kit_id,
-                        owner_id=user.id,
-                        genome_ref=genome_ref,
-                        index_1_sequence=index_1_sequence if index_1_sequence else None,
-                        index_2_sequence=index_2_sequence if index_2_sequence else None,
-                        index_3_sequence=index_3_sequence if index_3_sequence else None,
-                        index_4_sequence=index_4_sequence if index_4_sequence else None,
-                        adapter=adapter if adapter else None,
-                        visium_annotation_id=visium_annotation_id,
-                    )
-
-                    if feature_table is not None:
-                        feature_ref = feature_table[feature_table["library_name"] == library_name]
-                        for _, feature_row in feature_ref.iterrows():
-                            if pd.isna(feature_id := feature_row["feature_id"]):
-                                logger.error("Feature id is None (should not be).")
-                                raise Exception("Feature id is None (should not be).")
-
-                            _feature = session.get_feature(feature_id)
-                            
-                            session.link_feature_library(
-                                feature_id=_feature.id,
-                                library_id=library.id
-                            )
-
-                    n_added += 1
-                
-                    for sample, cmo in library_samples:
-                        if cmo is not None:
-                            _cmo = session.create_cmo(
-                                sequence=cmo.sequence,
-                                pattern=cmo.pattern,
-                                read=cmo.read,
-                                sample_id=sample.id,
-                                library_id=library.id,
-                            )
-                            session.link_sample_library(
-                                sample_id=sample.id,
-                                library_id=library.id,
-                                cmo_id=_cmo.id,
-                            )
-                        else:
-                            session.link_sample_library(
-                                sample_id=sample.id,
-                                library_id=library.id,
-                            )
-
-                    if "pool" in row.keys() and not pd.isna(row["pool"]):
-                        session.link_library_pool(
-                            library_id=library.id,
-                            pool_id=pools[row["pool"]].id
-                        )
-
+            
         if comment_table is not None:
-            for _, row in comment_table[comment_table["context"] == "visium_instructions"].iterrows():
+            for _, row in comment_table.iterrows():
                 comment = session.create_comment(
                     text=row["text"],
                     author_id=user.id,
@@ -297,12 +325,22 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     comment_id=comment.id
                 )
 
-        if n_added == 0:
-            flash("No libraries added.", "warning")
-        else:
-            flash(f"Added {n_added} libraries to sequencing request.", "success")
+        self.add_table("sample_table", sample_table)
+        self.update_table("library_table", library_table, False)
+        self.update_table("project_table", project_table, False)
+        if pool_table is not None:
+            self.update_table("pool_table", pool_table, False)
+        if visium_table is not None:
+            self.update_table("visium_table", visium_table, False)
+        if cmo_table is not None:
+            self.update_table("cmo_table", cmo_table, False)
 
-        if os.path.exists(self.path):
-            os.remove(self.path)
+        self.update_data()
+
+        flash(f"Added {library_table.shape[0]} libraries to sequencing request.", "success")
+
+        newdir = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LIBRARY_ANNOTATION.dir, str(seq_request.id))
+        os.makedirs(newdir, exist_ok=True)
+        os.rename(self.path, os.path.join(newdir, f"{self.uuid}.tsv"))
 
         return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))

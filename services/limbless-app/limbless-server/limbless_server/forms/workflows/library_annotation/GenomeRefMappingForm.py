@@ -25,20 +25,16 @@ class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
 
     input_fields = FieldList(FormField(GenomeRefSubForm), min_entries=1)
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
 
-    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None) -> dict:
-        if data is None:
-            data = self.get_data()
-            
-        df: pd.DataFrame = data["library_table"]  # type: ignore
-        df["duplicate"] = False
+    def prepare(self):
+        library_table: pd.DataFrame = self.tables["library_table"]
 
-        genomes = df["genome"].unique().tolist()
+        genomes = library_table["genome"].unique().tolist()
 
         for i, raw_genome_name in enumerate(genomes):
             if i > len(self.input_fields.entries) - 1:
@@ -59,32 +55,22 @@ class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
                         selected_genome = GenomeRef.get(id)
                     
                         entry.genome.data = selected_genome.id
-            
-        data["library_table"] = df
-        self.update_data(data)
-
-        return {}
-    
-    def __parse(self) -> dict[str, pd.DataFrame | dict]:
-        data = self.get_data()
-
-        genome_id_mapping = {}
-        genomes = data["library_table"]["genome"].unique()
-    
-        for i, genome in enumerate(genomes):
-            genome_id_mapping[genome] = self.input_fields.entries[i].genome.data
-        
-        data["library_table"]["genome_id"] = data["library_table"]["genome"].map(genome_id_mapping)
-        self.update_data(data)
-        return data
     
     def process_request(self, **context) -> Response:
         validated = self.validate()
         if not validated:
             return self.make_response(**context)
         
-        data = self.__parse()
+        genome_id_mapping = {}
+        library_table: pd.DataFrame = self.tables["library_table"]
+        genomes = library_table["genome"].unique()
+    
+        for i, genome in enumerate(genomes):
+            genome_id_mapping[genome] = self.input_fields.entries[i].genome.data
+        
+        library_table["genome_id"] = library_table["genome"].map(genome_id_mapping)
+        self.update_table("library_table", library_table)
 
-        library_mapping_form = LibraryMappingForm(uuid=self.uuid)
-        context = library_mapping_form.prepare(data) | context
+        library_mapping_form = LibraryMappingForm(previous_form=self, uuid=self.uuid)
+        library_mapping_form.prepare()
         return library_mapping_form.make_response(**context)

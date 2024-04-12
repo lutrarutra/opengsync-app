@@ -37,17 +37,14 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
 
     _template_path = "workflows/library_annotation/sas-10.html"
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
 
-    def prepare(self, data: Optional[dict[str, pd.DataFrame | dict]] = None):
-        if data is None:
-            data = self.get_data()
-
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+    def prepare(self):
+        library_table = self.tables["library_table"]
         pools = library_table["pool"].unique().tolist()
 
         for i, raw_pool_label in enumerate(pools):
@@ -97,13 +94,7 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
             self.prepare()
             return self.make_response(**context)
         
-        data = self.get_data()
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
-
-        library_table["contact_person_name"] = None
-        library_table["contact_person_email"] = None
-        library_table["contact_person_phone"] = None
-
+        library_table = self.tables["library_table"]
         library_table["pool"] = library_table["pool"].astype(str)
         library_table["pool"] = library_table["pool"].apply(tools.make_alpha_numeric)
         raw_pool_labels = library_table["pool"].unique().tolist()
@@ -127,10 +118,9 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
             pool_label = entry.pool_name.data
             library_table.loc[library_table["pool"] == raw_pool_labels[i], "pool"] = pool_label
 
-        data["library_table"] = library_table
-        data["pool_table"] = pd.DataFrame(pool_data)
-        self.update_data(data)
+        self.add_table("pool_table", pd.DataFrame(pool_data))
+        self.update_table("library_table", library_table)
         
-        complete_sas_form = CompleteSASForm(uuid=self.uuid)
-        complete_sas_form.prepare(data)
+        complete_sas_form = CompleteSASForm(self, uuid=self.uuid)
+        complete_sas_form.prepare()
         return complete_sas_form.make_response(**context)

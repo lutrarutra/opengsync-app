@@ -20,6 +20,12 @@
                     aria-controls="library-tab" aria-selected="false">
                     Libraries</button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab"
+                    data-bs-target="#sample-tab" type="button" role="tab"
+                    aria-controls="sample-tab" aria-selected="false">
+                    Samples</button>
+                </li>
                 <li class="nav-item" role="presentation"
                 {% if pool_table is none %}{{ tooltip("You are submitting raw (unpooled) samples.", category="warning") }}{% endif %}>
                     <button class="nav-link {% if pool_table is none %}disabled{% endif %}" data-bs-toggle="tab"
@@ -51,7 +57,7 @@
             </ul>
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="overview-tab" role="tabpanel" tabindex="0">
-                    <div class="flow-graph-container" id="submission-overview-graph" style="width: 100%"></div>
+                    <div class="flow-graph-container" id="submission-overview-graph" style="padding: 10px 10px 10px 10px;"></div>
                 </div>
                 <div class="tab-pane fade" id="library-tab" role="tabpanel" tabindex="1">
                     <table class="table table-hover">
@@ -87,7 +93,39 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="tab-pane fade" id="pool-tab" role="tabpanel" tabindex="2">
+                <div class="tab-pane fade" id="sample-tab" role="tabpanel" tabindex="2">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-2">Sample Name</th>
+                                <th scope="col" class="col-1">Project</th>
+                                <th scope="col" class="col-1">Sequence</th>
+                                <th scope="col" class="col-1">Pattern</th>
+                                <th scope="col" class="col-1">Read</th>
+                                <th scope="col" class="col-6">Libraries</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for _, row in sample_table.iterrows() %}
+                            <tr>
+                                <th scope="row">{{ row["sample_name"] }}</th>
+                                <td>{{ row["project_name"] }} <span class="desc">{{ row["project_id"] if row["project_id"] == row["project_id"] else "new" }}</span></td>
+                                <td>{{ row["sequence"] if row["sequence"] }}</td>
+                                <td>{{ row["pattern"] if row["pattern"] }}</td>
+                                <td>{{ row["read"] if row["read"] }}</td>
+                                <td>
+                                    <ul class="h-list">
+                                        {% for library_type in row["library_types"] %}
+                                        <li>{{ library_type }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tab-pane fade" id="pool-tab" role="tabpanel" tabindex="3">
                     {% if pool_table is not none %}
                     <table class="table table-hover">
                         <thead>
@@ -115,7 +153,7 @@
                     </table>
                     {% endif %}
                 </div>
-                <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="3">
+                <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="4">
                     {% if feature_table is not none %}
                     <table class="table table-hover">
                         <thead>
@@ -151,7 +189,7 @@
                     </table>
                     {% endif %}
                 </div>
-                <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="4">
+                <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="5">
                     {% if cmo_table is not none %}
                     <table class="table table-hover">
                         <thead>
@@ -170,7 +208,7 @@
                             <tr>
                                 <th scope="row">{{ row["demux_name"] }}</th>
                                 <td>{{ row["sample_name"] }}</td>
-                                <td>{{ row["kit"] }}</td>
+                                <td>{{ row["kit"] if row["kit"] == row["kit"] }}</td>
                                 <td>{{ row["feature"] }}</td>
                                 <td>{{ row["sequence"] }}</td>
                                 <td>{{ row["pattern"] }}</td>
@@ -181,7 +219,7 @@
                     </table>
                     {% endif %}
                 </div>
-                <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="5">
+                <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="6">
                 </div>
             </div>
         </div>
@@ -228,10 +266,17 @@
                         .append("g")
                             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-                    const dx = width / (5 - 1);
+                    const dx = width / 3;
 
                     svg.append("text")
                         .attr("x", 30)
+                        .attr("y", -margin.top * 0.5)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "22px")
+                        .text("Project");
+
+                    svg.append("text")
+                        .attr("x", dx * 1)
                         .attr("y", -margin.top * 0.5)
                         .attr("text-anchor", "middle")
                         .style("font-size", "22px")
@@ -245,7 +290,7 @@
                         .text("Library");
 
                     svg.append("text")
-                        .attr("x", dx * 4 - 50)
+                        .attr("x", dx * 3 - 50)
                         .attr("y", -margin.top * 0.5)
                         .attr("text-anchor", "middle")
                         .style("font-size", "22px")

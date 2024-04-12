@@ -19,6 +19,7 @@ from ....tools import SpreadSheetColumn
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from .KitMappingForm import KitMappingForm
+from .FeatureReferenceInputForm import FeatureReferenceInputForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .PoolMappingForm import PoolMappingForm
 from .CompleteSASForm import CompleteSASForm
@@ -54,11 +55,11 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
+    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.input_type = input_type
         self._context["columns"] = CMOReferenceInputForm.columns.values()
         self._context["active_tab"] = "help"
@@ -125,7 +126,18 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         elif self.input_type == "spreadsheet":
             import json
             data = json.loads(self.formdata["spreadsheet"])  # type: ignore
-            self.cmo_table = pd.DataFrame(data, columns=[col.label for col in CMOReferenceInputForm.columns.values()])
+            try:
+                self.cmo_table = pd.DataFrame(data)
+            except ValueError as e:
+                self.spreadsheet_dummy.errors = (str(e),)
+                return False
+            
+            columns = list(CMOReferenceInputForm.columns.keys())
+            if len(self.cmo_table.columns) != len(columns):
+                self.spreadsheet_dummy.errors = (f"Invalid number of columns (expected {len(columns)}). Do not insert new columns or rearrange existing columns.",)
+                return False
+            
+            self.cmo_table.columns = columns
             self.cmo_table = self.cmo_table.replace(r'^\s*$', None, regex=True)
             self.cmo_table = self.cmo_table.dropna(how="all")
 
@@ -133,8 +145,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
                 return False
         
-        data = self.get_data()
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        library_table: pd.DataFrame = self.tables["library_table"]
 
         self.file.errors = []
         self.spreadsheet_dummy.errors = []
@@ -145,15 +156,15 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         self.cmo_table["read"] = self.cmo_table["read"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
         self.cmo_table["kit_feature"] = pd.notna(self.cmo_table["kit"])
         self.cmo_table["custom_feature"] = pd.notna(self.cmo_table["feature"]) & pd.notna(self.cmo_table["sequence"]) & pd.notna(self.cmo_table["pattern"]) & pd.notna(self.cmo_table["read"])
-        self.cmo_table["invalid_feature"] = pd.notna(self.cmo_table["kit"]) & (pd.notna(self.cmo_table["sequence"]) | pd.notna(self.cmo_table["pattern"]) | pd.notna(self.cmo_table["read"]))
+        invalid_feature = pd.notna(self.cmo_table["kit"]) & (pd.notna(self.cmo_table["sequence"]) | pd.notna(self.cmo_table["pattern"]) | pd.notna(self.cmo_table["read"]))
 
-        for i, (_, row) in enumerate(self.cmo_table.iterrows()):
+        for i, (idx, row) in enumerate(self.cmo_table.iterrows()):
             if pd.isna(row["sample_name"]):
                 if self.input_type == "file":
                     self.file.errors.append(f"Row {i + 1}: 'Sample Name' must be specified.")
                 else:
                     self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Sample Name' must be specified.")
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['library_name'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
+                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['sample_name'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
             elif row["sample_name"] not in library_table["sample_name"].values:
                 if self.input_type == "file":
                     self.file.errors.append(f"Row {i + 1}: 'Sample Name' must be found in 'Sample Name'-column of sample annotation sheet.")
@@ -168,7 +179,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
                     self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Demux Name' must be specified.")
                     self.spreadsheet_style[f"{CMOReferenceInputForm.columns['demux_name'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
 
-            if row["invalid_feature"]:
+            if invalid_feature.at[idx]:
                 if self.input_type == "file":
                     self.file.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
                 else:
@@ -250,47 +261,45 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         if not self.validate():
             if self.input_type == "spreadsheet":
                 self._context["spreadsheet_style"] = self.spreadsheet_style
-                context["spreadsheet_data"] = self.cmo_table[CMOReferenceInputForm.columns.keys()].replace(np.nan, "").values.tolist()
+                context["spreadsheet_data"] = self.cmo_table.replace(np.nan, "").values.tolist()
                 if context["spreadsheet_data"] == []:
                     context["spreadsheet_data"] = [[None]]
             return self.make_response(**context)
 
-        data = self.get_data()
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        library_table = self.tables["library_table"]
 
-        kit_table: pd.DataFrame
-        if (kit_table := data.get("kit_table")) is None:  # type: ignore
-            kit_table = self.cmo_table[["kit"]].drop_duplicates().copy()
-            kit_table["type_id"] = FeatureType.CMO.id
-            kit_table["kit_id"] = None
-        else:
-            _kit_table = self.cmo_table[["kit"]].drop_duplicates().copy()
-            _kit_table["type_id"] = FeatureType.CMO.id
-            _kit_table["kit_id"] = None
-            kit_table = pd.concat([kit_table, _kit_table])
+        kit_table = self.cmo_table[self.cmo_table["kit"].notna()][["kit"]].drop_duplicates().copy()
+        kit_table["type_id"] = FeatureType.CMO.id
+        kit_table["kit_id"] = None
+
+        if kit_table.shape[0] > 0:
+            if (existing_kit_table := self.tables.get("kit_table")) is None:  # type: ignore
+                self.add_table("kit_table", kit_table)
+            else:
+                kit_table = pd.concat([kit_table, existing_kit_table])
+                self.update_table("kit_table", kit_table, update_data=False)
         
-        data["cmo_table"] = self.cmo_table
-        data["kit_table"] = kit_table
-        self.update_data(data)
+        self.add_table("cmo_table", self.cmo_table)
+        self.update_data()
 
         if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
-            kit_reference_input_form = KitMappingForm(uuid=self.uuid)
-            return kit_reference_input_form.make_response(**context)
+            feature_reference_input_form = FeatureReferenceInputForm(previous_form=self, uuid=self.uuid)
+            return feature_reference_input_form.make_response(**context)
 
-        if kit_table["kit_id"].notna().any():
-            feature_kit_mapping_form = KitMappingForm(uuid=self.uuid)
+        if kit_table["kit_id"].isna().any():
+            feature_kit_mapping_form = KitMappingForm(previous_form=self, uuid=self.uuid)
             feature_kit_mapping_form.prepare()
             return feature_kit_mapping_form.make_response(**context)
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
 
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            pool_mapping_form.prepare(data)
+            pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
+            pool_mapping_form.prepare()
             return pool_mapping_form.make_response(**context)
 
-        complete_sas_form = CompleteSASForm(uuid=self.uuid)
-        complete_sas_form.prepare(data)
+        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form.prepare()
         return complete_sas_form.make_response(**context)

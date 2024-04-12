@@ -39,11 +39,11 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         "Area": "area",
     }
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -89,7 +89,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
             self.file.errors = ("Missing values in annotation table.",)
             return False
         
-        library_table = self.get_data()["library_table"]
+        library_table = self.tables["library_table"]
         _df = library_table[library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id]
         is_annotated = _df["library_name"].isin(self.visium_table["library_name"])
         if not is_annotated.all():
@@ -102,12 +102,9 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         if not self.validate():
             return self.make_response(**context)
         
-        data = self.get_data()
-        data["visium_table"] = self.visium_table
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        library_table = self.tables["library_table"]
 
-        comment_table: pd.DataFrame
-        if (comment_table := data.get("comment_table")) is None:  # type: ignore
+        if (comment_table := self.tables.get("comment_table")) is None:  # type: ignore
             comment_table = pd.DataFrame({
                 "context": ["visium_instructions"],
                 "text": [self.instructions.data]
@@ -121,16 +118,17 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
                 })
             ])
         
-        data["comment_table"] = comment_table
-        self.update_data(data)
+        self.add_table("visium_table", self.visium_table)
+        self.add_table("comment_table", comment_table)
+        self.update_data()
 
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            pool_mapping_form.prepare(data)
+            pool_mapping_form = PoolMappingForm(self, uuid=self.uuid)
+            pool_mapping_form.prepare()
             return pool_mapping_form.make_response(**context)
         
-        complete_sas_form = CompleteSASForm(uuid=self.uuid)
-        complete_sas_form.prepare(data)
+        complete_sas_form = CompleteSASForm(self, uuid=self.uuid)
+        complete_sas_form.prepare()
         return complete_sas_form.make_response(**context)
 
 

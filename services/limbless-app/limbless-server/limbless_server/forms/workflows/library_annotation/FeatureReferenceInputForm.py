@@ -58,11 +58,11 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
     file = FileField("File", validators=[FileAllowed([ext for ext, _ in _allowed_extensions])], description="Define custom features or use different predefined kits for each feature capture library.")
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["predefined", "spreadsheet", "file"]] = None):
+    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["predefined", "spreadsheet", "file"]] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.input_type = input_type
         self._context["columns"] = FeatureReferenceInputForm.columns.values()
         self._context["active_tab"] = "help"
@@ -143,8 +143,7 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
                 return False
             
-        data = self.get_data()
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        library_table = self.tables["library_table"]
         abc_libraries = library_table[library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id]
             
         self.file.errors = []
@@ -272,8 +271,7 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
                     context["spreadsheet_data"] = [[None]]
             return self.make_response(**context)
 
-        data = self.get_data()
-        library_table: pd.DataFrame = data["library_table"]  # type: ignore
+        library_table = self.tables["library_table"]
 
         feature_data = {
             "library_name": [],
@@ -282,7 +280,6 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
             "sequence": [],
             "pattern": [],
             "read": [],
-            "kit_id": [],
             "feature_id": [],
         }
         abc_libraries_df = library_table[library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id]
@@ -346,34 +343,34 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
 
         self.feature_table = pd.DataFrame(feature_data)
 
-        kit_table: pd.DataFrame
-        if (kit_table := data.get("kit_table")) is None:  # type: ignore
+        if (kit_table := self.tables.get("kit_table")) is None:  # type: ignore
             kit_table = self.feature_table[["kit", "kit_id"]].drop_duplicates().copy()
             kit_table["type_id"] = FeatureType.ANTIBODY.id
+            self.add_table("kit_table", kit_table)
         else:
             _kit_table = self.feature_table[["kit", "kit_id"]].drop_duplicates().copy()
             _kit_table["type_id"] = FeatureType.ANTIBODY.id
             kit_table = pd.concat([kit_table, _kit_table])
+            self.update_table("kit_table", kit_table, False)
 
-        data["feature_table"] = self.feature_table
-        data["kit_table"] = kit_table
-        self.update_data(data)
+        self.add_table("feature_table", self.feature_table)
+        self.update_data()
         
-        if kit_table["kit_id"].notna().any():
-            feature_kit_mapping_form = KitMappingForm(uuid=self.uuid)
-            feature_kit_mapping_form.prepare(data)
+        if kit_table["kit_id"].isna().any():
+            feature_kit_mapping_form = KitMappingForm(previous_form=self, uuid=self.uuid)
+            feature_kit_mapping_form.prepare()
             return feature_kit_mapping_form.make_response(**context)
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             return visium_annotation_form.make_response(**context)
 
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(uuid=self.uuid)
-            pool_mapping_form.prepare(data)
+            pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
+            pool_mapping_form.prepare()
             return pool_mapping_form.make_response(**context)
 
-        complete_sas_form = CompleteSASForm(uuid=self.uuid)
-        complete_sas_form.prepare(data)
+        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form.prepare()
         return complete_sas_form.make_response(**context)
         
