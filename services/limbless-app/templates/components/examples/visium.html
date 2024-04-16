@@ -1,0 +1,31 @@
+<div class="example-table" id="visium-1-example">
+    <div class="input-help">
+        <ul>
+            <li>Library Name <span class="desc">the library name from annotation sheet that this image belongs to</span></li>
+            <li>Image <span class="desc">the filename of the image, e.g. 'sample_a.tif'</span></li>
+            <li>Slide <span class="desc">the visium slide of the image, e.g. 'V01A02-123'</span></li>
+            <li>Region <span class="desc">the region of the image, e.g. 'A1'</span></li>
+        </ul>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        jspreadsheet(document.getElementById('visium-1-example'), {
+            data: [
+                ["VISIUM_SAMPLE_1", "image_sample_1.tif", "V01A01-111", "A1"],
+                ["VISIUM_SAMPLE_2", "image_sample_2.tif", "V01B02-222", "B1"],
+                ["VISIUM_SAMPLE_3", "image_sample_3.tif", "V01C03-333", "C1"],
+            ],
+            columns: [
+                {% for col in columns %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            minSpareRows: 10,
+        });
+    });
+</script>

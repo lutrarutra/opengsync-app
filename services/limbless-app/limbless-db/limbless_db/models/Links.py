@@ -20,9 +20,9 @@ class SampleLibraryLink(Base):
     library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)
     cmo_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("cmo.id"), nullable=True, default=None)
 
-    sample: Mapped["Sample"] = relationship("Sample", back_populates="library_links")
-    library: Mapped["Library"] = relationship("Library", back_populates="sample_links")
-    cmo: Mapped[Optional["CMO"]] = relationship("CMO")
+    sample: Mapped["Sample"] = relationship("Sample", back_populates="library_links", lazy="select")
+    library: Mapped["Library"] = relationship("Library", back_populates="sample_links", lazy="select")
+    cmo: Mapped[Optional["CMO"]] = relationship("CMO", lazy="select")
 
     def __str__(self) -> str:
         return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"

@@ -266,42 +266,24 @@ def update_seq_request(
     return seq_request
 
 
-def delete_seq_request(
-    self, seq_request_id: int,
-    commit: bool = True
-) -> None:
+def delete_seq_request(self, seq_request_id: int) -> None:
     persist_session = self._session is not None
     if not self._session:
-        self.open_session()
+        self.open_session(autoflush=False)
 
-    seq_request = self._session.get(models.SeqRequest, seq_request_id)
-    if not seq_request:
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
 
-    libraries = seq_request.libraries
-    
-    for library in libraries:
-        for link in library.sample_links:
-            link.sample.num_libraries -= 1
-            self._session.add(link.sample)
-            if link.cmo is not None:
-                self._session.delete(link.cmo)
-            self._session.delete(link)
-
-        if library.pool is not None:
-            library.pool.num_libraries -= 1
-            self._session.add(library.pool)
-        self._session.delete(library)
+    for library in seq_request.libraries:
+        self.delete_library(library.id)
 
     for pool in seq_request.pools:
-        self._session.delete(pool)
+        self.delete_pool(pool.id)
 
     seq_request.requestor.num_seq_requests -= 1
     self._session.add(seq_request.requestor)
-
     self._session.delete(seq_request)
-    if commit:
-        self._session.commit()
+    self._session.commit()
 
     if not persist_session:
         self.close_session()

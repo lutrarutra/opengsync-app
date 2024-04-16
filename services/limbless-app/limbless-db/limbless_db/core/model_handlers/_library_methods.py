@@ -200,28 +200,30 @@ def delete_library(self, library_id: int):
     for link in library.sample_links:
         link.sample.num_libraries -= 1
         self._session.add(link.sample)
-        if link.cmo is not None:
+
+        if self._session.query(models.SampleLibraryLink).where(
+            models.SampleLibraryLink.cmo_id == link.cmo_id
+        ).count() == 1:
             self._session.delete(link.cmo)
+
         if link.sample.num_libraries == 0:
-            self._session.delete(link.sample)
+            self.delete_sample(link.sample.id)
         self._session.delete(link)
 
     if library.pool is not None:
         library.pool.num_libraries -= 1
         if library.pool.num_libraries == 0:
-            self._session.delete(library.pool)
+            self.delete_pool(library.pool.id)
         else:
             self._session.add(library.pool)
 
     orhpan_features = []
     for feature in library.features:
-        print(feature, flush=True)
         if feature.feature_kit_id is None:
             count = self._session.query(models.LibraryFeatureLink).where(
                 models.LibraryFeatureLink.feature_id == feature.id
             ).count()
 
-            print(feature.name, count, flush=True)
             if count == 1:
                 orhpan_features.append(feature)
 

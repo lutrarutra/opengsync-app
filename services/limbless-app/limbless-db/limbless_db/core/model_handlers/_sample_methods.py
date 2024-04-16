@@ -136,10 +136,7 @@ def update_sample(
     return sample
 
 
-def delete_sample(
-    self, sample_id: int,
-    commit: bool = True
-) -> None:
+def delete_sample(self, sample_id: int):
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -150,9 +147,7 @@ def delete_sample(
     sample.owner.num_samples -= 1
     sample.project.num_samples -= 1
     self._session.delete(sample)
-
-    if commit:
-        self._session.commit()
+    self._session.commit()
 
     if not persist_session:
         self.close_session()

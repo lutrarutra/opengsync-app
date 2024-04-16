@@ -20,9 +20,9 @@ class DBHandler():
     def create_tables(self) -> None:
         Base.metadata.create_all(self._engine)
 
-    def open_session(self) -> None:
+    def open_session(self, autoflush: bool = False) -> None:
         if self._session is None:
-            self._session = orm.Session(self._engine, expire_on_commit=False)
+            self._session = orm.Session(self._engine, expire_on_commit=False, autoflush=autoflush)
 
     def close_session(self) -> None:
         if self._session is not None:

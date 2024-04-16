@@ -1,4 +1,5 @@
 import os
+import shutil
 from typing import Optional
 
 import pandas as pd
@@ -117,6 +118,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         sample_data = {
             "sample_name": [],
             "sample_pool": [],
+            "project_label": [],
             "project_name": [],
             "sample_id": [],
             "project_id": [],
@@ -130,6 +132,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         def add_sample(
             sample_name: str,
             sample_pool: str,
+            project_label: str,
             project_name: str,
             project_id: str,
             is_cmo_sample: bool,
@@ -141,6 +144,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         ):
             sample_data["sample_name"].append(sample_name)
             sample_data["sample_pool"].append(sample_pool)
+            sample_data["project_label"].append(project_label)
             sample_data["project_name"].append(project_name)
             sample_data["project_id"].append(project_id)
             sample_data["sample_id"].append(sample_id)
@@ -157,6 +161,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                 add_sample(
                     sample_name=sample_name,
                     sample_pool=sample_name,
+                    project_label=project_row["project"],
                     project_name=project_row["name"],
                     sample_id=sample_id,
                     project_id=project_row["id"],
@@ -168,20 +173,38 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     logger.error(f"{self.uuid}: CMO reference table not found.")
                     raise Exception("CMO reference should not be None.")
                 
-                for _, cmo in cmo_table[cmo_table["sample_name"] == sample_name].iterrows():
+                for _, cmo_row in cmo_table[cmo_table["sample_name"] == sample_name].iterrows():
                     add_sample(
-                        sample_name=cmo["demux_name"],
+                        sample_name=cmo_row["demux_name"],
                         sample_pool=sample_name,
+                        project_label=project_row["project"],
                         project_name=project_row["name"],
                         project_id=project_row["id"],
                         library_types=library_types,
                         is_cmo_sample=True,
-                        sequence=cmo["sequence"],
-                        pattern=cmo["pattern"],
-                        read=cmo["read"],
+                        sequence=cmo_row["sequence"],
+                        pattern=cmo_row["pattern"],
+                        read=cmo_row["read"],
                     )
 
         return pd.DataFrame(sample_data)
+    
+    def __update_data(
+        self, sample_table: pd.DataFrame, library_table: pd.DataFrame, project_table: pd.DataFrame,
+        pool_table: Optional[pd.DataFrame], visium_table: Optional[pd.DataFrame],
+        cmo_table: Optional[pd.DataFrame]
+    ):
+        self.add_table("sample_table", sample_table)
+        self.update_table("library_table", library_table, False)
+        self.update_table("project_table", project_table, False)
+        if pool_table is not None:
+            self.update_table("pool_table", pool_table, False)
+        if visium_table is not None:
+            self.update_table("visium_table", visium_table, False)
+        if cmo_table is not None:
+            self.update_table("cmo_table", cmo_table, False)
+
+        self.update_data()
 
     def process_request(self, **context) -> Response:
         if not self.validate():
@@ -201,6 +224,16 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         sample_table = self.get_sample_table(library_table, project_table, cmo_table)
 
+        if current_app.debug:
+            self.__update_data(
+                sample_table=sample_table,
+                library_table=library_table,
+                project_table=project_table,
+                pool_table=pool_table,
+                visium_table=visium_table,
+                cmo_table=cmo_table
+            )
+
         if visium_table is not None:
             visium_table["id"] = None
             with DBSession(db) as session:
@@ -212,34 +245,74 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     )
                     visium_table.at[idx, "id"] = visium_annotation.id
 
+            visium_table["id"] = visium_table["id"].astype(int)
+
         with DBSession(db) as session:
             for idx, row in project_table.iterrows():
                 if pd.isna(row["id"]):
                     project = session.create_project(
-                        name=row["project_name"],
+                        name=row["name"],
                         description="",
                         owner_id=user.id
                     )
                     project_table.at[idx, "id"] = project.id
+                    sample_table.loc[sample_table["project_label"] == row["project"], "project_id"] = project.id
+
+            project_table["id"] = project_table["id"].astype(int)
 
         with DBSession(db) as session:
+            sample_table["cmo_id"] = None
             for idx, row in sample_table.iterrows():
                 if pd.isna(row["sample_id"]):
                     sample = session.create_sample(
                         name=row["sample_name"],
-                        project_id=row["project"],
+                        project_id=row["project_id"],
                         owner_id=user.id
                     )
                     sample_table.at[idx, "sample_id"] = sample.id
+                if row["is_cmo_sample"]:
+                    cmo = session.create_cmo(
+                        sequence=row["sequence"],
+                        pattern=row["pattern"],
+                        read=row["read"],
+                    )
+                    sample_table.at[idx, "cmo_id"] = cmo.id
+
+            sample_table["sample_id"] = sample_table["sample_id"].astype(int)
+
+        if pool_table is not None:
+            pool_table["pool_id"] = None
+            with DBSession(db) as session:
+                for idx, row in pool_table.iterrows():
+                    pool = session.create_pool(
+                        name=row["name"],
+                        owner_id=user.id,
+                        seq_request_id=seq_request.id,
+                        num_m_reads_requested=row["num_m_reads"],
+                        contact_name=row["contact_person_name"],
+                        contact_email=row["contact_person_email"],
+                        contact_phone=row["contact_person_phone"] if pd.notna(row["contact_person_phone"]) else None,
+                    )
+                    pool_table.at[idx, "pool_id"] = pool.id
+
+            logger.debug(pool_table.dtypes)
+            pool_table["pool_id"] = pool_table["pool_id"].astype(int)
+            logger.debug(pool_table.dtypes)
 
         with DBSession(db) as session:
             library_table["library_id"] = None
             for idx, row in library_table.iterrows():
                 if visium_table is not None:
                     visium_row = visium_table[visium_table["library_name"] == row["library_name"]].iloc[0]
-                    visium_annotation_id = visium_row["id"]
+                    visium_annotation_id = int(visium_row["id"])
                 else:
                     visium_annotation_id = None
+
+                if pool_table is not None:
+                    pool_row = pool_table[pool_table["name"] == row["pool"]].iloc[0]
+                    pool_id = int(pool_row["pool_id"])
+                else:
+                    pool_id = None
 
                 library = session.create_library(
                     name=row["library_name"],
@@ -253,43 +326,19 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     index_4_sequence=row["index_4"].strip() if pd.notna(row["index_4"]) else None,
                     adapter=row["adapter"].strip() if pd.notna(row["adapter"]) else None,
                     visium_annotation_id=visium_annotation_id,
-                    seq_depth_requested=row["seq_depth"] if pd.notna(row["seq_depth"]) else None,
+                    pool_id=pool_id,
+                    seq_depth_requested=row["seq_depth"] if "seq_depth" in row and pd.notna(row["seq_depth"]) else None,
                 )
                 library_table.at[idx, "library_id"] = library.id
-
-        if pool_table is not None:
-            pool_table["pool_id"] = None
-            with DBSession(db) as session:
-                for idx, row in pool_table.iterrows():
-                    pool = session.create_pool(
-                        name=row["pool_name"],
-                        owner_id=user.id,
-                        seq_request_id=seq_request.id,
-                        num_m_reads_requested=row["num_m_reads"],
-                        contact_name=row["contact_person_name"],
-                        contact_email=row["contact_person_email"],
-                        contact_phone=row["contact_person_phone"] if pd.notna(row["contact_person_phone"]) else None,
+                library_samples = sample_table[sample_table["sample_pool"] == row["sample_name"]]
+                for idx, sample_row in library_samples.iterrows():
+                    session.link_sample_library(
+                        sample_id=sample_row["sample_id"],
+                        library_id=library.id,
+                        cmo_id=sample_row["cmo_id"]
                     )
-                    pool_table.at[idx, "pool_id"] = pool.id
 
-        if cmo_table is not None:
-            with DBSession(db) as session:
-                for idx, row in cmo_table.iterrows():
-                    sample_row = sample_table[sample_table["sample_name"] == row["sample_name"]].iloc[0]
-                    libraries = library_table[library_table["sample_name"] == row["sample_name"]]
-                    for _, library_row in libraries.iterrows():
-                        cmo = session.create_cmo(
-                            sequence=row["sequence"].strip(),
-                            pattern=row["pattern"].strip(),
-                            read=row["read"].strip(),
-                            sample_id=sample_row["sample_id"],
-                            library_id=library_row["library_id"],
-                        )
-                        session.link_sample_library(
-                            sample_id=sample_row["sample_id"],
-                            library_id=library_row["library_id"],
-                            cmo_id=cmo.id,
-                        )
+            library_table["library_id"] = library_table["library_id"].astype(int)
 
         if feature_table is not None:
             custom_features = feature_table[feature_table["feature_id"].isna()]
@@ -313,6 +362,8 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                             feature_id=feature_row["feature_id"],
                             library_id=library_row["library_id"]
                         )
+
+            feature_table["feature_id"] = feature_table["feature_id"].astype(int)
             
         if comment_table is not None:
             for _, row in comment_table.iterrows():
@@ -325,22 +376,20 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     comment_id=comment.id
                 )
 
-        self.add_table("sample_table", sample_table)
-        self.update_table("library_table", library_table, False)
-        self.update_table("project_table", project_table, False)
-        if pool_table is not None:
-            self.update_table("pool_table", pool_table, False)
-        if visium_table is not None:
-            self.update_table("visium_table", visium_table, False)
-        if cmo_table is not None:
-            self.update_table("cmo_table", cmo_table, False)
-
-        self.update_data()
+        self.__update_data(
+            sample_table=sample_table,
+            library_table=library_table,
+            project_table=project_table,
+            pool_table=pool_table,
+            visium_table=visium_table,
+            cmo_table=cmo_table
+        )
 
         flash(f"Added {library_table.shape[0]} libraries to sequencing request.", "success")
 
         newdir = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LIBRARY_ANNOTATION.dir, str(seq_request.id))
         os.makedirs(newdir, exist_ok=True)
-        os.rename(self.path, os.path.join(newdir, f"{self.uuid}.tsv"))
+        shutil.copy(self.path, os.path.join(newdir, f"{self.uuid}.tsv"))
+        os.remove(self.path)
 
         return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))

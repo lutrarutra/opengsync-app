@@ -129,10 +129,7 @@ def get_pools(
     return pools, n_pages
 
 
-def delete_pool(
-    self, pool_id: int,
-    commit: bool = True
-) -> None:
+def delete_pool(self, pool_id: int):
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -141,12 +138,9 @@ def delete_pool(
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     pool.owner.num_pools -= 1
-    for sample in pool.samples:
-        sample.num_pools -= 1
-        
+
     self._session.delete(pool)
-    if commit:
-        self._session.commit()
+    self._session.commit()
 
     if not persist_session:
         self.close_session()

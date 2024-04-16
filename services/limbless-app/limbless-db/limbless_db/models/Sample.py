@@ -24,7 +24,7 @@ class Sample(Base):
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="joined")
 
-    library_links: Mapped[list["SampleLibraryLink"]] = relationship("SampleLibraryLink", back_populates="sample", lazy="select")
+    library_links: Mapped[list["SampleLibraryLink"]] = relationship("SampleLibraryLink", back_populates="sample", lazy="select", cascade="save-update, merge, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries"]
 

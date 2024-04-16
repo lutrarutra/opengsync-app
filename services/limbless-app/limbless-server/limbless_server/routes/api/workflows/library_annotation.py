@@ -9,7 +9,7 @@ from flask_login import login_required
 from limbless_db import models, DBSession
 from limbless_db.categories import HTTPResponse, LibraryType
 
-from .... import db, logger
+from .... import db, logger  # noqa
 from ....forms.workflows import library_annotation as forms
 
 if TYPE_CHECKING:
@@ -54,9 +54,9 @@ def download_visium_template(uuid: str):
     df = library_table[library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id][["library_name"]]
     df = df.rename(columns={"library_name": "Library Name"})
 
-    for col in forms.VisiumAnnotationForm._visium_annotation_mapping.keys():
+    for col in forms.VisiumAnnotationForm.columns.values():
         if col not in df.columns:
-            df[col] = ""
+            df[col.name] = ""
 
     return Response(
         df.to_csv(sep="\t", index=False), mimetype="text/csv",
@@ -211,13 +211,16 @@ def map_feature_kits(seq_request_id: int):
 
 
 # 9. Map pools
-@library_annotation_workflow.route("<int:seq_request_id>/annotate_visium", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/parse_visium_reference/<string:input_type>", methods=["POST"])
 @login_required
-def annotate_visium(seq_request_id: int):
+def parse_visium_reference(seq_request_id: int, input_type: Literal["spreadsheet", "file"]):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.VisiumAnnotationForm(formdata=request.form | request.files).process_request(
+    if input_type not in ["spreadsheet", "file"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    return forms.VisiumAnnotationForm(formdata=request.form | request.files, input_type=input_type).process_request(
         seq_request=seq_request, user=current_user
     )
 

@@ -32,8 +32,8 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                    data-bs-target="#feature-1-example-tab" type="button" role="tab"
-                    aria-controls="feature-1-example-tab" aria-selected="true">
+                    data-bs-target="#cmo-1-example-tab" type="button" role="tab"
+                    aria-controls="cmo-1-example-tab" aria-selected="true">
                     Example 1.</button>
                 </li>
             </ul>
@@ -98,6 +98,9 @@
                         {{ form_group(form.separator, class="col-2") }}
                         {{ form_group(form.file, class="col-10") }}
                     </div>
+                </div>
+                <div class="tab-pane fade" id="cmo-1-example-tab" role="tabpanel" tabindex="3">
+                    {% include "components/examples/cmo.html" %}
                 </div>
             </div>
         </div>

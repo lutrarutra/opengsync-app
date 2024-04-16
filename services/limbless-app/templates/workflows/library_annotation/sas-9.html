@@ -1,53 +1,165 @@
 {% from 'components/form_group.jinja2' import form_group %}
-{% from 'components/search_select.jinja2' import search_select_field %}
 {% from "components/table_input.jinja2" import table_input %}
+{% from "components/legends.jinja2" import color_legend %}
 
-<div id="cmo-reference-form-container" class="modal-content">
+<div id="visium-reference-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >9. Spatial Transcriptomics Annotation</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#data-submission-modal-container")></button>
     </div>
     <div class="modal-body">
-        <div class="input-help">
-            <h5>How to?</h5>
-            <ol>
-                <li><a href="{{ url_for('library_annotation_workflow.download_visium_template', uuid=visium_annotation_form.file_uuid.data) }}">Download template</a></li>
-                <li>Fill in the template</li>
-                <li>Submit the file below</li>
-            </ol>
-
-            <h5>Modify Columns</h5>
-            <ul>
-                <li>Library Name <span class="desc">the library name from annotation sheet that this image belongs to</span></li>
-                <li>Image <span class="desc">the filename of the image, e.g. 'sample_a.tif'</span></li>
-                <li>Slide <span class="desc">the visium slide of the image, e.g. 'V01A02-123'</span></li>
-                <li>Region <span class="desc">the region of the image, e.g. 'A1'</span></li>
+        <div class="tab-body">
+            <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#help-tab" type="button" role="tab"
+                    aria-controls="help-tab" aria-selected="false">
+                    Help</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                    id="spreadsheet-tab-btn"
+                    data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                    aria-controls="spreadsheet-tab" aria-selected="true">
+                    Spreadsheet</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
+                    id="file-tab-btn"
+                    data-bs-target="#file-tab" type="button" role="tab"
+                    aria-controls="file-tab" aria-selected="true">
+                    File</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                    data-bs-target="#visium-1-example-tab" type="button" role="tab"
+                    aria-controls="visium-1-example-tab" aria-selected="true">
+                    Example 1.</button>
+                </li>
             </ul>
-        </div>
-        <form id="cmo-reference-form" enctype="multipart/form-data">
-            {{ visium_annotation_form.csrf_token() }}
-            {{ form_group(visium_annotation_form.instructions) }}
-            <div class="row">
-                {{ form_group(visium_annotation_form.separator, class="col-2") }}
-                {{ form_group(visium_annotation_form.file, class="col-10") }}
+            <div class="tab-content" id="visium-reference-form" enctype="multipart/form-data">
+                {{ visium_annotation_form.csrf_token() }}
+                {{ visium_annotation_form.file_uuid(hidden=True, readonly=True) }}
+                {{ form_group(visium_annotation_form.instructions) }}
+
+                <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+                    <div class="input-help">
+                        <h5>How to?</h5>
+                        <ol>
+                            <li><a href="{{ url_for('library_annotation_workflow.download_visium_template', uuid=visium_annotation_form.file_uuid.data) }}">Download template</a></li>
+                            <li>Fill in the template</li>
+                            <li>Submit the file below</li>
+                        </ol>
+
+                        <h5>Columns: </h5>
+                        <ul>
+                            <li>Library Name <span class="desc">the library name from annotation sheet that this image belongs to</span></li>
+                            <li>Image <span class="desc">the filename of the image, e.g. 'sample_a.tif'</span></li>
+                            <li>Slide <span class="desc">the visium slide of the image, e.g. 'V01A02-123'</span></li>
+                            <li>Area <span class="desc">the area of the image, e.g. 'A1'</span></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
+                    <div id="spreadsheet-grid" class="spreadsheet-grid">
+                        <div class="invalid-feedback-container">
+                            {% if not disabled %}
+                            {% for error in visium_annotation_form.spreadsheet_dummy.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
+                    <div class="input-help">
+                        <h5>Columns:</h5>
+                        <ul>
+                            <li>Library Name <span class="desc">the library name from annotation sheet that this image belongs to</span></li>
+                            <li>Image <span class="desc">the filename of the image, e.g. 'sample_a.tif'</span></li>
+                            <li>Slide <span class="desc">the visium slide of the image, e.g. 'V01A02-123'</span></li>
+                            <li>Area <span class="desc">the area of the image, e.g. 'A1'</span></li>
+                        </ul>
+                    </div>
+                    <div class="row">
+                        {{ form_group(visium_annotation_form.separator, class="col-2") }}
+                        {{ form_group(visium_annotation_form.file, class="col-10") }}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="3">
+                    {% include "components/examples/visium.html" %}
+                </div>
             </div>
-            {{ visium_annotation_form.file_uuid(hidden=True, readonly=True) }}
-        </form>
+        </div>
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ form.file_uuid.data }}
+            {{ visium_annotation_form.file_uuid.data }}
+        </div>
+        <div class="footer-info">
+            {{ color_legend(colors) }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-primary" type="button"
-                hx-include="#cmo-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data" id="submit-cmo-reference-form-btn"
-                hx-post="{{ url_for('library_annotation_workflow.annotate_visium', seq_request_id=seq_request.id) }}">
-                Next
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-file-form-btn"
+                hx-include="#visium-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data" {% if active_tab != "file" %}style="display: none;"{% endif %}
+                hx-post="{{ url_for('library_annotation_workflow.parse_visium_reference', seq_request_id=seq_request.id, input_type='file') }}">
+                File
+            </button>
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
+                Spreadsheet
             </button>
         </div>
     </div>
     <script>
-        init_tooltips();
+        $(document).ready(function() {
+            init_tooltips();
+
+            $(".example-tab-btn, .help-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+            });
+            $("#file-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+                $("#submit-file-form-btn").show();
+            });
+            $("#spreadsheet-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+                $("#submit-spreadsheet-btn").show();
+            });
+
+            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
+            const csrf_token = "{{ visium_annotation_form.csrf_token._value() }}";
+
+            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
+                data: data,
+                columns: [
+                    {% for col in columns %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                minSpareRows: 10,
+                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
+            });
+
+            $("#submit-spreadsheet-btn").on("click", function() {
+                var data = spread_sheet.getData();
+
+                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_visium_reference', seq_request_id=seq_request.id, input_type='spreadsheet') }}", {
+                    "target": "#visium-reference-form-container",
+                    "swap": "outerHTML",
+                    "values": {
+                        "spreadsheet": JSON.stringify(data),
+                        "csrf_token": csrf_token,
+                        "feature_kit-csrf_token": csrf_token,
+                        "file_uuid": "{{ visium_annotation_form.file_uuid.data }}",
+                        "instructions": $("#instructions").val(),
+                    },
+                });
+            });
+        });
     </script>
 </div>

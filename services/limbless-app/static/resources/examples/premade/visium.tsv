@@ -1,13 +1,13 @@
 Sample Name	Library Name	Genome	Project	Library Type	Pool	Index Kit	Adapter	Index 1 (i7)	Index 2 (i5)	Index 3	Index 4
-V12N18_382_W175	V12N18_382_W175	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A1							
-V12N18_382_W175D	V12N18_382_W175D	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A2							
-V12N18_382_W236	V12N18_382_W236	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A3							
-V12N18_382_W176	V12N18_382_W176	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A4							
-V12N18_387_W253	V12N18_387_W253	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A5							
-V12N18_387_W60D	V12N18_387_W60D	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A6							
-V12N18_387_W70	V12N18_387_W70	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A7							
-V12N18_387_W68	V12N18_387_W68	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A8							
-V13F06_361_W145	V13F06_361_W145	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A9							
-V13F06_361_W100D	V13F06_361_W100D	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A10							
-V13F06_361_W114	V13F06_361_W114	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A11							
-V13F06_361_W208D	V13F06_361_W208D	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TS-A12							
+V12N18_382_W175	V12N18_382_W175	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A1							
+V12N18_382_W175D	V12N18_382_W175D	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A2							
+V12N18_382_W236	V12N18_382_W236	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A3							
+V12N18_382_W176	V12N18_382_W176	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A4							
+V12N18_387_W253	V12N18_387_W253	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A5							
+V12N18_387_W60D	V12N18_387_W60D	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A6							
+V12N18_387_W70	V12N18_387_W70	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A7							
+V12N18_387_W68	V12N18_387_W68	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A8							
+V13F06_361_W145	V13F06_361_W145	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A9							
+V13F06_361_W100D	V13F06_361_W100D	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A10							
+V13F06_361_W114	V13F06_361_W114	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A11							
+V13F06_361_W208D	V13F06_361_W208D	human	Lung Visium	spatial transcriptomics	visium pool	dual index ts	SI-TN-A1							

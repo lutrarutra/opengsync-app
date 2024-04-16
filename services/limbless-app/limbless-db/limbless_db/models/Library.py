@@ -54,10 +54,9 @@ class Library(Base):
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="joined")
 
     sample_links: Mapped[list["SampleLibraryLink"]] = relationship(
-        "SampleLibraryLink", back_populates="library", lazy="select", cascade="delete",
+        "SampleLibraryLink", back_populates="library", lazy="select", cascade="save-update, merge, delete, delete-orphan",
     )
 
-    cmos: Mapped[list["CMO"]] = relationship("CMO", back_populates="library", lazy="select")
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=LibraryFeatureLink.__tablename__, lazy="select")
 
     seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=False)

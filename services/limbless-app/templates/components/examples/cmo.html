@@ -1,0 +1,40 @@
+<div class="example-table" id="visium-1-example">
+    <div class="input-help">
+        <ul>
+            <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
+            <li>Sample Name <span class="desc">The sample from annotation sheet that this CMO belongs to, must mach one and only one value from 'Sample Name'-column from sample annotation sheet</span></li>
+            <li>Feature <span class="desc">Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+            <li>Kit <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
+            <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
+            <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
+            <li>Read <span class="desc">e.g. 'R2'</span></li>
+        </ul>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        jspreadsheet(document.getElementById('visium-1-example'), {
+            data: [
+                "lung_sample_A", "cmo_sample_A", "CMO301", "ATGAGGAATTCCTGC", "5P(BC)", "R2"
+                "heart_sample_A", "cmo_sample_A", "CMO302", "CATGCCAATAGAGCG", "5P(BC)", "R2"
+                "kidney_sample_A", "cmo_sample_A", "CMO303", "CCGTCGTCCAAGCAT", "5P(BC)", "R2"
+                "lung_sample_B", "cmo_sample_B", "CMO304", "AACGTTAATCACTCA", "5P(BC)", "R2"
+                "heart_sample_B", "cmo_sample_B", "CMO305", "CGCGATATGGTCGGA", "5P(BC)", "R2"
+                "kidney_sample_B", "cmo_sample_B", "CMO306", "AAGATGAGGTCTGTG", "5P(BC)", "R2"
+                "lung_sample_C", "cmo_sample_C", "CMO307", "AAGCTCGTTGGAAGA", "5P(BC)", "R2"
+                "heart_sample_C", "cmo_sample_C", "CMO308", "CGGATTCCACATCAT", "5P(BC)", "R2"
+                "kidney_sample_C", "cmo_sample_C", "CMO309", "GTTGATCTATAACAG", "5P(BC)", "R2"
+            ],
+            columns: [
+                {% for col in columns %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            minSpareRows: 10,
+        });
+    });
+</script>
