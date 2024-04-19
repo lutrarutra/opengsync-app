@@ -3,9 +3,10 @@ from typing import Optional
 
 import sqlalchemy as sa
 
+from limbless_db import models
+
 from .. import exceptions
 from ... import PAGE_LIMIT
-from ...models import User
 from ...categories import UserRole, UserRoleEnum
 
 
@@ -16,17 +17,17 @@ def create_user(
     hashed_password: str,
     role: UserRoleEnum,
     commit: bool = True
-) -> User:
+) -> models.User:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if self._session.query(User).where(
-        User.email == email
+    if self._session.query(models.User).where(
+        models.User.email == email
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"User with email {email} already exists")
 
-    user = User(
+    user = models.User(
         email=email.strip(),
         first_name=first_name.strip(),
         last_name=last_name.strip(),
@@ -44,12 +45,12 @@ def create_user(
     return user
 
 
-def get_user(self, user_id: int) -> User:
+def get_user(self, user_id: int) -> models.User:
     persist_session = self._session is not None
     if self._session is None:
         self.open_session()
 
-    res = self._session.get(User, user_id)
+    res = self._session.get(models.User, user_id)
 
     if not persist_session:
         self.close_session()
@@ -57,13 +58,13 @@ def get_user(self, user_id: int) -> User:
     return res
 
 
-def get_user_by_email(self, email: str) -> User:
+def get_user_by_email(self, email: str) -> models.User:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    user = self._session.query(User).where(
-        User.email == email
+    user = self._session.query(models.User).where(
+        models.User.email == email
     ).first()
     if not persist_session:
         self.close_session()
@@ -73,15 +74,15 @@ def get_user_by_email(self, email: str) -> User:
 def get_users(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[User], int]:
+) -> tuple[list[models.User], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(User)
+    query = self._session.query(models.User)
 
     if sort_by is not None:
-        attr = getattr(User, sort_by)
+        attr = getattr(models.User, sort_by)
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)
@@ -106,7 +107,7 @@ def get_num_users(self) -> int:
     if not self._session:
         self.open_session()
 
-    res = self._session.query(User).count()
+    res = self._session.query(models.User).count()
     
     if not persist_session:
         self.close_session()
@@ -114,48 +115,31 @@ def get_num_users(self) -> int:
 
 
 def update_user(
-    self, user_id: int,
-    email: Optional[str] = None,
-    hashed_password: Optional[str] = None,
-    role: Optional[UserRoleEnum] = None,
-    commit: bool = True
-) -> User:
+    self, user: models.User
+) -> models.User:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (user := self._session.get(User, user_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-
-    if email is not None:
-        user.email = email
-    if hashed_password is not None:
-        user.password = hashed_password
-    if role is not None:
-        user.role_id = role.id
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(user)
+    self._session.add(user)
+    self._session.commit()
+    self._session.refresh(user)
 
     if not persist_session:
         self.close_session()
     return user
 
 
-def delete_user(self, user_id: int, commit: bool = True) -> None:
+def delete_user(self, user_id: int) -> None:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    user = self._session.get(User, user_id)
-    if not user:
+    if (user := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
     self._session.delete(user)
-
-    if commit:
-        self._session.commit()
+    self._session.commit()
 
     if not persist_session:
         self.close_session()
@@ -164,26 +148,26 @@ def delete_user(self, user_id: int, commit: bool = True) -> None:
 def query_users(
     self, word: str, with_roles: Optional[list[UserRoleEnum]] = None,
     only_insiders: bool = False, limit: Optional[int] = PAGE_LIMIT
-) -> list[User]:
+) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(User)
+    query = self._session.query(models.User)
 
     query = query.order_by(
-        sa.func.similarity(User.first_name + ' ' + User.last_name, word).desc()
+        sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, word).desc()
     )
 
     if only_insiders:
         query = query.where(
-            User.role != UserRole.CLIENT.id
+            models.User.role != UserRole.CLIENT.id
         )
 
     if with_roles is not None:
         status_ids = [role.id for role in with_roles]
         query = query.where(
-            User.role_id.in_(status_ids)
+            models.User.role_id.in_(status_ids)
         )
 
     if limit is not None:
@@ -197,15 +181,15 @@ def query_users(
     return users
 
 
-def query_users_by_email(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[User]:
+def query_users_by_email(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(User)
+    query = self._session.query(models.User)
 
     query = query.order_by(
-        sa.func.similarity(User.email, word).desc(),
+        sa.func.similarity(models.User.email, word).desc(),
     )
 
     if limit is not None:

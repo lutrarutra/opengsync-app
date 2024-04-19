@@ -11,10 +11,10 @@ from .. import exceptions
 def create_pool(
     self, name: str,
     owner_id: int,
-    seq_request_id: Optional[int],
-    num_m_reads_requested: Optional[float],
     contact_name: str,
     contact_email: str,
+    seq_request_id: Optional[int] = None,
+    num_m_reads_requested: Optional[float] = None,
     status: PoolStatusEnum = PoolStatus.DRAFT,
     contact_phone: Optional[str] = None,
     commit: bool = True

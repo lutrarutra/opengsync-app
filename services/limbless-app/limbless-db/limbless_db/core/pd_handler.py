@@ -92,8 +92,11 @@ def get_experiment_libraries_df(
             isouter=True
         )
 
-    query = query.where(
-        models.Pool.experiment_id == experiment_id
+    query = query.join(
+        models.ExperimentPoolLink,
+        models.ExperimentPoolLink.pool_id == models.Pool.id,
+    ).where(
+        models.ExperimentPoolLink.experiment_id == experiment_id
     )
             
     query = query.order_by(models.Library.id)
@@ -115,8 +118,11 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
         models.Pool.status_id, models.Pool.num_libraries,
         models.Pool.num_m_reads_requested, models.Pool.original_qubit_concentration,
         models.Pool.diluted_qubit_concentration, models.Pool.avg_library_size,
+    ).join(
+        models.ExperimentPoolLink,
+        models.ExperimentPoolLink.pool_id == models.Pool.id,
     ).where(
-        models.Pool.experiment_id == experiment_id
+        models.ExperimentPoolLink.experiment_id == experiment_id
     )
 
     df = pd.read_sql(query, self._engine)

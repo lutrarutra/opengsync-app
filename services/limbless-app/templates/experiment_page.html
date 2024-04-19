@@ -259,7 +259,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card{% if all_lanes_qced == false %} text-muted disabled{% endif %}{% if all_lanes_ready %} workflow-completed{% endif %}"
+                    <div class="card{% if all_lanes_qced == false %} text-muted disabled{% endif %}{% if flowcell_is_loaded %} workflow-completed{% endif %}"
                         {% if all_lanes_qced == true %}
                         data-bs-toggle="modal" data-bs-target="#load_flow_cell-workflow-popup"
                         hx-get="{{ url_for('load_flow_cell_workflow.begin', experiment_id=experiment.id) }}"
@@ -272,7 +272,7 @@
                         </div>
                         <div class="card-body">
                             <div class="title-container">
-                                <h5 class="card-title">6. Load Flow Cell</h5>
+                                <h5 class="card-title">7. Load Flow Cell</h5>
                             </div>
                             <div class="text-container">
                                 <p class="card-text">Dilute lanes in preparation for loading of the flow cell.</p>
@@ -298,7 +298,7 @@
                     }}
                 </div>
                 <div class="row">
-                    {{ metadata_group("Created", experiment.timestamp.strftime('%Y-%m-%d %H:%M'), class="col-3") }}
+                    {{ metadata_group("Created", experiment.timestamp_created_str(), class="col-3") }}
                     {{
                         metadata_group_link(
                             "Sequencer", experiment.sequencer.name,

@@ -45,20 +45,20 @@
                         <td>{{ form_cell(sub_form.measured_qubit, input_class="measured_qubit-col", unit="ng/μL") }}</td>
                         <td class="sequencing_molarity-col bg-light">
                             <div class="quantity-container">
-                                <div class="value fw-bold">{{ "%.2f" % row["sequencing_molarity"] if row["sequencing_molarity"] }}</div>
+                                <div class="value fw-bold">{% if row["sequencing_molarity"]  == row["sequencing_molarity"] %}{{ "%.2f" % row["sequencing_molarity"] }}{% endif %}</div>
                                 <div class="unit">nM</div>
                             </div>
                         </td>
                         <td>{{ form_cell(sub_form.total_volume_ul, input_class="total_volume_ul-col", unit="μL") }}</td>
                         <td class="library_volume-col bg-light">
                             <div class="quantity-container">
-                                <div class="value fw-bold">{{ "%.2f" % row["library_volume"] if row["library_volume"] }}</div>
+                                <div class="value fw-bold">{% if row["library_volume"] %}{{ "%.2f" % row["library_volume"] }}{% endif %}</div>
                                 <div class="unit">μL</div>
                             </div>
                         </td>
                         <td class="eb_volume-col bg-light">
                             <div class="quantity-container">
-                                <div class="value fw-bold">{{ "%.2f" % row["eb_volume"] if row["eb_volume"] }}</div>
+                                <div class="value fw-bold">{% if row["eb_volume"] %}{{ "%.2f" % row["eb_volume"] }}{% endif %}</div>
                                 <div class="unit">μL</div>
                             </div>
                         </td>
@@ -92,19 +92,22 @@
                 const avg_library_size = parseFloat(row.find(".avg_library_size-col .value").first().text());
                 const lane_molarity = parseFloat(row.find(".lane_molarity-col .value").first().text());
 
-                console.log(measured_qubit, total_volume_ul, target_molarity);
-                if (measured_qubit && total_volume_ul && target_molarity) {
+                if (total_volume_ul && target_molarity && lane_molarity) {
                     const library_volume = total_volume_ul * target_molarity / lane_molarity;
                     const eb_volume = total_volume_ul - library_volume;
-                    const molarity = (measured_qubit / (660 * avg_library_size)) * 1000000;
                     row.find(".library_volume-col .value").first().text(library_volume.toFixed(2));
                     row.find(".eb_volume-col .value").first().text(eb_volume.toFixed(2));
-                    row.find(".sequencing_molarity-col .value").first().text(molarity.toFixed(2));
+                    if (measured_qubit) {
+                        const molarity = (measured_qubit / (660 * avg_library_size)) * 1000000;
+                        row.find(".sequencing_molarity-col .value").first().text(molarity.toFixed(2));
+                    } else {
+                        row.find(".sequencing_molarity-col .value").first().text("");
+                    }
                 } else {
                     row.find(".library_volume-col .value").first().text("");
                     row.find(".eb_volume-col .value").first().text("");
-                    row.find(".sequencing_molarity-col .value").first().text("");
                 }
+
             }
 
             $(".total_volume_ul-col").on("input", function() {

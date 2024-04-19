@@ -7,12 +7,7 @@ from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
-def create_sample(
-    self, name: str,
-    owner_id: int,
-    project_id: int,
-    commit: bool = True
-) -> models.Sample:
+def create_sample(self, name: str, owner_id: int, project_id: int) -> models.Sample:
 
     persist_session = self._session is not None
     if not self._session:
@@ -34,25 +29,26 @@ def create_sample(
     project.num_samples += 1
     user.num_samples += 1
     
-    if commit:
-        self._session.commit()
-        self._session.refresh(sample)
+    self._session.commit()
+    self._session.refresh(sample)
 
     if not persist_session:
         self.close_session()
     return sample
 
 
-def get_sample(self, sample_id: int) -> Optional[models.Sample]:
+def get_sample(self, sample_id: int) -> models.Sample:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.get(models.Sample, sample_id)
+    if (sample := self._session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
 
     if not persist_session:
         self.close_session()
-    return res
+
+    return sample
 
 
 def get_samples(

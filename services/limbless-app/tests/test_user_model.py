@@ -39,9 +39,29 @@ def test_create_user(db: DBHandler):
     assert len(users) == len(old_users) + 1
 
 
+def test_update_user(db: DBHandler):
+    user = db.create_user(email="user", hashed_password="password", first_name="test", last_name="user", role=UserRole.ADMIN)
+    assert user.email == "user"
+    assert user.first_name == "test"
+    assert user.last_name == "user"
+    assert user.role == UserRole.ADMIN
+    assert user.password == "password"
+
+    user.role_id = UserRole.CLIENT.id
+    user.email = "new_email@email.com"
+    user.password = "updated_password"
+    user = db.update_user(user)
+
+    assert user.email == "new_email@email.com"
+    assert user.role == UserRole.CLIENT
+    assert user.password == "updated_password"
+
+
 def test_delete_user(db: DBHandler):
     old_users, _ = db.get_users(limit=None)
     user = db.create_user(email="user", hashed_password="password", first_name="test", last_name="user", role=UserRole.ADMIN)
-    assert len(old_users) + 1 == len(db.get_users(limit=None))
+    users, _ = db.get_users(limit=None)
+    assert len(old_users) + 1 == len(users)
     db.delete_user(user.id)
-    assert len(old_users) == len(db.get_users(limit=None))
+    users, _ = db.get_users(limit=None)
+    assert len(old_users) == len(users)

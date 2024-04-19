@@ -139,3 +139,9 @@ class User(Base, UserMixin):
     
     def search_description(self) -> Optional[str]:
         return self.email
+    
+    def __str__(self) -> str:
+        return f"User(id={self.id}, email={self.email})"
+    
+    def __repr__(self) -> str:
+        return str(self)

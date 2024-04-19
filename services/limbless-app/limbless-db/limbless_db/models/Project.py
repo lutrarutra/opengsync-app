@@ -31,3 +31,9 @@ class Project(Base):
     
     def search_name(self) -> str:
         return self.name
+    
+    def __str__(self) -> str:
+        return f"Project(id: {self.id}, name: {self.name}, owner_id: {self.owner_id})"
+    
+    def __repr__(self) -> str:
+        return self.__str__()

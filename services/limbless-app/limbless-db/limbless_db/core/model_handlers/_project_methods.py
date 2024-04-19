@@ -7,10 +7,7 @@ from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
-def create_project(
-    self, name: str, description: str, owner_id: int,
-    commit: bool = True
-) -> models.Project:
+def create_project(self, name: str, description: str, owner_id: int) -> models.Project:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -27,9 +24,8 @@ def create_project(
     self._session.add(project)
     owner.num_projects += 1
 
-    if commit:
-        self._session.commit()
-        self._session.refresh(project)
+    self._session.commit()
+    self._session.refresh(project)
 
     if not persist_session:
         self.close_session()

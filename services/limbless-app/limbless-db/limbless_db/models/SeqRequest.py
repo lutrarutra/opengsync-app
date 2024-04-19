@@ -26,10 +26,9 @@ class SeqRequest(Base):
     description: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=SeqRequestStatus.DRAFT.id)
     
-    submitted_timestamp_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=False), nullable=True, default=None)
-    finished_timestamp_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=False), nullable=True, default=None)
+    timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
+    timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
-    sequencing_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
 
     num_lanes: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
@@ -53,21 +52,20 @@ class SeqRequest(Base):
     requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined")
 
     bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=True)
-    bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.bioinformatician_contact_id]")
-
-    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select", cascade="delete")
+    bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.bioinformatician_contact_id]", cascade="save-update, merge, delete")
     
     contact_person_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
-    contact_person: Mapped["Contact"] = relationship(lazy="joined", foreign_keys="[SeqRequest.contact_person_id]")
+    contact_person: Mapped["Contact"] = relationship(lazy="joined", foreign_keys="[SeqRequest.contact_person_id]", cascade="save-update, merge, delete")
 
     billing_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
-    billing_contact: Mapped["Contact"] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.billing_contact_id]")
+    billing_contact: Mapped["Contact"] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.billing_contact_id]", cascade="save-update, merge, delete")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "submitted_timestamp_utc", "finished_timestamp_utc", "num_libraries"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
+    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
-    files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink.__tablename__, lazy="select", cascade="delete")
-    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink.__tablename__, lazy="select", cascade="delete")
+    files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink.__tablename__, lazy="select")
+    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink.__tablename__, lazy="select", cascade="save-update,delete")
     delivery_email_links: Mapped[list[SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete", back_populates="seq_request")
 
     seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
@@ -77,24 +75,20 @@ class SeqRequest(Base):
         return SeqRequestStatus.get(self.status_id)
     
     @property
-    def sequencing_type(self) -> ReadTypeEnum:
-        return ReadType.get(self.sequencing_type_id)
-    
-    @property
     def data_delivery_mode(self) -> DataDeliveryModeEnum:
         return DataDeliveryMode.get(self.data_delivery_mode_id)
     
     @property
-    def submitted_timestamp(self) -> Optional[datetime]:
-        if self.submitted_timestamp_utc is None:
+    def timestamp_submitted(self) -> Optional[datetime]:
+        if self.timestamp_submitted_utc is None:
             return None
-        return localize(self.submitted_timestamp_utc)
+        return localize(self.timestamp_submitted_utc)
     
     @property
-    def finished_timestamp(self) -> Optional[datetime]:
-        if self.finished_timestamp_utc is None:
+    def timestamp_finished(self) -> Optional[datetime]:
+        if self.timestamp_finished_utc is None:
             return None
-        return localize(self.finished_timestamp_utc)
+        return localize(self.timestamp_finished_utc)
     
     def is_indexed(self) -> bool:
         for library in self.libraries:
@@ -109,30 +103,15 @@ class SeqRequest(Base):
     def is_submittable(self) -> bool:
         return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
     
-    def submitted_timestamp_str(self) -> str:
-        if (ts := self.submitted_timestamp) is None:
+    def timestamp_submitted_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        if (ts := self.timestamp_submitted) is None:
             return ""
-        return ts.strftime('%Y-%m-%d %H:%M')
+        return ts.strftime(fmt)
     
-    def finished_timestamp_str(self) -> str:
-        if (ts := self.finished_timestamp) is None:
+    def timestamp_finished_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        if (ts := self.timestamp_finished) is None:
             return ""
-        return ts.strftime('%Y-%m-%d %H:%M')
-
-    def to_dict(self):
-        data = {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "status": self.status.name,
-            "submitted_time": self.submitted_timestamp_str(),
-            "requestor": self.requestor.name,
-            "person_contact": f"{self.contact_person.name} ({self.contact_person.email})",
-            "billing_contact": f"{self.billing_contact.name} ({self.billing_contact.email})",
-            "bioinformatician_contact": f"{self.bioinformatician_contact.name} ({self.bioinformatician_contact.email})" if self.bioinformatician_contact else None,
-            "num_libraries": self.num_libraries,
-        }
-        return data
+        return ts.strftime(fmt)
     
     def __str__(self):
         return f"SeqRequest(id: {self.id}, name:{self.name})"

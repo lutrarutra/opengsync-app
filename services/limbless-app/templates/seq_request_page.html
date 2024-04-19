@@ -253,7 +253,7 @@
                     <br>
                     <h4>Technical Requirements</h4>
                     <div class="row">
-                        {{ metadata_group("Submitted Time", seq_request.submitted_time.strftime('%Y-%m-%d %H:%M') if seq_request.submitted_time else "", class="col-3") }}
+                        {{ metadata_group("Submitted Time", seq_request.timestamp_submitted_str(), class="col-3") }}
                         {{ metadata_group("Sequencing Type (SE/PE)", seq_request.sequencing_type.name, class="col-3") }}
                         {{ metadata_group("Read Length", seq_request.read_length, class="col-3") }}
                         {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-3") }}

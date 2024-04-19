@@ -1,0 +1,8 @@
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+
+<div id="sample-form">
+    {{ sample_form.csrf_token() }}
+    <div class="row">
+        {{ form_group(sample_form.name, class="col") }}
+    </div>
+</div>

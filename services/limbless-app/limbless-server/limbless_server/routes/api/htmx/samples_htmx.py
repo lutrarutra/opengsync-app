@@ -141,7 +141,7 @@ def edit(sample_id):
         if not sample.is_editable():
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    return forms.SampleForm(request.form).process_request(
+    return forms.models.SampleForm(request.form).process_request(
         user_id=current_user.id, sample=sample
     )
 

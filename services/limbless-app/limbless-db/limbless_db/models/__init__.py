@@ -8,7 +8,6 @@ from .IndexKit import IndexKit  # noqa: F401
 from .SeqRequest import SeqRequest  # noqa: F401
 from .Contact import Contact    # noqa: F401
 from .Sequencer import Sequencer    # noqa: F401
-from .CMO import CMO    # noqa: F401
 from .Adapter import Adapter    # noqa: F401
 from .Barcode import Barcode    # noqa: F401
 from .Feature import Feature    # noqa: F401
@@ -24,5 +23,5 @@ from .Links import (  # noqa: F401
     LanePoolLink, SampleLibraryLink,
     ExperimentFileLink, SeqRequestFileLink,
     ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
-    SeqRequestDeliveryEmailLink
+    SeqRequestDeliveryEmailLink, ExperimentPoolLink
 )

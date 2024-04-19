@@ -136,6 +136,7 @@
                     {% endfor %}
                 ],
                 minSpareRows: 10,
+                allowInsertColumn: false,
                 style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
             });
 

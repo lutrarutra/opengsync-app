@@ -16,10 +16,7 @@ class SeqAuthForm(HTMXFlaskForm):
     _template_path = "forms/seq_request/seq_auth.html"
     _form_label = "seq_auth_form"
 
-    file = FileField(
-        "Sequencing Authorization Form",
-        validators=[DataRequired(), FileAllowed(["pdf"])],
-    )
+    file = FileField("Sequencing Authorization Form", validators=[DataRequired(), FileAllowed(["pdf"])],)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -28,10 +25,10 @@ class SeqAuthForm(HTMXFlaskForm):
         # Max size 3
         MAX_MBYTES = 3
         max_bytes = MAX_MBYTES * 1024 * 1024
-        size_bytes = len(self.file.data.read())
+        self.size_bytes = len(self.file.data.read())
         self.file.data.seek(0)
 
-        if size_bytes > max_bytes:
+        if self.size_bytes > max_bytes:
             self.file.errors = (f"File size exceeds {MAX_MBYTES} MB",)
             return False
         
@@ -50,7 +47,8 @@ class SeqAuthForm(HTMXFlaskForm):
             name=filename,
             type=FileType.SEQ_AUTH_FORM,
             extension=extension,
-            uploader_id=user.id
+            uploader_id=user.id,
+            size_bytes=self.size_bytes
         )
 
         filepath = os.path.join(current_app.config["MEDIA_FOLDER"], db_file.path)

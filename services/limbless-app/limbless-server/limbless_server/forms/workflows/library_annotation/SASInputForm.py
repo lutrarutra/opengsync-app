@@ -107,7 +107,23 @@ class SASInputForm(HTMXFlaskForm):
         if self.input_type == "spreadsheet":
             import json
             data = json.loads(self.formdata["spreadsheet"])  # type: ignore
-            self.df = pd.DataFrame(data, columns=[col.label for col in self.get_columns()])
+            try:
+                self.df = pd.DataFrame(data)
+            except ValueError as e:
+                self.spreadsheet_dummy.errors = (str(e),)
+                return False
+            
+            if len(self.df.columns) != len(list(columns.keys())):
+                self.spreadsheet_dummy.errors = (f"Invalid number of columns (expected {len(columns)}). Do not insert new columns or rearrange existing columns.",)
+                return False
+            
+            self.df.columns = list(columns.keys())
+            self.df = self.df.replace(r'^\s*$', None, regex=True)
+            self.df = self.df.dropna(how="all")
+
+            if len(self.df) == 0:
+                self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
+                return False
 
         elif self.input_type == "file":
             col_mapping = SASInputForm._feature_mapping_raw if self.type == "raw" else SASInputForm._feature_mapping_pooled
@@ -143,7 +159,7 @@ class SASInputForm(HTMXFlaskForm):
             elif self.input_type == "file":
                 self.file.errors = ("File is empty.",)
             return False
-
+        
         for label, column in columns.items():
             if column.var_type == str and column.source is None:
                 self.df[label] = self.df[label].apply(tools.make_alpha_numeric)
@@ -155,53 +171,41 @@ class SASInputForm(HTMXFlaskForm):
         library_name_counts = self.df["library_name"].value_counts()
         seq_request_library_names = [library.name for library in seq_request.libraries]
 
+        self.file.errors = []
+        self.spreadsheet_dummy.errors = []
+
+        def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value"]):
+            if self.input_type == "spreadsheet":
+                self.spreadsheet_style[f"{columns[column].column}{row_num}"] = f"background-color: {SASInputForm.colors[color]};"
+                self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
+            else:
+                self.file.errors.append(f"Row {row_num}: {message}")  # type: ignore
+
         for i, (_, row) in enumerate(self.df.iterrows()):
             if pd.isna(row["sample_name"]):
-                if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['sample_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                else:
-                    self.file.errors = (f"Row {i+1} is missing a sample name.",)
+                add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
                 
             if pd.isna(row["library_name"]):
-                if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                else:
-                    self.file.errors = (f"Row {i+1} is missing a library name.",)
+                add_error(i + 1, "library_name", "missing 'Library Name'", "missing_value")
+
             elif library_name_counts[row["library_name"]] > 1:
-                if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['duplicate_value']};"
-                else:
-                    self.file.errors = (f"Library name '{row['library_name']}' is duplicated.",)
+                add_error(i + 1, "library_name", "duplicate 'Library Name'", "duplicate_value")
+
             elif row["library_name"] in seq_request_library_names:
-                if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['library_name'].column}{i+1}"] = f"background-color: {SASInputForm.colors['duplicate_value']};"
-                else:
-                    self.file.errors = (f"Library name '{row['library_name']}' already exists in the request.",)
+                add_error(i + 1, "library_name", "Library name already exists in the request.", "duplicate_value")
 
             if pd.isna(row["library_type"]):
-                if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['library_type'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                else:
-                    self.file.errors = (f"Row {i+1} is missing a library type.",)
+                add_error(i + 1, "library_type", "missing 'Library Type'", "missing_value")
 
             if pd.isna(row["genome"]):
-                if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['genome'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                else:
-                    self.file.errors = (f"Row {i+1} is missing an genome.",)
+                add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
 
             if pd.isna(row["project"]):
-                if self.input_type == "spreadsheet":
-                    self.spreadsheet_style[f"{columns['project'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                else:
-                    self.file.errors = (f"Row {i+1} is missing a project.",)
+                add_error(i + 1, "project", "missing 'Project'", "missing_value")
             
             if self.type == "raw":
                 if pd.isna(row["seq_depth"]):
-                    if self.input_type == "spreadsheet":
-                        self.spreadsheet_style[f"{columns['seq_depth'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                    else:
-                        self.file.errors = (f"Row {i+1} is missing a sequencing depth.",)
+                    add_error(i + 1, "seq_depth", "missing 'Sequencing Depth'", "missing_value")
                 else:
                     try:
                         if isinstance(row["seq_depth"], str):
@@ -209,34 +213,24 @@ class SASInputForm(HTMXFlaskForm):
 
                         row["seq_depth"] = float(row["seq_depth"])
                     except ValueError:
-                        if self.input_type == "spreadsheet":
-                            self.spreadsheet_style[f"{columns['seq_depth'].column}{i+1}"] = f"background-color: {SASInputForm.colors['invalid_value']};"
-                        else:
-                            self.file.errors = (f"Row {i+1} has an invalid sequencing depth.",)
+                        add_error(i + 1, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
 
             elif self.type == "pooled":
                 adapter_defined = pd.notna(row["adapter"])
                 index_kit_defined = pd.notna(row["index_kit"])
 
                 if pd.isna(row["pool"]):
-                    if self.input_type == "spreadsheet":
-                        self.spreadsheet_style[f"{columns['pool'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                    else:
-                        self.file.errors = (f"Row {i+1} is missing a pool.",)
+                    add_error(i + 1, "pool", "missing 'Pool'", "missing_value")
                 
                 if adapter_defined and not index_kit_defined:
-                    self.spreadsheet_style[f"{columns['index_kit'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
+                    add_error(i + 1, "index_kit", "missing 'Index Kit'", "missing_value")
                 elif not adapter_defined and index_kit_defined:
-                    self.spreadsheet_style[f"{columns['adapter'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
+                    add_error(i + 1, "adapter", "missing 'Adapter'", "missing_value")
 
                 elif not adapter_defined and pd.isna(row["index_1"]):
-                    if self.input_type == "spreadsheet":
-                        self.spreadsheet_style[f"{columns['adapter'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                        self.spreadsheet_style[f"{columns['index_kit'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                        self.spreadsheet_style[f"{columns['index_1'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                        self.spreadsheet_style[f"{columns['index_2'].column}{i+1}"] = f"background-color: {SASInputForm.colors['missing_value']};"
-                    else:
-                        self.file.errors = (f"Row {i+1} is missing an adapter and index kit or manually specified indices.",)
+                    add_error(i + 1, "index_1", "missing 'Index 1'", "missing_value")
+                    add_error(i + 1, "adapter", "missing 'Adapter'", "missing_value")
+                    add_error(i + 1, "index_kit", "missing 'Index Kit'", "missing_value")
 
         if len(self.spreadsheet_style) != 0 or (self.file.errors is not None and len(self.file.errors) != 0):
             return False

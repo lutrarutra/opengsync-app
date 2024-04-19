@@ -11,7 +11,7 @@ from wtforms.validators import Optional as OptionalValidator
 from limbless_db import models
 from limbless_db.categories import ExperimentStatus
 
-from ... import db, logger
+from ... import db, logger   # noqa
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -45,8 +45,8 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
 
         if pd.notna(row["target_molarity"]):
             self.target_molarity.data = row["target_molarity"]
-            library_volume = self.total_volume_ul.data * row["target_molarity"] / row["lane_molarity"]
-            eb_volume = self.total_volume_ul.data - row["library_volume"]
+            library_volume = self.total_volume_ul.data * row["target_molarity"] / lane_molarity
+            eb_volume = self.total_volume_ul.data - library_volume
         else:
             library_volume = None
             eb_volume = None
@@ -139,8 +139,9 @@ class LoadFlowCellForm(HTMXFlaskForm):
 
             if pd.notna(row["target_molarity"]):
                 entry.target_molarity.data = row["target_molarity"]
-                df.at[idx, "library_volume"] = entry.total_volume_ul.data * row["target_molarity"] / row["lane_molarity"]
-                df.at[idx, "eb_volume"] = entry.total_volume_ul.data - row["library_volume"]
+                library_volume = entry.total_volume_ul.data * row["target_molarity"] / row["lane_molarity"]
+                df.at[idx, "library_volume"] = library_volume
+                df.at[idx, "eb_volume"] = entry.total_volume_ul.data - library_volume
 
         df["sequencing_molarity"] = df["sequencing_qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
 
@@ -169,7 +170,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
             if lane.total_volume_ul is not None and lane.target_molarity is not None:
                 lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity
             lane = db.update_lane(lane)
-            all_lanes_loaded = all_lanes_loaded and lane.is_ready()
+            all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
 
         if all_lanes_loaded:
             experiment.status_id = ExperimentStatus.LOADED.id

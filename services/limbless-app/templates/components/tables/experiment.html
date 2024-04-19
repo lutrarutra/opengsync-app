@@ -61,7 +61,7 @@
                 <td>
                     {{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator.owner_id }}</span>
                 </td>
-                <td>{{ experiment.timestamp.strftime('%Y-%m-%d') }}</td>
+                <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
                 <td>{{ experiment.workflow.name }}</td>
             </tr>
             {% endfor %}

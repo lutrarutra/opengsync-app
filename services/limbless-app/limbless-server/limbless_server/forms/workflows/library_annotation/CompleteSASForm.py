@@ -275,7 +275,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         sequence=row["sequence"],
                         pattern=row["pattern"],
                         read=row["read"],
-                    )
+                    ) # FIXME: CMO in link
                     sample_table.at[idx, "cmo_id"] = cmo.id
 
             sample_table["sample_id"] = sample_table["sample_id"].astype(int)
@@ -320,11 +320,11 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     library_type=LibraryType.get(row["library_type_id"]),
                     owner_id=user.id,
                     genome_ref=GenomeRef.get(row["genome_id"]),
-                    index_1_sequence=row["index_1"].strip() if pd.notna(row["index_1"]) else None,
-                    index_2_sequence=row["index_2"].strip() if pd.notna(row["index_2"]) else None,
-                    index_3_sequence=row["index_3"].strip() if pd.notna(row["index_3"]) else None,
-                    index_4_sequence=row["index_4"].strip() if pd.notna(row["index_4"]) else None,
-                    adapter=row["adapter"].strip() if pd.notna(row["adapter"]) else None,
+                    index_1_sequence=row["index_1"].strip() if "index_1" in row and pd.notna(row["index_1"]) else None,
+                    index_2_sequence=row["index_2"].strip() if "index_2" in row and pd.notna(row["index_2"]) else None,
+                    index_3_sequence=row["index_3"].strip() if "index_3" in row and pd.notna(row["index_3"]) else None,
+                    index_4_sequence=row["index_4"].strip() if "index_4" in row and pd.notna(row["index_4"]) else None,
+                    adapter=row["adapter"].strip() if "adapter" in row and pd.notna(row["adapter"]) else None,
                     visium_annotation_id=visium_annotation_id,
                     pool_id=pool_id,
                     seq_depth_requested=row["seq_depth"] if "seq_depth" in row and pd.notna(row["seq_depth"]) else None,
@@ -368,7 +368,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         if comment_table is not None:
             for _, row in comment_table.iterrows():
                 comment = session.create_comment(
-                    text=row["text"],
+                    text=f"Visium data instructions: {row['text']}",
                     author_id=user.id,
                 )
                 session.add_seq_request_comment(

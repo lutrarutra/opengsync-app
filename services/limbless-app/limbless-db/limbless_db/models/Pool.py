@@ -1,11 +1,12 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
+from datetime import datetime
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 
-from .Links import LanePoolLink
+from .Links import LanePoolLink, ExperimentPoolLink
 from ..categories import PoolStatus, PoolStatusEnum
 
 if TYPE_CHECKING:
@@ -21,6 +22,8 @@ class Pool(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+
+    timestamp_received_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
     avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
@@ -35,8 +38,7 @@ class Pool(Base):
 
     lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
     
-    experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
-    experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="pools", lazy="select",)
+    experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
 
     seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=True)
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", lazy="select")
@@ -45,7 +47,7 @@ class Pool(Base):
     contact_email: Mapped[str] = mapped_column(sa.String(128), nullable=False)
     contact_phone: Mapped[Optional[str]] = mapped_column(sa.String(20), nullable=True)
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]
 
     warning_min_molarity: ClassVar[float] = 1.0
     warning_max_molarity: ClassVar[float] = 5.0

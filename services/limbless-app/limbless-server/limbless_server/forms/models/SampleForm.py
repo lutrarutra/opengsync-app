@@ -12,7 +12,7 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 
 class SampleForm(HTMXFlaskForm):
-    _template_path = "forms/sample/sample.html"
+    _template_path = "forms/sample.html"
     _form_label = "sample_form"
 
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=models.Sample.name.type.length)])

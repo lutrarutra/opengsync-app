@@ -10,19 +10,34 @@ from limbless_db.categories import DeliveryStatus, DeliveryStatusEnum
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
-    from .CMO import CMO
     from .SeqRequest import SeqRequest
+
+
+class ExperimentPoolLink(Base):
+    __tablename__ = "experiment_pool_link"
+    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), primary_key=True)
+    pool_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("pool.id"), primary_key=True)
 
 
 class SampleLibraryLink(Base):
     __tablename__ = "sample_library_link"
+    __mapper_args__ = {"confirm_deleted_rows": False}
+
+    cmo_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, default=None)
+    cmo_pattern: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, default=None)
+    cmo_read: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True, default=None)
+
     sample_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sample.id"), primary_key=True)
     library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)
-    cmo_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("cmo.id"), nullable=True, default=None)
 
-    sample: Mapped["Sample"] = relationship("Sample", back_populates="library_links", lazy="select")
-    library: Mapped["Library"] = relationship("Library", back_populates="sample_links", lazy="select")
-    cmo: Mapped[Optional["CMO"]] = relationship("CMO", lazy="select")
+    sample: Mapped["Sample"] = relationship(
+        "Sample", back_populates="library_links", lazy="joined",
+        cascade="save-update, merge"
+    )
+    library: Mapped["Library"] = relationship(
+        "Library", back_populates="sample_links", lazy="joined",
+        cascade="save-update, merge"
+    )
 
     def __str__(self) -> str:
         return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"
@@ -75,12 +90,21 @@ class SeqRequestCommentLink(Base):
 
 class LibraryFeatureLink(Base):
     __tablename__ = "library_feature_link"
+
     library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)
     feature_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("feature.id"), primary_key=True)
 
     def __str__(self) -> str:
         return f"LibraryFeatureLink(library_id: {self.library_id}, feature_id: {self.feature_id})"
     
+
+# LibraryFeatureLink = sa.Table(
+#     "library_feature_link",
+#     Base.metadata,
+#     sa.Column("library_id", sa.Integer, sa.ForeignKey("library.id"), primary_key=True),
+#     sa.Column("feature_id", sa.Integer, sa.ForeignKey("feature.id"), primary_key=True)
+# )
+
 
 class SeqRequestDeliveryEmailLink(Base):
     __tablename__ = "seq_request_delivery_email_link"

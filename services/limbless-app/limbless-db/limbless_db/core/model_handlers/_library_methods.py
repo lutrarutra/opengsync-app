@@ -11,9 +11,9 @@ from .. import exceptions
 
 def create_library(
     self,
+    name: str,
     library_type: LibraryTypeEnum,
     owner_id: int,
-    name: str,
     seq_request_id: int,
     genome_ref: Optional[GenomeRefEnum] = None,
     volume: Optional[int] = None,
@@ -52,6 +52,10 @@ def create_library(
             raise exceptions.ElementDoesNotExist(f"Visium annotation with id {visium_annotation_id} does not exist")
         
     if pool_id is not None:
+        if (pool := self._session.get(models.Pool, pool_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+        pool.num_libraries += 1
+        self._session.add(pool)
         library_status_id = LibraryStatus.POOLED.id
     else:
         library_status_id = LibraryStatus.DRAFT.id
@@ -196,47 +200,31 @@ def delete_library(self, library_id: int):
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
-    link: models.SampleLibraryLink
     for link in library.sample_links:
         link.sample.num_libraries -= 1
-        self._session.add(link.sample)
-
-        if self._session.query(models.SampleLibraryLink).where(
-            models.SampleLibraryLink.cmo_id == link.cmo_id
-        ).count() == 1:
-            self._session.delete(link.cmo)
-
+            
         if link.sample.num_libraries == 0:
-            self.delete_sample(link.sample.id)
-        self._session.delete(link)
+            self.delete_sample(link.sample_id)
 
     if library.pool is not None:
         library.pool.num_libraries -= 1
         if library.pool.num_libraries == 0:
-            self.delete_pool(library.pool.id)
-        else:
-            self._session.add(library.pool)
+            self.delete_pool(library.pool_id)
 
-    orhpan_features = []
+    orphan_features = set()
     for feature in library.features:
         if feature.feature_kit_id is None:
-            count = self._session.query(models.LibraryFeatureLink).where(
+            if self._session.query(models.LibraryFeatureLink).where(
                 models.LibraryFeatureLink.feature_id == feature.id
-            ).count()
+            ).count() == 1:
+                orphan_features.add(feature)
 
-            if count == 1:
-                orhpan_features.append(feature)
-
-    seq_request = library.seq_request
-    seq_request.num_libraries -= 1
-    self._session.add(seq_request)
+    library.seq_request.num_libraries -= 1
     self._session.delete(library)
     self._session.commit()
 
-    for orphan_feature in orhpan_features:
-        self._session.delete(orphan_feature)
-
-    self._session.commit()
+    for feature in orphan_features:
+        self._session.delete(feature)
 
     if not persist_session:
         self.close_session()

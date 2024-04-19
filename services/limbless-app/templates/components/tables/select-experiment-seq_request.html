@@ -87,7 +87,7 @@
                 <td>{{ request.name }}</td>
                 <td>{{ request.requestor.name }}</td>
                 <td>{{ request.technology }}</td>
-                <td>{{ request.submitted_timestamp_str() }}</td>
+                <td>{{ request.timestamp_submitted_str() }}</td>
                 <td>{{ request.sequencer }}</td>
                 <td>{{ request.flowcell_type.name if request.flowcell_type else "" }}</td>
                 <td>{{ request.num_libraries }}</td>

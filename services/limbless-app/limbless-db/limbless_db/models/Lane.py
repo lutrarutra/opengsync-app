@@ -43,7 +43,7 @@ class Lane(Base):
             self.original_qubit_concentration is not None
         )
 
-    def is_ready(self) -> bool:
+    def is_loaded(self) -> bool:
         return (
             self.is_qced() and
             self.sequencing_qubit_concentration is not None and

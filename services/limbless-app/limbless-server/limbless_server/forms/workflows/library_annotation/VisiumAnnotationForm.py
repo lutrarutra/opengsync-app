@@ -64,6 +64,20 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         self._context["colors"] = VisiumAnnotationForm.colors
         self.spreadsheet_style = dict()
 
+    def get_template(self) -> pd.DataFrame:
+        library_table: pd.DataFrame = self.tables["library_table"]
+        df = library_table[library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id][["library_name"]]
+        df = df.rename(columns={"library_name": "Library Name"})
+
+        for col in VisiumAnnotationForm.columns.values():
+            if col.name not in df.columns:
+                df[col.name] = ""
+
+        return df
+
+    def prepare(self):
+        self._context["spreadsheet_data"] = self.get_template().replace(np.nan, "").values.tolist()
+
     def validate(self) -> bool:
         validated = super().validate()
         self.visium_table = None
@@ -211,7 +225,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
                 if self.visium_table is not None:
                     context["spreadsheet_data"] = self.visium_table.replace(np.nan, "").values.tolist()
                     if context["spreadsheet_data"] == []:
-                        context["spreadsheet_data"] = [[None]]
+                        self.prepare()
             return self.make_response(**context)
         
         if self.visium_table is None:

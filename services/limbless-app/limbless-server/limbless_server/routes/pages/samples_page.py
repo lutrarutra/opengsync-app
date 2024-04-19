@@ -42,11 +42,9 @@ def sample_page(sample_id):
         if not current_user.is_insider() and sample.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    sample_form = forms.models.SampleForm(sample=sample)
-
-    with DBSession(db) as session:
-        sample = session.get_sample(sample_id)
-        libraries, libraries_n_pages = session.get_libraries(sample_id=sample_id)
+        sample_form = forms.models.SampleForm(sample=sample)
+        sample.project
+        libraries = sample.libraries
         seq_requests, seq_requests_n_pages = session.get_seq_requests(sample_id=sample_id, sort_by="id", descending=True)
 
     path_list = [
@@ -72,7 +70,6 @@ def sample_page(sample_id):
         "sample_page.html", sample_form=sample_form,
         path_list=path_list, sample=sample,
         libraries=libraries,
-        libraries_n_pages=libraries_n_pages,
         seq_requests=seq_requests,
         seq_requests_n_pages=seq_requests_n_pages
     )

@@ -10,7 +10,7 @@ from .. import exceptions
 
 
 def create_file(
-    self, name: str, type: FileTypeEnum, uploader_id: int, extension: str,
+    self, name: str, type: FileTypeEnum, uploader_id: int, extension: str, size_bytes: int,
     uuid: Optional[str] = None, commit: bool = True
 ) -> models.File:
     
@@ -32,6 +32,7 @@ def create_file(
         extension=extension.lower().strip(),
         uuid=uuid,
         uploader_id=uploader_id,
+        size_bytes=size_bytes
     )
 
     self._session.add(file)

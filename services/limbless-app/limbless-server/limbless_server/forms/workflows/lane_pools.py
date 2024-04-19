@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from flask import Response, current_app, flash, url_for
 from flask_htmx import make_response
@@ -27,7 +28,7 @@ class LaneTargetSubForm(FlaskForm):
 
 
 class LanePoolingForm(HTMXFlaskForm):
-    _template_path = "workflows/lane_pools-1.1.html"
+    _template_path = "workflows/experiment/lane_pools-1.1.html"
     _form_label = "lane_pooling_form"
 
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
@@ -126,8 +127,15 @@ class LanePoolingForm(HTMXFlaskForm):
             os.remove(os.path.join(current_app.config["MEDIA_FOLDER"], old_file.path))
             logger.info(f"Old file '{old_file.path}' removed.")
 
+        _uuid = str(uuid.uuid4())
+        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
+        df.to_csv(filepath, sep="\t", index=False)
+        size_bytes = os.stat(filepath).st_size
+
         db_file = db.create_file(
             name=filename,
+            uuid=_uuid,
+            size_bytes=size_bytes,
             type=FileType.LANE_POOLING_TABLE,
             extension=extension,
             uploader_id=user.id,
@@ -142,10 +150,7 @@ class LanePoolingForm(HTMXFlaskForm):
             comment_id=comment.id
         )
 
-        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], db_file.path)
         db.add_file_to_experiment(experiment.id, db_file.id)
-
-        df.to_csv(filepath, sep="\t", index=False)
 
         logger.debug(f"File '{db_file.path}' uploaded by user '{user.id}'.")
         flash("Laning Completed!", "success")
@@ -242,8 +247,15 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             os.remove(os.path.join(current_app.config["MEDIA_FOLDER"], old_file.path))
             logger.info(f"Old file '{old_file.path}' removed.")
 
+        _uuid = str(uuid.uuid4())
+        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
+        df.to_csv(filepath, sep="\t", index=False)
+        size_bytes = os.stat(filepath).st_size
+
         db_file = db.create_file(
             name=filename,
+            uuid=_uuid,
+            size_bytes=size_bytes,
             type=FileType.LANE_POOLING_TABLE,
             extension=extension,
             uploader_id=user.id,
@@ -258,10 +270,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             comment_id=comment.id
         )
 
-        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], db_file.path)
         db.add_file_to_experiment(experiment.id, db_file.id)
-
-        df.to_csv(filepath, sep="\t", index=False)
 
         logger.debug(f"File '{db_file.path}' uploaded by user '{user.id}'.")
         flash("Laning Completed!", "success")

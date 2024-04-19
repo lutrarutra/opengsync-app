@@ -21,10 +21,9 @@
                         sort_url='seq_requests_htmx.get', sort_url_args={},
                         current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order,
                         query_url=url_for('seq_requests_htmx.table_query'), current_query=seq_requests_current_query,
-                        field_name=field_name, col_size=4,
+                        field_name=field_name, col_size=2,
                     )
                 }}
-                <th scope="col" class="col-2">Technology</th>
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Status', column_var='status',
@@ -60,10 +59,9 @@
             <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
-                <td>{{ seq_request.technology }}</td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
                 <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.name }} {{ seq_request.requestor.owner_id }}<span class="desc">{{ "me" if current_user.id == seq_request.requestor.owner_id }}</span></td>
-                <td>{{ seq_request.submitted_timestamp_str() }}</td>
+                <td>{{ seq_request.timestamp_submitted_str() }}</td>
                 <td>{{ seq_request.num_libraries }}</td>
             </tr>
             {% endfor %}

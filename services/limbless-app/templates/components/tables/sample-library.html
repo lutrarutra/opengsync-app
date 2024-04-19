@@ -82,7 +82,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("sample-library-table", "libraries_htmx.get", libraries_n_pages, libraries_active_page, url_args={"sample_id": sample.id, "sort_by": libraries_current_sort, "order": libraries_current_sort_order}) }}
 </div>
 <script>
     var selected_library_id = null;

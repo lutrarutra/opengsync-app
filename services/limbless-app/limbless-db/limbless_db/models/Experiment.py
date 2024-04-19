@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .. import localize
 from .Base import Base
 from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum, SequencingWorkFlowType, SequencingWorkFlowTypeEnum
-from .Links import ExperimentFileLink, ExperimentCommentLink
+from .Links import ExperimentFileLink, ExperimentCommentLink, ExperimentPoolLink
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -25,17 +25,17 @@ class Experiment(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
     
-    created_timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=False), nullable=False, default=sa.func.now())
-    finished_timestamp_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=False), nullable=True, default=None)
+    timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
+    timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     
     r1_cycles: Mapped[int] = mapped_column(nullable=False)
     r2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
     i1_cycles: Mapped[int] = mapped_column(nullable=False)
     i2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
+    num_lanes: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     flowcell_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
-    num_lanes: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     workflow_id: Mapped[int] = mapped_column(sa.Integer)
 
     operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
@@ -46,13 +46,13 @@ class Experiment(Base):
 
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
-    pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select")
+    pools: Mapped[list["Pool"]] = relationship("Pool", secondary=ExperimentPoolLink.__tablename__, lazy="select")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number")
     files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink.__tablename__, lazy="select", cascade="delete")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="delete")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "num_libraries", "flowcell_type_id", "workflow_id"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "flowcell_type_id", "workflow_id"]
 
     @property
     def status(self) -> ExperimentStatusEnum:
@@ -67,14 +67,14 @@ class Experiment(Base):
         return SequencingWorkFlowType.get(self.workflow_id)
     
     @property
-    def created_timestamp(self) -> datetime:
-        return localize(self.created_timestamp_utc)
+    def timestamp_created(self) -> datetime:
+        return localize(self.timestamp_created_utc)
     
     @property
-    def finished_timestamp(self) -> Optional[datetime]:
-        if self.finished_timestamp_utc is None:
+    def timestamp_finished(self) -> Optional[datetime]:
+        if self.timestamp_finished_utc is None:
             return None
-        return localize(self.finished_timestamp_utc)
+        return localize(self.timestamp_finished_utc)
     
     def is_deleteable(self) -> bool:
         return self.status == ExperimentStatus.DRAFT
@@ -85,13 +85,13 @@ class Experiment(Base):
     def is_submittable(self) -> bool:
         return self.status == ExperimentStatus.DRAFT
     
-    def created_timestamp_str(self) -> str:
-        return self.created_timestamp.strftime('%Y-%m-%d %H:%M')
+    def timestamp_created_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        return self.timestamp_created.strftime(fmt)
     
-    def finished_timestamp_str(self) -> str:
-        if (ts := self.finished_timestamp) is None:
-            return ''
-        return ts.strftime('%Y-%m-%d %H:%M')
+    def timestamp_finished_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        if (ts := self.timestamp_finished) is None:
+            return ""
+        return ts.strftime(fmt)
     
     def __str__(self) -> str:
         return f"Experiment(id={self.id}, num_lanes={self.num_lanes})"

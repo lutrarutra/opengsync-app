@@ -152,6 +152,7 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
+            visium_annotation_form.prepare()
             return visium_annotation_form.make_response(**context)
         
         if "pool" in library_table.columns:

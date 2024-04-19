@@ -5,12 +5,15 @@ services:
         container_name: limbless-app-test
         build:
             context: ./services/limbless-app
-            dockerfile: Dockerfile
-        command: "pytest tests/"
+            dockerfile: Dockerfile.dev
+        command: "pytest tests/ -s"
         volumes:
             - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
+            - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db
+            - ./services/limbless-app/tests:/usr/src/app/tests
             - ./services/limbless-app/static/style:/usr/src/app/static/style
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
+            - ./cert:/usr/src/app/cert
         env_file: .test.env
         ports:
             - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
@@ -24,6 +27,7 @@ services:
     postgres:
         container_name: limbless-postgres-db-test
         image: postgres:16rc1-alpine3.17
+        command: "-c logging_collector=on"
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

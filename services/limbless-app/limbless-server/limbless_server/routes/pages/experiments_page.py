@@ -61,10 +61,12 @@ def experiment_page(experiment_id: int):
         lane_capacities = {}
 
         all_lanes_qced = True
-        all_lanes_ready = True
+        flowcell_is_loaded = True
         for lane in experiment.lanes:
             all_lanes_qced = all_lanes_qced and lane.is_qced()
-            all_lanes_ready = all_lanes_ready and lane.is_ready()
+            logger.debug(lane)
+            logger.debug(lane.is_loaded())
+            flowcell_is_loaded = flowcell_is_loaded and lane.is_loaded()
             experiment_lanes[lane.number] = []
             lane_capacities[lane.number] = 0
             
@@ -74,8 +76,8 @@ def experiment_page(experiment_id: int):
 
             lane_capacities[lane.number] = (lane_capacities[lane.number], 100.0 * lane_capacities[lane.number] / experiment.flowcell_type.max_m_reads_per_lane)
 
-        all_pools_laned = True
-        all_pools_qced = True
+        all_pools_laned = len(pools) > 0
+        all_pools_qced = len(pools) > 0
         for pool in pools:
             all_pools_laned = all_pools_laned and pool.status == PoolStatus.LANED
             all_pools_qced = all_pools_qced and pool.is_qced()
@@ -116,7 +118,7 @@ def experiment_page(experiment_id: int):
         all_pools_qced=all_pools_qced,
         can_be_loaded=can_be_loaded,
         all_lanes_qced=all_lanes_qced,
-        all_lanes_ready=all_lanes_ready,
+        flowcell_is_loaded=flowcell_is_loaded,
         laning_completed=laning_completed,
         lane_capacities=lane_capacities,
         Pool=models.Pool

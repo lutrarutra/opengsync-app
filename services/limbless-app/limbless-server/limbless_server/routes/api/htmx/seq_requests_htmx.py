@@ -227,7 +227,7 @@ def unarchive(seq_request_id: int):
         return abort(HTTPResponse.FORBIDDEN.id)
     
     seq_request.status_id = SeqRequestStatus.DRAFT.id
-    seq_request.submitted_timestamp_utc = None
+    seq_request.timestamp_submitted_utc = None
     seq_request = db.update_seq_request(seq_request)
 
     flash(f"Unarchived sequencing request '{seq_request.name}'", "success")

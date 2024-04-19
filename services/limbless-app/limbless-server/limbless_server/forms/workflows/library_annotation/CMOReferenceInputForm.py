@@ -154,8 +154,8 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         self.cmo_table["sequence"] = self.cmo_table["sequence"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
         self.cmo_table["pattern"] = self.cmo_table["pattern"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
         self.cmo_table["read"] = self.cmo_table["read"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
-        self.cmo_table["kit_feature"] = pd.notna(self.cmo_table["kit"])
-        self.cmo_table["custom_feature"] = pd.notna(self.cmo_table["feature"]) & pd.notna(self.cmo_table["sequence"]) & pd.notna(self.cmo_table["pattern"]) & pd.notna(self.cmo_table["read"])
+        kit_feature = pd.notna(self.cmo_table["kit"])
+        custom_feature = pd.notna(self.cmo_table["feature"]) & pd.notna(self.cmo_table["sequence"]) & pd.notna(self.cmo_table["pattern"]) & pd.notna(self.cmo_table["read"])
         invalid_feature = pd.notna(self.cmo_table["kit"]) & (pd.notna(self.cmo_table["sequence"]) | pd.notna(self.cmo_table["pattern"]) | pd.notna(self.cmo_table["read"]))
 
         for i, (idx, row) in enumerate(self.cmo_table.iterrows()):
@@ -189,7 +189,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
                         if pd.notna(row[col.label]):
                             self.spreadsheet_style[f"{col.column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_input']};"
                     self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-            elif (not row["custom_feature"] and not row["kit_feature"]):
+            elif (not custom_feature.at[idx] and not kit_feature.at[idx]):
                 if self.input_type == "file":
                     self.file.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
                 else:
@@ -199,7 +199,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
                     self.spreadsheet_style[f"{CMOReferenceInputForm.columns['pattern'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
                     self.spreadsheet_style[f"{CMOReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
                     self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-            elif row["custom_feature"] and row["kit_feature"]:
+            elif custom_feature.at[idx] and kit_feature.at[idx]:
                 if self.input_type == "file":
                     self.file.errors.append(f"Row {i+1} must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.")
                 else:
@@ -209,7 +209,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
                     self.spreadsheet_style[f"{CMOReferenceInputForm.columns['pattern'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_value']};"
                     self.spreadsheet_style[f"{CMOReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_value']};"
                     self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.")
-            elif row["custom_feature"]:
+            elif custom_feature.at[idx]:
                 idx_sample_name = self.cmo_table["sample_name"] == row["sample_name"]
                 idx_sequence = self.cmo_table["sequence"] == row["sequence"]
                 idx_pattern = self.cmo_table["pattern"] == row["pattern"]
@@ -228,7 +228,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
                         self.spreadsheet_style[f"{CMOReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['duplicate_value']};"
                         self.spreadsheet_dummy.errors.append(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same sample.")
 
-            elif row["kit_feature"]:
+            elif kit_feature.at[idx]:
                 idx_sample_name = self.cmo_table["sample_name"] == row["sample_name"]
                 idx_kit = self.cmo_table["kit"] == row["kit"]
                 idx_feature = self.cmo_table["feature"] == row["feature"]
@@ -255,6 +255,10 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
             validated = validated and len(self.file.errors) == 0
         elif self.input_type == "spreadsheet":
             validated = validated and (len(self.spreadsheet_dummy.errors) == 0 and len(self.spreadsheet_style) == 0)
+
+        if validated:
+            self.cmo_table["custom_feature"] = custom_feature
+            self.cmo_table["kit_feature"] = kit_feature
         return validated
     
     def process_request(self, **context) -> Response:
@@ -293,6 +297,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
+            visium_annotation_form.prepare()
             return visium_annotation_form.make_response(**context)
 
         if "pool" in library_table.columns:

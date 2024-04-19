@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, ReadTypeEnum, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus
+from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus
 from .. import exceptions
 
 
@@ -16,7 +16,6 @@ def create_seq_request(
     requestor_id: int,
     contact_person_id: int,
     billing_contact_id: int,
-    seq_type: ReadTypeEnum,
     data_delivery_mode: DataDeliveryModeEnum,
     organization_name: str,
     organization_address: str,
@@ -55,7 +54,6 @@ def create_seq_request(
         name=name.strip(),
         description=description.strip() if description else None,
         requestor_id=requestor_id,
-        sequencing_type_id=seq_type.id,
         num_cycles_read_1=num_cycles_read_1,
         num_cycles_index_1=num_cycles_index_1,
         num_cycles_index_2=num_cycles_index_2,
@@ -100,15 +98,14 @@ def create_seq_request(
     return seq_request
 
 
-def get_seq_request(
-    self, seq_request_id: int,
-) -> models.SeqRequest:
+def get_seq_request(self, seq_request_id: int) -> models.SeqRequest:
 
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    seq_request = self._session.get(models.SeqRequest, seq_request_id)
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
 
     if not persist_session:
         self.close_session()
@@ -222,7 +219,7 @@ def submit_seq_request(
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
     seq_request.status_id = SeqRequestStatus.SUBMITTED.id
-    seq_request.submitted_timestamp_utc = datetime.now()
+    seq_request.timestamp_submitted_utc = datetime.now()
     for library in seq_request.libraries:
         if library.status == LibraryStatus.DRAFT:
             library.status_id = LibraryStatus.SUBMITTED.id
@@ -281,7 +278,6 @@ def delete_seq_request(self, seq_request_id: int) -> None:
         self.delete_pool(pool.id)
 
     seq_request.requestor.num_seq_requests -= 1
-    self._session.add(seq_request.requestor)
     self._session.delete(seq_request)
     self._session.commit()
 
