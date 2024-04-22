@@ -34,9 +34,8 @@ class Experiment(Base):
     i2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
     num_lanes: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    flowcell_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     workflow_id: Mapped[int] = mapped_column(sa.Integer)
+    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped["User"] = relationship("User", lazy="joined")
@@ -47,7 +46,7 @@ class Experiment(Base):
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
     pools: Mapped[list["Pool"]] = relationship("Pool", secondary=ExperimentPoolLink.__tablename__, lazy="select")
-    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number")
+    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
     files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink.__tablename__, lazy="select", cascade="delete")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="delete")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
@@ -60,7 +59,7 @@ class Experiment(Base):
     
     @property
     def flowcell_type(self) -> FlowCellTypeEnum:
-        return FlowCellType.get(self.flowcell_type_id)
+        return self.workflow.flow_cell_type
     
     @property
     def workflow(self) -> SequencingWorkFlowTypeEnum:

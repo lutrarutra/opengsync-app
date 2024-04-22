@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .Base import Base
 
-from ..categories import SequencerType, SequencerTypeEnum
+from ..categories import SequencerModel, SequencerModelEnum
 
 
 class Sequencer(Base):
@@ -13,18 +13,18 @@ class Sequencer(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
 
     name: Mapped[str] = mapped_column(sa.String(32), nullable=False, unique=True, index=True)
-    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    model_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     ip: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, unique=False)
 
     @property
-    def type(self) -> SequencerTypeEnum:
-        return SequencerType.get(self.type_id)
+    def model(self) -> SequencerModelEnum:
+        return SequencerModel.get(self.model_id)
     
     def search_name(self) -> str:
         return self.name
     
     def search_description(self) -> str | None:
-        return self.type.name
+        return self.model.name
     
     def search_value(self) -> int:
         return self.id

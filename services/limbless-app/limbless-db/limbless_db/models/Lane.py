@@ -64,9 +64,6 @@ class Lane(Base):
         if self.sequencing_qubit_concentration is None or self.avg_library_size is None:
             return None
         return self.sequencing_qubit_concentration / (self.avg_library_size * 660) * 1_000_000
-
-    def __str__(self):
-        return f"Lane(id={self.id}, number={self.number})"
     
     @property
     def qubit_concentration(self) -> Optional[float]:
@@ -104,3 +101,9 @@ class Lane(Base):
         if (m := self.molarity) is None:
             return ""
         return f"{m:.2f}"
+
+    def __str__(self) -> str:
+        return f"Lane(id={self.id}, number={self.number})"
+    
+    def __repr__(self) -> str:
+        return str(self)

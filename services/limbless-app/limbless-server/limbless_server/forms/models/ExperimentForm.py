@@ -66,16 +66,18 @@ class ExperimentForm(HTMXFlaskForm):
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
         workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
-        experiment.name = self.name.data  # type: ignore
-        experiment.flowcell_type_id = workflow_type.flow_cell_type.id
-        experiment.r1_cycles = self.r1_cycles.data    # type: ignore
-        experiment.r2_cycles = self.r2_cycles.data  # type: ignore
-        experiment.i1_cycles = self.i1_cycles.data  # type: ignore
-        experiment.i2_cycles = self.i2_cycles.data     # type: ignore
-        experiment.sequencer_id = self.sequencer.selected.data
-        experiment.operator_id = self.operator.selected.data
-        experiment.workflow_id = workflow_type.id
-        experiment = db.update_experiment(experiment)
+            
+        experiment = db.update_experiment(
+            name=self.name.data,  # type: ignore
+            sequencer_id=self.sequencer.selected.data,
+            operator_id=self.operator.selected.data,
+            r1_cycles=self.r1_cycles.data,  # type: ignore
+            r2_cycles=self.r2_cycles.data,
+            i1_cycles=self.i1_cycles.data,  # type: ignore
+            i2_cycles=self.i2_cycles.data,
+        )
+        if workflow_type.id != experiment.workflow_id:
+            experiment = db.change_experiment_workflow(experiment.id, workflow_type)
 
         flash(f"Edited experiment '{experiment.name}'.", "success")
 
@@ -85,19 +87,14 @@ class ExperimentForm(HTMXFlaskForm):
         workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
         experiment = db.create_experiment(
             name=self.name.data,  # type: ignore
-            flowcell_type=workflow_type.flow_cell_type,
             workflow_type=workflow_type,
             sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,  # type: ignore
             r2_cycles=self.r2_cycles.data,
             i1_cycles=self.i1_cycles.data,  # type: ignore
             i2_cycles=self.i2_cycles.data,
-            num_lanes=workflow_type.flow_cell_type.num_lanes,
             operator_id=self.operator.selected.data,
         )
-
-        for lane_num in range(1, workflow_type.flow_cell_type.num_lanes + 1):
-            db.create_lane(lane_num, experiment.id)
 
         flash(f"Created experiment '{experiment.name}'.", "success")
 

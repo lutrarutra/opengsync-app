@@ -4,15 +4,14 @@ from typing import Optional
 import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
-from ...categories import SequencerTypeEnum
+from ...categories import SequencerModelEnum
 from .. import exceptions
 
 
 def create_sequencer(
     self, name: str,
-    type: SequencerTypeEnum,
-    ip: Optional[str] = None,
-    commit: bool = True
+    model: SequencerModelEnum,
+    ip: Optional[str] = None
 ) -> models.Sequencer:
     
     persist_session = self._session is not None
@@ -26,14 +25,13 @@ def create_sequencer(
     
     sequencer = models.Sequencer(
         name=name.strip(),
-        type_id=type.id,
+        model_id=model.id,
         ip=ip.strip() if ip else None
     )
 
     self._session.add(sequencer)
-    if commit:
-        self._session.commit()
-        self._session.refresh(sequencer)
+    self._session.commit()
+    self._session.refresh(sequencer)
 
     if not persist_session:
         self.close_session()

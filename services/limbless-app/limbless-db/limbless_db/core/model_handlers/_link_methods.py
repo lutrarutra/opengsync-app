@@ -162,7 +162,7 @@ def unlink_feature_library(self, feature_id: int, library_id: int):
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if (link := self._session.query(models.LibraryFeatureLink).where(
+    if (_ := self._session.query(models.LibraryFeatureLink).where(
         models.LibraryFeatureLink.feature_id == feature_id,
         models.LibraryFeatureLink.library_id == library_id,
     ).first()) is None:
@@ -177,67 +177,70 @@ def unlink_feature_library(self, feature_id: int, library_id: int):
         self.close_session()
 
 
-def link_pool_lane(
-    self, lane_id: int, pool_id: int,
-) -> models.LanePoolLink:
+def add_pool_to_lane(
+    self, experiment_id: int, pool_id: int, lane_num: int
+) -> models.Lane:
 
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.Lane, lane_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Lane with id {lane_id} does not exist")
+    lane: models.Lane
+    if (lane := self._session.query(models.Lane).where(
+        models.Lane.experiment_id == experiment_id,
+        models.Lane.number == lane_num,
+    ).first()) is None:
+        raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment_id}")
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
     if self._session.query(models.LanePoolLink).where(
         models.LanePoolLink.pool_id == pool_id,
-        models.LanePoolLink.lane_id == lane_id,
+        models.LanePoolLink.lane_id == lane.id,
     ).first():
-        raise exceptions.LinkAlreadyExists(f"Lane with id '{lane_id}' and Pool with id '{pool_id}' are already linked.")
-
-    link = models.LanePoolLink(
-        lane_id=lane_id, pool_id=pool_id,
-    )
-    pool.status_id = PoolStatus.LANED.id
-
-    self._session.add(link)
+        raise exceptions.LinkAlreadyExists(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are already linked.")
+    
+    lane.pools.append(pool)
+    
+    self._session.add(lane)
     self._session.commit()
-    self._session.refresh(link)
+    self._session.refresh(lane)
 
     if not persist_session:
         self.close_session()
 
-    return link
+    return lane
 
 
-def unlink_pool_lane(self, lane_id, pool_id: int):
+def remove_pool_from_lane(self, experiment_id: int, pool_id: int, lane_num: int) -> models.Lane:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (_ := self._session.get(models.Lane, lane_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Lane with id {lane_id} does not exist")
+    lane: models.Lane
+    if (lane := self._session.query(models.Lane).where(
+        models.Lane.experiment_id == experiment_id,
+        models.Lane.number == lane_num,
+    ).first()) is None:
+        raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment_id}")
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
-    if (link := self._session.query(models.LanePoolLink).where(
+    if self._session.query(models.LanePoolLink).where(
         models.LanePoolLink.pool_id == pool_id,
-        models.LanePoolLink.lane_id == lane_id,
-    ).first()) is None:
-        raise exceptions.LinkDoesNotExist(f"Lane with id '{lane_id}' and Pool with id '{pool_id}' are not linked.")
-
-    self._session.delete(link)
+        models.LanePoolLink.lane_id == lane.id,
+    ).first() is None:
+        raise exceptions.LinkDoesNotExist(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are not linked.")
+    
+    lane.pools.remove(pool)
+    self._session.add(lane)
     self._session.commit()
-    self._session.refresh(pool)
-
-    if len(pool.lanes) == 0:
-        pool.status_id = PoolStatus.ASSIGNED.id
-        self._session.add(pool)
-        self._session.commit()
+    self._session.refresh(lane)
 
     if not persist_session:
         self.close_session()
+
+    return lane
 
 
 def link_pool_experiment(self, experiment_id: int, pool_id: int):

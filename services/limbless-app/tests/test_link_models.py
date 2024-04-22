@@ -3,11 +3,12 @@ import pytest
 
 from limbless_db import DBHandler, DBSession
 from limbless_db import exceptions
+from limbless_db.categories import SequencingWorkFlowType
 
 from .create_units import (
     create_user, create_project, create_contact, create_seq_request, create_sample, create_library, create_pool,
-    create_cmo, create_feature
-)
+    create_feature, create_experiment
+)  # noqa
 
 
 @pytest.fixture()
@@ -148,8 +149,7 @@ def test_library_links(db: DBHandler):
     libraries = []
     for _ in range(NUM_LIBRARIES):
         library = create_library(db, user, seq_request)
-        cmo = create_cmo(db)
-        db.link_sample_library(sample.id, library.id, cmo_id=cmo.id)
+        db.link_sample_library(sample.id, library.id, cmo_sequence="sequence", cmo_pattern="pattern", cmo_read="read")
         libraries.append(library)
     
     with DBSession(db) as session:
@@ -206,8 +206,7 @@ def test_cmos_links(db: DBHandler):
 
     for _ in range(NUM_SAMPLES):
         sample = create_sample(db, user, project)
-        cmo = create_cmo(db)
-        db.link_sample_library(sample.id, library.id, cmo_id=cmo.id)
+        db.link_sample_library(sample.id, library.id, cmo_sequence="sequence", cmo_pattern="pattern", cmo_read="read")
 
     with DBSession(db) as session:
         user = session.get_user(user.id)
@@ -225,10 +224,19 @@ def test_cmos_links(db: DBHandler):
         assert len(library.sample_links) == NUM_SAMPLES
         assert library.num_samples == NUM_SAMPLES
 
-    num_cmos = len(db.get_cmos(limit=None)[0])
     db.delete_library(library.id)
 
-    assert len(db.get_samples(limit=None)[0]) == num_cmos - NUM_SAMPLES
+    with DBSession(db) as session:
+        user = session.get_user(user.id)
+        assert len(user.samples) == 0
+        assert user.num_samples == 0
+
+        project = session.get_project(project.id)
+        assert len(project.samples) == 0
+
+        seq_request = session.get_seq_request(seq_request.id)
+        assert len(seq_request.libraries) == 0
+        assert seq_request.num_libraries == 0
 
 
 def test_library_feature_link(db: DBHandler):
@@ -265,3 +273,136 @@ def test_library_feature_link(db: DBHandler):
 
     assert len(db.get_features(limit=None)[0]) == num_prev_features
     assert len(db.get_libraries(limit=None)[0]) == num_prev_libraries
+
+
+def test_experiment_lanes(db: DBHandler):
+    user = create_user(db)
+    seq_request = create_seq_request(db, user)
+
+    NUM_LIBRARIES = 10
+    NUM_POOLS = 5
+    PREV_NUM_LANES = len(db.get_lanes(limit=None)[0])
+
+    libraries = []
+
+    for _ in range(NUM_LIBRARIES):
+        library = create_library(db, user, seq_request)
+        libraries.append(library)
+
+    pools = []
+
+    for i in range(NUM_POOLS):
+        pool = create_pool(db, user, seq_request)
+        db.link_library_pool(libraries[i % NUM_LIBRARIES].id, pool.id)
+        pools.append(pool)
+
+    with DBSession(db) as session:
+        seq_request = session.get_seq_request(seq_request.id)
+        assert len(seq_request.pools) == NUM_POOLS
+        
+        for pool in pools:
+            pool = db.get_pool(pool.id)
+            assert pool.num_libraries == len(pool.libraries)
+
+    experiment = create_experiment(db, user, SequencingWorkFlowType.NOVASEQ_S4_XP)
+
+    assert SequencingWorkFlowType.NOVASEQ_S4_XP.flow_cell_type.num_lanes == experiment.num_lanes
+    assert experiment.num_lanes == len(db.get_lanes(limit=None)[0]) - PREV_NUM_LANES
+
+    for pool in pools:
+        db.link_pool_experiment(experiment.id, pool.id)
+
+    with DBSession(db) as session:
+        experiment = session.get_experiment(experiment.id)
+        assert len(experiment.lanes) == experiment.num_lanes
+        assert experiment.num_lanes == experiment.flowcell_type.num_lanes
+        assert experiment.num_lanes == SequencingWorkFlowType.NOVASEQ_S4_XP.flow_cell_type.num_lanes
+
+    empty_pool = create_pool(db, user, seq_request)
+    db.link_pool_experiment(experiment.id, empty_pool.id)
+    lane = db.add_pool_to_lane(experiment.id, pool_id=empty_pool.id, lane_num=1)
+
+    with DBSession(db) as session:
+        experiment = session.get_experiment(experiment.id)
+        assert len(experiment.pools) == NUM_POOLS + 1
+
+        experiment = session.get_experiment(experiment.id)
+        for _lane in experiment.lanes:
+            if _lane.number == 1:
+                assert _lane.id == lane.id
+                assert len(_lane.pools) == 1
+            else:
+                assert _lane.id != lane.id
+                assert len(_lane.pools) == 0
+
+    lane = db.remove_pool_from_lane(experiment.id, empty_pool.id, 1)
+
+    with DBSession(db) as session:
+        experiment = session.get_experiment(experiment.id)
+        assert len(experiment.pools) == NUM_POOLS + 1
+
+        experiment = session.get_experiment(experiment.id)
+        for lane in experiment.lanes:
+            assert len(lane.pools) == 0
+
+    for i, pool in enumerate(pools):
+        db.add_pool_to_lane(experiment.id, pool.id, (i % experiment.num_lanes) + 1)
+
+    with DBSession(db) as session:
+        counter = 0
+        experiment = session.get_experiment(experiment.id)
+        for lane in experiment.lanes:
+            counter += len(lane.pools)
+
+        assert counter == NUM_POOLS
+
+    # Decrease number of lanes
+    experiment = db.change_experiment_workflow(experiment_id=experiment.id, workflow_type=SequencingWorkFlowType.NOVASEQ_S2_XP)
+    assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + SequencingWorkFlowType.NOVASEQ_S2_XP.flow_cell_type.num_lanes
+
+    with DBSession(db) as session:
+        experiment = session.get_experiment(experiment.id)
+        assert experiment.workflow == SequencingWorkFlowType.NOVASEQ_S2_XP
+        assert experiment.num_lanes == SequencingWorkFlowType.NOVASEQ_S2_XP.flow_cell_type.num_lanes
+        assert experiment.num_lanes == len(experiment.lanes)
+
+    # Increase number of lanes
+    experiment = db.change_experiment_workflow(experiment_id=experiment.id, workflow_type=SequencingWorkFlowType.NOVASEQ_S4_XP)
+    assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + SequencingWorkFlowType.NOVASEQ_S4_XP.flow_cell_type.num_lanes
+
+    with DBSession(db) as session:
+        experiment = session.get_experiment(experiment.id)
+        assert experiment.workflow == SequencingWorkFlowType.NOVASEQ_S4_XP
+        assert experiment.num_lanes == SequencingWorkFlowType.NOVASEQ_S4_XP.flow_cell_type.num_lanes
+        assert experiment.num_lanes == len(experiment.lanes)
+
+    # STD workflow - combined lanes
+    experiment = db.change_experiment_workflow(experiment_id=experiment.id, workflow_type=SequencingWorkFlowType.NOVASEQ_S4_STD)
+    assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + SequencingWorkFlowType.NOVASEQ_S4_STD.flow_cell_type.num_lanes
+    with DBSession(db) as session:
+        experiment = session.get_experiment(experiment.id)
+        assert experiment.workflow == SequencingWorkFlowType.NOVASEQ_S4_STD
+        assert experiment.num_lanes == SequencingWorkFlowType.NOVASEQ_S4_STD.flow_cell_type.num_lanes
+
+        for pool in experiment.pools:
+            assert len(pool.lanes) == SequencingWorkFlowType.NOVASEQ_S4_STD.flow_cell_type.num_lanes
+
+    # Decrease Lanes
+    experiment = db.change_experiment_workflow(experiment_id=experiment.id, workflow_type=SequencingWorkFlowType.NOVASEQ_S1_STD)
+    assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + SequencingWorkFlowType.NOVASEQ_S1_STD.flow_cell_type.num_lanes
+    with DBSession(db) as session:
+        experiment = session.get_experiment(experiment.id)
+        assert experiment.workflow == SequencingWorkFlowType.NOVASEQ_S1_STD
+        assert experiment.num_lanes == SequencingWorkFlowType.NOVASEQ_S1_STD.flow_cell_type.num_lanes
+
+        for pool in experiment.pools:
+            assert len(pool.lanes) == SequencingWorkFlowType.NOVASEQ_S1_STD.flow_cell_type.num_lanes
+
+    # Delete experiment
+    db.delete_experiment(experiment.id)
+    assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES
+
+    with DBSession(db) as session:
+        for pool in pools:
+            pool = session.get_pool(pool.id)
+            assert len(pool.lanes) == 0

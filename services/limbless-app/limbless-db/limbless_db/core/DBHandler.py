@@ -46,7 +46,7 @@ class DBHandler():
         create_experiment, get_experiment, get_experiments,
         update_experiment, delete_experiment,
         get_num_experiments, add_file_to_experiment, remove_file_from_experiment,
-        remove_comment_from_experiment, query_experiments
+        remove_comment_from_experiment, query_experiments, change_experiment_workflow
     )
 
     from .model_handlers._sample_methods import (
@@ -101,10 +101,6 @@ class DBHandler():
         get_adapter_from_index_kit
     )
 
-    from .model_handlers._cmo_methods import (
-        create_cmo, get_cmo, get_cmos,
-    )
-
     from .model_handlers._lane_methods import (
         create_lane, get_lane, get_lanes, update_lane, get_experiment_lane
     )
@@ -123,14 +119,15 @@ class DBHandler():
     from .model_handlers._link_methods import (
         get_sample_library_links,
 
-        link_pool_lane,
+        add_pool_to_lane,
+        remove_pool_from_lane,
+
         link_feature_library,
         link_sample_library,
         link_pool_experiment,
 
         is_sample_in_seq_request,
 
-        unlink_pool_lane,
         unlink_feature_library,
         unlink_pool_experiment,
     )

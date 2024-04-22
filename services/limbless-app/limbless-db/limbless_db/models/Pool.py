@@ -129,3 +129,9 @@ class Pool(Base):
     
     def is_qced(self) -> bool:
         return self.original_qubit_concentration is not None and self.avg_library_size is not None
+    
+    def __str__(self) -> str:
+        return f"Pool(id={self.id}, name={self.name})"
+    
+    def __repr__(self) -> str:
+        return str(self)

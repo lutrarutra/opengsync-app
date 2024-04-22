@@ -6,12 +6,12 @@ import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import FlowCellTypeEnum, SequencingWorkFlowTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus, PoolStatus
+from ...categories import SequencingWorkFlowTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus, PoolStatus
 
 
 def create_experiment(
-    self, name: str, flowcell_type: FlowCellTypeEnum, workflow_type: SequencingWorkFlowTypeEnum,
-    sequencer_id: int, num_lanes: int, r1_cycles: int, i1_cycles: int, operator_id: int,
+    self, name: str, workflow_type: SequencingWorkFlowTypeEnum,
+    sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None
 ) -> models.Experiment:
     persist_session = self._session is not None
@@ -28,21 +28,26 @@ def create_experiment(
 
     experiment = models.Experiment(
         name=name.strip(),
-        flowcell_type_id=flowcell_type.id,
         sequencer_id=sequencer_id,
+        workflow_id=workflow_type.id,
         r1_cycles=r1_cycles,
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
-        num_lanes=num_lanes,
+        num_lanes=workflow_type.flow_cell_type.num_lanes,
         status_id=status.id,
         operator_id=operator_id,
-        workflow_id=workflow_type.id
     )
 
     self._session.add(experiment)
     self._session.commit()
     self._session.refresh(experiment)
+
+    for lane_num in range(1, workflow_type.flow_cell_type.num_lanes + 1):
+        lane = models.Lane(number=lane_num, experiment_id=experiment.id)
+        self._session.add(lane)
+
+    self._session.commit()
 
     if not persist_session:
         self.close_session()
@@ -50,18 +55,20 @@ def create_experiment(
     return experiment
 
 
-def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -> Optional[models.Experiment]:
+def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     if id is not None and name is None:
-        experiment = self._session.get(models.Experiment, id)
+        if (experiment := self._session.get(models.Experiment, id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Experiment with id {id} does not exist")
     
     elif name is not None and id is None:
-        experiment = self._session.query(models.Experiment).where(
+        if (experiment := self._session.query(models.Experiment).where(
             models.Experiment.name == name
-        ).first()
+        ).first()) is None:
+            raise exceptions.ElementDoesNotExist(f"Experiment with name {name} does not exist")
     else:
         raise ValueError("Either 'id' or 'name' must be provided, not both.")
 
@@ -114,89 +121,98 @@ def get_num_experiments(self) -> int:
     return res
 
 
-def delete_experiment(
-    self, experiment_id: int,
-    commit: bool = True
-) -> None:
-
+def delete_experiment(self, experiment_id: int):
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
-
-    experiment = self._session.get(models.Experiment, experiment_id)
-    if not experiment:
+    
+    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
     self._session.delete(experiment)
-    
-    if commit:
-        self._session.commit()
+    self._session.commit()
 
     if not persist_session:
         self.close_session()
 
 
-def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
+def change_experiment_workflow(self, experiment_id: int, workflow_type: SequencingWorkFlowTypeEnum) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if experiment.num_lanes != experiment.flowcell_type.num_lanes:
-        if experiment.num_lanes > experiment.flowcell_type.num_lanes:
-            for lane in experiment.lanes:
-                if lane.number > experiment.flowcell_type.num_lanes:
-                    self._session.delete(lane)
-        else:
-            print(experiment.flowcell_type.num_lanes, experiment.num_lanes, len(experiment.lanes), flush=True)
-            for lane_num in range(experiment.flowcell_type.num_lanes - experiment.num_lanes + 1, experiment.flowcell_type.num_lanes + 1):
-                if lane_num in [lane.number for lane in experiment.lanes]:
-                    raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
-                print("Creating lane", lane_num, flush=True)
-                lane = models.Lane(number=lane_num, experiment_id=experiment.id)
-                self._session.add(lane)
+    experiment: models.Experiment
+    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
+    
+    prev_type = experiment.workflow
+    experiment.workflow_id = workflow_type.id
+    experiment.num_lanes = workflow_type.flow_cell_type.num_lanes
 
-        experiment.num_lanes = experiment.flowcell_type.num_lanes
+    if prev_type.flow_cell_type.num_lanes > workflow_type.flow_cell_type.num_lanes:
+        lanes = experiment.lanes.copy()
+        for lane in lanes:
+            if lane.number > experiment.flowcell_type.num_lanes:
+                for pool in lane.pools:
+                    lane.pools.remove(pool)
+                experiment.lanes.remove(lane)
+
+    elif prev_type.flow_cell_type.num_lanes < workflow_type.flow_cell_type.num_lanes:
+        for lane_num in range(workflow_type.flow_cell_type.num_lanes - prev_type.flow_cell_type.num_lanes + 1, workflow_type.flow_cell_type.num_lanes + 1):
+            if lane_num in [lane.number for lane in experiment.lanes]:
+                raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
+            print("Creating lane", lane_num, flush=True)
+            lane = models.Lane(number=lane_num, experiment_id=experiment.id)
+            self._session.add(lane)
 
     self._session.add(experiment)
     self._session.commit()
     self._session.refresh(experiment)
-    
+
     if experiment.workflow.combined_lanes:
         for lane in experiment.lanes:
             for pool in experiment.pools:
                 if pool not in lane.pools:
                     lane.pools.append(pool)
-                    pool.status_id = PoolStatus.LANED.id
-                    self._session.add(lane)
+
+        self._session.add(experiment)
+        self._session.commit()
+        self._session.refresh(experiment)
+
+    if not persist_session:
+        self.close_session()
+
+    return experiment
+
+
+def update_experiment(
+    self, experiment_id: int,
+    name: str,
+    sequencer_id: int,
+    r1_cycles: int,
+    i1_cycles: int,
+    operator_id: int,
+    r2_cycles: Optional[int],
+    i2_cycles: Optional[int],
+) -> models.Experiment:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
+    
+    experiment.name = name
+    experiment.sequencer_id = sequencer_id
+    experiment.r1_cycles = r1_cycles
+    experiment.r2_cycles = r2_cycles
+    experiment.i1_cycles = i1_cycles
+    experiment.i2_cycles = i2_cycles
+    experiment.operator_id = operator_id
 
     self._session.add(experiment)
     self._session.commit()
     self._session.refresh(experiment)
-
-    if experiment.status_id == ExperimentStatus.FINISHED.id:
-        seq_requests: list[models.SeqRequest] = []
-
-        for lane in experiment.lanes:
-            for pool in lane.pools:
-                for library in pool.libraries:
-                    library.status_id = LibraryStatus.SEQUENCED.id
-                    self._session.add(library)
-                    if library.seq_request not in seq_requests:
-                        seq_requests.append(library.seq_request)
-
-        self._session.commit()
-        self._session.refresh(experiment)
-
-        for seq_request in seq_requests:
-            sequenced = True
-            for library in seq_request.libraries:
-                if library.status != LibraryStatus.SEQUENCED:
-                    sequenced = False
-                    break
-            
-            if sequenced:
-                seq_request.status_id = SeqRequestStatus.DATA_PROCESSING.id
-                self._session.add(seq_request)
 
     if not persist_session:
         self.close_session()

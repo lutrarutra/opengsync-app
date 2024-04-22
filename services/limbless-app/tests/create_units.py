@@ -1,7 +1,7 @@
 import uuid
 
 from limbless_db import DBHandler, DBSession, models
-from limbless_db.categories import LibraryType, DataDeliveryMode, UserRole, FeatureType
+from limbless_db.categories import LibraryType, DataDeliveryMode, UserRole, FeatureType, FlowCellType, SequencingWorkFlowType, SequencingWorkFlowTypeEnum, SequencerModel
 
 
 def create_user(db: DBHandler) -> models.User:
@@ -83,4 +83,25 @@ def create_feature(db: DBHandler) -> models.Feature:
         pattern="pattern",
         read="read",
         type=FeatureType.ANTIBODY
+    )
+
+
+def create_sequencer(db: DBHandler) -> models.Sequencer:
+    return db.create_sequencer(
+        name="sequencer",
+        model=SequencerModel.NOVA_SEQ_6000,
+    )
+
+
+def create_experiment(db: DBHandler, user: models.User, workflow_type: SequencingWorkFlowTypeEnum) -> models.Experiment:
+    _uuid = str(uuid.uuid1())
+    return db.create_experiment(
+        name=_uuid[:5],
+        workflow_type=workflow_type,
+        sequencer_id=create_sequencer(db).id,
+        r1_cycles=1,
+        i1_cycles=1,
+        operator_id=user.id,
+        r2_cycles=1,
+        i2_cycles=1,
     )

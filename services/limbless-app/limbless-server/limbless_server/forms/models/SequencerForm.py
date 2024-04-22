@@ -6,7 +6,7 @@ from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from limbless_db import models, DBSession
-from limbless_db.categories import SequencerType
+from limbless_db.categories import SequencerModel
 
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -19,7 +19,7 @@ class SequencerForm(HTMXFlaskForm):
         DataRequired(), Length(min=6, max=models.Sequencer.name.type.length)
     ])
 
-    type = SelectField("Sequencer Model", choices=SequencerType.as_selectable(), coerce=int)
+    model = SelectField("Sequencer Model", choices=SequencerModel.as_selectable(), coerce=int)
 
     ip_address = StringField("IP Address", validators=[
         OptionalValidator(), Length(max=models.Sequencer.ip.type.length)
@@ -32,7 +32,7 @@ class SequencerForm(HTMXFlaskForm):
 
     def __fill_form(self, sequencer: models.Sequencer):
         self.name.data = sequencer.name
-        self.type.data = sequencer.type_id
+        self.model.data = sequencer.model_id
         self.ip_address.data = sequencer.ip
 
     def validate(self, sequencer: Optional[models.Sequencer]) -> bool:
@@ -64,7 +64,7 @@ class SequencerForm(HTMXFlaskForm):
     def __create_new_sequencer(self) -> Response:
         sequencer = db.create_sequencer(
             name=self.name.data,  # type: ignore
-            type=SequencerType.get(self.type.data),
+            model=SequencerModel.get(self.model.data),
             ip=self.ip_address.data,
         )
 
@@ -75,7 +75,7 @@ class SequencerForm(HTMXFlaskForm):
     def __update_existing_sequencer(self, sequencer: models.Sequencer) -> Response:
         sequencer.name = self.name.data  # type: ignore
         sequencer.ip = self.ip_address.data
-        sequencer.type_id = SequencerType.get(self.type.data).id
+        sequencer.model_id = SequencerModel.get(self.model.data).id
         sequencer = db.update_sequencer(sequencer)
 
         flash("Sequencer updated.", "success")
