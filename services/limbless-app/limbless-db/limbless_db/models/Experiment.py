@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellType, FlowCellTypeEnum, SequencingWorkFlowType, SequencingWorkFlowTypeEnum
+from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellTypeEnum, ExperimentWorkFlow, ExperimentWorkFlowEnum
 from .Links import ExperimentFileLink, ExperimentCommentLink, ExperimentPoolLink
 
 if TYPE_CHECKING:
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .SeqQuality import SeqQuality
     from .SeqRun import SeqRun
     from .Lane import Lane
+    from .actions import ExperimentAction
 
 
 class Experiment(Base):
@@ -50,6 +51,7 @@ class Experiment(Base):
     files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink.__tablename__, lazy="select", cascade="delete")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="delete")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
+    actions: Mapped[list["ExperimentAction"]] = relationship("ExperimentAction", lazy="select", order_by="ExperimentAction.status_id.desc()", cascade="merge, save-update, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "flowcell_type_id", "workflow_id"]
 
@@ -62,8 +64,8 @@ class Experiment(Base):
         return self.workflow.flow_cell_type
     
     @property
-    def workflow(self) -> SequencingWorkFlowTypeEnum:
-        return SequencingWorkFlowType.get(self.workflow_id)
+    def workflow(self) -> ExperimentWorkFlowEnum:
+        return ExperimentWorkFlow.get(self.workflow_id)
     
     @property
     def timestamp_created(self) -> datetime:

@@ -248,13 +248,13 @@
                 <div class="display-form">
                     <h4>Request Info</h4>
                     {{ metadata_group("Request Name", seq_request.name) }}
-                    {{ metadata_group_textarea("Description", seq_request.description) }}
+                    {{ metadata_group_textarea("Description", seq_request.description if seq_request.description) }}
 
                     <br>
                     <h4>Technical Requirements</h4>
                     <div class="row">
                         {{ metadata_group("Submitted Time", seq_request.timestamp_submitted_str(), class="col-3") }}
-                        {{ metadata_group("Sequencing Type (SE/PE)", seq_request.sequencing_type.name, class="col-3") }}
+                        {{ metadata_group("Sequencing Type (SE/PE)", seq_request.read_type.name, class="col-3") }}
                         {{ metadata_group("Read Length", seq_request.read_length, class="col-3") }}
                         {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-3") }}
                     </div>
@@ -286,12 +286,12 @@
                             metadata_group(
                                 "Contact Person",
                                 seq_request.contact_person.name,
-                                class="col-6 col-xl-3"
+                                class="col-6 col-xl-4"
                             ) 
                         }}
                         {{ 
                             metadata_group_email_link(
-                                "Contact Person Email", seq_request.contact_person.email, class="col-6 col-xl-5",
+                                "Contact Person Email", seq_request.contact_person.email, class="col-6 col-xl-4",
                                 subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
                             )
                         }}
@@ -312,10 +312,10 @@
                     <br>
                     <h4>Bioinformatician Contact</h4>
                     <div class="row">
-                        {{ metadata_group("Name", seq_request.bioinformatician_contact.name, class="col-6 col-xl-3") }}
+                        {{ metadata_group("Name", seq_request.bioinformatician_contact.name, class="col-6 col-xl-4") }}
                         {{ 
                             metadata_group_email_link(
-                                "Email", seq_request.bioinformatician_contact.email, class="col-6 col-xl-5",
+                                "Email", seq_request.bioinformatician_contact.email, class="col-6 col-xl-4",
                                 subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
                             )
                         }}
@@ -326,18 +326,20 @@
                     <br>
                     <h4>Billing Info</h4>
                     <div class="row">
-                        {{ metadata_group("Name", seq_request.billing_contact.name, class="col-6 col-xl-3") }}
-                        {{ metadata_group("Address", seq_request.billing_contact.address, class="col-6 col-xl-5") }}
-                        {{ metadata_group("Billing Code", seq_request.billing_contact.billing_code, class="col-6 col-xl-4") }}
+                        {{ metadata_group("Name", seq_request.billing_contact.name, class="col-6") }}
+                        {{ metadata_group("Address", seq_request.billing_contact.address, class="col-6") }}
                     </div>
                     <div class="row">
                         {{ 
                             metadata_group_email_link(
-                                "Email", seq_request.billing_contact.email, class="col",
+                                "Email", seq_request.billing_contact.email, class="col-6",
                                 subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
                             )
                         }}
-                        {{ metadata_group("Phone", seq_request.billing_contact.phone, class="col") }}
+                        {{ metadata_group("Phone", seq_request.billing_contact.phone, class="col-6") }}
+                    </div>
+                    <div class="row">
+                        {{ metadata_group("Billing Code", seq_request.billing_contact.billing_code, class="col-6") }}
                     </div>
                 </div>
             </div>
@@ -460,9 +462,15 @@
                 <div class="modal-body">
                     {% include seq_request_form._template_path %}
                 </div>
-                <div class="modal-footer" id="popup-footer">
-                    <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form" hx-swap="outerHTML"
-                        hx-post="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}">Submit</button>
+                <div class="modal-footer">
+                    <div class="text-nowrap text-muted footer-id">
+                    </div>
+                    <div class="footer-info">
+                    </div>
+                    <div class="footer-controls">
+                        <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form" hx-swap="outerHTML"
+                            hx-post="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}">Submit</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -502,9 +510,15 @@
                 <div class="modal-body">
                     {% include process_request_form._template_path %}
                 </div>
-                <div class="modal-footer" id="popup-footer">
-                    <button class="btn btn-primary" hx-include="#process_request-form" hx-target="#process_request-form" hx-swap="outerHTML"
-                        hx-post="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}">Submit</button>
+                <div class="modal-footer">
+                    <div class="text-nowrap text-muted footer-id">
+                    </div>
+                    <div class="footer-info">
+                    </div>
+                    <div class="footer-controls">
+                        <button class="btn btn-primary" hx-include="#process_request-form" hx-target="#process_request-form" hx-swap="outerHTML"
+                            hx-post="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}">Submit</button>
+                    </div>
                 </div>
             </div>
         </div>

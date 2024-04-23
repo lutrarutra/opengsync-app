@@ -6,7 +6,7 @@ from wtforms import StringField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import FlowCellType, SequencingWorkFlowType
+from limbless_db.categories import FlowCellType, ExperimentWorkFlow
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ... import db
 from ..SearchBar import SearchBar
@@ -19,9 +19,9 @@ class ExperimentForm(HTMXFlaskForm):
     name = StringField("Experiment Name", validators=[DataRequired(), Length(min=3, max=models.Experiment.name.type.length)])
     sequencer = FormField(SearchBar, label="Select Sequencer", description="Select the sequencer that will be used for sequencing.")
 
-    workflow_type = SelectField(
-        "Workflow Type", choices=SequencingWorkFlowType.as_selectable(),
-        description="Select the workflow type for the experiment.",
+    workflow = SelectField(
+        "Workflow", choices=ExperimentWorkFlow.as_selectable(),
+        description="Select the workflow for the experiment.",
         coerce=int, default=None
     )
     
@@ -43,7 +43,7 @@ class ExperimentForm(HTMXFlaskForm):
 
         if experiment is not None:
             self.name.data = experiment.name
-            self.workflow_type.data = experiment.workflow_id
+            self.workflow.data = experiment.workflow_id
             self.sequencer.selected.data = experiment.sequencer.id
             self.sequencer.search_bar.data = experiment.sequencer.name
             self.r1_cycles.data = experiment.r1_cycles
@@ -65,7 +65,7 @@ class ExperimentForm(HTMXFlaskForm):
         return validated
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
-        workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
+        workflow = ExperimentWorkFlow.get(self.workflow.data)
             
         experiment = db.update_experiment(
             name=self.name.data,  # type: ignore
@@ -76,18 +76,18 @@ class ExperimentForm(HTMXFlaskForm):
             i1_cycles=self.i1_cycles.data,  # type: ignore
             i2_cycles=self.i2_cycles.data,
         )
-        if workflow_type.id != experiment.workflow_id:
-            experiment = db.change_experiment_workflow(experiment.id, workflow_type)
+        if workflow.id != experiment.workflow_id:
+            experiment = db.change_experiment_workflow(experiment.id, workflow)
 
         flash(f"Edited experiment '{experiment.name}'.", "success")
 
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
 
     def __create_new_experiment(self) -> Response:
-        workflow_type = SequencingWorkFlowType.get(self.workflow_type.data)
+        workflow = ExperimentWorkFlow.get(self.workflow.data)
         experiment = db.create_experiment(
             name=self.name.data,  # type: ignore
-            workflow_type=workflow_type,
+            workflow=workflow,
             sequencer_id=self.sequencer.selected.data,
             r1_cycles=self.r1_cycles.data,  # type: ignore
             r2_cycles=self.r2_cycles.data,

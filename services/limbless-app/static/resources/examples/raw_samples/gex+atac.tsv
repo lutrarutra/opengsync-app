@@ -1,7 +1,7 @@
 Sample Name	Library Name	Genome	Project	Library Type	Sequencing Depth
-multi_sample_A	multi_sample_A_GEX	human	Test Multiome Prj	sc rna-seq	10
-multi_sample_B	multi_sample_B_GEX	human	Test Multiome Prj	sc rna-seq	10
-multi_sample_C	multi_sample_C_GEX	human	Test Multiome Prj	sc rna-seq	10
-multi_sample_A	multi_sample_A_ATAC	human	Test Multiome Prj	sc ATAC-seq	10
-multi_sample_B	multi_sample_B_ATAC	human	Test Multiome Prj	sc ATAC-seq	10
-multi_sample_C	multi_sample_C_ATAC	human	Test Multiome Prj	sc ATAC-seq	10
+multi_sample_A	multi_sample_A_GEX	Human (GRCh38)	Test Multiome Prj	Single-cell RNA-seq	20
+multi_sample_B	multi_sample_B_GEX	Human (GRCh38)	Test Multiome Prj	Single-cell RNA-seq	20
+multi_sample_C	multi_sample_C_GEX	Human (GRCh38)	Test Multiome Prj	Single-cell RNA-seq	20
+multi_sample_A	multi_sample_A_ATAC	Human (GRCh38)	Test Multiome Prj	Single-cell Chromatin Accessibility	50
+multi_sample_B	multi_sample_B_ATAC	Human (GRCh38)	Test Multiome Prj	Single-cell Chromatin Accessibility	50
+multi_sample_C	multi_sample_C_ATAC	Human (GRCh38)	Test Multiome Prj	Single-cell Chromatin Accessibility	50

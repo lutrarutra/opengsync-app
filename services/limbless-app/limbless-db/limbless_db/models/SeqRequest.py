@@ -24,43 +24,34 @@ class SeqRequest(Base):
 
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
+    read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    special_requirements: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
+    billing_code: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    
+    data_delivery_mode_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    read_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=SeqRequestStatus.DRAFT.id)
     
     timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
-    read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-
     num_lanes: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
-    num_cycles_read_1: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    num_cycles_index_1: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    num_cycles_index_2: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    num_cycles_read_2: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    
-    special_requirements: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
-
-    data_delivery_mode_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-
-    organization_name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
-    organization_address: Mapped[str] = mapped_column(sa.String(256), nullable=False)
-    organization_department: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True)
-    billing_code: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    organization_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
+    organization_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[organization_contact_id], cascade="save-update, merge, delete")
 
     requestor_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
-    requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined")
+    requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined", foreign_keys=[requestor_id])
 
     bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=True)
-    bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.bioinformatician_contact_id]", cascade="save-update, merge, delete")
+    bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge, delete")
     
     contact_person_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
-    contact_person: Mapped["Contact"] = relationship(lazy="joined", foreign_keys="[SeqRequest.contact_person_id]", cascade="save-update, merge, delete")
+    contact_person: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[contact_person_id], cascade="save-update, merge, delete")
 
     billing_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
-    billing_contact: Mapped["Contact"] = relationship("Contact", lazy="joined", foreign_keys="[SeqRequest.billing_contact_id]", cascade="save-update, merge, delete")
-
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "status", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
+    billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge, delete")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
@@ -69,6 +60,8 @@ class SeqRequest(Base):
     delivery_email_links: Mapped[list[SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete", back_populates="seq_request")
 
     seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
+    
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
     @property
     def status(self) -> SeqRequestStatusEnum:
@@ -77,6 +70,10 @@ class SeqRequest(Base):
     @property
     def data_delivery_mode(self) -> DataDeliveryModeEnum:
         return DataDeliveryMode.get(self.data_delivery_mode_id)
+    
+    @property
+    def read_type(self) -> ReadTypeEnum:
+        return ReadType.get(self.read_type_id)
     
     @property
     def timestamp_submitted(self) -> Optional[datetime]:

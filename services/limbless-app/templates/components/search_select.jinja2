@@ -9,17 +9,14 @@
     </a>
     <div class="input-group">
         <input class="input-group-text searchbar-data"
-        type="number" value="{{ field.selected.data if field.selected.data }}" readonly
-        id="{{ field.name }}" name="{{ field.name }}-selected">
-        <input type="search" aria-describedby=""
+        type="number" value="{{ field.selected.data if field.selected.data }}"
+        id="{{ field.name }}" name="{{ field.name }}-selected" readonly>
+        <input type="search" autocomplete="off"
         class="form-control searchbar-input search-component {% if field.selected.errors %} is-invalid {% endif %}"
-        value="{{ field.search_bar.data }}"
-        autocomplete="off"
-        name="{{ field.name }}-search"
-        id="{{ field.name }}-search"
-        hx-include="#{{ field.name }}-search"
-        hx-target="#{{ field.name }}-results"
-        hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{{ ', load' if not results else '' }}" 
+        value="{{ field.search_bar.data if field.search_bar.data else '' }}"
+        name="{{ field.name }}-search" id="{{ field.name }}-search"
+        hx-include="#{{ field.name }}-search" hx-target="#{{ field.name }}-results"
+        hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{% if not results %}, load{% endif %}" 
         hx-post="{{ query_url }}"
         hx-swap="innerHTML"
         placeholder="Search">

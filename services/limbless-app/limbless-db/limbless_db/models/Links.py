@@ -40,7 +40,7 @@ class SampleLibraryLink(Base):
     )
 
     def __str__(self) -> str:
-        return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, cmo_id: {self.cmo_id})"
+        return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, is_multiplexed: {self.cmo_sequence is not None})"
     
 
 class LanePoolLink(Base):

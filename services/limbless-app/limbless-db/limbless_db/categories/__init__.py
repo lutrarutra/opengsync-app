@@ -12,8 +12,8 @@ from .LibraryStatus import LibraryStatus, LibraryStatusEnum  # noqa: F401
 from .LibraryType import LibraryType, LibraryTypeEnum  # noqa: F401
 from .RequestResponse import RequestResponse, RequestResponseEnum  # noqa: F401
 from .SeqRequestStatus import SeqRequestStatus, SeqRequestStatusEnum  # noqa: F401
-from .SequencingType import ReadType, ReadTypeEnum  # noqa: F401
+from .ReadType import ReadType, ReadTypeEnum  # noqa: F401
 from .UserRole import UserRole, UserRoleEnum  # noqa: F401
 from .SequencerModel import SequencerModel, SequencerModelEnum  # noqa: F401
 from .PoolStatus import PoolStatus, PoolStatusEnum  # noqa: F401
-from .SequencingWorkFlowType import SequencingWorkFlowType, SequencingWorkFlowTypeEnum  # noqa: F401
+from .ExperimentWorkFlow import ExperimentWorkFlow, ExperimentWorkFlowEnum  # noqa: F401

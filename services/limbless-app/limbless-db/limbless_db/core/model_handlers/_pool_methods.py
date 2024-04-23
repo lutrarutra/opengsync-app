@@ -16,8 +16,7 @@ def create_pool(
     seq_request_id: Optional[int] = None,
     num_m_reads_requested: Optional[float] = None,
     status: PoolStatusEnum = PoolStatus.DRAFT,
-    contact_phone: Optional[str] = None,
-    commit: bool = True
+    contact_phone: Optional[str] = None
 ) -> models.Pool:
     persist_session = self._session is not None
     if not self._session:
@@ -29,23 +28,24 @@ def create_pool(
     if seq_request_id is not None:
         if self._session.get(models.SeqRequest, seq_request_id) is None:
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
-    
+
     pool = models.Pool(
         name=name.strip(),
         owner_id=owner_id,
         seq_request_id=seq_request_id,
         num_m_reads_requested=num_m_reads_requested,
-        contact_name=contact_name.strip(),
-        contact_email=contact_email.strip(),
-        contact_phone=contact_phone.strip() if contact_phone else None,
+        contact=models.Contact(
+            name=contact_name.strip(),
+            email=contact_email.strip(),
+            phone=contact_phone.strip() if contact_phone else None
+        ),
         status_id=status.id
     )
-    self._session.add(pool)
     user.num_pools += 1
 
-    if commit:
-        self._session.commit()
-        self._session.refresh(pool)
+    self._session.add(pool)
+    self._session.commit()
+    self._session.refresh(pool)
 
     if not persist_session:
         self.close_session()
@@ -93,8 +93,11 @@ def get_pools(
         )
 
     if experiment_id is not None:
-        query = query.where(
-            models.Pool.experiment_id == experiment_id
+        query = query.join(
+            models.ExperimentPoolLink,
+            models.ExperimentPoolLink.pool_id == models.Pool.id,
+        ).where(
+            models.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     if seq_request_id is not None:

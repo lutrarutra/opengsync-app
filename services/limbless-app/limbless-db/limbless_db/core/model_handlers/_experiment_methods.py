@@ -6,11 +6,11 @@ import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import SequencingWorkFlowTypeEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus, PoolStatus
+from ...categories import ExperimentWorkFlowEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus, PoolStatus
 
 
 def create_experiment(
-    self, name: str, workflow_type: SequencingWorkFlowTypeEnum,
+    self, name: str, workflow: ExperimentWorkFlowEnum,
     sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None
 ) -> models.Experiment:
@@ -20,30 +20,39 @@ def create_experiment(
 
     if self._session.get(models.Sequencer, sequencer_id) is None:
         raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
-    
-    status = ExperimentStatus.DRAFT
-    seq_run: models.SeqRun
-    if (seq_run := self.get_seq_run(experiment_name=name)) is not None:
-        status = seq_run.status
 
     experiment = models.Experiment(
         name=name.strip(),
         sequencer_id=sequencer_id,
-        workflow_id=workflow_type.id,
+        workflow_id=workflow.id,
         r1_cycles=r1_cycles,
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
-        num_lanes=workflow_type.flow_cell_type.num_lanes,
-        status_id=status.id,
+        num_lanes=workflow.flow_cell_type.num_lanes,
+        status_id=ExperimentStatus.DRAFT.id,
         operator_id=operator_id,
     )
 
+    comment = models.Comment(
+        text=f"Created experiment: {experiment.name} ({experiment.workflow.name}) [{experiment.id}]",
+        author_id=operator_id,
+    )
+    self._session.add(comment)
+
+    action = models.ExperimentAction(
+        status_id=ExperimentStatus.DRAFT.id,
+        user_id=operator_id,
+        comment_id=comment.id,
+        experiment_id=experiment.id
+    )
+
+    experiment.actions.append(action)
     self._session.add(experiment)
     self._session.commit()
     self._session.refresh(experiment)
 
-    for lane_num in range(1, workflow_type.flow_cell_type.num_lanes + 1):
+    for lane_num in range(1, workflow.flow_cell_type.num_lanes + 1):
         lane = models.Lane(number=lane_num, experiment_id=experiment.id)
         self._session.add(lane)
 
@@ -136,7 +145,7 @@ def delete_experiment(self, experiment_id: int):
         self.close_session()
 
 
-def change_experiment_workflow(self, experiment_id: int, workflow_type: SequencingWorkFlowTypeEnum) -> models.Experiment:
+def change_experiment_workflow(self, experiment_id: int, workflow: ExperimentWorkFlowEnum) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -146,10 +155,10 @@ def change_experiment_workflow(self, experiment_id: int, workflow_type: Sequenci
         raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
     
     prev_type = experiment.workflow
-    experiment.workflow_id = workflow_type.id
-    experiment.num_lanes = workflow_type.flow_cell_type.num_lanes
+    experiment.workflow_id = workflow.id
+    experiment.num_lanes = workflow.flow_cell_type.num_lanes
 
-    if prev_type.flow_cell_type.num_lanes > workflow_type.flow_cell_type.num_lanes:
+    if prev_type.flow_cell_type.num_lanes > workflow.flow_cell_type.num_lanes:
         lanes = experiment.lanes.copy()
         for lane in lanes:
             if lane.number > experiment.flowcell_type.num_lanes:
@@ -157,8 +166,8 @@ def change_experiment_workflow(self, experiment_id: int, workflow_type: Sequenci
                     lane.pools.remove(pool)
                 experiment.lanes.remove(lane)
 
-    elif prev_type.flow_cell_type.num_lanes < workflow_type.flow_cell_type.num_lanes:
-        for lane_num in range(workflow_type.flow_cell_type.num_lanes - prev_type.flow_cell_type.num_lanes + 1, workflow_type.flow_cell_type.num_lanes + 1):
+    elif prev_type.flow_cell_type.num_lanes < workflow.flow_cell_type.num_lanes:
+        for lane_num in range(workflow.flow_cell_type.num_lanes - prev_type.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
             if lane_num in [lane.number for lane in experiment.lanes]:
                 raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
             print("Creating lane", lane_num, flush=True)

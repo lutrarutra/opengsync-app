@@ -41,7 +41,7 @@ def get_experiment_libraries_df(
     if include_sample:
         columns.extend([
             models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-            models.CMO.sequence.label("cmo_sequence"), models.CMO.pattern.label("cmo_pattern"), models.CMO.read.label("cmo_read"),
+            models.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.SampleLibraryLink.cmo_read.label("cmo_read"),
         ])
 
     query = sa.select(*columns).join(
@@ -60,10 +60,6 @@ def get_experiment_libraries_df(
         query = query.join(
             models.SampleLibraryLink,
             models.SampleLibraryLink.library_id == models.Library.id,
-        ).join(
-            models.CMO,
-            models.CMO.id == models.SampleLibraryLink.cmo_id,
-            isouter=True
         ).join(
             models.Sample,
             models.Sample.id == models.SampleLibraryLink.sample_id,
@@ -259,31 +255,57 @@ def get_library_features_df(self, library_id: int) -> pd.DataFrame:
 def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.CMO.id.label("cmo_id"), models.CMO.sequence.label("sequence"), models.CMO.pattern.label("pattern"),
-        models.CMO.read.label("read"),
+        models.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.SampleLibraryLink.cmo_read.label("cmo_read"),
     ).join(
         models.SampleLibraryLink,
         models.SampleLibraryLink.sample_id == models.Sample.id
     ).where(
         models.SampleLibraryLink.library_id == library_id
-    ).join(
-        models.CMO,
-        models.CMO.id == models.SampleLibraryLink.cmo_id
-    ).distinct()
+    )
 
     df = pd.read_sql(query, self._engine)
 
     return df
 
 
-def get_seq_request_libraries_df(self, seq_request: int) -> pd.DataFrame:
-    query = sa.select(
+def get_seq_request_libraries_df(
+    self, seq_request_id: int,
+    include_sample: bool = False, include_index_kit: bool = False,
+    include_visium: bool = False, include_seq_request: bool = False,
+) -> pd.DataFrame:
+    
+    columns = [
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
-        models.Library.adapter, models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
-        models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
+        models.Library.genome_ref_id.label("reference_id"),
+        models.Library.adapter, models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
         models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
-        models.User.id.label("owner_id"), models.User.email.label("owner_email"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.Lane.number.label("lane"),
+    ]
+    if include_seq_request:
+        columns.extend([
+            models.SeqRequest.id.label("request_id"), models.SeqRequest.name.label("request_name"),
+            models.User.id.label("requestor_id"), models.User.email.label("requestor_email"),
+        ])
+
+    if include_index_kit:
+        columns.extend([
+            models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
+        ])
+
+    if include_visium:
+        columns.extend([
+            models.VisiumAnnotation.slide.label("slide"), models.VisiumAnnotation.area.label("area"),
+            models.VisiumAnnotation.image.label("image")
+        ])
+
+    if include_sample:
+        columns.extend([
+            models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
+            models.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.SampleLibraryLink.cmo_read.label("cmo_read"),
+        ])
+    
+    query = sa.select(
+        *columns
     ).join(
         models.SeqRequest,
         models.SeqRequest.id == models.Library.seq_request_id
@@ -298,14 +320,13 @@ def get_seq_request_libraries_df(self, seq_request: int) -> pd.DataFrame:
         models.User,
         models.User.id == models.Library.owner_id,
     ).where(
-        models.Library.seq_request_id == seq_request,
+        models.Library.seq_request_id == seq_request_id,
     ).distinct()
 
     query = query.order_by(models.Library.id)
 
     df = pd.read_sql(query, self._engine)
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
-    df = df.dropna(axis="columns", how="all")
     df = df.sort_values(by=["pool_name", "owner_email", "library_name"])
 
     return df

@@ -83,7 +83,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             for _, row in _df.iterrows():
                 library_node = {
                     "node": node_idx,
-                    "name": f"{row['library_name']} - {LibraryType.get(row['library_type_id']).abbreviation}",
+                    "name": f"{LibraryType.get(row['library_type_id']).abbreviation} - {row['library_name']}",
                 }
                 nodes.append(library_node)
                 node_idx += 1
@@ -124,9 +124,9 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             "project_id": [],
             "library_types": [],
             "is_cmo_sample": [],
-            "sequence": [],
-            "pattern": [],
-            "read": [],
+            "cmo_sequence": [],
+            "cmo_pattern": [],
+            "cmo_read": [],
         }
 
         def add_sample(
@@ -138,9 +138,9 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             is_cmo_sample: bool,
             library_types: list[str],
             sample_id: Optional[int] = None,
-            sequence: Optional[str] = None,
-            pattern: Optional[str] = None,
-            read: Optional[str] = None,
+            cmo_sequence: Optional[str] = None,
+            cmo_pattern: Optional[str] = None,
+            cmo_read: Optional[str] = None,
         ):
             sample_data["sample_name"].append(sample_name)
             sample_data["sample_pool"].append(sample_pool)
@@ -150,9 +150,9 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             sample_data["sample_id"].append(sample_id)
             sample_data["library_types"].append(library_types)
             sample_data["is_cmo_sample"].append(is_cmo_sample)
-            sample_data["sequence"].append(sequence)
-            sample_data["pattern"].append(pattern)
-            sample_data["read"].append(read)
+            sample_data["cmo_sequence"].append(cmo_sequence)
+            sample_data["cmo_pattern"].append(cmo_pattern)
+            sample_data["cmo_read"].append(cmo_read)
 
         for (sample_name, sample_id, project, is_cmo_sample), _df in library_table.groupby(["sample_name", "sample_id", "project", "is_cmo_sample"], dropna=False):
             library_types = [LibraryType.get(library_type_id).abbreviation for library_type_id in _df["library_type_id"].unique()]
@@ -182,9 +182,9 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         project_id=project_row["id"],
                         library_types=library_types,
                         is_cmo_sample=True,
-                        sequence=cmo_row["sequence"],
-                        pattern=cmo_row["pattern"],
-                        read=cmo_row["read"],
+                        cmo_sequence=cmo_row["sequence"],
+                        cmo_pattern=cmo_row["pattern"],
+                        cmo_read=cmo_row["read"],
                     )
 
         return pd.DataFrame(sample_data)
@@ -270,13 +270,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         owner_id=user.id
                     )
                     sample_table.at[idx, "sample_id"] = sample.id
-                if row["is_cmo_sample"]:
-                    cmo = session.create_cmo(
-                        sequence=row["sequence"],
-                        pattern=row["pattern"],
-                        read=row["read"],
-                    ) # FIXME: CMO in link
-                    sample_table.at[idx, "cmo_id"] = cmo.id
 
             sample_table["sample_id"] = sample_table["sample_id"].astype(int)
 
@@ -335,7 +328,9 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     session.link_sample_library(
                         sample_id=sample_row["sample_id"],
                         library_id=library.id,
-                        cmo_id=sample_row["cmo_id"]
+                        cmo_sequence=sample_row["cmo_sequence"] if pd.notna(sample_row["cmo_sequence"]) else None,
+                        cmo_pattern=sample_row["cmo_pattern"] if pd.notna(sample_row["cmo_pattern"]) else None,
+                        cmo_read=sample_row["cmo_read"] if pd.notna(sample_row["cmo_read"]) else None,
                     )
 
             library_table["library_id"] = library_table["library_id"].astype(int)

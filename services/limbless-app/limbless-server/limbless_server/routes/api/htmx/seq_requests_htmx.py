@@ -121,15 +121,22 @@ def export(seq_request_id: int):
 
         file_name = secure_filename(f"{seq_request.name}_request.xlsx")
 
-        metadata_df = pd.DataFrame.from_records([seq_request.to_dict()]).T
-        samples_df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
-        libraries_df = pd.DataFrame.from_records([library.to_dict() for library in libraries])
+        metadata_df = pd.DataFrame.from_records({
+            "Name": [seq_request.name],
+            "Description": [seq_request.description],
+            "Requestor": [seq_request.requestor.name],
+            "Requestor Email": [seq_request.requestor.email],
+            "Organization": [seq_request.organization_contact.name],
+            "Organization Address": [seq_request.organization_contact.address],
+        }).T
+        libraries_df = db.get_seq_request_libraries_df(
+            seq_request_id
+        )
 
         bytes_io = BytesIO()
         # TODO: export features, CMOs, VISIUM metadata, etc...
         with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:  # type: ignore
             metadata_df.to_excel(writer, sheet_name="metadata", index=True)
-            samples_df.to_excel(writer, sheet_name="samples", index=False)
             libraries_df.to_excel(writer, sheet_name="libraries", index=False)
 
         bytes_io.seek(0)
@@ -144,38 +151,35 @@ def export(seq_request_id: int):
 @seq_requests_htmx.route("<int:seq_request_id>/export_libraries", methods=["GET"])
 @login_required
 def export_libraries(seq_request_id: int):
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        libraries = seq_request.libraries
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
-        if not current_user.is_insider():
-            if seq_request.requestor_id != current_user.id:
-                return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
-        file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
+    file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
 
-        df = pd.DataFrame.from_records([library.to_dict() for library in libraries])
+    libraries_df = db.get_seq_request_libraries_df(seq_request_id=seq_request_id)
 
-        return Response(
-            df.to_csv(sep="\t", index=False), mimetype="text/csv",
-            headers={"Content-disposition": f"attachment; filename={file_name}"}
-        )
+    return Response(
+        libraries_df.to_csv(sep="\t", index=False), mimetype="text/csv",
+        headers={"Content-disposition": f"attachment; filename={file_name}"}
+    )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["POST"])
 @login_required
 def edit(seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+    with DBSession(db) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider():
-        if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    return forms.models.SeqRequestForm(request.form).process_request(
-        seq_request=seq_request, user_id=current_user.id
-    )
+        return forms.models.SeqRequestForm(form_type="edit", formdata=request.form).process_request(
+            seq_request=seq_request, user_id=current_user.id
+        )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/delete", methods=["DELETE"])
@@ -265,7 +269,7 @@ def submit(seq_request_id: int):
 @seq_requests_htmx.route("create", methods=["POST"])
 @login_required
 def create():
-    return forms.models.SeqRequestForm(request.form).process_request(user_id=current_user.id)
+    return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user_id=current_user.id)
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/upload_auth_form", methods=["POST"])
@@ -650,7 +654,7 @@ def overview(seq_request_id: int):
                     if link.library.id not in library_nodes.keys():
                         library_node = {
                             "node": idx,
-                            "name": link.library.type.name,
+                            "name": f"{link.library.type.abbreviation} - {link.library.name}",
                             "id": f"library-{link.library.id}"
                         }
                         nodes.append(library_node)

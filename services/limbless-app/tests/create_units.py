@@ -1,7 +1,10 @@
 import uuid
 
 from limbless_db import DBHandler, DBSession, models
-from limbless_db.categories import LibraryType, DataDeliveryMode, UserRole, FeatureType, FlowCellType, SequencingWorkFlowType, SequencingWorkFlowTypeEnum, SequencerModel
+from limbless_db.categories import (
+    LibraryType, DataDeliveryMode, UserRole, FeatureType, FlowCellType, ExperimentWorkFlow, ExperimentWorkFlowEnum, SequencerModel,
+    ReadType
+)
 
 
 def create_user(db: DBHandler) -> models.User:
@@ -34,13 +37,14 @@ def create_contact(db: DBHandler) -> models.Contact:
 def create_seq_request(db: DBHandler, user: models.User) -> models.SeqRequest:
     _uuid = str(uuid.uuid1())
     contact = create_contact(db)
+    organization = create_contact(db)
     return db.create_seq_request(
         name=_uuid,
         data_delivery_mode=DataDeliveryMode.ALIGNMENT,
         description=_uuid,
         requestor_id=user.id,
-        organization_name=_uuid,
-        organization_address=_uuid,
+        read_type=ReadType.PAIRED_END,
+        organization_contact_id=organization.id,
         contact_person_id=contact.id,
         billing_contact_id=contact.id,
     )
@@ -93,11 +97,11 @@ def create_sequencer(db: DBHandler) -> models.Sequencer:
     )
 
 
-def create_experiment(db: DBHandler, user: models.User, workflow_type: SequencingWorkFlowTypeEnum) -> models.Experiment:
+def create_experiment(db: DBHandler, user: models.User, workflow: ExperimentWorkFlowEnum) -> models.Experiment:
     _uuid = str(uuid.uuid1())
     return db.create_experiment(
         name=_uuid[:5],
-        workflow_type=workflow_type,
+        workflow=workflow,
         sequencer_id=create_sequencer(db).id,
         r1_cycles=1,
         i1_cycles=1,

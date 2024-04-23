@@ -89,8 +89,8 @@
                     </svg>
                 </p>
                 <ul>
-                    <li><a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" id="barcodes-page" href="{{ url_for('index_kits_page.index_kits_page') }}">Index Kits</a></li>
-                    <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" id="barcodes-page" href="{{ url_for('index_kits_page.index_kits_page') }}">Barcodes</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('feature_kits_page.feature_kits_page') }}">Features</a></li>
                 </ul>
             </div>
             {% if role_name == "Admin" %}

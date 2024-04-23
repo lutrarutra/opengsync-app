@@ -5,7 +5,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession
 from limbless_db.categories import UserRole, HTTPResponse
-from ... import forms, db, logger
+from ... import forms, db, logger  # noqa
 
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 
@@ -18,10 +18,7 @@ else:
 @seq_requests_page_bp.route("/seq_requests")
 @login_required
 def seq_requests_page():
-    seq_request_form = forms.models.SeqRequestForm()
-    seq_request_form.contact_person_name.data = current_user.name
-    seq_request_form.contact_person_email.data = current_user.email
-
+    seq_request_form = forms.models.SeqRequestForm(form_type="create", current_user=current_user)
     current_sort = "id"
 
     with DBSession(db) as session:
@@ -30,7 +27,7 @@ def seq_requests_page():
         elif current_user.role == UserRole.ADMIN:
             seq_requests, n_pages = session.get_seq_requests(user_id=None)
         else:
-            seq_requests, n_pages = session.get_seq_requests(user_id=None, show_drafts=False, sort_by=current_sort, descending=True)
+            seq_requests, n_pages = session.get_seq_requests(user_id=None, sort_by=current_sort, descending=True)
 
     open_form = request.args.get("open_form") is not None
 
@@ -61,7 +58,7 @@ def seq_request_page(seq_request_id: int):
             if seq_request.requestor_id != current_user.id:
                 return abort(HTTPResponse.FORBIDDEN.id)
 
-        seq_request_form = forms.models.SeqRequestForm(seq_request=seq_request)
+        seq_request_form = forms.models.SeqRequestForm(form_type="edit", seq_request=seq_request)
 
         library_results = []
 

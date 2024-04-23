@@ -8,7 +8,6 @@ from .. import exceptions
 
 
 def create_sample(self, name: str, owner_id: int, project_id: int) -> models.Sample:
-
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

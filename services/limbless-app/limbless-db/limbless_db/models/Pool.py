@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from .Experiment import Experiment
     from .SeqRequest import SeqRequest
     from .Lane import Lane
+    from .Contact import Contact
+    from .actions import PoolAction
 
 
 class Pool(Base):
@@ -24,6 +26,8 @@ class Pool(Base):
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     timestamp_received_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
+    timestamp_qced_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
+    timestamp_depleted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
     avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
@@ -34,18 +38,17 @@ class Pool(Base):
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="joined")
-    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select",)
-
-    lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
-    
-    experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
 
     seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=True)
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", lazy="select")
+    
+    contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
+    contact: Mapped["Contact"] = relationship("Contact", lazy="select")
 
-    contact_name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
-    contact_email: Mapped[str] = mapped_column(sa.String(128), nullable=False)
-    contact_phone: Mapped[Optional[str]] = mapped_column(sa.String(20), nullable=True)
+    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select")
+    lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
+    experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
+    actions: Mapped[list["PoolAction"]] = relationship("PoolAction", lazy="select", order_by="PoolAction.status_id", cascade="merge, save-update, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]
 
@@ -79,12 +82,6 @@ class Pool(Base):
         if self.diluted_qubit_concentration is not None:
             return self.diluted_molarity
         return self.original_molarity
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-        }
     
     @property
     def molarity_color_class(self) -> str:
@@ -119,9 +116,6 @@ class Pool(Base):
     
     def search_description(self) -> Optional[str]:
         return ""
-    
-    def list_library_types(self) -> list[str]:
-        return list(set([library.type.abbreviation for library in self.libraries]))
     
     @property
     def status(self) -> PoolStatusEnum:

@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus
+from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum
 from .. import exceptions
 
 
@@ -14,20 +14,16 @@ def create_seq_request(
     self, name: str,
     description: Optional[str],
     requestor_id: int,
-    contact_person_id: int,
     billing_contact_id: int,
     data_delivery_mode: DataDeliveryModeEnum,
-    organization_name: str,
-    organization_address: str,
-    num_cycles_read_1: Optional[int] = None,
-    num_cycles_index_1: Optional[int] = None,
-    num_cycles_index_2: Optional[int] = None,
-    num_cycles_read_2: Optional[int] = None,
+    read_type: ReadTypeEnum,
+    contact_person_id: int,
+    organization_contact_id: int,
+    bioinformatician_contact_id: Optional[int] = None,
     read_length: Optional[int] = None,
     num_lanes: Optional[int] = None,
     special_requirements: Optional[str] = None,
-    bioinformatician_contact_id: Optional[int] = None,
-    organization_department: Optional[str] = None,
+    
     billing_code: Optional[str] = None,
 ) -> models.SeqRequest:
 
@@ -43,6 +39,9 @@ def create_seq_request(
 
     if self._session.get(models.Contact, contact_person_id) is None:
         raise exceptions.ElementDoesNotExist(f"Contact with id '{contact_person_id}', not found.")
+    
+    if self._session.get(models.Contact, organization_contact_id) is None:
+        raise exceptions.ElementDoesNotExist(f"Contact with id '{organization_contact_id}', not found.")
 
     if bioinformatician_contact_id is not None:
         if (bioinformatician_contact := self._session.get(models.Contact, bioinformatician_contact_id)) is None:
@@ -54,21 +53,16 @@ def create_seq_request(
         name=name.strip(),
         description=description.strip() if description else None,
         requestor_id=requestor_id,
-        num_cycles_read_1=num_cycles_read_1,
-        num_cycles_index_1=num_cycles_index_1,
-        num_cycles_index_2=num_cycles_index_2,
-        num_cycles_read_2=num_cycles_read_2,
         read_length=read_length,
         num_lanes=num_lanes,
+        read_type_id=read_type.id,
         special_requirements=special_requirements,
         billing_contact_id=billing_contact_id,
         contact_person_id=contact_person_id,
+        organization_contact_id=organization_contact_id,
         bioinformatician_contact_id=bioinformatician_contact_id,
         status_id=SeqRequestStatus.DRAFT.id,
         data_delivery_mode_id=data_delivery_mode.id,
-        organization_name=organization_name.strip(),
-        organization_department=organization_department.strip() if organization_department else None,
-        organization_address=organization_address.strip(),
         billing_code=billing_code.strip() if billing_code else None,
     )
 
@@ -99,7 +93,6 @@ def create_seq_request(
 
 
 def get_seq_request(self, seq_request_id: int) -> models.SeqRequest:
-
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -141,7 +134,10 @@ def get_seq_requests(
 
     if not show_drafts:
         query = query.where(
-            models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id
+            and_(
+                models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
+                models.SeqRequest.requestor_id == user_id
+            )
         )
 
     if sample_id is not None:
@@ -160,7 +156,8 @@ def get_seq_requests(
         attr = getattr(models.SeqRequest, sort_by)
         if descending:
             attr = attr.desc()
-        query = query.order_by(attr.nullslast())
+
+        query = query.order_by(sa.nulls_last(attr))
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
 
