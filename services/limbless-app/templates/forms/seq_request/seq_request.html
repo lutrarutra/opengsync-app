@@ -1,178 +1,204 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
-<div id="seq_request-form" class="accordion">
-    {{ seq_request_form.csrf_token() }}
+
+<div class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if seq_request_form.form_type == "create" %}Create{% elif seq_request_form.form_type == "edit" %}Edit{% endif %} Sequencing Request</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <div id="seq_request-form" class="accordion">
+            {{ seq_request_form.csrf_token() }}
+            
+            {% set sub_form = seq_request_form.basic_info_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button{% if sub_form.is_validated() == True %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#request-info-section" aria-expanded="true"
+                    aria-controls="request-info-section">
+                        Request Info
+                    </button>
+                </h2>
+                <div id="request-info-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        {{ sub_form.csrf_token() }}
+                        {{ form_group(sub_form.request_name) }}
+                        {{ form_group(sub_form.request_description) }}
+                    </div>
+                </div>
+            </div>
+
+            {% set sub_form = seq_request_form.technical_info_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button{% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#technical-requirements-section" aria-expanded="true" aria-controls="technical-requirements-section">
+                        Technical Requirements
+                    </button>
+                </h2>
+                <div id="technical-requirements-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        {{ sub_form.csrf_token() }}
+                        <div class="row">
+                            {{ select_input(sub_form.read_type, class="col-4") }}
+                            {{ form_group(sub_form.num_lanes, class="col-4") }}
+                            {{ form_group(sub_form.read_length, class="col-4") }}
+                        </div>
+                        {{ form_group(sub_form.special_requirements) }}
+                    </div>
+                </div>
+            </div>
+
+            {% set sub_form = seq_request_form.data_processing_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#data-processing-section" aria-expanded="true" aria-controls="data-processing-section">
+                        Data Processing
+                    </button>
+                </h2>
+                <div id="data-processing-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        {{ sub_form.csrf_token() }}
+                        <ol>
+                        {% for mode in DataDeliveryMode.as_list() %}
+                            <li>{{ mode.name }} <span class="desc">{{ mode.description }} </span></li>
+                        {% endfor %}
+                        </ol>
+                        {{ form_group(sub_form.data_delivery_mode_id, class="col") }}
+                    </div>
+                </div>
+            </div>
+
+            {% set sub_form = seq_request_form.contact_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if seq_request_form.contact_form.is_validated() %} collapsed valid-section text-success{% elif seq_request_form.contact_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#contact-section" aria-expanded="true" aria-controls="contact-section">
+                        Contact Person
+                    </button>
+                </h2>
+                <div id="contact-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        {{ seq_request_form.contact_form.csrf_token() }}
+                        {% if seq_request_form.form_type == "create" %}
+                        <div class="form-check form-switch">
+                            {{ seq_request_form.contact_form.current_user_is_contact(class="form-check-input", checked=seq_request_form.contact_form.current_user_is_contact.data) }}
+                            <label class="form-check-label">I am the contact person.</label>
+                        </div>
+                        {% endif %}
+                        <div class="row">
+                            {{ 
+                                form_group(
+                                    seq_request_form.contact_form.contact_person_name,
+                                    disabled=seq_request_form.contact_form.current_user_is_contact.data,
+                                    class="col-6 col-xl-4",
+                                ) 
+                            }}
+                            {{ 
+                                form_group(
+                                    seq_request_form.contact_form.contact_person_email,
+                                    disabled=seq_request_form.contact_form.current_user_is_contact.data,
+                                    class="col-6 col-xl-4"
+                                )
+                            }}
+                            {{ 
+                                form_group(
+                                    seq_request_form.contact_form.contact_person_phone,
+                                    class="col-6 col-xl-4"
+                                ) 
+                            }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% set sub_form = seq_request_form.bioinformatician_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#bioinformatician-contact-section" aria-expanded="true" aria-controls="bioinformatician-contact-section">
+                        Bioinformatician Contact
+                    </button>
+                </h2>
+                <div id="bioinformatician-contact-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        {{ sub_form.csrf_token() }}
+                        <div class="row">
+                            {{ form_group(sub_form.bioinformatician_name, class="col-6 col-xl-4") }}
+                            {{ form_group(sub_form.bioinformatician_email, class="col-6 col-xl-4") }}
+                            {{ form_group(sub_form.bioinformatician_phone, class="col-6 col-xl-4") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% set sub_form = seq_request_form.organization_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#organization-section" aria-expanded="true" aria-controls="organization-section">
+                        Organization
+                    </button>
+                </h2>
+                <div id="organization-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        {{ sub_form.csrf_token() }}
+                        <div class="row">
+                            {{ form_group(sub_form.organization_name, class="col-6") }}
+                            {{ form_group(sub_form.organization_address, class="col-6") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% set sub_form = seq_request_form.billing_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#billing-section" aria-expanded="true" aria-controls="billing-section">
+                        Billing
+                    </button>
+                </h2>
+                <div id="billing-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        {{ sub_form.csrf_token() }}
+                        {% if seq_request_form.form_type == "create" %}
+                        <div class="form-check form-switch">
+                            {{ sub_form.billing_is_organization(class="form-check-input") }}
+                            <label class="form-check-label">Use organization as billing address.</label>
+                        </div>
+                        {% endif %}
+                        <div class="row">
+                            {{ form_group(sub_form.billing_contact, class="col-6", disabled=sub_form.billing_is_organization.data) }}
+                            {{ form_group(sub_form.billing_address, class="col-6", disabled=sub_form.billing_is_organization.data) }}
+                        </div>
+                        <div class="row">
+                            {{ form_group(sub_form.billing_email, class="col-6") }}
+                            {{ form_group(sub_form.billing_phone, class="col-6") }}
+                        </div>
+                        <div class="row">
+                            {{ form_group(sub_form.billing_code, class="col-6") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    {% set sub_form = seq_request_form.basic_info_form %}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button{% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-            type="button" data-bs-toggle="collapse" data-bs-target="#request-info-section" aria-expanded="true"
-            aria-controls="request-info-section">
-                Request Info
-            </button>
-        </h2>
-        <div id="request-info-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-            <div class="accordion-body">
-                {{ sub_form.csrf_token() }}
-                {{ form_group(sub_form.request_name) }}
-                {{ form_group(sub_form.request_description) }}
-            </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
         </div>
-    </div>
-
-    {% set sub_form = seq_request_form.technical_info_form %}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button{% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-            type="button" data-bs-toggle="collapse" data-bs-target="#technical-requirements-section" aria-expanded="true" aria-controls="technical-requirements-section">
-                Technical Requirements
-            </button>
-        </h2>
-        <div id="technical-requirements-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-            <div class="accordion-body">
-                {{ sub_form.csrf_token() }}
-                <div class="row">
-                    {{ select_input(sub_form.read_type, class="col-4") }}
-                    {{ form_group(sub_form.num_lanes, class="col-4") }}
-                    {{ form_group(sub_form.read_length, class="col-4") }}
-                </div>
-                {{ form_group(sub_form.special_requirements) }}
-            </div>
+        <div class="footer-info">
         </div>
-    </div>
-
-    {% set sub_form = seq_request_form.data_processing_form %}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-            type="button" data-bs-toggle="collapse" data-bs-target="#data-processing-section" aria-expanded="true" aria-controls="data-processing-section">
-                Data Processing
-            </button>
-        </h2>
-        <div id="data-processing-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-            <div class="accordion-body">
-                {{ sub_form.csrf_token() }}
-                <ol>
-                {% for mode in DataDeliveryMode.as_list() %}
-                    <li>{{ mode.name }} <span class="desc">{{ mode.description }} </span></li>
-                {% endfor %}
-                </ol>
-                {{ form_group(sub_form.data_delivery_mode_id, class="col") }}
-            </div>
-        </div>
-    </div>
-
-    {% set sub_form = seq_request_form.contact_form %}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button {% if seq_request_form.contact_form.is_validated() %} collapsed valid-section text-success{% elif seq_request_form.contact_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-            type="button" data-bs-toggle="collapse" data-bs-target="#contact-section" aria-expanded="true" aria-controls="contact-section">
-                Contact Person
-            </button>
-        </h2>
-        <div id="contact-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-            <div class="accordion-body">
-                {{ seq_request_form.contact_form.csrf_token() }}
-                {% if seq_request_form.form_type == "create" %}
-                <div class="form-check form-switch">
-                    {{ seq_request_form.contact_form.current_user_is_contact(class="form-check-input", checked=seq_request_form.contact_form.current_user_is_contact.data) }}
-                    <label class="form-check-label">I am the contact person.</label>
-                </div>
-                {% endif %}
-                <div class="row">
-                    {{ 
-                        form_group(
-                            seq_request_form.contact_form.contact_person_name,
-                            disabled=seq_request_form.contact_form.current_user_is_contact.data,
-                            class="col-6 col-xl-4",
-                        ) 
-                    }}
-                    {{ 
-                        form_group(
-                            seq_request_form.contact_form.contact_person_email,
-                            disabled=seq_request_form.contact_form.current_user_is_contact.data,
-                            class="col-6 col-xl-4"
-                        )
-                    }}
-                    {{ 
-                        form_group(
-                            seq_request_form.contact_form.contact_person_phone,
-                            class="col-6 col-xl-4"
-                        ) 
-                    }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {% set sub_form = seq_request_form.bioinformatician_form %}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-            type="button" data-bs-toggle="collapse" data-bs-target="#bioinformatician-contact-section" aria-expanded="true" aria-controls="bioinformatician-contact-section">
-                Bioinformatician Contact
-            </button>
-        </h2>
-        <div id="bioinformatician-contact-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-            <div class="accordion-body">
-                {{ sub_form.csrf_token() }}
-                <div class="row">
-                    {{ form_group(sub_form.bioinformatician_name, class="col-6 col-xl-4") }}
-                    {{ form_group(sub_form.bioinformatician_email, class="col-6 col-xl-4") }}
-                    {{ form_group(sub_form.bioinformatician_phone, class="col-6 col-xl-4") }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {% set sub_form = seq_request_form.organization_form %}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-            type="button" data-bs-toggle="collapse" data-bs-target="#organization-section" aria-expanded="true" aria-controls="organization-section">
-                Organization
-            </button>
-        </h2>
-        <div id="organization-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-            <div class="accordion-body">
-                {{ sub_form.csrf_token() }}
-                <div class="row">
-                    {{ form_group(sub_form.organization_name, class="col-6") }}
-                    {{ form_group(sub_form.organization_address, class="col-6") }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {% set sub_form = seq_request_form.billing_form %}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-            type="button" data-bs-toggle="collapse" data-bs-target="#billing-section" aria-expanded="true" aria-controls="billing-section">
-                Billing
-            </button>
-        </h2>
-        <div id="billing-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-            <div class="accordion-body">
-                {{ sub_form.csrf_token() }}
-                {% if seq_request_form.form_type == "create" %}
-                <div class="form-check form-switch">
-                    {{ sub_form.billing_is_organization(class="form-check-input") }}
-                    <label class="form-check-label">Use organization as billing address.</label>
-                </div>
-                {% endif %}
-                <div class="row">
-                    {{ form_group(sub_form.billing_contact, class="col-6", disabled=sub_form.billing_is_organization.data) }}
-                    {{ form_group(sub_form.billing_address, class="col-6", disabled=sub_form.billing_is_organization.data) }}
-                </div>
-                <div class="row">
-                    {{ form_group(sub_form.billing_email, class="col-6") }}
-                    {{ form_group(sub_form.billing_phone, class="col-6") }}
-                </div>
-                <div class="row">
-                    {{ form_group(sub_form.billing_code, class="col-6") }}
-                </div>
-            </div>
+        <div class="footer-controls">
+            {% if seq_request_form.form_type == "edit" %}
+            <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}">Submit</button>
+            {% elif seq_request_form.form_type == "create" %}
+            <button class="btn btn-success" hx-include="#seq_request-form" hx-target="#seq_request-form"
+                hx-swap="outerHTML" hx-post="{{ url_for('seq_requests_htmx.create') }}">Create</button>
+            {% endif %}
         </div>
     </div>
 

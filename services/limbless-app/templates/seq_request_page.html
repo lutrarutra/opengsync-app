@@ -43,10 +43,12 @@
             {% if current_user.is_insider() and seq_request.status.name == "Submitted" %}
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#process_request-form-popup">Process</button>
             {% endif %}
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#seq_request-file-form-popup">
-                Attach File
-            </button>
+            <span {% if not current_user.is_insider() and not seq_request.is_editable() %}{{ tooltip('You cannot edit request that is already submitted.', 'left', 'warning') }}{% endif %}>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#seq_request-file-form-popup" {% if not current_user.is_insider() and not seq_request.is_editable() %}disabled{% endif %}>
+                    Attach File
+                </button>
+            </span>
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Export
@@ -66,9 +68,12 @@
                     <li>
                         <span {% if seq_request.status.name != "Draft" and not current_user.is_insider() %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
                             <button class="dropdown-item"
-                            data-bs-toggle="modal"
-                            data-bs-target="#seq_request-form-popup"
-                            {% if seq_request.status.name != "Draft" and not current_user.is_insider() %}disabled{% endif %}>Edit</button>
+                            {% if seq_request.is_editable() or current_user.is_insider() %}
+                            data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                            hx-get="{{ url_for('seq_requests_htmx.get_form', form_type='edit', seq_request_id=seq_request.id) }}"
+                            hx-target="#xl-modal-content" data-bs-toggle="modal"
+                            hx-swap="innerHTML" hx-trigger="click"
+                            {% else %}disabled{% endif %}>Edit</button>
                         </span>
                     </li>
                     <li>
@@ -452,27 +457,9 @@
         </div>
     </div>
 
-    <div class="modal fade" id="seq_request-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5" >Edit Sequencing Request</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    {% include seq_request_form._template_path %}
-                </div>
-                <div class="modal-footer">
-                    <div class="text-nowrap text-muted footer-id">
-                    </div>
-                    <div class="footer-info">
-                    </div>
-                    <div class="footer-controls">
-                        <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form" hx-swap="outerHTML"
-                            hx-post="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}">Submit</button>
-                    </div>
-                </div>
-            </div>
+    <div class="modal fade" id="xl-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">
+            {{ spinner() }}
         </div>
     </div>
 
@@ -483,25 +470,25 @@
     </div>
 
     <div class="modal fade" id="seq_request-file-form-popup" aria-hidden="true" aria-labelledby="">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
             {% include file_input_form._template_path %}
         </div>
     </div>
 
     <div class="modal fade" id="seq_request-comment-form-popup" aria-hidden="true" aria-labelledby="">
-        <div class="modal-dialog modal-l modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
             {% include comment_form._template_path %}
         </div>
     </div>
 
     <div class="modal fade" id="seq_request_share_email-form-popup" aria-hidden="true" aria-labelledby="">
-        <div class="modal-dialog modal-l modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
             {% include seq_request_share_email_form._template_path %}
         </div>
     </div>
 
     <div class="modal fade" id="process_request-form-popup" aria-hidden="true" aria-labelledby="">
-        <div class="modal-dialog modal-l modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5" >Process Sequencing Request</h1>
@@ -524,6 +511,4 @@
         </div>
     </div>
 </div>
-<script>
-</script>
 {% endblock %}

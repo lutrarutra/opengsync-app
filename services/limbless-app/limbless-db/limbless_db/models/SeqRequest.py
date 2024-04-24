@@ -94,6 +94,9 @@ class SeqRequest(Base):
             
         return True
     
+    def is_editable(self) -> bool:
+        return self.status == SeqRequestStatus.DRAFT
+    
     def is_authorized(self) -> bool:
         return self.seq_auth_form_file_id is not None
     

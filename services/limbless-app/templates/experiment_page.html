@@ -370,7 +370,7 @@
     </div>
 
     <div class="modal fade" id="experiment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5">Edit Experiment</h1>
@@ -389,13 +389,13 @@
     </div>
 
     <div class="modal fade" id="pooling-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
             {% include pooling_input_form._template_path %}
         </div>
     </div>
 
     <div class="modal fade" id="experiment-file-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
             {% include file_input_form._template_path %}
         </div>
     </div>
@@ -404,7 +404,7 @@
 
     <!-- Add Pools -->
     <div class="modal fade" id="add-pools-popup" aria-hidden="true" aria-labelledby="" tabindex="-1" data-bs-keyboard="false">
-        <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-centered" id="add-pools-container">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="add-pools-container">
             {{ spinner() }}
         </div>
     </div>
@@ -418,14 +418,14 @@
 
     <!-- Pool QC -->
     <div class="modal fade" id="pool_qc-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-centered" id="pool_qc-workflow-container">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="pool_qc-workflow-container">
             {{ spinner() }}
         </div>
     </div>
 
     <!-- Dilute Pools -->
     <div class="modal fade" id="dilute_pools-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-centered" id="dilute_pools-workflow-container">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="dilute_pools-workflow-container">
             {{ spinner() }}
         </div>
     </div>
@@ -439,7 +439,7 @@
 
     <!-- Lane QC -->
     <div class="modal fade" id="lane_qc-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-centered" id="lane_qc-workflow-container">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="lane_qc-workflow-container">
             {{ spinner() }}
         </div>
     </div>
@@ -455,7 +455,6 @@
     init_tooltips();
     $(document).ready(function() {
         $("#add-pools-popup").on("hide.bs.modal", function() {
-            console.log("modal closed");
             location.reload();
         });
     });

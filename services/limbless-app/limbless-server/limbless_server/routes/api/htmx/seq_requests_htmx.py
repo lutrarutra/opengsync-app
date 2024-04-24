@@ -1,6 +1,6 @@
 import os
 from io import BytesIO
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Literal
 
 from flask import Blueprint, url_for, render_template, flash, abort, request, Response, jsonify, current_app
 from flask_htmx import make_response
@@ -103,6 +103,37 @@ def get(page: int):
             **context
         ), push_url=False
     )
+
+
+@seq_requests_htmx.route("get_form/<string:form_type>", methods=["GET"])
+@login_required
+def get_form(form_type: Literal["create", "edit"]):
+    if form_type not in ["create", "edit"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if form_type != "edit":
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        with DBSession(db) as session:
+            if (seq_request := session.get_seq_request(seq_request_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            
+            if seq_request.requestor_id != current_user.id and not current_user.is_insider():
+                return abort(HTTPResponse.FORBIDDEN.id)
+            
+            return forms.models.SeqRequestForm(form_type=form_type, seq_request=seq_request).make_response()
+    
+    # seq_request_id must be provided if form_type is "edit"
+    if form_type == "edit":
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    return forms.models.SeqRequestForm(form_type=form_type, current_user=current_user).make_response()
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/export", methods=["GET"])
@@ -544,6 +575,9 @@ def reverse_complement(seq_request_id: int):
 def process_request(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.ProcessRequestForm(formdata=request.form).process_request(
         seq_request=seq_request, user=current_user

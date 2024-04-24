@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 import sqlalchemy as sa
-from sqlalchemy.sql.operators import and_
+from sqlalchemy.sql.operators import and_, or_
 
 from ... import models, PAGE_LIMIT
 from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum
@@ -134,7 +134,7 @@ def get_seq_requests(
 
     if not show_drafts:
         query = query.where(
-            and_(
+            or_(
                 models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
                 models.SeqRequest.requestor_id == user_id
             )

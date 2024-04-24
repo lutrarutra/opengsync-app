@@ -28,14 +28,14 @@ class BasicInfoSubForm(FlaskForm):
 
     def __init__(self, formdata={}, **kwargs):
         super().__init__(formdata=formdata, **kwargs)
-        self.__validated = False
+        self._validated = False
 
     def is_validated(self) -> bool:
-        return self.__validated
+        return self._validated and self.errors == {}
     
     def validate(self) -> bool:
-        self.__validated = super().validate()
-        return self.__validated
+        self._validated = super().validate()
+        return self._validated
 
 
 class TechinicalInfoSubForm(FlaskForm):
@@ -63,14 +63,14 @@ class TechinicalInfoSubForm(FlaskForm):
 
     def __init__(self, formdata={}, **kwargs):
         super().__init__(formdata=formdata, **kwargs)
-        self.__validated = False
+        self._validated = False
 
     def is_validated(self) -> bool:
-        return self.__validated
+        return self._validated
     
     def validate(self) -> bool:
-        self.__validated = super().validate()
-        return self.__validated
+        self._validated = super().validate()
+        return self._validated
 
 
 class DataProcessingSubForm(FlaskForm):
@@ -78,14 +78,14 @@ class DataProcessingSubForm(FlaskForm):
     
     def __init__(self, formdata={}, **kwargs):
         super().__init__(formdata=formdata, **kwargs)
-        self.__validated = False
+        self._validated = False
 
     def is_validated(self) -> bool:
-        return self.__validated
+        return self._validated
     
     def validate(self) -> bool:
-        self.__validated = super().validate()
-        return self.__validated
+        self._validated = super().validate()
+        return self._validated
 
 
 class ContactSubForm(FlaskForm):
@@ -107,14 +107,14 @@ class ContactSubForm(FlaskForm):
 
     def __init__(self, formdata={}, **kwargs):
         super().__init__(formdata=formdata, **kwargs)
-        self.__validated = False
+        self._validated = False
 
     def is_validated(self) -> bool:
-        return self.__validated
+        return self._validated
     
     def validate(self) -> bool:
-        self.__validated = super().validate()
-        return self.__validated
+        self._validated = super().validate()
+        return self._validated
 
 
 class BioinformaticianSubForm(FlaskForm):
@@ -135,14 +135,14 @@ class BioinformaticianSubForm(FlaskForm):
 
     def __init__(self, formdata={}, **kwargs):
         super().__init__(formdata=formdata, **kwargs)
-        self.__validated = False
+        self._validated = False
 
     def is_validated(self) -> bool:
-        return self.__validated
+        return self._validated
     
     def validate(self) -> bool:
-        self.__validated = super().validate()
-        return self.__validated
+        self._validated = super().validate()
+        return self._validated
 
 
 class OrganizationSubForm(FlaskForm):
@@ -157,14 +157,14 @@ class OrganizationSubForm(FlaskForm):
 
     def __init__(self, formdata={}, **kwargs):
         super().__init__(formdata=formdata, **kwargs)
-        self.__validated = False
+        self._validated = False
 
     def is_validated(self) -> bool:
-        return self.__validated
+        return self._validated
     
     def validate(self) -> bool:
-        self.__validated = super().validate()
-        return self.__validated
+        self._validated = super().validate()
+        return self._validated
 
 
 class BillingSubForm(FlaskForm):
@@ -194,14 +194,14 @@ class BillingSubForm(FlaskForm):
 
     def __init__(self, formdata={}, **kwargs):
         super().__init__(formdata=formdata, **kwargs)
-        self.__validated = False
+        self._validated = False
 
     def is_validated(self) -> bool:
-        return self.__validated
+        return self._validated
     
     def validate(self) -> bool:
-        self.__validated = super().validate()
-        return self.__validated
+        self._validated = super().validate()
+        return self._validated
         
 
 class SeqRequestForm(HTMXFlaskForm):
@@ -233,6 +233,8 @@ class SeqRequestForm(HTMXFlaskForm):
 
         elif form_type == "edit" and seq_request is not None:
             self.__fill_form(seq_request)
+
+            self._context["seq_request"] = seq_request
 
     def validate(self, user_id: int, seq_request: Optional[models.SeqRequest] = None) -> bool:
         if not super().validate():
