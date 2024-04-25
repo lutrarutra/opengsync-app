@@ -381,6 +381,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         )
 
         flash(f"Added {library_table.shape[0]} libraries to sequencing request.", "success")
+        logger.info(f"{self.uuid}: added libraries to sequencing request.")
 
         newdir = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LIBRARY_ANNOTATION.dir, str(seq_request.id))
         os.makedirs(newdir, exist_ok=True)

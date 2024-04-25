@@ -119,9 +119,6 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
             if len(self.cmo_table) == 0:
                 self.file.errors = ("File is empty.",)
                 return False
-            
-            if os.path.exists(filepath):
-                os.remove(filepath)
 
         elif self.input_type == "spreadsheet":
             import json

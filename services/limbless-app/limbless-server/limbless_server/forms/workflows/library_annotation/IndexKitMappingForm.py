@@ -96,6 +96,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
             selected.append(selected_kit)
 
+        # TODO: these can be removed, right?
         self._context["categories"] = index_kits
         self._context["selected"] = selected
         

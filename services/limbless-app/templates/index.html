@@ -106,12 +106,37 @@
                         </div>
                     </div>
                 </div>
+                {% if current_user.is_insider() %}
+                <div class="card"
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
+                    hx-get="{{ url_for('library_pooling_workflow.begin') }}"
+                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click">
+                    <div class="card-icon">
+                        <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
+                    </div>
+                    <div class="card-body">
+                        <div class="title-container">
+                            <h5 class="card-title">Pool Libraries</h5>
+                        </div>
+                        <div class="text-container">
+                            <p class="card-text">Create pool from unpooled libraries.</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <div class="modal fade" id="xl-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false">
         <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">
+            {{ spinner() }}
+        </div>
+    </div>
+
+    <div class="modal fade" id="fullscreen-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false">
+        <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="fullscreen-modal-content">
             {{ spinner() }}
         </div>
     </div>

@@ -19,7 +19,7 @@
             </ul>
         </li>
         <li><b>Pool</b> <span class="desc">Indicates how libraries were pooled, e.g. rows '1,1,1,2,2,2' means 2 pools are created with 3 samples in each</span></li>
-        <li><b>Index 1</b> or <b>Adapter</b> + <b>Library Kit</b></li>
+        <li><b>Index 1</b> or <b>Adapter</b> + <b>Index Kit</b></li>
         <li><b>Project</b> <span class="desc">Samples from same project are analysed together. Project can be an existing one or you can create new one.</span></li>
         <li>
             <b>Genome Reference</b> <span class="desc">Specifies the reference genome used in downstream</span>:
@@ -33,6 +33,7 @@
 
     <h5>Optional Columns (can be left blank)</h5>
     <ul>
+        <li><b>Index Kit</b> <span class="desc">Name of the barcode kit from <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page</span></li>
         <li><b>Adapter</b> <span class="desc">Index adapter, e.g. 'SI-TT-A1'</span></li>
         <li><b>Index 1</b> <span class="desc">Index 1 (i7 for 10x) sequence, e.g. 'GTAACATGCG'</span></li>
         <li><b>Index 2</b> <span class="desc">Index 2 (i5 for 10x) sequence, e.g. 'AGTGTTACCT'</span></li>

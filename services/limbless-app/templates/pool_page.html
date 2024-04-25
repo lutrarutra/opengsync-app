@@ -7,7 +7,7 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>Pool: {{ pool.name }}</h1>
+            <h1>{{ pool.name }}</h1>
         </div>
         <div>
             <span {% if not is_editable %}
@@ -48,18 +48,24 @@
         </div>
         <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="1">
             <div class="row">
-                {{ metadata_group("Pool Name", pool.name, class="col") }}
+                {{ metadata_group("Pool Name", pool.name, class="col-4") }}
                 {{
                     metadata_group_link(
                         "Owner",
                         pool.owner.name,
                         url_for("users_page.user_page", user_id=pool.owner.id, from='pool@' + pool.id | string),
-                        class="col"
+                        class="col-4"
                     )
                 }}
                 {{ 
-                    metadata_group_email_link("Owner Email", pool.owner.email, class="col")
+                    metadata_group_email_link("Owner Email", pool.owner.email, class="col-4")
                 }}
+
+            </div>
+            <div class="row">
+                {{ metadata_group("Contact Name", pool.contact.name, class="col-4") }}
+                {{ metadata_group_email_link("Contact Email", pool.contact.email, class="col-4") }}
+                {{ metadata_group("Contact Phone", pool.contact.phone, class="col-4") }}
             </div>
         </div>
     </div>

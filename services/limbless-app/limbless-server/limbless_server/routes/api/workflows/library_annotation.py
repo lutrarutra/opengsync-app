@@ -7,7 +7,7 @@ from flask import Blueprint, request, abort, send_file, current_app, Response
 from flask_login import login_required
 
 from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse, LibraryType
+from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import library_annotation as forms

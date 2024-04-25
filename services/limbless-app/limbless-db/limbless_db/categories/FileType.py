@@ -18,3 +18,4 @@ class FileType(ExtendedEnum[FileTypeEnum], enum_type=FileTypeEnum):
     POST_SEQUENCING_QC_REPORT = FileTypeEnum(3, "Post-sequencing QC Report", "post_seq_qc_reports", ["pdf"])
     LANE_POOLING_TABLE = FileTypeEnum(4, "Lane Pooling Table", "lane_pooling_tables", ["tsv"])
     LIBRARY_ANNOTATION = FileTypeEnum(5, "Library Annotation", "library_annotation", ["tsv"])
+    LIBRARY_POOLING_TABLE = FileTypeEnum(6, "Library Pooling Table", "library_pooling_tables", ["tsv"])

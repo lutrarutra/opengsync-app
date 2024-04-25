@@ -1,7 +1,0 @@
-id	library_name	library_type	pool	index_kit	adapter	index_1	index_2	index_3	index_4	library_volume	library_concentration	library_total_size
-39	multi_sample_A_ATAC	scATAC-seq	pooled_atac	single index t	SI-GA-A1							
-41	multi_sample_B_ATAC	scATAC-seq	pooled_atac	single index t	SI-GA-A2							
-43	multi_sample_C_ATAC	scATAC-seq	pooled_atac	single index t	SI-GA-A3							
-38	multi_sample_A_GEX	scRNA-seq	pooled_gex	dual index tn	SI-TN-A1							
-40	multi_sample_B_GEX	scRNA-seq	pooled_gex	dual index tn	SI-TN-A2							
-42	multi_sample_C_GEX	scRNA-seq	pooled_gex	dual index tn	SI-TN-A3							

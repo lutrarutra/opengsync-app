@@ -66,11 +66,11 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
 
         self._context["library_table"] = library_table
         self._context["pools"] = pools
-        self._context["show_index_1"] = "index_1" in library_table.columns and not library_table["index_1"].isna().all()
-        self._context["show_index_2"] = "index_2" in library_table.columns and not library_table["index_2"].isna().all()
-        self._context["show_index_3"] = "index_3" in library_table.columns and not library_table["index_3"].isna().all()
-        self._context["show_index_4"] = "index_4" in library_table.columns and not library_table["index_4"].isna().all()
-        self._context["show_adapter"] = "adapter" in library_table.columns and not library_table["adapter"].isna().all()
+        self._context["show_index_1"] = "index_1" in library_table.columns and library_table["index_1"].notna().any()
+        self._context["show_index_2"] = "index_2" in library_table.columns and library_table["index_2"].notna().any()
+        self._context["show_index_3"] = "index_3" in library_table.columns and library_table["index_3"].notna().any()
+        self._context["show_index_4"] = "index_4" in library_table.columns and library_table["index_4"].notna().any()
+        self._context["show_adapter"] = "adapter" in library_table.columns and library_table["adapter"].notna().any()
 
     def validate(self):
         validated = super().validate()

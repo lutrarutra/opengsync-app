@@ -1,86 +1,173 @@
-{% from "components/form_group.jinja2" import form_group %}
-{% from "components/categorical_mapping.jinja2" import raw_label_mapping %}
+{% from 'components/form_group.jinja2' import form_group %}
+{% from "components/table_input.jinja2" import table_input %}
+{% from "components/legends.jinja2" import color_legend %}
 
-<div id="pool-mapping-container" class="modal-content">
+<div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Describe Libraries/Pools</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h1 class="modal-title fs-5" >3. Specify Barcodes</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body" style="height: 100%; overflow-y: hidden;">
-        <form id="pool-mapping-form">
-            <ul class="nav nav-tabs" role="tablist">
-                {% for sub_form in pool_mapping_form.input_fields %}
-                <li class="nav-item" role="presentation"> 
-                    <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#pool-form-tab-{{ sub_form.pool_name.data }}" type="button" role="tab"
-                    aria-controls="pool-form-tab" aria-selected="true">
-                    {{ sub_form.raw_label.data }}</button>
+    <div class="modal-body">
+        <div class="tab-body">
+            <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#help-tab" type="button" role="tab"
+                    aria-controls="help-tab" aria-selected="false">
+                    Help</button>
                 </li>
-                {% endfor %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                    id="spreadsheet-tab-btn"
+                    data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                    aria-controls="spreadsheet-tab" aria-selected="true">
+                    Spreadsheet</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
+                    id="file-tab-btn"
+                    data-bs-target="#file-tab" type="button" role="tab"
+                    aria-controls="file-tab" aria-selected="true">
+                    File</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                    data-bs-target="#index-1-example-tab" type="button" role="tab"
+                    aria-controls="index-1-example-tab" aria-selected="true">
+                    Example 1.</button>
+                </li>
             </ul>
-            <div class="tab-content pt-3">
-                {% for sub_form in pool_mapping_form.input_fields %}
-                <div class="tab-pane fade show {{ 'active' if loop.first else '' }}" id="pool-form-tab-{{ sub_form.pool_name.data }}" role="tabpanel" tabindex="{{loop.index0}}">
-                    <div>
-                        <div>
-                        {{ sub_form.csrf_token() }}
-                        {{    
-                            raw_label_mapping(
-                                raw_label=sub_form.raw_label,
-                                new_label=sub_form.pool_name,
-                                token=sub_form.csrf_token
-                            )
-                        }}
-                        <h5>Who did the pooling?</h5>
-                        <div class="row">
-                            {{ form_group(sub_form.contact_person_name, class="col-4") }}
-                            {{ form_group(sub_form.contact_person_email, class="col-4") }}
-                            {{ form_group(sub_form.contact_person_phone, class="col-4") }}
-                        </div>
-                        </div>
-                        <div id="pool-library-list-container">
-                            <table class="table table-hover table-cursor">
-                                <thead>
-                                    <tr>
-                                        <th scope="col" class="col-1">ID</th>
-                                        <th scope="col" class="col-2">Name</th>
-                                        <th scope="col" class="col-2">Library Type</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for library in pool_libraries[loop.index0] %}
-                                    <tr>
-                                        <th scope="row">{{ library.id }}</th>
-                                        <td>{{ library.name }}</td>
-                                        <td>{{ library.type.abbreviation }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+            <div class="tab-content" id="library_pooling-form" enctype="multipart/form-data">
+                {{ library_pooling_form.csrf_token() }}
+                {{ library_pooling_form.file_uuid(hidden=True, readonly=True) }}
+                <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+                    <div class="input-help">
+                        <h5>How to?</h5>
+                        <ul>
+                            <li>Specify columns '<b>Index Kit</b>' + '<b>Adapter</b>' or '<b>Index 1/2/3/4</b>'</li>
+                            <li><b>Do not</b> reverse complement any barcodes!</li>
+                        </ul>
+
+                        <h5>Columns</h5>
+                        <ul>
+                            <li><b>ID</b> <span class="desc">Do not modify</span></li>
+                            <li><b>Library Name</b> <span class="desc">Do not modify</span></li>
+                            <li><b>Index Kit</b> <span class="desc">Name of the barcode kit from <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page</span></li>
+                            <li><b>Adapter</b> <span class="desc">Index adapter, e.g. 'SI-TT-A1'</span></li>
+                            <li><b>Index 1</b> <span class="desc">Index 1 (i7) sequence, e.g. 'GTAACATGCG'</span></li>
+                            <li><b>Index 2</b> <span class="desc">Index 2 (i5) sequence, e.g. 'AGTGTTACCT'</span></li>
+                            <li><b>Index 3</b> <span class="desc">Index 3 sequence, used e.g. for 10x ATAC-seq</span></li>
+                            <li><b>Index 4</b> <span class="desc">Index 4 sequence, used e.g. for 10x ATAC-seq</span></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
+                    <div id="spreadsheet-grid" class="spreadsheet-grid">
+                        <div class="invalid-feedback-container">
+                            {% if not disabled %}
+                            {% for error in library_pooling_form.spreadsheet_dummy.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
-                {% endfor %}
+                <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
+                    <div class="input-help">
+                        <a type="button" class="btn btn-primary" href="{{ url_for('library_pooling_workflow.download_barcode_table_template', uuid=library_pooling_form.uuid) }}" target="_blank">Download Template</a>
+                        <h5>Columns:</h5>
+                        <ul>
+                            <li><b>ID</b> <span class="desc">Do not modify</span></li>
+                            <li><b>Library Name</b> <span class="desc">Do not modify</span></li>
+                            <li><b>Index Kit</b> <span class="desc">Name of the barcode kit from <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page</span></li>
+                            <li><b>Adapter</b> <span class="desc">Index adapter, e.g. 'SI-TT-A1'</span></li>
+                            <li><b>Index 1</b> <span class="desc">Index 1 (i7) sequence, e.g. 'GTAACATGCG'</span></li>
+                            <li><b>Index 2</b> <span class="desc">Index 2 (i5) sequence, e.g. 'AGTGTTACCT'</span></li>
+                            <li><b>Index 3</b> <span class="desc">Index 3 sequence, used e.g. for 10x ATAC-seq</span></li>
+                            <li><b>Index 4</b> <span class="desc">Index 4 sequence, used e.g. for 10x ATAC-seq</span></li>
+                        </ul>
+                    </div>
+                    <div class="row">
+                        {{ form_group(library_pooling_form.separator, class="col-2") }}
+                        {{ form_group(library_pooling_form.file, class="col-10") }}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="index-1-example-tab" role="tabpanel" tabindex="3">
+                    {% include "components/examples/pool-indexing-1.html" %}
+                </div>
             </div>
-            {{ pool_mapping_form.file_uuid(hidden=True, readonly=True) }}
-            {{ pool_mapping_form.csrf_token() }}
-        </form>
-    </div>
-    <div class="modal-footer">
-        <div class="footer-controls">
-            <button type="button" class="btn btn-success"
-                hx-target="#pool-mapping-container" hx-swap="outerHTML"
-                hx-include="#pool-mapping-form"
-                hx-post="{{ url_for('library_pooling_workflow.map_pools', experiment_id=experiment.id) }}">
-                Confirm
-            </button>
-            <a class="btn btn-danger" type="button"
-                href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
-                Cancel
-            </a>
         </div>
     </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ library_pooling_form.file_uuid.data }}
+        </div>
+        <div class="footer-info">
+            {{ color_legend(colors) }}
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-file-form-btn"
+                hx-include="#library_pooling-form" hx-target="#library_pooling-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data" {% if active_tab != "file" %}style="display: none;"{% endif %}
+                hx-post="{{ url_for('library_pooling_workflow.parse_barcodes', input_type='file') }}">
+                File
+            </button>
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
+                Spreadsheet
+            </button>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            init_tooltips();
+
+            $(".example-tab-btn, .help-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+            });
+            $("#file-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+                $("#submit-file-form-btn").show();
+            });
+            $("#spreadsheet-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+                $("#submit-spreadsheet-btn").show();
+            });
+
+            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
+            const csrf_token = "{{ library_pooling_form.csrf_token._value() }}";
+
+            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
+                data: data,
+                columns: [
+                    {% for col in columns %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                allowInsertColumn: false,
+                allowManualInsertRow: false,
+                allowDeleteRow: false,
+                allowDeleteColumn: false,
+                allowInsertColumn: false,
+                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
+            });
+
+            $("#submit-spreadsheet-btn").on("click", function() {
+                var data = spread_sheet.getData();
+
+                htmx.ajax("POST", "{{ url_for('library_pooling_workflow.parse_barcodes', input_type='spreadsheet') }}", {
+                    "target": "#library_pooling-form-container",
+                    "swap": "outerHTML",
+                    "values": {
+                        "spreadsheet": JSON.stringify(data),
+                        "csrf_token": csrf_token,
+                        "file_uuid": "{{ library_pooling_form.file_uuid.data }}",
+                    },
+                });
+            });
+        });
+    </script>
 </div>
-<script>
-    init_tooltips();
-</script>

@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, GenomeRefEnum
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum
 from .. import exceptions
 
 
@@ -108,7 +108,7 @@ def get_libraries(
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     pool_id: Optional[int] = None, sort_by: Optional[str] = None, descending: bool = False,
-    pooled: Optional[bool] = None,
+    pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Library], int]:
     persist_session = self._session is not None
@@ -139,9 +139,12 @@ def get_libraries(
         query = query.join(
             models.Pool,
             models.Pool.id == models.Library.pool_id,
+        ).join(
+            models.ExperimentPoolLink,
+            models.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
-            models.Pool.experiment_id == experiment_id
-        ).distinct()
+            models.ExperimentPoolLink.experiment_id == experiment_id
+        )
 
     if pooled is not None:
         if pooled:
@@ -153,6 +156,11 @@ def get_libraries(
                 models.Library.pool_id == None # noqa
             )
 
+    if status is not None:
+        query = query.where(
+            models.Library.status_id == status.id
+        )
+
     if pool_id is not None:
         query = query.where(
             models.Library.pool_id == pool_id
@@ -161,20 +169,9 @@ def get_libraries(
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
 
     if sort_by is not None:
-        if sort_by == "sample_name":
-            if descending:
-                attr = sa.text("sample_1_name DESC")
-            else:
-                attr = sa.text("sample_1_name")
-        elif sort_by == "owner_id":
-            if descending:
-                attr = sa.text("user_2_id DESC")
-            else:
-                attr = sa.text("user_2_id")
-        else:
-            attr = getattr(models.Library, sort_by)
-            if descending:
-                attr = attr.desc()
+        attr = getattr(models.Library, sort_by)
+        if descending:
+            attr = attr.desc()
         query = query.order_by(attr)
     
     if offset is not None:
@@ -253,6 +250,7 @@ def query_libraries(
     self, word: str,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
+    status: Optional[LibraryStatusEnum] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Library]:
 
@@ -287,13 +285,20 @@ def query_libraries(
             )
         )
 
+    if status is not None:
+        query = query.where(
+            models.Library.status_id == status.id
+        )
+
     if experiment_id is not None:
         query = query.join(
             models.Pool,
             models.Pool.id == models.Library.pool_id,
-            isouter=True
+        ).join(
+            models.ExperimentPoolLink,
+            models.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
-            models.Pool.experiment_id == experiment_id
+            models.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     query = query.order_by(
@@ -311,7 +316,7 @@ def query_libraries(
     return libraries
 
 
-def link_library_pool(self, library_id: int, pool_id: int, commit: bool = True):
+def link_library_pool(self, library_id: int, pool_id: int):
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -328,9 +333,7 @@ def link_library_pool(self, library_id: int, pool_id: int, commit: bool = True):
     library.pool_id = pool_id
     library.status_id = LibraryStatus.POOLED.id
     self._session.add(library)
-
-    if commit:
-        self._session.commit()
+    self._session.commit()
 
     if not persist_session:
         self.close_session()

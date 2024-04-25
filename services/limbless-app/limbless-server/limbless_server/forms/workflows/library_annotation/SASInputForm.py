@@ -57,7 +57,6 @@ class SASInputForm(HTMXFlaskForm):
         "missing_value": "#FAD7A0",
         "invalid_value": "#F5B7B1",
         "duplicate_value": "#D7BDE2",
-        "ok": "#82E0AA"
     }
     separator = SelectField(choices=_allowed_extensions, default="tsv", coerce=str)
     file = FileField(validators=[OptionalValidator(), FileAllowed([ext for ext, _ in _allowed_extensions])])
