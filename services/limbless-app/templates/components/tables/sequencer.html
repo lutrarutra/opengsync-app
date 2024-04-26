@@ -3,9 +3,9 @@
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                <th scope="col">ID</th>
-                <th scope="col">name</th>
-                <th scope="col">ip</th>
+                <th scope="col-1">ID</th>
+                <th scope="col-3">name</th>
+                <th scope="col-3">ip</th>
             </tr>
         </thead>
         <tbody>
@@ -13,7 +13,7 @@
             <tr onclick="window.location.href='{{ url_for('devices_page.sequencer_page', sequencer_id=sequencer.id) }}';">
                 <th scope="row">{{ sequencer.id }}</th>
                 <td>{{ sequencer.name }}</td>
-                <td>{{ sequencer.ip }}</td>
+                <td>{{ sequencer.ip if sequencer.ip }}</td>
             </tr>
             {% endfor %}
         </tbody>

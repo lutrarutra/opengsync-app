@@ -9,6 +9,7 @@ $progress-height: 1.2rem !default;
 @import "tooltip.scss";
 @import "table.scss";
 @import "modal.scss";
+@import "dashboard.scss";
 
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -140,21 +141,21 @@ body {
     }
 
     #middle-container {
-        min-height: calc(100vh - 60px);
+        height: calc(100vh - 60px);
         width: 100%;
-        padding-top: 5px;
-        padding-bottom: 10px;
         background-color: $gray-100;
         .container {
             min-width: 100%;
+            height: calc(100vh - 60px);
+
             .status_bar {
                 padding-bottom: 5px;
             }
             .page-header {
-                padding-bottom: 5px;
                 display: flex;
-                align-items: flex-start;
+                align-items: center;
                 justify-content: space-between;
+                height: 50px;
                 h1, h2 {
                     margin: 0;
                     padding: 0;
@@ -164,6 +165,7 @@ body {
                     align-items: center;
                     gap: 5px;
                 }
+                border-bottom: 1px solid $gray-300;
             }
         }
     }
@@ -287,7 +289,7 @@ input.disabled:focus {
     }
 }
 
-span.desc {
+span.desc, span.id-desc {
     color: $gray-500;    
 }
 span.desc:before {
@@ -296,12 +298,19 @@ span.desc:before {
 span.desc::after {
     content: ")";
 }
-span.desc:empty:before {
+span.desc:empty:before, span.id-desc:empty:before {
     content: "";
 }
-span.desc:empty:after {
+span.desc:empty:after, span.id-desc:empty:after {
     content: "";
 }
+span.id-desc:before {
+    content: "[";
+}
+span.id-desc::after {
+    content: "]";
+}
+
 
 .metadata-group {
     padding-bottom: 15px;
@@ -508,43 +517,87 @@ span.desc:empty:after {
     }
 }
 
+.flip-card {
+    background-color: transparent;
+    width: 200px !important;
+    height: 220px;
+    border: none;
+    border-radius: var(--bs-card-border-radius);
+    box-shadow: none !important;
+
+    .flip-card-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+        border: var(--bs-card-border-width) solid var(--bs-card-border-color);
+        border-radius: var(--bs-card-border-radius);
+    }
+
+    .card-front, .card-back {
+        border-radius: var(--bs-card-border-radius);
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden; /* Safari */
+        backface-visibility: hidden;
+    }
+
+    .card-front {
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        .card-icon {
+            height: 70%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            img {
+                margin-top: 30%;
+                max-height: 130px;
+                display: block;
+            }
+        }
+        .card-body {
+            height: 30%;
+            padding: 0;
+            h5 {
+                margin: 0;
+                font-size: large;
+            }
+        }
+    }
+
+    .card-back {
+        display: flex;
+        align-items: center;
+        background-color: #fff;
+        transform: rotateY(180deg);
+        padding: 10px;
+        p.card-text {
+            font-size: 15px;
+            font-weight: 300;
+            text-align: center;
+        }
+    }
+}
+
+.flip-card:hover .flip-card-container {
+    transform: rotateY(180deg);
+    box-shadow: 0 .25rem .5rem rgba($black, .075);
+
+}
+
 .workflow-container {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
     justify-content: center;
-
-    .card {
-        display: flex;
-        flex-direction: column;
-        width: 250px;
-        gap: 10px;
-
-        .card-icon {
-            display: block;
-            margin: auto;
-            width: 100px;
-            height: 150px;
-            img {
-                padding-top: 50%;
-                display: block;
-                margin: auto;
-            }
-        }
-        .card-body {
-            display: flex;
-            flex-direction: column;
-            justify-items: center;
-            flex-basis: 100%;
-
-            .controls-container {
-                margin-top: auto;
-                button {
-                    width: 100%;
-                }
-            }
-        }
-    }
 
     .card.workflow-completed {
         background-color: #f6fff2;

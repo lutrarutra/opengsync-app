@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import StringField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from limbless_db import models
+from limbless_db import models, exceptions
 from limbless_db.categories import FlowCellType, ExperimentWorkFlow
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ... import db
@@ -57,11 +57,14 @@ class ExperimentForm(HTMXFlaskForm):
         if (validated := super().validate()) is False:
             return False
         
-        if (e := db.get_experiment(name=self.name.data)) is not None:
-            if experiment is None or experiment.id != e.id:
-                self.name.errors = ("An experiment with this name already exists.",)
-                return False
-        
+        try:
+            if (e := db.get_experiment(name=self.name.data)) is not None:
+                if experiment is None or experiment.id != e.id:
+                    self.name.errors = ("An experiment with this name already exists.",)
+                    return False
+        except exceptions.ElementDoesNotExist:
+            pass
+            
         return validated
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:

@@ -1,126 +1,100 @@
 
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar, experiment_status_bar with context %}
 
 {% extends "base.html" %}
 {% set active_page = "" %}
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1>Dashboard</h1>
-        </div>
-        <div>
-        </div>
-    </div>
-
-    <ul class="nav nav-tabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="tab"
-            data-bs-target="#requests-tab" type="button" role="tab"
-            aria-controls="requests-tab" aria-selected="true">
-            Requests</button>
-        </li>
-        {% if current_user.is_insider() %}
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#experiments-tab" type="button" role="tab"
-            aria-controls="experiments-tab" aria-selected="false">
-            Experiments</button>
-        </li>
-        {% endif %}
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#workflows-tab" type="button" role="tab"
-            aria-controls="workflows-tab" aria-selected="false">
-            Workflows</button>
-        </li>
-    </ul>
-
-    <div class="tab-content pt-3">
-        <div class="tab-pane fade show active" id="requests-tab" role="tabpanel" tabindex="0">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h3>Recent Sequencing Requests</h3>
+    <div class="dash">
+        <div class="dash-left">
+            <div class="dash-top">
+                <div class="dash-component-header">
+                    <h4>Recent Sequencing Requests</h4>
+                </div>
+                <div class="banner-container">
+                {% for seq_request in recent_seq_requests %}
+                    <div class="p-2 seq_request-banner">
+                        <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
+                            <div class="row banner-title">
+                                <div class="title col-4">{{ seq_request.name }} <span class="id-desc">{{ seq_request.id }}</span></div>
+                                <div class="description col-4" {{ tooltip(seq_request.requestor.email) }}> {{ seq_request.requestor.name }}</div>
+                                <div class="submitted-time col-4">{{ seq_request.timestamp_submitted_str() }} </div>
+                            </div>
+                            {{ seq_request_status_bar(seq_request) }}
+                        </a>
+                    </div>
+                {% endfor %}
                 </div>
             </div>
-            <div class="banner-container">
-            {% for seq_request in recent_seq_requests %}
-                <div class="p-2 seq_request-banner">
-                    <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
-                        <div class="row banner-title">
-                            <div class="title col-4">{{ seq_request.id }}. {{ seq_request.name }}</div>
-                            <div class="description col-4"> {{ seq_request.requestor.name }} {{ seq_request.requestor.email }}</div>
-                            <div class="submitted-time col-4">{{ seq_request.timestamp_submitted_str() }} </div>
-                        </div>
-                        {{ seq_request_status_bar(seq_request) }}
-                    </a>
+            {% if current_user.is_insider() %}
+            <div class="dash-bottom">
+                <div class="dash-component-header">
+                    <h4>Recent Experiments</h4>
                 </div>
-            {% endfor %}
+                <div class="banner-container">
+                {% for experiment in recent_experiments %}
+                    <div class="p-2 seq_request-banner">
+                        <a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
+                            <div class="row banner-title">
+                                <div class="title col-4">{{ experiment.name }} <span class="id-desc">{{ experiment.id }}</span></div>
+                                <div class="description col-4"> {{ experiment.operator.name }}</div>
+                                <div class="submitted-time col-4">{{ experiment.timestamp_created_str() }} </div>
+                            </div>
+                            {{ experiment_status_bar(experiment) }}
+                        </a>
+                    </div>
+                {% endfor %}
+                </div>
             </div>
+            {% endif %}
         </div>
-        {% if current_user.is_insider() %}
-        <div class="tab-pane fade" id="experiments-tab" role="tabpanel" tabindex="1">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h3>Recent Experiments</h3>
-                </div>
-            </div>
-            <div class="banner-container">
-            {% for experiment in recent_experiments %}
-                <div class="p-2 seq_request-banner">
-                    <a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
-                        <div class="row banner-title">
-                            <div class="title col-4">{{ experiment.id }}. {{ experiment.name }}</div>
-                            <div class="description col-4"> {{ experiment.operator.name }}</div>
-                            <div class="submitted-time col-4">{{ experiment.timestamp_str() }} </div>
-                        </div>
-                        {{ experiment_status_bar(experiment) }}
-                    </a>
-                </div>
-            {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="1">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h3>Workflows</h3>
-                </div>
+        <div class="dash-right">
+            <div class="dash-component-header">
+                <h4>Workflows</h4>
             </div>
             <div class="workflow-container">
-                <div class="card"
+                <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
                     hx-get="{{ url_for('seq_requests_htmx.get_form', form_type='create') }}"
                     hx-target="#xl-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
-                    <div class="card-icon">
-                        <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="90px">
-                    </div>
-                    <div class="card-body">
-                        <div class="title-container">
-                            <h5 class="card-title">Create Sequencing Request</h5>
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="90px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Create Sequencing Request</h5>
+                            </div>
                         </div>
-                        <div class="text-container">
-                            <p class="card-text">Create a new sequencing request.</p>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Create a new sequencing request.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
                 {% if current_user.is_insider() %}
-                <div class="card"
+                <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
                     hx-get="{{ url_for('library_pooling_workflow.begin') }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
-                    <div class="card-icon">
-                        <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
-                    </div>
-                    <div class="card-body">
-                        <div class="title-container">
-                            <h5 class="card-title">Pool Libraries</h5>
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Pool Libraries</h5>
+                            </div>
                         </div>
-                        <div class="text-container">
-                            <p class="card-text">Create pool from unpooled libraries.</p>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Create pool from unpooled libraries.</p>
+                            </div>
                         </div>
                     </div>
                 </div>

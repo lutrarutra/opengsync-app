@@ -208,42 +208,50 @@
                     </div>
                 </div>
                 <div class="workflow-container">
-                    <div class="card{% if seq_request.status.name != 'Draft' %} disabled text-muted{% endif %}" style="width: 250px;"
+                    <div class="flip-card card{% if seq_request.status.name != 'Draft' %} disabled text-muted{% endif %}" style="width: 250px;"
                         {% if seq_request.status.name == 'Draft' %}
                         data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
                         hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='raw') }}"
                         hx-target="#data-submission-modal" hx-swap="innerHTML"
                         {% else %}{{ tooltip("You can no longer add samples after the request has been submitted.", category="warning") }}{% endif %}>
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/petri-dish.svg') }}" width="90px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">Add Raw Samples</h5>
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/petri-dish.svg') }}" width="90px">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Add Raw Samples</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
-                                <p class="card-text">Submit raw samples for library preparation, pooling, and sequencing. You can submit this workflow multiple times before submitting the request.</p>
+                            <div class="card-back">
+                                <div class="text-container">
+                                    <p class="card-text">Submit raw samples for library preparation, pooling, and sequencing. You can submit this workflow multiple times before submitting the request.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card{% if seq_request.status.name != 'Draft' %} disabled text-muted{% endif %}" style="width: 250px;"
+                    <div class="flip-card card{% if seq_request.status.name != 'Draft' %} disabled text-muted{% endif %}" style="width: 250px;"
                         {% if seq_request.status.name == 'Draft' %}
                         data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
                         hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='pooled') }}"
                         hx-target="#data-submission-modal" hx-swap="innerHTML"
                         {% else %}{{ tooltip("You can no longer add pooled libraries after the request has been submitted.", category="warning") }}{% endif %}>
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">Add Pooled Libraries</h5>
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Add Pooled Libraries</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
-                                <p class="card-text">
-                                    Submit pooled libraries for sequencing. You can submit this workflow multiple times before submitting the request.
-                                    However, you must submit all libraries of a pool in one go.
-                                </p>
+                            <div class="card-back">
+                                <div class="text-container">
+                                    <p class="card-text">
+                                        Submit pooled libraries for sequencing. You can submit this workflow multiple times before submitting the request.
+                                        However, you must submit all libraries of a pool in one go.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

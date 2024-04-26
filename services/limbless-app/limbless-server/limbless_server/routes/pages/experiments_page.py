@@ -53,7 +53,6 @@ def experiment_page(experiment_id: int):
         pools, _ = db.get_pools(experiment_id=experiment_id, sort_by="id", descending=True, limit=None)
 
         experiment_form = forms.models.ExperimentForm(experiment=experiment)
-        pooling_input_form = forms.workflows.library_pooling.PoolingInputForm()
         comment_form = forms.comment.ExperimentCommentForm(experiment_id=experiment_id)
         file_input_form = forms.file.ExperimentAttachmentForm(experiment_id=experiment_id)
 
@@ -107,7 +106,6 @@ def experiment_page(experiment_id: int):
         libraries_active_page=0,
         file_input_form=file_input_form,
         comment_form=comment_form,
-        pooling_input_form=pooling_input_form,
         available_seq_requests_active_page=0,
         experiment_lanes=experiment_lanes,
         available_seq_requests_current_sort=available_seq_requests_sort,

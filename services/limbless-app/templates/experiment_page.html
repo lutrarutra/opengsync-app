@@ -145,23 +145,25 @@
                     </div>
                 </div>
                 <div class="workflow-container">
-                    <div class="card{% if pools | length > 0 %} workflow-completed{% endif %}"
+                    <div class="flip-card card{% if pools | length > 0 %} workflow-completed{% endif %}"
                         hx-get="{{ url_for('select_experiment_pools_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#add-pools-container" data-bs-toggle="modal"
                         data-bs-target="#add-pools-popup">
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="90px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">1. Add Pools</h5>
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="90px">
+                                </div>
+                                <div class="card-body">
+                                        <h5 class="card-title">1. Add Pools</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
+                            <div class="card-back">
                                 <p class="card-text">Select pools for sequencing.</p>
                             </div>
                         </div>
                     </div>
-                    <div class="card{% if all_pools_laned == false %} text-muted disabled{% endif %}"
+                    <div class="flip-card card{% if all_pools_laned == false %} text-muted disabled{% endif %}"
                         {% if all_pools_laned == true %}
                         data-bs-toggle="modal" data-bs-target="#check_barcode_clashes-workflow-popup"
                         hx-get="{{ url_for('check_barcode_clashes_workflow.begin', experiment_id=experiment.id) }}"
@@ -169,51 +171,64 @@
                         {% else %}
                         {{ tooltip("All pools must be assigned atleast one lane.", category="warning") }}
                         {% endif %}>
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/clash.svg') }}" width="90px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">2. Check Barcode Clashes</h5>
+
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/clash.svg') }}" width="90px">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">2. Check Barcode Clashes</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
-                                <p class="card-text">Checks barcode conflicts, in preparation for pooling libraries.</p>
+                            <div class="card-back">
+                                <div class="text-container">
+                                    <p class="card-text">Checks barcode conflicts, in preparation for pooling libraries.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card{% if all_pools_qced %} workflow-completed{% endif %}"
+                    <div class="flip-card card{% if all_pools_qced %} workflow-completed{% endif %}"
                         data-bs-toggle="modal" data-bs-target="#pool_qc-workflow-popup"
                         hx-get="{{ url_for('pool_qc_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#pool_qc-workflow-container" hx-swap="innerHTML">
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/qc.svg') }}" width="120px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">3. QC Pools</h5>
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/qc.svg') }}" width="120px">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">3. QC Pools</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
-                                <p class="card-text">Input Pool QC-metrics in preparation for dilution and laning.</p>
+                            <div class="card-back">
+                                <div class="text-container">
+                                    <p class="card-text">Input Pool QC-metrics in preparation for dilution and laning.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card"
+                    <div class="flip-card card"
                         data-bs-toggle="modal" data-bs-target="#dilute_pools-workflow-popup"
                         hx-get="{{ url_for('dilute_pools_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#dilute_pools-workflow-container" hx-swap="innerHTML">
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/dilute.svg') }}" width="90px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">4. Dilute Pools</h5>
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/dilute.svg') }}" width="90px">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">4. Dilute Pools</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
-                                <p class="card-text">Dilute pools to reasonable concentration.</p>
+                            <div class="card-back">
+                                <div class="text-container">
+                                    <p class="card-text">Dilute pools to reasonable concentration.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card{% if can_be_loaded == false %} text-muted disabled{% endif %}{% if laning_completed %} workflow-completed{% endif %}"
+                    <div class="flip-card card{% if can_be_loaded == false %} text-muted disabled{% endif %}{% if laning_completed %} workflow-completed{% endif %}"
                         {% if can_be_loaded == true %}
                         data-bs-toggle="modal" data-bs-target="#lane_pools-workflow-popup"
                         hx-get="{{ url_for('lane_pools_workflow.begin', experiment_id=experiment.id) }}"
@@ -226,20 +241,24 @@
                         {% else %}
                         {{ tooltip("'QC Pools'-workflow must be completed first.", category="warning") }}
                         {% endif %}>
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/calculator.svg') }}" width="90px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">5. Lane Pools</h5>
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/calculator.svg') }}" width="90px">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">5. Lane Pools</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
-                                <p class="card-text">Calculates pooling ratios, in preparation for sequencing multiple pools on a single lane.</p>
+                            <div class="card-back">
+                                <div class="text-container">
+                                    <p class="card-text">Calculates pooling ratios, in preparation for sequencing multiple pools on a single lane.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div
-                    class="card{% if can_be_loaded == false %} text-muted disabled{% endif %}{% if all_lanes_qced %} workflow-completed{% endif %}"
+                    class="flip-card card{% if can_be_loaded == false %} text-muted disabled{% endif %}{% if all_lanes_qced %} workflow-completed{% endif %}"
                         {% if can_be_loaded == true %}
                         data-bs-toggle="modal" data-bs-target="#lane_qc-workflow-popup"
                         hx-get="{{ url_for('lane_qc_workflow.begin', experiment_id=experiment.id) }}"
@@ -247,19 +266,23 @@
                         {% else %}
                         {{ tooltip("'Lane Pools'-workflow must be completed first.", category="warning") }}
                         {% endif %}>
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/qc.svg') }}" width="120px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">6. QC Lanes</h5>
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/qc.svg') }}" width="120px">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">6. QC Lanes</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
-                                <p class="card-text">Input QC-metrics in preparation for loading of the flow cell.</p>
+                            <div class="card-back">
+                                <div class="text-container">
+                                    <p class="card-text">Input QC-metrics in preparation for loading of the flow cell.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card{% if all_lanes_qced == false %} text-muted disabled{% endif %}{% if flowcell_is_loaded %} workflow-completed{% endif %}"
+                    <div class="flip-card card{% if all_lanes_qced == false %} text-muted disabled{% endif %}{% if flowcell_is_loaded %} workflow-completed{% endif %}"
                         {% if all_lanes_qced == true %}
                         data-bs-toggle="modal" data-bs-target="#load_flow_cell-workflow-popup"
                         hx-get="{{ url_for('load_flow_cell_workflow.begin', experiment_id=experiment.id) }}"
@@ -267,15 +290,19 @@
                         {% else %}
                         {{ tooltip("'QC Lanes'-workflow must be completed first.", category="warning") }}
                         {% endif %}>
-                        <div class="card-icon">
-                            <img src="{{ url_for('static', filename='images/licensed/sequencer.svg') }}" width="80px">
-                        </div>
-                        <div class="card-body">
-                            <div class="title-container">
-                                <h5 class="card-title">7. Load Flow Cell</h5>
+                        <div class="flip-card-container">
+                            <div class="card-front">
+                                <div class="card-icon">
+                                    <img src="{{ url_for('static', filename='images/licensed/sequencer.svg') }}" width="80px">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">7. Load Flow Cell</h5>
+                                </div>
                             </div>
-                            <div class="text-container">
-                                <p class="card-text">Dilute lanes in preparation for loading of the flow cell.</p>
+                            <div class="card-back">
+                                <div class="text-container">
+                                    <p class="card-text">Dilute lanes in preparation for loading of the flow cell.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -385,12 +412,6 @@
                         hx-post="{{ url_for('experiments_htmx.edit', experiment_id=experiment.id) }}">Submit</button>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="pooling-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-            {% include pooling_input_form._template_path %}
         </div>
     </div>
 
