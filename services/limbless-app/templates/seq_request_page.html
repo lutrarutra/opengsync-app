@@ -210,9 +210,9 @@
                 <div class="workflow-container">
                     <div class="flip-card card{% if seq_request.status.name != 'Draft' %} disabled text-muted{% endif %}" style="width: 250px;"
                         {% if seq_request.status.name == 'Draft' %}
-                        data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='raw') }}"
-                        hx-target="#data-submission-modal" hx-swap="innerHTML"
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                         {% else %}{{ tooltip("You can no longer add samples after the request has been submitted.", category="warning") }}{% endif %}>
                         <div class="flip-card-container">
                             <div class="card-front">
@@ -232,9 +232,9 @@
                     </div>
                     <div class="flip-card card{% if seq_request.status.name != 'Draft' %} disabled text-muted{% endif %}" style="width: 250px;"
                         {% if seq_request.status.name == 'Draft' %}
-                        data-bs-toggle="modal" data-bs-target="#data-submission-modal-container"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='pooled') }}"
-                        hx-target="#data-submission-modal" hx-swap="innerHTML"
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                         {% else %}{{ tooltip("You can no longer add pooled libraries after the request has been submitted.", category="warning") }}{% endif %}>
                         <div class="flip-card-container">
                             <div class="card-front">
@@ -462,18 +462,6 @@
                     {% endfor %}
                 </div>
             </div>  
-        </div>
-    </div>
-
-    <div class="modal fade" id="xl-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">
-            {{ spinner() }}
-        </div>
-    </div>
-
-    <div class="modal fade" id="data-submission-modal-container" aria-hidden="true" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="data-submission-modal">
-            {{ spinner() }}
         </div>
     </div>
 

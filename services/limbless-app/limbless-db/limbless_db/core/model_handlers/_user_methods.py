@@ -161,7 +161,7 @@ def query_users(
 
     if only_insiders:
         query = query.where(
-            models.User.role != UserRole.CLIENT.id
+            models.User.role_id != UserRole.CLIENT.id
         )
 
     if with_roles is not None:

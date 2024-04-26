@@ -60,8 +60,7 @@ def query():
     else:
         with_roles = None
 
-    only_insiders = request.args.get("only_insiders", None) == "True"
-    
+    only_insiders = request.args.get("only_insiders") == "True"
     results = db.query_users(query, with_roles=with_roles, only_insiders=only_insiders)
     
     return make_response(

@@ -1,9 +1,7 @@
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link %}
 {% from "components/files_tab.jinja2" import files_tab %}
 {% from "components/comments_tab.jinja2" import comments_tab with context %}
-{% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
-{% from "components/spinner.jinja2" import spinner %}
 
 {% extends "base.html" %}
 {% set active_page = "experiments-page" %}
@@ -14,8 +12,11 @@
             <h1>{{ experiment.name }} <span class="desc">{{ experiment.workflow.name }}</span></h1>
         </div>
         <div>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#experiment-form-popup">
+            <button type="button" class="btn btn-primary"
+                data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                hx-get="{{ url_for('experiments_htmx.get_form', form_type='edit', experiment_id=experiment.id) }}"
+                hx-target="#xl-modal-content" data-bs-toggle="modal"
+                hx-swap="innerHTML" hx-trigger="click">
                 Edit Experiment
             </button>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
@@ -147,8 +148,8 @@
                 <div class="workflow-container">
                     <div class="flip-card card{% if pools | length > 0 %} workflow-completed{% endif %}"
                         hx-get="{{ url_for('select_experiment_pools_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#add-pools-container" data-bs-toggle="modal"
-                        data-bs-target="#add-pools-popup">
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        data-bs-target="#xl-modal">
                         <div class="flip-card-container">
                             <div class="card-front">
                                 <div class="card-icon">
@@ -165,9 +166,9 @@
                     </div>
                     <div class="flip-card card{% if all_pools_laned == false %} text-muted disabled{% endif %}"
                         {% if all_pools_laned == true %}
-                        data-bs-toggle="modal" data-bs-target="#check_barcode_clashes-workflow-popup"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('check_barcode_clashes_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#check_barcode_clashes-workflow-container" hx-swap="innerHTML"
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                         {% else %}
                         {{ tooltip("All pools must be assigned atleast one lane.", category="warning") }}
                         {% endif %}>
@@ -189,9 +190,9 @@
                         </div>
                     </div>
                     <div class="flip-card card{% if all_pools_qced %} workflow-completed{% endif %}"
-                        data-bs-toggle="modal" data-bs-target="#pool_qc-workflow-popup"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal"
                         hx-get="{{ url_for('pool_qc_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#pool_qc-workflow-container" hx-swap="innerHTML">
+                        hx-target="#xl-modal-content" hx-swap="innerHTML">
                         <div class="flip-card-container">
                             <div class="card-front">
                                 <div class="card-icon">
@@ -209,9 +210,9 @@
                         </div>
                     </div>
                     <div class="flip-card card"
-                        data-bs-toggle="modal" data-bs-target="#dilute_pools-workflow-popup"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('dilute_pools_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#dilute_pools-workflow-container" hx-swap="innerHTML">
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
                         <div class="flip-card-container">
                             <div class="card-front">
                                 <div class="card-icon">
@@ -230,9 +231,9 @@
                     </div>
                     <div class="flip-card card{% if can_be_loaded == false %} text-muted disabled{% endif %}{% if laning_completed %} workflow-completed{% endif %}"
                         {% if can_be_loaded == true %}
-                        data-bs-toggle="modal" data-bs-target="#lane_pools-workflow-popup"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal"
                         hx-get="{{ url_for('lane_pools_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#lane_pools-workflow-container" hx-swap="innerHTML"
+                        hx-target="#xl-modal-content" hx-swap="innerHTML"
                         {% endif %}
                         {% if all_pools_laned == false and all_pools_qced == false %}
                         {{ tooltip("All pools must be assigned atleast one lane and 'QC Pools'-workflow must be completed.", category="warning") }}
@@ -260,9 +261,9 @@
                     <div
                     class="flip-card card{% if can_be_loaded == false %} text-muted disabled{% endif %}{% if all_lanes_qced %} workflow-completed{% endif %}"
                         {% if can_be_loaded == true %}
-                        data-bs-toggle="modal" data-bs-target="#lane_qc-workflow-popup"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('lane_qc_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#lane_qc-workflow-container" hx-swap="innerHTML"
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                         {% else %}
                         {{ tooltip("'Lane Pools'-workflow must be completed first.", category="warning") }}
                         {% endif %}>
@@ -284,9 +285,9 @@
                     </div>
                     <div class="flip-card card{% if all_lanes_qced == false %} text-muted disabled{% endif %}{% if flowcell_is_loaded %} workflow-completed{% endif %}"
                         {% if all_lanes_qced == true %}
-                        data-bs-toggle="modal" data-bs-target="#load_flow_cell-workflow-popup"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('load_flow_cell_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#load_flow_cell-workflow-container" hx-swap="innerHTML"
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                         {% else %}
                         {{ tooltip("'QC Lanes'-workflow must be completed first.", category="warning") }}
                         {% endif %}>
@@ -396,79 +397,9 @@
         </div>
     </div>
 
-    <div class="modal fade" id="experiment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">Edit Experiment</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    {% include "forms/experiment.html" %}
-                </div>
-                <div class="modal-footer" id="popup-footer">
-                    <button id="submit-experiment-btn" class="btn btn-primary" hx-include="#experiment-form"
-                        hx-target="#experiment-form" hx-swap="outerHTML"
-                        hx-post="{{ url_for('experiments_htmx.edit', experiment_id=experiment.id) }}">Submit</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal fade" id="experiment-file-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
         <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
             {% include file_input_form._template_path %}
-        </div>
-    </div>
-
-    <!-- WORKFLOWS -->
-
-    <!-- Add Pools -->
-    <div class="modal fade" id="add-pools-popup" aria-hidden="true" aria-labelledby="" tabindex="-1" data-bs-keyboard="false">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="add-pools-container">
-            {{ spinner() }}
-        </div>
-    </div>
-
-    <!-- Check Barcode Clashes -->
-    <div class="modal fade" id="check_barcode_clashes-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="check_barcode_clashes-workflow-container">
-            {{ spinner() }}
-        </div>
-    </div>
-
-    <!-- Pool QC -->
-    <div class="modal fade" id="pool_qc-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="pool_qc-workflow-container">
-            {{ spinner() }}
-        </div>
-    </div>
-
-    <!-- Dilute Pools -->
-    <div class="modal fade" id="dilute_pools-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="dilute_pools-workflow-container">
-            {{ spinner() }}
-        </div>
-    </div>
-
-    <!-- Lane Pools -->
-    <div class="modal fade" id="lane_pools-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="lane_pools-workflow-container">
-            {{ spinner() }}
-        </div>
-    </div>
-
-    <!-- Lane QC -->
-    <div class="modal fade" id="lane_qc-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="lane_qc-workflow-container">
-            {{ spinner() }}
-        </div>
-    </div>
-
-    <!-- Load Flow Cell -->
-    <div class="modal fade" id="load_flow_cell-workflow-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="load_flow_cell-workflow-container">
-            {{ spinner() }}
         </div>
     </div>
 </div>

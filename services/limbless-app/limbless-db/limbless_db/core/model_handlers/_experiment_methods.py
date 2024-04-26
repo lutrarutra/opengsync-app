@@ -6,7 +6,7 @@ import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import ExperimentWorkFlowEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus, PoolStatus
+from ...categories import ExperimentWorkFlowEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus, PoolStatus, ExperimentWorkFlow
 
 
 def create_experiment(
@@ -145,83 +145,53 @@ def delete_experiment(self, experiment_id: int):
         self.close_session()
 
 
-def change_experiment_workflow(self, experiment_id: int, workflow: ExperimentWorkFlowEnum) -> models.Experiment:
+def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    experiment: models.Experiment
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
-    
-    prev_type = experiment.workflow
-    experiment.workflow_id = workflow.id
-    experiment.num_lanes = workflow.flow_cell_type.num_lanes
-
-    if prev_type.flow_cell_type.num_lanes > workflow.flow_cell_type.num_lanes:
-        lanes = experiment.lanes.copy()
-        for lane in lanes:
-            if lane.number > experiment.flowcell_type.num_lanes:
-                for pool in lane.pools:
-                    lane.pools.remove(pool)
-                experiment.lanes.remove(lane)
-
-    elif prev_type.flow_cell_type.num_lanes < workflow.flow_cell_type.num_lanes:
-        for lane_num in range(workflow.flow_cell_type.num_lanes - prev_type.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
-            if lane_num in [lane.number for lane in experiment.lanes]:
-                raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
-            print("Creating lane", lane_num, flush=True)
-            lane = models.Lane(number=lane_num, experiment_id=experiment.id)
-            self._session.add(lane)
+    prev_workflow = ExperimentWorkFlow.get(self._session.query(models.Experiment.workflow_id).where(
+        models.Experiment.id == experiment.id,
+    ).first()[0])
 
     self._session.add(experiment)
     self._session.commit()
     self._session.refresh(experiment)
 
-    if experiment.workflow.combined_lanes:
-        for lane in experiment.lanes:
-            for pool in experiment.pools:
-                if pool not in lane.pools:
-                    lane.pools.append(pool)
+    if experiment.workflow != prev_workflow:
+        workflow = experiment.workflow
+        experiment.workflow_id = workflow.id
+        experiment.num_lanes = workflow.flow_cell_type.num_lanes
+
+        if prev_workflow.flow_cell_type.num_lanes > workflow.flow_cell_type.num_lanes:
+            lanes = experiment.lanes.copy()
+            for lane in lanes:
+                if lane.number > experiment.flowcell_type.num_lanes:
+                    for pool in lane.pools:
+                        lane.pools.remove(pool)
+                    experiment.lanes.remove(lane)
+
+        elif prev_workflow.flow_cell_type.num_lanes < workflow.flow_cell_type.num_lanes:
+            for lane_num in range(workflow.flow_cell_type.num_lanes - prev_workflow.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
+                if lane_num in [lane.number for lane in experiment.lanes]:
+                    raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
+                print("Creating lane", lane_num, flush=True)
+                lane = models.Lane(number=lane_num, experiment_id=experiment.id)
+                self._session.add(lane)
 
         self._session.add(experiment)
         self._session.commit()
         self._session.refresh(experiment)
 
-    if not persist_session:
-        self.close_session()
+        if experiment.workflow.combined_lanes:
+            for lane in experiment.lanes:
+                for pool in experiment.pools:
+                    if pool not in lane.pools:
+                        lane.pools.append(pool)
 
-    return experiment
-
-
-def update_experiment(
-    self, experiment_id: int,
-    name: str,
-    sequencer_id: int,
-    r1_cycles: int,
-    i1_cycles: int,
-    operator_id: int,
-    r2_cycles: Optional[int],
-    i2_cycles: Optional[int],
-) -> models.Experiment:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
-    
-    experiment.name = name
-    experiment.sequencer_id = sequencer_id
-    experiment.r1_cycles = r1_cycles
-    experiment.r2_cycles = r2_cycles
-    experiment.i1_cycles = i1_cycles
-    experiment.i2_cycles = i2_cycles
-    experiment.operator_id = operator_id
-
-    self._session.add(experiment)
-    self._session.commit()
-    self._session.refresh(experiment)
+            self._session.add(experiment)
+            self._session.commit()
+            self._session.refresh(experiment)
 
     if not persist_session:
         self.close_session()

@@ -1,5 +1,5 @@
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 
@@ -47,13 +47,44 @@ def get(page: int):
     )
 
 
+@experiments_htmx.route("get_form/<string:form_type>", methods=["GET"])
+@login_required
+def get_form(form_type: Literal["create", "edit"]):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if form_type not in ["create", "edit"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if form_type != "edit":
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        with DBSession(db) as session:
+            if (experiment := session.get_experiment(experiment_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            
+            return forms.models.ExperimentForm(form_type=form_type, experiment=experiment).make_response()
+    
+    # seq_request_id must be provided if form_type is "edit"
+    if form_type == "edit":
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    return forms.models.ExperimentForm(form_type=form_type, current_user=current_user).make_response()
+
+
 @experiments_htmx.route("create", methods=["POST"])
 @login_required
 def create():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    return forms.models.ExperimentForm(formdata=request.form).process_request()
+    return forms.models.ExperimentForm(formdata=request.form, form_type="create").process_request()
 
 
 @experiments_htmx.route("<int:experiment_id>/edit", methods=["POST"])
@@ -66,7 +97,7 @@ def edit(experiment_id: int):
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
-        return forms.models.ExperimentForm(formdata=request.form).process_request(
+        return forms.models.ExperimentForm(formdata=request.form, form_type="edit").process_request(
             experiment=experiment
         )
 
@@ -201,12 +232,13 @@ def lane_pool(experiment_id: int, pool_id: int, lane_num: int):
     if lane_num > experiment.num_lanes or lane_num < 1:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (lane := db.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
+    if (_ := db.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.link_pool_lane(
-        lane_id=lane.id,
-        pool_id=pool.id,
+    db.add_pool_to_lane(
+        experiment_id=experiment_id,
+        pool_id=pool_id,
+        lane_num=lane_num
     )
 
     logger.debug(f"Added pool '{pool.name}' to experiment (id='{experiment_id}') on lane '{lane_num}'")
@@ -233,12 +265,13 @@ def unlane_pool(experiment_id: int, pool_id: int, lane_num: int):
     if lane_num > experiment.num_lanes or lane_num < 1:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (lane := db.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
+    if (_ := db.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.unlink_pool_lane(
-        lane_id=lane.id,
+    db.remove_pool_from_lane(
+        experiment_id=experiment_id,
         pool_id=pool_id,
+        lane_num=lane_num,
     )
 
     logger.debug(f"Removed pool '{pool.name}' from lane '{lane_num}' (experiment_id='{experiment_id}')")

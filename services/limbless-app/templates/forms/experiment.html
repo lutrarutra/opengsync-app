@@ -1,32 +1,55 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
-<div id="experiment-form">
-    {{ experiment_form.csrf_token() }}
-        
-    <div class="row">
-        {{ form_group(experiment_form.name, class="col-3") }}
-        {{
-            search_select_field(
-                experiment_form.operator,
-                query_url=url_for('users_htmx.query', only_insiders=True),
-                class="col-3"
-            )
-        }}
-        {{ 
-            search_select_field(
-                experiment_form.sequencer,
-                query_url=url_for('sequencers_htmx.query'),
-                class="col-3"
-            ) 
-        }}
-        {{ select_input(experiment_form.workflow, class="col-3") }}
+<div class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if experiment_form.form_type == "create" %}Create{% elif experiment_form.form_type == "edit" %}Edit{% endif %} Experiment</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
+    <div class="modal-body">
+        <div id="experiment-form">
+            {{ experiment_form.csrf_token() }}
+                
+            <div class="row">
+                {{ form_group(experiment_form.name, class="col-3") }}
+                {{
+                    search_select_field(
+                        experiment_form.operator,
+                        query_url=url_for('users_htmx.query', only_insiders=True),
+                        class="col-3"
+                    )
+                }}
+                {{ 
+                    search_select_field(
+                        experiment_form.sequencer,
+                        query_url=url_for('sequencers_htmx.query'),
+                        class="col-3"
+                    ) 
+                }}
+                {{ select_input(experiment_form.workflow, class="col-3") }}
+            </div>
 
-    <div class="row">
-        {{ form_group(experiment_form.r1_cycles, class="col") }}
-        {{ form_group(experiment_form.i1_cycles, class="col") }}
-        {{ form_group(experiment_form.i2_cycles, class="col") }}
-        {{ form_group(experiment_form.r2_cycles, class="col") }}
+            <div class="row">
+                {{ form_group(experiment_form.r1_cycles, class="col") }}
+                {{ form_group(experiment_form.i1_cycles, class="col") }}
+                {{ form_group(experiment_form.i2_cycles, class="col") }}
+                {{ form_group(experiment_form.r2_cycles, class="col") }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-controls">
+            {% if experiment_form.form_type == "create" %}
+            <button class="btn btn-success"
+                hx-include="#experiment-form" hx-target="#experiment-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('experiments_htmx.create') }}">Submit</button>
+            {% elif experiment_form.form_type == "edit" %}
+            <button class="btn btn-success"
+                hx-include="#experiment-form" hx-target="#experiment-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('experiments_htmx.edit', experiment_id=experiment.id) }}">Submit</button>
+            {% endif %}
+        </div>
     </div>
 </div>

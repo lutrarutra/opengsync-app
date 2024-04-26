@@ -357,7 +357,9 @@ def test_experiment_lanes(db: DBHandler):
         assert counter == NUM_POOLS
 
     # Decrease number of lanes
-    experiment = db.change_experiment_workflow(experiment_id=experiment.id, workflow=ExperimentWorkFlow.NOVASEQ_S2_XP)
+    experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_S2_XP.id
+    experiment = db.update_experiment(experiment)
+    
     assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_S2_XP.flow_cell_type.num_lanes
 
     with DBSession(db) as session:
@@ -367,7 +369,8 @@ def test_experiment_lanes(db: DBHandler):
         assert experiment.num_lanes == len(experiment.lanes)
 
     # Increase number of lanes
-    experiment = db.change_experiment_workflow(experiment_id=experiment.id, workflow=ExperimentWorkFlow.NOVASEQ_S4_XP)
+    experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_S4_XP.id
+    experiment = db.update_experiment(experiment)
     assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_S4_XP.flow_cell_type.num_lanes
 
     with DBSession(db) as session:
@@ -377,7 +380,8 @@ def test_experiment_lanes(db: DBHandler):
         assert experiment.num_lanes == len(experiment.lanes)
 
     # STD workflow - combined lanes
-    experiment = db.change_experiment_workflow(experiment_id=experiment.id, workflow=ExperimentWorkFlow.NOVASEQ_S4_STD)
+    experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_S4_STD.id
+    experiment = db.update_experiment(experiment)
     assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_S4_STD.flow_cell_type.num_lanes
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)
@@ -388,7 +392,9 @@ def test_experiment_lanes(db: DBHandler):
             assert len(pool.lanes) == ExperimentWorkFlow.NOVASEQ_S4_STD.flow_cell_type.num_lanes
 
     # Decrease Lanes
-    experiment = db.change_experiment_workflow(experiment_id=experiment.id, workflow=ExperimentWorkFlow.NOVASEQ_S1_STD)
+    experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_S1_STD.id
+    experiment = db.update_experiment(experiment)
+    
     assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_S1_STD.flow_cell_type.num_lanes
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)

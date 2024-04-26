@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -6,7 +6,7 @@ from wtforms import StringField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from limbless_db import models, exceptions
-from limbless_db.categories import FlowCellType, ExperimentWorkFlow
+from limbless_db.categories import ExperimentWorkFlow
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ... import db
 from ..SearchBar import SearchBar
@@ -32,11 +32,14 @@ class ExperimentForm(HTMXFlaskForm):
 
     operator = FormField(SearchBar, label="Sequencer Operator")
 
-    def __init__(self, user: Optional[models.User] = None, experiment: Optional[models.Experiment] = None, formdata: Optional[dict] = None):
+    def __init__(self, form_type: Literal["create", "edit"], current_user: Optional[models.User] = None, experiment: Optional[models.Experiment] = None, formdata: Optional[dict] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        self.prepare(user, experiment)
+        self.form_type = form_type
+        self.__prepare(current_user, experiment)
+        if experiment is not None:
+            self._context["experiment"] = experiment
 
-    def prepare(self, user: Optional[models.User], experiment: Optional[models.Experiment]):
+    def __prepare(self, user: Optional[models.User], experiment: Optional[models.Experiment]):
         if user is not None:
             self.operator.selected.data = user.id
             self.operator.search_bar.data = user.search_name()
@@ -69,18 +72,17 @@ class ExperimentForm(HTMXFlaskForm):
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
         workflow = ExperimentWorkFlow.get(self.workflow.data)
-            
-        experiment = db.update_experiment(
-            name=self.name.data,  # type: ignore
-            sequencer_id=self.sequencer.selected.data,
-            operator_id=self.operator.selected.data,
-            r1_cycles=self.r1_cycles.data,  # type: ignore
-            r2_cycles=self.r2_cycles.data,
-            i1_cycles=self.i1_cycles.data,  # type: ignore
-            i2_cycles=self.i2_cycles.data,
-        )
-        if workflow.id != experiment.workflow_id:
-            experiment = db.change_experiment_workflow(experiment.id, workflow)
+
+        experiment.name = self.name.data  # type: ignore
+        experiment.workflow_id = workflow.id
+        experiment.sequencer_id = self.sequencer.selected.data
+        experiment.r1_cycles = self.r1_cycles.data  # type: ignore
+        experiment.r2_cycles = self.r2_cycles.data
+        experiment.i1_cycles = self.i1_cycles.data  # type: ignore
+        experiment.i2_cycles = self.i2_cycles.data
+        experiment.operator_id = self.operator.selected.data
+
+        experiment = db.update_experiment(experiment)
 
         flash(f"Edited experiment '{experiment.name}'.", "success")
 

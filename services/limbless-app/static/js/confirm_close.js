@@ -19,9 +19,7 @@ function confirm_close_modal(modal_query){
                     timer: 1000,
                     timerProgressBar: true,
                     didOpen: () => {
-                        const timer = Swal.getPopup().querySelector("b");
                         time_interval = setInterval(() => {
-                            timer.textContent = `${Swal.getTimerLeft()}`;
                         }, 100);
                     },
                     willClose: () => {

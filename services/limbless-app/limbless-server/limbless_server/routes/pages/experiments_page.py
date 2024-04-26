@@ -25,17 +25,15 @@ def experiments_page():
     with DBSession(db) as session:
         experiments, n_pages = session.get_experiments()
 
-        experiment_form = forms.models.ExperimentForm(user=current_user)
-
         return render_template(
-            "experiments_page.html", experiment_form=experiment_form,
+            "experiments_page.html",
             experiments=experiments,
             experiments_n_pages=n_pages, experiments_active_page=0,
             experiments_current_sort="id", experiments_current_sort_order="desc"
         )
 
 
-@experiments_page_bp.route("/experiments/<experiment_id>")
+@experiments_page_bp.route("/experiments/<int:experiment_id>")
 @login_required
 def experiment_page(experiment_id: int):
     if not current_user.is_insider():
@@ -52,33 +50,37 @@ def experiment_page(experiment_id: int):
 
         pools, _ = db.get_pools(experiment_id=experiment_id, sort_by="id", descending=True, limit=None)
 
-        experiment_form = forms.models.ExperimentForm(experiment=experiment)
         comment_form = forms.comment.ExperimentCommentForm(experiment_id=experiment_id)
         file_input_form = forms.file.ExperimentAttachmentForm(experiment_id=experiment_id)
 
-        experiment_lanes = {}
-        lane_capacities = {}
+        experiment_lanes: dict[int, list[int]] = {}
+        _lane_capacities: dict[int, float] = {}
 
         all_lanes_qced = True
         flowcell_is_loaded = True
         for lane in experiment.lanes:
             all_lanes_qced = all_lanes_qced and lane.is_qced()
-            logger.debug(lane)
-            logger.debug(lane.is_loaded())
             flowcell_is_loaded = flowcell_is_loaded and lane.is_loaded()
             experiment_lanes[lane.number] = []
-            lane_capacities[lane.number] = 0
+            _lane_capacities[lane.number] = 0
             
             for pool in lane.pools:
                 experiment_lanes[lane.number].append(pool.id)
-                lane_capacities[lane.number] += pool.num_m_reads_requested
+                if pool.num_m_reads_requested is not None:
+                    _lane_capacities[lane.number] += pool.num_m_reads_requested
 
-            lane_capacities[lane.number] = (lane_capacities[lane.number], 100.0 * lane_capacities[lane.number] / experiment.flowcell_type.max_m_reads_per_lane)
-
+        lane_capacities: dict[int, tuple[float, float]] = dict([(lane.number, (_lane_capacities[lane.number], 100.0 * _lane_capacities[lane.number] / experiment.flowcell_type.max_m_reads_per_lane)) for lane in experiment.lanes])
         all_pools_laned = len(pools) > 0
         all_pools_qced = len(pools) > 0
+
         for pool in pools:
-            all_pools_laned = all_pools_laned and pool.status == PoolStatus.LANED
+            laned = False
+            for pool_ids in experiment_lanes.values():
+                if pool.id in pool_ids:
+                    laned = True
+                    break
+            all_pools_laned = all_pools_laned and laned
+
             all_pools_qced = all_pools_qced and pool.is_qced()
             if not all_pools_laned or not all_pools_qced:
                 break
@@ -97,27 +99,26 @@ def experiment_page(experiment_id: int):
                 break
         experiment.comments
 
-    return render_template(
-        "experiment_page.html",
-        experiment=experiment,
-        experiment_form=experiment_form,
-        path_list=path_list,
-        pools=pools,
-        libraries_active_page=0,
-        file_input_form=file_input_form,
-        comment_form=comment_form,
-        available_seq_requests_active_page=0,
-        experiment_lanes=experiment_lanes,
-        available_seq_requests_current_sort=available_seq_requests_sort,
-        available_seq_requests_current_sort_order="desc",
-        selected_sequencer=experiment.sequencer.name,
-        selected_user=experiment.operator,
-        all_pools_laned=all_pools_laned,
-        all_pools_qced=all_pools_qced,
-        can_be_loaded=can_be_loaded,
-        all_lanes_qced=all_lanes_qced,
-        flowcell_is_loaded=flowcell_is_loaded,
-        laning_completed=laning_completed,
-        lane_capacities=lane_capacities,
-        Pool=models.Pool
-    )
+        return render_template(
+            "experiment_page.html",
+            experiment=experiment,
+            path_list=path_list,
+            pools=pools,
+            libraries_active_page=0,
+            file_input_form=file_input_form,
+            comment_form=comment_form,
+            available_seq_requests_active_page=0,
+            experiment_lanes=experiment_lanes,
+            available_seq_requests_current_sort=available_seq_requests_sort,
+            available_seq_requests_current_sort_order="desc",
+            selected_sequencer=experiment.sequencer.name,
+            selected_user=experiment.operator,
+            all_pools_laned=all_pools_laned,
+            all_pools_qced=all_pools_qced,
+            can_be_loaded=can_be_loaded,
+            all_lanes_qced=all_lanes_qced,
+            flowcell_is_loaded=flowcell_is_loaded,
+            laning_completed=laning_completed,
+            lane_capacities=lane_capacities,
+            Pool=models.Pool
+        )

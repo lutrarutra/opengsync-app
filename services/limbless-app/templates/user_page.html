@@ -5,7 +5,7 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>User: {{ user.email }} ({{ user.role.name }} {{ user.role.icon }})</h1>
+            <h1>{{ user.role.icon }} {{ user.email }} <span class="desc">{{ user.role.name }}</span></h1>
         </div>
         <div>
             {% if current_user.id == user.id or current_user.role.name == "Admin" %}
@@ -32,6 +32,7 @@
                 call Swal.fire({
                     title: 'Logout',
                     showDenyButton: true,
+                    icon: 'question',
                     text: 'Proceed?',
                     confirmButtonText: 'Yes',
                     denyButtonText: 'No'
