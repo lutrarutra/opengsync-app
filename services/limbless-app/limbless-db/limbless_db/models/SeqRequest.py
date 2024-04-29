@@ -53,14 +53,15 @@ class SeqRequest(Base):
     billing_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
     billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge, delete")
 
+    seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True, default=None)
+    seq_auth_form_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[seq_auth_form_file_id], cascade="save-update, merge, delete")
+
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
     files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink.__tablename__, lazy="select")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink.__tablename__, lazy="select", cascade="save-update,delete")
     delivery_email_links: Mapped[list[SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete", back_populates="seq_request")
 
-    seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
-    
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
     @property

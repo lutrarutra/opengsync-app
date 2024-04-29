@@ -32,7 +32,7 @@ def create_feature_kit(
     return feature_kit
 
 
-def get_feature_kit(self, id: int) -> models.FeatureKit:
+def get_feature_kit(self, id: int) -> Optional[models.FeatureKit]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

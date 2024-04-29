@@ -7,7 +7,7 @@
 <div class="container">
     <div class="page-header">
         <div>
-            <h1>{{ pool.name }}</h1>
+            <h1>{{ pool.name }} <span class="desc">{{ pool.status.name }} {{ pool.status.icon }}</span></h1>
         </div>
         <div>
             <span {% if not is_editable %}
@@ -30,9 +30,22 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#wetlab-tab" type="button" role="tab"
+            aria-controls="wetlab-tab" aria-selected="false">
+            Wet-Lab</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#metadata-tab" type="button" role="tab"
             aria-controls="metadata-tab" aria-selected="false">
             Metadata</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#ba_report-tab" type="button" role="tab"
+            aria-controls="ba_report-tab" aria-selected="false"
+            {% if not pool.ba_report_id %}disabled{% endif %}>
+            BA Report</button>
         </li>
     </ul>
     <div class="tab-content pt-3">
@@ -46,7 +59,19 @@
             </div>
             {% include "components/tables/pool-library.html" %}
         </div>
-        <div class="tab-pane fade show" id="metadata-tab" role="tabpanel" tabindex="1">
+        <div class="tab-pane fade" id="wetlab-tab" role="tabpanel" tabindex="1">
+            <div class="row">
+                {{ metadata_group("Avg. Library Size", pool.avg_library_size if pool.avg_library_size, class="col-3") }}
+                {{ metadata_group("Qubit Concentration", pool.qubit_concentration_str, class="col-3") }}
+                {{ metadata_group("Molarity", pool.molarity_str, class="col-3") }}
+                {{ metadata_group("# Libraries", pool.num_libraries, class="col-3") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("Received", pool.timestamp_received_str, class="col-6") }}
+                {{ metadata_group("Depleted", pool.timestamp_depleted_str, class="col-6") }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="2">
             <div class="row">
                 {{ metadata_group("Pool Name", pool.name, class="col-4") }}
                 {{
@@ -60,13 +85,32 @@
                 {{ 
                     metadata_group_email_link("Owner Email", pool.owner.email, class="col-4")
                 }}
-
             </div>
             <div class="row">
                 {{ metadata_group("Contact Name", pool.contact.name, class="col-4") }}
                 {{ metadata_group_email_link("Contact Email", pool.contact.email, class="col-4") }}
                 {{ metadata_group("Contact Phone", pool.contact.phone, class="col-4") }}
             </div>
+        </div>
+        <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="3">
+            {% if pool.ba_report_id %}
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Bio Analyzer Report</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
+                <div class="row">
+                    {{ metadata_group("Filename", pool.ba_report.name + pool.ba_report.extension, class="col-3") }}
+                    {{ metadata_group_link("Uploader", pool.ba_report.uploader.name, url_for('users_page.user_page', user_id=pool.ba_report.uploader_id), class="col-3") }}
+                    {{ metadata_group("Size", pool.ba_report.size_str(), class="col-3") }}
+                    {{ metadata_group("Time", pool.ba_report.timestamp_str(), class="col-3") }}
+                </div>
+            </div>
+            <embed src="{{ url_for('pdf_file', file_id=pool.ba_report_id) }}" width="100%" height="1000px">
+            {% endif %}
         </div>
     </div>
     <div class="modal fade" id="pool-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">

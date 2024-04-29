@@ -64,20 +64,17 @@ def create_experiment(
     return experiment
 
 
-def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -> models.Experiment:
+def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -> Optional[models.Experiment]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     if id is not None and name is None:
-        if (experiment := self._session.get(models.Experiment, id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Experiment with id {id} does not exist")
-    
+        experiment = self._session.get(models.Experiment, id)
     elif name is not None and id is None:
-        if (experiment := self._session.query(models.Experiment).where(
+        experiment = self._session.query(models.Experiment).where(
             models.Experiment.name == name
-        ).first()) is None:
-            raise exceptions.ElementDoesNotExist(f"Experiment with name {name} does not exist")
+        ).first()
     else:
         raise ValueError("Either 'id' or 'name' must be provided, not both.")
 

@@ -30,7 +30,7 @@ def create_comment(
     return comment
 
 
-def get_comment(self, comment_id: int) -> models.Comment:
+def get_comment(self, comment_id: int) -> Optional[models.Comment]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

@@ -92,12 +92,13 @@ def create_library(
     return library
 
 
-def get_library(self, library_id: int) -> models.Library:
+def get_library(self, library_id: int) -> Optional[models.Library]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     library = self._session.get(models.Library, library_id)
+    
     if not persist_session:
         self.close_session()
     return library

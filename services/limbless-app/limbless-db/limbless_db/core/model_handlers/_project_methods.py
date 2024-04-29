@@ -33,12 +33,13 @@ def create_project(self, name: str, description: str, owner_id: int) -> models.P
     return project
 
 
-def get_project(self, project_id: int) -> models.Project:
+def get_project(self, project_id: int) -> Optional[models.Project]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     res = self._session.get(models.Project, project_id)
+    
     if not persist_session:
         self.close_session()
     return res

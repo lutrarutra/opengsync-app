@@ -53,7 +53,7 @@ def create_feature(
     return feature
 
 
-def get_feature(self, feature_id: int) -> models.Feature:
+def get_feature(self, feature_id: int) -> Optional[models.Feature]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

@@ -1,4 +1,5 @@
 import os
+import uuid
 from typing import Optional
 
 from flask import Response, flash, url_for, current_app
@@ -35,12 +36,19 @@ class SeqRequestAttachmentForm(FileInputForm):
         file_type = FileType.get(self.file_type.data)
 
         filename, extension = os.path.splitext(self.file.data.filename)
-        
+
+        _uuid = str(uuid.uuid4())
+        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file_type.dir, f"{_uuid}.tsv")
+        self.file.data.save(filepath)
+        size_bytes = os.stat(filepath).st_size
+
         db_file = db.create_file(
             name=filename,
             type=file_type,
             extension=extension,
             uploader_id=user.id,
+            size_bytes=size_bytes,
+            uuid=_uuid
         )
 
         if self.comment.data and self.comment.data.strip() != "":
@@ -50,9 +58,6 @@ class SeqRequestAttachmentForm(FileInputForm):
                 file_id=db_file.id
             )
             db.add_seq_request_comment(seq_request.id, comment.id)
-
-        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], db_file.path)
-        self.file.data.save(filepath)
 
         db.add_file_to_seq_request(seq_request.id, db_file.id)
 

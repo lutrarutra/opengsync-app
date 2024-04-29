@@ -45,7 +45,7 @@ def create_user(
     return user
 
 
-def get_user(self, user_id: int) -> models.User:
+def get_user(self, user_id: int) -> Optional[models.User]:
     persist_session = self._session is not None
     if self._session is None:
         self.open_session()

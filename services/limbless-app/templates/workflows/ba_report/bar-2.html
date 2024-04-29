@@ -1,0 +1,52 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+
+<div class="modal-content" id="ba_report-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">2. Upload Bio Analyzer Report</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col-2">ID</th>
+                    <th scope="col-5">Name</th>
+                    <th scope="col-5">Avg. Library Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for _, row in pool_table.iterrows() %}
+                <tr>
+                    <th scope="row">{{ row["id"] }}</th>
+                    <td>{{ row["name"] }}</td>
+                    <td>{{ row["avg_library_size"] if row["avg_library_size"] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div id="ba_report-form" enctype="multipart/form-data">
+            {{ ba_report_form.csrf_token() }}
+            {{ form_group(ba_report_form.file) }}
+            {{ ba_report_form.file_uuid(hidden=True, readonly=True) }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ ba_report_form.file_uuid.data }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-primary" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.attach_table') }}">
+                Next
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    init_tooltips();
+    window.onbeforeunload = function() {
+        return "Data will be lost if you leave the page, are you sure?";
+    };
+</script>

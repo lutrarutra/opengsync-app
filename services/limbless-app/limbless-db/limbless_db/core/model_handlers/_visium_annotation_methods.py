@@ -1,15 +1,16 @@
-from ...models import VisiumAnnotation
-from .. import exceptions
+from typing import Optional
+
+from ... import models
 
 
 def create_visium_annotation(
     self, area: str, image: str, slide: str, commit: bool = True
-) -> VisiumAnnotation:
+) -> models.VisiumAnnotation:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    visium_annotation = VisiumAnnotation(
+    visium_annotation = models.VisiumAnnotation(
         area=area.strip(),
         image=image.strip(),
         slide=slide.strip()
@@ -26,15 +27,12 @@ def create_visium_annotation(
     return visium_annotation
 
 
-def get_visium_annotation(self, visium_annotation_id: int) -> VisiumAnnotation:
+def get_visium_annotation(self, visium_annotation_id: int) -> Optional[models.VisiumAnnotation]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    visium_annotation = self._session.get(VisiumAnnotation, visium_annotation_id)
-
-    if not visium_annotation:
-        raise exceptions.ElementDoesNotExist(f"VisiumAnnotation with id {visium_annotation_id} does not exist")
+    visium_annotation = self._session.get(models.VisiumAnnotation, visium_annotation_id)
 
     if not persist_session:
         self.close_session()

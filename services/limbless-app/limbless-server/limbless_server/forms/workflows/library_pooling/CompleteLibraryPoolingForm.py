@@ -35,7 +35,7 @@ class CompleteLibraryPoolingForm(HTMXFlaskForm, TableDataForm):
 
         with DBSession(db) as session:
             for idx, row in barcode_table.iterrows():
-                if (library := session.get_library(row["library_id"])) is None:
+                if (_ := session.get_library(row["library_id"])) is None:
                     logger.error(f"{self.uuid}: Library {row['library_id']} not found")
                     raise ValueError(f"Library {row['library_id']} not found")
 
@@ -62,12 +62,15 @@ class CompleteLibraryPoolingForm(HTMXFlaskForm, TableDataForm):
             contact_name=contact_person.name,
             contact_email=contact_person.email,
             owner_id=current_user.id,
-            status=PoolStatus.ACCEPTED,
+            status=PoolStatus.RECEIVED,
             num_m_reads_requested=float(barcode_table["seq_depth_requested"].sum())
         )
 
         for _, row in barcode_table.iterrows():
-            library = db.get_library(row["library_id"])
+            if (library := db.get_library(row["library_id"])) is None:
+                logger.error(f"{self.uuid}: Library {row['library_id']} not found")
+                raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
+            
             library.index_1_sequence = row["index_1"] if pd.notna(row["index_1"]) else None
             library.index_2_sequence = row["index_2"] if pd.notna(row["index_2"]) else None
             library.index_3_sequence = row["index_3"] if pd.notna(row["index_3"]) else None

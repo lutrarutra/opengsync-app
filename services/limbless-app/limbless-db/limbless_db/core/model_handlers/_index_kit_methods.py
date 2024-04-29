@@ -33,7 +33,7 @@ def create_index_kit(
     return seq_kit
 
 
-def get_index_kit(self, id: int) -> models.IndexKit:
+def get_index_kit(self, id: int) -> Optional[models.IndexKit]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -46,12 +46,13 @@ def get_index_kit(self, id: int) -> models.IndexKit:
     return res
 
 
-def get_index_kit_by_name(self, name: str) -> models.IndexKit:
+def get_index_kit_by_name(self, name: str) -> Optional[models.IndexKit]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     res = self._session.query(models.IndexKit).where(models.IndexKit.name == name).first()
+
     if not persist_session:
         self.close_session()
     return res

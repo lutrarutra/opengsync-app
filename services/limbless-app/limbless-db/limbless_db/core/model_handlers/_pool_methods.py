@@ -39,7 +39,8 @@ def create_pool(
             email=contact_email.strip(),
             phone=contact_phone.strip() if contact_phone else None
         ),
-        status_id=status.id
+        status_id=status.id,
+        timestamp_received_utc=sa.func.now() if status == PoolStatus.RECEIVED else None
     )
     user.num_pools += 1
 
@@ -53,14 +54,16 @@ def create_pool(
     return pool
 
 
-def get_pool(self, pool_id: int) -> models.Pool:
+def get_pool(self, pool_id: int) -> Optional[models.Pool]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     pool = self._session.get(models.Pool, pool_id)
+    
     if not persist_session:
         self.close_session()
+
     return pool
 
 

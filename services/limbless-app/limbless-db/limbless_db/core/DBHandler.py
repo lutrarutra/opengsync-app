@@ -29,12 +29,6 @@ class DBHandler():
             self._session.close()
             self._session = None
 
-    from .model_handlers._sequencer_methods import (
-        create_sequencer, get_sequencer, get_sequencers,
-        get_num_sequencers, delete_sequencer, get_sequencer_by_name,
-        update_sequencer, query_sequencers
-    )
-
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
         update_project, delete_project,
@@ -114,6 +108,12 @@ class DBHandler():
         create_feature_kit, get_feature_kit, get_feature_kits,
         get_feature_kit_by_name, update_feature_kit, delete_feature_kit,
         query_feature_kits
+    )
+
+    from .model_handlers._sequencer_methods import (
+        create_sequencer, get_sequencer, get_sequencers,
+        get_num_sequencers, delete_sequencer, get_sequencer_by_name,
+        update_sequencer, query_sequencers
     )
 
     from .model_handlers._link_methods import (

@@ -47,7 +47,7 @@ def create_file(
     return file
 
 
-def get_file(self, file_id: int) -> models.File:
+def get_file(self, file_id: int) -> Optional[models.File]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

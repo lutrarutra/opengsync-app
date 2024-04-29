@@ -191,7 +191,7 @@
                     </div>
                     <div class="flip-card card{% if all_pools_qced %} workflow-completed{% endif %}"
                         data-bs-toggle="modal" data-bs-target="#xl-modal"
-                        hx-get="{{ url_for('pool_qc_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-get="{{ url_for('ba_report_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#xl-modal-content" hx-swap="innerHTML">
                         <div class="flip-card-container">
                             <div class="card-front">

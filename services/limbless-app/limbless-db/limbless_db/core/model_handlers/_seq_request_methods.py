@@ -92,13 +92,12 @@ def create_seq_request(
     return seq_request
 
 
-def get_seq_request(self, seq_request_id: int) -> models.SeqRequest:
+def get_seq_request(self, seq_request_id: int) -> Optional[models.SeqRequest]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+    seq_request = self._session.get(models.SeqRequest, seq_request_id)
 
     if not persist_session:
         self.close_session()

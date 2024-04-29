@@ -36,13 +36,12 @@ def create_sample(self, name: str, owner_id: int, project_id: int) -> models.Sam
     return sample
 
 
-def get_sample(self, sample_id: int) -> models.Sample:
+def get_sample(self, sample_id: int) -> Optional[models.Sample]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    sample = self._session.get(models.Sample, sample_id)
 
     if not persist_session:
         self.close_session()

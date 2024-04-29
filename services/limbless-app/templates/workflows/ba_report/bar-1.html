@@ -1,10 +1,10 @@
-{% from "components/form_group.jinja2" import form_group %}
-{% from 'components/search_select.jinja2' import search_select_field %}
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
 
-<div id="library_pooling-form-container" class="modal-content">
+<div id="ba_report-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >2. Select Libraries</h1>
-        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+        <h1 class="modal-title fs-5">1. Select Pools Form</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
     <div class="modal-body">
         <div class="tab-body">
@@ -18,19 +18,18 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-tab"
                         type="button" role="tab" aria-controls="selected-tab" aria-selected="false">
-                        Selected ({{ selected_libraries | length }})
+                        Selected ({{ selected_pools | length }})
                     </button>
                 </li>
             </ul>
             <div class="tab-content">
                 <div class="invalid-feedback-container">
-                    {% for error in library_pooling_form.selected_library_ids.errors %}
+                    {% for error in ba_report_form.selected_pool_ids.errors %}
                         <p class="">{{ error }}</p>
                     {% endfor %}
                 </div>
                 <div class="tab-pane fade show active" id="available-tab" role="tabpanel" tabindex="0">
-                    <div class="library_pooling-form" 
-                    hx-get="{{ url_for('library_pooling_workflow.get_libraries', page=0) }}" hx-trigger="load">
+                    <div class="ba_report-form" hx-get="{{ url_for('ba_report_workflow.get_pools', page=0) }}" hx-trigger="load">
                     </div>
                 </div>
                 <div class="tab-pane fade" id="selected-tab" role="tabpanel" tabindex="1">
@@ -39,7 +38,6 @@
                             <tr>
                                 <th scope="col">ID</th>
                                 <th scope="col">Name</th>
-                                <th scope="col">Type</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Owner</th>
                             </tr>
@@ -51,71 +49,65 @@
             </div>
         </div>
     </div>
-
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ library_pooling_form.file_uuid.data }}
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
-            <button class="btn btn-primary" id="submit-library_pooling-form-btn">Next</button>
+            <button type="button" class="btn btn-primary" id="submit-ba_report-form-btn">
+                Next
+            </button>
         </div>
     </div>
     <script>
+        var selected_pools = {{ selected_pools | tojson if selected_pools else [] }};
+        var num_selected = {{ selected_pools | length if selected_pools else 0 }};
+
         init_tooltips();
-        
-        window.onbeforeunload = function() {
-            return "Data will be lost if you leave the page, are you sure?";
-        };
 
-        var selected_libraries = {{ selected_libraries | tojson if selected_libraries else [] }};
-        var num_selected = {{ selected_libraries | length if selected_libraries else 0 }};
-    
-        function select_library(library_id) {
-
-            if (selected_libraries.includes(library_id)) {
-                selected_libraries = selected_libraries.filter(function(value, index, arr) {
-                    return value != library_id;
+        function select_pool(pool_id) {
+            if (selected_pools.includes(pool_id)) {
+                selected_pools = selected_pools.filter(function(value, index, arr) {
+                    return value != pool_id;
                 });
 
-                $(`#library-row-${library_id}`).removeClass("selected");
-                $(`#selected-library-row-${library_id}`).remove();
+                $(`#pool-row-${pool_id}`).removeClass("selected");
+                $(`#selected-pool-row-${pool_id}`).remove();
                 num_selected -= 1;
             } else {
-                selected_libraries.push(library_id);
-                $(`#library-row-${library_id}`).addClass("selected");
+                selected_pools.push(pool_id);
+                $(`#pool-row-${pool_id}`).addClass("selected");
 
-                const cloned = $(`#library-row-${library_id}`).clone();
-                cloned.attr("id", `selected-library-row-${library_id}`);
+                const cloned = $(`#pool-row-${pool_id}`).clone();
+                cloned.attr("id", `selected-pool-row-${pool_id}`);
                 $("#selected-table-container").append(cloned);
                 num_selected += 1;
             }
             $("#selected-tab-btn").text(`Selected (${num_selected})`);
         }
 
-        function update_libraries() {
-            $(".library-row").each(function() {
-                const library_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_libraries.includes(library_id)) {
+        function update_pools() {
+            $(".pool-row").each(function() {
+                const pool_id = parseInt($(this).attr("id").split("-").pop());
+                if (selected_pools.includes(pool_id)) {
                     $(this).addClass("selected");
                 }
             });
         }
 
-        $("#submit-library_pooling-form-btn").click(function() {
+        $("#submit-ba_report-form-btn").click(function() {
             if (num_selected == 0) {
-                $(".invalid-feedback-container").html("<p>Please select at least one library.</p>");
+                $(".invalid-feedback-container").html("<p>Select at least one pool.</p>");
                 return false;
             }
 
-            htmx.ajax("POST", "{{ url_for('library_pooling_workflow.select_libraries') }}", {
-                target: "#library_pooling-form-container",
+            htmx.ajax("POST", "{{ url_for('ba_report_workflow.select_pools') }}", {
+                target: "#ba_report-form-container",
                 swap: "outerHTML",
                 values: {
-                    csrf_token: "{{ library_pooling_form.csrf_token._value() }}",
-                    selected_library_ids: JSON.stringify(selected_libraries),
-                    file_uuid: "{{ library_pooling_form.file_uuid.data }}"
+                    csrf_token: "{{ ba_report_form.csrf_token._value() }}",
+                    selected_pool_ids: JSON.stringify(selected_pools),
                 },
             });
 

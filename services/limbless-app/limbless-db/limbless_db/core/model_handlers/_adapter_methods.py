@@ -49,10 +49,7 @@ def create_adapter(
     return adapter
 
 
-def get_adapter(
-    self, id: int
-) -> models.Adapter:
-        
+def get_adapter(self, id: int) -> Optional[models.Adapter]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

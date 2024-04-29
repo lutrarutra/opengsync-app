@@ -395,6 +395,14 @@
                 {% if not seq_request.is_authorized() and seq_request.status.name == "Draft" %}
                 {% include "forms/seq_request/seq_auth.html" %}
                 {% else %}
+                <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
+                    <div class="row">
+                        {{ metadata_group("Filename", seq_request.seq_auth_form_file.name + seq_request.seq_auth_form_file.extension, class="col-3") }}
+                        {{ metadata_group_link("Uploader", seq_request.seq_auth_form_file.uploader.name, url_for('users_page.user_page', user_id=seq_request.seq_auth_form_file.uploader_id), class="col-3") }}
+                        {{ metadata_group("Size", seq_request.seq_auth_form_file.size_str(), class="col-3") }}
+                        {{ metadata_group("Time", seq_request.seq_auth_form_file.timestamp_str(), class="col-3") }}
+                    </div>
+                </div>
                 <embed src="{{ url_for('pdf_file', file_id=seq_request.seq_auth_form_file_id) }}" width="100%" height="1000px">
                 {% endif %}
             </div>

@@ -7,7 +7,7 @@ from flask import Response
 from wtforms import StringField
 from .BarcodeInputForm import BarcodeInputForm
 
-from limbless_db import models, DBSession
+from limbless_db import DBSession
 
 from .... import logger, db
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -18,30 +18,23 @@ class SelectLibrariesForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_pooling/pooling-2.html"
     _form_label = "library_pooling_form"
 
-    colors = {
-        "missing_value": "#FAD7A0",
-        "invalid_value": "#F5B7B1",
-        "duplicate_value": "#D7BDE2",
-        "ok": "#82E0AA"
-    }
-
     selected_library_ids = StringField()
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid)
+        TableDataForm.__init__(self, dirname="library_pooling", uuid=uuid)
 
     def validate(self) -> bool:
         validated = super().validate()
 
         if not (selected_library_ids := self.selected_library_ids.data):
-            self.selected_library_ids.errors = ["Please select atleast one library"]
+            self.selected_library_ids.errors = ["Select at least one library"]
             return False
         
         if len(ids := json.loads(selected_library_ids)) < 1:
-            self.selected_library_ids.errors = ["Please select atleast one library"]
+            self.selected_library_ids.errors = ["Select at least one library"]
             return False
         
         self.library_ids = []
@@ -68,7 +61,10 @@ class SelectLibrariesForm(HTMXFlaskForm, TableDataForm):
         )
         with DBSession(db) as session:
             for library_id in self.library_ids:
-                library = session.get_library(library_id)
+                if (library := session.get_library(library_id)) is None:
+                    logger.error(f"{self.uuid}: Library {library_id} not found")
+                    raise ValueError(f"Library {library_id} not found")
+                
                 barcode_data["library_id"].append(library.id)
                 barcode_data["library_name"].append(library.name)
                 barcode_data["library_type"].append(library.type.name)

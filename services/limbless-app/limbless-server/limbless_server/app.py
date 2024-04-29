@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
-from limbless_db import categories, models, DBSession
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, forms
+from limbless_db import categories, models, DBSession, exceptions
+
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db
 from .routes import api, pages
 
 if TYPE_CHECKING:
@@ -53,7 +54,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
 
     @login_manager.user_loader
     def load_user(user_id: int) -> models.User:
-        user = db.get_user(user_id)
+        if (user := db.get_user(user_id)) is None:
+            logger.error(f"User {user_id} not found")
+            raise exceptions.ElementDoesNotExist(f"User {user_id} not found")
         return user
     
     if app.debug:
@@ -199,7 +202,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.library_pooling_workflow)
     app.register_blueprint(api.workflows.library_annotation_workflow)
     app.register_blueprint(api.workflows.lane_pools_workflow)
-    app.register_blueprint(api.workflows.pool_qc_workflow)
+    app.register_blueprint(api.workflows.ba_report_workflow)
     app.register_blueprint(api.workflows.select_experiment_pools_workflow)
     app.register_blueprint(api.workflows.dilute_pools_workflow)
     app.register_blueprint(api.workflows.check_barcode_clashes_workflow)

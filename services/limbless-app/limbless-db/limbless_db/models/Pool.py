@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from .Lane import Lane
     from .Contact import Contact
     from .actions import PoolAction
+    from .File import File
 
 
 class Pool(Base):
@@ -31,8 +32,7 @@ class Pool(Base):
     
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
     avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
-    original_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
-    diluted_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
+    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
 
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
@@ -44,6 +44,9 @@ class Pool(Base):
     
     contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
     contact: Mapped["Contact"] = relationship("Contact", lazy="select")
+
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
+    ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select")
     lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
@@ -58,30 +61,11 @@ class Pool(Base):
     error_max_molarity: ClassVar[float] = 10.0
 
     @property
-    def original_molarity(self) -> Optional[float]:
-        if self.avg_library_size is None or self.original_qubit_concentration is None:
-            return None
-        
-        return self.original_qubit_concentration / (self.avg_library_size * 660) * 1_000_000
-    
-    @property
-    def diluted_molarity(self) -> Optional[float]:
-        if self.avg_library_size is None or self.diluted_qubit_concentration is None:
-            return None
-        
-        return self.diluted_qubit_concentration / (self.avg_library_size * 660) * 1_000_000
-    
-    @property
-    def qubit_concentration(self) -> Optional[float]:
-        if self.diluted_qubit_concentration is not None:
-            return self.diluted_qubit_concentration
-        return self.original_qubit_concentration
-    
-    @property
     def molarity(self) -> Optional[float]:
-        if self.diluted_qubit_concentration is not None:
-            return self.diluted_molarity
-        return self.original_molarity
+        if self.avg_library_size is None or self.qubit_concentration is None:
+            return None
+        
+        return self.qubit_concentration / (self.avg_library_size * 660) * 1_000_000
     
     @property
     def molarity_color_class(self) -> str:
@@ -108,6 +92,14 @@ class Pool(Base):
             return ""
         return f"{m:.2f}"
     
+    @property
+    def timestamp_received_str(self) -> str:
+        return self.timestamp_received_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_received_utc is not None else ""
+    
+    @property
+    def timestamp_depleted_str(self) -> str:
+        return self.timestamp_depleted_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_depleted_utc is not None else ""
+    
     def search_value(self) -> int:
         return self.id
     
@@ -115,14 +107,14 @@ class Pool(Base):
         return self.name
     
     def search_description(self) -> Optional[str]:
-        return ""
+        return None
     
     @property
     def status(self) -> PoolStatusEnum:
         return PoolStatus.get(self.status_id)
     
     def is_qced(self) -> bool:
-        return self.original_qubit_concentration is not None and self.avg_library_size is not None
+        return self.qubit_concentration is not None and self.avg_library_size is not None
     
     def __str__(self) -> str:
         return f"Pool(id={self.id}, name={self.name})"
