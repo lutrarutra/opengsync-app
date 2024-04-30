@@ -18,16 +18,17 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
 
 
-class PoolQCSubForm(FlaskForm):
-    pool_id = IntegerField(validators=[DataRequired()])
-    avg_library_size = IntegerField(validators=[OptionalValidator(), NumberRange(min=0)])
+class SubForm(FlaskForm):
+    obj_id = IntegerField(validators=[DataRequired()])
+    avg_fragment_size = IntegerField(validators=[OptionalValidator(), NumberRange(min=0)])
 
 
 class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/ba_report/bar-3.html"
     _form_label = "ba_report_form"
 
-    input_fields = FieldList(FormField(PoolQCSubForm), min_entries=1)
+    pool_fields = FieldList(FormField(SubForm), min_entries=0)
+    library_fields = FieldList(FormField(SubForm), min_entries=0)
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, previous_form: Optional[TableDataForm] = None):
         if uuid is None:
@@ -38,24 +39,38 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
         
     def prepare(self):
         pool_table = self.tables["pool_table"]
+        library_table = self.tables["library_table"]
 
         for i, (idx, row) in enumerate(pool_table.iterrows()):
-            if i > len(self.input_fields) - 1:
-                self.input_fields.append_entry()
+            if i > len(self.pool_fields) - 1:
+                self.pool_fields.append_entry()
 
-            self.input_fields[i].pool_id.data = row["id"]
+            self.pool_fields[i].obj_id.data = row["id"]
 
-            if pd.notna(pool_table.at[idx, "avg_library_size"]):
-                self.input_fields[i].avg_library_size.data = int(pool_table.at[idx, "avg_library_size"])
+            if pd.notna(pool_table.at[idx, "avg_fragment_size"]):
+                self.pool_fields[i].avg_fragment_size.data = int(pool_table.at[idx, "avg_fragment_size"])
+
+        for i, (idx, row) in enumerate(library_table.iterrows()):
+            if i > len(self.library_fields) - 1:
+                self.library_fields.append_entry()
+
+            self.library_fields[i].obj_id.data = row["id"]
+
+            if pd.notna(library_table.at[idx, "avg_fragment_size"]):
+                self.library_fields[i].avg_fragment_size.data = int(library_table.at[idx, "avg_fragment_size"])
 
         self._context["pool_table"] = pool_table
+        self._context["library_table"] = library_table
     
     def process_request(self, current_user: models.User) -> Response:
         if not self.validate():
             pool_table = self.tables["pool_table"]
-            return self.make_response(pool_table=pool_table)
+            library_table = self.tables["library_table"]
+            logger.debug(self.errors)
+            return self.make_response(pool_table=pool_table, library_table=library_table)
         
         pool_table = self.tables["pool_table"]
+        library_table = self.tables["library_table"]
         metadata = self.metadata.copy()
         ba_report = metadata["ba_report"]
 
@@ -74,16 +89,27 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
             uuid=ba_report['uuid'],
         )
 
-        for sub_form in self.input_fields:
-            if (pool := db.get_pool(sub_form.pool_id.data)) is None:
-                logger.error(f"{self.uuid}: Pool {sub_form.pool_id.data} not found")
-                raise ValueError(f"{self.uuid}: Pool {sub_form.pool_id.data} not found")
+        for sub_form in self.pool_fields:
+            if (pool := db.get_pool(sub_form.obj_id.data)) is None:
+                logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+                raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
             
-            pool.avg_library_size = sub_form.avg_library_size.data
+            pool.avg_fragment_size = sub_form.avg_fragment_size.data
             pool.ba_report_id = ba_file.id
             pool = db.update_pool(pool)
 
-            pool_table.loc[pool_table["id"] == pool.id, "avg_library_size"] = pool.avg_library_size
+            pool_table.loc[pool_table["id"] == pool.id, "avg_fragment_size"] = pool.avg_fragment_size
+
+        for sub_form in self.library_fields:
+            if (library := db.get_library(sub_form.obj_id.data)) is None:
+                logger.error(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
+                raise ValueError(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
+            
+            library.avg_fragment_size = sub_form.avg_fragment_size.data
+            library.ba_report_id = ba_file.id
+            library = db.update_library(library)
+
+            library_table.loc[library_table["id"] == library.id, "avg_fragment_size"] = library.avg_fragment_size
 
         if os.path.exists(self.path):
             os.remove(self.path)

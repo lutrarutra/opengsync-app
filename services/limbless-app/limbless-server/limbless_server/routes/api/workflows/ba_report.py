@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, PoolStatus
+from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus
 
 from .... import db, logger
 from ....forms.workflows import ba_report as wff
@@ -41,7 +41,7 @@ def get_pools(page: int):
 
 @ba_report_workflow.route("table_query/<string:field_name>", methods=["POST"])
 @login_required
-def table_query(field_name: str):
+def pools_table_query(field_name: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -68,6 +68,59 @@ def table_query(field_name: str):
     )
 
 
+@ba_report_workflow.route("get_libraries/<int:page>", methods=["GET"])
+@login_required
+def get_libraries(page: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    import time
+    time.sleep(1)
+    
+    sort_by = request.args.get("sort_by", "id")
+    order = request.args.get("order", "desc")
+    descending = order == "desc"
+    offset = PAGE_LIMIT * page
+    
+    libraries, n_pages = db.get_libraries(status=LibraryStatus.ACCEPTED, sort_by=sort_by, descending=descending, offset=offset)
+    return make_response(
+        render_template(
+            "workflows/ba_report/select-libraries-table.html",
+            libraries=libraries, n_pages=n_pages, active_page=page,
+            current_sort=sort_by, current_sort_order=order
+        )
+    )
+
+
+@ba_report_workflow.route("table_query/<string:field_name>", methods=["POST"])
+@login_required
+def libraries_table_query(field_name: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (word := request.form.get(field_name)) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if field_name == "name":
+        libraries = db.query_libraries(word, status=LibraryStatus.ACCEPTED)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        libraries = [db.get_library(library_id=_id)]
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    return make_response(
+        render_template(
+            "workflows/ba_report/select-libraries-table.html",
+            libraries=libraries, n_pages=1, active_page=0,
+        )
+    )
+
+
 @ba_report_workflow.route("begin", methods=["GET"], defaults={"experiment_id": None})
 @ba_report_workflow.route("begin/<int:experiment_id>", methods=["GET"])
 @login_required
@@ -80,8 +133,6 @@ def begin(experiment_id: Optional[int]):
             return abort(HTTPResponse.NOT_FOUND.id)
         
         form = wff.BAInputForm(experiment=experiment)
-        pool_table = db.get_experiment_pools_df(experiment_id)
-        form.add_table("pool_table", pool_table)
         form.prepare()
         return form.make_response()
     
@@ -89,9 +140,9 @@ def begin(experiment_id: Optional[int]):
     return form.make_response()
 
 
-@ba_report_workflow.route("select_pools", methods=["POST"])
+@ba_report_workflow.route("select", methods=["POST"])
 @login_required
-def select_pools():
+def select():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
         

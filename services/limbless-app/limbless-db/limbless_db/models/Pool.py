@@ -31,7 +31,7 @@ class Pool(Base):
     timestamp_depleted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
-    avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
+    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
 
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
@@ -62,10 +62,10 @@ class Pool(Base):
 
     @property
     def molarity(self) -> Optional[float]:
-        if self.avg_library_size is None or self.qubit_concentration is None:
+        if self.avg_fragment_size is None or self.qubit_concentration is None:
             return None
         
-        return self.qubit_concentration / (self.avg_library_size * 660) * 1_000_000
+        return self.qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
     @property
     def molarity_color_class(self) -> str:
@@ -114,7 +114,7 @@ class Pool(Base):
         return PoolStatus.get(self.status_id)
     
     def is_qced(self) -> bool:
-        return self.qubit_concentration is not None and self.avg_library_size is not None
+        return self.qubit_concentration is not None and self.avg_fragment_size is not None
     
     def __str__(self) -> str:
         return f"Pool(id={self.id}, name={self.name})"

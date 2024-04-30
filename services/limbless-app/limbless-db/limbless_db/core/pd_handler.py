@@ -112,8 +112,8 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Pool.id, models.Pool.name,
         models.Pool.status_id, models.Pool.num_libraries,
-        models.Pool.num_m_reads_requested, models.Pool.original_qubit_concentration,
-        models.Pool.diluted_qubit_concentration, models.Pool.avg_library_size,
+        models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
+        models.Pool.avg_fragment_size,
     ).join(
         models.ExperimentPoolLink,
         models.ExperimentPoolLink.pool_id == models.Pool.id,
@@ -131,7 +131,7 @@ def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Lane.id, models.Lane.number.label("lane"),
         models.Lane.phi_x, models.Lane.original_qubit_concentration, models.Lane.total_volume_ul,
-        models.Lane.library_volume_ul, models.Lane.avg_library_size, models.Lane.sequencing_qubit_concentration,
+        models.Lane.library_volume_ul, models.Lane.avg_fragment_size, models.Lane.sequencing_qubit_concentration,
         models.Lane.target_molarity
     ).where(
         models.Lane.experiment_id == experiment_id
@@ -146,8 +146,8 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Lane.id, models.Lane.number.label("lane"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
-        models.Pool.num_m_reads_requested, models.Pool.original_qubit_concentration,
-        models.Pool.diluted_qubit_concentration, models.Pool.avg_library_size,
+        models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
+        models.Pool.avg_fragment_size,
     ).where(
         models.Lane.experiment_id == experiment_id
     ).join(

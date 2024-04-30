@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from 'components/spinner.jinja2' import spinner %}
 
 <div id="experiment-table" class="table-container">
     <table class="table table-hover table-cursor">
@@ -27,7 +28,7 @@
                 }}
                 {{
                     table_col(
-                        target_id='experiment-table', column_name='Status', column_var='status',
+                        target_id='experiment-table', column_name='Status', column_var='status_id',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                         col_size=2
@@ -36,7 +37,7 @@
                 <th class="col-2" scope="col">Operator</th>
                 {{
                     table_col(
-                        target_id='experiment-table', column_name='Created', column_var='timestamp',
+                        target_id='experiment-table', column_name='Created', column_var='timestamp_created_utc',
                         sort_url='experiments_htmx.get', sort_url_args={},
                         current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
                         col_size=2
@@ -67,5 +68,6 @@
             {% endfor %}
         </tbody>
     </table>
+    {{ spinner("experiment-table-spinner") }}
     {{ pagination("experiment-table", "experiments_htmx.get", experiments_n_pages, experiments_active_page, url_args={"sort_by": experiments_current_sort, "order": experiments_current_sort_order}) }}
 </div>

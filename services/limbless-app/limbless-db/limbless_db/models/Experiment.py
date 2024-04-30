@@ -53,7 +53,7 @@ class Experiment(Base):
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
     actions: Mapped[list["ExperimentAction"]] = relationship("ExperimentAction", lazy="select", order_by="ExperimentAction.status_id.desc()", cascade="merge, save-update, delete, delete-orphan")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp", "status_id", "sequencer_id", "num_lanes", "flowcell_type_id", "workflow_id"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "num_lanes", "flowcell_type_id", "workflow_id"]
 
     @property
     def status(self) -> ExperimentStatusEnum:

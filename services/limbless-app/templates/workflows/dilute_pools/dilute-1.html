@@ -26,9 +26,9 @@
                     {{ sub_form.csrf_token() }}
                     <tr>
                         <th scope="row">{{ row["name"] }}</th>
-                        <td class="avg_library_size-col">
+                        <td class="avg_fragment_size-col">
                             <div class="quantity-container">
-                                <div class="value">{{ row["avg_library_size"] }}</div>
+                                <div class="value">{{ row["avg_fragment_size"] }}</div>
                                 <div class="unit">bp</div>
                             </div>
                         </td>
@@ -75,11 +75,11 @@
             init_tooltips();
 
             function update_molarity(row) {
-                const avg_library_size = parseFloat(row.find(".avg_library_size-col").first().find(".value").first().text());
+                const avg_fragment_size = parseFloat(row.find(".avg_fragment_size-col").first().find(".value").first().text());
                 const qubit_after = parseFloat(row.find(".qubit_after-col").first().closest("input").val());
 
-                if (avg_library_size && qubit_after) {
-                    const molarity = qubit_after / (avg_library_size * 660) * 1000000;
+                if (avg_fragment_size && qubit_after) {
+                    const molarity = qubit_after / (avg_fragment_size * 660) * 1000000;
                     console.log(molarity);
                     row.find(".molarity-after-col").first().find(".value").first().text(molarity.toFixed(2));
                     if ({{ warning_min }} < molarity && molarity < {{ warning_max }}) {
@@ -95,7 +95,7 @@
                 }
             }
 
-            $(".avg_library_size-col").on("input", function() {
+            $(".avg_fragment_size-col").on("input", function() {
                 update_molarity($(this).closest("tr"));
             });
 

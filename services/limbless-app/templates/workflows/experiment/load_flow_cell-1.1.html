@@ -29,9 +29,9 @@
                     {{ sub_form.csrf_token() }}
                     <tr>
                         <th scope="row">{{ row["lane"] }}</th>
-                        <td class="avg_library_size-col">
+                        <td class="avg_fragment_size-col">
                             <div class="quantity-container">
-                                <div class="value">{{ row["avg_library_size"] }}</div>
+                                <div class="value">{{ row["avg_fragment_size"] }}</div>
                                 <div class="unit">bp</div>
                             </div>
                         </td>
@@ -89,7 +89,7 @@
                 const measured_qubit = parseFloat(row.find(".measured_qubit-col").first().closest("input").val());
                 const total_volume_ul = parseFloat(row.find(".total_volume_ul-col").first().closest("input").val());
                 const target_molarity = parseFloat(row.find(".target_molarity-col").first().closest("input").val());
-                const avg_library_size = parseFloat(row.find(".avg_library_size-col .value").first().text());
+                const avg_fragment_size = parseFloat(row.find(".avg_fragment_size-col .value").first().text());
                 const lane_molarity = parseFloat(row.find(".lane_molarity-col .value").first().text());
 
                 if (total_volume_ul && target_molarity && lane_molarity) {
@@ -98,7 +98,7 @@
                     row.find(".library_volume-col .value").first().text(library_volume.toFixed(2));
                     row.find(".eb_volume-col .value").first().text(eb_volume.toFixed(2));
                     if (measured_qubit) {
-                        const molarity = (measured_qubit / (660 * avg_library_size)) * 1000000;
+                        const molarity = (measured_qubit / (660 * avg_fragment_size)) * 1000000;
                         row.find(".sequencing_molarity-col .value").first().text(molarity.toFixed(2));
                     } else {
                         row.find(".sequencing_molarity-col .value").first().text("");

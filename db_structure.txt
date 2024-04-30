@@ -64,7 +64,7 @@ library
  - type_id
  - submitted
  - volume
- - dna_concentration
+ - qubit_concentration
  - total_size
  - pool_id
  - num_samples

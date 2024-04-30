@@ -2,7 +2,6 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 
-
 <div id="pool-library-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -33,6 +32,22 @@
                         col_size=2
                     )
                 }}
+                {{
+                    table_col(
+                        target_id='pool-library-table', column_name='Owner', column_var='owner_id',
+                        sort_url='libraries_htmx.get', sort_url_args={"pool_id": pool.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='pool-library-table', column_name='Adapter', column_var='adapter',
+                        sort_url='libraries_htmx.get', sort_url_args={"pool_id": pool.id},
+                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        col_size=1
+                    )
+                }}
                 <th scope="col" class="col-1">
                     Index 1 <span class="desc">i7</span>
                 </th>
@@ -45,14 +60,6 @@
                 <th scope="col" class="col-1">
                     Index 4
                 </th>
-                {{
-                    table_col(
-                        target_id='pool-library-table', column_name='Owner', column_var='owner_id',
-                        sort_url='libraries_htmx.get', sort_url_args={"pool_id": pool.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        col_size=2
-                    )
-                }}
             </tr>
         </thead>
         <tbody>
@@ -65,23 +72,66 @@
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
-                {% for idx in range(4) %}
-                {% set index = library.indices[idx] %}
-                {% if index %}
-                <td {{ tooltip(index.adapter) }} class="col-1">
-                    <span class="barcode-cell index-cell" id="library-{{library.id}}-index-cell-{{idx+1}}">{{ index.sequence if index.sequence }}</span>
-                </td>
-                <td {{ tooltip(index.sequence) }} style="display: none;" class="col-1">
-                    <span class="barcode-cell adapter-cell" id="library-{{library.id}}-adapter-cell-{{idx+1}}">{{ index.adapter if index.adapter }}</span>
-                </td>
-                {% else %}
-                <td></td>
-                {% endif %}
-                {% endfor %}
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.index_1_sequence if library.index_1_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.index_2_sequence if library.index_2_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-3">{{ library.index_3_sequence if library.index_3_sequence }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-4">{{ library.index_4_sequence if library.index_4_sequence }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {{ pagination("pool-library-table", "libraries_htmx.get", libraries_n_pages, libraries_active_page, url_args={"pool_id": pool.id, "sort_by": libraries_current_sort, "order": libraries_current_sort_order}) }}
+    <script>
+        var selected_index_element_id = null;
+        var selected_adapter_element_id = null;
+
+        function copy_sequence_to_clipboard() {
+            const library_id = selected_index_element_id.split("-")[1];
+            const index_id = selected_index_element_id.split("-")[4];
+            const content = $("#library-" + library_id + "-index-cell-" + index_id).text().trim();
+            copy_to_clipboard(content);
+        }
+
+        function copy_adapter_to_clipboard() {
+            const library_id = selected_adapter_element_id.split("-")[1];
+            const content = $("#library-" + library_id + "-adapter-cell").text().trim();
+            copy_to_clipboard(content);
+        }
+
+        $(document).off("contextmenu", ".barcode-cell").on("contextmenu", ".barcode-cell", function(e) {
+            e.preventDefault();
+            const x = e.pageX;
+            const y = e.pageY;
+            selected_index_element_id = e.target.id;
+            $("#copy-edit-menu").css({
+                display: "block",
+                left: x + 8, top: y + 8
+            }).empty().append([
+                `<li><a class='dropdown-item' onclick='copy_sequence_to_clipboard()'>Copy Sequence</a></li>`,
+            ]);
+
+            $("#right-click-bg").css({
+                display: "block"
+            });
+        });
+
+        $(document).off("contextmenu", ".adapter-cell").on("contextmenu", ".adapter-cell", function(e) {
+            e.preventDefault();
+            const x = e.pageX;
+            const y = e.pageY;
+            selected_adapter_element_id = e.target.id;
+            $("#copy-edit-menu").css({
+                display: "block",
+                left: x + 8, top: y + 8
+            }).empty().append([
+                `<li><a class='dropdown-item' onclick='copy_adapter_to_clipboard()'>Copy Adapter</a></li>`,
+            ]);
+
+            $("#right-click-bg").css({
+                display: "block"
+            });
+        });
+    </script>
 </div>

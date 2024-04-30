@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from .Feature import Feature
     from .VisiumAnnotation import VisiumAnnotation
     from .SeqQuality import SeqQuality
+    from .File import File
 
 
 @dataclass
@@ -37,13 +38,16 @@ class Library(Base):
 
     timestamp_received_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
-    volume: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    dna_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    total_size: Mapped[Optional[int]] = mapped_column(sa.Float, nullable=True, default=None)
     seq_depth_requested: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Float, nullable=True, default=None)
+    volume: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
     num_samples: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     num_features: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
+    ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
     index_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("indexkit.id"), nullable=True)
     index_kit: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="select")
@@ -94,22 +98,30 @@ class Library(Base):
             return None
         return GenomeRef.get(self.genome_ref_id)
     
+    @property
+    def qubit_concentration_str(self) -> str:
+        if (q := self.qubit_concentration) is None:
+            return ""
+        return f"{q:.2f}"
+    
+    @property
+    def molarity(self) -> Optional[float]:
+        if self.avg_fragment_size is None or self.qubit_concentration is None:
+            return None
+        return self.qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
+    
+    @property
+    def molarity_str(self) -> str:
+        if (m := self.molarity) is None:
+            return ""
+        return f"{m:.2f}"
+    
     def is_multiplexed(self) -> bool:
         return self.num_samples > 1
     
     def is_editable(self) -> bool:
         return self.status == LibraryStatus.DRAFT
     
-    # TODO: Remove
-    @property
-    def indices(self) -> list[Optional[Index]]:
-        return [
-            Index(self.index_1_sequence, self.adapter) if self.index_1_sequence is not None else None,
-            Index(self.index_2_sequence, self.adapter) if self.index_2_sequence is not None else None,
-            Index(self.index_3_sequence, self.adapter) if self.index_3_sequence is not None else None,
-            Index(self.index_4_sequence, self.adapter) if self.index_4_sequence is not None else None,
-        ]
-
     def is_indexed(self) -> bool:
         return self.index_1_sequence is not None
     
@@ -118,3 +130,6 @@ class Library(Base):
     
     def __str__(self) -> str:
         return f"Library(id: {self.id}, name: {self.name}, type: {self.type})"
+    
+    def __repr__(self) -> str:
+        return str(self)

@@ -56,7 +56,7 @@ class LanePoolingForm(HTMXFlaskForm):
             entry.m_reads.data = row["num_m_reads_requested"]
         
         # https://knowledge.illumina.com/library-preparation/dna-library-prep/library-preparation-dna-library-prep-reference_material-list/000001240
-        df["molarity"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+        df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
         df["share"] = None
         for _, _df in df.groupby("lane"):
@@ -102,7 +102,7 @@ class LanePoolingForm(HTMXFlaskForm):
         df["share"] = None
         df["target_total_volume"] = None
         df["target_concentration"] = None
-        df["molarity"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+        df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
         for lane, _df in df.groupby("lane"):
             target = data[lane - 1]  # type: ignore
@@ -186,7 +186,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             entry.m_reads.data = row["num_m_reads_requested"]
         
         # https://knowledge.illumina.com/library-preparation/dna-library-prep/library-preparation-dna-library-prep-reference_material-list/000001240
-        df["molarity"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+        df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
         df["share"] = df["num_m_reads_requested"] / df["num_m_reads_requested"].sum()
 
@@ -225,7 +225,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         df["share"] = None
         df["target_total_volume"] = None
         df["target_molarity"] = None
-        df["molarity"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+        df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
         df["share"] = df["num_m_reads_requested"] / df["num_m_reads_requested"].sum()
         df["target_total_volume"] = self.target_total_volume.data

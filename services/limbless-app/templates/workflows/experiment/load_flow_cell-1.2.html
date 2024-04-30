@@ -14,7 +14,7 @@
                 {{ form_group(load_flow_cell_form.measured_qubit, class="col-6 measured_qubit-col", unit="ng/μL") }}
             </div>
             <div class="row">
-                {{ metadata_group("Avg. Library Size", avg_library_size, "col-4 avg_library_size-col", unit="bp") }}
+                {{ metadata_group("Avg. Library Size", avg_fragment_size, "col-4 avg_fragment_size-col", unit="bp") }}
                 {{ metadata_group("Pool Molarity", '%0.2f' % lane_molarity, "col-4 lane_molarity-col", unit="nM") }}
                 {{ metadata_group("Sequencing Molarity", '%0.2f' % sequencing_molarity if sequencing_molarity, "sequencing_molarity-col col-4", unit="nM") }}
             </div>
@@ -47,7 +47,7 @@
                 const measured_qubit = parseFloat(row.find(".measured_qubit-col input").first().val());
                 const total_volume_ul = parseFloat(row.find(".total_volume_ul-col input").first().val());
                 const target_molarity = parseFloat(row.find(".target_molarity-col input").first().val());
-                const avg_library_size = parseFloat(row.find(".avg_library_size-col input").first().val());
+                const avg_fragment_size = parseFloat(row.find(".avg_fragment_size-col input").first().val());
                 const lane_molarity = parseFloat(row.find(".lane_molarity-col input").first().val());
 
                 if (total_volume_ul && target_molarity && lane_molarity) {
@@ -56,7 +56,7 @@
                     row.find(".library_volume-col input").first().val(library_volume.toFixed(2));
                     row.find(".eb_volume-col input").first().val(eb_volume.toFixed(2));
                     if (measured_qubit) {
-                        const molarity = (measured_qubit / (660 * avg_library_size)) * 1000000;
+                        const molarity = (measured_qubit / (660 * avg_fragment_size)) * 1000000;
                         row.find(".sequencing_molarity-col input").first().val(molarity.toFixed(2));
                     } else {
                         row.find(".sequencing_molarity-col input").first().val("");

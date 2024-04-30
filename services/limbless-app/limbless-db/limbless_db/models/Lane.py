@@ -18,7 +18,7 @@ class Lane(Base):
     number: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     
     phi_x: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    avg_library_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
+    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
     original_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     sequencing_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     total_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
@@ -39,7 +39,7 @@ class Lane(Base):
 
     def is_qced(self) -> bool:
         return (
-            self.avg_library_size is not None and
+            self.avg_fragment_size is not None and
             self.original_qubit_concentration is not None
         )
 
@@ -55,15 +55,15 @@ class Lane(Base):
 
     @property
     def original_molarity(self) -> Optional[float]:
-        if self.original_qubit_concentration is None or self.avg_library_size is None:
+        if self.original_qubit_concentration is None or self.avg_fragment_size is None:
             return None
-        return self.original_qubit_concentration / (self.avg_library_size * 660) * 1_000_000
+        return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
     @property
     def sequencing_molarity(self) -> Optional[float]:
-        if self.sequencing_qubit_concentration is None or self.avg_library_size is None:
+        if self.sequencing_qubit_concentration is None or self.avg_fragment_size is None:
             return None
-        return self.sequencing_qubit_concentration / (self.avg_library_size * 660) * 1_000_000
+        return self.sequencing_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
     @property
     def qubit_concentration(self) -> Optional[float]:

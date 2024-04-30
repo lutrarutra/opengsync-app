@@ -61,7 +61,7 @@
         </div>
         <div class="tab-pane fade" id="wetlab-tab" role="tabpanel" tabindex="1">
             <div class="row">
-                {{ metadata_group("Avg. Library Size", pool.avg_library_size if pool.avg_library_size, class="col-3") }}
+                {{ metadata_group("Avg. Library Size", pool.avg_fragment_size if pool.avg_fragment_size, class="col-3") }}
                 {{ metadata_group("Qubit Concentration", pool.qubit_concentration_str, class="col-3") }}
                 {{ metadata_group("Molarity", pool.molarity_str, class="col-3") }}
                 {{ metadata_group("# Libraries", pool.num_libraries, class="col-3") }}

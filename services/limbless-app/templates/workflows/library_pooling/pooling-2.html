@@ -73,7 +73,6 @@
         var num_selected = {{ selected_libraries | length if selected_libraries else 0 }};
     
         function select_library(library_id) {
-
             if (selected_libraries.includes(library_id)) {
                 selected_libraries = selected_libraries.filter(function(value, index, arr) {
                     return value != library_id;

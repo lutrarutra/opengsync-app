@@ -33,7 +33,7 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
 
     def __get_params(self, experiment: models.Experiment, df: pd.DataFrame) -> dict:
         row = df.iloc[0]
-        lane_molarity = row["original_qubit_concentration"] / (row["avg_library_size"] * 660) * 1_000_000
+        lane_molarity = row["original_qubit_concentration"] / (row["avg_fragment_size"] * 660) * 1_000_000
 
         if pd.notna(row["total_volume_ul"]):
             self.total_volume_ul.data = row["total_volume_ul"]
@@ -51,13 +51,13 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
             library_volume = None
             eb_volume = None
 
-        if pd.notna(row["sequencing_qubit_concentration"]) and pd.notna(row["avg_library_size"]):
-            sequencing_molarity = row["sequencing_qubit_concentration"] / (row["avg_library_size"] * 660) * 1_000_000
+        if pd.notna(row["sequencing_qubit_concentration"]) and pd.notna(row["avg_fragment_size"]):
+            sequencing_molarity = row["sequencing_qubit_concentration"] / (row["avg_fragment_size"] * 660) * 1_000_000
         else:
             sequencing_molarity = None
 
         return dict(
-            avg_library_size=row["avg_library_size"],
+            avg_fragment_size=row["avg_fragment_size"],
             lane_molarity=lane_molarity,
             library_volume=library_volume,
             eb_volume=eb_volume,
@@ -118,7 +118,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
 
     def prepare(self, experiment: models.Experiment) -> dict:
         df = db.get_experiment_lanes_df(experiment.id)
-        df["lane_molarity"] = df["original_qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+        df["lane_molarity"] = df["original_qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
         df["library_volume"] = None
         df["eb_volume"] = None
@@ -143,7 +143,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
                 df.at[idx, "library_volume"] = library_volume
                 df.at[idx, "eb_volume"] = entry.total_volume_ul.data - library_volume
 
-        df["sequencing_molarity"] = df["sequencing_qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+        df["sequencing_molarity"] = df["sequencing_qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
         return {"df": df}
     
@@ -153,7 +153,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
 
         if not self.validate():
             df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
-            df["molarity"] = df["qubit_concentration"] / (df["avg_library_size"] * 660) * 1_000_000
+            df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
             context["df"] = df
             return self.make_response(**context)
         

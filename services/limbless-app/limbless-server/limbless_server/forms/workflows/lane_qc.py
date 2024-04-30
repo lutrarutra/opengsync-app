@@ -17,7 +17,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
     _form_label = "lane_qc_form"
 
     phi_x = FloatField("Phi X %", validators=[DataRequired()])
-    avg_library_size = IntegerField("Average Library Size", validators=[DataRequired()])
+    avg_fragment_size = IntegerField("Average Library Size", validators=[DataRequired()])
     qubit_concentration = FloatField("Qubit Concentration", validators=[DataRequired()])
 
     def __init__(self, formdata: dict = {}):
@@ -34,7 +34,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
 
         row = df.iloc[0]
         self.phi_x.data = row["phi_x"] if pd.notna(row["phi_x"]) else None
-        self.avg_library_size.data = int(row["avg_library_size"]) if pd.notna(row["avg_library_size"]) else None
+        self.avg_fragment_size.data = int(row["avg_fragment_size"]) if pd.notna(row["avg_fragment_size"]) else None
         self.qubit_concentration.data = row["qubit_concentration"] if pd.notna(row["qubit_concentration"]) else None
 
         return {"df": df, "enumerate": enumerate}
@@ -50,7 +50,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
 
         for lane in experiment.lanes:
             lane.phi_x = self.phi_x.data
-            lane.avg_library_size = self.avg_library_size.data
+            lane.avg_fragment_size = self.avg_fragment_size.data
             lane.original_qubit_concentration = self.qubit_concentration.data
 
             db.update_lane(lane)
@@ -62,7 +62,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
 class QCLanesSubForm(FlaskForm):
     lane_id = IntegerField("Lane ID", validators=[DataRequired()])
     phi_x = FloatField("Phi X %", validators=[DataRequired()])
-    avg_library_size = IntegerField("Average Library Size", validators=[DataRequired()])
+    avg_fragment_size = IntegerField("Average Library Size", validators=[DataRequired()])
     qubit_concentration = FloatField("Qubit Concentration", validators=[DataRequired()])
 
 
@@ -96,8 +96,8 @@ class QCLanesForm(HTMXFlaskForm):
             if pd.notna(row["qubit_concentration"]):
                 self.input_fields[i].qubit_concentration.data = row["qubit_concentration"]
 
-            if pd.notna(row["avg_library_size"]):
-                self.input_fields[i].avg_library_size.data = int(row["avg_library_size"])
+            if pd.notna(row["avg_fragment_size"]):
+                self.input_fields[i].avg_fragment_size.data = int(row["avg_fragment_size"])
 
         return {"df": df}
     
@@ -115,7 +115,7 @@ class QCLanesForm(HTMXFlaskForm):
                 raise ValueError(f"Lane with id {sub_form.lane_id.data} not found")
                 
             lane.original_qubit_concentration = sub_form.qubit_concentration.data
-            lane.avg_library_size = sub_form.avg_library_size.data
+            lane.avg_fragment_size = sub_form.avg_fragment_size.data
             lane.phi_x = sub_form.phi_x.data
 
             lane = db.update_lane(lane)

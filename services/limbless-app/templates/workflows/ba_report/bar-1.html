@@ -1,5 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group, form_cell %}
 {% from 'components/metadata_group.jinja2' import metadata_group %}
+{% from 'components/spinner.jinja2' import spinner %}
 
 <div id="ba_report-form-container" class="modal-content">
     <div class="modal-header">
@@ -10,29 +11,62 @@
         <div class="tab-body">
             <ul class="nav nav-tabs" id="auth-tab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="available-tab-btn" data-bs-toggle="tab" data-bs-target="#available-tab"
-                        type="button" role="tab" aria-controls="available-tab" aria-selected="true">
-                        Available
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#libraries-tab"
+                        type="button" role="tab" aria-controls="libraries-tab" aria-selected="true">
+                        Libraries
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-tab"
-                        type="button" role="tab" aria-controls="selected-tab" aria-selected="false">
-                        Selected ({{ selected_pools | length }})
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pools-tab"
+                        type="button" role="tab" aria-controls="pools-tab" aria-selected="true">
+                        Pools
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
+                        type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
+                        Selected Libraries ({{ selected_libraries | length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
+                        type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
+                        Selected Pools ({{ selected_pools | length }})
                     </button>
                 </li>
             </ul>
-            <div class="tab-content">
+            <div class="tab-content ba">
                 <div class="invalid-feedback-container">
-                    {% for error in ba_report_form.selected_pool_ids.errors %}
+                    {% for error in ba_report_form.error_dummy.errors %}
                         <p class="">{{ error }}</p>
                     {% endfor %}
                 </div>
-                <div class="tab-pane fade show active" id="available-tab" role="tabpanel" tabindex="0">
-                    <div class="ba_report-form" hx-get="{{ url_for('ba_report_workflow.get_pools', page=0) }}" hx-trigger="load">
+                <div class="tab-pane fade show active" id="libraries-tab" role="tabpanel" tabindex="0">
+                    <div hx-get="{{ url_for('ba_report_workflow.get_libraries', page=0) }}" hx-trigger="load">
+                        {{ spinner() }}
                     </div>
                 </div>
-                <div class="tab-pane fade" id="selected-tab" role="tabpanel" tabindex="1">
+                <div class="tab-pane fade" id="pools-tab" role="tabpanel" tabindex="1">
+                    <div hx-get="{{ url_for('ba_report_workflow.get_pools', page=0) }}" hx-trigger="load">
+                        {{ spinner() }}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="2">
+                    <table class="table table-hover table-cursor">
+                        <thead>
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Owner</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selected-libraries-table-container">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="3">
                     <table class="table table-hover table-cursor">
                         <thead>
                             <tr>
@@ -42,7 +76,7 @@
                                 <th scope="col">Owner</th>
                             </tr>
                         </thead>
-                        <tbody id="selected-table-container">
+                        <tbody id="selected-pools-table-container">
                         </tbody>
                     </table>
                 </div>
@@ -61,8 +95,10 @@
         </div>
     </div>
     <script>
+        var selected_libraries = {{ selected_libraries | tojson if selected_libraries else [] }};
+        var num_selected_libraries = {{ selected_libraries | length if selected_libraries else 0 }};
         var selected_pools = {{ selected_pools | tojson if selected_pools else [] }};
-        var num_selected = {{ selected_pools | length if selected_pools else 0 }};
+        var num_selected_pools = {{ selected_pools | length if selected_pools else 0 }};
 
         init_tooltips();
 
@@ -74,17 +110,38 @@
 
                 $(`#pool-row-${pool_id}`).removeClass("selected");
                 $(`#selected-pool-row-${pool_id}`).remove();
-                num_selected -= 1;
+                num_selected_pools -= 1;
             } else {
                 selected_pools.push(pool_id);
                 $(`#pool-row-${pool_id}`).addClass("selected");
 
                 const cloned = $(`#pool-row-${pool_id}`).clone();
                 cloned.attr("id", `selected-pool-row-${pool_id}`);
-                $("#selected-table-container").append(cloned);
-                num_selected += 1;
+                $("#selected-pools-table-container").append(cloned);
+                num_selected_pools += 1;
             }
-            $("#selected-tab-btn").text(`Selected (${num_selected})`);
+            $("#selected-pools-tab-btn").text(`Selected Pools (${num_selected_pools})`);
+        }
+
+        function select_library(library_id) {
+            if (selected_libraries.includes(library_id)) {
+                selected_libraries = selected_libraries.filter(function(value, index, arr) {
+                    return value != library_id;
+                });
+
+                $(`#library-row-${library_id}`).removeClass("selected");
+                $(`#selected-library-row-${library_id}`).remove();
+                num_selected_libraries -= 1;
+            } else {
+                selected_libraries.push(library_id);
+                $(`#library-row-${library_id}`).addClass("selected");
+
+                const cloned = $(`#library-row-${library_id}`).clone();
+                cloned.attr("id", `selected-library-row-${library_id}`);
+                $("#selected-libraries-table-container").append(cloned);
+                num_selected_libraries += 1;
+            }
+            $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
         }
 
         function update_pools() {
@@ -96,18 +153,28 @@
             });
         }
 
+        function update_libraries() {
+            $(".library-row").each(function() {
+                const library_id = parseInt($(this).attr("id").split("-").pop());
+                if (selected_libraries.includes(library_id)) {
+                    $(this).addClass("selected");
+                }
+            });
+        }
+
         $("#submit-ba_report-form-btn").click(function() {
-            if (num_selected == 0) {
-                $(".invalid-feedback-container").html("<p>Select at least one pool.</p>");
+            if (num_selected_libraries + num_selected_pools == 0) {
+                $(".invalid-feedback-container").html("<p>Select at least one pool or library.</p>");
                 return false;
             }
 
-            htmx.ajax("POST", "{{ url_for('ba_report_workflow.select_pools') }}", {
+            htmx.ajax("POST", "{{ url_for('ba_report_workflow.select') }}", {
                 target: "#ba_report-form-container",
                 swap: "outerHTML",
                 values: {
                     csrf_token: "{{ ba_report_form.csrf_token._value() }}",
                     selected_pool_ids: JSON.stringify(selected_pools),
+                    selected_libraries_ids: JSON.stringify(selected_libraries),
                 },
             });
 

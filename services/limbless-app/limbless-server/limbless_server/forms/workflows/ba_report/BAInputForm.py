@@ -2,6 +2,8 @@ import os
 import uuid
 from typing import Optional
 
+import pandas as pd
+
 from flask_wtf.file import FileField, FileAllowed
 from wtforms.validators import DataRequired
 from flask import Response
@@ -23,7 +25,7 @@ class BAInputForm(HTMXFlaskForm, TableDataForm):
         ("pdf", "PDF"),
     ]
 
-    file = FileField(validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])])
+    file = FileField("Bio Analyzer Report", validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])], description="Report exported from the BioAnalyzer software (pdf).")
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, max_size_mbytes: int = 5, experiment: Optional[models.Experiment] = None):
         if uuid is None:
@@ -31,10 +33,23 @@ class BAInputForm(HTMXFlaskForm, TableDataForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="ba_report", uuid=uuid)
         self.max_size_mbytes = max_size_mbytes
-        self.experiment = experiment
+        if experiment is not None:
+            self.__from_experiment(experiment)
+
+    def __from_experiment(self, experiment: models.Experiment):
+        self.metadata["experiment_id"] = experiment.id
+
+        pool_table = db.get_experiment_pools_df(experiment.id)
+        pool_table = pool_table[["id", "name", "avg_fragment_size"]]
+
+        self.add_table("pool_table", pool_table)
+        self.add_table("library_table", pd.DataFrame(columns=["id", "name", "avg_fragment_size"]))
+
+        self.update_data()
 
     def prepare(self):
         self._context["pool_table"] = self.tables["pool_table"]
+        self._context["library_table"] = self.tables["library_table"]
 
     def validate(self) -> bool:
         if not super().validate():
@@ -53,7 +68,8 @@ class BAInputForm(HTMXFlaskForm, TableDataForm):
     def process_request(self) -> Response:
         if not self.validate():
             pool_table = self.tables["pool_table"]
-            return self.make_response(pool_table=pool_table)
+            library_table = self.tables["library_table"]
+            return self.make_response(pool_table=pool_table, library_table=library_table)
         
         filename, extension = os.path.splitext(self.file.data.filename)
         
@@ -66,8 +82,6 @@ class BAInputForm(HTMXFlaskForm, TableDataForm):
             "extension": extension,
             "uuid": _uuid,
         }
-        if self.experiment is not None:
-            self.metadata["experiment_id"] = self.experiment.id
 
         self.update_data()
 

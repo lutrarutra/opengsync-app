@@ -6,26 +6,39 @@
         <h1 class="modal-title fs-5">3. QC Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
-    <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
+    <div class="modal-body">
         <div id="ba_report-form">
             {{ ba_report_form.csrf_token() }}
             {{ ba_report_form.file_uuid(hidden=True, readonly=True) }}
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th class="col-1" scope="col">Pool ID</th>
-                        <th class="col-5" scope="col">Pool Name</th>
-                        <th class="col-3" scope="col">Avg. Library Size</th>
+                    <th scope="col" class="col-2">ID</th>
+                    <th scope="col" class="col-4">Sample Name</th>
+                    <th scope="col" class="col-3">Type <span class="desc">Pool/Library</span></th>
+                    <th scope="col" class="col-3">Avg. Library Size</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for i, (_, row) in enumerate(pool_table.iterrows()) %}
-                    {% set sub_form = ba_report_form.input_fields[i] %}
+                    {% set sub_form = ba_report_form.pool_fields[i] %}
                     {{ sub_form.csrf_token() }}
                     <tr>
-                        <th scope="row">{{ row["id"] }}{{ sub_form.pool_id(class="form-control", readonly=true, hidden=true) }}</th>
-                        <th>{{ row["name"] }}</th>
-                        <td>{{ form_cell(sub_form.avg_library_size, input_class="avg_library_size-col", unit="bp") }}</td>
+                        <th scope="row">{{ row["id"] }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
+                        <td>{{ row["name"] }}</td>
+                        <td>Pool</td>
+                        <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
+                    </tr>
+                    {% endfor %}
+
+                    {% for i, (_, row) in enumerate(library_table.iterrows()) %}
+                    {% set sub_form = ba_report_form.library_fields[i] %}
+                    {{ sub_form.csrf_token() }}
+                    <tr>
+                        <th scope="row">{{ row["id"] }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
+                        <td>{{ row["name"] }}</td>
+                        <td>Library</td>
+                        <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

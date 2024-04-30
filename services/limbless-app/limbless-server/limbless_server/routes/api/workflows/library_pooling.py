@@ -32,7 +32,7 @@ def get_libraries(page: int) -> Response:
     libraries, n_pages = db.get_libraries(status=LibraryStatus.ACCEPTED, sort_by=sort_by, descending=descending, offset=offset)
     return make_response(
         render_template(
-            "workflows/library_pooling/select-libraries-table.html",
+            "components/tables/select-libraries.html",
             libraries=libraries, n_pages=n_pages, active_page=page,
             current_sort=sort_by, current_sort_order=order
         )
@@ -62,7 +62,7 @@ def table_query(field_name: str) -> Response:
     
     return make_response(
         render_template(
-            "workflows/library_pooling/select-libraries-table.html",
+            "components/tables/select-libraries.html",
             libraries=libraries, n_pages=1, active_page=0,
         )
     )

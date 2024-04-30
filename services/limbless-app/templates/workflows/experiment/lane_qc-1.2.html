@@ -11,7 +11,7 @@
             {{ lane_qc_form.csrf_token() }}
             <div class="row">
                 {{ form_group(lane_qc_form.phi_x, class="col-4", unit="%") }}
-                {{ form_group(lane_qc_form.avg_library_size, class="col-4 avg_library_size-col", unit="bp") }}
+                {{ form_group(lane_qc_form.avg_fragment_size, class="col-4 avg_fragment_size-col", unit="bp") }}
                 {{ form_group(lane_qc_form.qubit_concentration, class="col-4 qubit_concentration-col", unit="ng/μL") }}
             </div>
         </div>
@@ -31,13 +31,13 @@
     </div>
     <script>
         function update_molarity(row) {
-            const avg_library_size = parseFloat(row.find(".avg_library_size-col").first().closest("input").val());
+            const avg_fragment_size = parseFloat(row.find(".avg_fragment_size-col").first().closest("input").val());
             const qubit_concentration = parseFloat(row.find(".qubit_concentration-col").first().closest("input").val());
             const total_volume = parseFloat(row.find(".total_volume_ul-col").first().closest("input").val());
             const desired_molarity = parseFloat(row.find(".desired_molarity-col").first().closest("input").val());
 
-            if (avg_library_size && qubit_concentration) {
-                const molarity = qubit_concentration / (avg_library_size * 660) * 1000000;
+            if (avg_fragment_size && qubit_concentration) {
+                const molarity = qubit_concentration / (avg_fragment_size * 660) * 1000000;
                 row.find(".molarity-col .value").first().text(molarity.toFixed(2));
 
                 if ({{ warning_min }} < molarity && molarity < {{ warning_max }}) {
@@ -73,7 +73,7 @@
                 update_molarity($(this));
             });
 
-            $(".avg_library_size-col").on("input", function() {
+            $(".avg_fragment_size-col").on("input", function() {
                 update_molarity($(this).closest("tr"));
             });
 
