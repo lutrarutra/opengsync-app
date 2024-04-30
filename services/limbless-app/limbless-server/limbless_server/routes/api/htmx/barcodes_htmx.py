@@ -20,8 +20,8 @@ barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/hmtx/barco
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
 
     if sort_by not in models.Barcode.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -32,8 +32,8 @@ def get(page: int):
     return make_response(
         render_template(
             "components/tables/barcode.html", barcodes=barcodes,
-            barcodes_n_pages=n_pages, barcodes_active_page=page,
-            barcodes_current_sort=sort_by, barcodes_current_sort_order=order
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order
         ), push_url=False
     )
 

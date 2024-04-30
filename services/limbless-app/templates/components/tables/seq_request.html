@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_request-table" class="table-container">
     <table class="table table-hover table-cursor">
@@ -10,8 +11,8 @@
                     table_col(
                         target_id='seq_request-table', column_name='ID', column_var='id',
                         sort_url='seq_requests_htmx.get', sort_url_args={},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query'), current_query=seq_requests_current_query,
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query'), current_query=current_query,
                         field_name=field_name, query_type="number", col_size=1,
                     )
                 }}
@@ -19,8 +20,8 @@
                     table_col(
                         target_id='seq_request-table', column_name='Name', column_var='name',
                         sort_url='seq_requests_htmx.get', sort_url_args={},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query'), current_query=seq_requests_current_query,
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('seq_requests_htmx.table_query'), current_query=current_query,
                         field_name=field_name, col_size=2,
                     )
                 }}
@@ -28,28 +29,28 @@
                     table_col(
                         target_id='seq_request-table', column_name='Status', column_var='status_id',
                         sort_url='seq_requests_htmx.get', sort_url_args={},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=1,
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Requestor', column_var='requestor_id',
                         sort_url='seq_requests_htmx.get', sort_url_args={},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=2,
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-table', column_name='Submitted', column_var='submitted_time',
+                        target_id='seq_request-table', column_name='Submitted', column_var='timestamp_submitted_utc',
                         sort_url='seq_requests_htmx.get', sort_url_args={},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=1,
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='seq_requests_htmx.get', sort_url_args={},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=1,
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
             </tr>
@@ -67,7 +68,8 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("seq_request-table", "seq_requests_htmx.get", seq_requests_n_pages, seq_requests_active_page, url_args={"sort_by": seq_requests_current_sort, "order": seq_requests_current_sort_order}) }}
+    {{ spinner("seq_request-table-spinner") }}
+    {{ pagination("seq_request-table", "seq_requests_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
 </div>
 <script>
     $(document).ready(function() {

@@ -20,8 +20,8 @@ libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/hmtx/lib
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Library.sortable_fields:
@@ -111,8 +111,8 @@ def get(page: int):
     return make_response(
         render_template(
             template, libraries=libraries,
-            libraries_n_pages=n_pages, libraries_active_page=page,
-            libraries_current_sort=sort_by, libraries_current_sort_order=order,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
             **context
         ), push_url=False
     )

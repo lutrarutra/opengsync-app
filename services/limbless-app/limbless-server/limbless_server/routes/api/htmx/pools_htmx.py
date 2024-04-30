@@ -24,8 +24,8 @@ def get(page: int):
         return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
     pools: list[models.Pool] = []
@@ -66,9 +66,9 @@ def get(page: int):
 
         return make_response(
             render_template(
-                template, pools=pools, pools_n_pages=n_pages,
-                pools_current_sort=sort_by, pools_current_sort_order=order,
-                pools_active_page=page, **context
+                template, pools=pools, n_pages=n_pages,
+                sort_by=sort_by, sort_order=sort_order,
+                active_page=page, **context
             )
         )
     

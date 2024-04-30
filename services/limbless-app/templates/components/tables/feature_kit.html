@@ -1,13 +1,38 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <div id="feature_kit-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                <th scope="col" class="col-1">ID</th>
-                <th scope="col" class="col-3">Name</th>
-                <th scope="col" class="col-3">Type</th>
+                {{
+                    table_col(
+                        target_id='index_kit-table', column_name='ID', column_var='id',
+                        sort_url='index_kits_htmx.get', sort_url_args={},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('index_kits_htmx.table_query'), current_query=current_query,
+                        field_name=field_name, query_type="number", col_size=3
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='index_kit-table', column_name='Name', column_var='name',
+                        sort_url='index_kits_htmx.get', sort_url_args={},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('index_kits_htmx.table_query'), current_query=current_query,
+                        field_name=field_name, query_type="text", col_size=5
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='library-table', column_name='Type', column_var='type_id',
+                        sort_url='libraries_htmx.get', sort_url_args={},
+                        sort_by=sort_by, sort_order=sort_order,
+                        col_size=4,
+                    )
+                }}
             </tr>
         </thead>
         <tbody>
@@ -20,14 +45,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ 
-        pagination(
-            "feature_kit-table", "feature_kits_htmx.get",
-            feature_kits_n_pages, feature_kits_active_page,
-            url_args={
-                "sort_by": feature_kits_current_sort,
-                "order": feature_kits_current_sort_order
-            }
-        )
-    }}
+    {{ spinner("feature_kit-table-spinner") }}
+    {{ pagination("feature_kit-table", "feature_kits_htmx.get", n_pages, active_page, url_args={ "sort_by": sort_by, "sort_order": sort_order}) }}
 </div>

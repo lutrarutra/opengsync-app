@@ -25,11 +25,14 @@ def get(page: int):
     if not (sort_by := request.args.get("sort_by", None)):
         sort_by = "id"
     
-    if not (order := request.args.get("order", None)):
-        order = "desc"
+    if not (sort_order := request.args.get("sort_order", None)):
+        sort_order = "desc"
 
-    descending = order == "desc"
+    descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
+
+    import time
+    time.sleep(1)
 
     if sort_by not in models.Sample.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -74,8 +77,8 @@ def get(page: int):
         return make_response(
             render_template(
                 template, samples=samples,
-                samples_n_pages=n_pages, samples_active_page=page,
-                samples_current_sort=sort_by, samples_current_sort_order=order,
+                n_pages=n_pages, active_page=page,
+                sort_by=sort_by, sort_order=sort_order,
                 **context
             ), push_url=False
         )

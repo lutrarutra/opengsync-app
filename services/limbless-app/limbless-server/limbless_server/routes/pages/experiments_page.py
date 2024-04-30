@@ -21,16 +21,8 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 def experiments_page():
     if not current_user.is_insider():
         return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    with DBSession(db) as session:
-        experiments, n_pages = session.get_experiments()
 
-        return render_template(
-            "experiments_page.html",
-            experiments=experiments,
-            experiments_n_pages=n_pages, experiments_active_page=0,
-            experiments_current_sort="id", experiments_current_sort_order="desc"
-        )
+    return render_template("experiments_page.html")
 
 
 @experiments_page_bp.route("/experiments/<int:experiment_id>")

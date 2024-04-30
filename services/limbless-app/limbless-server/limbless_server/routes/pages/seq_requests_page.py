@@ -18,27 +18,7 @@ else:
 @seq_requests_page_bp.route("/seq_requests")
 @login_required
 def seq_requests_page():
-    seq_request_form = forms.models.SeqRequestForm(form_type="create", current_user=current_user)
-    current_sort = "id"
-
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            seq_requests, n_pages = session.get_seq_requests(user_id=current_user.id)
-        elif current_user.role == UserRole.ADMIN:
-            seq_requests, n_pages = session.get_seq_requests(user_id=None)
-        else:
-            seq_requests, n_pages = session.get_seq_requests(user_id=None, sort_by=current_sort, descending=True)
-
-    open_form = request.args.get("open_form") is not None
-
-    return render_template(
-        "seq_requests_page.html",
-        seq_request_form=seq_request_form,
-        seq_requests=seq_requests,
-        open_form=open_form,
-        seq_requests_n_pages=n_pages, seq_requests_active_page=0,
-        seq_requests_current_sort=current_sort, seq_requests_current_sort_order="desc"
-    )
+    return render_template("seq_requests_page.html")
 
 
 @seq_requests_page_bp.route("/seq_requests/<int:seq_request_id>")

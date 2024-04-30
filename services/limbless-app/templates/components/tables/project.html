@@ -1,5 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
 <div id="project-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -8,8 +10,8 @@
                     table_col(
                         target_id='project-table', column_name='ID', column_var='id',
                         sort_url='projects_htmx.get', sort_url_args={},
-                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order,
-                        query_url=url_for('projects_htmx.table_query'), current_query=projects_current_query,
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('projects_htmx.table_query'), current_query=current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
@@ -17,23 +19,23 @@
                     table_col(
                         target_id='project-table', column_name='Name', column_var='name',
                         sort_url='projects_htmx.get', sort_url_args={},
-                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order,
-                        query_url=url_for('projects_htmx.table_query'), current_query=projects_current_query,
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('projects_htmx.table_query'), current_query=current_query,
                         field_name=field_name, query_type="text", col_size=3
                     )
                 }}
                 {{
                     table_col(
-                        target_id='project-table', column_name='Owner', column_var='owner',
+                        target_id='project-table', column_name='Owner', column_var='owner_id',
                         sort_url='projects_htmx.get', sort_url_args={},
-                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order, col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='project-table', column_name='# Samples', column_var='num_samples',
                         sort_url='projects_htmx.get', sort_url_args={},
-                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order, col_size=1
+                        sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
             </tr>
@@ -49,5 +51,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("project-table", "projects_htmx.get", projects_n_pages, projects_active_page) }}
+    {{ spinner("project-table-spinner") }}
+    {{ pagination("project-table", "projects_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
 </div>

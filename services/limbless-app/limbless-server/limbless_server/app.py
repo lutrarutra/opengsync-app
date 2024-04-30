@@ -195,6 +195,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.libraries_htmx)
     app.register_blueprint(api.htmx.features_htmx)
     app.register_blueprint(api.htmx.feature_kits_htmx)
+    app.register_blueprint(api.htmx.index_kits_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.seq_run_api)

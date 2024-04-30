@@ -20,8 +20,8 @@ users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
 
     if sort_by not in models.User.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -32,8 +32,8 @@ def get(page: int):
         return make_response(
             render_template(
                 "components/tables/user.html", users=users,
-                users_active_page=page, users_n_pages=n_pages,
-                users_current_sort=sort_by, users_current_sort_order=order
+                active_page=page, n_pages=n_pages,
+                sort_by=sort_by, sort_order=sort_order
             ), push_url=False
         )
 

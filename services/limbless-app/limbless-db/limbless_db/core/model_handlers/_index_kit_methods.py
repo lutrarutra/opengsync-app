@@ -59,15 +59,22 @@ def get_index_kit_by_name(self, name: str) -> Optional[models.IndexKit]:
 
 
 def get_index_kits(
-    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0
+    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
+    sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.IndexKit], int]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.IndexKit).order_by(models.IndexKit.id.desc())
+    query = self._session.query(models.IndexKit)
 
     n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+
+    if sort_by is not None:
+        attr = getattr(models.IndexKit, sort_by)
+        if descending:
+            attr = attr.desc()
+        query = query.order_by(attr)
 
     if limit is not None:
         query = query.limit(limit)

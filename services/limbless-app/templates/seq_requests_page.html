@@ -19,7 +19,9 @@
         </div>
     </div>
 
-    {% include "components/tables/seq_request.html" %}
+    <div hx-get="{{ url_for('seq_requests_htmx.get', page=0) }}" hx-trigger="load" hx-swap="outerHMTL">
+        {{ spinner() }}
+    </div>
 
     <div class="modal fade" id="xl-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false">
         <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">

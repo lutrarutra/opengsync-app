@@ -20,15 +20,8 @@ users_page_bp = Blueprint("users_page", __name__)
 def users_page():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    
-    users, n_pages = db.get_users()
 
-    return render_template(
-        "users_page.html",
-        users=users,
-        page=0, n_pages=n_pages, user_form=forms.UserForm(),
-        current_sort="id", current_sort_order="asc"
-    )
+    return render_template("users_page.html", user_form=forms.UserForm())
 
 
 @users_page_bp.route("/user", defaults={"user_id": None})

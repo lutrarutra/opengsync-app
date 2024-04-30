@@ -20,8 +20,8 @@ projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/hmtx/proje
 @login_required
 def get(page):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
     if sort_by not in models.Project.sortable_fields:
@@ -58,10 +58,10 @@ def get(page):
     return make_response(
         render_template(
             template, projects=projects,
-            projects_n_pages=n_pages, projects_active_page=page,
-            current_sort=sort_by, current_sort_order=order,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
             **context
-        ), push_url=False
+        )
     )
 
 

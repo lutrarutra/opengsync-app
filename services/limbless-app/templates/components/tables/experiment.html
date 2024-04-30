@@ -11,17 +11,16 @@
                     table_col(
                         target_id='experiment-table', column_name='ID', column_var='id',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         query_url=url_for("experiments_htmx.table_query"), current_query=current_query,
                         field_name=field_name, query_type="number"
-                        
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Name', column_var='name',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         query_url=url_for("experiments_htmx.table_query"), current_query=current_query,
                         field_name=field_name, query_type="text", col_size=3
                     )
@@ -30,7 +29,7 @@
                     table_col(
                         target_id='experiment-table', column_name='Status', column_var='status_id',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
                 }}
@@ -39,7 +38,7 @@
                     table_col(
                         target_id='experiment-table', column_name='Created', column_var='timestamp_created_utc',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
                 }}
@@ -47,7 +46,7 @@
                     table_col(
                         target_id='experiment-table', column_name='Workflow', column_var='workflow_id',
                         sort_url='experiments_htmx.get', sort_url_args={},
-                        current_sort=experiments_current_sort, current_sort_order=experiments_current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
                 }}
@@ -69,5 +68,5 @@
         </tbody>
     </table>
     {{ spinner("experiment-table-spinner") }}
-    {{ pagination("experiment-table", "experiments_htmx.get", experiments_n_pages, experiments_active_page, url_args={"sort_by": experiments_current_sort, "order": experiments_current_sort_order}) }}
+    {{ pagination("experiment-table", "experiments_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
 </div>

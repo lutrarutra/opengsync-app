@@ -1,5 +1,5 @@
-{% macro table_col(target_id, column_name, column_var, sort_url=none, current_sort=none, current_sort_order=none, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1, sort_url_args={}, active_page=0) -%}
-<th scope="col" class="col-{{ col_size}} sortable-col {{ current_sort_order }} {{ 'query-col' if query_url else '' }}"
+{% macro table_col(target_id, column_name, column_var, sort_url=none, sort_by=none, sort_order=none, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1, sort_url_args={}, active_page=0) -%}
+<th scope="col" class="col-{{ col_size}} sortable-col {{ sort_order }} {{ 'query-col' if query_url else '' }}"
 id="{{ target_id }}:{{ column_var }}"
 {% if (current_query and column_var == field_name) %}style="display: none;"{% endif %}>
 {{ column_name }}
@@ -9,11 +9,11 @@ id="{{ target_id }}:{{ column_var }}"
     hx-target="#{{ target_id }}" hx-swap="outerHTML"
     hx-get="{{ url_for(
         sort_url, page=active_page | float | int, sort_by=column_var,
-        order='asc' if current_sort_order == 'desc' else 'desc', **sort_url_args
+        sort_order='asc' if sort_order == 'desc' else 'desc', **sort_url_args
     ) }}"
     hx-indicator="#{{ target_id }}-spinner" onclick="remove_elements()">
-        {% if column_var == current_sort %}
-            {% if current_sort_order == 'desc' %}
+        {% if column_var == sort_by %}
+            {% if sort_order == 'desc' %}
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sort-down" viewBox="0 0 16 16">
                 <path d="M3.5 2.5a.5.5 0 0 0-1 0v8.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L3.5 11.293V2.5zm3.5 1a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM7.5 6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zm0 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zm0 3a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z"/>
             </svg>

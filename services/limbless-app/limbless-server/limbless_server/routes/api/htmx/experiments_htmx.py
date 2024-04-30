@@ -25,8 +25,8 @@ experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/hmtx
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
     import time
@@ -44,8 +44,8 @@ def get(page: int):
         render_template(
             "components/tables/experiment.html",
             experiments=experiments,
-            experiments_n_pages=n_pages, experiments_active_page=page,
-            experiments_current_sort=sort_by, experiments_current_sort_order=order
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order
         ), push_url=False
     )
 

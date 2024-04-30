@@ -12,18 +12,7 @@ projects_page_bp = Blueprint("projects_page", __name__)
 @login_required
 def projects_page():
     project_form = forms.models.ProjectForm()
-
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            projects, n_pages = session.get_projects(user_id=current_user.id, sort_by="id", descending=True)
-        else:
-            projects, n_pages = session.get_projects(user_id=None, sort_by="id", descending=True)
-
-        return render_template(
-            "projects_page.html", project_form=project_form,
-            projects=projects, projects_n_pages=n_pages, projects_active_page=0,
-            current_sort="id", current_sort_order="desc"
-        )
+    return render_template("projects_page.html", project_form=project_form)
 
 
 @projects_page_bp.route("/projects/<project_id>")

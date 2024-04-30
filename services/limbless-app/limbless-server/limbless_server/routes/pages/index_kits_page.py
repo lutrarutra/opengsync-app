@@ -7,20 +7,13 @@ from ... import db
 index_kits_page_bp = Blueprint("index_kits_page", __name__)
 
 
-@index_kits_page_bp.route("/index_kit")
+@index_kits_page_bp.route("/index_kits")
 @login_required
 def index_kits_page():
-    with DBSession(db) as session:
-        index_kits, n_pages = session.get_index_kits()
-
-    return render_template(
-        "index_kits_page.html",
-        index_kits=index_kits, index_kits_n_pages=n_pages, index_kits_active_page=0,
-        
-    )
+    return render_template("index_kits_page.html")
 
 
-@index_kits_page_bp.route("/index_kit/<int:index_kit_id>")
+@index_kits_page_bp.route("/index_kits/<int:index_kit_id>")
 @login_required
 def index_kit_page(index_kit_id: int):
     with DBSession(db) as session:

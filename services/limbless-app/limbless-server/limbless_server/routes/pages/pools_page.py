@@ -21,19 +21,7 @@ pools_page_bp = Blueprint("pools_page", __name__)
 @pools_page_bp.route("/pools")
 @login_required
 def pools_page():
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            pools, n_pages = session.get_pools(user_id=current_user.id, sort_by="id", descending=True)
-        else:
-            pools, n_pages = session.get_pools(user_id=None, sort_by="id", descending=True)
-
-    return render_template(
-        "pools_page.html",
-        pools=pools,
-        index_kit_results=[],
-        pools_n_pages=n_pages, pools_active_page=0,
-        current_sort="id", current_sort_order="desc"
-    )
+    return render_template("pools_page.html")
 
 
 @pools_page_bp.route("/pools/<int:pool_id>")

@@ -7,23 +7,13 @@ from ... import db
 feature_kits_page_bp = Blueprint("feature_kits_page", __name__)
 
 
-@feature_kits_page_bp.route("/feature_kit")
+@feature_kits_page_bp.route("/feature_kits")
 @login_required
 def feature_kits_page():
-    with DBSession(db) as session:
-        feature_kits, n_pages = session.get_feature_kits(sort_by="id", descending=True)
-
-    return render_template(
-        "feature_kits_page.html",
-        feature_kits=feature_kits,
-        feature_kits_n_pages=n_pages,
-        feature_kits_active_page=0,
-        feature_kits_current_sort="id",
-        feature_kits_current_sort_order="desc"
-    )
+    return render_template("feature_kits_page.html")
 
 
-@feature_kits_page_bp.route("/feature_kit/<int:feature_kit_id>")
+@feature_kits_page_bp.route("/feature_kits/<int:feature_kit_id>")
 @login_required
 def feature_kit_page(feature_kit_id: int):
     with DBSession(db) as session:

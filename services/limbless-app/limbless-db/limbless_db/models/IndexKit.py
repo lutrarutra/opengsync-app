@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -17,6 +17,8 @@ class IndexKit(Base):
     num_indices_per_adapter: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     barcodes: Mapped[list["Barcode"]] = relationship("Barcode", back_populates="index_kit", lazy="select")
+
+    sortable_fields: ClassVar[list[str]] = ["id", "name"]
 
     def __str__(self):
         return f"IndexKit('{self.name}')"

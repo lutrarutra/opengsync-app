@@ -11,3 +11,4 @@ from .samples_htmx import samples_htmx   # noqa: F401
 from .sequencers_htmx import sequencers_htmx   # noqa: F401
 from .seq_requests_htmx import seq_requests_htmx   # noqa: F401
 from .users_htmx import users_htmx   # noqa: F401
+from .index_kits_htmx import index_kits_htmx   # noqa: F401

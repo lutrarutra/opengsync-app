@@ -10,7 +10,7 @@ from flask_htmx import make_response
 from wtforms import IntegerField, FieldList, FormField
 from wtforms.validators import NumberRange, Optional as OptionalValidator, DataRequired
 
-from limbless_db import models, DBHandler
+from limbless_db import models
 from limbless_db.categories import FileType
 
 from .... import db, logger

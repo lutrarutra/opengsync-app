@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_request-library-table" class="table-container">
     <table class="table table-hover table-cursor">
@@ -10,8 +11,8 @@
                     table_col(
                         target_id='seq_request-library-table', column_name='ID', column_var='id',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=libraries_current_query,
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
                         field_name=field_name, query_type="number", col_size=1
                     )
                 }}
@@ -19,8 +20,8 @@
                     table_col(
                         target_id='seq_request-library-table', column_name='Name', column_var='name',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=libraries_current_query,
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('libraries_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
                         field_name=field_name, col_size=2
                     )
                 }}
@@ -28,7 +29,7 @@
                     table_col(
                         target_id='seq_request-library-table', column_name='Pool', column_var='pool_id',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
                 }}
@@ -36,7 +37,7 @@
                     table_col(
                         target_id='seq_request-library-table', column_name='Type', column_var='type_id',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=1
                     )
                 }}
@@ -44,15 +45,15 @@
                     table_col(
                         target_id='seq_request-library-table', column_name='Owner', column_var='owner_id',
                         sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-library-table', column_name='Adapter', column_var='adapter',
-                        sort_url='libraries_htmx.get', sort_url_args={"pool_id": pool.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        sort_url='libraries_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=1
                     )
                 }}
@@ -95,7 +96,8 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("seq_request-library-table", "libraries_htmx.get", libraries_n_pages, libraries_active_page, url_args={"seq_request_id": seq_request.id}) }}
+    {{ spinner("seq_request-library-table-spinner") }}
+    {{ pagination("seq_request-library-table", "libraries_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order, "seq_request_id": seq_request.id}) }}
     <script>
         var selected_library_id = null;
         var selected_index_element_id = null;
