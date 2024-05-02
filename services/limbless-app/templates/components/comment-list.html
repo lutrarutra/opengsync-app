@@ -1,0 +1,26 @@
+<div class="comment-container p-3">
+    {% for comment in comments %}
+    <div class="row">
+        {% if comment.author_id == current_user.id %}
+        <div class="col-4"></div>
+        {% endif %}
+        <div class="card col-8">
+            <div class="comment-header">
+                <p class="text title">
+                {{ comment.author.role.icon | safe }} {{ comment.author.name }}
+                <span class="desc">{{ comment.author.role.name }}</span>
+            </p>
+                <p class="text text-muted">{{ comment.timestamp_str() }}</p>
+            </div>
+            <div class="comment-body">
+                <p class="text">{{ comment.text }}</p>
+            </div>
+            <div class="comment-footer">
+                {% if comment.file_id %}
+                <p class="text text-muted">Attachment: 📎 <button class="btn info" onclick="open_file_tab({{comment.file_id}})">File</button></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>

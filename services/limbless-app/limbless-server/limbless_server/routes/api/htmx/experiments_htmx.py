@@ -466,3 +466,110 @@ def overview(experiment_id: int):
             links=links, nodes=nodes
         )
     )
+
+
+@experiments_htmx.route("<int:experiment_id>/get_pools/<int:page>", methods=["GET"])
+@experiments_htmx.route("<int:experiment_id>/get_pools", methods=["GET"], defaults={"page": 0})
+@login_required
+def get_pools(experiment_id: int, page: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    if sort_by not in models.Pool.sortable_fields:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    experiment_lanes: dict[int, list[int]] = {}
+    
+    with DBSession(db) as session:
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        pools, _ = session.get_pools(
+            offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
+            limit=None
+        )
+
+        for lane in experiment.lanes:
+            experiment_lanes[lane.number] = []
+            
+            for pool in lane.pools:
+                experiment_lanes[lane.number].append(pool.id)
+
+    return make_response(
+        render_template(
+            "components/tables/experiment-pool.html",
+            pools=pools, n_pages=1, active_page=0,
+            sort_by=sort_by, sort_order=sort_order,
+            experiment=experiment, experiment_lanes=experiment_lanes
+        )
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/query_pools", methods=["GET"])
+@login_required
+def query_pools(experiment_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (word := request.args.get("word")) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    with DBSession(db) as session:
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        pools = session.query_pools(experiment_id=experiment_id, name=word, limit=None)
+
+    return make_response(
+        render_template(
+            "components/tables/experiment-pool.html",
+            pools=pools, n_pages=1, active_page=1,
+            experiment=experiment
+        )
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/get_comments", methods=["GET"])
+@login_required
+def get_comments(experiment_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    with DBSession(db) as session:
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        comments = experiment.comments
+
+    return make_response(
+        render_template(
+            "components/comment-list.html",
+            comments=comments, experiment=experiment,
+        )
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/get_files", methods=["GET"])
+@login_required
+def get_files(experiment_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    with DBSession(db) as session:
+        if (experiment := session.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        files = experiment.files
+
+    return make_response(
+        render_template(
+            "components/file-list.html",
+            files=files, experiment=experiment, delete="experiments_htmx.delete_file",
+            delete_context={"experiment_id": experiment_id}
+        )
+    )

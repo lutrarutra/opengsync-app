@@ -11,7 +11,7 @@
                     table_col(
                         target_id='select-pools-table', column_name='ID', column_var='id',
                         sort_url='ba_report_workflow.get_pools', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         query_url=url_for('ba_report_workflow.pools_table_query', field_name="id"), current_query=current_query,
                         field_name=field_name, query_type="number", col_size=1,
                     )
@@ -20,7 +20,7 @@
                     table_col(
                         target_id='select-pools-table', column_name='Name', column_var='name',
                         sort_url='ba_report_workflow.get_pools', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         query_url=url_for('ba_report_workflow.pools_table_query', field_name="name"), current_query=current_query,
                         field_name=field_name, query_type="text", col_size=2,
                     )
@@ -29,7 +29,7 @@
                     table_col(
                         target_id='select-pools-table', column_name='Status', column_var='status_id',
                         sort_url='ba_report_workflow.get_pools', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=1,
                     )
                 }}
@@ -37,7 +37,7 @@
                     table_col(
                         target_id='select-pools-table', column_name='Owner', column_var='owner_id',
                         sort_url='ba_report_workflow.get_pools', sort_url_args={},
-                        current_sort=current_sort, current_sort_order=current_sort_order,
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
                     )
                 }}
@@ -55,7 +55,7 @@
         </tbody>
     </table>
     {{ spinner("select-pools-table-spinner") }}
-    {{ pagination("select-pools-table", "ba_report_workflow.get_pools", n_pages, active_page, url_args={"sort_by": current_sort, "order": current_sort_order}) }}
+    {{ pagination("select-pools-table", "ba_report_workflow.get_pools", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
     <script>
         $(document).ready(function() {
             init_tooltips();

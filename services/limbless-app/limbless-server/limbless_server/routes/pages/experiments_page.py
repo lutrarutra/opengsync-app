@@ -38,8 +38,6 @@ def experiment_page(experiment_id: int):
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
 
-        available_seq_requests_sort = "submitted_time"
-
         pools, _ = db.get_pools(experiment_id=experiment_id, sort_by="id", descending=True, limit=None)
 
         comment_form = forms.comment.ExperimentCommentForm(experiment_id=experiment_id)
@@ -89,20 +87,15 @@ def experiment_page(experiment_id: int):
             if file.type == FileType.LANE_POOLING_TABLE:
                 laning_completed = True
                 break
-        experiment.comments
 
         return render_template(
             "experiment_page.html",
             experiment=experiment,
             path_list=path_list,
             pools=pools,
-            libraries_active_page=0,
             file_input_form=file_input_form,
             comment_form=comment_form,
-            available_seq_requests_active_page=0,
             experiment_lanes=experiment_lanes,
-            available_seq_requests_current_sort=available_seq_requests_sort,
-            available_seq_requests_current_sort_order="desc",
             selected_sequencer=experiment.sequencer.name,
             selected_user=experiment.operator,
             all_pools_laned=all_pools_laned,

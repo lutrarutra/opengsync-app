@@ -49,7 +49,7 @@ class Experiment(Base):
     pools: Mapped[list["Pool"]] = relationship("Pool", secondary=ExperimentPoolLink.__tablename__, lazy="select")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
     files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink.__tablename__, lazy="select", cascade="delete")
-    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="delete")
+    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="merge, save-update, delete", order_by="Comment.timestamp_utc.desc()")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
     actions: Mapped[list["ExperimentAction"]] = relationship("ExperimentAction", lazy="select", order_by="ExperimentAction.status_id.desc()", cascade="merge, save-update, delete, delete-orphan")
 

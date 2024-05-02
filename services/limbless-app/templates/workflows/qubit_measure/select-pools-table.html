@@ -1,0 +1,70 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from 'components/spinner.jinja2' import spinner %}
+
+<div id="select-pools-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        target_id='select-pools-table', column_name='ID', column_var='id',
+                        sort_url='qubit_measure_workflow.get_pools', sort_url_args={ "experiment_id": experiment_id } if experiment_id else {},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('qubit_measure_workflow.pools_table_query', field_name="name", experiment_id=experiment_id) if experiment_id else url_for('qubit_measure_workflow.pools_table_query', field_name="name"),
+                        current_query=current_query, field_name=field_name, query_type="number", col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-pools-table', column_name='Name', column_var='name',
+                        sort_url='qubit_measure_workflow.get_pools', sort_url_args={ "experiment_id": experiment_id } if experiment_id else {},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=url_for('qubit_measure_workflow.pools_table_query', field_name="name", experiment_id=experiment_id) if experiment_id else url_for('qubit_measure_workflow.pools_table_query', field_name="name"),
+                        current_query=current_query, field_name=field_name, query_type="text", col_size=4,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-pools-table', column_name='Status', column_var='status_id',
+                        sort_url='qubit_measure_workflow.get_pools', sort_url_args={ "experiment_id": experiment_id } if experiment_id else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
+                        target_id='select-pools-table', column_name='Owner', column_var='owner_id',
+                        sort_url='qubit_measure_workflow.get_pools', sort_url_args={ "experiment_id": experiment_id } if experiment_id else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=3,
+                    )
+                }}
+                <th class="col-2" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pool in pools %}
+            <tr onclick="select_pool({{ pool.id }});" id="pool-row-{{ pool.id }}" class="pool-row">
+                <th scope="row">{{ pool.id }}</th>
+                <td>{{ pool.name }}</td>
+                <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
+                <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+                <td class="qubit-col">
+                    <div class="quantity-container">
+                        <div class="value">{{ pool.qubit_concentration_str }}</div>
+                        <div class="unit">ng/μL</div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("select-pools-table-spinner") }}
+    {{ pagination("select-pools-table", "qubit_measure_workflow.get_pools", n_pages, active_page, url_args={ "sort_by": sort_by, "sort_order": sort_order, "experiment_id": experiment_id } if experiment_id else {"sort_by": sort_by, "sort_order": sort_order}) }}
+    <script>
+        $(document).ready(function() {
+            init_tooltips();
+            update_pools();
+        });
+    </script>
+</div>

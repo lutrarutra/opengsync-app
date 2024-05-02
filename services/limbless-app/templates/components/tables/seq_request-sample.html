@@ -10,18 +10,16 @@
                 {{
                     table_col(
                         target_id='seq_request-sample-table', column_name='ID', column_var='id',
-                        sort_url='samples_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        sort_url='seq_requests_htmx.get_samples', sort_url_args={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('samples_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
                         field_name=field_name, query_type="number", col_size=1
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-sample-table', column_name='Name', column_var='name',
-                        sort_url='samples_htmx.get', sort_url_args={"seq_request_id": seq_request.id},
+                        sort_url='seq_requests_htmx.get_samples', sort_url_args={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('samples_htmx.table_query', seq_request_id=seq_request.id), current_query=current_query,
                         field_name=field_name, query_type="string", col_size=3
                     )
                 }}
@@ -51,5 +49,5 @@
         </tbody>
     </table>
     {{ spinner("seq_request-sample-table-spinner") }}
-    {{ pagination("seq_request-sample-table", "samples_htmx.get", n_pages, active_page, url_args={"seq_request_id": seq_request.id, "sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("seq_request-sample-table", "seq_requests_htmx.get_samples", n_pages, active_page, url_args={"seq_request_id": seq_request.id, "sort_by": sort_by, "sort_order": sort_order}) }}
 </div>

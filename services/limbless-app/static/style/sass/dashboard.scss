@@ -45,9 +45,9 @@
         }
         .banner-container {
             margin-right: 5px;
-            padding: 0 5px 0 15px;
+            padding: 0 5px 5px 15px;
             overflow-y: auto;
-            height: 100%;
+            height: calc(100% - 65px);
         }
     }
 

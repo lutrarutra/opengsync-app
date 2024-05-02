@@ -18,6 +18,7 @@ pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/hmtx/pools/")
 
 
 @pools_htmx.route("get/<int:page>", methods=["GET"])
+@pools_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @login_required
 def get(page: int):
     if not current_user.is_insider():
@@ -145,4 +146,66 @@ def table_query():
             current_query=word,
             Pool=models.Pool, **context,
         ), push_url=False
+    )
+
+
+@pools_htmx.route("<int:pool_id>/get_libraries/<int:page>", methods=["GET"])
+@pools_htmx.route("<int:pool_id>/get_libraries", methods=["GET"], defaults={"page": 0})
+@login_required
+def get_libraries(pool_id: int, page: int):
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and pool.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    libraries, n_pages = db.get_libraries(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending)
+    
+    return make_response(
+        render_template(
+            "components/tables/pool-library.html",
+            libraries=libraries, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, pool=pool
+        )
+    )
+
+
+@pools_htmx.route("<int:pool_id>/query_libraries/<string:field_name>", methods=["POST"])
+@login_required
+def query_libraries(pool_id: int, field_name: str):
+    if (word := request.form.get(field_name)) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and pool.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if field_name == "name":
+        libraries = db.query_libraries(word, pool_id=pool_id)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        libraries = []
+        if (library := db.get_library(library_id=_id)) is not None:
+            if library.pool_id == pool_id:
+                libraries.append(library)
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    return make_response(
+        render_template(
+            "components/tables/pool-library.html",
+            libraries=libraries, n_pages=1, active_page=0,
+            pool=pool
+        )
     )

@@ -12,9 +12,13 @@
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">
-        <button class="btn btn-success" hx-include="#comment-form" hx-target="#comment-form-container" hx-swap="outerHTML"
-        hx-encoding="multipart/form-data" hx-post="{{ comment_form._post_url }}">
-            Submit
-        </button>
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#comment-form" hx-target="#comment-form-container" hx-swap="outerHTML"
+            hx-encoding="multipart/form-data" hx-post="{{ comment_form._post_url }}">
+                Submit
+            </button>
+        </div>
     </div>
 </div>

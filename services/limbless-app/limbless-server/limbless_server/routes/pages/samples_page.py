@@ -19,17 +19,7 @@ samples_page_bp = Blueprint("samples_page", __name__)
 @samples_page_bp.route("/samples")
 @login_required
 def samples_page():
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            samples, n_pages = session.get_samples(user_id=current_user.id, sort_by="id", descending=True)
-        else:
-            samples, n_pages = session.get_samples(user_id=None, sort_by="id", descending=True)
-
-    return render_template(
-        "samples_page.html", samples=samples,
-        samples_n_pages=n_pages, samples_active_page=0,
-        current_sort="id", current_sort_order="desc"
-    )
+    return render_template("samples_page.html")
 
 
 @samples_page_bp.route("/samples/<sample_id>")

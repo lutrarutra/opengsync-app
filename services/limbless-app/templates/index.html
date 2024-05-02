@@ -121,6 +121,27 @@
                 </div>
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                    hx-get="{{ url_for('qubit_measure_workflow.begin') }}"
+                    hx-target="#xl-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click">
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/fluorometer.svg') }}" width="55px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Qubit Concentration</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Measure samples' concentration with Qubit fluorometer.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flip-card card"
+                    data-bs-toggle="modal" data-bs-target="#xl-modal" 
                     hx-get="{{ url_for('ba_report_workflow.begin') }}"
                     hx-target="#xl-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">

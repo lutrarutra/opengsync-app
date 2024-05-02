@@ -123,49 +123,68 @@ body {
     top: 60px;
     width: 100vw;
     height: calc(100vh - 60px);
-    overflow-y: auto;
+    overflow-y: hidden;
+    overflow-y: hidden;
+    ::-webkit-scrollbar-track {
+        background-color: $gray-200;
+    }
 }
 
+
 #main {
-    width: 100%;
     padding: 0;
     display: flex;
-    width: calc(100vw - 10px);
+    width: 100vw;
+    height: 100%;
     overflow-x: hidden;
-    background-color: $gray-200;
+    overflow-y: scroll;
 
     #left-margin, #right-margin {
         position: sticky;
+        top: 0;
         padding: 5px;
         width: 150px;
         margin: 0;
+        background-color: $gray-200;
     }
 
     #middle-container {
-        height: calc(100vh - 60px);
         width: 100%;
+        height: 100%;
         background-color: $gray-100;
+        
         .container {
             min-width: 100%;
-            height: calc(100vh - 60px);
+            overflow-y: auto;
 
-            .status_bar {
-                padding-bottom: 5px;
+            .page-content {
+                height: 100%;
             }
-            .page-header {
+        }
+
+        .status_bar {
+            padding-bottom: 5px;
+        }
+        .page-header-container {
+            padding: 0 10px 0 10px;
+            position: sticky;
+            background-color: $gray-100;
+            top: 0;
+            z-index: 10;
+        }
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 50px;
+            h1, h2 {
+                margin: 0;
+                padding: 0;
+            }
+            div {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
-                height: 50px;
-                h1, h2 {
-                    margin: 0;
-                    padding: 0;
-                }
-                div {
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                }
+                gap: 5px;
             }
         }
     }
@@ -193,6 +212,17 @@ body {
         font-weight: 500;
         line-height: 1.2;
     
+    }
+}
+
+.file-container {
+    overflow-y: auto;
+    overflow-x: auto;
+
+    height: 100%;
+
+    img {
+        object-fit: fill;
     }
 }
 
@@ -505,6 +535,10 @@ span.id-desc::after {
             display: inline-block;
         }
         .info {color: dodgerblue;}
+    }
+
+    .card:hover {
+        cursor: default;
     }
 
     .comment-header {

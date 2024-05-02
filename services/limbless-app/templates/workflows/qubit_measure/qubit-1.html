@@ -1,8 +1,9 @@
 {% from 'components/form_group.jinja2' import form_group, form_cell %}
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 {% from 'components/spinner.jinja2' import spinner %}
+{% from "components/tooltip.jinja2" import tooltip %}
 
-<div id="ba_report-form-container" class="modal-content">
+<div id="qubit_measure-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">1. Select Samples Form</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
@@ -10,24 +11,28 @@
     <div class="modal-body">
         <div class="tab-body">
             <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+                {% if not experiment is defined %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#available-libraries-tab"
                         type="button" role="tab" aria-controls="available-libraries-tab" aria-selected="true">
                         Libraries
                     </button>
                 </li>
+                {% endif %}
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
+                    <button class="nav-link {% if experiment is defined %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
                         type="button" role="tab" aria-controls="available-pools-tab" aria-selected="true">
                         Pools
                     </button>
                 </li>
+                {% if not experiment is defined %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
                         type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
                         Selected Libraries ({{ selected_libraries | length }})
                     </button>
                 </li>
+                {% endif %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
                         type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
@@ -35,45 +40,53 @@
                     </button>
                 </li>
             </ul>
-            <div class="tab-content ba">
+            <div class="tab-content">
                 <div class="invalid-feedback-container">
-                    {% for error in ba_report_form.error_dummy.errors %}
+                    {% for error in qubit_measure_form.error_dummy.errors %}
                         <p class="">{{ error }}</p>
                     {% endfor %}
                 </div>
+                {% if not experiment is defined %}
                 <div class="tab-pane fade show active" id="available-libraries-tab" role="tabpanel" tabindex="0">
-                    <div hx-get="{{ url_for('ba_report_workflow.get_libraries', page=0) }}" hx-trigger="load">
+                    <div hx-get="{% if experiment is defined %}{{ url_for('qubit_measure_workflow.get_libraries', page=0, experiment_id=experiment.id) }}{% else %}{{ url_for('qubit_measure_workflow.get_libraries', page=0) }}{% endif %}"
+                        hx-trigger="load">
                         {{ spinner() }}
                     </div>
                 </div>
-                <div class="tab-pane fade" id="available-pools-tab" role="tabpanel" tabindex="1">
-                    <div hx-get="{{ url_for('ba_report_workflow.get_pools', page=0) }}" hx-trigger="load">
+                {% endif %}
+                <div class="tab-pane fade {% if experiment is defined %}show active{% endif %}" id="available-pools-tab" role="tabpanel" tabindex="1">
+                    <div hx-get="{% if experiment is defined %}{{ url_for('qubit_measure_workflow.get_pools', page=0, experiment_id=experiment.id) }}{% else %}{{ url_for('qubit_measure_workflow.get_pools', page=0) }}{% endif %}" hx-trigger="load">
                         {{ spinner() }}
                     </div>
                 </div>
+                {% if not experiment is defined %}
                 <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="2">
                     <table class="table table-hover table-cursor">
                         <thead>
                             <tr>
-                                <th scope="col">ID</th>
-                                <th scope="col">Name</th>
-                                <th scope="col">Type</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Owner</th>
+                                <th scope="col" class="col-1">ID</th>
+                                <th scope="col" class="col-3">Name</th>
+                                <th scope="col" class="col-2">Type</th>
+                                <th scope="col" class="col-2">Status</th>
+                                <th scope="col" class="col-2">Owner</th>
+                                <th scope="col" class="col-2" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
+
                             </tr>
                         </thead>
                         <tbody id="selected-libraries-table-container">
                         </tbody>
                     </table>
                 </div>
+                {% endif %}
                 <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="3">
                     <table class="table table-hover table-cursor">
                         <thead>
                             <tr>
-                                <th scope="col">ID</th>
-                                <th scope="col">Name</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Owner</th>
+                                <th scope="col" class="col-1">ID</th>
+                                <th scope="col" class="col-4">Name</th>
+                                <th scope="col" class="col-2">Status</th>
+                                <th scope="col" class="col-3">Owner</th>
+                                <th scope="col" class="col-2" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
                             </tr>
                         </thead>
                         <tbody id="selected-pools-table-container">
@@ -89,7 +102,7 @@
         <div class="footer-info">
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-primary" id="submit-ba_report-form-btn">
+            <button type="button" class="btn btn-primary" id="submit-qubit_measure-form-btn">
                 Next
             </button>
         </div>
@@ -123,6 +136,16 @@
             $("#selected-pools-tab-btn").text(`Selected Pools (${num_selected_pools})`);
         }
 
+        function update_pools() {
+            $(".pool-row").each(function() {
+                const pool_id = parseInt($(this).attr("id").split("-").pop());
+                if (selected_pools.includes(pool_id)) {
+                    $(this).addClass("selected");
+                }
+            });
+        }
+
+        {% if not experiment is defined %}
         function select_library(library_id) {
             if (selected_libraries.includes(library_id)) {
                 selected_libraries = selected_libraries.filter(function(value, index, arr) {
@@ -144,15 +167,6 @@
             $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
         }
 
-        function update_pools() {
-            $(".pool-row").each(function() {
-                const pool_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_pools.includes(pool_id)) {
-                    $(this).addClass("selected");
-                }
-            });
-        }
-
         function update_libraries() {
             $(".library-row").each(function() {
                 const library_id = parseInt($(this).attr("id").split("-").pop());
@@ -161,18 +175,19 @@
                 }
             });
         }
+        {% endif %}
 
-        $("#submit-ba_report-form-btn").click(function() {
+        $("#submit-qubit_measure-form-btn").click(function() {
             if (num_selected_libraries + num_selected_pools == 0) {
                 $(".invalid-feedback-container").html("<p>Select at least one pool or library.</p>");
                 return false;
             }
 
-            htmx.ajax("POST", "{{ url_for('ba_report_workflow.select') }}", {
-                target: "#ba_report-form-container",
+            htmx.ajax("POST", "{{ url_for('qubit_measure_workflow.select') }}", {
+                target: "#qubit_measure-form-container",
                 swap: "outerHTML",
                 values: {
-                    csrf_token: "{{ ba_report_form.csrf_token._value() }}",
+                    csrf_token: "{{ qubit_measure_form.csrf_token._value() }}",
                     selected_pool_ids: JSON.stringify(selected_pools),
                     selected_libraries_ids: JSON.stringify(selected_libraries),
                 },

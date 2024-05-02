@@ -1,44 +1,44 @@
 {% from 'components/form_group.jinja2' import form_group, form_cell %}
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 
-<div id="ba_report-form-container" class="modal-content" style="height: 100%;">
+<div id="qubit_measure-form-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">3. Complete Form</h1>
+        <h1 class="modal-title fs-5">2. QC Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
-        <div id="ba_report-form">
-            {{ ba_report_form.csrf_token() }}
-            {{ ba_report_form.file_uuid(hidden=True, readonly=True) }}
+        <div id="qubit_measure-form">
+            {{ qubit_measure_form.csrf_token() }}
+            {{ qubit_measure_form.file_uuid(hidden=True, readonly=True) }}
             <table class="table table-hover">
                 <thead>
                     <tr>
                     <th scope="col" class="col-2">ID</th>
                     <th scope="col" class="col-4">Sample Name</th>
                     <th scope="col" class="col-3">Type <span class="desc">Pool/Library</span></th>
-                    <th scope="col" class="col-3">Avg. Fragment Size</th>
+                    <th scope="col" class="col-3">Qubit Conc.</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for i, (_, row) in enumerate(pool_table.iterrows()) %}
-                    {% set sub_form = ba_report_form.pool_fields[i] %}
+                    {% set sub_form = qubit_measure_form.pool_fields[i] %}
                     {{ sub_form.csrf_token() }}
                     <tr>
                         <th scope="row">{{ row["id"] }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
                         <td>{{ row["name"] }}</td>
                         <td>Pool</td>
-                        <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
+                        <td>{{ form_cell(sub_form.qubit_concentration, unit="ng/μL") }}</td>
                     </tr>
                     {% endfor %}
 
                     {% for i, (_, row) in enumerate(library_table.iterrows()) %}
-                    {% set sub_form = ba_report_form.library_fields[i] %}
+                    {% set sub_form = qubit_measure_form.library_fields[i] %}
                     {{ sub_form.csrf_token() }}
                     <tr>
                         <th scope="row">{{ row["id"] }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
                         <td>{{ row["name"] }}</td>
                         <td>Library</td>
-                        <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
+                        <td>{{ form_cell(sub_form.qubit_concentration, unit="ng/μL") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -47,21 +47,21 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ ba_report_form.file_uuid.data }}
+            {{ qubit_measure_form.file_uuid.data }}
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
-            hx-post="{{ url_for('ba_report_workflow.qc_pools') }}" id="submit-ba_report-form-btn"
-            hx-target="#ba_report-form-container" hx-swap="outerHTML" hx-include="#ba_report-form">
+            hx-post="{{ url_for('qubit_measure_workflow.complete') }}" id="submit-qubit_measure-form-btn"
+            hx-target="#qubit_measure-form-container" hx-swap="outerHTML" hx-include="#qubit_measure-form">
                 Submit
             </button>
         </div>
     </div>
     <script>
         init_tooltips();
-        $("#submit-ba_report-form-btn").on("click", function() {
+        $("#submit-qubit_measure-form-btn").on("click", function() {
             window.onbeforeunload = null;
         });
     </script>

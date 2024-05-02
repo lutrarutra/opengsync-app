@@ -14,7 +14,7 @@
                 {{ form_group(load_flow_cell_form.measured_qubit, class="col-6 measured_qubit-col", unit="ng/μL") }}
             </div>
             <div class="row">
-                {{ metadata_group("Avg. Library Size", avg_fragment_size, "col-4 avg_fragment_size-col", unit="bp") }}
+                {{ metadata_group("Avg. Fragment Size", avg_fragment_size, "col-4 avg_fragment_size-col", unit="bp") }}
                 {{ metadata_group("Pool Molarity", '%0.2f' % lane_molarity, "col-4 lane_molarity-col", unit="nM") }}
                 {{ metadata_group("Sequencing Molarity", '%0.2f' % sequencing_molarity if sequencing_molarity, "sequencing_molarity-col col-4", unit="nM") }}
             </div>

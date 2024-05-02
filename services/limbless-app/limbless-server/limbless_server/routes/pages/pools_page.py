@@ -34,8 +34,6 @@ def pool_page(pool_id: int):
         if not current_user.is_insider() and pool.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
 
-        libraries, libraries_n_pages = session.get_libraries(pool_id=pool_id, sort_by="id", descending=True)
-
         path_list = [
             ("Pools", url_for("pools_page.pools_page")),
             (f"Pool {pool.id}", ""),
@@ -53,13 +51,5 @@ def pool_page(pool_id: int):
         pool_form = forms.models.PoolForm(pool=pool)
 
         return render_template(
-            "pool_page.html",
-            pool=pool, libraries=libraries,
-            libraries_n_pages=libraries_n_pages,
-            libraries_active_page=0,
-            libraries_current_sort="id",
-            libraries_current_sort_order="desc",
-            path_list=path_list,
-            is_editable=is_editable,
-            pool_form=pool_form
+            "pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable, pool_form=pool_form
         )

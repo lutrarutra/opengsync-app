@@ -1,6 +1,4 @@
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from "components/files_tab.jinja2" import files_tab %}
-{% from "components/comments_tab.jinja2" import comments_tab with context %}
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from "components/form_group.jinja2" import form_group %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
@@ -173,9 +171,9 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#request-files-tab" type="button" role="tab"
-                aria-controls="request-files-tab" aria-selected="true"
-                id="request-files-tab-btn">Files</button>
+                data-bs-target="#seq_request-files-tab" type="button" role="tab"
+                aria-controls="seq_request-files-tab" aria-selected="true"
+                id="seq_request-files-tab-btn">Files</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
@@ -199,7 +197,7 @@
                     <div>
                     </div>
                 </div>
-                <div hx-get="{{ url_for('libraries_htmx.get', page=0, seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
                     {{ spinner() }}
                 </div>
             </div>
@@ -364,7 +362,7 @@
                         <h2>Samples</h2>
                     </div>
                 </div>
-                <div hx-get="{{ url_for('samples_htmx.get', page=0, seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                <div hx-get="{{ url_for('seq_requests_htmx.get_samples', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
                     {{ spinner() }}
                 </div>
             </div>
@@ -420,22 +418,25 @@
                     {{ spinner() }}
                 </div>
             </div>
-            <div class="tab-pane fade show" id="request-files-tab" role="tabpanel" tabindex="6">
-                {{
-                    files_tab(
-                        context_name="request", files=seq_request.files,
-                        delete_url="seq_requests_htmx.delete_file",
-                        delete_context={"seq_request_id": seq_request.id},
-                        context={ "seq_request": seq_request }
-                    )
-                }}
+            <div class="tab-pane fade show" id="seq_request-files-tab" role="tabpanel" tabindex="6">
+                <div hx-get="{{ url_for('seq_requests_htmx.get_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                    {{ spinner() }}
+                </div>
             </div>
             <div class="tab-pane fade show" id="request-comments-tab" role="tabpanel" tabindex="7">
-                {{
-                    comments_tab(
-                        context="request", comments=seq_request.comments,
-                    )
-                }}
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>Comments</h2>
+                    </div>
+                    <button type="button" class="btn btn-primary" data-bs-target="#comment-form-popup"
+                        data-bs-toggle="modal">
+                        New Comment
+                    </button>
+                </div>
+
+                <div hx-get="{{ url_for('seq_requests_htmx.get_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                    {{ spinner() }}
+                </div>
             </div>  
             <div class="tab-pane fade show" id="request-share-tab" role="tabpanel" tabindex="8">
                 <div class="d-flex justify-content-between align-items-center">
@@ -483,7 +484,7 @@
         </div>
     </div>
 
-    <div class="modal fade" id="seq_request-comment-form-popup" aria-hidden="true" aria-labelledby="">
+    <div class="modal fade" id="comment-form-popup" aria-hidden="true" aria-labelledby="">
         <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
             {% include comment_form._template_path %}
         </div>
@@ -519,4 +520,13 @@
         </div>
     </div>
 </div>
+<script>
+    init_tooltips();
+
+    function open_file_tab(file_id) {
+        $('.nav-tabs button[data-bs-target="#seq_request-files-tab"]').tab('show');
+        $('.nav-tabs button[data-bs-target="#seq_request-file-' + file_id + '-tab"]').tab('show');
+    }
+</script>
+
 {% endblock %}

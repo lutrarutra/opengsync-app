@@ -48,7 +48,7 @@ id="{{ target_id }}:{{ column_var }}"
     <input type='{{ query_type }}' class='form-control' placeholder='{{ column_name }}'
     id='{{ column_var }}-query-input' role='presentation' autocomplete='off' type='search'
     hx-post='{{ query_url }}' hx-trigger='keyup[target.value.length > 0 && keyCode==13] changed, search' name="{{ column_var }}"
-    hx-target='#{{ target_id }}' hx-swap='outerHTML' value="{{ current_query if current_query else '' }}"
+    hx-target='#{{ target_id }}' hx-swap='outerHTML' value="{{ current_query if current_query else '' }}" hx-indicator="#{{ target_id }}-spinner"
     style="height: 25px;"
     {% if (current_query and column_var == field_name) %}autofocus{% endif %}>
 </th>
@@ -56,6 +56,11 @@ id="{{ target_id }}:{{ column_var }}"
     function remove_elements() {
         $("#{{ target_id }} table tbody").remove();
     }
+    $("#{{ column_var }}-query-input").on("keypress", function(e) {
+        if (e.which == 13) {
+            $("#{{ target_id }} table tbody").remove();
+        }
+    });
     {% if (current_query and column_var == field_name) %}
     $(document).ready(function() {
         $('#{{ column_var }}-query-input').focus();

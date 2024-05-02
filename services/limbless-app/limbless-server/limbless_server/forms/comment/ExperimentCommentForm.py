@@ -9,6 +9,9 @@ from .CommentForm import CommentForm
 
 
 class ExperimentCommentForm(CommentForm):
+    _template_path = "components/popups/comment-form.html"
+    _template_label = "comment_form"
+
     def __init__(self, experiment_id: int, formdata: Optional[dict] = None):
         CommentForm.__init__(self, formdata=formdata)
         self._post_url = url_for("experiments_htmx.add_comment", experiment_id=experiment_id)

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 import json
 
@@ -8,17 +10,23 @@ from limbless_db import models, DBSession
 
 from .... import db, logger
 from ...HTMXFlaskForm import HTMXFlaskForm
-from .BAInputForm import BAInputForm
+from .CompleteQubitMeasureForm import CompleteQubitMeasureForm
 
 
-class SelectPoolsForm(HTMXFlaskForm):
-    _template_path = "workflows/ba_report/bar-1.html"
-    _form_label = "ba_report_form"
+class SelectSamplesForm(HTMXFlaskForm):
+    _template_path = "workflows/qubit_measure/qubit-1.html"
+    _form_label = "qubit_measure_form"
 
     selected_library_ids = StringField()
     selected_pool_ids = StringField()
 
     error_dummy = StringField()
+
+    def __init__(self, formdata: dict = {}, experiment: Optional[models.Experiment] = None):
+        HTMXFlaskForm.__init__(self, formdata=formdata)
+        self.experiment = experiment
+        if self.experiment is not None:
+            self._context["experiment"] = self.experiment
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -71,13 +79,13 @@ class SelectPoolsForm(HTMXFlaskForm):
         pool_data = dict(
             id=[],
             name=[],
-            avg_fragment_size=[],
+            qubit_concentration=[],
         )
 
         library_data = dict(
             id=[],
             name=[],
-            avg_fragment_size=[],
+            qubit_concentration=[],
         )
 
         with DBSession(db) as session:
@@ -88,7 +96,7 @@ class SelectPoolsForm(HTMXFlaskForm):
                 
                 pool_data["id"].append(pool.id)
                 pool_data["name"].append(pool.name)
-                pool_data["avg_fragment_size"].append(pool.avg_fragment_size)
+                pool_data["qubit_concentration"].append(pool.qubit_concentration)
 
             for library_id in self.library_ids:
                 if (library := session.get_library(library_id)) is None:
@@ -97,16 +105,16 @@ class SelectPoolsForm(HTMXFlaskForm):
 
                 library_data["id"].append(library.id)
                 library_data["name"].append(library.name)
-                library_data["avg_fragment_size"].append(library.avg_fragment_size)
+                library_data["qubit_concentration"].append(library.qubit_concentration)
 
-        ba_input_form = BAInputForm()
-        ba_input_form.metadata = {
-            "workflow": "ba_report",
+        complete_qubit_measure_form = CompleteQubitMeasureForm()
+        complete_qubit_measure_form.metadata = {
+            "workflow": "qubit_measure",
         }
         
-        ba_input_form.add_table("pool_table", pd.DataFrame(pool_data))
-        ba_input_form.add_table("library_table", pd.DataFrame(library_data))
+        complete_qubit_measure_form.add_table("pool_table", pd.DataFrame(pool_data))
+        complete_qubit_measure_form.add_table("library_table", pd.DataFrame(library_data))
 
-        ba_input_form.update_data()
-        ba_input_form.prepare()
-        return ba_input_form.make_response()
+        complete_qubit_measure_form.update_data()
+        complete_qubit_measure_form.prepare()
+        return complete_qubit_measure_form.make_response()

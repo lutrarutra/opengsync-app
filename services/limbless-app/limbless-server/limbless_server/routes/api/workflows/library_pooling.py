@@ -25,16 +25,16 @@ def get_libraries(page: int) -> Response:
         return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
     
     libraries, n_pages = db.get_libraries(status=LibraryStatus.ACCEPTED, sort_by=sort_by, descending=descending, offset=offset)
     return make_response(
         render_template(
-            "components/tables/select-libraries.html",
+            "workflows/library_pooling/select-libraries-table.html",
             libraries=libraries, n_pages=n_pages, active_page=page,
-            current_sort=sort_by, current_sort_order=order
+            sort_by=sort_by, sort_order=sort_order
         )
     )
 

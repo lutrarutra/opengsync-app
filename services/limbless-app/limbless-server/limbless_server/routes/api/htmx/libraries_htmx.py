@@ -86,20 +86,7 @@ def get(page: int):
                 offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending
             )
             context["experiment"] = experiment
-    elif (pool_id := request.args.get("pool_id", None)) is not None:
-        template = "components/tables/pool-library.html"
-        try:
-            pool_id = int(pool_id)
-        except (ValueError, TypeError):
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        with DBSession(db) as session:
-            if (pool := session.get_pool(pool_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            libraries, n_pages = session.get_libraries(
-                offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending
-            )
-            context["pool"] = pool
+
     else:
         template = "components/tables/library.html"
         with DBSession(db) as session:
@@ -155,6 +142,8 @@ def query():
 @libraries_htmx.route("table_query", methods=["POST"])
 @login_required
 def table_query():
+    # TODO: Re-implement this in proper places
+    raise NotImplementedError("")
     if (word := request.form.get("name")) is not None:
         field_name = "name"
     elif (word := request.form.get("id")) is not None:

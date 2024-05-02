@@ -251,7 +251,7 @@ def query_libraries(
     self, word: str,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
-    status: Optional[LibraryStatusEnum] = None,
+    status: Optional[LibraryStatusEnum] = None, pool_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Library]:
 
@@ -284,6 +284,11 @@ def query_libraries(
                 models.SampleLibraryLink.sample_id == sample_id,
                 models.Library.sample_id == sample_id
             )
+        )
+
+    if pool_id is not None:
+        query = query.where(
+            models.Library.pool_id == pool_id
         )
 
     if status is not None:

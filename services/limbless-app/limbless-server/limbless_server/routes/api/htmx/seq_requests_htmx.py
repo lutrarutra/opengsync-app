@@ -512,62 +512,6 @@ def table_query():
             seq_requests=seq_requests, **context
         ), push_url=False
     )
-        
-
-@seq_requests_htmx.route("<int:seq_request_id>/reverse_complement", methods=["POST"])
-@login_required
-def reverse_complement(seq_request_id: int):
-    if (index := request.args.get("index", None)) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    try:
-        index = int(index)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    library_id = request.args.get("library_id", None)
-    if library_id is not None:
-        try:
-            library_id = int(library_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    if index < 1 or index > 4:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if seq_request.requestor_id != current_user.id:
-            if not current_user.is_insider():
-                return abort(HTTPResponse.FORBIDDEN.id)
-            
-        if library_id is not None:
-            libraries = [session.get_library(library_id)]
-        else:
-            libraries = seq_request.libraries
-        
-        n_barcodes = 0
-        for library in libraries:
-            if index == 1 and library.index_1_sequence:
-                library.index_1_sequence = models.Barcode.reverse_complement(library.index_1_sequence)
-                n_barcodes += 1
-            elif index == 2 and library.index_2_sequence:
-                library.index_2_sequence = models.Barcode.reverse_complement(library.index_2_sequence)
-                n_barcodes += 1
-            elif index == 3 and library.index_3_sequence:
-                library.index_3_sequence = models.Barcode.reverse_complement(library.index_3_sequence)
-                n_barcodes += 1
-            elif index == 4 and library.index_4_sequence:
-                library.index_4_sequence = models.Barcode.reverse_complement(library.index_4_sequence)
-                n_barcodes += 1
-            
-            library = session.update_library(library)
-
-    flash(f"Reverse complemented index {index} of sequencing request '{seq_request.name}' in {n_barcodes} libraries.", "success")
-    return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
-    )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/process_request", methods=["POST"])
@@ -751,5 +695,143 @@ def overview(seq_request_id: int):
         render_template(
             "components/plots/request_overview.html",
             nodes=nodes, links=links, contains_pooled=contains_pooled
+        )
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/get_libraries/<int:page>", methods=["GET"])
+@seq_requests_htmx.route("<int:seq_request_id>/get_libraries", methods=["GET"], defaults={"page": 0})
+@login_required
+def get_libraries(seq_request_id: int, page: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    libraries, n_pages = db.get_libraries(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
+
+    return make_response(
+        render_template(
+            "components/tables/seq_request-library.html",
+            libraries=libraries, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request
+        )
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/query_libraries/<string:field_name>", methods=["POST"])
+@login_required
+def query_libraries(seq_request_id: int, field_name: str):
+    if (word := request.form.get(field_name)) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if field_name == "name":
+        libraries = db.query_libraries(word, seq_request_id=seq_request_id)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        libraries = []
+        if (library := db.get_library(library_id=_id)) is not None:
+            if library.seq_request_id == seq_request_id:
+                libraries.append(library)
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    return make_response(
+        render_template(
+            "components/tables/seq_request-library.html",
+            libraries=libraries, n_pages=1, active_page=0,
+            sort_by="id", sort_order="desc", seq_request=seq_request
+        )
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/get_samples/<int:page>", methods=["GET"])
+@seq_requests_htmx.route("<int:seq_request_id>/get_samples", methods=["GET"], defaults={"page": 0})
+@login_required
+def get_samples(seq_request_id: int, page: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    with DBSession(db) as session:
+        samples, n_pages = session.get_samples(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
+
+        return make_response(
+            render_template(
+                "components/tables/seq_request-sample.html",
+                samples=samples, n_pages=n_pages, active_page=page,
+                sort_by=sort_by, sort_order=sort_order, seq_request=seq_request
+            )
+        )
+    
+
+@seq_requests_htmx.route("<int:seq_request_id>/get_comments", methods=["GET"])
+@login_required
+def get_comments(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
+    with DBSession(db) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        comments = seq_request.comments
+
+    return make_response(
+        render_template(
+            "components/comment-list.html",
+            comments=comments, seq_request=seq_request
+        )
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/get_files", methods=["GET"])
+@login_required
+def get_files(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
+    with DBSession(db) as session:
+        if (seq_request := session.get_seq_request(seq_request_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        files = seq_request.files
+
+    return make_response(
+        render_template(
+            "components/file-list.html",
+            files=files, seq_request=seq_request, delete="seq_requests_htmx.delete_file",
+            delete_context={"seq_request_id": seq_request_id}
         )
     )
