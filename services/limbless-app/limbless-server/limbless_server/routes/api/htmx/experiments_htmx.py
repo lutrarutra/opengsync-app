@@ -29,9 +29,6 @@ def get(page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    import time
-    time.sleep(1)
-
     if sort_by not in models.Experiment.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
     

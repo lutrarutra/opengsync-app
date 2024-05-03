@@ -109,8 +109,6 @@ def table_query(field_name: str):
 @users_htmx.route("<int:user_id>/get_projects/<int:page>", methods=["GET"])
 @login_required
 def get_projects(user_id: int, page: int):
-    import time
-    time.sleep(1)
     if (user := db.get_user(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -171,8 +169,6 @@ def query_projects(user_id: int, field_name: str):
 @users_htmx.route("<int:user_id>/get_seq_requests/<int:page>", methods=["GET"])
 @login_required
 def get_seq_requests(user_id: int, page: int):
-    import time
-    time.sleep(1)
     if (user := db.get_user(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

@@ -97,14 +97,14 @@ def get_experiment_libraries_df(
             
     query = query.order_by(models.Library.id)
     df = pd.read_sql(query, self._engine)
+
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
+    df["refernece"] = df["reference_id"].map(categories.GenomeRef.get)
     
     df = df.dropna(axis="columns", how="all")
     if collapse_lanes:
         df = df.groupby(df.columns.difference(['lane']).tolist(), as_index=False).agg({'lane': list}).rename(columns={'lane': 'lanes'})
     
-    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
-    df["refernece"] = df["reference_id"].map(categories.GenomeRef.get)
-
     return df
 
 
