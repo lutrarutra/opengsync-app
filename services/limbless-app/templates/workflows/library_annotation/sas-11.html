@@ -170,7 +170,7 @@
                             {% for (feature, kit, sequence, pattern, read), df in feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) %}
                             <tr>
                                 <th scope="row">{{ feature }}</th>
-                                <td>{{ kit if kit }}</td>
+                                <td>{{ kit if kit == kit }}</td>
                                 <td>{{ sequence }}</td>
                                 <td>{{ pattern }}</td>
                                 <td>{{ read }}</td>

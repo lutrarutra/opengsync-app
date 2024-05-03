@@ -6,7 +6,6 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
-from limbless_db import models
 from limbless_db.categories import LibraryType, FeatureType
 
 from .... import db, logger
@@ -44,13 +43,11 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
             if i > len(self.input_fields) - 1:
                 self.input_fields.append_entry()
 
-            raw_kit_label = row["kit"]
-
             entry = self.input_fields[i]
             feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
             entry.raw_label.data = raw_kit_label
 
-            if raw_kit_label is None:
+            if pd.isna(raw_kit_label := row["name"]):
                 selected_kit = None
             elif feature_kit_search_field.selected.data is None:
                 selected_kit = next(iter(db.query_feature_kits(raw_kit_label, 1)), None)
@@ -71,7 +68,7 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
             if pd.notna(row["kit_id"]):
                 continue
             
-            raw_kit_label = row["kit"]
+            raw_kit_label = row["name"]
             feature_kit_search_field: SearchBar = self.input_fields[i].feature_kit  # type: ignore
 
             if (kit_id := feature_kit_search_field.selected.data) is None:
@@ -82,7 +79,7 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
                 logger.error(f"Feature kit with ID {kit_id} not found.")
                 raise Exception()
             
-            for _, row in kit_table[kit_table["kit"] == raw_kit_label].iterrows():
+            for _, row in kit_table[kit_table["name"] == raw_kit_label].iterrows():
                 if pd.isna(feature_name := row["feature"]):
                     continue
                 
@@ -90,7 +87,7 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
                     feature_kit_search_field.selected.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
                     return False
 
-            kit_table.loc[kit_table["kit"] == kit_table, "kit_id"] = kit_id
+            kit_table.loc[kit_table["name"] == kit_table, "kit_id"] = kit_id
 
         self.kit_table = kit_table
 

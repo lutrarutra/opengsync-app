@@ -91,9 +91,9 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
                         validated = False
                     add_project(sub_field.raw_label.data, new_project_name, None)
                 elif (project_id := project_select_field.selected.data) is not None:
-                    project = db.get_project(project_id)
-                    logger.debug(project.name)
-                    logger.debug(sub_field.raw_label.data)
+                    if (project := db.get_project(project_id)) is None:
+                        logger.error(f"Project with ID {project_id} not found.")
+                        raise Exception(f"Project with ID {project_id} not found.")
                     add_project(sub_field.raw_label.data, project.name, project_id)
                 else:
                     sub_field.new_project.errors = ("Please select or create a project.",)
@@ -101,7 +101,6 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
                     validated = False
 
         self.project_table = pd.DataFrame(project_data)
-        logger.debug(self.project_table)
         return validated
     
     def process_request(self, **context) -> Response:

@@ -276,6 +276,7 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
         feature_data = {
             "library_name": [],
             "kit": [],
+            "kit_id": [],
             "feature": [],
             "sequence": [],
             "pattern": [],
@@ -344,11 +345,11 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
         self.feature_table = pd.DataFrame(feature_data)
 
         if (kit_table := self.tables.get("kit_table")) is None:  # type: ignore
-            kit_table = self.feature_table[["kit", "kit_id"]].drop_duplicates().copy()
+            kit_table = self.feature_table.loc[self.feature_table["kit"].notna(), ["kit", "kit_id"]].drop_duplicates().copy().rename(columns={"kit": "name"})
             kit_table["type_id"] = FeatureType.ANTIBODY.id
             self.add_table("kit_table", kit_table)
         else:
-            _kit_table = self.feature_table[["kit", "kit_id"]].drop_duplicates().copy()
+            _kit_table = self.feature_table.loc[self.feature_table["kit"].notna(), ["kit", "kit_id"]].drop_duplicates().copy().rename(columns={"kit": "name"})
             _kit_table["type_id"] = FeatureType.ANTIBODY.id
             kit_table = pd.concat([kit_table, _kit_table])
             self.update_table("kit_table", kit_table, False)

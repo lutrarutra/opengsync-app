@@ -140,8 +140,8 @@ def query():
     )
 
 
-@libraries_htmx.route("<int:library_id>/get_feautres", methods=["POST"], defaults={"page": 0})
-@libraries_htmx.route("<int:library_id>/get_feautres/<int:page>", methods=["POST"])
+@libraries_htmx.route("<int:library_id>/get_feautres", methods=["GET"], defaults={"page": 0})
+@libraries_htmx.route("<int:library_id>/get_feautres/<int:page>", methods=["GET"])
 @login_required
 def get_features(library_id: int, page: int):
     if (library := db.get_library(library_id)) is None:
@@ -183,7 +183,7 @@ def get_visium_annotation(library_id: int):
     
     return make_response(
         render_template(
-            "components/tables/library-visium-annotation.html",
+            "components/library-visium-annotation.html",
             visium_annotation=visium_annotation, library=library
         )
     )
