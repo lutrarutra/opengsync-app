@@ -10,7 +10,7 @@
                 {{
                     table_col(
                         target_id='seq_request-sample-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get_samples', sort_url_args={"seq_request_id": seq_request.id},
+                        sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                         field_name=field_name, query_type="number", col_size=1
                     )
@@ -18,7 +18,7 @@
                 {{
                     table_col(
                         target_id='seq_request-sample-table', column_name='Name', column_var='name',
-                        sort_url='seq_requests_htmx.get_samples', sort_url_args={"seq_request_id": seq_request.id},
+                        sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                         field_name=field_name, query_type="string", col_size=3
                     )
@@ -28,7 +28,7 @@
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}';">
+            <tr onclick="redirect('{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}');">
                 <th scope="row">{{ sample.id }}</th>
                 <td>{{ sample.name }}</td>
                 {% set cmo_index = "" %}

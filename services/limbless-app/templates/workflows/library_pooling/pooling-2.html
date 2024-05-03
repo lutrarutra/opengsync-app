@@ -30,7 +30,7 @@
                 </div>
                 <div class="tab-pane fade show active" id="available-tab" role="tabpanel" tabindex="0">
                     <div class="library_pooling-form" 
-                    hx-get="{{ url_for('library_pooling_workflow.get_libraries', page=0) }}" hx-trigger="load">
+                    hx-get="{{ url_for('library_pooling_workflow.get_libraries') }}" hx-trigger="intersect once">
                     </div>
                 </div>
                 <div class="tab-pane fade" id="selected-tab" role="tabpanel" tabindex="1">

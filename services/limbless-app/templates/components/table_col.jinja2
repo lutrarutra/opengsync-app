@@ -1,4 +1,4 @@
-{% macro table_col(target_id, column_name, column_var, sort_url=none, sort_by=none, sort_order=none, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1, sort_url_args={}, active_page=0) -%}
+{% macro table_col(target_id, column_name, column_var, sort_url=none, sort_by=none, sort_order=none, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1, context={}, active_page=0) -%}
 <th scope="col" class="col-{{ col_size}} sortable-col {{ sort_order }} {{ 'query-col' if query_url else '' }}"
 id="{{ target_id }}:{{ column_var }}"
 {% if (current_query and column_var == field_name) %}style="display: none;"{% endif %}>
@@ -9,7 +9,7 @@ id="{{ target_id }}:{{ column_var }}"
     hx-target="#{{ target_id }}" hx-swap="outerHTML"
     hx-get="{{ url_for(
         sort_url, page=active_page | float | int, sort_by=column_var,
-        sort_order='asc' if sort_order == 'desc' else 'desc', **sort_url_args
+        sort_order='asc' if sort_order == 'desc' else 'desc', **context
     ) }}"
     hx-indicator="#{{ target_id }}-spinner" onclick="remove_elements()">
         {% if column_var == sort_by %}
@@ -47,7 +47,7 @@ id="{{ target_id }}:{{ column_var }}"
     {% endif %}>
     <input type='{{ query_type }}' class='form-control' placeholder='{{ column_name }}'
     id='{{ column_var }}-query-input' role='presentation' autocomplete='off' type='search'
-    hx-post='{{ query_url }}' hx-trigger='keyup[target.value.length > 0 && keyCode==13] changed, search' name="{{ column_var }}"
+    hx-post='{{ url_for(query_url, field_name=column_var, **context) }}' hx-trigger='keyup[target.value.length > 0 && keyCode==13] changed, search' name="{{ column_var }}"
     hx-target='#{{ target_id }}' hx-swap='outerHTML' value="{{ current_query if current_query else '' }}" hx-indicator="#{{ target_id }}-spinner"
     style="height: 25px;"
     {% if (current_query and column_var == field_name) %}autofocus{% endif %}>

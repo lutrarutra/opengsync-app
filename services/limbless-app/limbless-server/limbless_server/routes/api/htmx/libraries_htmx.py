@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, LibraryType
 from .... import db, forms, logger
 
 if TYPE_CHECKING:
@@ -16,6 +16,7 @@ else:
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/hmtx/libraries/")
 
 
+@libraries_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @libraries_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
@@ -101,7 +102,7 @@ def get(page: int):
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
             **context
-        ), push_url=False
+        )
     )
 
 
@@ -135,7 +136,56 @@ def query():
         render_template(
             "components/search_select_results.html",
             results=results, field_name=field_name,
-        ), push_url=False
+        )
+    )
+
+
+@libraries_htmx.route("<int:library_id>/get_feautres", methods=["POST"], defaults={"page": 0})
+@libraries_htmx.route("<int:library_id>/get_feautres/<int:page>", methods=["POST"])
+@login_required
+def get_features(library_id: int, page: int):
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and library.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    features, n_pages = db.get_features(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending)
+    
+    return make_response(
+        render_template(
+            "components/tables/library-feature.html",
+            features=features, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, library=library
+        )
+    )
+
+
+@libraries_htmx.route("<int:library_id>/get_visium_annotation", methods=["GET"])
+@login_required
+def get_visium_annotation(library_id: int):
+    with DBSession(db) as session:
+        if (library := session.get_library(library_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        if not current_user.is_insider() and library.owner_id != current_user.id:
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+        if library.type != LibraryType.SPATIAL_TRANSCRIPTOMIC:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        visium_annotation = library.visium_annotation
+    
+    return make_response(
+        render_template(
+            "components/tables/library-visium-annotation.html",
+            visium_annotation=visium_annotation, library=library
+        )
     )
 
 
@@ -241,5 +291,5 @@ def table_query():
             template,
             current_query=word, field_name=field_name,
             libraries=libraries, **context
-        ), push_url=False
+        )
     )

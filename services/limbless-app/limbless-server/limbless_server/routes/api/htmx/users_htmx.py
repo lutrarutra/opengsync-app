@@ -16,6 +16,7 @@ else:
 users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 
 
+@users_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @users_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
@@ -34,7 +35,7 @@ def get(page: int):
                 "components/tables/user.html", users=users,
                 active_page=page, n_pages=n_pages,
                 sort_by=sort_by, sort_order=sort_order
-            ), push_url=False
+            )
         )
 
 
@@ -67,28 +68,17 @@ def query():
         render_template(
             "components/search_select_results.html",
             results=results, field_name=field_name
-        ), push_url=False
+        )
     )
 
 
-@users_htmx.route("table_query", methods=["POST"])
+@users_htmx.route("table_query/<string:field_name>", methods=["POST"])
 @login_required
-def table_query():
+def table_query(field_name: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (word := request.form.get("first_name", None)) is not None:
-        field_name = "first_name"
-    elif (word := request.form.get("last_name", None)) is not None:
-        field_name = "last_name"
-    elif (word := request.form.get("email", None)) is not None:
-        field_name = "email"
-    elif (word := request.form.get("id", None)) is not None:
-        field_name = "id"
-    else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-
-    if word is None:
+    if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     if field_name == "first_name" or field_name == "last_name":
@@ -103,13 +93,135 @@ def table_query():
         else:
             users = [db.get_user(user_id)]
     else:
-        assert False  # This should never happen
-
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
     return make_response(
         render_template(
             "components/tables/user.html",
             current_query=word,
             users=users,
             field_name=field_name
-        ), push_url=False
+        )
+    )
+
+
+@users_htmx.route("<int:user_id>/get_projects", methods=["GET"], defaults={"page": 0})
+@users_htmx.route("<int:user_id>/get_projects/<int:page>", methods=["GET"])
+@login_required
+def get_projects(user_id: int, page: int):
+    import time
+    time.sleep(1)
+    if (user := db.get_user(user_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if user.id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+    
+    with DBSession(db) as session:
+        projects, n_pages = session.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
+    
+    return make_response(
+        render_template(
+            "components/tables/user-project.html",
+            user=user, projects=projects,
+            active_page=page, n_pages=n_pages
+        )
+    )
+
+
+@users_htmx.route("<int:user_id>/query_projects/<string:field_name>", methods=["GET"])
+@login_required
+def query_projects(user_id: int, field_name: str):
+    if (word := request.args.get(field_name)) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    if (user := db.get_user(user_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if user.id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    projects = []
+    if field_name == "name":
+        projects = db.query_projects(word, user_id=user_id)
+    elif field_name == "id":
+        try:
+            project_id = int(word)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        else:
+            project = db.get_project(project_id)
+            if project is not None and project.owner_id == user_id:
+                projects.append(project)
+    
+    return make_response(
+        render_template(
+            "components/tables/user-project.html",
+            user=user, projects=projects, field_name=field_name,
+        )
+    )
+
+
+@users_htmx.route("<int:user_id>/get_seq_requests", methods=["GET"], defaults={"page": 0})
+@users_htmx.route("<int:user_id>/get_seq_requests/<int:page>", methods=["GET"])
+@login_required
+def get_seq_requests(user_id: int, page: int):
+    import time
+    time.sleep(1)
+    if (user := db.get_user(user_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if user.id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+    
+    with DBSession(db) as session:
+        seq_requests, n_pages = session.get_seq_requests(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
+    
+    return make_response(
+        render_template(
+            "components/tables/user-seq_request.html",
+            user=user, seq_requests=seq_requests,
+            active_page=page, n_pages=n_pages
+        )
+    )
+
+
+@users_htmx.route("<int:user_id>/query_seq_requests/<string:field_name>", methods=["GET"])
+@login_required
+def query_seq_requests(user_id: int, field_name: str):
+    if (word := request.args.get(field_name)) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    if (user := db.get_user(user_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if user.id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    seq_requests = []
+    if field_name == "id":
+        try:
+            seq_request_id = int(word)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        else:
+            seq_request = db.get_seq_request(seq_request_id)
+            if seq_request is not None and seq_request.requestor_id == user_id:
+                seq_requests.append(seq_request)
+    
+    return make_response(
+        render_template(
+            "components/tables/user-seq_request.html",
+            user=user, seq_requests=seq_requests, field_name=field_name,
+        )
     )

@@ -22,13 +22,13 @@ seq_run_htmx = Blueprint("seq_run_htmx", __name__, url_prefix="/api/hmtx/seq_run
 @seq_run_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
-    if not (sort_by := request.args.get("sort_by", None)):
+    if not (sort_by := request.args.get("sort_by")):
         sort_by = "id"
     
-    if not (order := request.args.get("order", None)):
-        order = "desc"
+    if not (sort_order := request.args.get("sort_order")):
+        sort_order = "desc"
 
-    descending = order == "desc"
+    descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.SeqRun.sortable_fields:
@@ -39,4 +39,4 @@ def get(page: int):
     with DBSession(db) as session:
         seq_runs, n_pages = session.get_seq_runs(offset=offset, sort_by=sort_by, descending=descending)
     
-    return make_response(render_template("components/tables/seq_run.html", seq_runs=seq_runs, n_pages=n_pages, page=page, sort_by=sort_by, order=order))
+    return make_response(render_template("components/tables/seq_run.html", seq_runs=seq_runs, n_pages=n_pages, page=page, sort_by=sort_by, sort_order=sort_order))

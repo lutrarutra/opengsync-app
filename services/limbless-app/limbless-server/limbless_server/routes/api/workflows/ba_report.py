@@ -84,7 +84,7 @@ def get_libraries(page: int):
         render_template(
             "workflows/ba_report/select-libraries-table.html",
             libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, current_sort_order=sort_order
+            sort_by=sort_by, sort_order=sort_order
         )
     )
 

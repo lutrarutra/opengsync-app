@@ -9,26 +9,26 @@
             <tr>
                 {{
                     table_col(
-                        target_id='index_kit-table', column_name='ID', column_var='id',
-                        sort_url='index_kits_htmx.get', sort_url_args={},
+                        target_id='feature_kit-table', column_name='ID', column_var='id',
+                        sort_url='feature_kits_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('index_kits_htmx.table_query'), current_query=current_query,
+                        query_url='feature_kits_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="number", col_size=3
                     )
                 }}
                 {{
                     table_col(
-                        target_id='index_kit-table', column_name='Name', column_var='name',
-                        sort_url='index_kits_htmx.get', sort_url_args={},
+                        target_id='feature_kit-table', column_name='Name', column_var='name',
+                        sort_url='feature_kits_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('index_kits_htmx.table_query'), current_query=current_query,
+                        query_url='feature_kits_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="text", col_size=5
                     )
                 }}
                 {{
                     table_col(
                         target_id='library-table', column_name='Type', column_var='type_id',
-                        sort_url='libraries_htmx.get', sort_url_args={},
+                        sort_url='libraries_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=4,
                     )
@@ -37,7 +37,7 @@
         </thead>
         <tbody>
             {% for feature_kit in feature_kits %}
-            <tr onclick="window.location.href='{{ url_for('feature_kits_page.feature_kit_page', feature_kit_id=feature_kit.id) }}';">
+            <tr onclick="redirect('{{ url_for('feature_kits_page.feature_kit_page', feature_kit_id=feature_kit.id) }}');">
                 <th scope="row">{{ feature_kit.id }}</th>
                 <td>{{ feature_kit.name }}</td>
                 <td>{{ feature_kit.type.name }}</td>

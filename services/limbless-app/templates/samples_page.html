@@ -14,7 +14,7 @@
         </div>
     </div>
 
-    <div hx-get="{{ url_for('samples_htmx.get', page=0) }}" hx-trigger="load" hx-swap="outerHMTL">
+    <div hx-get="{{ url_for('samples_htmx.get') }}" hx-trigger="load" hx-swap="outerHMTL">
         {{ spinner() }}
     </div>
 </div>

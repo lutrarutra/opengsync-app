@@ -1,35 +1,37 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
 {% if not active_page %}
 {% set active_page = 0 %}
 {% endif %}
-<div id="sample-table" class="table-container">
+<div id="project-sample-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
                 {{
                     table_col(
-                        target_id='sample-table', column_name='ID', column_var='id',
-                        sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
-                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
-                        query_url=url_for('samples_htmx.table_query'), current_query=samples_current_query,
+                        target_id='project-sample-table', column_name='ID', column_var='id',
+                        sort_url='projects_htmx.get_samples', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='samples_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
                 {{
                     table_col(
-                        target_id='sample-table', column_name='Name', column_var='name',
-                        sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
-                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
-                        query_url=url_for('samples_htmx.table_query'), current_query=samples_current_query,
+                        target_id='project-sample-table', column_name='Name', column_var='name',
+                        sort_url='projects_htmx.get_samples', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='samples_htmx.table_query', current_query=current_query,
                         field_name=field_name, col_size=4
                     )
                 }}
                 {{
                     table_col(
-                        target_id='sample-table', column_name='Owner', column_var='owner_id',
-                        sort_url='samples_htmx.get', sort_url_args={'project_id': project.id},
-                        current_sort=samples_current_sort, current_sort_order=samples_current_sort_order,
+                        target_id='project-sample-table', column_name='Owner', column_var='owner_id',
+                        sort_url='projects_htmx.get_samples', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
                 }}
@@ -37,7 +39,7 @@
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="window.location.href=`{{ url_for('samples_page.sample_page', sample_id=sample.id, from='project@' + project.id | string) }}`;">
+            <tr onclick="redirect(`{{ url_for('samples_page.sample_page', sample_id=sample.id, from='project@' + project.id | string) }}`);">
                 <th scope="row">{{ sample.id }}</th>
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
@@ -45,7 +47,8 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("sample-table", "samples_htmx.get", samples_n_pages, samples_active_page, url_args={"project_id":project.id, "sort_by": samples_current_sort, "order": samples_current_sort_order}) }}
+    {{ spinner("project-sample-table-spinner") }}
+    {{ pagination("project-sample-table", "projects_htmx.get_samples", n_pages, active_page, url_args={"project_id":project.id, "sort_by": sort_by, "sort_order": sort_order}) }}
 </div>
 
 <script>

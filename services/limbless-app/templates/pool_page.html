@@ -57,7 +57,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('pools_htmx.get_libraries', pool_id=pool.id) }}" hx-trigger="load" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('pools_htmx.get_libraries', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
                 {{ spinner() }}
             </div>
         </div>

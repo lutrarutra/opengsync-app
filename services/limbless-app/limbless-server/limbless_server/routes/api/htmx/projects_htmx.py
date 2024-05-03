@@ -17,8 +17,9 @@ projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/hmtx/proje
 
 
 @projects_htmx.route("get/<int:page>", methods=["GET"])
+@projects_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @login_required
-def get(page):
+def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -87,14 +88,14 @@ def query():
             "components/search_select_results.html",
             results=results,
             field_name=field_name
-        ), push_url=False
+        )
     )
 
 
 @projects_htmx.route("create", methods=["POST"])
 @login_required
 def create():
-    return forms.ProjectForm(request.form).process_request(user_id=current_user.id)
+    return forms.models.ProjectForm(request.form).process_request(user_id=current_user.id)
 
 
 @projects_htmx.route("<int:project_id>/edit", methods=["POST"])
@@ -106,7 +107,7 @@ def edit(project_id: int):
     if project.owner_id != current_user.id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.ProjectForm(request.form).process_request(
+    return forms.models.ProjectForm(request.form).process_request(
         user_id=current_user.id, project=project
     )
 
@@ -193,6 +194,65 @@ def table_query():
         render_template(
             template, current_query=word, field_name=field_name,
             projects=projects, **context
-        ), push_url=False
+        )
     )
         
+
+@projects_htmx.route("<int:project_id>/get_samples", methods=["GET"], defaults={"page": 0})
+@projects_htmx.route("<int:project_id>/get_samples/<int:page>", methods=["GET"])
+@login_required
+def get_samples(project_id: int, page: int):
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    if project.owner_id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    samples, n_pages = db.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending)
+
+    return make_response(
+        render_template(
+            "components/tables/project-sample.html", samples=samples,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            project=project
+        )
+    )
+
+
+@projects_htmx.route("<int:project_id>/query_samples/<string:field_name>", methods=["POST"])
+@login_required
+def query_samples(project_id: int, field_name: str):
+    if (word := request.form.get(field_name)) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if project.owner_id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    samples = []
+    if field_name == "name":
+        samples = db.query_samples(word, project_id=project_id)
+    elif field_name == "id":
+        try:
+            if (sample := db.get_sample(int(word))) is not None:
+                if sample.project_id == project_id:
+                    samples = [sample]
+        except ValueError:
+            samples = []
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    return make_response(
+        render_template(
+            "components/tables/project-sample.html",
+            samples=samples, field_name=field_name, project=project
+        )
+    )

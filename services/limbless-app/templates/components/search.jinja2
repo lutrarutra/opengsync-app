@@ -5,7 +5,6 @@
         name="query" hx-get="{{ url_for('libraries_htmx.query') }}"
         hx-trigger="keyup changed delay:500ms" hx-target="#library-table"
         hx-swap="outerHTML">
-        {% include "components/tables/library.html" %}
     {% elif object == "sample" %}
         <input type="text" class="form-control" placeholder="Search"
         name="query" hx-get="sample"

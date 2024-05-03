@@ -74,10 +74,14 @@
                 {{ metadata_group_email_link("Email", user.email) }}
             </div>
             <div class="tab-pane fade show" id="user-projects-tab" role="tabpanel" tabindex="1">
-            {% include "components/tables/user-project.html" %}
+                <div hx-get="{{ url_for('users_htmx.get_projects', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                    {{ spinner() }}
+                </div>
             </div>
             <div class="tab-pane fade show" id="user-requests-tab" role="tabpanel" tabindex="2">
-            {% include "components/tables/user-seq_request.html" %}
+                <div hx-get="{{ url_for('users_htmx.get_seq_requests', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                    {{ spinner() }}
+                </div>
             </div>
         </div>
     </div>

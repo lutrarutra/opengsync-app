@@ -8,10 +8,9 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, ExperimentStatus
+from limbless_db.categories import HTTPResponse
 
 from .... import db, forms, logger
-from ....tools import io as iot
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -21,6 +20,7 @@ else:
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/hmtx/experiments/")
 
 
+@experiments_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @experiments_htmx.route("get/<int:page>")
 @login_required
 def get(page: int):
@@ -46,7 +46,7 @@ def get(page: int):
             experiments=experiments,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order
-        ), push_url=False
+        )
     )
 
 
@@ -143,7 +143,7 @@ def query():
         render_template(
             "components/search_select_results.html",
             results=results, field_name=field_name,
-        ), push_url=False
+        )
     )
 
 
@@ -216,7 +216,7 @@ def table_query():
         render_template(
             "components/tables/experiment.html",
             experiments=experiments, experiments_current_query=word, field_name=field_name
-        ), push_url=False
+        )
     )
                      
 

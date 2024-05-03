@@ -77,7 +77,7 @@ def get(page: int):
                 n_pages=n_pages, active_page=page,
                 sort_by=sort_by, sort_order=sort_order,
                 **context
-            ), push_url=False
+            )
         )
 
 
@@ -165,7 +165,7 @@ def query():
             "components/search_select_results.html",
             results=results,
             field_name=field_name
-        ), push_url=False
+        )
     )
 
 
@@ -263,5 +263,5 @@ def table_query():
                 samples=samples,
                 field_name=field_name,
                 **context
-            ), push_url=False
+            )
         )

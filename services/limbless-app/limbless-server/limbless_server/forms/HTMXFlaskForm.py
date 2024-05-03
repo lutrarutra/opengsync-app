@@ -35,5 +35,5 @@ class HTMXFlaskForm(FlaskForm):
         return make_response(
             render_template(
                 self.template_path, **context
-            ), push_url=False
+            )
         )

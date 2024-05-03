@@ -130,15 +130,15 @@
         </div>
         {% if library.type.abbreviation == "VISIUM" %}
         <div class="tab-pane fade show" id="library-visium-tab" role="tabpanel" tabindex="3">
-            <div class="row">
-                {{ metadata_group("Image", library.visium_annotation.image, class="col-4") }}
-                {{ metadata_group("Slide", library.visium_annotation.slide, class="col-4") }}
-                {{ metadata_group("Area", library.visium_annotation.area, class="col-4") }}
+            <div hx-get="{{ url_for('libraries_htmx.get_visium_annotation', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
             </div>
         </div>
         {% elif library.type.abbreviation == "ABC" %}
         <div class="tab-pane fade show" id="library-abc-tab" role="tabpanel" tabindex="4">
-            {% include "components/tables/library-feature.html" %}
+            <div hx-get="{{ url_for('libraries_htmx.get_features', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
         </div>
         {% endif %}
     </div>

@@ -24,15 +24,8 @@ def feature_kit_page(feature_kit_id: int):
         (f"{feature_kit_id}", ""),
     ]
 
-    features, features_n_pages = session.get_features(feature_kit_id=feature_kit_id, sort_by="id", descending=True)
-
     return render_template(
         "feature_kit_page.html",
         path_list=path_list,
         feature_kit=feature_kit,
-        features=features,
-        features_n_pages=features_n_pages,
-        features_active_page=0,
-        features_current_sort="id",
-        features_current_sort_order="desc",
     )

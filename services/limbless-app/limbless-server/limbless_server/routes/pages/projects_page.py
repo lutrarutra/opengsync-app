@@ -1,7 +1,6 @@
-from flask import Blueprint, render_template, abort, url_for
+from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required, current_user
 
-from limbless_db import DBSession
 from limbless_db.categories import HTTPResponse
 from ... import db, forms
 
@@ -18,25 +17,30 @@ def projects_page():
 @projects_page_bp.route("/projects/<project_id>")
 @login_required
 def project_page(project_id):
-    with DBSession(db) as session:
-        if (project := session.get_project(project_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        if not current_user.is_insider() and project.owner_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
-
-        samples, n_pages = session.get_samples(project_id=project_id, sort_by="id", descending=True)
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
         ("Projects", url_for("projects_page.projects_page")),
         (f"Project {project_id}", ""),
     ]
 
+    if (_from := request.args.get("from", None)) is not None:
+        page, id = _from.split("@")
+        if page == "user":
+            path_list = [
+                ("Users", url_for("users_page.users_page")),
+                (f"User {id}", url_for("users_page.user_page", user_id=id)),
+                (f"Project {project_id}", ""),
+            ]
+
     project_form = forms.models.ProjectForm(project=project)
 
     return render_template(
         "project_page.html", project=project,
-        samples=samples,
         path_list=path_list,
         project_form=project_form,
-        samples_n_pages=n_pages, samples_active_page=0,
     )

@@ -1,4 +1,5 @@
 {% from "components/pagination.jinja2" import pagination %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <div id="feature_kit-feature-table" class="table-container">
     <table class="table table-hover table-cursor">
@@ -29,5 +30,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("feature_kit-feature-table", "features_htmx.get", features_n_pages, features_active_page, url_args={"feature_kit_id": feature_kit.id, "sort_by": features_current_sort, "order": features_current_sort_order}) }}
+    {{ spinner("feature_kit-feature-table-spinner") }}
+    {{ pagination("feature_kit-feature-table", "features_htmx.get", n_pages, active_page, url_args={"feature_kit_id": feature_kit.id, "sort_by": sort_by, "sort_order": sort_order}) }}
 </div>

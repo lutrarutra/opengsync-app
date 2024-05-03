@@ -1,5 +1,6 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 
 <div id="sample-library-table" class="table-container">
@@ -9,34 +10,34 @@
                 {{
                     table_col(
                         target_id='sample-library-table', column_name='ID', column_var='id',
-                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', sample_id=sample.id), current_query=libraries_current_query,
+                        sort_url='samples_htmx.get_libraries', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='samples_htmx.query_libraries', current_query=current_query,
                         field_name=field_name, query_type="number", col_size=1
                     )
                 }}
                 {{
                     table_col(
                         target_id='sample-library-table', column_name='Name', column_var='name',
-                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
-                        query_url=url_for('libraries_htmx.table_query', sample_id=sample.id), current_query=libraries_current_query,
+                        sort_url='samples_htmx.get_libraries', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='samples_htmx.query_libraries', current_query=current_query,
                         field_name=field_name, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='sample-library-table', column_name='Type', column_var='type_id',
-                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        sort_url='samples_htmx.get_libraries', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-library-table', column_name='Adapter', column_var='adapter',
-                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        sort_url='samples_htmx.get_libraries', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=1
                     )
                 }}
@@ -55,8 +56,8 @@
                 {{
                     table_col(
                         target_id='sample-library-table', column_name='Owner', column_var='owner_id',
-                        sort_url='libraries_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=libraries_current_sort, current_sort_order=libraries_current_sort_order,
+                        sort_url='samples_htmx.get_libraries', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
                 }}
@@ -64,7 +65,7 @@
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr onclick="window.location.href='{{ url_for('libraries_page.library_page', library_id=library.id, from='sample@' + sample.id | string) }}';">
+            <tr onclick="redirect('{{ url_for('libraries_page.library_page', library_id=library.id, from='sample@' + sample.id | string) }}');">
                 <th scope="row">{{ library.id }}</th>
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
                 <td>
@@ -82,6 +83,8 @@
             {% endfor %}
         </tbody>
     </table>
+    {{ spinner("sample-library-table-spinner") }}
+    {{ pagination("sample-library-table", "samples_htmx.get_libraries", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
 </div>
 <script>
     var selected_library_id = null;

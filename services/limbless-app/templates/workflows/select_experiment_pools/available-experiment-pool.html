@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <div id="available-experiment-pool-table" class="table-container">
     <table class="table table-hover table-cursor">
@@ -9,26 +10,26 @@
                 {{
                     table_col(
                         target_id='available-experiment-pool-table', column_name='ID', column_var='id',
-                        sort_url='select_experiment_pools_workflow.get', sort_url_args={"experiment_id": experiment.id},
-                        current_sort=available_pools_current_sort, current_sort_order=available_pools_current_sort_order,
-                        query_url=url_for('select_experiment_pools_workflow.table_query', experiment_id=experiment.id), current_query=avialable_pools_current_query,
+                        sort_url='select_experiment_pools_workflow.get', context={"experiment_id": experiment.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='select_experiment_pools_workflow.table_query', current_query=avialable_pools_current_query,
                         field_name=field_name, query_type="number", col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         target_id='available-experiment-pool-table', column_name='Name', column_var='name',
-                        sort_url='select_experiment_pools_workflow.get', sort_url_args={"experiment_id": 1},
-                        current_sort=available_pools_current_sort, current_sort_order=available_pools_current_sort_order,
-                        query_url=url_for('select_experiment_pools_workflow.table_query', experiment_id=experiment.id), current_query=avialable_pools_current_query,
+                        sort_url='select_experiment_pools_workflow.get', context={"experiment_id": 1},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='select_experiment_pools_workflow.table_query', current_query=avialable_pools_current_query,
                         field_name=field_name, query_type="text", col_size=3,
                     )
                 }}
                 {{
                     table_col(
                         target_id='available-experiment-pool-table', column_name='# M. Reads', column_var='num_m_reads_requested',
-                        sort_url='select_experiment_pools_workflow.get', sort_url_args={"experiment_id": experiment.id},
-                        current_sort=available_pools_current_sort, current_sort_order=available_pools_current_sort_order,
+                        sort_url='select_experiment_pools_workflow.get', context={"experiment_id": experiment.id},
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
                     )
                 }}
@@ -36,8 +37,8 @@
                 {{
                     table_col(
                         target_id='available-experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='select_experiment_pools_workflow.get', sort_url_args={"experiment_id": experiment.id},
-                        current_sort=available_pools_current_sort, current_sort_order=available_pools_current_sort_order,
+                        sort_url='select_experiment_pools_workflow.get', context={"experiment_id": experiment.id},
+                        sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
                     )
                 }}
@@ -55,7 +56,8 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("available-experiment-pool-table", "select_experiment_pools_workflow.get", n_available_pools_pages, available_pools_active_page, url_args={"sort_by": available_available_pools_current_sort, "order": available_available_available_pools_current_sort_order, "experiment_id": experiment.id}) }}
+    {{ spinner("select-pools-form") }}
+    {{ pagination("available-experiment-pool-table", "select_experiment_pools_workflow.get", pools_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order, "experiment_id": experiment.id}) }}
     <script>
         init_tooltips();
 

@@ -16,6 +16,7 @@ else:
     from flask_login import current_user
 
 
+@sequencers_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @sequencers_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
@@ -27,10 +28,10 @@ def get(page: int):
     
     return make_response(
         render_template(
-            "components/tables/device.html",
+            "components/tables/sequencer.html",
             sequencers=sequencers,
-            sequencers_n_pages=n_pages, sequencers_active_page=page
-        ), push_url=False
+            n_pages=n_pages, active_page=page
+        )
     )
 
 
@@ -97,5 +98,5 @@ def query():
             "components/search_select_results.html",
             results=results,
             field_name=field_name
-        ), push_url=False
+        )
     )

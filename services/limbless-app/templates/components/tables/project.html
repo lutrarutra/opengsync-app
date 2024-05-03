@@ -9,32 +9,32 @@
                 {{
                     table_col(
                         target_id='project-table', column_name='ID', column_var='id',
-                        sort_url='projects_htmx.get', sort_url_args={},
+                        sort_url='projects_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('projects_htmx.table_query'), current_query=current_query,
+                        query_url='projects_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
                 {{
                     table_col(
                         target_id='project-table', column_name='Name', column_var='name',
-                        sort_url='projects_htmx.get', sort_url_args={},
+                        sort_url='projects_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('projects_htmx.table_query'), current_query=current_query,
+                        query_url='projects_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="text", col_size=3
                     )
                 }}
                 {{
                     table_col(
                         target_id='project-table', column_name='Owner', column_var='owner_id',
-                        sort_url='projects_htmx.get', sort_url_args={},
+                        sort_url='projects_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='project-table', column_name='# Samples', column_var='num_samples',
-                        sort_url='projects_htmx.get', sort_url_args={},
+                        sort_url='projects_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
@@ -42,7 +42,7 @@
         </thead>
         <tbody>
             {% for project in projects %}
-            <tr onclick="window.location.href='{{ url_for('projects_page.project_page', project_id=project.id) }}';">
+            <tr onclick="redirect('{{ url_for('projects_page.project_page', project_id=project.id) }}');">
                 <th scope="row">{{ project.id }}</th>
                 <td>{{ project.name }}</td>
                 <td>{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></td>

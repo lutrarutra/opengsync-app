@@ -1,5 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
 <div id="sample-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -9,7 +11,7 @@
                         target_id='sample-table', column_name='ID', column_var='id',
                         sort_url='samples_htmx.get',
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('samples_htmx.table_query'), current_query=samples_current_query,
+                        query_url='samples_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
@@ -18,7 +20,7 @@
                         target_id='sample-table', column_name='Name', column_var='name',
                         sort_url='samples_htmx.get',
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('samples_htmx.table_query'), current_query=samples_current_query,
+                        query_url='samples_htmx.table_query', current_query=current_query,
                         field_name=field_name, col_size=4
                     )
                 }}
@@ -49,7 +51,7 @@
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="window.location.href='{{ url_for('samples_page.sample_page', sample_id=sample.id) }}';">
+            <tr onclick="redirect('{{ url_for('samples_page.sample_page', sample_id=sample.id) }}');">
                 <th scope="row">{{ sample.id }}</th>
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
                 <td>{{ sample.project.name }}</td>
@@ -59,6 +61,7 @@
             {% endfor %}
         </tbody>
     </table>
+    {{ spinner("sample-table-spinner") }}
     {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
 </div>
 

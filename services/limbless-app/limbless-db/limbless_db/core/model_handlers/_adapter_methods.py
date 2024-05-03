@@ -63,10 +63,10 @@ def get_adapter(self, id: int) -> Optional[models.Adapter]:
 
 
 def get_adapters(
-    self,
-    index_kit_id: Optional[int] = None,
-    limit: Optional[int] = PAGE_LIMIT,
-    offset: Optional[int] = None
+    self, index_kit_id: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+
 ) -> tuple[list[models.Adapter], int]:
     
     persist_session = self._session is not None
@@ -79,6 +79,12 @@ def get_adapters(
         query = query.where(models.Adapter.index_kit_id == index_kit_id)
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+
+    if sort_by is not None:
+        attr = getattr(models.Library, sort_by)
+        if descending:
+            attr = attr.desc()
+        query = query.order_by(attr)
 
     if limit is not None:
         query = query.limit(limit)

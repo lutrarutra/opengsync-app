@@ -18,21 +18,8 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 @libraries_page_bp.route("/libraries")
 @login_required
 def libraries_page():
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            libraries, n_pages = session.get_libraries(user_id=current_user.id, sort_by="id", descending=True)
-        else:
-            libraries, n_pages = session.get_libraries(user_id=None, sort_by="id", descending=True)
-
     library_form = forms.models.LibraryForm()
-
-    return render_template(
-        "libraries_page.html",
-        libraries=libraries,
-        library_form=library_form,
-        libraries_n_pages=n_pages, libraries_active_page=0,
-        libraries_current_sort="id", libraries_current_sort_order="desc"
-    )
+    return render_template("libraries_page.html", library_form=library_form)
 
 
 @libraries_page_bp.route("/libraries/<int:library_id>")
@@ -45,17 +32,6 @@ def library_page(library_id):
         if not current_user.is_insider():
             if library.owner_id != current_user.id:
                 return abort(HTTPResponse.FORBIDDEN.id)
-            
-        context = dict()
-        if library.type == LibraryType.SPATIAL_TRANSCRIPTOMIC:
-            library.visium_annotation
-        elif library.type == LibraryType.ANTIBODY_CAPTURE:
-            features, features_n_pages = session.get_features(library_id=library.id)
-            context["features"] = features
-            context["features_n_pages"] = features_n_pages
-            context["features_active_page"] = 0
-            context["features_current_sort"] = "id"
-            context["features_current_sort_order"] = "desc"
 
     path_list = [
         ("Libraries", url_for("libraries_page.libraries_page")),
@@ -95,5 +71,4 @@ def library_page(library_id):
         library=library,
         path_list=path_list,
         library_form=library_form,
-        **context
     )

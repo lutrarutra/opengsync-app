@@ -10,25 +10,25 @@
                 {{
                     table_col(
                         target_id='experiment-table', column_name='ID', column_var='id',
-                        sort_url='experiments_htmx.get', sort_url_args={},
+                        sort_url='experiments_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for("experiments_htmx.table_query"), current_query=current_query,
+                        query_url="experiments_htmx.table_query", current_query=current_query,
                         field_name=field_name, query_type="number"
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Name', column_var='name',
-                        sort_url='experiments_htmx.get', sort_url_args={},
+                        sort_url='experiments_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for("experiments_htmx.table_query"), current_query=current_query,
+                        query_url="experiments_htmx.table_query", current_query=current_query,
                         field_name=field_name, query_type="text", col_size=3
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Status', column_var='status_id',
-                        sort_url='experiments_htmx.get', sort_url_args={},
+                        sort_url='experiments_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
@@ -37,7 +37,7 @@
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Created', column_var='timestamp_created_utc',
-                        sort_url='experiments_htmx.get', sort_url_args={},
+                        sort_url='experiments_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
@@ -45,7 +45,7 @@
                 {{
                     table_col(
                         target_id='experiment-table', column_name='Workflow', column_var='workflow_id',
-                        sort_url='experiments_htmx.get', sort_url_args={},
+                        sort_url='experiments_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
@@ -54,7 +54,7 @@
         </thead>
         <tbody>
             {% for experiment in experiments %}
-            <tr onclick="window.location.href='{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}';">
+            <tr onclick="redirect('{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}');">
                 <th scope="row">{{ experiment.id }}</th>
                 <td>{{ experiment.name }}</td>
                 <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>

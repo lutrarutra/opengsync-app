@@ -133,7 +133,9 @@
                 </div>
                 {% endfor %}
             </div>
-            {% include "components/tables/experiment-pool.html" %}
+            <div hx-get="{{ url_for('experiments_htmx.get_pools', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
         </div>
         <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="1">
             <div class="d-flex justify-content-between align-items-center">

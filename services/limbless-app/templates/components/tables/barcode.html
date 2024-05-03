@@ -1,12 +1,14 @@
 {% from "components/pagination.jinja2" import pagination %}
+{% from "components/spinner.jinja2" import spinner %}
+
 <div id="index-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
                 <th scope="col">ID</th>
-                {{ table_col('index-table', 'ID', 'id', 'barcodes_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('index-table', 'Sequence', 'sequence', 'barcodes_htmx.get', current_sort, current_sort_order) }}
-                {{ table_col('index-table', 'Type', 'sequence', 'barcodes_htmx.get', current_sort, current_sort_order) }}
+                {{ table_col('index-table', 'ID', 'id', 'barcodes_htmx.get', sort_by, sort_order) }}
+                {{ table_col('index-table', 'Sequence', 'sequence', 'barcodes_htmx.get', sort_by, sort_order) }}
+                {{ table_col('index-table', 'Type', 'sequence', 'barcodes_htmx.get', sort_by, sort_order) }}
                 <th scope="col">Type</th>
                 <th scope="col">Adapter</th>
             </tr>
@@ -22,5 +24,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("index-table", "barcodes_htmx.get", barcodes_n_pages, barcodes_active_page) }}
+    {{ spinner("index-table-spinner") }}
+    {{ pagination("index-table", "barcodes_htmx.get", n_pages, active_page) }}
 </div>

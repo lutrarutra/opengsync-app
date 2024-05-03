@@ -48,14 +48,14 @@
                 </div>
                 {% if not experiment is defined %}
                 <div class="tab-pane fade show active" id="available-libraries-tab" role="tabpanel" tabindex="0">
-                    <div hx-get="{% if experiment is defined %}{{ url_for('qubit_measure_workflow.get_libraries', page=0, experiment_id=experiment.id) }}{% else %}{{ url_for('qubit_measure_workflow.get_libraries', page=0) }}{% endif %}"
-                        hx-trigger="load">
+                    <div hx-get="{% if experiment is defined %}{{ url_for('qubit_measure_workflow.get_libraries', experiment_id=experiment.id) }}{% else %}{{ url_for('qubit_measure_workflow.get_libraries') }}{% endif %}"
+                        hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>
                 {% endif %}
                 <div class="tab-pane fade {% if experiment is defined %}show active{% endif %}" id="available-pools-tab" role="tabpanel" tabindex="1">
-                    <div hx-get="{% if experiment is defined %}{{ url_for('qubit_measure_workflow.get_pools', page=0, experiment_id=experiment.id) }}{% else %}{{ url_for('qubit_measure_workflow.get_pools', page=0) }}{% endif %}" hx-trigger="load">
+                    <div hx-get="{% if experiment is defined %}{{ url_for('qubit_measure_workflow.get_pools', experiment_id=experiment.id) }}{% else %}{{ url_for('qubit_measure_workflow.get_pools') }}{% endif %}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>

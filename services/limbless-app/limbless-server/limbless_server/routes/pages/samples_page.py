@@ -33,9 +33,6 @@ def sample_page(sample_id):
             return abort(HTTPResponse.FORBIDDEN.id)
 
         sample_form = forms.models.SampleForm(sample=sample)
-        sample.project
-        libraries = sample.libraries
-        seq_requests, seq_requests_n_pages = session.get_seq_requests(sample_id=sample_id, sort_by="id", descending=True)
 
     path_list = [
         ("Samples", url_for("samples_page.samples_page")),
@@ -59,7 +56,4 @@ def sample_page(sample_id):
     return render_template(
         "sample_page.html", sample_form=sample_form,
         path_list=path_list, sample=sample,
-        libraries=libraries,
-        seq_requests=seq_requests,
-        seq_requests_n_pages=seq_requests_n_pages
     )

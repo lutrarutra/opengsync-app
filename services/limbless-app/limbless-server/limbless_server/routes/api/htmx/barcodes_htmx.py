@@ -34,7 +34,7 @@ def get(page: int):
             "components/tables/barcode.html", barcodes=barcodes,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order
-        ), push_url=False
+        )
     )
 
 
@@ -53,7 +53,7 @@ def query_index_kits():
             "components/search_select_results.html",
             results=results,
             field_name=field_name
-        ), push_url=False
+        )
     )
 
 
@@ -77,5 +77,5 @@ def query_adapters(index_kit_id: int, exclude_library_id: Optional[int] = None):
             "components/search_select_results.html",
             results=results,
             field_name=field_name
-        ), push_url=False
+        )
     )

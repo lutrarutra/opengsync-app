@@ -16,13 +16,15 @@ else:
 adapters_htmx = Blueprint("adapters_htmx", __name__, url_prefix="/api/hmtx/adapters/")
 
 
-@adapters_htmx.route("<index_kit_id>/get/<int:page>", methods=["GET"], defaults={"index_kit_id": None})
+@adapters_htmx.route("get", methods=["GET"], defaults={"index_kit_id": None, "page": 0})
+@adapters_htmx.route("<int:index_kit_id>/get", methods=["GET"], defaults={"page": 0})
+@adapters_htmx.route("get/<int:page>", methods=["GET"], defaults={"index_kit_id": None})
 @adapters_htmx.route("<int:index_kit_id>/get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int, index_kit_id: Optional[int]):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Adapter.sortable_fields:
@@ -30,8 +32,7 @@ def get(page: int, index_kit_id: Optional[int]):
 
     with DBSession(db) as session:
         if index_kit_id is not None:
-            index_kit = session.get_index_kit(index_kit_id)
-            if index_kit is None:
+            if (index_kit := session.get_index_kit(index_kit_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
 
         adapters, n_pages = session.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending)
@@ -39,7 +40,7 @@ def get(page: int, index_kit_id: Optional[int]):
     return make_response(
         render_template(
             "components/tables/adapter.html", adapters=adapters,
-            adapters_n_pages=n_pages, adapters_active_page=page, index_kit_id=index_kit_id,
-            adapters_current_sort=sort_by, adapters_current_sort_order=order
-        ), push_url=False
+            n_pages=n_pages, active_page=page, index_kit=index_kit,
+            sort_by=sort_by, sort_order=sort_order
+        )
     )

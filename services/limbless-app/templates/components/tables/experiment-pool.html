@@ -10,9 +10,9 @@
                 {{
                     table_col(
                         target_id='experiment-pool-table', column_name='ID', column_var='id',
-                        sort_url='experiments_htmx.get_pools', sort_url_args={"experiment_id": experiment.id},
+                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('experiments_htmx.query_pools', experiment_id=experiment.id), current_query=current_query,
+                        query_url='experiments_htmx.query_pools', current_query=current_query,
                         field_name=field_name, query_type="number"
                     )
                 }}
@@ -20,23 +20,23 @@
                 {{
                     table_col(
                         target_id='experiment-pool-table', column_name='Pool Name', column_var='name',
-                        sort_url='experiments_htmx.get_pools', sort_url_args={"experiment_id": experiment.id},
+                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('experiments_htmx.query_pools', experiment_id=experiment.id), current_query=current_query,
+                        query_url='experiments_htmx.query_pools', current_query=current_query,
                         field_name=field_name, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-pool-table', column_name='Status', column_var='status_id',
-                        sort_url='experiments_htmx.get_pools', sort_url_args={"experiment_id": experiment.id},
+                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         target_id='experiment-pool-table', column_name='Owner', column_var='owner_id',
-                        sort_url='experiments_htmx.get_pools', sort_url_args={"experiment_id": experiment.id},
+                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
                     )
@@ -44,7 +44,7 @@
                 {{
                     table_col(
                         target_id='experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='experiments_htmx.get_pools', sort_url_args={"experiment_id": experiment.id},
+                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=1,
                     )
@@ -56,7 +56,7 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr class="table-url-row" dest="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
+            <tr onclick="redirect('{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}');">
                 <th scope="row">{{ pool.id }}</th>
                 <td>
                 
@@ -142,12 +142,6 @@
         }
 
         $(document).ready(function() {
-            $(".table-url-row").click(function(e) {
-                if (!($(e.target).hasClass("table-btn"))) {
-                    redirect($(this).attr("dest"));
-                }
-            });
-
             $(document).off("contextmenu", ".pool-name-cell").on("contextmenu", ".pool-name-cell", function(e) {
                 e.preventDefault();
                 const x = e.pageX;

@@ -10,46 +10,46 @@
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query'), current_query=current_query,
+                        query_url='seq_requests_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="number", col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Name', column_var='name',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query'), current_query=current_query,
+                        query_url='seq_requests_htmx.table_query', current_query=current_query,
                         field_name=field_name, col_size=2,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Requestor', column_var='requestor_id',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Submitted', column_var='timestamp_submitted_utc',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='seq_requests_htmx.get', sort_url_args={},
+                        sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
@@ -57,7 +57,7 @@
         </thead>
         <tbody>
             {% for seq_request in seq_requests %}
-            <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
+            <tr onclick="redirect('{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}');">
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>

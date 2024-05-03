@@ -9,7 +9,8 @@
         <div>
         </div>
     </div>
-
-    {% include "components/tables/library.html" %}
+    <div hx-get="{{ url_for('libraries_htmx.get') }}" hx-trigger="load" hx-swap="outerHMTL">
+        {{ spinner() }}
+    </div>
 </div>
 {% endblock content %}

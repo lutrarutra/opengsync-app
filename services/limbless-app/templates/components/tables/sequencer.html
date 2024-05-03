@@ -1,4 +1,6 @@
 {% from "components/pagination.jinja2" import pagination %}
+{% from "components/spinner.jinja2" import spinner %}
+
 <div id="sequencer-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -10,7 +12,7 @@
         </thead>
         <tbody>
             {% for sequencer in sequencers %}
-            <tr onclick="window.location.href='{{ url_for('devices_page.sequencer_page', sequencer_id=sequencer.id) }}';">
+            <tr onclick="redirect(`{{ url_for('devices_page.sequencer_page', sequencer_id=sequencer.id) }}`);">
                 <th scope="row">{{ sequencer.id }}</th>
                 <td>{{ sequencer.name }}</td>
                 <td>{{ sequencer.ip if sequencer.ip }}</td>
@@ -18,5 +20,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("sequencer-table", "sequencers_htmx.get", sequencers_n_pages, sequencers_active_page) }}
+    {{ spinner("sequencer-table-spinner") }}
+    {{ pagination("sequencer-table", "sequencers_htmx.get", n_pages, active_page) }}
 </div>

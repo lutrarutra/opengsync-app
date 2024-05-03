@@ -16,12 +16,13 @@ else:
 feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/api/hmtx/feature_kits/")
 
 
+@feature_kits_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @feature_kits_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
 
     if sort_by not in models.FeatureKit.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -36,9 +37,9 @@ def get(page: int):
         render_template(
             "components/tables/feature_kit.html",
             feature_kits=feature_kits,
-            feature_kits_n_pages=n_pages, feature_kits_active_page=page,
-            feature_kits_current_sort=sort_by, feature_kits_current_sort_order=order
-        ), push_url=False
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order
+        )
     )
 
 
@@ -59,5 +60,36 @@ def query():
             "components/search_select_results.html",
             results=results,
             field_name=field_name
-        ), push_url=False
+        )
+    )
+
+
+@feature_kits_htmx.route("table_query/<string:field_name>", methods=["POST"])
+@login_required
+def table_query(field_name: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if (word := request.form.get(field_name)) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    feature_kits = []
+    if field_name == "name":
+        feature_kits = db.query_feature_kits(word)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+
+        if (feature_kit := db.get_feature_kit(_id)) is not None:
+            feature_kits.append(feature_kit)
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    return make_response(
+        render_template(
+            "components/tables/feature_kit.html",
+            feature_kits=feature_kits, current_query=word
+        )
     )

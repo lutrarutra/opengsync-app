@@ -69,7 +69,9 @@
                     <h2>Libraries <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
             </div>
-            {% include "components/tables/sample-library.html" %}
+            <div hx-get="{{ url_for('samples_htmx.get_libraries', sample_id=sample.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
         </div>
         <div class="tab-pane fade show" id="sample-metadata-tab" role="tabpanel" tabindex="1">
             <div class="row">

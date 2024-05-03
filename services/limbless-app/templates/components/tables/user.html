@@ -1,5 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
 <div id="user-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -7,24 +9,24 @@
                 {{
                     table_col(
                         target_id='user-table', column_name='ID', column_var='id',
-                        query_url=url_for('users_htmx.table_query'), current_query=current_query,
-                        field_name=field_name, query_type="number", sort_url_args={},
+                        query_url='users_htmx.table_query', current_query=current_query,
+                        field_name=field_name, query_type="number", context={},
                         sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order
                     )
                 }}
                 {{
                     table_col(
                         target_id='user-table', column_name='Name', column_var='last_name',
-                        query_url=url_for('users_htmx.table_query'), current_query=current_query,
-                        sort_url='users_htmx.get', sort_url_args={},
+                        query_url='users_htmx.table_query', current_query=current_query,
+                        sort_url='users_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
                 {{
                     table_col(
                         target_id='user-table', column_name='Email', column_var='email',
-                        query_url=url_for('users_htmx.table_query'), current_query=current_query,
-                        sort_url='users_htmx.get', sort_url_args={},
+                        query_url='users_htmx.table_query', current_query=current_query,
+                        sort_url='users_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 
@@ -32,7 +34,7 @@
                 {{
                     table_col(
                         target_id='user-table', column_name='Role', column_var='role_id',
-                        sort_url='users_htmx.get', sort_url_args={},
+                        sort_url='users_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 
@@ -40,14 +42,14 @@
                 {{
                     table_col(
                         target_id='user-table', column_name='# Seq Requests', column_var='num_seq_requests',
-                        sort_url='users_htmx.get', sort_url_args={},
+                        sort_url='users_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
                     table_col(
                         target_id='user-table', column_name='# Projects', column_var='num_projects',
-                        sort_url='users_htmx.get', sort_url_args={},
+                        sort_url='users_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
@@ -55,7 +57,7 @@
         </thead>
         <tbody>
             {% for user in users %}
-            <tr onclick="window.location.href='{{ url_for('users_page.user_page', user_id=user.id) }}';">
+            <tr onclick="redirect('{{ url_for('users_page.user_page', user_id=user.id) }}');">
                 <th scope="row">{{ user.id }}</th>
                 <td>{{ user.name }}</td>
                 <td>{{ user.email }}</td>
@@ -66,5 +68,6 @@
             {% endfor %}
         </tbody>
     </table>
+    {{ spinner("user-table-spinner") }}
     {{ pagination("user-table", "users_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
 </div>

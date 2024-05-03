@@ -1,5 +1,6 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <div id="pool-table" class="table-container">
     <table class="table table-hover table-cursor">
@@ -8,25 +9,25 @@
                 {{
                     table_col(
                         target_id='pool-table', column_name='ID', column_var='id',
-                        sort_url='pools_htmx.get', sort_url_args={},
+                        sort_url='pools_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('pools_htmx.table_query'), current_query=current_query,
+                        query_url='pools_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="number"
                     )
                 }}
                 {{
                     table_col(
                         target_id='pool-table', column_name='Pool Name', column_var='name',
-                        sort_url='pools_htmx.get', sort_url_args={},
+                        sort_url='pools_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('pools_htmx.table_query'), current_query=current_query,
+                        query_url='pools_htmx.table_query', current_query=current_query,
                         field_name=field_name, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         target_id='pool-table', column_name='Status', column_var='status_id',
-                        sort_url='pools_htmx.get', sort_url_args={},
+                        sort_url='pools_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
                     )
@@ -34,7 +35,7 @@
                 {{
                     table_col(
                         target_id='pool-table', column_name='Owner', column_var='owner_id',
-                        sort_url='pools_htmx.get', sort_url_args={},
+                        sort_url='pools_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
                     )
@@ -42,7 +43,7 @@
                 {{
                     table_col(
                         target_id='pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='pools_htmx.get', sort_url_args={},
+                        sort_url='pools_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
                     )
@@ -51,7 +52,7 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr class="table-url-row" dest="{{ url_for('pools_page.pool_page', pool_id=pool.id) }}">
+            <tr onclick="redirect('{{ url_for('pools_page.pool_page', pool_id=pool.id) }}');">
                 <th scope="row">{{ pool.id }}</th>
                 <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">{{ pool.name }}</td>
                 <td>{{ pool.status.display_name }} {{ pool.status.icon }}</td>
@@ -61,21 +62,16 @@
             {% endfor %}
         </tbody>
     </table>
+    {{ spinner("pool-table-spinner") }}
     {{ pagination("pool-table", "pools_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
     <script>
-        let selected_pool_id = null;
+        var selected_pool_id = null;
         
         function copy_name() {
             copy_to_clipboard($("#pool-name-cell-" + selected_pool_id).text());
         }
         
         $(document).ready(function() {
-            $(".table-url-row").click(function(e) {
-                if (!$(e.target).is("button")) {
-                    redirect($(this).attr("dest"));
-                }
-            });
-
             $(document).off("contextmenu", ".pool-name-cell").on("contextmenu", ".pool-name-cell", function(e) {
                 e.preventDefault();
                 const x = e.pageX;

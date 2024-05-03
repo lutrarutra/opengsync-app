@@ -145,7 +145,7 @@ def table_query():
             template, pools=pools, field_name=field_name,
             current_query=word,
             Pool=models.Pool, **context,
-        ), push_url=False
+        )
     )
 
 

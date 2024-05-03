@@ -9,18 +9,18 @@
                 {{
                     table_col(
                         target_id='index_kit-table', column_name='ID', column_var='id',
-                        sort_url='index_kits_htmx.get', sort_url_args={},
+                        sort_url='index_kits_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('index_kits_htmx.table_query'), current_query=current_query,
+                        query_url='index_kits_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="number", col_size=3
                     )
                 }}
                 {{
                     table_col(
                         target_id='index_kit-table', column_name='Name', column_var='name',
-                        sort_url='index_kits_htmx.get', sort_url_args={},
+                        sort_url='index_kits_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=url_for('index_kits_htmx.table_query'), current_query=current_query,
+                        query_url='index_kits_htmx.table_query', current_query=current_query,
                         field_name=field_name, query_type="text", col_size=9
                     )
                 }}
@@ -28,7 +28,7 @@
         </thead>
         <tbody>
             {% for index_kit in index_kits %}
-            <tr onclick="window.location.href='{{ url_for('index_kits_page.index_kit_page', index_kit_id=index_kit.id) }}';">
+            <tr onclick="redirect('{{ url_for('index_kits_page.index_kit_page', index_kit_id=index_kit.id) }}');">
                 <th scope="row">{{ index_kit.id }}</th>
                 <td>{{ index_kit.name }}</td>
             </tr>

@@ -15,14 +15,7 @@ def devices_page():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     sequencer_form = forms.models.SequencerForm()
-    with DBSession(db) as session:
-        sequencers, n_pages = session.get_sequencers()
-
-    return render_template(
-        "devices_page.html", form=sequencer_form,
-        sequencers=sequencers,
-        sequencers_n_pages=n_pages, sequencers_active_page=0
-    )
+    return render_template("devices_page.html", form=sequencer_form,)
 
 
 @devices_page_bp.route("/sequencers/<int:sequencer_id>", methods=["GET"])

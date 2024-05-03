@@ -1,5 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
 <div id="user-project-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -7,41 +9,34 @@
                 {{
                     table_col(
                         target_id='user-project-table', column_name='ID', column_var='id',
-                        sort_url='projects_htmx.get', sort_url_args={'user_id': user.id},
-                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order,
-                        query_url=url_for('projects_htmx.table_query', user_id=user.id), current_query=projects_current_query,
+                        sort_url='users_htmx.get_projects', context={'user_id': user.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='users_htmx.query_projects', current_query=current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
                 {{
                     table_col(
                         target_id='user-project-table', column_name='Name', column_var='name',
-                        sort_url='projects_htmx.get', sort_url_args={'user_id': user.id},
-                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order,
-                        query_url=url_for('projects_htmx.table_query', user_id=user.id), current_query=projects_current_query,
-                        field_name=field_name, query_type="text", col_size=3
+                        sort_url='users_htmx.get_projects', context={'user_id': user.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='users_htmx.query_projects', current_query=current_query,
+                        field_name=field_name, query_type="text", col_size=6
                     )
                 }}
-                {{
-                    table_col(
-                        target_id='user-project-table', column_name='Owner', column_var='owner',
-                        sort_url='projects_htmx.get', sort_url_args={'user_id': user.id},
-                        current_sort=projects_current_sort, current_sort_order=projects_current_sort_order, col_size=2
-                    )
-                }}
-                <th scope="col col-1"># Samples</th>
+                <th scope="col col-2"># Samples</th>
             </tr>
         </thead>
         <tbody>
             {% for project in projects %}
-            <tr onclick="window.location.href='{{ url_for('projects_page.project_page', project_id=project.id) }}';">
+            <tr onclick="redirect('{{ url_for('projects_page.project_page', project_id=project.id, from='user@' + user.id | string) }}');">
                 <th scope="row">{{ project.id }}</th>
                 <td>{{ project.name }}</td>
-                <td>{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></td>
                 <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("user-project-table", "projects_htmx.get", projects_n_pages, projects_active_page, url_args={"user_id": user.id, "sort_by": projects_current_sort, "order": projects_current_sort_order}) }}
+    {{ spinner("user-project-table-spinner") }}
+    {{ pagination("user-project-table", "users_htmx.get_projects", n_pages, active_page, url_args={"user_id": user.id, "sort_by": sort_by, "sort_order": sort_order}) }}
 </div>

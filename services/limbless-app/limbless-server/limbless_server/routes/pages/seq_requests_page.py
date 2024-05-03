@@ -30,12 +30,9 @@ def seq_request_page(seq_request_id: int):
         if seq_request.requestor_id != current_user.id:
             if not current_user.is_insider():
                 return abort(HTTPResponse.FORBIDDEN.id)
-            
-        samples, samples_n_pages = session.get_samples(seq_request_id=seq_request_id, sort_by="id", descending=True)
 
-        if not current_user.is_insider():
-            if seq_request.requestor_id != current_user.id:
-                return abort(HTTPResponse.FORBIDDEN.id)
+        if not current_user.is_insider() and not seq_request.requestor_id != current_user.id:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
         path_list = [
             ("Requests", url_for("seq_requests_page.seq_requests_page")),
@@ -49,6 +46,12 @@ def seq_request_page(seq_request_id: int):
                     (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
                     (f"Request {seq_request_id}", ""),
                 ]
+            elif page == "user":
+                path_list = [
+                    ("Users", url_for("users_page.users_page")),
+                    (f"User {id}", url_for("users_page.user_page", user_id=id)),
+                    (f"Request {seq_request_id}", ""),
+                ]
 
         process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
         seq_auth_form = forms.SeqAuthForm()
@@ -59,12 +62,10 @@ def seq_request_page(seq_request_id: int):
         return render_template(
             "seq_request_page.html",
             seq_request=seq_request,
-            samples=samples,
             path_list=path_list,
             comment_form=comment_form,
             seq_request_share_email_form=seq_request_share_email_form,
             file_input_form=file_input_form,
             process_request_form=process_request_form,
             seq_auth_form=seq_auth_form,
-            samples_n_pages=samples_n_pages, samples_active_page=0,
         )

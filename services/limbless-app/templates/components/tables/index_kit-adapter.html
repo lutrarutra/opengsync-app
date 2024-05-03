@@ -1,4 +1,6 @@
 {% from "components/pagination.jinja2" import pagination %}
+{% from "components/spinner.jinja2" import spinner %}
+
 <div id="index_kit-adapter-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
@@ -36,5 +38,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("index_kit-adapter-table", "barcodes_htmx.get", adapters_n_pages, adapters_active_page) }}
+    {{ spinner("index_kit-adapter-table-spinner") }}
+    {{ pagination("index_kit-adapter-table", "barcodes_htmx.get", n_pages, active_page) }}
 </div>

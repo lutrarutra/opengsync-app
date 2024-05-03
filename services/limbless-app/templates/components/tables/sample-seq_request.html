@@ -1,47 +1,49 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col %}
-<div id="seq_request-table" class="table-container">
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="sample-seq_request-table" class="table-container">
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
                 {{
                     table_col(
-                        target_id='seq_request-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query', sample_id=sample.id), current_query=seq_requests_current_query,
+                        target_id='sample-seq_request-table', column_name='ID', column_var='id',
+                        sort_url='samples_htmx.get_seq_requests', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='samples_htmx.query_seq_requests', current_query=seq_requests_current_query,
                         field_name=field_name, query_type="number",
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-table', column_name='Name', column_var='name',
-                        sort_url='seq_requests_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order,
-                        query_url=url_for('seq_requests_htmx.table_query', sample_id=sample.id), current_query=seq_requests_current_query,
+                        target_id='sample-seq_request-table', column_name='Name', column_var='name',
+                        sort_url='samples_htmx.get_seq_requests', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='samples_htmx.query_seq_requests', current_query=seq_requests_current_query,
                         field_name=field_name, col_size=2,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-table', column_name='Status', column_var='status',
-                        sort_url='seq_requests_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=2,
+                        target_id='sample-seq_request-table', column_name='Status', column_var='status',
+                        sort_url='samples_htmx.get_seq_requests', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-table', column_name='Submitted', column_var='submitted_time',
-                        sort_url='seq_requests_htmx.get', sort_url_args={"sample_id": sample.id},
-                        current_sort=seq_requests_current_sort, current_sort_order=seq_requests_current_sort_order, col_size=1,
+                        target_id='sample-seq_request-table', column_name='Submitted', column_var='submitted_time',
+                        sort_url='samples_htmx.get_seq_requests', context={"sample_id": sample.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
             </tr>
         </thead>
         <tbody>
             {% for seq_request in seq_requests %}
-            <tr onclick="window.location.href='{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}';">
+            <tr onclick="redirect('{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}');">
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
@@ -50,6 +52,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination("seq_request-table", "seq_requests_htmx.get", seq_requests_n_pages, seq_requests_active_page, url_args={"sort_by": seq_requests_current_sort, "order": seq_requests_current_sort_order, "sample_id": sample.id}) }}
+    {{ spinner("sample-seq_request-table-spinner") }}
+    {{ pagination("sample-seq_request-table", "samples_htmx.get_seq_requests", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order, "sample_id": sample.id}) }}
 </div>
 <script>init_tooltips();</script>

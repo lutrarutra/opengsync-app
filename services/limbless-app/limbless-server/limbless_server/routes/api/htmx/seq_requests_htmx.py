@@ -22,6 +22,7 @@ else:
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hmtx/seq_requests/")
 
 
+@seq_requests_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @seq_requests_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
@@ -510,7 +511,7 @@ def table_query():
             template,
             current_query=word, field_name=field_name,
             seq_requests=seq_requests, **context
-        ), push_url=False
+        )
     )
 
 

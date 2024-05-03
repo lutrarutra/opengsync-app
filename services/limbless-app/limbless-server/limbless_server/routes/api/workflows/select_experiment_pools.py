@@ -35,8 +35,8 @@ def begin(experiment_id: int):
         return make_response(
             render_template(
                 "workflows/select_experiment_pools/sp-1.html",
-                experiment=experiment, available_pools=available_pools, n_available_pools_pages=n_available_pools_pages,
-                available_pools_active_page=0, selected_pools=selected_pools, active_tab=0
+                experiment=experiment, available_pools=available_pools, n_pages=n_available_pools_pages,
+                selected_pools=selected_pools, active_tab=0
             )
         )
     
@@ -48,8 +48,8 @@ def get(experiment_id: int, page: int):
         return abort(HTTPResponse.FORBIDDEN.id)
 
     sort_by = request.args.get("sort_by", "id")
-    order = request.args.get("order", "desc")
-    descending = order == "desc"
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
     with DBSession(db) as session:
@@ -70,9 +70,8 @@ def get(experiment_id: int, page: int):
 
         return make_response(
             render_template(
-                template, available_pools=available_pools, n_available_pools_pages=n_available_pools_pages,
-                available_pools_current_sort=sort_by, available_pools_current_sort_order=order,
-                pools_active_page=page, experiment=experiment
+                template, available_pools=available_pools, n_pages=n_available_pools_pages,
+                sort=sort_by, sort_order=sort_order, active_page=page, experiment=experiment
             )
         )
 
@@ -108,7 +107,7 @@ def table_query(experiment_id: int):
         render_template(
             "workflows/select_experiment_pools/available-experiment-pool.html", experiment=experiment,
             available_pools=pools, avialable_pools_current_query=word, field_name=field_name
-        ), push_url=False
+        )
     )
     
 
@@ -141,9 +140,8 @@ def add_pool(experiment_id: int):
         return make_response(
             render_template(
                 "workflows/select_experiment_pools/container.html",
-                experiment=experiment, available_pools=available_pools, n_available_pools_pages=n_available_pools_pages,
-                available_pools_active_page=0, selected_pools=selected_pools,
-                active_tab=0
+                experiment=experiment, available_pools=available_pools, n_pages=n_available_pools_pages,
+                active_page=0, selected_pools=selected_pools, active_tab=0
             )
         )
     
@@ -177,7 +175,7 @@ def remove_pool(experiment_id: int):
         return make_response(
             render_template(
                 "workflows/select_experiment_pools/container.html",
-                experiment=experiment, available_pools=available_pools, n_available_pools_pages=n_available_pools_pages,
-                available_pools_active_page=0, selected_pools=selected_pools, active_tab=1
+                experiment=experiment, available_pools=available_pools, n_pages=n_available_pools_pages,
+                active_page=0, selected_pools=selected_pools, active_tab=1
             )
         )
