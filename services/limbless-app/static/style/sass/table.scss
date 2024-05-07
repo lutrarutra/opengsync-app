@@ -7,6 +7,15 @@ table {
     }
 }
 
+table .multi-select {
+    position: static;
+
+    button {
+        height: 27px;
+        width: 100%;
+    }
+}
+
 .table-container {
     .pagination {
         display: flex;

@@ -73,6 +73,7 @@ def get_user_by_email(self, email: str) -> models.User:
 
 def get_users(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    role_in: Optional[list[UserRoleEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False
 ) -> tuple[list[models.User], int]:
     persist_session = self._session is not None
@@ -81,6 +82,12 @@ def get_users(
 
     query = self._session.query(models.User)
 
+    if role_in is not None:
+        role_ids = [role.id for role in role_in]
+        query = query.where(
+            models.User.role_id.in_(role_ids)
+        )
+        
     if sort_by is not None:
         attr = getattr(models.User, sort_by)
         if descending:

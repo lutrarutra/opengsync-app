@@ -10,7 +10,7 @@
                 {{
                     table_col(
                         target_id='select-pools-table', column_name='ID', column_var='id',
-                        sort_url='ba_report_workflow.get_pools', context={},
+                        sort_url='ba_report_workflow.get_pools', context={ "experiment_id": experiment.id } if experiment else {},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='ba_report_workflow.pools_table_query', current_query=current_query,
                         field_name=field_name, query_type="number", col_size=1,
@@ -19,28 +19,27 @@
                 {{
                     table_col(
                         target_id='select-pools-table', column_name='Name', column_var='name',
-                        sort_url='ba_report_workflow.get_pools', context={},
+                        sort_url='ba_report_workflow.get_pools', context={ "experiment_id": experiment.id } if experiment else {},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='ba_report_workflow.pools_table_query', current_query=current_query,
-                        field_name=field_name, query_type="text", col_size=2,
+                        field_name=field_name, query_type="text", col_size=4,
                     )
                 }}
                 {{
                     table_col(
                         target_id='select-pools-table', column_name='Status', column_var='status_id',
-                        sort_url='ba_report_workflow.get_pools', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=1,
+                        sort_url='ba_report_workflow.get_pools', context={ "experiment_id": experiment.id } if experiment else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
                         target_id='select-pools-table', column_name='Owner', column_var='owner_id',
-                        sort_url='ba_report_workflow.get_pools', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2,
+                        sort_url='ba_report_workflow.get_pools', context={ "experiment_id": experiment.id } if experiment else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=3,
                     )
                 }}
+                <th scope="col" class="col-2">Avg. Fragment Size</th>
             </tr>
         </thead>
         <tbody>
@@ -50,12 +49,18 @@
                 <td>{{ pool.name }}</td>
                 <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ pool.avg_fragment_size if pool.avg_fragment_size }}</div>
+                        <div class="unit">bp</div>
+                    </div>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {{ spinner("select-pools-table-spinner") }}
-    {{ pagination("select-pools-table", "ba_report_workflow.get_pools", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("select-pools-table", "ba_report_workflow.get_pools", n_pages, active_page, url_args={ "sort_by": sort_by, "sort_order": sort_order, "experiment_id": experiment.id } if experiment else {"sort_by": sort_by, "sort_order": sort_order}) }}
     <script>
         $(document).ready(function() {
             init_tooltips();

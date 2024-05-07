@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
@@ -5,9 +6,9 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, PoolStatus
 
-from .... import db, forms, logger
+from .... import db, forms, logger  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -29,49 +30,28 @@ def get(page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    pools: list[models.Pool] = []
-    context = {}
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [PoolStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
     
-    with DBSession(db) as session:
-        if (experiment_id := request.args.get("experiment_id")) is not None:
-            template = "components/tables/experiment-pool.html"
-            try:
-                experiment_id = int(experiment_id)
-            except ValueError:
-                return abort(HTTPResponse.BAD_REQUEST.id)
-            
-            if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            
-            pools, n_pages = session.get_pools(
-                experiment_id=experiment_id, sort_by=sort_by, descending=descending,
-                offset=offset,
-            )
-            experiment_lanes = {}
+        if len(status_in) == 0:
+            status_in = None
 
-            for lane in experiment.lanes:
-                experiment_lanes[lane.number] = []
-                for pool in lane.pools:
-                    experiment_lanes[lane.number].append(pool.id)
+    pools, n_pages = db.get_pools(
+        sort_by=sort_by, descending=descending,
+        offset=offset, status_in=status_in
+    )
 
-            context["experiment"] = experiment
-            context["experiment_lanes"] = experiment_lanes
-            context["Pool"] = models.Pool
-
-        else:
-            template = "components/tables/pool.html"
-            pools, n_pages = session.get_pools(
-                sort_by=sort_by, descending=descending,
-                offset=offset,
-            )
-
-        return make_response(
-            render_template(
-                template, pools=pools, n_pages=n_pages,
-                sort_by=sort_by, sort_order=sort_order,
-                active_page=page, **context
-            )
+    return make_response(
+        render_template(
+            "components/tables/pool.html", pools=pools, n_pages=n_pages,
+            sort_by=sort_by, sort_order=sort_order,
+            active_page=page, PoolStatus=PoolStatus, status_in=status_in
         )
+    )
     
 
 @pools_htmx.route("<int:pool_id>/edit", methods=["POST"])

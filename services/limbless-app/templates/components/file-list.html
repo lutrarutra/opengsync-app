@@ -1,4 +1,5 @@
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <ul class="nav nav-tabs" role="tablist">
     {% for file in files %}
@@ -43,7 +44,7 @@
         </div>
         <div class="file-container">
             {% if file.type.name == "Lane Pooling Table" %}
-            <div hx-get="{{ url_for('experiments_htmx.render_lane_pooling_tables', file_id=file.id, experiment_id=context['experiment'].id) }}" hx-trigger="intersect once">
+            <div hx-get="{{ url_for('experiments_htmx.render_lane_pooling_tables', file_id=file.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
             {% elif file.extension == ".pdf" %}

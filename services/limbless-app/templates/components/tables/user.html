@@ -10,7 +10,7 @@
                     table_col(
                         target_id='user-table', column_name='ID', column_var='id',
                         query_url='users_htmx.table_query', current_query=current_query,
-                        field_name=field_name, query_type="number", context={},
+                        field_name=field_name, query_type="number",
                         sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order
                     )
                 }}
@@ -18,39 +18,35 @@
                     table_col(
                         target_id='user-table', column_name='Name', column_var='last_name',
                         query_url='users_htmx.table_query', current_query=current_query,
-                        sort_url='users_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3
+                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
                     )
                 }}
                 {{
                     table_col(
                         target_id='user-table', column_name='Email', column_var='email',
                         query_url='users_htmx.table_query', current_query=current_query,
-                        sort_url='users_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3
+                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 
                 }}
                 {{
                     table_col(
                         target_id='user-table', column_name='Role', column_var='role_id',
-                        sort_url='users_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=UserRole.as_list(), multiselect_selected=role_in
                     )
                 
                 }}
                 {{
                     table_col(
                         target_id='user-table', column_name='# Seq Requests', column_var='num_seq_requests',
-                        sort_url='users_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
+                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
                     table_col(
                         target_id='user-table', column_name='# Projects', column_var='num_projects',
-                        sort_url='users_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
+                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
             </tr>

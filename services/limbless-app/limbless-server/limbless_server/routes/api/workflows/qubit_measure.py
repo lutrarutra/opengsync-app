@@ -7,7 +7,7 @@ from flask_login import login_required
 from limbless_db import models, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus
 
-from .... import db, logger
+from .... import db, logger  # noqa
 from ....forms.workflows import qubit_measure as wff
 
 if TYPE_CHECKING:
@@ -18,6 +18,7 @@ else:
 qubit_measure_workflow = Blueprint("qubit_measure_workflow", __name__, url_prefix="/api/workflows/qubit_measure/")
 
 
+@qubit_measure_workflow.route("get_pools", methods=["GET"], defaults={"page": 0})
 @qubit_measure_workflow.route("get_pools/<int:page>", methods=["GET"])
 @login_required
 def get_pools(page: int):
@@ -35,7 +36,7 @@ def get_pools(page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
     
-    pools, n_pages = db.get_pools(sort_by=sort_by, descending=descending, offset=offset, status=PoolStatus.RECEIVED, experiment_id=experiment_id)
+    pools, n_pages = db.get_pools(sort_by=sort_by, descending=descending, offset=offset, status_in=[PoolStatus.ACCEPTED, PoolStatus.RECEIVED], experiment_id=experiment_id)
     return make_response(
         render_template(
             "workflows/qubit_measure/select-pools-table.html",
@@ -155,8 +156,15 @@ def begin(experiment_id: Optional[int]):
 def select():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (experiment_id := request.form.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            experiment = db.get_experiment(experiment_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
-    return wff.SelectSamplesForm(formdata=request.form).process_request()
+    return wff.SelectSamplesForm(formdata=request.form, experiment=experiment).process_request()
 
 
 @qubit_measure_workflow.route("complete", methods=["POST"])

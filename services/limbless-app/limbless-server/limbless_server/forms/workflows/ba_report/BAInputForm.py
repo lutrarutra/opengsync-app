@@ -2,16 +2,11 @@ import os
 import uuid
 from typing import Optional
 
-import pandas as pd
-
 from flask_wtf.file import FileField, FileAllowed
 from wtforms.validators import DataRequired
 from flask import Response
 
-from limbless_db import models
-from limbless_db.categories import FileType
-
-from .... import db, logger
+from .... import db, logger  # noqa
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
 from .CompleteBAReportForm import CompleteBAReportForm
@@ -27,25 +22,12 @@ class BAInputForm(HTMXFlaskForm, TableDataForm):
 
     file = FileField("Bio Analyzer Report", validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])], description="Report exported from the BioAnalyzer software (pdf).")
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, max_size_mbytes: int = 5, experiment: Optional[models.Experiment] = None):
+    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, max_size_mbytes: int = 5):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="ba_report", uuid=uuid)
         self.max_size_mbytes = max_size_mbytes
-        if experiment is not None:
-            self.__from_experiment(experiment)
-
-    def __from_experiment(self, experiment: models.Experiment):
-        self.metadata["experiment_id"] = experiment.id
-
-        pool_table = db.get_experiment_pools_df(experiment.id)
-        pool_table = pool_table[["id", "name", "avg_fragment_size"]]
-
-        self.add_table("pool_table", pool_table)
-        self.add_table("library_table", pd.DataFrame(columns=["id", "name", "avg_fragment_size"]))
-
-        self.update_data()
 
     def prepare(self):
         self._context["pool_table"] = self.tables["pool_table"]

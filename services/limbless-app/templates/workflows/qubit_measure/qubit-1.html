@@ -5,7 +5,7 @@
 
 <div id="qubit_measure-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">1. Select Samples Form</h1>
+        <h1 class="modal-title fs-5">1. Qubit: Select Samples</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
     <div class="modal-body">
@@ -69,7 +69,7 @@
                                 <th scope="col" class="col-2">Type</th>
                                 <th scope="col" class="col-2">Status</th>
                                 <th scope="col" class="col-2">Owner</th>
-                                <th scope="col" class="col-2" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
+                                <th scope="col" class="col-2" {{ tooltip("Concentration of the pool") }}>Qubit Conc.</th>
 
                             </tr>
                         </thead>
@@ -86,7 +86,7 @@
                                 <th scope="col" class="col-4">Name</th>
                                 <th scope="col" class="col-2">Status</th>
                                 <th scope="col" class="col-3">Owner</th>
-                                <th scope="col" class="col-2" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
+                                <th scope="col" class="col-2" {{ tooltip("Concentration of the pool") }}>Qubit Conc.</th>
                             </tr>
                         </thead>
                         <tbody id="selected-pools-table-container">
@@ -190,6 +190,7 @@
                     csrf_token: "{{ qubit_measure_form.csrf_token._value() }}",
                     selected_pool_ids: JSON.stringify(selected_pools),
                     selected_libraries_ids: JSON.stringify(selected_libraries),
+                    {% if experiment %}experiment_id: {{ experiment.id }},{% endif %}
                 },
             });
 

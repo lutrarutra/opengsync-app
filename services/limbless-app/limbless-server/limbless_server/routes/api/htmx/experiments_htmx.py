@@ -1,4 +1,5 @@
 import os
+import json
 from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
@@ -8,7 +9,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, ExperimentStatus
 
 from .... import db, forms, logger
 
@@ -29,12 +30,20 @@ def get(page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    if sort_by not in models.Experiment.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [ExperimentStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
     
+        if len(status_in) == 0:
+            status_in = None
+
     with DBSession(db) as session:
         experiments, n_pages = session.get_experiments(
-            offset=offset, sort_by=sort_by, descending=descending
+            offset=offset, sort_by=sort_by, descending=descending,
+            status_in=status_in
         )
 
     return make_response(
@@ -42,7 +51,8 @@ def get(page: int):
             "components/tables/experiment.html",
             experiments=experiments,
             n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order
+            sort_by=sort_by, sort_order=sort_order,
+            ExperimentStatus=ExperimentStatus, status_in=status_in
         )
     )
 

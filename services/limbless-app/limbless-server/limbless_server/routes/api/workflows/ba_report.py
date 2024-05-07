@@ -18,6 +18,7 @@ else:
 ba_report_workflow = Blueprint("ba_report_workflow", __name__, url_prefix="/api/workflows/ba_report/")
 
 
+@ba_report_workflow.route("get_pools", methods=["GET"], defaults={"page": 0})
 @ba_report_workflow.route("get_pools/<int:page>", methods=["GET"])
 @login_required
 def get_pools(page: int):
@@ -28,13 +29,22 @@ def get_pools(page: int):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
+
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            experiment = db.get_experiment(experiment_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        experiment = None
     
-    pools, n_pages = db.get_pools(sort_by=sort_by, descending=descending, offset=offset, status=PoolStatus.RECEIVED)
+    pools, n_pages = db.get_pools(sort_by=sort_by, descending=descending, offset=offset, status_in=[PoolStatus.ACCEPTED, PoolStatus.RECEIVED], experiment_id=experiment_id)
     return make_response(
         render_template(
             "workflows/ba_report/select-pools-table.html",
             pools=pools, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order
+            sort_by=sort_by, sort_order=sort_order, experiment=experiment
         )
     )
 
@@ -68,6 +78,7 @@ def pools_table_query(field_name: str):
     )
 
 
+@ba_report_workflow.route("get_libraries", methods=["GET"], defaults={"page": 0})
 @ba_report_workflow.route("get_libraries/<int:page>", methods=["GET"])
 @login_required
 def get_libraries(page: int):
@@ -118,22 +129,22 @@ def libraries_table_query(field_name: str):
     )
 
 
-@ba_report_workflow.route("begin", methods=["GET"], defaults={"experiment_id": None})
-@ba_report_workflow.route("begin/<int:experiment_id>", methods=["GET"])
+@ba_report_workflow.route("begin", methods=["GET"])
 @login_required
-def begin(experiment_id: Optional[int]):
+def begin():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
         
-    if experiment_id is not None:
-        if (experiment := db.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        form = wff.BAInputForm(experiment=experiment)
-        form.prepare()
-        return form.make_response()
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            experiment = db.get_experiment(experiment_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        experiment = None
     
-    form = wff.SelectSamplesForm()
+    form = wff.SelectSamplesForm(experiment=experiment)
     return form.make_response()
 
 
@@ -143,7 +154,16 @@ def select():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
         
-    return wff.SelectSamplesForm(formdata=request.form).process_request()
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            experiment = db.get_experiment(experiment_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        experiment = None
+
+    return wff.SelectSamplesForm(formdata=request.form, experiment=experiment).process_request()
 
 
 @ba_report_workflow.route("attach_table", methods=["POST"])

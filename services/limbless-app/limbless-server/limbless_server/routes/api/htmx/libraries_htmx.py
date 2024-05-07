@@ -6,7 +6,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler
 from limbless_db.categories import HTTPResponse, LibraryType
-from .... import db, forms, logger
+from .... import db, forms, logger  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -24,9 +24,6 @@ def get(page: int):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
-
-    if sort_by not in models.Library.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
     
     libraries: list[models.Library] = []
     context = {}

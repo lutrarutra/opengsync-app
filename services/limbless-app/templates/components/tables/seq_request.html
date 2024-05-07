@@ -28,8 +28,8 @@
                 {{
                     table_col(
                         target_id='seq_request-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_requests_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        sort_url='seq_requests_htmx.get', context={}, multiselect_choices=SeqRequestStatus.as_list(),
+                        sort_by=sort_by, sort_order=sort_order, col_size=1, multiselect_selected=status_in
                     )
                 }}
                 {{

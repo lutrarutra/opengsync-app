@@ -6,7 +6,7 @@ import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import ExperimentWorkFlowEnum, ExperimentStatus, LibraryStatus, SeqRequestStatus, PoolStatus, ExperimentWorkFlow
+from ...categories import ExperimentWorkFlowEnum, ExperimentStatus, ExperimentStatusEnum, ExperimentWorkFlow
 
 
 def create_experiment(
@@ -86,6 +86,8 @@ def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -
 
 def get_experiments(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    status: Optional[ExperimentStatusEnum] = None,
+    status_in: Optional[list[ExperimentStatusEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False
 ) -> tuple[list[models.Experiment], int]:
     persist_session = self._session is not None
@@ -99,6 +101,12 @@ def get_experiments(
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)
+
+    if status is not None:
+        query = query.where(models.Experiment.status_id == status.id)
+
+    if status_in is not None:
+        query = query.where(models.Experiment.status_id.in_([s.id for s in status_in]))
 
     n_pages = math.ceil(query.count() / limit)
 

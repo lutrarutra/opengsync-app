@@ -1,43 +1,8 @@
+{% from "components/multi_select.jinja2" import multi_select %}
+
 {% extends "base.html" %}
 {% block content %}
 
-{% from "components/legends.jinja2" import color_legend %}
-
-<div class="container" style="height: 100%;">
-    <!-- Your grid container -->
-    {{ color_legend(colors) }}
-    <div id="grid" class="spreadsheet-grid">
-    </div>
-</div>
-
-<script>
-    $(document).ready(function() {
-        const library_types = {{ LibraryType.names() | tojson }};
-        const organisms = {{ GenomeRef.names() | tojson }};
-        library_types[0] = "Custom";
-
-        var data = [
-            ["P14_hash1-12_r1_well1_GEX", "mouse", "", "{{ LibraryType.SC_RNA_SEQ.desc }}", "FR_015_HT", "Dual Index Kit Plate TT Set A", "SI-TT-A1", "", "", "", "", null, null, null],
-        ];
-
-        jspreadsheet(document.getElementById('grid'), {
-            data: data,
-            columns: [
-                { type: "text", title: "Library Name", width: 120 },
-                { type: "dropdown", title: "Organism", width: 100, source: organisms, autocomplete: true },
-                { type: "text", title: "Project", width: 100 },
-                { type: "dropdown", title:"Library Type", width: 100, source: library_types, autocomplete: true},
-                { type: "text", title: "Pool", width: 100 },
-                { type: "text", title: "Index Kit", width: 100 },
-                { type: "text", title: "Adapter", width: 100 },
-                { type: "text", title: "Index 1 (i7)", width: 100 },
-                { type: "text", title: "Index 2 (i5)", width: 100 },
-                { type: "text", title: "Index 3", width: 80 },
-                { type: "text", title: "Index 4", width: 80 },
-            ],
-            minSpareRows: 10,
-        });
-    });
-</script>
+{{ multi_select(SeqRequestStatus.as_list(), selected=[2]) }}
 
 {% endblock content %}

@@ -4,7 +4,7 @@ import pandas as pd
 import json
 
 from flask import Response
-from wtforms import StringField
+from wtforms import StringField, IntegerField
 
 from limbless_db import models, DBSession
 
@@ -19,6 +19,7 @@ class SelectSamplesForm(HTMXFlaskForm):
 
     selected_library_ids = StringField()
     selected_pool_ids = StringField()
+    experiment_id = IntegerField()
 
     error_dummy = StringField()
 
@@ -27,6 +28,7 @@ class SelectSamplesForm(HTMXFlaskForm):
         self.experiment = experiment
         if self.experiment is not None:
             self._context["experiment"] = self.experiment
+            self.experiment_id.data = self.experiment.id
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -111,6 +113,9 @@ class SelectSamplesForm(HTMXFlaskForm):
         complete_qubit_measure_form.metadata = {
             "workflow": "qubit_measure",
         }
+
+        if (experiment_id := self.experiment_id.data) is not None:
+            complete_qubit_measure_form.metadata["experiment_id"] = experiment_id
         
         complete_qubit_measure_form.add_table("pool_table", pd.DataFrame(pool_data))
         complete_qubit_measure_form.add_table("library_table", pd.DataFrame(library_data))

@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
@@ -26,17 +27,30 @@ def get(page: int):
 
     if sort_by not in models.User.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (role_in := request.args.get("role_id_in")) is not None:
+        role_in = json.loads(role_in)
+        try:
+            role_in = [UserRole.get(int(role)) for role in role_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(role_in) == 0:
+            role_in = None
 
-    with DBSession(db) as session:
-        users, n_pages = session.get_users(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
-        
-        return make_response(
-            render_template(
-                "components/tables/user.html", users=users,
-                active_page=page, n_pages=n_pages,
-                sort_by=sort_by, sort_order=sort_order
-            )
+    users, n_pages = db.get_users(
+        offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending,
+        role_in=role_in
+    )
+    
+    return make_response(
+        render_template(
+            "components/tables/user.html", users=users,
+            active_page=page, n_pages=n_pages,
+            sort_by=sort_by, sort_order=sort_order,
+            UserRole=UserRole, role_in=role_in
         )
+    )
 
 
 @users_htmx.route("query", methods=["POST"])

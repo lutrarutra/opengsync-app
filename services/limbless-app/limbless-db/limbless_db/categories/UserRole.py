@@ -10,6 +10,10 @@ class UserRoleEnum(DBEnum):
 
     def is_insider(self) -> bool:
         return self.insider
+    
+    @property
+    def select_name(self) -> str:
+        return self.icon
 
 
 class UserRole(ExtendedEnum[UserRoleEnum], enum_type=UserRoleEnum):

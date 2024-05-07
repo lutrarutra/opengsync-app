@@ -62,13 +62,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     if app.debug:
         @app.route("/test")
         def test():
-            colors = {
-                "dont_change": "#FADBD8",
-                "required": "#E8DAEF",
-                "optional": "#FCF3CF",
-                "overwritable": "#D5F5E3",
-            }
-            return render_template("test.html", colors=colors)
+            return render_template("test.html", SeqRequestStatus=categories.SeqRequestStatus)
 
     @app.route("/index_page")
     def _index_page():
@@ -100,6 +94,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @app.route("/pdf_file/<int:file_id>")
     @login_required
     def pdf_file(file_id: int):
+        import time
+        time.sleep(1)
         if (file := db.get_file(file_id)) is None:
             return abort(categories.HTTPResponse.NOT_FOUND.id)
         

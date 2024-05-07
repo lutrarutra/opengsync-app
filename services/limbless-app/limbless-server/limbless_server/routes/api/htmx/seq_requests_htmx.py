@@ -1,8 +1,9 @@
 import os
+import json
 from io import BytesIO
 from typing import Optional, TYPE_CHECKING, Literal
 
-from flask import Blueprint, url_for, render_template, flash, abort, request, Response, jsonify, current_app
+from flask import Blueprint, url_for, render_template, flash, abort, request, Response, current_app
 from flask_htmx import make_response
 from flask_login import login_required
 from werkzeug.utils import secure_filename
@@ -31,77 +32,33 @@ def get(page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    if sort_by not in models.SeqRequest.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if len(status_in) == 0:
+            status_in = None
     
     seq_requests: list[models.SeqRequest] = []
-    context = {}
 
-    if (with_status := request.args.get("with_status", None)) is not None:
-        try:
-            with_status = SeqRequestStatus.get(int(with_status))
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        with_statuses = [with_status]
-    else:
-        with_statuses = None
+    user_id = current_user.id if not current_user.is_insider() else None
 
-    if (user_id := request.args.get("user_id")) is not None:
-        template = "components/tables/user-seq_request.html"
-        try:
-            user_id = int(user_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        if user_id != current_user.id and not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if (user := db.get_user(user_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-
-        seq_requests, n_pages = db.get_seq_requests(
-            offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
-            with_statuses=with_statuses
-        )
-        context["user"] = user
-
-    elif (sample_id := request.args.get("sample_id")) is not None:
-        template = "components/tables/sample-seq_request.html"
-        try:
-            sample_id = int(sample_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        if (sample := db.get_sample(sample_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if not current_user.is_insider():
-            if sample.owner_id != current_user.id:
-                return abort(HTTPResponse.FORBIDDEN.id)
-        
-        seq_requests, n_pages = db.get_seq_requests(
-            offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending,
-            with_statuses=with_statuses
-        )
-        context["sample"] = sample
-    else:
-        template = "components/tables/seq_request.html"
-        with DBSession(db) as session:
-            if not current_user.is_insider():
-                user_id = current_user.id
-            else:
-                user_id = None
-            seq_requests, n_pages = session.get_seq_requests(
-                offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
-                show_drafts=True, with_statuses=with_statuses
-            )
+    seq_requests, n_pages = db.get_seq_requests(
+        offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
+        show_drafts=True, with_statuses=status_in
+    )
 
     return make_response(
         render_template(
-            template, seq_requests=seq_requests,
+            "components/tables/seq_request.html",
+            seq_requests=seq_requests,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
-            **context
+            SeqRequestStatus=SeqRequestStatus,
+            status_in=status_in,
         )
     )
 

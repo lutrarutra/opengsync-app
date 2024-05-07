@@ -7,6 +7,10 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class SeqRequestStatusEnum(DBEnum):
     icon: str
 
+    @property
+    def select_name(self) -> str:
+        return self.icon
+
 
 class SeqRequestStatus(ExtendedEnum[SeqRequestStatusEnum], enum_type=SeqRequestStatusEnum):
     DRAFT = SeqRequestStatusEnum(0, "Draft", "✍🏼")

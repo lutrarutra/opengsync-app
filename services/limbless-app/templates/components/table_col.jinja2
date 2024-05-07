@@ -1,7 +1,10 @@
-{% macro table_col(target_id, column_name, column_var, sort_url=none, sort_by=none, sort_order=none, query_url=none, current_query=none, field_name=none, query_type="text", col_size=1, context={}, active_page=0) -%}
+{% from "components/multi_select.jinja2" import multi_select %}
+
+{% macro table_col(target_id, column_name, column_var, sort_url=none, sort_by=none, sort_order=none, query_url=none, current_query=none, field_name=none, multiselect_choices=none, multiselect_selected=none, query_type="text", col_size=1, context={}, active_page=0) -%}
 <th scope="col" class="col-{{ col_size}} sortable-col {{ sort_order }} {{ 'query-col' if query_url else '' }}"
 id="{{ target_id }}:{{ column_var }}"
-{% if (current_query and column_var == field_name) %}style="display: none;"{% endif %}>
+{% if (current_query and column_var == field_name) %}style="display: none;"{% endif %}
+{% if multiselect_selected %}style="display: none;"{% endif %}>
 {{ column_name }}
 {% if sort_url %}
     <a class="sort-btn" type="button" role="button"
@@ -37,9 +40,16 @@ id="{{ target_id }}:{{ column_var }}"
         </svg>
     </a>
     {% endif %}
+    {% if multiselect_choices %}
+    <a type="button" role="button" class="search-btn" onclick="show_filter_col('{{ target_id }}:{{ column_var }}')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel" viewBox="0 0 16 16">
+            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
+        </svg>
+    </a>
+    {% endif %}
 </th>
 {% if query_url %}
-<th th scopy='col' class='col-{{ col_size}} temp-query-input' id='{{ target_id }}:{{ column_var }}-temp'
+<th scopy='col' class='col-{{ col_size}} temp-query-input' id='{{ target_id }}:{{ column_var }}-query'
     {% if not (current_query and column_var == field_name) %}
     style="display: none; height: 25px;"
     {% else %}
@@ -67,5 +77,19 @@ id="{{ target_id }}:{{ column_var }}"
     });
     {% endif %}
 </script>
+{% endif %}
+{% if multiselect_choices %}
+<th scopy='col' class='col-{{ col_size}} temp-query-input' id='{{ target_id }}:{{ column_var }}-filter'
+    {% if not multiselect_selected %}style="display: none;"{% endif %}>
+    {{
+        multi_select(
+            choices=multiselect_choices,
+            field=column_var,
+            url=url_for(sort_url, page=active_page | float | int, **context),
+            hx_target="#" + target_id,
+            selected=multiselect_selected
+        )
+    }}
+</th>
 {% endif %}
 {%- endmacro %}

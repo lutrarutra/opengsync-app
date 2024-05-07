@@ -11,7 +11,7 @@ from wtforms import IntegerField, FieldList, FormField
 from wtforms.validators import NumberRange, Optional as OptionalValidator, DataRequired
 
 from limbless_db import models
-from limbless_db.categories import FileType
+from limbless_db.categories import FileType, PoolStatus
 
 from .... import db, logger
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -96,6 +96,9 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
             
             pool.avg_fragment_size = sub_form.avg_fragment_size.data
             pool.ba_report_id = ba_file.id
+            if pool.status == PoolStatus.ACCEPTED:
+                pool.status_id = PoolStatus.RECEIVED.id
+                
             pool = db.update_pool(pool)
 
             pool_table.loc[pool_table["id"] == pool.id, "avg_fragment_size"] = pool.avg_fragment_size

@@ -18,6 +18,10 @@ class DBEnum():
     def display_name(self) -> str:
         return self.name
     
+    @property
+    def select_name(self) -> str:
+        return str(self.id)
+    
     def __lt__(self, other) -> bool:
         return self.id < other.id
 

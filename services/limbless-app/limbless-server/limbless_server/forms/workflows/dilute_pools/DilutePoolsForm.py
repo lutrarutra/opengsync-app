@@ -32,8 +32,6 @@ class DilutePoolsForm(HTMXFlaskForm):
     def prepare(self, experiment: models.Experiment) -> dict:
         df = db.get_experiment_pools_df(experiment.id)
 
-        df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["diluted_qubit_concentration"]) else row["diluted_qubit_concentration"], axis="columns")
-
         df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
         df["molarity_color"] = "cemm-green"
         df.loc[(df["molarity"] < models.Pool.warning_min_molarity) | (models.Pool.warning_max_molarity < df["molarity"]), "molarity_color"] = "cemm-yellow"

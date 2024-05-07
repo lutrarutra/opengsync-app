@@ -46,11 +46,14 @@ def experiment_page(experiment_id: int):
         experiment_lanes: dict[int, list[int]] = {}
         _lane_capacities: dict[int, float] = {}
 
-        all_lanes_qced = True
-        flowcell_is_loaded = True
+        qubit_concentration_measured = len(pools) > 0
+        avg_framgnet_size_measured = len(pools) > 0
+        all_lanes_qced = len(experiment.lanes) > 0
+        flow_cell_ready = len(experiment.lanes) > 0
+        
         for lane in experiment.lanes:
             all_lanes_qced = all_lanes_qced and lane.is_qced()
-            flowcell_is_loaded = flowcell_is_loaded and lane.is_loaded()
+            flow_cell_ready = flow_cell_ready and lane.is_loaded()
             experiment_lanes[lane.number] = []
             _lane_capacities[lane.number] = 0
             
@@ -102,7 +105,7 @@ def experiment_page(experiment_id: int):
             all_pools_qced=all_pools_qced,
             can_be_loaded=can_be_loaded,
             all_lanes_qced=all_lanes_qced,
-            flowcell_is_loaded=flowcell_is_loaded,
+            flow_cell_ready=flow_cell_ready,
             laning_completed=laning_completed,
             lane_capacities=lane_capacities,
             Pool=models.Pool

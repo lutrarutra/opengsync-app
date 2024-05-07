@@ -40,8 +40,8 @@ class LanePoolingForm(HTMXFlaskForm):
 
     def prepare(self, experiment: models.Experiment) -> dict:
         df = db.get_experiment_laned_pools_df(experiment.id)
-        df["qubit_concentration"] = df["original_qubit_concentration"]
-        df.loc[df["diluted_qubit_concentration"].notna(), "qubit_concentration"] = df.loc[df["diluted_qubit_concentration"].notna(), "diluted_qubit_concentration"].values
+        # df["qubit_concentration"] = df["original_qubit_concentration"]
+        # df.loc[df["diluted_qubit_concentration"].notna(), "qubit_concentration"] = df.loc[df["diluted_qubit_concentration"].notna(), "diluted_qubit_concentration"].values
 
         for i, _ in enumerate(df["lane"].unique()):
             if i > len(self.lane_target_forms) - 1:
@@ -78,15 +78,13 @@ class LanePoolingForm(HTMXFlaskForm):
             
         return True
     
-    def process_request(self, **context) -> Response:
+    def process_request(self, experiment: models.Experiment, user: models.User) -> Response:
         if not self.validate():
-            return self.make_response(**context)
+            return self.make_response(experiment=experiment)
         
-        experiment: models.Experiment = context["experiment"]
-        user: models.User = context["user"]
         df = db.get_experiment_laned_pools_df(experiment.id)
-        df["qubit_concentration"] = df["original_qubit_concentration"]
-        df.loc[df["diluted_qubit_concentration"].notna(), "qubit_concentration"] = df.loc[df["diluted_qubit_concentration"].notna(), "diluted_qubit_concentration"].values
+        # df["qubit_concentration"] = df["original_qubit_concentration"]
+        # df.loc[df["diluted_qubit_concentration"].notna(), "qubit_concentration"] = df.loc[df["diluted_qubit_concentration"].notna(), "diluted_qubit_concentration"].values
 
         for _, pool_reads_form in enumerate(self.pool_reads_forms):
             df.loc[df["pool_id"] == pool_reads_form.pool_id.data, "num_m_reads_requested"] = pool_reads_form.m_reads.data

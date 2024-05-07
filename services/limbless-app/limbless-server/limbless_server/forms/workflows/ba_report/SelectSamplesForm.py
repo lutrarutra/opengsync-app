@@ -1,10 +1,12 @@
+from typing import Optional
+
 import pandas as pd
 import json
 
 from flask import Response
-from wtforms import StringField
+from wtforms import StringField, IntegerField
 
-from limbless_db import models, DBSession
+from limbless_db import DBSession, models
 
 from .... import db, logger
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -19,6 +21,11 @@ class SelectSamplesForm(HTMXFlaskForm):
     selected_pool_ids = StringField()
 
     error_dummy = StringField()
+
+    def __init__(self, formdata: dict = {}, experiment: Optional[models.Experiment] = None):
+        HTMXFlaskForm.__init__(self, formdata=formdata)
+        self.experiment = experiment
+        self._context["experiment"] = experiment
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -103,6 +110,9 @@ class SelectSamplesForm(HTMXFlaskForm):
         ba_input_form.metadata = {
             "workflow": "ba_report",
         }
+
+        if self.experiment is not None:
+            ba_input_form.metadata["experiment_id"] = self.experiment.id
         
         ba_input_form.add_table("pool_table", pd.DataFrame(pool_data))
         ba_input_form.add_table("library_table", pd.DataFrame(library_data))

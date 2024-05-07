@@ -9,6 +9,8 @@ from flask_htmx import make_response
 from wtforms import FloatField, IntegerField, FieldList, FormField
 from wtforms.validators import NumberRange, Optional as OptionalValidator, DataRequired
 
+from limbless_db.categories import PoolStatus
+
 from .... import db, logger
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
@@ -75,6 +77,10 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
                 raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
             
             pool.qubit_concentration = sub_form.qubit_concentration.data
+
+            if pool.status == PoolStatus.ACCEPTED:
+                pool.status_id = PoolStatus.RECEIVED.id
+
             pool = db.update_pool(pool)
 
             pool_table.loc[pool_table["id"] == pool.id, "qubit_concentration"] = pool.qubit_concentration
