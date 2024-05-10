@@ -8,25 +8,25 @@
             <tr>
                 {{
                     table_col(
-                        target_id='sample-table', column_name='ID', column_var='id',
+                        table_container_id='sample-table', column_name='ID', column_var='id',
                         sort_url='samples_htmx.get',
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='samples_htmx.table_query', current_query=current_query,
-                        field_name=field_name, query_type="number",
+                        active_query_field=active_query_field, query_type="number",
                     )
                 }}
                 {{
                     table_col(
-                        target_id='sample-table', column_name='Name', column_var='name',
+                        table_container_id='sample-table', column_name='Name', column_var='name',
                         sort_url='samples_htmx.get',
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='samples_htmx.table_query', current_query=current_query,
-                        field_name=field_name, col_size=4
+                        active_query_field=active_query_field, col_size=4
                     )
                 }}
                 {{
                     table_col(
-                        target_id='sample-table', column_name='Project', column_var='project_id',
+                        table_container_id='sample-table', column_name='Project', column_var='project_id',
                         sort_url='samples_htmx.get',
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=5
@@ -34,7 +34,7 @@
                 }}
                 {{
                     table_col(
-                        target_id='sample-table', column_name='Owner', column_var='owner_id',
+                        table_container_id='sample-table', column_name='Owner', column_var='owner_id',
                         sort_url='samples_htmx.get',
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2
@@ -42,7 +42,7 @@
                 }}
                 {{
                     table_col(
-                        target_id='sample-table', column_name='# Libraries', column_var='num_libraries',
+                        table_container_id='sample-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order,
                         col_size=2
                     )
@@ -62,7 +62,7 @@
         </tbody>
     </table>
     {{ spinner("sample-table-spinner") }}
-    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page) }}
 </div>
 
 <script>

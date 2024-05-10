@@ -9,18 +9,18 @@
             <tr>
                 {{
                     table_col(
-                        target_id='seq_request-sample-table', column_name='ID', column_var='id',
+                        table_container_id='seq_request-sample-table', column_name='ID', column_var='id',
                         sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
-                        field_name=field_name, query_type="number", col_size=1
+                        active_query_field=active_query_field, query_type="number", col_size=1
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-sample-table', column_name='Name', column_var='name',
+                        table_container_id='seq_request-sample-table', column_name='Name', column_var='name',
                         sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
-                        field_name=field_name, query_type="string", col_size=3
+                        active_query_field=active_query_field, query_type="string", col_size=3
                     )
                 }}
                 <th scope="col" class="col-4">Library Types</th>
@@ -49,5 +49,5 @@
         </tbody>
     </table>
     {{ spinner("seq_request-sample-table-spinner") }}
-    {{ pagination("seq_request-sample-table", "seq_requests_htmx.get_samples", n_pages, active_page, url_args={"seq_request_id": seq_request.id, "sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("seq_request-sample-table", "seq_requests_htmx.get_samples", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
 </div>

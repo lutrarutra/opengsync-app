@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 
 from limbless_db import models, DBSession, DBHandler, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, SeqRequestStatus, UserRole
+from limbless_db.categories import HTTPResponse, SeqRequestStatus, UserRole, LibraryStatus, LibraryType
 from limbless_db.core import exceptions
 from .... import db, forms, logger
 
@@ -407,72 +407,48 @@ def remove_library(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("table_query", methods=["POST"])
+@seq_requests_htmx.route("table_query", methods=["GET"])
 @login_required
 def table_query():
-    if (word := request.form.get("name", None)) is not None:
+    if (word := request.args.get("name")) is not None:
         field_name = "name"
-    elif (word := request.form.get("id", None)) is not None:
+    elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if word is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+    user_id = current_user.id if not current_user.is_insider() else None
 
-    def __get_seq_requests(
-        session: DBHandler, word: str | int, field_name: str,
-        user_id: Optional[int] = None
-    ) -> list[models.SeqRequest]:
-        seq_requests: list[models.SeqRequest] = []
-        if field_name == "name":
-            seq_requests = session.query_seq_requests(
-                str(word), user_id=user_id
-            )
-        elif field_name == "id":
-            try:
-                _id = int(word)
-                if (seq_request := session.get_seq_request(_id)) is not None:
-                    if user_id is not None:
-                        if seq_request.requestor_id == user_id:
-                            seq_requests = [seq_request]
-                    else:
-                        seq_requests = [seq_request]
-            except ValueError:
-                pass
-        else:
-            assert False    # This should never happen
-
-        return seq_requests
-    
-    context = {}
-    if (user_id := request.args.get("user_id", None)) is not None:
-        template = "components/tables/user-seq_request.html"
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
         try:
-            user_id = int(user_id)
+            status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
         except ValueError:
+            logger.debug("asdas")
             return abort(HTTPResponse.BAD_REQUEST.id)
-        with DBSession(db) as session:
-            if (user := session.get_user(user_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            
-            seq_requests = __get_seq_requests(session, word, field_name, user_id=user_id)
-            context["user"] = user
-    else:
-        template = "components/tables/seq_request.html"
+        
+        if len(status_in) == 0:
+            status_in = None
 
-        with DBSession(db) as session:
-            if not current_user.is_insider():
-                user_id = current_user.id
-            else:
-                user_id = None
-            seq_requests = __get_seq_requests(session, word, field_name, user_id=user_id)
+    seq_requests: list[models.SeqRequest] = []
+    if field_name == "name":
+        seq_requests = db.query_seq_requests(word, user_id=user_id, status_in=status_in)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+            if (seq_request := db.get_seq_request(_id)) is not None:
+                if user_id is None or seq_request.requestor_id == user_id:
+                    seq_requests = [seq_request]
+                if status_in is not None and seq_request.status not in status_in:
+                    seq_requests = []
+        except ValueError:
+            pass
 
     return make_response(
         render_template(
-            template,
-            current_query=word, field_name=field_name,
-            seq_requests=seq_requests, **context
+            "components/tables/seq_request.html",
+            current_query=word, active_query_field=field_name,
+            seq_requests=seq_requests, status_in=status_in
         )
     )
 
@@ -501,7 +477,6 @@ def add_share_email(seq_request_id: int):
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    logger.debug(request.form)
     return forms.SeqRequestShareEmailForm(formdata=request.form).process_request(
         seq_request=seq_request
     )
@@ -677,49 +652,99 @@ def get_libraries(seq_request_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    libraries, n_pages = db.get_libraries(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+
+    libraries, n_pages = db.get_libraries(
+        offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending,
+        status_in=status_in, type_in=type_in
+    )
 
     return make_response(
         render_template(
             "components/tables/seq_request-library.html",
             libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request
+            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request,
+            status_in=status_in, type_in=type_in
         )
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/query_libraries/<string:field_name>", methods=["POST"])
+@seq_requests_htmx.route("<int:seq_request_id>/query_libraries", methods=["GET"])
 @login_required
-def query_libraries(seq_request_id: int, field_name: str):
-    if (word := request.form.get(field_name)) is None:
+def query_libraries(seq_request_id: int):
+    if (word := request.args.get("name")) is not None:
+        field_name = "name"
+    elif (word := request.args.get("id")) is not None:
+        field_name = "id"
+    else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+    if seq_request.requestor_id != current_user.id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+
+    libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(word, seq_request_id=seq_request_id)
+        libraries = db.query_libraries(word, seq_request_id=seq_request_id, status_in=status_in, type_in=type_in)
     elif field_name == "id":
         try:
             _id = int(word)
+            if (library := db.get_library(_id)) is not None:
+                if library.seq_request_id == seq_request_id:
+                    libraries = [library]
+                if status_in is not None and library.status not in status_in:
+                    libraries = []
+                if type_in is not None and library.type not in type_in:
+                    libraries = []
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        libraries = []
-        if (library := db.get_library(library_id=_id)) is not None:
-            if library.seq_request_id == seq_request_id:
-                libraries.append(library)
-    else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
+            pass
+
     return make_response(
         render_template(
             "components/tables/seq_request-library.html",
-            libraries=libraries, n_pages=1, active_page=0,
-            sort_by="id", sort_order="desc", seq_request=seq_request
+            current_query=word, active_query_field=field_name,
+            seq_request=seq_request,
+            libraries=libraries, type_in=type_in, status_in=status_in
         )
     )
 

@@ -45,7 +45,7 @@ def get(page: int):
     
         if len(type_in) == 0:
             type_in = None
-
+    
     libraries, n_pages = db.get_libraries(
         offset=offset,
         user_id=current_user.id if not current_user.is_insider() else None,
@@ -146,107 +146,59 @@ def get_visium_annotation(library_id: int):
     )
 
 
-@libraries_htmx.route("table_query", methods=["POST"])
+@libraries_htmx.route("table_query", methods=["GET"])
 @login_required
 def table_query():
-    # TODO: Re-implement this in proper places
-    raise NotImplementedError("")
-    if (word := request.form.get("name")) is not None:
+    if (word := request.args.get("name")) is not None:
         field_name = "name"
-    elif (word := request.form.get("id")) is not None:
+    elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if word is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+    user_id = current_user.id if not current_user.is_insider() else None
 
-    def __get_libraries(
-        session: DBHandler, word: str | int, field_name: str, sample_id: Optional[int] = None,
-        seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None, user_id: Optional[int] = None
-    ) -> list[models.Library]:
-        libraries: list[models.Library] = []
-        if field_name == "name":
-            libraries = session.query_libraries(
-                str(word), user_id=user_id, seq_request_id=seq_request_id,
-                experiment_id=experiment_id, sample_id=sample_id
-            )
-        elif field_name == "id":
-            try:
-                _id = int(word)
-                if (library := session.get_library(_id)) is not None:
-                    if seq_request_id is not None:
-                        if seq_request_id in [sr.id for sr in library.seq_requests]:
-                            libraries = [library]
-                    elif experiment_id is not None:
-                        if experiment_id in [e.id for e in library.experiments]:
-                            libraries = [library]
-                    elif sample_id is not None:
-                        if sample_id in [s.id for s in library.samples]:
-                            libraries = [library]
-                    elif user_id is not None:
-                        if library.owner_id == user_id:
-                            libraries = [library]
-                    else:
-                        libraries = [library]
-            except ValueError:
-                pass
-        else:
-            assert False    # This should never happen
-
-        return libraries
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
     
-    context = {}
-    if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-        template = "components/tables/seq_request-library.html"
-        try:
-            seq_request_id = int(seq_request_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        with DBSession(db) as session:
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-                
-            libraries = __get_libraries(session, word, field_name, seq_request_id=seq_request_id)
-        context["seq_request"] = seq_request
-    elif (seq_request_id := request.args.get("experiment_id", None)) is not None:
-        template = "components/tables/experiment-library.html"
-        try:
-            experiment_id = int(seq_request_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        with DBSession(db) as session:
-            if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-                
-            libraries = __get_libraries(session, word, field_name, experiment_id=experiment_id)
-            context["experiment"] = experiment
-    elif (sample_id := request.args.get("sample_id", None)) is not None:
-        template = "components/tables/sample-library.html"
-        try:
-            sample_id = int(sample_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        with DBSession(db) as session:
-            if (sample := session.get_sample(sample_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-                
-            libraries = __get_libraries(session, word, field_name, sample_id=sample_id)
-            context["sample"] = sample
-    else:
-        template = "components/tables/library.html"
+        if len(status_in) == 0:
+            status_in = None
 
-        with DBSession(db) as session:
-            if not current_user.is_insider():
-                user_id = current_user.id
-            else:
-                user_id = None
-            libraries = __get_libraries(session, word, field_name, user_id=user_id)
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+
+    libraries: list[models.Library] = []
+    if field_name == "name":
+        libraries = db.query_libraries(word, user_id=user_id, status_in=status_in, type_in=type_in)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+            if (library := db.get_library(_id)) is not None:
+                if user_id is not None:
+                    if library.owner_id == user_id:
+                        libraries = [library]
+                if status_in is not None and library.status not in status_in:
+                    libraries = []
+                if type_in is not None and library.type not in type_in:
+                    libraries = []
+        except ValueError:
+            pass
 
     return make_response(
         render_template(
-            template,
-            current_query=word, field_name=field_name,
-            libraries=libraries, **context
+            "components/tables/library.html",
+            current_query=word, active_query_field=field_name,
+            libraries=libraries, type_in=type_in, status_in=status_in
         )
     )

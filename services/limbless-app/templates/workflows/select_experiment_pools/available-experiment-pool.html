@@ -9,25 +9,25 @@
             <tr>
                 {{
                     table_col(
-                        target_id='available-experiment-pool-table', column_name='ID', column_var='id',
+                        table_container_id='available-experiment-pool-table', column_name='ID', column_var='id',
                         sort_url='select_experiment_pools_workflow.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='select_experiment_pools_workflow.table_query', current_query=avialable_pools_current_query,
-                        field_name=field_name, query_type="number", col_size=1,
+                        active_query_field=active_query_field, query_type="number", col_size=1,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='available-experiment-pool-table', column_name='Name', column_var='name',
+                        table_container_id='available-experiment-pool-table', column_name='Name', column_var='name',
                         sort_url='select_experiment_pools_workflow.get', context={"experiment_id": 1},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='select_experiment_pools_workflow.table_query', current_query=avialable_pools_current_query,
-                        field_name=field_name, query_type="text", col_size=3,
+                        active_query_field=active_query_field, query_type="text", col_size=3,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='available-experiment-pool-table', column_name='# M. Reads', column_var='num_m_reads_requested',
+                        table_container_id='available-experiment-pool-table', column_name='# M. Reads', column_var='num_m_reads_requested',
                         sort_url='select_experiment_pools_workflow.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
@@ -36,7 +36,7 @@
                 <th scope="col" class="col-2">Owner</th>
                 {{
                     table_col(
-                        target_id='available-experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
+                        table_container_id='available-experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='select_experiment_pools_workflow.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
@@ -57,7 +57,7 @@
         </tbody>
     </table>
     {{ spinner("select-pools-form") }}
-    {{ pagination("available-experiment-pool-table", "select_experiment_pools_workflow.get", pools_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order, "experiment_id": experiment.id}) }}
+    {{ pagination("available-experiment-pool-table", "select_experiment_pools_workflow.get", pools_pages, active_page, context={"experiment_id": experiment.id}) }}
     <script>
         init_tooltips();
 

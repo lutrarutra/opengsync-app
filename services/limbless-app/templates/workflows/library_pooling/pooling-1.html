@@ -9,7 +9,7 @@
     <div class="modal-body">
         <div id="library_pooling-form">
             {{ library_pooling_form.csrf_token() }}
-            {{ library_pooling_form.seq_request_id() }}
+            {{ library_pooling_form.seq_request_id(hidden=true) }}
             <div class="row">
                 {{ form_group(library_pooling_form.pool_name, class="col-6") }}
                 {{

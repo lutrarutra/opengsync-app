@@ -9,46 +9,46 @@
             <tr>
                 {{
                     table_col(
-                        target_id='user-seq_request-table', column_name='ID', column_var='id',
+                        table_container_id='user-seq_request-table', column_name='ID', column_var='id',
                         sort_url='users_htmx.get_seq_requests', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='users_htmx.query_seq_requests', current_query=current_query,
-                        field_name=field_name, query_type="number",
+                        active_query_field=active_query_field, query_type="number",
                     )
                 }}
                 {{
                     table_col(
-                        target_id='user-seq_request-table', column_name='Name', column_var='name',
+                        table_container_id='user-seq_request-table', column_name='Name', column_var='name',
                         sort_url='users_htmx.get_seq_requests', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='users_htmx.query_seq_requests', current_query=current_query,
-                        field_name=field_name, col_size=3,
+                        active_query_field=active_query_field, col_size=3,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='user-seq_request-table', column_name='Status', column_var='status_id',
+                        table_container_id='user-seq_request-table', column_name='Status', column_var='status_id',
                         sort_url='users_htmx.get_seq_requests', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='user-seq_request-table', column_name='Requestor', column_var='requestor_id',
+                        table_container_id='user-seq_request-table', column_name='Requestor', column_var='requestor_id',
                         sort_url='users_htmx.get_seq_requests', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='user-seq_request-table', column_name='Submitted', column_var='submitted_time',
+                        table_container_id='user-seq_request-table', column_name='Submitted', column_var='submitted_time',
                         sort_url='users_htmx.get_seq_requests', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-table', column_name='# Libraries', column_var='num_libraries',
+                        table_container_id='seq_request-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='users_htmx.get_seq_requests', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
@@ -69,5 +69,5 @@
         </tbody>
     </table>
     {{ spinner("user-seq_request-table-spinner") }}
-    {{ pagination("user-seq_request-table", "users_htmx.get_seq_requests", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("user-seq_request-table", "users_htmx.get_seq_requests", n_pages, active_page) }}
 </div>

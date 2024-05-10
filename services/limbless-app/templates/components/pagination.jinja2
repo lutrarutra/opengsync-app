@@ -1,10 +1,8 @@
-{% macro pagination(target_id, url, n_pages, active_page, url_args={}) -%}
+{% macro pagination(target_id, url, n_pages, active_page, context={}) -%}
 {% if (n_pages and n_pages > 1)  %}
 <ul class="pagination">
     <li class="page-item">
-        <a class="page-link" hx-include="#{{target_id}}"
-        hx-target="#{{target_id}}" hx-swap="outerHTML"
-        hx-get="{{ url_for(url, page=0, **url_args) }}">
+        <a class="page-link" onclick="table_page('{{ url_for(url, page=0, **context) }}', '{{ target_id }}');">
             <span aria-hidden="true">&laquo;</span>
         </a>
     </li>
@@ -14,19 +12,14 @@
     {% set min_page = [0, active_page -7 + max_page-active_page ] | max %}
     {% for i in range(min_page, max_page)  %}
         <li class="page-item {{ 'active' if i == active_page else '' }}">
-            <a class="page-link" hx-include="#{{target_id}}"
-            hx-target="#{{target_id}}" hx-swap="outerHTML"
-            hx-get="{{ url_for(url, page=i, **url_args) }}">{{i+1}}</a>
+            <a class="page-link" onclick="table_page('{{ url_for(url, page=i, **context) }}', '{{ target_id }}');">{{i+1}}</a>
         </li>
     {% endfor %}
     <li class="page-item">
-        <a class="page-link" hx-include="#{{target_id}}"
-        hx-target="#{{target_id}}" hx-swap="outerHTML"
-        hx-get="{{ url_for(url, page=n_pages-1, **url_args) }}">
+        <a class="page-link" onclick="table_page('{{ url_for(url, page=n_pages-1, **context) }}', '{{ target_id }}');">
             <span aria-hidden="true">&raquo;</span>
         </a>
     </li>
 </ul>
-
 {% endif %}
 {%- endmacro %}

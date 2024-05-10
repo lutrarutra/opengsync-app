@@ -39,6 +39,7 @@ class DefinePoolForm(HTMXFlaskForm):
         )
         if self.seq_request_id.data is not None:
             metadata["seq_request_id"] = self.seq_request_id.data
+            self._context["seq_request_id"] = self.seq_request_id.data
 
         select_libraries_form.metadata = metadata
 

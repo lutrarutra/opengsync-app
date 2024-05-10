@@ -1,5 +1,5 @@
-{% macro multi_select(choices, field_name, url, hx_target, selected=none, placeholder="Select...") %}
-<div class="dropdown multi-select">
+{% macro multi_select(choices, field_name, url, table_container_id, selected=none, placeholder="Select...") %}
+<div class="dropdown multi-select" field="{{ field_name }}">
     <button class="dropdown-toggle multi-select-toggle-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" placeholder="{{ placeholder }}">
         {% if selected %}
             {% for choice in selected %}
@@ -12,46 +12,13 @@
     <ul class="dropdown-menu">
         {% for status in choices %}
         <li>
-            <input type="checkbox" class="multi-select-check btn-check" id="{{ field_name }}-select-{{ status.id }}"
+            <input type="checkbox" class="multi-select-check btn-check" id="{{table_container_id}}-{{ field_name }}-select-{{ status.id }}"
             autocomplete="off" icon="{{ status.select_name }}" value="{{ status.id }}" field="{{ field_name }}"
+            onclick="table_filter('{{ url }}', '{{ table_container_id }}');"
             {% if selected and status in selected %}checked{% endif %}>
-            <label class="btn" for="{{ field_name }}-select-{{ status.id }}">{{ status.display_name }} <span class="desc">{{ status.select_name }}</span></label>
+            <label class="btn" for="{{table_container_id}}-{{ field_name }}-select-{{ status.id }}">{{ status.display_name }} <span class="desc">{{ status.select_name }}</span></label>
         </li>
         {% endfor %}
     </ul>
 </div>
-<script>
-    $(document).ready(function() {
-        $(".multi-select-check[field='{{ field_name }}']").on("click", function() {
-            var button = $(this).parent().parent().parent().find(".multi-select-toggle-btn").first();
-            var selected_ids = [];
-            var selected = [];
-
-            console.log("{{ field_name }}");
-
-            $(".multi-select-check:checked[field='{{ field_name }}']").each(function() {
-                selected.push($(this).attr("icon"));
-                selected_ids.push($(this).attr("value"));
-            });
-            
-            if (selected.length == 0) {
-                button.text(button.attr("placeholder"));
-                button.removeClass("populated");
-            } else {
-                if (!button.hasClass("populated")) {
-                    button.addClass("populated");
-                }
-                button.text(selected.join(" "));
-            }
-
-            htmx.ajax("GET", "{{ url }}", {
-                target: "{{ hx_target }}",
-                swap: "outerHTML",
-                values: {
-                    "{{ field_name }}_in": JSON.stringify(selected_ids),
-                }
-            });
-        });
-    });
-</script>
 {% endmacro %}

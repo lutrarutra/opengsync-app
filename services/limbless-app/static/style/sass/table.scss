@@ -16,6 +16,10 @@ table .multi-select {
     }
 }
 
+table input.table-query-input{
+    height: 28px;
+}
+
 .table-container {
     .pagination {
         display: flex;

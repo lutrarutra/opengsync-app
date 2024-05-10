@@ -31,5 +31,5 @@
         </tbody>
     </table>
     {{ spinner("library-feature-table") }}
-    {{ pagination("library-feature-table", "features_htmx.get", n_pages, active_page, url_args={"library_id": library.id, "sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("library-feature-table", "features_htmx.get", n_pages, active_page, context={"library_id": library.id}) }}
 </div>

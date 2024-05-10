@@ -11,25 +11,25 @@
             <tr>
                 {{
                     table_col(
-                        target_id='project-sample-table', column_name='ID', column_var='id',
+                        table_container_id='project-sample-table', column_name='ID', column_var='id',
                         sort_url='projects_htmx.get_samples', context={'project_id': project.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='samples_htmx.table_query', current_query=current_query,
-                        field_name=field_name, query_type="number",
+                        active_query_field=active_query_field, query_type="number",
                     )
                 }}
                 {{
                     table_col(
-                        target_id='project-sample-table', column_name='Name', column_var='name',
+                        table_container_id='project-sample-table', column_name='Name', column_var='name',
                         sort_url='projects_htmx.get_samples', context={'project_id': project.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='samples_htmx.table_query', current_query=current_query,
-                        field_name=field_name, col_size=4
+                        active_query_field=active_query_field, col_size=4
                     )
                 }}
                 {{
                     table_col(
-                        target_id='project-sample-table', column_name='Owner', column_var='owner_id',
+                        table_container_id='project-sample-table', column_name='Owner', column_var='owner_id',
                         sort_url='projects_htmx.get_samples', context={'project_id': project.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2
@@ -48,7 +48,7 @@
         </tbody>
     </table>
     {{ spinner("project-sample-table-spinner") }}
-    {{ pagination("project-sample-table", "projects_htmx.get_samples", n_pages, active_page, url_args={"project_id":project.id, "sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("project-sample-table", "projects_htmx.get_samples", n_pages, active_page, context={ "project_id":project.id }) }}
 </div>
 
 <script>

@@ -284,6 +284,7 @@ def delete_seq_request(self, seq_request_id: int) -> None:
 def query_seq_requests(
     self, word: str,
     user_id: Optional[int] = None,
+    status_in: Optional[list[SeqRequestStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.SeqRequest]:
     persist_session = self._session is not None
@@ -295,6 +296,12 @@ def query_seq_requests(
     if user_id is not None:
         query = query.where(
             models.SeqRequest.requestor_id == user_id
+        )
+
+    if status_in is not None:
+        status_ids = [status.id for status in status_in]
+        query = query.where(
+            models.SeqRequest.status_id.in_(status_ids)
         )
 
     query = query.order_by(

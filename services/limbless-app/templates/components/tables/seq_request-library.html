@@ -9,52 +9,50 @@
             <tr>
                 {{
                     table_col(
-                        target_id='seq_request-library-table', column_name='ID', column_var='id',
+                        table_container_id='seq_request-library-table', column_name='ID', column_var='id',
                         sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='seq_requests_htmx.query_libraries', current_query=current_query,
-                        field_name=field_name, query_type="number", col_size=1
+                        active_query_field=active_query_field, query_type="number", col_size=1
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-library-table', column_name='Name', column_var='name',
+                        table_container_id='seq_request-library-table', column_name='Name', column_var='name',
                         sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='seq_requests_htmx.query_libraries', current_query=current_query,
-                        field_name=field_name, col_size=2
+                        active_query_field=active_query_field, col_size=2
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-library-table', column_name='Pool', column_var='pool_id',
+                        table_container_id='seq_request-library-table', column_name='Pool', column_var='pool_id',
                         sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-library-table', column_name='Type', column_var='type_id',
+                        table_container_id='seq_request-library-table', column_name='Type', column_var='type_id',
                         sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=1
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-library-table', column_name='Owner', column_var='owner_id',
+                        table_container_id='seq_request-library-table', column_name='Status', column_var='status_id',
                         sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
                 {{
                     table_col(
-                        target_id='seq_request-library-table', column_name='Adapter', column_var='adapter',
+                        table_container_id='seq_request-library-table', column_name='Adapter', column_var='adapter',
                         sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=1
+                        sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 <th scope="col" class="col-1">
@@ -86,7 +84,9 @@
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
-                <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                <td>
+                    {{ library.status.icon }} {{ library.status.name }}
+                </td>
                 <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
                 <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.index_1_sequence if library.index_1_sequence }}</td>
                 <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.index_2_sequence if library.index_2_sequence }}</td>
@@ -97,7 +97,7 @@
         </tbody>
     </table>
     {{ spinner("seq_request-library-table-spinner") }}
-    {{ pagination("seq_request-library-table", "seq_requests_htmx.get_libraries", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order, "seq_request_id": seq_request.id}) }}
+    {{ pagination("seq_request-library-table", "seq_requests_htmx.get_libraries", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
     <script>
         var selected_library_id = null;
         var selected_index_element_id = null;

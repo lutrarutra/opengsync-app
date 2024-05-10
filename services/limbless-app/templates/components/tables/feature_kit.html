@@ -9,25 +9,25 @@
             <tr>
                 {{
                     table_col(
-                        target_id='feature_kit-table', column_name='ID', column_var='id',
+                        table_container_id='feature_kit-table', column_name='ID', column_var='id',
                         sort_url='feature_kits_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='feature_kits_htmx.table_query', current_query=current_query,
-                        field_name=field_name, query_type="number", col_size=3
+                        active_query_field=active_query_field, query_type="number", col_size=3
                     )
                 }}
                 {{
                     table_col(
-                        target_id='feature_kit-table', column_name='Name', column_var='name',
+                        table_container_id='feature_kit-table', column_name='Name', column_var='name',
                         sort_url='feature_kits_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='feature_kits_htmx.table_query', current_query=current_query,
-                        field_name=field_name, query_type="text", col_size=5
+                        active_query_field=active_query_field, query_type="text", col_size=5
                     )
                 }}
                 {{
                     table_col(
-                        target_id='library-table', column_name='Type', column_var='type_id',
+                        table_container_id='library-table', column_name='Type', column_var='type_id',
                         sort_url='libraries_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=4,
@@ -46,5 +46,5 @@
         </tbody>
     </table>
     {{ spinner("feature_kit-table-spinner") }}
-    {{ pagination("feature_kit-table", "feature_kits_htmx.get", n_pages, active_page, url_args={ "sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("feature_kit-table", "feature_kits_htmx.get", n_pages, active_page) }}
 </div>

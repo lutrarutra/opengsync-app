@@ -9,45 +9,43 @@
             <tr>
                 {{
                     table_col(
-                        target_id='library-table', column_name='ID', column_var='id',
-                        sort_url='libraries_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
+                        table_container_id='library-table', column_name='ID', column_var='id',
+                        sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order,
                         query_url='libraries_htmx.table_query', current_query=current_query,
-                        field_name=field_name, query_type="number", col_size=1,
+                        active_query_field=active_query_field, query_type="number", col_size=1,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='library-table', column_name='Name', column_var='name',
-                        sort_url='libraries_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
+                        table_container_id='library-table', column_name='Name', column_var='name',
+                        sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order,
                         query_url='libraries_htmx.table_query', current_query=current_query,
-                        field_name=field_name, query_type="text", col_size=2,
+                        active_query_field=active_query_field, query_type="text", col_size=2,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='library-table', column_name='Type', column_var='type_id',
+                        table_container_id='library-table', column_name='Type', column_var='type_id',
                         sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
                         multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
                     )
                 }}
                 {{
                     table_col(
-                        target_id='library-table', column_name='Status', column_var='status_id',
+                        table_container_id='library-table', column_name='Status', column_var='status_id',
                         sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
                         multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
                 {{
                     table_col(
-                        target_id='library-table', column_name='Owner', column_var='owner_id',
+                        table_container_id='library-table', column_name='Owner', column_var='owner_id',
                         sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
-                        target_id='library-table', column_name='Adapter', column_var='adapter',
+                        table_container_id='library-table', column_name='Adapter', column_var='adapter',
                         sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
@@ -76,7 +74,7 @@
                     </span>
                 </td>
                 <td>
-                    {{ library.status.desc }} {{ library.status.name }}
+                    {{ library.status.icon }} {{ library.status.name }}
                 </td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
                 <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
@@ -89,7 +87,7 @@
         </tbody>
     </table>
     {{ spinner("library-table-spinner") }}
-    {{ pagination("library-table", "libraries_htmx.get", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("library-table", "libraries_htmx.get", n_pages, active_page) }}
 </div>
 <script>
     init_tooltips();
