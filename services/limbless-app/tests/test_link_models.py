@@ -29,7 +29,7 @@ def test_user_links(db: DBHandler):
     project = create_project(db, user)
 
     with DBSession(db) as session:
-        user = session.get_user(user.id)
+        user: models.User = session.get_user(user.id)
 
         assert len(user.projects) == 1
         assert user.projects[0].id == project.id
@@ -180,11 +180,9 @@ def test_library_links(db: DBHandler):
 
     db.delete_seq_request(seq_request.id)
 
-    with pytest.raises(exceptions.ElementDoesNotExist):
-        db.get_seq_request(seq_request.id)
+    assert db.get_seq_request(seq_request.id) is None
 
-    with pytest.raises(exceptions.ElementDoesNotExist):
-        db.get_sample(sample.id)
+    assert db.get_sample(sample.id) is None
 
     with DBSession(db) as session:
         user = session.get_user(user.id)

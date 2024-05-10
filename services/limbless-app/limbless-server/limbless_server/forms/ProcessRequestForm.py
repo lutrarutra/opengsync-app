@@ -71,12 +71,18 @@ class ProcessRequestForm(HTMXFlaskForm):
         
         if self.notification_comment.data:
             comment = db.create_comment(
-                text=self.notification_comment.data,
+                text=f"Request {response_type.display_name}. Comment: {self.notification_comment.data}",
                 author_id=user.id
             )
-            db.add_seq_request_comment(
-                seq_request_id=seq_request.id,
-                comment_id=comment.id
+        else:
+            comment = db.create_comment(
+                text=f"Request {response_type.display_name}",
+                author_id=user.id
             )
+            
+        db.add_seq_request_comment(
+            seq_request_id=seq_request.id,
+            comment_id=comment.id
+        )
 
         return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))

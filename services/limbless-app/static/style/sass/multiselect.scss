@@ -13,7 +13,9 @@
     button.populated {
         color: $dark;
     }
-    .dropdown-menu {
+    ul.dropdown-menu {
+        max-height: 200px;
+        overflow-y: auto;
         li {
             width: 100%;
             label {

@@ -29,8 +29,12 @@
                     {% endfor %}
                 </div>
                 <div class="tab-pane fade show active" id="available-tab" role="tabpanel" tabindex="0">
-                    <div class="library_pooling-form" 
-                    hx-get="{{ url_for('library_pooling_workflow.get_libraries') }}" hx-trigger="intersect once">
+                    <div class="library_pooling-form"
+                    {% if seq_request_id %}
+                    hx-get="{{ url_for('library_pooling_workflow.get_libraries', seq_request_id=seq_request_id) }}"
+                    {% else %}
+                    hx-get="{{ url_for('library_pooling_workflow.get_libraries') }}"
+                    {% endif %} hx-trigger="intersect once">
                     </div>
                 </div>
                 <div class="tab-pane fade" id="selected-tab" role="tabpanel" tabindex="1">
@@ -114,7 +118,10 @@
                 values: {
                     csrf_token: "{{ library_pooling_form.csrf_token._value() }}",
                     selected_library_ids: JSON.stringify(selected_libraries),
-                    file_uuid: "{{ library_pooling_form.file_uuid.data }}"
+                    file_uuid: "{{ library_pooling_form.file_uuid.data }}",
+                    {% if seq_request_id %}
+                    seq_request_id: "{{ seq_request_id }}"
+                    {% endif %}
                 },
             });
 

@@ -9,6 +9,10 @@ class LibraryTypeEnum(DBEnum):
     assay_type: str
     modality: str
 
+    @property
+    def select_name(self) -> str:
+        return self.abbreviation
+
 
 class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     CUSTOM = LibraryTypeEnum(0, "Custom", "Custom", "Custom", "Custom")

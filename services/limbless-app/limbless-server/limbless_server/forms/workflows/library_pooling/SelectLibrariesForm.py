@@ -20,11 +20,13 @@ class SelectLibrariesForm(HTMXFlaskForm, TableDataForm):
 
     selected_library_ids = StringField()
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, seq_request_id: Optional[int] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_pooling", uuid=uuid)
+        if seq_request_id is not None:
+            self._context["seq_request_id"] = seq_request_id
 
     def validate(self) -> bool:
         validated = super().validate()

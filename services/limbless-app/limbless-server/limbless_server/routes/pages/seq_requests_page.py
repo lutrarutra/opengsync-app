@@ -27,11 +27,8 @@ def seq_request_page(seq_request_id: int):
     with DBSession(db) as session:
         if (seq_request := session.get_seq_request(seq_request_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
-        if seq_request.requestor_id != current_user.id:
-            if not current_user.is_insider():
-                return abort(HTTPResponse.FORBIDDEN.id)
 
-        if not current_user.is_insider() and not seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
 
         path_list = [

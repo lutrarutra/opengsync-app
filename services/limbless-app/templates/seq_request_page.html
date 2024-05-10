@@ -41,9 +41,9 @@
             {% if current_user.is_insider() and seq_request.status.name == "Submitted" %}
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#process_request-form-popup">Process</button>
             {% endif %}
-            <span {% if not current_user.is_insider() and not seq_request.is_editable() %}{{ tooltip('You cannot edit request that is already submitted.', 'left', 'warning') }}{% endif %}>
+            <span>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                    data-bs-target="#seq_request-file-form-popup" {% if not current_user.is_insider() and not seq_request.is_editable() %}disabled{% endif %}>
+                    data-bs-target="#seq_request-file-form-popup">
                     Attach File
                 </button>
             </span>
@@ -210,8 +210,8 @@
                 </div>
             </div>
             <div class="workflow-container">
-                <div class="flip-card card{% if seq_request.status.name != 'Draft' %} disabled text-muted{% endif %}" style="width: 250px;"
-                    {% if seq_request.status.name == 'Draft' %}
+                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
+                    {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='raw') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
@@ -232,8 +232,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="flip-card card{% if seq_request.status.name != 'Draft' %} disabled text-muted{% endif %}" style="width: 250px;"
-                    {% if seq_request.status.name == 'Draft' %}
+                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
+                    {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='pooled') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
@@ -257,6 +257,29 @@
                         </div>
                     </div>
                 </div>
+                {% if  seq_request.status == SeqRequestStatus.ACCEPTED and current_user.is_insider() %}
+                <div class="flip-card card"
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
+                    hx-get="{{ url_for('library_pooling_workflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click">
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Pool Libraries</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Create pool from libraries associated to this sequencing request.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
         <div class="tab-pane fade show" id="request-metadata-tab" role="tabpanel" tabindex="2">

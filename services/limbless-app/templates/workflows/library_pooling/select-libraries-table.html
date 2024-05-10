@@ -10,7 +10,7 @@
                 {{
                     table_col(
                         target_id='select-library-table', column_name='ID', column_var='id',
-                        sort_url='library_pooling_workflow.get_libraries', context={},
+                        sort_url='library_pooling_workflow.get_libraries', context={"seq_request_id": seq_request_id} if seq_request_id else {},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='library_pooling_workflow.table_query', current_query=current_query,
                         field_name=field_name, query_type="number", col_size=1,
@@ -19,7 +19,7 @@
                 {{
                     table_col(
                         target_id='select-library-table', column_name='Name', column_var='name',
-                        sort_url='library_pooling_workflow.get_libraries', context={},
+                        sort_url='library_pooling_workflow.get_libraries', context={"seq_request_id": seq_request_id} if seq_request_id else {},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='library_pooling_workflow.table_query', current_query=current_query,
                         field_name=field_name, query_type="text", col_size=2,
@@ -28,25 +28,24 @@
                 {{
                     table_col(
                         target_id='select-library-table', column_name='Type', column_var='type_id',
-                        sort_url='library_pooling_workflow.get_libraries', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=1,
+                        sort_url='library_pooling_workflow.get_libraries', context={"seq_request_id": seq_request_id} if seq_request_id else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
                     )
                 }}
                 {{
                     table_col(
                         target_id='select-library-table', column_name='Status', column_var='status_id',
-                        sort_url='library_pooling_workflow.get_libraries', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=1,
+                        sort_url='library_pooling_workflow.get_libraries', context={"seq_request_id": seq_request_id} if seq_request_id else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
                 {{
                     table_col(
                         target_id='select-library-table', column_name='Owner', column_var='owner_id',
-                        sort_url='library_pooling_workflow.get_libraries', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2,
+                        sort_url='library_pooling_workflow.get_libraries', context={"seq_request_id": seq_request_id} if seq_request_id else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
             </tr>
@@ -68,7 +67,7 @@
         </tbody>
     </table>
     {{ spinner("select-library-table-spinner") }}
-    {{ pagination("select-library-table", "library_pooling_workflow.get_libraries", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order}) }}
+    {{ pagination("select-library-table", "library_pooling_workflow.get_libraries", n_pages, active_page, url_args={"sort_by": sort_by, "sort_order": sort_order, "seq_request_id": seq_request_id} if seq_request_id else {"sort_by": sort_by, "sort_order": sort_order}) }}
     <script>
         $(document).ready(function() {
             init_tooltips();

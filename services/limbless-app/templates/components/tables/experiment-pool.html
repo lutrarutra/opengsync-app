@@ -56,10 +56,9 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr onclick="redirect('{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}');">
+            <tr class="url-row" dest="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
                 <th scope="row">{{ pool.id }}</th>
                 <td>
-                
                     {% if experiment.workflow.combined_lanes %}
                     <span class="table-btn" {{ tooltip("You cannot edit laning configurations in this workflow.", "top", category="warning") }}>
                     {% endif %}
@@ -93,7 +92,7 @@
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
                 <td class="qubit-col">
-                    <div class="quantity-container" {{ tooltip("Undiluted: " + pool.original_qubit_concentration | string, "right") }}>
+                    <div class="quantity-container">
                         <div class="value">{{ pool.qubit_concentration_str }}</div>
                         <div class="unit">ng/μL</div>
                     </div>
@@ -105,7 +104,7 @@
                     </div>
                 </td>
                 <td class="nm_total-col">
-                    <div class="quantity-container {{ pool.molarity_color_class }}" {% if pool.original_molarity %}{{ tooltip("Undiluted: " + "%.2f" % pool.original_molarity, "left") }}{% endif %}>
+                    <div class="quantity-container {{ pool.molarity_color_class }}">
                         <div class="value">{{ pool.molarity_str }}</div>
                         <div class="unit">nM</div>
                     </div>
@@ -142,6 +141,11 @@
         }
 
         $(document).ready(function() {
+            $(document).off("click", ".url-row").on("click", ".url-row", function(e) {
+                if (!$(e.target).hasClass("table-btn")){
+                    redirect($(this).attr("dest"));
+                }
+            });
             $(document).off("contextmenu", ".pool-name-cell").on("contextmenu", ".pool-name-cell", function(e) {
                 e.preventDefault();
                 const x = e.pageX;

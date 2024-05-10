@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .Contact import Contact
     from .actions import PoolAction
     from .File import File
+    from .dilutions import PoolDilution
 
 
 class Pool(Base):
@@ -52,6 +53,7 @@ class Pool(Base):
     lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
     experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
     actions: Mapped[list["PoolAction"]] = relationship("PoolAction", lazy="select", order_by="PoolAction.status_id", cascade="merge, save-update, delete, delete-orphan")
+    dilutions: Mapped[list["PoolDilution"]] = relationship("PoolDilution", back_populates="pool", lazy="select", cascade="merge, save-update, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]
 

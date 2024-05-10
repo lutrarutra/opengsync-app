@@ -1,3 +1,4 @@
+import json
 from typing import Optional, TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
@@ -5,7 +6,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler
-from limbless_db.categories import HTTPResponse, LibraryType
+from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus
 from .... import db, forms, logger  # noqa
 
 if TYPE_CHECKING:
@@ -24,81 +25,40 @@ def get(page: int):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
     
-    libraries: list[models.Library] = []
-    context = {}
+        if len(status_in) == 0:
+            status_in = None
 
-    if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-        template = "components/tables/seq_request-library.html"
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
         try:
-            seq_request_id = int(seq_request_id)
-        except (ValueError, TypeError):
+            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        with DBSession(db) as session:
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            libraries, n_pages = session.get_libraries(
-                offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending
-            )
-            context["seq_request"] = seq_request
-    elif (experiment_id := request.args.get("experiment_id", None)) is not None:
-        template = "components/tables/experiment-library.html"
-        try:
-            experiment_id = int(experiment_id)
-        except (ValueError, TypeError):
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        with DBSession(db) as session:
-            if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            libraries, n_pages = session.get_libraries(
-                offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending
-            )
-            context["experiment"] = experiment
-    elif (sample_id := request.args.get("sample_id", None)) is not None:
-        template = "components/tables/sample-library.html"
-        try:
-            sample_id = int(sample_id)
-        except (ValueError, TypeError):
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        with DBSession(db) as session:
-            if (sample := session.get_sample(sample_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            libraries, n_pages = session.get_libraries(
-                offset=offset, sample_id=sample_id, sort_by=sort_by, descending=descending
-            )
-            context["sample"] = sample
-    elif (experiment_id := request.args.get("experiment_id", None)) is not None:
-        template = "components/tables/experiment-library.html"
-        try:
-            experiment_id = int(experiment_id)
-        except (ValueError, TypeError):
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        with DBSession(db) as session:
-            if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            libraries, n_pages = session.get_libraries(
-                offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending
-            )
-            context["experiment"] = experiment
+    
+        if len(type_in) == 0:
+            type_in = None
 
-    else:
-        template = "components/tables/library.html"
-        with DBSession(db) as session:
-            if not current_user.is_insider():
-                libraries, n_pages = session.get_libraries(offset=offset, user_id=current_user.id, sort_by=sort_by, descending=descending)
-            else:
-                libraries, n_pages = session.get_libraries(offset=offset, user_id=None, sort_by=sort_by, descending=descending)
+    libraries, n_pages = db.get_libraries(
+        offset=offset,
+        user_id=current_user.id if not current_user.is_insider() else None,
+        sort_by=sort_by, descending=descending,
+        status_in=status_in, type_in=type_in
+    )
 
     return make_response(
         render_template(
-            template, libraries=libraries,
+            "components/tables/library.html", libraries=libraries,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
-            **context
+            status_in=status_in, type_in=type_in
         )
     )
 

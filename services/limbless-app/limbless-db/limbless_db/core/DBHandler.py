@@ -51,7 +51,7 @@ class DBHandler():
 
     from .model_handlers._pool_methods import (
         create_pool, get_pool, get_pools,
-        delete_pool, update_pool, query_pools
+        delete_pool, update_pool, query_pools, dilute_pool
     )
 
     from .model_handlers._library_methods import (

@@ -6,7 +6,7 @@ from flask_login import login_required
 from limbless_db import models, DBSession
 from limbless_db.categories import HTTPResponse
 
-from .... import db, logger
+from .... import db, logger  # noqa
 from ....forms.workflows import dilute_pools as wff
 
 if TYPE_CHECKING:

@@ -1,6 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
 
-<div class="modal-content">
+<div class="modal-content" id="seq_request-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >{% if seq_request_form.form_type == "create" %}Create{% elif seq_request_form.form_type == "edit" %}Edit{% endif %} Sequencing Request</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -193,10 +193,10 @@
         </div>
         <div class="footer-controls">
             {% if seq_request_form.form_type == "edit" %}
-            <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form" hx-swap="outerHTML"
+            <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form-container" hx-swap="outerHTML"
                 hx-post="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}">Submit</button>
             {% elif seq_request_form.form_type == "create" %}
-            <button class="btn btn-success" hx-include="#seq_request-form" hx-target="#seq_request-form"
+            <button class="btn btn-success" hx-include="#seq_request-form" hx-target="#seq_request-form-container"
                 hx-swap="outerHTML" hx-post="{{ url_for('seq_requests_htmx.create') }}">Create</button>
             {% endif %}
         </div>

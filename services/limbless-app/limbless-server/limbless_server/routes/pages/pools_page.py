@@ -33,6 +33,8 @@ def pool_page(pool_id: int):
         
         if not current_user.is_insider() and pool.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
+        
+        pool.contact
 
         path_list = [
             ("Pools", url_for("pools_page.pools_page")),

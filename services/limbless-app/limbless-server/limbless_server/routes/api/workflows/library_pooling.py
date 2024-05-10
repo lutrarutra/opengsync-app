@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING, Literal
 
 from flask import Blueprint, request, abort, Response, render_template
@@ -5,9 +6,9 @@ from flask_login import login_required
 from flask_htmx import make_response
 
 from limbless_db import models, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, LibraryStatus
+from limbless_db.categories import HTTPResponse, LibraryStatus, LibraryType
 
-from .... import db, logger
+from .... import db, logger  # noqa
 from ....forms.workflows import library_pooling as forms
 
 if TYPE_CHECKING:
@@ -18,6 +19,7 @@ else:
 library_pooling_workflow = Blueprint("library_pooling_workflow", __name__, url_prefix="/api/workflows/library_pooling/")
 
 
+@library_pooling_workflow.route("get_libraries", methods=["GET"], defaults={"page": 0})
 @library_pooling_workflow.route("get_libraries/<int:page>", methods=["GET"])
 @login_required
 def get_libraries(page: int) -> Response:
@@ -28,13 +30,43 @@ def get_libraries(page: int) -> Response:
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
+
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
     
-    libraries, n_pages = db.get_libraries(status=LibraryStatus.ACCEPTED, sort_by=sort_by, descending=descending, offset=offset)
+        if len(status_in) == 0:
+            status_in = None
+
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+    
+    libraries, n_pages = db.get_libraries(
+        status=LibraryStatus.ACCEPTED, sort_by=sort_by, descending=descending, offset=offset,
+        seq_request_id=seq_request_id, status_in=status_in, type_in=type_in
+    )
     return make_response(
         render_template(
             "workflows/library_pooling/select-libraries-table.html",
             libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order
+            sort_by=sort_by, sort_order=sort_order, seq_request_id=seq_request_id,
+            status_in=status_in, type_in=type_in
         )
     )
 
@@ -86,8 +118,10 @@ def begin() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
+    seq_request_id = request.args.get("seq_request_id")
+        
     form = forms.DefinePoolForm()
-    form.prepare(current_user)
+    form.prepare(current_user, seq_request_id=seq_request_id)
     return form.make_response()
 
 
@@ -96,7 +130,7 @@ def begin() -> Response:
 def define_pool() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    
+
     form = forms.DefinePoolForm(request.form)
     return form.process_request()
 

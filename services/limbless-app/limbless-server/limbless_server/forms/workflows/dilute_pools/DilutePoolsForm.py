@@ -1,5 +1,3 @@
-import pandas as pd
-
 from flask import Response, url_for, flash
 from flask_wtf import FlaskForm
 from flask_htmx import make_response
@@ -60,8 +58,7 @@ class DilutePoolsForm(HTMXFlaskForm):
             if (pool := db.get_pool(row["id"])) is None:
                 raise ValueError(f"Pool with id {row['id']} not found")
             
-            pool.diluted_qubit_concentration = entry.qubit_after_dilution.data
-            db.update_pool(pool)
+            pool = db.dilute_pool(pool.id, entry.qubit_after_dilution.data)
 
         flash("Dilution successful!", "success")
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))

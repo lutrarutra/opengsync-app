@@ -103,6 +103,8 @@ def get_libraries(
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     pool_id: Optional[int] = None, sort_by: Optional[str] = None, descending: bool = False,
+    type_in: Optional[list[LibraryTypeEnum]] = None,
+    status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Library], int]:
@@ -159,6 +161,16 @@ def get_libraries(
     if pool_id is not None:
         query = query.where(
             models.Library.pool_id == pool_id
+        )
+
+    if type_in is not None:
+        query = query.where(
+            models.Library.type_id.in_([t.id for t in type_in])
+        )
+
+    if status_in is not None:
+        query = query.where(
+            models.Library.status_id.in_([s.id for s in status_in])
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1

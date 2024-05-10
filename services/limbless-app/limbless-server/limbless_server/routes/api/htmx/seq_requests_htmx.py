@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 
 from limbless_db import models, DBSession, DBHandler, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, SeqRequestStatus
+from limbless_db.categories import HTTPResponse, SeqRequestStatus, UserRole
 from limbless_db.core import exceptions
 from .... import db, forms, logger
 
@@ -27,7 +27,7 @@ seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hm
 @seq_requests_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
-    sort_by = request.args.get("sort_by", "id")
+    sort_by = request.args.get("sort_by")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
@@ -41,6 +41,11 @@ def get(page: int):
         
         if len(status_in) == 0:
             status_in = None
+    elif sort_by is None and current_user.role in [UserRole.TECHNICIAN, UserRole.BIOINFORMATICIAN]:
+        status_in = [
+            SeqRequestStatus.SUBMITTED, SeqRequestStatus.ACCEPTED, SeqRequestStatus.DATA_PROCESSING,
+            SeqRequestStatus.FINISHED, SeqRequestStatus.ARCHIVED, SeqRequestStatus.FAILED, SeqRequestStatus.REJECTED
+        ]
     
     seq_requests: list[models.SeqRequest] = []
 

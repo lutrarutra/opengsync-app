@@ -142,6 +142,9 @@ class BioinformaticianSubForm(FlaskForm):
     
     def validate(self) -> bool:
         self._validated = super().validate()
+        if self.bioinformatician_name.data and not self.bioinformatician_email.data:
+            self.bioinformatician_email.errors = ("Bioinformatician email is required",)
+            self._validated = False
         return self._validated
 
 

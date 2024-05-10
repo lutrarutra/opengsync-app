@@ -7,6 +7,10 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class LibraryStatusEnum(DBEnum):
     icon: str
 
+    @property
+    def select_name(self) -> str:
+        return self.icon
+
 
 class LibraryStatus(ExtendedEnum[LibraryStatusEnum], enum_type=LibraryStatusEnum):
     DRAFT = LibraryStatusEnum(0, "Draft", "✍🏼")

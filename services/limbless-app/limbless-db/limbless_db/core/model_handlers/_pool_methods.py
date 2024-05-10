@@ -173,6 +173,41 @@ def update_pool(self, pool: models.Pool,) -> models.Pool:
     return pool
 
 
+def dilute_pool(
+    self, pool_id: int, qubit_concentration: float, volume_ul: Optional[float] = None,
+    experiment_id: Optional[int] = None
+) -> models.Pool:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+
+    if experiment_id is not None:
+        if self._session.get(models.Experiment, experiment_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+
+    dilution = models.PoolDilution(
+        pool_id=pool_id,
+        qubit_concentration=qubit_concentration,
+        volume_ul=volume_ul,
+        experiment_id=experiment_id
+    )
+
+    pool.diluted_qubit_concentration = qubit_concentration
+    pool.dilutions.append(dilution)
+
+    self._session.add(dilution)
+    self._session.commit()
+    self._session.refresh(pool)
+
+    if not persist_session:
+        self.close_session()
+
+    return pool
+
+
 def query_pools(
     self, name: str, experiment_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT
