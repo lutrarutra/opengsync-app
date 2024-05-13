@@ -1,7 +1,7 @@
 import os
 import json
 from io import BytesIO
-from typing import Optional, TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal
 
 from flask import Blueprint, url_for, render_template, flash, abort, request, Response, current_app
 from flask_htmx import make_response
@@ -9,7 +9,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-from limbless_db import models, DBSession, DBHandler, PAGE_LIMIT
+from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, SeqRequestStatus, UserRole, LibraryStatus, LibraryType
 from limbless_db.core import exceptions
 from .... import db, forms, logger
@@ -53,7 +53,7 @@ def get(page: int):
 
     seq_requests, n_pages = db.get_seq_requests(
         offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
-        show_drafts=True, with_statuses=status_in
+        show_drafts=True, status_in=status_in
     )
 
     return make_response(
@@ -424,7 +424,6 @@ def table_query():
         try:
             status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
         except ValueError:
-            logger.debug("asdas")
             return abort(HTTPResponse.BAD_REQUEST.id)
         
         if len(status_in) == 0:

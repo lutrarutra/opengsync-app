@@ -106,7 +106,7 @@ def get_seq_request(self, seq_request_id: int) -> Optional[models.SeqRequest]:
 
 def get_seq_requests(
     self,
-    with_statuses: Optional[list[SeqRequestStatusEnum]] = None,
+    status_in: Optional[list[SeqRequestStatusEnum]] = None,
     show_drafts: bool = True,
     sample_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
@@ -125,8 +125,8 @@ def get_seq_requests(
             models.SeqRequest.requestor_id == user_id
         )
 
-    if with_statuses is not None:
-        status_ids = [status.id for status in with_statuses]
+    if status_in is not None:
+        status_ids = [status.id for status in status_in]
         query = query.where(
             models.SeqRequest.status_id.in_(status_ids)  # type: ignore
         )
@@ -172,35 +172,6 @@ def get_seq_requests(
         self.close_session()
 
     return seq_requests, n_pages
-
-
-def get_num_seq_requests(
-    self, user_id: Optional[int] = None,
-    with_statuses: Optional[list[SeqRequestStatusEnum]] = None,
-) -> int:
-
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    query = self._session.query(models.SeqRequest)
-
-    if user_id is not None:
-        query = query.where(
-            models.SeqRequest.requestor_id == user_id
-        )
-
-    if with_statuses is not None:
-        status_ids = [status.id for status in with_statuses]
-        query = query.where(
-            models.SeqRequest.status_id.in_(status_ids)  # type: ignore
-        )
-
-    num_seq_requests = query.count()
-
-    if not persist_session:
-        self.close_session()
-    return num_seq_requests
 
 
 def submit_seq_request(

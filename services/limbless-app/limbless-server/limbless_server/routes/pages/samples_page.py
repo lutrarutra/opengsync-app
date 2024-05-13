@@ -31,6 +31,9 @@ def sample_page(sample_id):
 
         if not current_user.is_insider() and sample.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
+        
+        is_editable = sample.is_editable()
+        sample.project
 
         sample_form = forms.models.SampleForm(sample=sample)
 
@@ -56,4 +59,5 @@ def sample_page(sample_id):
     return render_template(
         "sample_page.html", sample_form=sample_form,
         path_list=path_list, sample=sample,
+        is_editable=is_editable
     )

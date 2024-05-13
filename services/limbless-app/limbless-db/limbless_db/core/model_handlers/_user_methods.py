@@ -153,7 +153,7 @@ def delete_user(self, user_id: int) -> None:
 
 
 def query_users(
-    self, word: str, with_roles: Optional[list[UserRoleEnum]] = None,
+    self, word: str, role_in: Optional[list[UserRoleEnum]] = None,
     only_insiders: bool = False, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.User]:
     persist_session = self._session is not None
@@ -162,20 +162,19 @@ def query_users(
 
     query = self._session.query(models.User)
 
-    query = query.order_by(
-        sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, word).desc()
-    )
-
     if only_insiders:
         query = query.where(
             models.User.role_id != UserRole.CLIENT.id
         )
 
-    if with_roles is not None:
-        status_ids = [role.id for role in with_roles]
+    if role_in is not None:
         query = query.where(
-            models.User.role_id.in_(status_ids)
+            models.User.role_id.in_([role.id for role in role_in])
         )
+
+    query = query.order_by(
+        sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, word).desc()
+    )
 
     if limit is not None:
         query = query.limit(limit)
@@ -188,12 +187,19 @@ def query_users(
     return users
 
 
-def query_users_by_email(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.User]:
+def query_users_by_email(
+    self, word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: Optional[int] = PAGE_LIMIT
+) -> list[models.User]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.User)
+
+    if role_in is not None:
+        query = query.where(
+            models.User.role_id.in_([role.id for role in role_in])
+        )
 
     query = query.order_by(
         sa.func.similarity(models.User.email, word).desc(),

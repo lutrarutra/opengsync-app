@@ -11,17 +11,13 @@
                         table_container_id='user-project-table', column_name='ID', column_var='id',
                         sort_url='users_htmx.get_projects', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url='users_htmx.query_projects', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number",
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='user-project-table', column_name='Name', column_var='name',
                         sort_url='users_htmx.get_projects', context={'user_id': user.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='users_htmx.query_projects', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=6
+                        sort_by=sort_by, sort_order=sort_order, col_size=6
                     )
                 }}
                 <th scope="col col-2"># Samples</th>

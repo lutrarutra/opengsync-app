@@ -16,6 +16,7 @@ else:
 index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/index_kits/")
 
 
+@index_kits_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @index_kits_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):

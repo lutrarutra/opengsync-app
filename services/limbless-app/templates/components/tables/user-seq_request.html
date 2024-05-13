@@ -34,14 +34,14 @@
                 }}
                 {{
                     table_col(
-                        table_container_id='user-seq_request-table', column_name='Requestor', column_var='requestor_id',
+                        table_container_id='user-seq_request-table', column_name='Submitted', column_var='submitted_time',
                         sort_url='users_htmx.get_seq_requests', context={'user_id': user.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
                 {{
                     table_col(
-                        table_container_id='user-seq_request-table', column_name='Submitted', column_var='submitted_time',
+                        table_container_id='user-seq_request-table', column_name='Finished', column_var='finished_time',
                         sort_url='users_htmx.get_seq_requests', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
@@ -61,8 +61,8 @@
                 <th scope="row">{{ seq_request.id }}</th>
                 <td>{{ seq_request.name }}</td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
-                <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.name }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
+                <td>{{ seq_request.timestamp_finished_str() }}</td>
                 <td>{{ seq_request.num_libraries }}</td>
             </tr>
             {% endfor %}

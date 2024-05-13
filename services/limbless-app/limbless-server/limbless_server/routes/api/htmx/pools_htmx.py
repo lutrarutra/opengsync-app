@@ -80,51 +80,19 @@ def table_query():
     if word is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    context = {}
-    
-    if (experiment_id := request.args.get("experiment_id")) is not None:
-        template = "components/tables/experiment-pool.html"
+    if field_name == "name":
+        pools = db.query_pools(word)
+    elif field_name == "id":
         try:
-            experiment_id = int(experiment_id)
+            pools = [db.get_pool(int(word))]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        with DBSession(db) as session:
-            if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            
-            if field_name == "name":
-                pools = db.query_pools(word, experiment_id=experiment_id)
-            else:
-                try:
-                    pools = [db.get_pool(int(word))]
-                except ValueError:
-                    pools = []
-
-            experiment_lanes = {}
-            for lane in experiment.lanes:
-                experiment_lanes[lane.number] = []
-                
-                for pool in lane.pools:
-                    experiment_lanes[lane.number].append(pool.id)
-
-        context["experiment"] = experiment
-        context["experiment_lanes"] = experiment_lanes
-    else:
-        template = "components/tables/pool.html"
-        if field_name == "name":
-            pools = db.query_pools(word)
-        elif field_name == "id":
-            try:
-                pools = [db.get_pool(int(word))]
-            except ValueError:
-                pools = []
+            pools = []
 
     return make_response(
         render_template(
-            template, pools=pools, field_name=field_name,
-            current_query=word,
-            Pool=models.Pool, **context,
+            "components/tables/pool.html",
+            pools=pools, field_name=field_name,
+            current_query=word, Pool=models.Pool,
         )
     )
 
@@ -155,37 +123,38 @@ def get_libraries(pool_id: int, page: int):
     )
 
 
-@pools_htmx.route("<int:pool_id>/query_libraries/<string:field_name>", methods=["POST"])
+@pools_htmx.route("<int:pool_id>/query_libraries", methods=["GET"])
 @login_required
-def query_libraries(pool_id: int, field_name: str):
-    if (word := request.form.get(field_name)) is None:
+def query_libraries(pool_id: int):
+    if (word := request.args.get("name")) is not None:
+        field_name = "name"
+    elif (word := request.args.get("id")) is not None:
+        field_name = "id"
+    else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and pool.owner_id != current_user.id:
+    if pool.owner != current_user.id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    
+
+    libraries: list[models.Library] = []
     if field_name == "name":
         libraries = db.query_libraries(word, pool_id=pool_id)
     elif field_name == "id":
         try:
             _id = int(word)
+            if (library := db.get_library(_id)) is not None:
+                if library.pool_id == pool_id:
+                    libraries.append(library)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        libraries = []
-        if (library := db.get_library(library_id=_id)) is not None:
-            if library.pool_id == pool_id:
-                libraries.append(library)
-    else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
+            pass
+
     return make_response(
         render_template(
             "components/tables/pool-library.html",
-            libraries=libraries, n_pages=1, active_page=0,
-            pool=pool
+            current_query=word, active_query_field=field_name,
+            pool=pool, libraries=libraries,
         )
     )

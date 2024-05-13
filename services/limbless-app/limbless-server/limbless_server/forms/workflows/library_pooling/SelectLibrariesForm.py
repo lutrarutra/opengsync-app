@@ -31,7 +31,7 @@ class SelectLibrariesForm(HTMXFlaskForm, TableDataForm):
     def validate(self) -> bool:
         validated = super().validate()
 
-        if not (selected_library_ids := self.selected_library_ids.data):
+        if (selected_library_ids := self.selected_library_ids.data) is None:
             self.selected_library_ids.errors = ["Select at least one library"]
             return False
         
@@ -52,6 +52,7 @@ class SelectLibrariesForm(HTMXFlaskForm, TableDataForm):
 
     def process_request(self, **context) -> Response:
         if not self.validate():
+            logger.debug(self.errors)
             return self.make_response()
 
         barcode_data = dict(

@@ -9,8 +9,7 @@
                 {{
                     table_col(
                         table_container_id='sample-table', column_name='ID', column_var='id',
-                        sort_url='samples_htmx.get',
-                        sort_by=sort_by, sort_order=sort_order,
+                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order,
                         query_url='samples_htmx.table_query', current_query=current_query,
                         active_query_field=active_query_field, query_type="number",
                     )
@@ -18,33 +17,21 @@
                 {{
                     table_col(
                         table_container_id='sample-table', column_name='Name', column_var='name',
-                        sort_url='samples_htmx.get',
-                        sort_by=sort_by, sort_order=sort_order,
+                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order,
                         query_url='samples_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, col_size=4
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='sample-table', column_name='Project', column_var='project_id',
-                        sort_url='samples_htmx.get',
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=5
+                        active_query_field=active_query_field, col_size=5
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='sample-table', column_name='Owner', column_var='owner_id',
-                        sort_url='samples_htmx.get',
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2
+                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='sample-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=2
+                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
             </tr>
@@ -54,7 +41,6 @@
             <tr onclick="redirect('{{ url_for('samples_page.sample_page', sample_id=sample.id) }}');">
                 <th scope="row">{{ sample.id }}</th>
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
-                <td>{{ sample.project.name }}</td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
                 <td>{{ sample.num_libraries }}</td>
             </tr>

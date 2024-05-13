@@ -31,8 +31,6 @@ def get_libraries(page: int) -> Response:
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    logger.debug(request.args)
-
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
@@ -48,6 +46,8 @@ def get_libraries(page: int) -> Response:
     
         if len(status_in) == 0:
             status_in = None
+    else:
+        status_in = [LibraryStatus.ACCEPTED]
 
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)
@@ -60,7 +60,7 @@ def get_libraries(page: int) -> Response:
             type_in = None
     
     libraries, n_pages = db.get_libraries(
-        status=LibraryStatus.ACCEPTED, sort_by=sort_by, descending=descending, offset=offset,
+        sort_by=sort_by, descending=descending, offset=offset,
         seq_request_id=seq_request_id, status_in=status_in, type_in=type_in
     )
     return make_response(
@@ -144,9 +144,11 @@ def download_barcode_table_template(uuid: str) -> Response:
     form = forms.BarcodeInputForm(uuid=uuid)
     template = form.get_template()
 
+    pool_name = form.metadata.get("pool_name", "pool")
+
     return Response(
         template.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=visium_annotation.tsv"}
+        headers={"Content-disposition": f"attachment; filename=pooling_{pool_name}.tsv"}
     )
 
 
@@ -169,7 +171,7 @@ def define_pool() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    form = forms.DefinePoolForm(request.form)
+    form = forms.DefinePoolForm(formdata=request.form)
     return form.process_request()
 
 
@@ -179,7 +181,7 @@ def select_libraries() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    form = forms.SelectLibrariesForm(request.form)
+    form = forms.SelectLibrariesForm(formdata=request.form)
     return form.process_request()
 
 

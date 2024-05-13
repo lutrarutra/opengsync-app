@@ -48,7 +48,6 @@ class CompleteLibraryPoolingForm(HTMXFlaskForm, TableDataForm):
 
     def process_request(self, current_user: models.User) -> Response:
         if not self.validate():
-            logger.debug(self.errors)
             return self.make_response()
 
         barcode_table = self.tables["barcode_table"]
@@ -86,5 +85,8 @@ class CompleteLibraryPoolingForm(HTMXFlaskForm, TableDataForm):
         os.makedirs(newdir, exist_ok=True)
         shutil.copy(self.path, os.path.join(newdir, f"{self.uuid}.csv"))
         os.remove(self.path)
+
+        if (seq_request_id := self.metadata.get("seq_request_id")) is not None:
+            return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id))
 
         return make_response(redirect=url_for("pools_page.pool_page", pool_id=pool.id))

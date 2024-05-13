@@ -5,7 +5,7 @@
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
 {% block content %}
-<div class="container">
+<div class="page-header-container">
     <div class="page-header">
         <div>
             <h1>Project: {{ project.name }}</h1>
@@ -36,57 +36,57 @@
             </span>
         </div>
     </div>
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#project-samples-tab" type="button" role="tab"
+            aria-controls="project-samples-tab" aria-selected="true">
+            Samples</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#project-data-tab" type="button" role="tab"
+            aria-controls="project-data-tab" aria-selected="false">
+            Metadata</button>
+        </li>
+    </ul>
+</div>
 
-    <div>
-        <ul class="nav nav-tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab"
-                data-bs-target="#project-samples-tab" type="button" role="tab"
-                aria-controls="project-samples-tab" aria-selected="true">
-                Samples</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#project-data-tab" type="button" role="tab"
-                aria-controls="project-data-tab" aria-selected="false">
-                Metadata</button>
-            </li>
-        </ul>
-        <div class="tab-content pt-3">
-            <div class="tab-pane fade show active" id="project-samples-tab" role="tabpanel" tabindex="0">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h2>Samples:</h2>
-                    </div>
-                    <div>
-                        <a class="btn btn-primary" href="{{ url_for('samples_htmx.download', project_id=project.id) }}">
-                            Download
-                        </a>
-                    </div>
+<div class="container">
+    <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="project-samples-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h2>Samples:</h2>
                 </div>
-                <div hx-get="{{ url_for('projects_htmx.get_samples', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
-                    {{ spinner() }}
+                <div>
+                    <a type="button" class="btn btn-primary disabled" disabled>
+                        Download
+                    </a>
                 </div>
             </div>
-            <div class="tab-pane fade show" id="project-data-tab" role="tabpanel" tabindex="1">
-                <div class="row">
-                    {{ 
-                        metadata_group_link(
-                            "Owner Name",
-                            project.owner.name,
-                            url_for("users_page.user_page", user_id=project.owner.id),
-                            class="col"
-                        )
-                    }}
-                    {{
-                        metadata_group_email_link(
-                            "Owner Email", project.owner.email, class="col",
-                            subject="BSF Project: " + project.name + " (" + project.id | string + ")"
-                        )
-                    }}
-                </div>
-                {{ metadata_group_textarea("Description", project.description) }}
+            <div hx-get="{{ url_for('projects_htmx.get_samples', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
             </div>
+        </div>
+        <div class="tab-pane fade show" id="project-data-tab" role="tabpanel" tabindex="1">
+            <div class="row">
+                {{ 
+                    metadata_group_link(
+                        "Owner Name",
+                        project.owner.name,
+                        url_for("users_page.user_page", user_id=project.owner.id),
+                        class="col"
+                    )
+                }}
+                {{
+                    metadata_group_email_link(
+                        "Owner Email", project.owner.email, class="col",
+                        subject="BSF Project: " + project.name + " (" + project.id | string + ")"
+                    )
+                }}
+            </div>
+            {{ metadata_group_textarea("Description", project.description) }}
         </div>
     </div>
 </div>

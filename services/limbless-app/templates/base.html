@@ -75,10 +75,20 @@
             </div>
             {% if current_user.is_authenticated and current_user.is_insider() %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'pools-page' else ''}}" id="pools-page" href="{{ url_for('pools_page.pools_page') }}">Pools</a>
-            </div>
-            <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" id="experiments-page" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>
+            </div>
+            <div class="nav-item-dropdown">
+                <p>
+                    Samples&nbsp;
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="#f8f9fa" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                    </svg>
+                </p>
+                <ul>
+                    <li><a class="nav-link {{'active' if active_page == 'samples-page' else ''}}" id="samples-page" href="{{ url_for('samples_page.samples_page') }}">Bio Samples</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'libraries-page' else ''}}" id="libraries-page" href="{{ url_for('libraries_page.libraries_page') }}">Libraries</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'pools-page' else ''}}" id="pools-page" href="{{ url_for('pools_page.pools_page') }}">Pools</a></li>
+                </ul>
             </div>
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'users-page' else ''}}" id="users-page" href="{{ url_for('users_page.users_page') }}">Users</a>

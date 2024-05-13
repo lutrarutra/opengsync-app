@@ -12,17 +12,13 @@
                         table_container_id='sample-seq_request-table', column_name='ID', column_var='id',
                         sort_url='samples_htmx.get_seq_requests', context={"sample_id": sample.id},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url='samples_htmx.query_seq_requests', current_query=seq_requests_current_query,
-                        active_query_field=active_query_field, query_type="number",
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='sample-seq_request-table', column_name='Name', column_var='name',
                         sort_url='samples_htmx.get_seq_requests', context={"sample_id": sample.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='samples_htmx.query_seq_requests', current_query=seq_requests_current_query,
-                        active_query_field=active_query_field, col_size=2,
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{

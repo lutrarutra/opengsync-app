@@ -19,6 +19,7 @@ else:
 samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/hmtx/samples/")
 
 
+@samples_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @samples_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
@@ -35,50 +36,20 @@ def get(page: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     samples: list[models.Sample] = []
-    context = {}
 
-    with DBSession(db) as session:
-        if (project_id := request.args.get("project_id", None)) is not None:
-            template = "components/tables/project-sample.html"
-            try:
-                project_id = int(project_id)
-            except (ValueError, TypeError):
-                return abort(HTTPResponse.BAD_REQUEST.id)
-            if (project := session.get_project(project_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            samples, n_pages = session.get_samples(
-                offset=offset, project_id=project_id, sort_by=sort_by, descending=descending
-            )
-            context["project"] = project
-
-        elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-            template = "components/tables/seq_request-sample.html"
-            try:
-                seq_request_id = int(seq_request_id)
-            except (ValueError, TypeError):
-                return abort(HTTPResponse.BAD_REQUEST.id)
-            
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            samples, n_pages = session.get_samples(
-                offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending
-            )
-            context["seq_request"] = seq_request
-        else:
-            template = "components/tables/sample.html"
-            if not current_user.is_insider():
-                samples, n_pages = session.get_samples(offset=offset, project_id=project_id, user_id=current_user.id, sort_by=sort_by, descending=descending)
-            else:
-                samples, n_pages = session.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending)
+    samples, n_pages = db.get_samples(
+        offset=offset,
+        user_id=current_user.id if not current_user.is_insider() else None,
+        sort_by=sort_by, descending=descending
+    )
     
-        return make_response(
-            render_template(
-                template, samples=samples,
-                n_pages=n_pages, active_page=page,
-                sort_by=sort_by, sort_order=sort_order,
-                **context
-            )
+    return make_response(
+        render_template(
+            "components/tables/sample.html", samples=samples,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
         )
+    )
 
 
 @samples_htmx.route("<int:sample_id>/delete", methods=["DELETE"])
@@ -102,35 +73,6 @@ def delete(sample_id: int):
     )
 
 
-@samples_htmx.route("download", methods=["GET"])
-@login_required
-def download():
-    file_name = f"{current_user.last_name}_samples.tsv"
-    
-    if (project_id := request.args.get("project_id", None)) is not None:
-        try:
-            project_id = int(project_id)
-            with DBSession(db) as session:
-                if (project := session.get_project(project_id)) is None:
-                    return abort(HTTPResponse.NOT_FOUND.id)
-                file_name = f"{project.name}_project_samples.tsv"
-                samples = project.samples
-        except (ValueError, TypeError):
-            return abort(HTTPResponse.BAD_REQUEST.id)
-    else:
-        samples, _ = db.get_samples(
-            limit=None, user_id=current_user.id
-        )
-
-    file_name = secure_filename(file_name)
-
-    df = pd.DataFrame.from_records([sample.to_dict() for sample in samples])
-    return Response(
-        df.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": f"attachment; filename={file_name}"}
-    )
-
-
 @samples_htmx.route("<int:sample_id>/edit", methods=["POST"])
 @login_required
 def edit(sample_id):
@@ -138,7 +80,7 @@ def edit(sample_id):
         if (sample := session.get_sample(sample_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
-        if not sample.is_editable():
+        if not sample.is_editable() and not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.models.SampleForm(request.form).process_request(
@@ -265,3 +207,47 @@ def table_query():
                 **context
             )
         )
+    
+
+@samples_htmx.route("<int:sample_id>/get_libraries", methods=["GET"])
+@login_required
+def get_libraries(sample_id: int):
+    if (sample := db.get_sample(sample_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if sample.owner_id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    libraries, n_pages = db.get_libraries(
+        sample_id=sample_id
+    )
+    
+    return make_response(
+        render_template(
+            "components/tables/sample-library.html",
+            sample=sample, libraries=libraries,
+            n_pages=n_pages
+        )
+    )
+
+
+@samples_htmx.route("<int:sample_id>/get_seq_requests", methods=["GET"])
+@login_required
+def get_seq_requests(sample_id: int):
+    if (sample := db.get_sample(sample_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if sample.owner_id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    seq_requests, n_pages = db.get_seq_requests(
+        sample_id=sample_id
+    )
+    
+    return make_response(
+        render_template(
+            "components/tables/sample-seq_request.html",
+            sample=sample, seq_requests=seq_requests,
+            n_pages=n_pages
+        )
+    )

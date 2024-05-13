@@ -112,6 +112,8 @@
                 return false;
             }
 
+            console.log(selected_libraries);
+
             htmx.ajax("POST", "{{ url_for('library_pooling_workflow.select_libraries') }}", {
                 target: "#library_pooling-form-container",
                 swap: "outerHTML",
