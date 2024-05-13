@@ -9,7 +9,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, ExperimentStatus
+from limbless_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow
 
 from .... import db, forms, logger
 
@@ -40,10 +40,20 @@ def get(page: int):
         if len(status_in) == 0:
             status_in = None
 
+    if (workflow_in := request.args.get("workflow_id_in")) is not None:
+        workflow_in = json.loads(workflow_in)
+        try:
+            workflow_in = [ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(workflow_in) == 0:
+            workflow_in = None
+
     with DBSession(db) as session:
         experiments, n_pages = session.get_experiments(
             offset=offset, sort_by=sort_by, descending=descending,
-            status_in=status_in
+            status_in=status_in, workflow_in=workflow_in
         )
 
     return make_response(
@@ -52,7 +62,8 @@ def get(page: int):
             experiments=experiments,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
-            ExperimentStatus=ExperimentStatus, status_in=status_in
+            ExperimentStatus=ExperimentStatus, status_in=status_in,
+            ExperimentWorkFlow=ExperimentWorkFlow, workflow_in=workflow_in
         )
     )
 
@@ -195,15 +206,15 @@ def render_lane_pooling_tables(experiment_id: int, file_id: int):
     )
 
 
-@experiments_htmx.route("table_query", methods=["POST"])
+@experiments_htmx.route("table_query", methods=["GET"])
 @login_required
 def table_query():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (word := request.form.get("name", None)) is not None:
+    if (word := request.args.get("name", None)) is not None:
         field_name = "name"
-    elif (word := request.form.get("id", None)) is not None:
+    elif (word := request.args.get("id", None)) is not None:
         field_name = "id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -211,18 +222,33 @@ def table_query():
     if word is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
+    if (workflow_in := request.args.get("workflow_id_in")) is not None:
+        workflow_in = json.loads(workflow_in)
+        try:
+            workflow_in = [ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(workflow_in) == 0:
+            workflow_in = None
+    
+    experiments = []
     if field_name == "name":
-        experiments = db.query_experiments(word)
+        experiments = db.query_experiments(word, workflow_in=workflow_in)
     elif field_name == "id":
         try:
-            experiments = [db.get_experiment(int(word))]
+            if (experiment := db.get_experiment(int(word))) is not None:
+                experiments = [experiment]
+                if workflow_in is not None and experiment.workflow not in workflow_in:
+                    experiments = []
         except ValueError:
-            experiments = []
+            pass
 
     return make_response(
         render_template(
             "components/tables/experiment.html",
-            experiments=experiments, experiments_current_query=word, field_name=field_name
+            experiments=experiments, experiments_current_query=word, field_name=field_name,
+            ExperimentWorkFlow=ExperimentWorkFlow, workflow_in=workflow_in
         )
     )
                      

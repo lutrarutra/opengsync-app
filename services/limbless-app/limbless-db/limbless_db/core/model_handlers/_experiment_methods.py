@@ -88,6 +88,7 @@ def get_experiments(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     status: Optional[ExperimentStatusEnum] = None,
     status_in: Optional[list[ExperimentStatusEnum]] = None,
+    workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False
 ) -> tuple[list[models.Experiment], int]:
     persist_session = self._session is not None
@@ -107,6 +108,9 @@ def get_experiments(
 
     if status_in is not None:
         query = query.where(models.Experiment.status_id.in_([s.id for s in status_in]))
+
+    if workflow_in is not None:
+        query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
 
     n_pages = math.ceil(query.count() / limit)
 
@@ -204,12 +208,19 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
     return experiment
 
 
-def query_experiments(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.Experiment]:
+def query_experiments(
+    self, word: str,
+    workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+    limit: Optional[int] = PAGE_LIMIT
+) -> list[models.Experiment]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.Experiment)
+
+    if workflow_in is not None:
+        query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
 
     query = query.order_by(
         sa.func.similarity(models.Experiment.name, word).desc()

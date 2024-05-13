@@ -49,9 +49,9 @@
                         col_size=1,
                     )
                 }}
-                <th class="col-1" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
                 <th class="col-1" scope="col">Library Size</th>
-                <th class="col-1" scope="col" {{ tooltip("Diluted molarity of the pool") }}>Molarity</th>
+                <th class="col-1" scope="col" {{ tooltip("Sample molarity of the pool") }}>Molarity</th>
+                <th class="col-1" scope="col"># Reads Requested</th>
             </tr>
         </thead>
         <tbody>
@@ -91,12 +91,6 @@
                 <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
-                <td class="qubit-col">
-                    <div class="quantity-container">
-                        <div class="value">{{ pool.qubit_concentration_str }}</div>
-                        <div class="unit">ng/μL</div>
-                    </div>
-                </td>
                 <td class="avg_fragment_size-col">
                     <div class="quantity-container">
                         <div class="value">{{ pool.avg_fragment_size if pool.avg_fragment_size }}</div>
@@ -109,8 +103,13 @@
                         <div class="unit">nM</div>
                     </div>
                 </td>
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
+                        <div class="unit">M</div>
+                    </div>
+                </td>
             </tr>
-            </a>
             {% endfor %}
         </tbody>
     </table>

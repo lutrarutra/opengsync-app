@@ -1,15 +1,17 @@
+import json
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, request, abort, render_template, flash, url_for
+from flask import Blueprint, request, abort, render_template
 from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse, PoolStatus, ExperimentStatus
+from limbless_db.categories import HTTPResponse, PoolStatus
 
 from limbless_db import PAGE_LIMIT
 
-from .... import db, logger
+from .... import db, logger  # noqa
+from ....forms.workflows import select_experiment_pools as wff
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -22,63 +24,64 @@ select_experiment_pools_workflow = Blueprint("select_experiment_pools_workflow",
 @select_experiment_pools_workflow.route("<int:experiment_id>/begin", methods=["GET"])
 @login_required
 def begin(experiment_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        available_pools, n_available_pools_pages = session.get_pools(sort_by="id", descending=True, status=PoolStatus.ACCEPTED)
-        selected_pools, _ = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id, limit=None)
+        experiment.pools
 
-        return make_response(
-            render_template(
-                "workflows/select_experiment_pools/sp-1.html",
-                experiment=experiment, available_pools=available_pools, n_pages=n_available_pools_pages,
-                selected_pools=selected_pools, active_tab=0
-            )
-        )
+    form = wff.SelectPoolsForm(experiment=experiment)
+    return form.make_response()
     
 
-@select_experiment_pools_workflow.route("<int:experiment_id>/get/<int:page>", methods=["GET"])
+@select_experiment_pools_workflow.route("<int:experiment_id>/get_pools", methods=["GET"], defaults={"page": 0})
+@select_experiment_pools_workflow.route("<int:experiment_id>/get_pools/<int:page>", methods=["GET"])
 @login_required
-def get(experiment_id: int, page: int):
+def get_pools(experiment_id: int, page: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    with DBSession(db) as session:
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
         try:
-            experiment_id = int(experiment_id)
+            status_in = [PoolStatus.get(int(status)) for status in status_in]
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        template = "workflows/select_experiment_pools/available-experiment-pool.html"
+    
+        if len(status_in) == 0:
+            status_in = None
+    else:
+        status_in = [PoolStatus.ACCEPTED, PoolStatus.RECEIVED]
 
-        available_pools, n_available_pools_pages = session.get_pools(
-            sort_by=sort_by, descending=descending,
-            offset=offset, status=PoolStatus.ACCEPTED
+    pools, n_pages = db.get_pools(
+        sort_by=sort_by, descending=descending,
+        offset=offset, status_in=status_in
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/select-pools.html", pools=pools, n_pages=n_pages,
+            sort_by=sort_by, sort_order=sort_order, active_page=page,
+            status_in=status_in, workflow="select_experiment_pools_workflow",
+            context={"experiment_id": experiment.id}
         )
-
-        return make_response(
-            render_template(
-                template, available_pools=available_pools, n_pages=n_available_pools_pages,
-                sort=sort_by, sort_order=sort_order, active_page=page, experiment=experiment
-            )
-        )
+    )
 
 
-@select_experiment_pools_workflow.route("<int:experiment_id>/table_query", methods=["POST"])
+@select_experiment_pools_workflow.route("<int:experiment_id>/query_pools", methods=["POST"])
 @login_required
-def table_query(experiment_id: int):
+def query_pools(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -105,77 +108,24 @@ def table_query(experiment_id: int):
 
     return make_response(
         render_template(
-            "workflows/select_experiment_pools/available-experiment-pool.html", experiment=experiment,
-            available_pools=pools, avialable_pools_current_query=word, field_name=field_name
+            "components/tables/select-pools.html",
+            pools=pools, current_query=word, field_name=field_name,
+            context={"experiment_id": experiment.id}, workflow="select_experiment_pools_workflow"
         )
     )
     
 
-@select_experiment_pools_workflow.route("<int:experiment_id>/add_pool", methods=["POST"])
+@select_experiment_pools_workflow.route("<int:experiment_id>/complete", methods=["POST"])
 @login_required
-def add_pool(experiment_id: int):
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if (pool_id := request.form.get("pool_id")) is None:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        try:
-            pool_id = int(pool_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if (_ := session.get_pool(pool_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-
-        session.link_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
-
-        available_pools, n_available_pools_pages = session.get_pools(sort_by="id", descending=True, status=PoolStatus.ACCEPTED)
-        selected_pools, _ = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id, limit=None)
-
-        return make_response(
-            render_template(
-                "workflows/select_experiment_pools/container.html",
-                experiment=experiment, available_pools=available_pools, n_pages=n_available_pools_pages,
-                active_page=0, selected_pools=selected_pools, active_tab=0
-            )
-        )
+def complete(experiment_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
     
-
-@select_experiment_pools_workflow.route("<int:experiment_id>/remove_pool", methods=["DELETE"])
-@login_required
-def remove_pool(experiment_id: int):
     with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        if (pool_id := request.args.get("pool_id")) is None:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+        experiment.pools
         
-        try:
-            pool_id = int(pool_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        if (_ := session.get_pool(pool_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-
-        session.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
-
-        available_pools, n_available_pools_pages = session.get_pools(sort_by="id", descending=True, status=PoolStatus.ACCEPTED)
-        selected_pools, _ = session.get_pools(sort_by="id", descending=True, experiment_id=experiment_id, limit=None)
-
-        return make_response(
-            render_template(
-                "workflows/select_experiment_pools/container.html",
-                experiment=experiment, available_pools=available_pools, n_pages=n_available_pools_pages,
-                active_page=0, selected_pools=selected_pools, active_tab=1
-            )
-        )
+    form = wff.SelectPoolsForm(experiment=experiment, formdata=request.form)
+    return form.process_request(experiment=experiment)

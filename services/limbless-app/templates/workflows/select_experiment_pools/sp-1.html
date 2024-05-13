@@ -1,4 +1,5 @@
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <div id="select-pools-form-container" class="modal-content">
     <div class="modal-header">
@@ -6,15 +7,136 @@
         <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
     </div> 
     <div class="modal-body" id="select-pools-form">
-        {% include "workflows/select_experiment_pools/container.html" %}
+        <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if experiment %} active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
+                    type="button" role="tab" aria-controls="available-pools-tab" aria-selected="true">
+                    Pools
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
+                    type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
+                    Selected Pools ({{ selected_pools | length }})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content ba">
+            <div class="invalid-feedback-container">
+                {% for error in select_pools_form.error_dummy.errors %}
+                    <p class="">{{ error }}</p>
+                {% endfor %}
+            </div>
+            <div class="tab-pane fade show active" id="available-pools-tab" role="tabpanel" tabindex="1">
+                <div hx-get="{{ url_for('select_experiment_pools_workflow.get_pools', experiment_id=experiment.id) }}" hx-trigger="intersect once">
+                    {{ spinner() }}
+                </div>
+            </div>
+            <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="3">
+                <table class="table table-hover table-cursor">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-3">Name</th>
+                            <th scope="col" class="col-2">Status</th>
+                            <th scope="col" class="col-3">Owner</th>
+                            <th class="col" scope="col-3"># Reads Requested</th>
+                        </tr>
+                    </thead>
+                    <tbody id="selected-pools-table-container">
+                        {% for pool in selected_pools %}
+                        <tr onclick="select_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" class="pool-row selected">
+                            <th scope="row">{{ pool.id }}</th>
+                            <td>{{ pool.name }}</td>
+                            <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
+                            <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ pool.num_m_reads_requested if pool.num_m_reads_requested }}</div>
+                                    <div class="unit">M</div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
     <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            Experiment: {{ experiment.name }} [{{ experiment.id }}]
+        </div>
         <div class="footer-controls">
+            <button type="button" class="btn btn-success" id="submit-select-pools-form-btn">Confirm</button>
         </div>
     </div>
 </div>
 <script>
+    var selected_pools = {{ selected_pool_ids | tojson if selected_pool_ids else [] }};
+    var num_selected_pools = {{ selected_pool_ids | length if selected_pool_ids else 0 }};
+
+    function select_pool(pool_id) {
+        if (selected_pools.includes(pool_id)) {
+            selected_pools = selected_pools.filter(function(value, index, arr) {
+                return value != pool_id;
+            });
+
+            $(`#pool-row-${pool_id}`).removeClass("selected");
+            $(`#selected-pool-row-${pool_id}`).remove();
+            num_selected_pools -= 1;
+        } else {
+            selected_pools.push(pool_id);
+            $(`#pool-row-${pool_id}`).addClass("selected");
+
+            const cloned = $(`#pool-row-${pool_id}`).clone();
+            cloned.attr("id", `selected-pool-row-${pool_id}`);
+            $("#selected-pools-table-container").append(cloned);
+            num_selected_pools += 1;
+        }
+        $("#selected-pools-tab-btn").text(`Selected Pools (${num_selected_pools})`);
+    }
+
+    function update_pools() {
+        $(".pool-row").each(function() {
+            const pool_id = parseInt($(this).attr("id").split("-").pop());
+            if (selected_pools.includes(pool_id)) {
+                $(this).addClass("selected");
+            }
+        });
+    }
     $(document).ready(function() {
         init_tooltips();
+
+        $("#submit-select-pools-form-btn").click(function() {
+            function submit() {
+                htmx.ajax("POST", "{{ url_for('select_experiment_pools_workflow.complete', experiment_id=experiment.id) }}", {
+                    target: "#select-pools-form-container",
+                    swap: "outerHTML",
+                    values: {
+                        csrf_token: "{{ select_pools_form.csrf_token._value() }}",
+                        selected_pool_ids: JSON.stringify(selected_pools),
+                        experiment_id: {{ experiment.id }},
+                    },
+                });
+            }
+            if (num_selected_pools == 0) {
+                Swal.fire({
+                    title: "Experiment does not have any pools selected",
+                    text: "Are you sure you want to continue?",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#3085d6",
+                    cancelButtonColor: "#d33",
+                    confirmButtonText: "Yes",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        submit();
+                    }
+                });
+            } else {
+                submit();
+            }
+        });
     });
 </script>

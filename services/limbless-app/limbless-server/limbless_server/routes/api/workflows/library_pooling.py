@@ -31,9 +31,12 @@ def get_libraries(page: int) -> Response:
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
+    context = {}
+
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
+            context["seq_request_id"] = seq_request_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
@@ -67,8 +70,9 @@ def get_libraries(page: int) -> Response:
         render_template(
             "components/tables/select-libraries.html",
             libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, seq_request_id=seq_request_id,
-            status_in=status_in, type_in=type_in, context="library_pooling_workflow"
+            sort_by=sort_by, sort_order=sort_order,
+            status_in=status_in, type_in=type_in, workflow="library_pooling_workflow",
+            context=context
         )
     )
 
@@ -85,6 +89,8 @@ def query_libraries() -> Response:
         field_name = "id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    context = {}
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -109,6 +115,7 @@ def query_libraries() -> Response:
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
+            context["seq_request_id"] = seq_request_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
 
@@ -133,7 +140,8 @@ def query_libraries() -> Response:
         render_template(
             "components/tables/select-libraries.html",
             current_query=word, active_query_field=field_name,
-            libraries=libraries, type_in=type_in, status_in=status_in, context="library_pooling_workflow"
+            libraries=libraries, type_in=type_in, status_in=status_in,
+            workflow="library_pooling_workflow", context=context
         )
     )
 

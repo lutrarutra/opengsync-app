@@ -26,9 +26,12 @@ def get_pools(page: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
+    context = {}
+    
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
@@ -56,8 +59,8 @@ def get_pools(page: int):
         render_template(
             "components/tables/select-pools.html",
             pools=pools, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, experiment_id=experiment_id,
-            status_in=status_in, context="ba_report_workflow"
+            sort_by=sort_by, sort_order=sort_order, context=context,
+            status_in=status_in, workflow="ba_report_workflow"
         )
     )
 
@@ -75,9 +78,12 @@ def query_pools():
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
+    context = {}
+    
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -109,8 +115,8 @@ def query_pools():
     return make_response(
         render_template(
             "components/tables/select-pools.html",
-            experiment_id=experiment_id, pools=pools, status_in=status_in,
-            context="ba_report_workflow"
+            context=context, pools=pools, status_in=status_in,
+            workflow="ba_report_workflow"
         )
     )
 
@@ -126,6 +132,7 @@ def get_libraries(page: int):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
+    context = {}
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -152,6 +159,7 @@ def get_libraries(page: int):
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -164,8 +172,8 @@ def get_libraries(page: int):
         render_template(
             "components/tables/select-libraries.html",
             libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, status_in=status_in, experiment_id=experiment_id,
-            type_in=type_in, context="ba_report_workflow"
+            sort_by=sort_by, sort_order=sort_order, status_in=status_in, context=context,
+            type_in=type_in, workflow="ba_report_workflow"
         )
     )
 
@@ -183,9 +191,12 @@ def query_libraries():
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
+    context = {}
+    
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -228,8 +239,8 @@ def query_libraries():
         render_template(
             "components/tables/select-libraries.html",
             current_query=word, active_query_field=field_name,
-            libraries=libraries, type_in=type_in, status_in=status_in, experiment_id=experiment_id,
-            context="ba_report_workflow"
+            libraries=libraries, type_in=type_in, status_in=status_in, context=context,
+            workflow="ba_report_workflow"
         )
     )
 

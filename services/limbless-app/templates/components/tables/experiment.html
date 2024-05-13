@@ -40,7 +40,8 @@
                 {{
                     table_col(
                         table_container_id='experiment-table', column_name='Workflow', column_var='workflow_id',
-                        sort_url='experiments_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2
+                        sort_url='experiments_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=ExperimentWorkFlow.as_list(), multiselect_selected=workflow_in
                     )
                 }}
             </tr>

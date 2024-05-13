@@ -46,6 +46,17 @@ class CompleteLibraryPoolingForm(HTMXFlaskForm, TableDataForm):
         self._context["show_index_4"] = barcode_table["index_4"].notna().any()
         self._context["show_adapter"] = barcode_table["adapter"].notna().any()
 
+    def validate(self) -> bool:
+        validated = super().validate()
+        barcode_table = self.tables["barcode_table"]
+
+        for _, row in barcode_table.iterrows():
+            if pd.isna(row["seq_depth_requested"]):
+                self.errors["barcode_table"] = [f"Library id={row['library_id']}: Seq depth requested is required"]
+                return False
+            
+        return validated
+
     def process_request(self, current_user: models.User) -> Response:
         if not self.validate():
             return self.make_response()
