@@ -210,24 +210,36 @@ def dilute_pool(
 
 def query_pools(
     self, name: str, experiment_id: Optional[int] = None,
+    status_in: Optional[list[PoolStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Pool]:
     persist_session = self._session is not None
-    raise NotImplementedError("This method is not implemented yet.")
     if not self._session:
         self.open_session()
 
-    query = sa.select(models.Pool).order_by(
-        sa.func.similarity(models.Pool.name, name).desc()
-    )
+    query = self._session.query(models.Pool)
 
     if experiment_id is not None:
-        query = query.where(models.Pool.experiment_id == experiment_id)
+        query = query.join(
+            models.ExperimentPoolLink,
+            models.ExperimentPoolLink.pool_id == models.Pool.id,
+        ).where(
+            models.ExperimentPoolLink.experiment_id == experiment_id
+        )
+
+    if status_in is not None:
+        query = query.where(
+            models.Pool.status_id.in_([s.id for s in status_in])
+        )
+
+    query = query.order_by(
+        sa.func.similarity(models.Pool.name, name).desc()
+    )
 
     if limit is not None:
         query = query.limit(limit)
 
-    pools = self._session.execute(query).scalars().all()
+    pools = query.all()
 
     if not persist_session:
         self.close_session()

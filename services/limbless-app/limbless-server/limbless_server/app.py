@@ -168,6 +168,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             DataDeliveryMode=categories.DataDeliveryMode,
             GenomeRef=categories.GenomeRef,
             LibraryType=categories.LibraryType,
+            PoolStatus=categories.PoolStatus,
         )
     
     @app.before_request

@@ -1,11 +1,11 @@
 import json
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler
+from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus
 from .... import db, forms, logger  # noqa
 

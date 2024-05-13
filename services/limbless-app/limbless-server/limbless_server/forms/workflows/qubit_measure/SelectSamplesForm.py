@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 import pandas as pd
 import json
@@ -110,12 +110,14 @@ class SelectSamplesForm(HTMXFlaskForm):
                 library_data["qubit_concentration"].append(library.qubit_concentration)
 
         complete_qubit_measure_form = CompleteQubitMeasureForm()
-        complete_qubit_measure_form.metadata = {
+        metadata: dict[str, Any] = {
             "workflow": "qubit_measure",
         }
 
         if (experiment_id := self.experiment_id.data) is not None:
-            complete_qubit_measure_form.metadata["experiment_id"] = experiment_id
+            metadata["experiment_id"] = experiment_id
+
+        complete_qubit_measure_form.metadata = metadata
         
         complete_qubit_measure_form.add_table("pool_table", pd.DataFrame(pool_data))
         complete_qubit_measure_form.add_table("library_table", pd.DataFrame(library_data))

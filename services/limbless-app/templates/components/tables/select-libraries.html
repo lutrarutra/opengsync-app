@@ -10,46 +10,58 @@
                 {{
                     table_col(
                         table_container_id='select-libraries-table', column_name='ID', column_var='id',
-                        sort_url='qubit_measure_workflow.get_libraries', context={},
+                        sort_url=context + '.get_libraries', context={ "experiment_id": experiment_id } if experiment_id else {},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url='qubit_measure_workflow.libraries_table_query', current_query=libraries_current_query,
+                        query_url=context + '.query_libraries', current_query=libraries_current_query,
                         active_query_field=active_query_field, query_type="number", col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='select-libraries-table', column_name='Name', column_var='name',
-                        sort_url='qubit_measure_workflow.get_libraries', context={},
+                        sort_url=context + '.get_libraries', context={ "experiment_id": experiment_id } if experiment_id else {},
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url='qubit_measure_workflow.libraries_table_query', current_query=libraries_current_query,
+                        query_url=context + '.query_libraries', current_query=libraries_current_query,
                         active_query_field=active_query_field, query_type="text", col_size=3,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='select-libraries-table', column_name='Type', column_var='type_id',
-                        sort_url='qubit_measure_workflow.get_libraries', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2,
+                        sort_url=context + '.get_libraries', context={ "experiment_id": experiment_id } if experiment_id else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='select-libraries-table', column_name='Status', column_var='status_id',
-                        sort_url='qubit_measure_workflow.get_libraries', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2,
+                        sort_url=context + '.get_libraries', context={ "experiment_id": experiment_id } if experiment_id else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='select-libraries-table', column_name='Owner', column_var='owner_id',
-                        sort_url='qubit_measure_workflow.get_libraries', context={},
+                        sort_url=context + '.get_libraries', context={ "experiment_id": experiment_id } if experiment_id else {},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
                     )
                 }}
+                {% if context == "qubit_measure_workflow" %}
                 <th class="col-2" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
+                {% elif context == "ba_report_workflow" %}
+                <th class="col-2" scope="col">Avg. Fragment Size</th>
+                {% elif context == "library_pooling_workflow" %}
+                {{
+                    table_col(
+                        table_container_id='experiment-library-table', column_name='Pool', column_var='pool_id',
+                        sort_url=context + '.get_libraries', context={"experiment_id": experiment.id} if experiment_id else {},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                    )
+                }}
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -64,12 +76,23 @@
                 </td>
                 <td>{{ library.status.name }} {{ library.status.icon }}</td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                <td class="qubit-col">
+                {% if context == "qubit_measure_workflow" %}
+                <td>
                     <div class="quantity-container">
-                        <div class="value">{{ pool.qubit_concentration_str }}</div>
+                        <div class="value">{{ library.qubit_concentration_str }}</div>
                         <div class="unit">ng/μL</div>
                     </div>
                 </td>
+                {% elif context == "ba_report_workflow" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ library.avg_fragment_size if library.avg_fragment_size }}</div>
+                        <div class="unit">bp</div>
+                    </div>
+                </td>
+                {% elif context == "library_pooling_workflow" %}
+                <td>{{ library.pool.name }}</td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>

@@ -282,15 +282,11 @@ def query_libraries(
         )
 
     if sample_id is not None:
-        raise NotImplementedError()
         query = query.join(
             models.SampleLibraryLink,
-            models.SampleLibraryLink.library_id == models.Library.id,
-            isouter=True
-        ).where(
-            or_(
-                models.SampleLibraryLink.sample_id == sample_id,
-                models.Library.sample_id == sample_id
+            and_(
+                models.SampleLibraryLink.library_id == models.Library.id,
+                models.SampleLibraryLink.sample_id == sample_id
             )
         )
 

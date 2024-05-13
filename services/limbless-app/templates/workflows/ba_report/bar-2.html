@@ -27,15 +27,15 @@
                     <th scope="row">{{ row["id"] }}</th>
                     <td>{{ row["name"] }}</td>
                     <td>Pool</td>
-                    <td>{{ row["avg_fragment_size"] if row["avg_fragment_size"] }}</td>
+                    <td>{{ row["avg_fragment_size"] if row["avg_fragment_size"] == row["avg_fragment_size"] }}</td>
                 </tr>
                 {% endfor %}
                 {% for _, row in library_table.iterrows() %}
                 <tr>
                     <th scope="row">{{ row["id"] }}</th>
                     <td>{{ row["name"] }}</td>
-                    <th>Library</th>
-                    <td>{{ row["avg_fragment_size"] if row["avg_fragment_size"] }}</td>
+                    <td>Library</td>
+                    <td>{{ row["avg_fragment_size"] if row["avg_fragment_size"] == row["avg_fragment_size"] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 import pandas as pd
 import json
@@ -19,13 +19,16 @@ class SelectSamplesForm(HTMXFlaskForm):
 
     selected_library_ids = StringField()
     selected_pool_ids = StringField()
+    experiment_id = IntegerField()
 
     error_dummy = StringField()
 
     def __init__(self, formdata: dict = {}, experiment: Optional[models.Experiment] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
-        self._context["experiment"] = experiment
+        if self.experiment is not None:
+            self._context["experiment"] = experiment
+            self.experiment_id.data = self.experiment.id
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -107,12 +110,14 @@ class SelectSamplesForm(HTMXFlaskForm):
                 library_data["avg_fragment_size"].append(library.avg_fragment_size)
 
         ba_input_form = BAInputForm()
-        ba_input_form.metadata = {
+        metadata: dict[str, Any] = {
             "workflow": "ba_report",
         }
 
         if self.experiment is not None:
-            ba_input_form.metadata["experiment_id"] = self.experiment.id
+            metadata["experiment_id"] = self.experiment.id
+
+        ba_input_form.metadata = metadata
         
         ba_input_form.add_table("pool_table", pd.DataFrame(pool_data))
         ba_input_form.add_table("library_table", pd.DataFrame(library_data))

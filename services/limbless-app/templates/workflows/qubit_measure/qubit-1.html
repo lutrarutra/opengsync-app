@@ -6,7 +6,7 @@
 <div id="qubit_measure-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">1. Qubit: Select Samples</h1>
-        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
         <div class="tab-body">
@@ -189,7 +189,7 @@
                 values: {
                     csrf_token: "{{ qubit_measure_form.csrf_token._value() }}",
                     selected_pool_ids: JSON.stringify(selected_pools),
-                    selected_libraries_ids: JSON.stringify(selected_libraries),
+                    selected_library_ids: JSON.stringify(selected_libraries),
                     {% if experiment %}experiment_id: {{ experiment.id }},{% endif %}
                 },
             });

@@ -32,6 +32,8 @@ def library_page(library_id):
         if not current_user.is_insider():
             if library.owner_id != current_user.id:
                 return abort(HTTPResponse.FORBIDDEN.id)
+            
+        library.ba_report
 
     path_list = [
         ("Libraries", url_for("libraries_page.libraries_page")),

@@ -65,10 +65,10 @@ def get_libraries(page: int) -> Response:
     )
     return make_response(
         render_template(
-            "workflows/library_pooling/select-libraries-table.html",
+            "components/tables/select-libraries.html",
             libraries=libraries, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order, seq_request_id=seq_request_id,
-            status_in=status_in, type_in=type_in
+            status_in=status_in, type_in=type_in, context="library_pooling_workflow"
         )
     )
 
@@ -131,9 +131,9 @@ def query_libraries() -> Response:
     
     return make_response(
         render_template(
-            "workflows/library_pooling/select-libraries-table.html",
+            "components/tables/select-libraries.html",
             current_query=word, active_query_field=field_name,
-            libraries=libraries, type_in=type_in, status_in=status_in
+            libraries=libraries, type_in=type_in, status_in=status_in, context="library_pooling_workflow"
         )
     )
 
