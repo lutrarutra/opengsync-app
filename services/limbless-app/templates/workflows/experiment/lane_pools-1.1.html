@@ -22,54 +22,66 @@
             </ul>
             <div class="tab-content">
                 {% for lane, _df in df.groupby("lane") %}
-                {% set lane_target_sub_form = lane_pooling_form.lane_target_forms[loop.index0] %}
-                <div class="tab-pane fade {% if lane == 1 %} show active{% endif %}" id="lane-{{lane}}-tab" role="tabpanel" tabindex="{{lane}}">
-                    {{ lane_target_sub_form.csrf_token() }}
+                {% set lane_sub_form = lane_pooling_form.lane_sub_forms[loop.index0] %}
+                <div class="tab-pane fade {% if lane == 1 %} show active{% endif %}" id="lane-{{ lane }}-tab" role="tabpanel" tabindex="{{ lane }}">
+                    {{ lane_sub_form.csrf_token() }}
                     <div class="row">
-                        {{ form_group(lane_target_sub_form.target_concentration, class="col-6 col-xl-3", id="target_concentration-" + lane | string, unit="nM") }}
-                        {{ form_group(lane_target_sub_form.target_total_volume, class="col-6 col-xl-3", id="target_total_volume-" + lane | string, unit="μL") }}
-                        {{ metadata_group("Library Volume", "%0.1f" % _df["pipet"].sum(), class="col-6 col-xl-3", input_id="total_volume-" + lane | string, unit="μL") }}
-                        {{ metadata_group("EB Volume", "%0.1f" % (lane_target_sub_form.target_total_volume.data - _df["pipet"].sum()), class="col-6 col-xl-3", input_id="eb_volume-" + lane | string, unit="μL") }}
+                        {{ form_group(lane_sub_form.target_concentration, class="col-6 col-xl-3", id="target_concentration-" + lane | string, unit="nM") }}
+                        {{ form_group(lane_sub_form.target_total_volume, class="col-6 col-xl-3", id="target_total_volume-" + lane | string, unit="μL") }}
+                        {{ metadata_group("Library Volume", "%0.2f" % _df["pipet"].sum(), class="col-6 col-xl-3", input_id="total_volume-" + lane | string, unit="μL") }}
+                        {{ metadata_group("EB Volume", "%0.2f" % (lane_sub_form.target_total_volume.data - _df["pipet"].sum()), class="col-6 col-xl-3", input_id="eb_volume-" + lane | string, unit="μL") }}
                     </div>
 
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th class="col-2 bg-light" scope="col">Pool Name</th>
-                                <th class="col-1" scope="col">Reads [M]</th>
-                                <th class="col-1" scope="col">Lane Share [%]</th>
+                                <th class="col-3 bg-light" scope="col">Pool</th>
+                                <th class="col-2" scope="col">Reads</th>
+                                <th class="col-1" scope="col">Lane Share</th>
+                                <th class="col-2 bg-light" scope="col">Dilution</th>
                                 <th class="col-1" scope="col">Qubit Conc.</th>
-                                <th class="col-1" scope="col">Library Size</th>
+                                <th class="col-1" scope="col">Avg. Fragment Size</th>
                                 <th class="col-1" scope="col">Molarity</th>
                                 <th class="col-1 bg-light" scope="col">Pipet</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for i, (_, row) in enumerate(_df.iterrows()) %}
-                            {% set pool_reads_sub_form = lane_pooling_form.pool_reads_forms[i] %}
-                            {{ pool_reads_sub_form.csrf_token() }}
+                            {% set sample_sub_form = lane_pooling_form.sample_sub_forms[row["form_idx"]] %}
+                            {{ sample_sub_form.csrf_token() }}
                             <tr class="pool-row-{{lane}}">
-                                <th class="bg-light">{{ row["pool_name"] }}{{ pool_reads_sub_form.pool_id(hidden=true, readonly=true) }}</th>
-                                <td>{{ form_cell(pool_reads_sub_form.m_reads, unit="M", class="m_reads-col-" + lane | string) }}</td>
+                                <th class="bg-light">{{ row["pool_name"] }}{{ sample_sub_form.pool_id(hidden=true, readonly=true) }}{{ sample_sub_form.lane(hidden=true, readonly=true) }}</th>
+                                <td>{{ form_cell(sample_sub_form.m_reads, unit="M", class="m_reads-col-" + lane | string) }}</td>
                                 <td class="share-col-{{lane}}">
                                     <div class="quantity-container">
                                         <div class="value">{{ "%0.1f" % (row["share"] * 100.0)  }}</div>
                                         <div class="unit">%</div>
                                     </div>
                                 </td>
-                                <td class="qubit-col-{{lane}}">
+                                <td class="bg-light">
+                                    {{ sample_sub_form.dilution(class="dilution-identifier-input", hidden=true) }}
+                                    <select class="form-select dilution-selector" lane="{{ lane }}" pool="{{ row['pool_id'] }}">
+                                        {% for identifier, qubit, molarity, time in row["dilutions"] %}
+                                        <option qubit="{{ qubit }}" molarity="{{ molarity }}" value="{{ identifier }}"
+                                        {% if loop.index == row["dilutions"] | length %}selected{% endif %}>
+                                            {{ identifier }} {{ time }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="qubit-col-{{ lane }}" id="qubit-col-{{ lane }}-{{ row['pool_id'] }}">
                                     <div class="quantity-container">
                                         <div class="value">{{ row["qubit_concentration"] }}</div>
                                         <div class="unit">ng/μL</div>
                                     </div>
                                 </td>
-                                <td class="avg_fragment_size-col-{{lane}}">
+                                <td class="avg_fragment_size-col-{{ lane }}">
                                     <div class="quantity-container">
                                         <div class="value">{{ row["avg_fragment_size"] }}</div>
                                         <div class="unit">bp</div>
                                     </div>
                                 </td>
-                                <td class="molarity-col-{{lane}}">
+                                <td class="molarity-col-{{ lane }}" id="molarity-col-{{ lane }}-{{ row['pool_id'] }}">
                                     <div class="quantity-container">
                                         <div class="value {{ row['molarity_color'] }}">{{ "%0.2f" % row["molarity"] }}</div>
                                         <div class="unit">nM</div>
@@ -131,13 +143,35 @@
 
                     var pipet = target_concentration / molarity * share * target_total_volume * 0.01;
 
-                    console.log(target_concentration, target_total_volume, molarity, share, pipet);
                     $(this).find(`.pipet-col-${lane}`).first().find(".value").first().text(pipet.toFixed(2));
                     total_volume += pipet;
                 });
                 $(`#total_volume-${lane}`).val(total_volume.toFixed(2));
                 $(`#eb_volume-${lane}`).val((target_total_volume - total_volume).toFixed(2));
             }
+
+            $(".dilution-selector").on("change", function() {
+                var lane = $(this).attr("lane");
+                var pool = $(this).attr("pool");
+                var qubit = parseFloat($(this).find("option:selected").attr("qubit"));
+                var molarity = parseFloat($(this).find("option:selected").attr("molarity"));
+
+                $(`#qubit-col-${lane}-${pool}`).find(".value").text(qubit.toFixed(2));
+
+                $(`#molarity-col-${lane}-${pool}`).find(".value").text(molarity.toFixed(2));
+
+                if ({{ warning_min }} < molarity && molarity < {{ warning_max }}) {
+                    $(`#molarity-col-${lane}-${pool}`).find(".value").removeClass().addClass("value cemm-green");
+                } else if (molarity < {{ error_min }} || {{ error_max }} < molarity) {
+                    $(`#molarity-col-${lane}-${pool}`).find(".value").removeClass().addClass("value cemm-red");
+                    
+                } else if (molarity < {{ warning_min }} || {{ warning_max }} < molarity) {
+                    $(`#molarity-col-${lane}-${pool}`).find(".value").removeClass().addClass("value cemm-yellow");
+                }
+
+                $(this).parent().find(".dilution-identifier-input").first().val($(this).val());
+                update_pipet(lane);
+            });
 
             {% for lane, _ in df.groupby("lane") %}
                 $("#target_total_volume-{{lane}}").on("input", function() {

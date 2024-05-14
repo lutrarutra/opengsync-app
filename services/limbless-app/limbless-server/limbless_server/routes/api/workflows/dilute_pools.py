@@ -42,4 +42,4 @@ def dilute(experiment_id: int):
         if (experiment := session.get_experiment(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
-        return wff.DilutePoolsForm(formdata=request.form).process_request(experiment=experiment, session=session)
+        return wff.DilutePoolsForm(formdata=request.form).process_request(experiment=experiment, session=session, user=current_user)

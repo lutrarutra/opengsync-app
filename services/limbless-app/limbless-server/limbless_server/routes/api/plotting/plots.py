@@ -40,6 +40,8 @@ def experiment_library_reads(experiment_id: int):
     width = request_args.get("width", 700)
     
     df = db.get_experiment_seq_qualities_df(experiment_id)
+    if len(df) == 0:
+        return make_response()
 
     df["lane"] = df["lane"].astype(str)
     df["perc_reads"] = df["num_library_reads"] / df["num_lane_reads"]
@@ -67,7 +69,7 @@ def experiment_library_reads(experiment_id: int):
     fig.update_layout(
         width=width,
         height=20 * len(df),
-        margin=dict(t=25,r=5,b=5,l=5),
+        margin=dict(t=25, r=5, b=5, l=5),
         paper_bgcolor="rgba(0,0,0,0)",
         yaxis=dict(tickfont=dict(size=15)),
         xaxis=dict(tickfont=dict(size=15)),

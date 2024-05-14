@@ -7,7 +7,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from limbless_db import models
+from limbless_db import models, DBSession
 from limbless_db.categories import FileType
 
 from ... import db, logger
@@ -17,14 +17,16 @@ DEFAULT_TARGET_NM = 3.0
 DEFAULT_TOTAL_VOLUME_TARGET = 50.0
 
 
-class PoolReadsSubForm(FlaskForm):
+class SampleSubForm(FlaskForm):
     pool_id = IntegerField(validators=[DataRequired()])
+    lane = IntegerField(validators=[DataRequired()])
     m_reads = FloatField(validators=[DataRequired()])
+    dilution = StringField(validators=[OptionalValidator()])
 
 
-class LaneTargetSubForm(FlaskForm):
+class LaneSubForm(FlaskForm):
     target_total_volume = FloatField(validators=[DataRequired()], default=DEFAULT_TOTAL_VOLUME_TARGET)
-    target_concentration = FloatField(validators=[DataRequired()], default=DEFAULT_TARGET_NM)
+    target_concentration = FloatField("Target Molarity", validators=[DataRequired()], default=DEFAULT_TARGET_NM)
 
 
 class LanePoolingForm(HTMXFlaskForm):
@@ -32,28 +34,50 @@ class LanePoolingForm(HTMXFlaskForm):
     _form_label = "lane_pooling_form"
 
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
-    pool_reads_forms = FieldList(FormField(PoolReadsSubForm), min_entries=1)
-    lane_target_forms = FieldList(FormField(LaneTargetSubForm), min_entries=1)
+    sample_sub_forms = FieldList(FormField(SampleSubForm), min_entries=1)
+    lane_sub_forms = FieldList(FormField(LaneSubForm), min_entries=1)
 
     def __init__(self, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
+        self._context["warning_min"] = models.Pool.warning_min_molarity
+        self._context["warning_max"] = models.Pool.warning_max_molarity
+        self._context["error_min"] = models.Pool.error_min_molarity
+        self._context["error_max"] = models.Pool.error_max_molarity
 
     def prepare(self, experiment: models.Experiment) -> dict:
         df = db.get_experiment_laned_pools_df(experiment.id)
-        # df["qubit_concentration"] = df["original_qubit_concentration"]
-        # df.loc[df["diluted_qubit_concentration"].notna(), "qubit_concentration"] = df.loc[df["diluted_qubit_concentration"].notna(), "diluted_qubit_concentration"].values
+        df["original_qubit_concentration"] = df["qubit_concentration"].copy()
+        df["dilutions"] = None
+        df["form_idx"] = None
 
-        for i, _ in enumerate(df["lane"].unique()):
-            if i > len(self.lane_target_forms) - 1:
-                self.lane_target_forms.append_entry()
+        counter = 0
+        for i, (lane, _df) in enumerate(df.groupby("lane")):
+            if i > len(self.lane_sub_forms) - 1:
+                self.lane_sub_forms.append_entry()
 
-        for i, (_, row) in enumerate(df.iterrows()):
-            if i > len(self.pool_reads_forms) - 1:
-                self.pool_reads_forms.append_entry()
+            for idx, row in _df.iterrows():
+                if counter > len(self.sample_sub_forms) - 1:
+                    self.sample_sub_forms.append_entry()
 
-            entry = self.pool_reads_forms[i]
-            entry.pool_id.data = row["pool_id"]
-            entry.m_reads.data = row["num_m_reads_requested"]
+                df.at[idx, "form_idx"] = counter
+                sample_sub_form = self.sample_sub_forms[counter]
+                sample_sub_form.pool_id.data = row["pool_id"]
+                sample_sub_form.lane.data = lane
+
+                with DBSession(db) as session:
+                    if (pool := session.get_pool(row["pool_id"])) is None:
+                        logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
+                        raise ValueError(f"Pool with id {row['pool_id']} does not exist")
+                    
+                    df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]
+                    
+                    for dilution in pool.dilutions:
+                        sample_sub_form.dilution.data = dilution.identifier
+                        df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))
+                        df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
+
+                sample_sub_form.m_reads.data = row["num_m_reads_requested"]
+                counter += 1
         
         # https://knowledge.illumina.com/library-preparation/dna-library-prep/library-preparation-dna-library-prep-reference_material-list/000001240
         df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
@@ -83,14 +107,26 @@ class LanePoolingForm(HTMXFlaskForm):
             return self.make_response(experiment=experiment)
         
         df = db.get_experiment_laned_pools_df(experiment.id)
-        # df["qubit_concentration"] = df["original_qubit_concentration"]
-        # df.loc[df["diluted_qubit_concentration"].notna(), "qubit_concentration"] = df.loc[df["diluted_qubit_concentration"].notna(), "diluted_qubit_concentration"].values
+        df["original_qubit_concentration"] = df["qubit_concentration"].copy()
+        df["dilution"] = None
 
-        for _, pool_reads_form in enumerate(self.pool_reads_forms):
-            df.loc[df["pool_id"] == pool_reads_form.pool_id.data, "num_m_reads_requested"] = pool_reads_form.m_reads.data
+        for _, pool_reads_form in enumerate(self.sample_sub_forms):
+            pool_idx = df["pool_id"] == pool_reads_form.pool_id.data
+            lane_idx = df["lane"] == pool_reads_form.lane.data
+            df.loc[pool_idx & lane_idx, "num_m_reads_requested"] = pool_reads_form.m_reads.data
+            df.loc[pool_idx & lane_idx, "dilution"] = pool_reads_form.dilution.data
+
+        for (pool_id, lane, identifier), _df in df.groupby(["pool_id", "lane", "dilution"]):
+            if identifier == "Orig.":
+                continue
+            if (dilution := db.get_pool_dilution(int(pool_id), identifier)) is None:
+                logger.error(f"lane_pools_workflow: PoolDilution with pool_id {pool_id} and identifier {identifier} does not exist")
+                raise ValueError(f"PoolDilution with pool_id {pool_id} and identifier {identifier} does not exist")
+            
+            df.loc[_df.index, "qubit_concentration"] = dilution.qubit_concentration
 
         data = []
-        for i, lane_target_form in enumerate(self.lane_target_forms):
+        for i, lane_target_form in enumerate(self.lane_sub_forms):
             data.append({
                 "target_total_volume": lane_target_form.target_total_volume.data,
                 "target_concentration": lane_target_form.target_concentration.data,
@@ -161,7 +197,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
     _form_label = "lane_pooling_form"
 
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
-    pool_reads_forms = FieldList(FormField(PoolReadsSubForm), min_entries=1)
+    pool_reads_forms = FieldList(FormField(SampleSubForm), min_entries=1)
     target_total_volume = FloatField(validators=[DataRequired()], default=DEFAULT_TOTAL_VOLUME_TARGET)
     target_molarity = FloatField(validators=[DataRequired()], default=DEFAULT_TARGET_NM)
 

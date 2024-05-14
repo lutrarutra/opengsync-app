@@ -1,5 +1,6 @@
 from typing import Optional, Union, TypeVar
 import difflib
+import string
 
 import pandas as pd
 import scipy
@@ -18,6 +19,17 @@ tab_10_colors = [
     "#bcbd22",
     "#17becf"
 ]
+
+
+def to_identifier(n: int) -> str:
+    out = ""
+
+    while n >= 0:
+        n, r = divmod(n, 26)
+        out = string.ascii_uppercase[r] + out
+        n -= 1
+
+    return out
 
 
 def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFrame:

@@ -158,3 +158,29 @@ def query_libraries(pool_id: int):
             pool=pool, libraries=libraries,
         )
     )
+
+
+@pools_htmx.route("<int:pool_id>/get_dilutions/<int:page>", methods=["GET"])
+@pools_htmx.route("<int:pool_id>/get_dilutions", methods=["GET"], defaults={"page": 0})
+@login_required
+def get_dilutions(pool_id: int, page: int):
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and pool.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    dilutions, n_pages = db.get_pool_dilutions(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, limit=None)
+    
+    return make_response(
+        render_template(
+            "components/tables/pool-dilution.html",
+            dilutions=dilutions, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, pool=pool
+        )
+    )

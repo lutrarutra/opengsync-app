@@ -43,6 +43,7 @@ class DilutePoolsForm(HTMXFlaskForm):
     
     def process_request(self, **context) -> Response:
         experiment: models.Experiment = context["experiment"]
+        user: models.User = context["user"]
         df = db.get_experiment_pools_df(experiment.id)
 
         if not self.validate():
@@ -58,7 +59,7 @@ class DilutePoolsForm(HTMXFlaskForm):
             if (pool := db.get_pool(row["id"])) is None:
                 raise ValueError(f"Pool with id {row['id']} not found")
             
-            pool = db.dilute_pool(pool.id, entry.qubit_after_dilution.data)
+            pool = db.dilute_pool(pool.id, entry.qubit_after_dilution.data, user.id)
 
         flash("Dilution successful!", "success")
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))

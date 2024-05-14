@@ -4,9 +4,9 @@ from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required
 
 from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse, PoolStatus, FileType
+from limbless_db.categories import HTTPResponse, FileType
 
-from ... import forms, db, tools, logger
+from ... import forms, db, logger  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -46,8 +46,6 @@ def experiment_page(experiment_id: int):
         experiment_lanes: dict[int, list[int]] = {}
         _lane_capacities: dict[int, float] = {}
 
-        qubit_concentration_measured = len(pools) > 0
-        avg_framgnet_size_measured = len(pools) > 0
         all_lanes_qced = len(experiment.lanes) > 0
         flow_cell_ready = len(experiment.lanes) > 0
         
@@ -64,8 +62,9 @@ def experiment_page(experiment_id: int):
 
         lane_capacities: dict[int, tuple[float, float]] = dict([(lane.number, (_lane_capacities[lane.number], 100.0 * _lane_capacities[lane.number] / experiment.flowcell_type.max_m_reads_per_lane)) for lane in experiment.lanes])
         all_pools_laned = len(pools) > 0
-        all_pools_qced = len(pools) > 0
 
+        qubit_concentration_measured = len(pools) > 0
+        avg_framgnet_size_measured = len(pools) > 0
         for pool in pools:
             laned = False
             for pool_ids in experiment_lanes.values():
@@ -73,12 +72,13 @@ def experiment_page(experiment_id: int):
                     laned = True
                     break
             all_pools_laned = all_pools_laned and laned
+            qubit_concentration_measured = qubit_concentration_measured and pool.qubit_concentration is not None
+            avg_framgnet_size_measured = avg_framgnet_size_measured and pool.avg_fragment_size is not None
 
-            all_pools_qced = all_pools_qced and pool.is_qced()
-            if not all_pools_laned or not all_pools_qced:
+            if not all_pools_laned and not qubit_concentration_measured and not avg_framgnet_size_measured:
                 break
-            
-        can_be_loaded = all_pools_laned and all_pools_qced
+        
+        can_be_loaded = all_pools_laned and qubit_concentration_measured and avg_framgnet_size_measured
 
         path_list = [
             ("Experiments", url_for("experiments_page.experiments_page")),
@@ -102,11 +102,11 @@ def experiment_page(experiment_id: int):
             selected_sequencer=experiment.sequencer.name,
             selected_user=experiment.operator,
             all_pools_laned=all_pools_laned,
-            all_pools_qced=all_pools_qced,
+            qubit_concentration_measured=qubit_concentration_measured,
+            avg_framgnet_size_measured=avg_framgnet_size_measured,
             can_be_loaded=can_be_loaded,
             all_lanes_qced=all_lanes_qced,
             flow_cell_ready=flow_cell_ready,
             laning_completed=laning_completed,
             lane_capacities=lane_capacities,
-            Pool=models.Pool
         )

@@ -344,6 +344,9 @@ span.id-desc::after {
 
 .metadata-group {
     padding-bottom: 15px;
+    input:hover {
+        cursor: default;
+    }
 }
 
 .invalid-feedback-container {

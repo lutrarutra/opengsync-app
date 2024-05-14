@@ -144,7 +144,7 @@ def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
 
 def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
     query = sa.select(
-        models.Lane.id, models.Lane.number.label("lane"),
+        models.Lane.id.label("lane_id"), models.Lane.number.label("lane"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
         models.Pool.avg_fragment_size,

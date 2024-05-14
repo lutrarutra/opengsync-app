@@ -1,0 +1,73 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="pool-dilution-table" class="table-container">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='pool-dilution-table', column_name='Identifier', column_var='identifier',
+                        sort_url='experiments_htmx.get_pool_dilutions', context={"experiment_id": experiment.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='pool-dilution-table', column_name='Pool', column_var='pool_id',
+                        sort_url='experiments_htmx.get_pool_dilutions', context={"experiment_id": experiment.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='pool-dilution-table', column_name='Operator', column_var='operator_id',
+                        sort_url='experiments_htmx.get_pool_dilutions', context={"experiment_id": experiment.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='pool-dilution-table', column_name='Time', column_var='timestamp_utc',
+                        sort_url='experiments_htmx.get_pool_dilutions', context={"experiment_id": experiment.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                    )
+                }}
+                <th scope="col" class="col-2">Qubit Conc.</th>
+                <th scope="col" class="col-2">Molarity</th>
+                <th scope="col" class="col-1">Volume</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dilution in dilutions %}
+            <tr>
+                <th scope="row">{{ dilution.identifier }}</th>
+                <td>{{ dilution.pool.name }}</td>
+                <td>{{ dilution.operator.name }}</td>
+                <td>{{ dilution.timestamp_str() }}</td>
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ dilution.qubit_concentration }}</div>
+                        <div class="unit">ng/μL</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="quantity-container {{ dilution.molarity_color_class(dilution.pool) }}">
+                        <div class="value">{{ dilution.molarity_str(dilution.pool) }}</div>
+                        <div class="unit">nM</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ dilution.volume_ul if dilution.volume_ul }}</div>
+                        <div class="unit">μL</div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("pool-dilution-table-spinner") }}
+    {{ pagination("pool-dilution-table", "experiments_htmx.get_pool_dilutions", n_pages, active_page) }}
+</div>

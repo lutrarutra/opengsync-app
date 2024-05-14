@@ -19,7 +19,8 @@
         <table class="table table-hover">
             <thead>
                 <tr>
-                    <th class="col-2" scope="col">Pool Name</th>
+                    <th class="col-3" scope="col">Pool</th>
+                    <th class="col-1" scope="col">Dilution</th>
                     <th class="col-1" scope="col">Reads</th>
                     <th class="col-1" scope="col">Lane Share</th>
                     <th class="col-1" scope="col">Qubit Conc.</th>
@@ -32,6 +33,7 @@
                 {% for _, row in df.iterrows() %}
                 <tr class="pool-row-{{lane}}">
                     <th>{{ row["pool_name"] }}</th>
+                    <td><b>{{ row['dilution'] }}</b></td>
                     <td>
                         <div class="quantity-container">
                             <div class="value">{{ row["num_m_reads_requested"]  }}</div>

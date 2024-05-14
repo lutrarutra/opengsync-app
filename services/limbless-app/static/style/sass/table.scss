@@ -148,6 +148,9 @@ table input.table-query-input{
     td .quantity-container {
         display: flex;
         gap: 5px;
+        .value:empty + .unit {
+            display: none;
+        }
         .unit {
             color: $gray-500;
         }

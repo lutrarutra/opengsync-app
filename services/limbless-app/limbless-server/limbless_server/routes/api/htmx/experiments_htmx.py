@@ -561,8 +561,7 @@ def query_pools(experiment_id: int):
     return make_response(
         render_template(
             "components/tables/experiment-pool.html",
-            pools=pools, n_pages=1, active_page=1,
-            experiment=experiment
+            pools=pools, experiment=experiment
         )
     )
 
@@ -604,5 +603,31 @@ def get_files(experiment_id: int):
             "components/file-list.html",
             files=files, experiment=experiment, delete="experiments_htmx.delete_file",
             delete_context={"experiment_id": experiment_id}
+        )
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/get_dilutions/<int:page>", methods=["GET"])
+@experiments_htmx.route("<int:experiment_id>/get_dilutions", methods=["GET"], defaults={"page": 0})
+@login_required
+def get_pool_dilutions(experiment_id: int, page: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    sort_by = request.args.get("sort_by", "pool_id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    dilutions, n_pages = db.get_pool_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
+    
+    return make_response(
+        render_template(
+            "components/tables/experiment-pool-dilution.html",
+            dilutions=dilutions, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, experiment=experiment,
         )
     )

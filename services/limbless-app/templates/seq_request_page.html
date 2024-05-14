@@ -161,10 +161,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#request-overview-tab" type="button" role="tab"
-                aria-controls="request-overview-tab" aria-selected="true"
-                hx-get="{{ url_for('seq_requests_htmx.overview', seq_request_id=seq_request.id) }}"
-                hx-target="#request-overview-graph-container" hx-trigger="click once"
-                hx-swap="innerHTML">
+                aria-controls="request-overview-tab" aria-selected="true">
                 Overview
             </button>
         </li>
@@ -434,12 +431,7 @@
             {% endif %}
         </div>
         <div class="tab-pane fade show" id="request-overview-tab" role="tabpanel" tabindex="5">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Overview</h2>
-                </div>
-            </div>
-            <div id="request-overview-graph-container">
+            <div hx-get="{{ url_for('seq_requests_htmx.overview', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
         </div>
