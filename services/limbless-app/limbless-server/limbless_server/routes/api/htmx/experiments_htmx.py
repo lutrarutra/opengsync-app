@@ -180,12 +180,6 @@ def render_lane_pooling_tables(experiment_id: int, file_id: int):
     filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
     df = pd.read_csv(filepath, sep="\t")
 
-    df["molarity_color"] = "cemm-green"
-    df.loc[df["molarity"] < models.Pool.warning_min_molarity, "molarity_color"] = "cemm-yellow"
-    df.loc[df["molarity"] > models.Pool.warning_max_molarity, "molarity_color"] = "cemm-yellow"
-    df.loc[df["molarity"] < models.Pool.error_min_molarity, "molarity_color"] = "cemm-red"
-    df.loc[df["molarity"] > models.Pool.error_max_molarity, "molarity_color"] = "cemm-red"
-
     if "lane" not in df.columns:
         target_molarity = df["target_molarity"].values[0]
         target_total_volume = df["target_total_volume"].values[0]

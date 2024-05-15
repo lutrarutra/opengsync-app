@@ -191,7 +191,6 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
         self._session.add(experiment)
         self._session.commit()
         self._session.refresh(experiment)
-
         if experiment.workflow.combined_lanes:
             for lane in experiment.lanes:
                 for pool in experiment.pools:

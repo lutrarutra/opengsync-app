@@ -18,29 +18,41 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th class="col-2 bg-light" scope="col">Pool Name</th>
-                        <th class="col-1" scope="col">Reads</th>
-                        <th class="col-1" scope="col">Share</th>
+                        <th class="col-3 bg-light" scope="col">Pool</th>
+                        <th class="col-2" scope="col">Reads</th>
+                        <th class="col-1" scope="col">Lane Share</th>
+                        <th class="col-2 bg-light" scope="col">Dilution</th>
                         <th class="col-1" scope="col">Qubit Conc.</th>
-                        <th class="col-1" scope="col">Library Size</th>
+                        <th class="col-1" scope="col">Avg. Fragment Size</th>
                         <th class="col-1" scope="col">Molarity</th>
                         <th class="col-1 bg-light" scope="col">Pipet</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for i, (_, row) in enumerate(df.iterrows()) %}
-                    {% set pool_reads_sub_form = lane_pooling_form.pool_reads_forms[i] %}
-                    {{ pool_reads_sub_form.csrf_token() }}
+                    {% set sample_sub_form = lane_pooling_form.sample_sub_forms[i] %}
+                    {{ sample_sub_form.csrf_token() }}
                     <tr class="pool-row">
-                        <th class="bg-light">{{ row["pool_name"] }} {{ pool_reads_sub_form.pool_id(hidden=true, readonly=true) }}</th>
-                        <td>{{ form_cell(pool_reads_sub_form.m_reads, unit="M", class="m_reads-col") }}</td>
+                        <th class="bg-light">{{ row["pool_name"] }} {{ sample_sub_form.pool_id(hidden=true, readonly=true) }}</th>
+                        <td>{{ form_cell(sample_sub_form.m_reads, unit="M", class="m_reads-col") }}</td>
                         <td class="share-col">
                             <div class="quantity-container">
                                 <div class="value">{{ "%0.1f" % (row["share"] * 100.0)  }}</div>
                                 <div class="unit">%</div>
                             </div>
                         </td>
-                        <td class="qubit-col">
+                        <td class="bg-light">
+                            {{ sample_sub_form.dilution(class="dilution-identifier-input", hidden=true) }}
+                            <select class="form-select dilution-selector" pool="{{ row['pool_id'] }}">
+                                {% for identifier, qubit, molarity, time in row["dilutions"] %}
+                                <option qubit="{{ qubit }}" molarity="{{ molarity }}" value="{{ identifier }}"
+                                {% if loop.index == row["dilutions"] | length %}selected{% endif %}>
+                                    {{ identifier }} {{ time }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td class="qubit-col" id="qubit-col-{{ row['pool_id'] }}">
                             <div class="quantity-container">
                                 <div class="value">{{ row["qubit_concentration"] }}</div>
                                 <div class="unit">ng/μL</div>
@@ -52,9 +64,9 @@
                                 <div class="unit">bp</div>
                             </div>
                         </td>
-                        <td class="molarity-col">
+                        <td class="molarity-col" id="molarity-col-{{ row['pool_id'] }}">
                             <div class="quantity-container">
-                                <div class="value {{ row['molarity_color'] }}">{{ "%0.2f" % row["molarity"] }}</div>
+                                <div class="value">{{ "%0.2f" % row["molarity"] }}</div>
                                 <div class="unit">nM</div>
                             </div>
                         </td>
@@ -88,6 +100,14 @@
         $(document).ready(function() {
            init_tooltips();
 
+           $(".pipet-col .value").each(function() {
+                update_pipet_clr($(this), parseFloat($(this).text()));
+            });
+
+            $(".molarity-col .value").each(function() {
+                update_molarity_clr($(this), parseFloat($(this).text()));
+            });
+
             function update_shares() {
                 var total_reads = 0;
                 $(`.pool-row`).each(function() {
@@ -111,14 +131,29 @@
                     var share = parseFloat($(this).find(".share-col .value").first().text());
 
                     var pipet = target_molarity / molarity * share * target_total_volume * 0.01;
-
-                    console.log(target_molarity, target_total_volume, molarity, share, pipet);
                     $(this).find(".pipet-col .value").first().text(pipet.toFixed(2));
+
+                    update_pipet_clr($(this).find(".pipet-col .value").first(), pipet);
                     total_volume += pipet;
                 });
                 $(`#total_volume`).val(total_volume.toFixed(2));
                 $(`#eb_volume`).val((target_total_volume - total_volume).toFixed(2));
             }
+
+            $(".dilution-selector").on("change", function() {
+                var pool = $(this).attr("pool");
+                var qubit = parseFloat($(this).find("option:selected").attr("qubit"));
+                var molarity = parseFloat($(this).find("option:selected").attr("molarity"));
+
+                $(`#qubit-col-${pool}`).find(".value").text(qubit.toFixed(2));
+
+                $(`#molarity-col-${pool}`).find(".value").text(molarity.toFixed(2));
+
+                update_molarity_clr($(`#molarity-col-${pool} .value`), molarity);
+
+                $(this).parent().find(".dilution-identifier-input").first().val($(this).val());
+                update_pipet();
+            });
 
             $("#target_total_volume").on("input", function() {
                 update_pipet();

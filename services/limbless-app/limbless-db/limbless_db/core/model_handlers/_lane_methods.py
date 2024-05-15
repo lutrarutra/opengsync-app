@@ -66,6 +66,7 @@ def get_experiment_lane(self, experiment_id: int, lane_num: int) -> Optional[mod
 
 def get_lanes(
     self, experiment_id: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Lane], int]:
     
@@ -79,7 +80,13 @@ def get_lanes(
         query = query.filter(models.Lane.experiment_id == experiment_id)
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
-    
+
+    if sort_by is not None:
+        attr = getattr(models.Lane, sort_by)
+        if descending:
+            attr = attr.desc()
+        query = query.order_by(attr)
+
     query = query.order_by(models.Lane.number)
 
     if offset is not None:
@@ -96,10 +103,7 @@ def get_lanes(
     return lanes, n_pages
 
 
-def update_lane(
-    self, lane: models.Lane,
-) -> models.Lane:
-    
+def update_lane(self, lane: models.Lane,) -> models.Lane:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()

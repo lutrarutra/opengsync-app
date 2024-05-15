@@ -83,7 +83,7 @@
                                 </td>
                                 <td class="molarity-col-{{ lane }}" id="molarity-col-{{ lane }}-{{ row['pool_id'] }}">
                                     <div class="quantity-container">
-                                        <div class="value {{ row['molarity_color'] }}">{{ "%0.2f" % row["molarity"] }}</div>
+                                        <div class="value">{{ "%0.2f" % row["molarity"] }}</div>
                                         <div class="unit">nM</div>
                                     </div>
                                 </td>
@@ -120,6 +120,14 @@
         $(document).ready(function() {
            init_tooltips();
 
+            $(".pipet-col .value").each(function() {
+                update_pipet_clr($(this), parseFloat($(this).text()));
+            });
+
+            $(".molarity-col .value").each(function() {
+                update_molarity_clr($(this), parseFloat($(this).text()));
+            });
+
             function update_shares(lane) {
                 var total_reads = 0;
                 $(`.pool-row-${lane}`).each(function() {
@@ -142,8 +150,9 @@
                     var share = parseFloat($(this).find(`.share-col-${lane}`).first().find(".value").first().text());
 
                     var pipet = target_concentration / molarity * share * target_total_volume * 0.01;
+                    update_pipet_clr($(this).find(`.pipet-col-${lane} .value`).first(), pipet);
 
-                    $(this).find(`.pipet-col-${lane}`).first().find(".value").first().text(pipet.toFixed(2));
+                    $(this).find(`.pipet-col-${lane} .value`).text(pipet.toFixed(2));
                     total_volume += pipet;
                 });
                 $(`#total_volume-${lane}`).val(total_volume.toFixed(2));
@@ -160,16 +169,9 @@
 
                 $(`#molarity-col-${lane}-${pool}`).find(".value").text(molarity.toFixed(2));
 
-                if ({{ warning_min }} < molarity && molarity < {{ warning_max }}) {
-                    $(`#molarity-col-${lane}-${pool}`).find(".value").removeClass().addClass("value cemm-green");
-                } else if (molarity < {{ error_min }} || {{ error_max }} < molarity) {
-                    $(`#molarity-col-${lane}-${pool}`).find(".value").removeClass().addClass("value cemm-red");
-                    
-                } else if (molarity < {{ warning_min }} || {{ warning_max }} < molarity) {
-                    $(`#molarity-col-${lane}-${pool}`).find(".value").removeClass().addClass("value cemm-yellow");
-                }
-
+                update_molarity_clr($(`#molarity-col-${lane}-${pool} .value`), molarity);
                 $(this).parent().find(".dilution-identifier-input").first().val($(this).val());
+
                 update_pipet(lane);
             });
 

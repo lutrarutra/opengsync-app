@@ -7,7 +7,7 @@ from flask import Response, flash, url_for
 from flask_wtf import FlaskForm
 from flask_htmx import make_response
 from wtforms import FloatField, IntegerField, FieldList, FormField
-from wtforms.validators import NumberRange, Optional as OptionalValidator, DataRequired
+from wtforms.validators import NumberRange, DataRequired
 
 from limbless_db.categories import PoolStatus
 
@@ -18,7 +18,7 @@ from ...TableDataForm import TableDataForm
 
 class SubForm(FlaskForm):
     obj_id = IntegerField(validators=[DataRequired()])
-    qubit_concentration = FloatField(validators=[OptionalValidator(), NumberRange(min=0)])
+    qubit_concentration = FloatField(validators=[DataRequired(), NumberRange(min=0)])
 
 
 class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
@@ -27,6 +27,7 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
 
     pool_fields = FieldList(FormField(SubForm), min_entries=0)
     library_fields = FieldList(FormField(SubForm), min_entries=0)
+    lane_fields = FieldList(FormField(SubForm), min_entries=0)
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, previous_form: Optional[TableDataForm] = None):
         if uuid is None:
@@ -38,15 +39,16 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
     def prepare(self):
         pool_table = self.tables["pool_table"]
         library_table = self.tables["library_table"]
+        lane_table = self.tables["lane_table"]
 
         for i, (idx, row) in enumerate(pool_table.iterrows()):
             if i > len(self.pool_fields) - 1:
                 self.pool_fields.append_entry()
 
-            self.pool_fields[i].obj_id.data = row["id"]
+            self.pool_fields[i].obj_id.data = int(row["id"])
 
             if pd.notna(pool_table.at[idx, "qubit_concentration"]):
-                self.pool_fields[i].qubit_concentration.data = int(pool_table.at[idx, "qubit_concentration"])
+                self.pool_fields[i].qubit_concentration.data = pool_table.at[idx, "qubit_concentration"]
 
         for i, (idx, row) in enumerate(library_table.iterrows()):
             if i > len(self.library_fields) - 1:
@@ -55,20 +57,32 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
             self.library_fields[i].obj_id.data = row["id"]
 
             if pd.notna(library_table.at[idx, "qubit_concentration"]):
-                self.library_fields[i].qubit_concentration.data = int(library_table.at[idx, "qubit_concentration"])
+                self.library_fields[i].qubit_concentration.data = library_table.at[idx, "qubit_concentration"]
+
+        for i, (idx, row) in enumerate(lane_table.iterrows()):
+            if i > len(self.lane_fields) - 1:
+                self.lane_fields.append_entry()
+
+            self.lane_fields[i].obj_id.data = row["id"]
+
+            if pd.notna(lane_table.at[idx, "qubit_concentration"]):
+                self.lane_fields[i].qubit_concentration.data = lane_table.at[idx, "qubit_concentration"]
 
         self._context["pool_table"] = pool_table
         self._context["library_table"] = library_table
+        self._context["lane_table"] = lane_table
     
     def process_request(self) -> Response:
         if not self.validate():
-            pool_table = self.tables["pool_table"]
-            library_table = self.tables["library_table"]
-            logger.debug(self.errors)
-            return self.make_response(pool_table=pool_table, library_table=library_table)
+            return self.make_response(
+                pool_table=self.tables["pool_table"],
+                library_table=self.tables["library_table"],
+                lane_table=self.tables["lane_table"]
+            )
         
         pool_table = self.tables["pool_table"]
         library_table = self.tables["library_table"]
+        lane_table = self.tables["lane_table"]
         metadata = self.metadata.copy()
 
         for sub_form in self.pool_fields:
@@ -94,6 +108,16 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
             library = db.update_library(library)
 
             library_table.loc[library_table["id"] == library.id, "qubit_concentration"] = library.qubit_concentration
+
+        for sub_form in self.lane_fields:
+            if (lane := db.get_lane(sub_form.obj_id.data)) is None:
+                logger.error(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
+                raise ValueError(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
+            
+            lane.original_qubit_concentration = sub_form.qubit_concentration.data
+            lane = db.update_lane(lane)
+
+            lane_table.loc[lane_table["id"] == lane.id, "qubit_concentration"] = lane.original_qubit_concentration
 
         if os.path.exists(self.path):
             os.remove(self.path)

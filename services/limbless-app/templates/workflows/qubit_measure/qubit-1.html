@@ -25,6 +25,12 @@
                         Pools
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link " data-bs-toggle="tab" data-bs-target="#available-lanes-tab"
+                        type="button" role="tab" aria-controls="available-lanes-tab" aria-selected="true">
+                        Lanes
+                    </button>
+                </li>
                 {% if not experiment is defined %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
@@ -37,6 +43,12 @@
                     <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
                         type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
                         Selected Pools ({{ selected_pools | length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="selected-lanes-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-lanes-tab"
+                        type="button" role="tab" aria-controls="selected-lanes-tab" aria-selected="false">
+                        Selected Lanes ({{ selected_lanes | length }})
                     </button>
                 </li>
             </ul>
@@ -55,12 +67,17 @@
                 </div>
                 {% endif %}
                 <div class="tab-pane fade {% if experiment is defined %}show active{% endif %}" id="available-pools-tab" role="tabpanel" tabindex="1">
-                    <div hx-get="{% if experiment is defined %}{{ url_for('qubit_measure_workflow.get_pools', experiment_id=experiment.id) }}{% else %}{{ url_for('qubit_measure_workflow.get_pools') }}{% endif %}" hx-trigger="intersect once">
+                    <div hx-get="{{ url_for('qubit_measure_workflow.get_pools', **url_context) }}" hx-trigger="intersect once">
+                        {{ spinner() }}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="available-lanes-tab" role="tabpanel" tabindex="2">
+                    <div hx-get="{{ url_for('qubit_measure_workflow.get_lanes', **url_context) }}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>
                 {% if not experiment is defined %}
-                <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="2">
+                <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="3">
                     <table class="table table-hover table-cursor">
                         <thead>
                             <tr>
@@ -78,7 +95,7 @@
                     </table>
                 </div>
                 {% endif %}
-                <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="3">
+                <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="4">
                     <table class="table table-hover table-cursor">
                         <thead>
                             <tr>
@@ -90,6 +107,19 @@
                             </tr>
                         </thead>
                         <tbody id="selected-pools-table-container">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tab-pane fade" id="selected-lanes-tab" role="tabpanel" tabindex="5">
+                    <table class="table table-hover table-cursor">
+                        <thead>
+                            <tr>
+                                <th class="col-2" scope="col">Lane</th>
+                                <th class="col-5" scope="col"># Pools</th>
+                                <th class="col-5" scope="col">Qubit Conc.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selected-lanes-table-container">
                         </tbody>
                     </table>
                 </div>
@@ -112,6 +142,8 @@
         var num_selected_libraries = {{ selected_libraries | length if selected_libraries else 0 }};
         var selected_pools = {{ selected_pools | tojson if selected_pools else [] }};
         var num_selected_pools = {{ selected_pools | length if selected_pools else 0 }};
+        var selected_lanes = {{ selected_lanes | tojson if selected_lanes else [] }};
+        var num_selected_lanes = {{ selected_lanes | length if selected_lanes else 0 }};
 
         init_tooltips();
 
@@ -140,6 +172,36 @@
             $(".pool-row").each(function() {
                 const pool_id = parseInt($(this).attr("id").split("-").pop());
                 if (selected_pools.includes(pool_id)) {
+                    $(this).addClass("selected");
+                }
+            });
+        }
+
+        function select_lane(lane_id) {
+            if (selected_lanes.includes(lane_id)) {
+                selected_lanes = selected_lanes.filter(function(value, index, arr) {
+                    return value != lane_id;
+                });
+
+                $(`#lane-row-${lane_id}`).removeClass("selected");
+                $(`#selected-lane-row-${lane_id}`).remove();
+                num_selected_lanes -= 1;
+            } else {
+                selected_lanes.push(lane_id);
+                $(`#lane-row-${lane_id}`).addClass("selected");
+
+                const cloned = $(`#lane-row-${lane_id}`).clone();
+                cloned.attr("id", `selected-lane-row-${lane_id}`);
+                $("#selected-lanes-table-container").append(cloned);
+                num_selected_lanes += 1;
+            }
+            $("#selected-lanes-tab-btn").text(`Selected Lanes (${num_selected_lanes})`);
+        }
+
+        function update_lanes() {
+            $(".lane-row").each(function() {
+                const lane_id = parseInt($(this).attr("id").split("-").pop());
+                if (selected_lanes.includes(lane_id)) {
                     $(this).addClass("selected");
                 }
             });
@@ -178,19 +240,19 @@
         {% endif %}
 
         $("#submit-qubit_measure-form-btn").click(function() {
-            if (num_selected_libraries + num_selected_pools == 0) {
-                $(".invalid-feedback-container").html("<p>Select at least one pool or library.</p>");
+            if (num_selected_libraries + num_selected_pools + num_selected_lanes == 0) {
+                $(".invalid-feedback-container").html("<p>Select at least one sample.</p>");
                 return false;
             }
 
-            htmx.ajax("POST", "{{ url_for('qubit_measure_workflow.select') }}", {
+            htmx.ajax("POST", "{{ url_for('qubit_measure_workflow.select',  **url_context) }}", {
                 target: "#qubit_measure-form-container",
                 swap: "outerHTML",
                 values: {
                     csrf_token: "{{ qubit_measure_form.csrf_token._value() }}",
                     selected_pool_ids: JSON.stringify(selected_pools),
                     selected_library_ids: JSON.stringify(selected_libraries),
-                    {% if experiment %}experiment_id: {{ experiment.id }},{% endif %}
+                    selected_lane_ids: JSON.stringify(selected_lanes),
                 },
             });
 

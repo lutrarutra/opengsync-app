@@ -190,7 +190,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="flip-card card{% if qubit_concentration_measured %} workflow-completed{% endif %}"
+                <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
                     hx-get="{{ url_for('qubit_measure_workflow.begin', experiment_id=experiment.id) }}"
                     hx-target="#xl-modal-content" data-bs-toggle="modal"
@@ -211,7 +211,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="flip-card card{% if avg_framgnet_size_measured %} workflow-completed{% endif %}"
+                <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#xl-modal"
                     hx-get="{{ url_for('ba_report_workflow.begin', experiment_id=experiment.id) }}"
                     hx-target="#xl-modal-content" hx-swap="innerHTML">
@@ -280,38 +280,13 @@
                         </div>
                     </div>
                 </div>
-                <div
-                class="flip-card card{% if can_be_loaded == false %} text-muted disabled{% endif %}{% if all_lanes_qced %} workflow-completed{% endif %}"
-                    {% if can_be_loaded == true %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('lane_qc_workflow.begin', experiment_id=experiment.id) }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
-                    {% else %}
-                    {{ tooltip("'Lane Pools'-workflow must be completed first.", category="warning") }}
-                    {% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/qc.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">7. QC Lanes</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Input QC-metrics in preparation for loading of the flow cell.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <div class="flip-card card{% if all_lanes_qced == false %} text-muted disabled{% endif %}{% if flowcell_is_loaded %} workflow-completed{% endif %}"
                     {% if all_lanes_qced == true %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('load_flow_cell_workflow.begin', experiment_id=experiment.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% else %}
-                    {{ tooltip("'QC Lanes'-workflow must be completed first.", category="warning") }}
+                    {{ tooltip("You must QC all lanes first.", category="warning") }}
                     {% endif %}>
                     <div class="flip-card-container">
                         <div class="card-front">
@@ -319,7 +294,7 @@
                                 <img src="{{ url_for('static', filename='images/licensed/sequencer.svg') }}" width="80px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">8. Load Flow Cell</h5>
+                                <h5 class="card-title">7. Load Flow Cell</h5>
                             </div>
                         </div>
                         <div class="card-back">

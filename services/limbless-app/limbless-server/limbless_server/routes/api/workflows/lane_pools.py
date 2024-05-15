@@ -31,8 +31,8 @@ def begin(experiment_id: int):
         form = wff.UnifiedLanePoolingForm()
     else:
         form = wff.LanePoolingForm()
-    context = form.prepare(experiment)
-    return form.make_response(experiment=experiment, Pool=models.Pool, **context)
+    form.prepare(experiment)
+    return form.make_response(experiment=experiment)
 
 
 @lane_pools_workflow.route("<int:experiment_id>/lane_pools", methods=["POST"])

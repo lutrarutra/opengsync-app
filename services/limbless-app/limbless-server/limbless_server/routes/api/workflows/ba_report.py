@@ -5,7 +5,7 @@ from flask import Blueprint, request, abort, render_template
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT
+from limbless_db import models, PAGE_LIMIT, DBSession
 from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus, LibraryType
 
 from .... import db, logger  # noqa
@@ -245,6 +245,43 @@ def query_libraries():
     )
 
 
+@ba_report_workflow.route("get_lanes", methods=["GET"], defaults={"page": 0})
+@ba_report_workflow.route("get_lanes/<int:page>", methods=["GET"])
+@login_required
+def get_lanes(page: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "experiment_id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+    context = {}
+
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            if (experiment := db.get_experiment(experiment_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["experiment_id"] = experiment_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        experiment = None
+    
+    with DBSession(db) as session:
+        lanes, n_pages = session.get_lanes(experiment_id=experiment_id, sort_by=sort_by, descending=descending, offset=offset)
+
+        return make_response(
+            render_template(
+                "components/tables/select-lanes.html",
+                lanes=lanes, context=context, workflow="ba_report_workflow",
+                n_pages=n_pages, active_page=page, experiment=experiment,
+                sort_by=sort_by, sort_order=sort_order
+            )
+        )
+
+
 @ba_report_workflow.route("begin", methods=["GET"])
 @login_required
 def begin():
@@ -282,19 +319,9 @@ def select():
     return wff.SelectSamplesForm(formdata=request.form, experiment=experiment).process_request()
 
 
-@ba_report_workflow.route("attach_table", methods=["POST"])
-@login_required
-def attach_table():
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    return wff.BAInputForm(formdata=request.form | request.files).process_request()
-
-
 @ba_report_workflow.route("qc_pools", methods=["POST"])
 @login_required
-def qc_pools():
+def complete():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-
-    return wff.CompleteBAReportForm(formdata=request.form).process_request(current_user=current_user)
+    return wff.CompleteBAReportForm(formdata=request.form | request.files).process_request(user=current_user)

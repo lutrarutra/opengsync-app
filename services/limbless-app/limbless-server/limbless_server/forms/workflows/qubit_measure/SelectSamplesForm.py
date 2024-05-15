@@ -19,6 +19,7 @@ class SelectSamplesForm(HTMXFlaskForm):
 
     selected_library_ids = StringField()
     selected_pool_ids = StringField()
+    selected_lane_ids = StringField()
     experiment_id = IntegerField()
 
     error_dummy = StringField()
@@ -26,8 +27,10 @@ class SelectSamplesForm(HTMXFlaskForm):
     def __init__(self, formdata: dict = {}, experiment: Optional[models.Experiment] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
+        self._context["url_context"] = {}
         if self.experiment is not None:
-            self._context["experiment"] = self.experiment
+            self._context["experiment"] = experiment
+            self._context["url_context"]["experiment_id"] = self.experiment.id
             self.experiment_id.data = self.experiment.id
 
     def validate(self) -> bool:
@@ -35,9 +38,10 @@ class SelectSamplesForm(HTMXFlaskForm):
 
         selected_pool_ids = self.selected_pool_ids.data
         selected_library_ids = self.selected_library_ids.data
+        selected_lane_ids = self.selected_lane_ids.data
         
-        if not selected_pool_ids and not selected_library_ids:
-            self.error_dummy.errors = ["Select at least one pool or library"]
+        if not selected_pool_ids and not selected_library_ids and not selected_lane_ids:
+            self.error_dummy.errors = ["Select at least sample"]
             return False
 
         if selected_pool_ids:
@@ -49,9 +53,14 @@ class SelectSamplesForm(HTMXFlaskForm):
             library_ids = json.loads(selected_library_ids)
         else:
             library_ids = []
+
+        if selected_lane_ids:
+            lane_ids = json.loads(selected_lane_ids)
+        else:
+            lane_ids = []
         
-        if len(pool_ids) + len(library_ids) == 0:
-            self.selected_pool_ids.errors = ["Select at least one pool or library"]
+        if len(pool_ids) + len(library_ids) + len(lane_ids) == 0:
+            self.selected_pool_ids.errors = ["Select at least one sample"]
             return False
         
         self.pool_ids = []
@@ -70,8 +79,17 @@ class SelectSamplesForm(HTMXFlaskForm):
             self.selected_library_ids.errors = ["Invalid library id"]
             return False
         
+        self.lane_ids = []
+        try:
+            for lane_id in lane_ids:
+                self.lane_ids.append(int(lane_id))
+        except ValueError:
+            self.selected_lane_ids.errors = ["Invalid lane id"]
+            return False
+        
         self._context["selected_pools"] = self.pool_ids
         self._context["selected_libraries"] = self.library_ids
+        self._context["selected_lanes"] = self.lane_ids
         return validated
 
     def process_request(self) -> Response:
@@ -85,6 +103,12 @@ class SelectSamplesForm(HTMXFlaskForm):
         )
 
         library_data = dict(
+            id=[],
+            name=[],
+            qubit_concentration=[],
+        )
+
+        lane_data = dict(
             id=[],
             name=[],
             qubit_concentration=[],
@@ -109,6 +133,15 @@ class SelectSamplesForm(HTMXFlaskForm):
                 library_data["name"].append(library.name)
                 library_data["qubit_concentration"].append(library.qubit_concentration)
 
+            for lane_id in self.lane_ids:
+                if (lane := session.get_lane(lane_id)) is None:
+                    logger.error(f"Lane {lane_id} not found")
+                    raise ValueError(f"Lane {lane_id} not found")
+                
+                lane_data["id"].append(lane.id)
+                lane_data["name"].append(f"{lane.experiment.name} L{lane.number}")
+                lane_data["qubit_concentration"].append(lane.original_qubit_concentration)
+
         complete_qubit_measure_form = CompleteQubitMeasureForm()
         metadata: dict[str, Any] = {
             "workflow": "qubit_measure",
@@ -121,6 +154,7 @@ class SelectSamplesForm(HTMXFlaskForm):
         
         complete_qubit_measure_form.add_table("pool_table", pd.DataFrame(pool_data))
         complete_qubit_measure_form.add_table("library_table", pd.DataFrame(library_data))
+        complete_qubit_measure_form.add_table("lane_table", pd.DataFrame(lane_data))
 
         complete_qubit_measure_form.update_data()
         complete_qubit_measure_form.prepare()

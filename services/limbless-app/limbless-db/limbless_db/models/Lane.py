@@ -10,6 +10,7 @@ from .Links import LanePoolLink
 if TYPE_CHECKING:
     from .Experiment import Experiment
     from .Pool import Pool
+    from .File import File
 
 
 class Lane(Base):
@@ -27,6 +28,9 @@ class Lane(Base):
 
     experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=False)
     experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="lanes", lazy="select")
+
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
+    ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
     pools: Mapped[list["Pool"]] = relationship("Pool", secondary=LanePoolLink.__tablename__, back_populates="lanes", lazy="select")
 

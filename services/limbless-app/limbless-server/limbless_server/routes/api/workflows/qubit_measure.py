@@ -5,7 +5,7 @@ from flask import Blueprint, request, abort, render_template
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT
+from limbless_db import models, PAGE_LIMIT, DBSession
 from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus, LibraryType
 
 from .... import db, logger  # noqa
@@ -245,6 +245,43 @@ def query_libraries():
     )
 
 
+@qubit_measure_workflow.route("get_lanes", methods=["GET"], defaults={"page": 0})
+@qubit_measure_workflow.route("get_lanes/<int:page>", methods=["GET"])
+@login_required
+def get_lanes(page: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "experiment_id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+    context = {}
+
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            if (experiment := db.get_experiment(experiment_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["experiment_id"] = experiment_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        experiment = None
+    
+    with DBSession(db) as session:
+        lanes, n_pages = session.get_lanes(experiment_id=experiment_id, sort_by=sort_by, descending=descending, offset=offset)
+
+        return make_response(
+            render_template(
+                "components/tables/select-lanes.html",
+                lanes=lanes, context=context, workflow="qubit_measure_workflow",
+                n_pages=n_pages, active_page=page, experiment=experiment,
+                sort_by=sort_by, sort_order=sort_order
+            )
+        )
+
+
 @qubit_measure_workflow.route("begin", methods=["GET"], defaults={"experiment_id": None})
 @qubit_measure_workflow.route("begin/<int:experiment_id>", methods=["GET"])
 @login_required
@@ -268,7 +305,7 @@ def select():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment_id := request.form.get("experiment_id")) is not None:
+    if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
             experiment = db.get_experiment(experiment_id)

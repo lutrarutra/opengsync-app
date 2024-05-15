@@ -3,7 +3,6 @@ from typing import Optional
 
 from sqlalchemy import and_
 
-from ...categories import PoolStatus
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
@@ -125,7 +124,6 @@ def is_sample_in_seq_request(
 
 
 def link_feature_library(self, feature_id: int, library_id: int):
-    
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -262,6 +260,10 @@ def link_pool_experiment(self, experiment_id: int, pool_id: int):
         raise exceptions.LinkAlreadyExists(f"Pool with id {pool_id} is already linked to an experiment")
 
     experiment.pools.append(pool)
+
+    if experiment.workflow.combined_lanes:
+        for lane in experiment.lanes:
+            self.add_pool_to_lane(experiment_id=experiment_id, pool_id=pool_id, lane_num=lane.number)
 
     self._session.add(experiment)
     self._session.commit()
