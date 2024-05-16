@@ -47,8 +47,7 @@ def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFra
 
     if "index_2" in df.columns:
         same_barcode_in_different_indices = df["index_1"] == df["index_2"]
-
-    df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
+        df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
 
     df["min_hamming_dist"] = None
     df["min_idx"] = None
