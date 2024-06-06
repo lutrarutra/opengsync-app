@@ -116,10 +116,13 @@
         </div>
         <div class="tab-pane fade show" id="library-wetlab-tab" role="tabpanel" tabindex="1">
             <div class="row">
-                    {{ metadata_group("Volume", library.volume, class="col-3", unit="μL") }}
-                    {{ metadata_group("Avg. Fragment Size", library.avg_fragment_size, class="col-3", unit="bp") }}
-                    {{ metadata_group("Qubit Concentration", library.qubit_concentration_str, class="col-3", unit="ng/μL") }}
-                    {{ metadata_group("Molarity", library.molarity_str, class="col-3", unit="nM") }}
+                {{ metadata_group("Volume", library.volume, class="col-3", unit="μL") }}
+                {{ metadata_group("Avg. Fragment Size", library.avg_fragment_size, class="col-3", unit="bp") }}
+                {{ metadata_group("Qubit Concentration", library.qubit_concentration_str, class="col-3", unit="ng/μL") }}
+                {{ metadata_group("Molarity", library.molarity_str, class="col-3", unit="nM") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("Sequencing Depth (reads)", library.seq_depth_requested, class="col-3", unit="M") }}
             </div>
         </div>
         <div class="tab-pane fade show" id="library-metadata-tab" role="tabpanel" tabindex="2">

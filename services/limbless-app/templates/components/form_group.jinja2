@@ -48,6 +48,21 @@
 </div>
 {%- endmacro %}
 
+
+{% macro checkbox_input(field, class='', disabled=false) -%}
+<div class="form-check {{ class }} pb-3">
+    {{ field(class="form-check-input") }}
+    {{ field.label(class="form-check-label") }}
+    <div class="invalid-feedback-container">
+        {% if not disabled %}
+        {% for error in field.errors %}
+            <p class="">{{ error }}</p>
+        {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{%- endmacro %}
+
 {% macro select_input(field, class='', disabled=false) -%}
 <div class="{{class}} form-group">
     <a {% if field.description %}

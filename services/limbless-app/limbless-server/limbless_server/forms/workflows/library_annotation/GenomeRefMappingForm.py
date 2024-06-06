@@ -3,10 +3,11 @@ from flask import Response
 import pandas as pd
 
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, StringField, SelectField
-from wtforms.validators import Optional as OptionalValidator, DataRequired
+from wtforms import FieldList, FormField, StringField, SelectField, TextAreaField
+from wtforms.validators import Optional as OptionalValidator, DataRequired, Length
 
 from limbless_db.categories import GenomeRef
+from limbless_db import models
 
 from .... import db, tools
 from ...TableDataForm import TableDataForm
@@ -16,7 +17,7 @@ from .LibraryMappingForm import LibraryMappingForm
 
 class GenomeRefSubForm(FlaskForm):
     raw_label = StringField("Raw Label", validators=[OptionalValidator()])
-    genome = SelectField("Select Reference Genome", choices=GenomeRef.as_selectable(), validators=[DataRequired()], coerce=int)
+    genome = SelectField("Select Reference Genome", choices=GenomeRef.as_selectable(), coerce=int)
 
 
 # 4. Select genome for libraries
@@ -24,12 +25,25 @@ class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-3.html"
 
     input_fields = FieldList(FormField(GenomeRefSubForm), min_entries=1)
+    custom_reference = TextAreaField("Custom Reference", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], description="If the reference genome is not in the list, specify it here.")
 
     def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+
+    def validate(self) -> bool:
+        valid = super().validate()
+        if not valid:
+            return False
+
+        for entry in self.input_fields.entries:
+            if GenomeRef.CUSTOM.id == entry.genome.data and not self.custom_reference.data:
+                self.custom_reference.errors = ("Custom reference must be specified if custom genome is selected.",)
+                return False
+
+        return True
 
     def prepare(self):
         library_table: pd.DataFrame = self.tables["library_table"]
@@ -67,8 +81,25 @@ class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
     
         for i, genome in enumerate(genomes):
             genome_id_mapping[genome] = self.input_fields.entries[i].genome.data
-        
+
         library_table["genome_id"] = library_table["genome"].map(genome_id_mapping)
+
+        if self.custom_reference.data:
+            if (comment_table := self.tables.get("comment_table")) is None:  # type: ignore
+                comment_table = pd.DataFrame({
+                    "context": ["custom_genome_reference"],
+                    "text": [self.custom_reference.data]
+                })
+            else:
+                comment_table = pd.concat([
+                    comment_table,
+                    pd.DataFrame({
+                        "context": ["custom_genome_reference"],
+                        "text": [self.custom_reference.data]
+                    })
+                ])
+            self.add_table("comment_table", comment_table)
+        
         self.update_table("library_table", library_table)
 
         library_mapping_form = LibraryMappingForm(previous_form=self, uuid=self.uuid)

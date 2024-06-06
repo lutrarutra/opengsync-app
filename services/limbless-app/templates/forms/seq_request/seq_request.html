@@ -1,4 +1,4 @@
-{% from 'components/form_group.jinja2' import form_group, select_input %}
+{% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
 
 <div class="modal-content" id="seq_request-form-container">
     <div class="modal-header">
@@ -9,6 +9,34 @@
     <div class="modal-body">
         <div id="seq_request-form" class="accordion">
             {{ seq_request_form.csrf_token() }}
+
+            {% set sub_form = seq_request_form.disclaimer_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button{% if sub_form.is_validated() == True %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#request-disclaimer-section" aria-expanded="true"
+                    aria-controls="request-disclaimer-section">
+                        Disclaimer
+                    </button>
+                </h2>
+                <div id="request-disclaimer-section" class="accordion-collapse collapse {% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        <div>
+                            <p>
+                            This program is designed to store and facilitate the transfer of information between customers and our team. It is not intended for designing or validating experimental setups. Users must ensure that their experimental setups are valid. If you are uncertain about your setup, please contact us at <a href="mailto:bsf@cemm.at">bsf@cemm.at</a>.
+                            </p>
+                            <p>
+                            Each sequencing request is subject to review and approval by the BSF team. For non-standard experimental setups, such as using a custom genome reference, please contact us to ensure we can accommodate your request.
+                            </p>
+                            <p>
+                            Results from each request will be shared with a single entity, whether it is a research lab or an individual. If you are submitting a request on behalf of multiple entities, please submit separate requests for each entity. Results from different requests, including previous ones, can be grouped together for analysis by associating the libraries with the same project.
+                            </p>
+                        </div>
+                        {{ sub_form.csrf_token() }}
+                        {{ checkbox_input(sub_form.disclaimer, class="fw-semibold") }}
+                    </div>
+                </div>
+            </div>
             
             {% set sub_form = seq_request_form.basic_info_form %}
             <div class="accordion-item">

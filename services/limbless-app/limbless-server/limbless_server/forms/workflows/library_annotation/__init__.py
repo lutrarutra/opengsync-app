@@ -8,4 +8,5 @@ from .KitMappingForm import KitMappingForm    # noqa: F401
 from .FeatureReferenceInputForm import FeatureReferenceInputForm  # noqa: F401
 from .LibraryMappingForm import LibraryMappingForm  # noqa: F401
 from .GenomeRefMappingForm import GenomeRefMappingForm  # noqa: F401
+from .FRPAnnotationForm import FRPAnnotationForm  # noqa: F401
 from .CompleteSASForm import CompleteSASForm  # noqa: F401

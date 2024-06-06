@@ -4,12 +4,12 @@
     $(document).ready(function() {
         jspreadsheet(document.getElementById('example-spreadsheet'), {
             data: [
-                ["multiome_human_A", "multiome_human_A_GEX", "Human (GRCh38)", "Example Project", "scRNA-seq", "200"],
-                ["multiome_human_A", "multiome_human_A_ATAC", "Human (GRCh38)", "Example Project", "scATAC-seq", "100"],
-                ["multiome_human_B", "multiome_human_B_GEX", "Human (GRCh38)", "Example Project", "scRNA-seq", "200"],
-                ["multiome_human_B", "multiome_human_B_ATAC", "Human (GRCh38)", "Example Project", "scATAC-seq", "100"],
-                ["multiome_mouse", "multiome_mouse_GEX", "Mouse (GRCm38)", "Example Project", "scRNA-seq", "200"],
-                ["multiome_mouse", "multiome_mouse_ATAC", "Mouse (GRCm38)", "Example Project", "scATAC-seq", "100"],
+                ["multiome_human_A", "multiome_human_A_GEX", "Human (GRCh38)", "Example Project", "Single-cell RNA-seq", "200"],
+                ["multiome_human_A", "multiome_human_A_ATAC", "Human (GRCh38)", "Example Project", "Single-cell Chromatin Accessibility", "100"],
+                ["multiome_human_B", "multiome_human_B_GEX", "Human (GRCh38)", "Example Project", "Single-cell RNA-seq", "200"],
+                ["multiome_human_B", "multiome_human_B_ATAC", "Human (GRCh38)", "Example Project", "Single-cell Chromatin Accessibility", "100"],
+                ["multiome_mouse", "multiome_mouse_GEX", "Mouse (GRCm38)", "Example Project", "Single-cell RNA-seq", "200"],
+                ["multiome_mouse", "multiome_mouse_ATAC", "Mouse (GRCm38)", "Example Project", "Single-cell Chromatin Accessibility", "100"],
             ],
             columns: [
                 {% for col in columns %}

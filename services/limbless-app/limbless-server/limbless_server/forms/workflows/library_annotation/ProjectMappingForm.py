@@ -19,6 +19,7 @@ from .PoolMappingForm import PoolMappingForm
 from .CompleteSASForm import CompleteSASForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .GenomeRefMappingForm import GenomeRefMappingForm
+from .FRPAnnotationForm import FRPAnnotationForm
 from .LibraryMappingForm import LibraryMappingForm
 
 
@@ -118,7 +119,10 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
                 if pd.isna(project_id := project_row["id"]):
                     continue
             
-                project = session.get_project(project_id)
+                if (project := session.get_project(project_id)) is None:
+                    logger.error(f"{self.uuid}: Project with ID {project_id} not found.")
+                    raise Exception(f"{self.uuid}: Project with ID {project_id} not found.")
+                
                 for sample in project.samples:
                     library_table.loc[library_table["sample_name"] == sample.name, "sample_id"] = sample.id
             
@@ -153,6 +157,11 @@ class ProjectMappingForm(HTMXFlaskForm, TableDataForm):
             visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response(**context)
+        
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
+            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form.prepare()
+            return frp_annotation_form.make_response(**context)
         
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)

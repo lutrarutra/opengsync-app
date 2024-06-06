@@ -35,7 +35,7 @@ class PoolSubForm(FlaskForm):
 class PoolMappingForm(HTMXFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(PoolSubForm), min_entries=1)
 
-    _template_path = "workflows/library_annotation/sas-10.html"
+    _template_path = "workflows/library_annotation/sas-11.html"
 
     def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:

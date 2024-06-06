@@ -1,393 +1,129 @@
-{% from 'components/tooltip.jinja2' import tooltip %}
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/categorical_mapping.jinja2" import raw_label_mapping %}
 
-<div id="complete-sas-form-container" class="modal-content">
+<div id="pool-mapping-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >11. Complete Submission</h1>
+        <h1 class="modal-title fs-5">11. Describe Library-Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body">
-        <div class="tab-body">
+        <div class="tab-body" id="pool-mapping-form">
             <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" data-bs-toggle="tab"
-                    data-bs-target="#overview-tab" type="button" role="tab"
-                    aria-controls="overview-tab" aria-selected="true">
-                    Overview</button>
+                {% for sub_form in form.input_fields %}
+                <li class="nav-item" role="presentation"> 
+                    <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#pool-form-tab-{{ sub_form.pool_name.data.replace(' ', '_') }}" type="button" role="tab"
+                    aria-controls="pool-form-tab" aria-selected="true">
+                    {{ sub_form.raw_label.data }}</button>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab"
-                    data-bs-target="#library-tab" type="button" role="tab"
-                    aria-controls="library-tab" aria-selected="false">
-                    Libraries</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab"
-                    data-bs-target="#sample-tab" type="button" role="tab"
-                    aria-controls="sample-tab" aria-selected="false">
-                    Samples</button>
-                </li>
-                <li class="nav-item" role="presentation"
-                {% if pool_table is none %}{{ tooltip("You are submitting raw samples.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if pool_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#pool-tab" type="button" role="tab"
-                    aria-controls="pool-tab" aria-selected="true">
-                    Pools</button>
-                </li>
-                <li class="nav-item" role="presentation"
-                {% if feature_table is none %}{{ tooltip("No antibody feature libraries detected.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if feature_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#feature-tab" type="button" role="tab"
-                    aria-controls="feature-tab" aria-selected="true">
-                    Features</button>
-                </li>
-                <li class="nav-item" role="presentation"
-                {% if cmo_table is none %}{{ tooltip("No cell multiplexing libraries detected.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if cmo_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#cmo-tab" type="button" role="tab"
-                    aria-controls="cmo-tab" aria-selected="true">
-                    CMOs</button>
-                </li>
-                <li class="nav-item" role="presentation"
-                {% if visium_table is none %}{{ tooltip("No visium libraries detected.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if visium_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#visium-tab" type="button" role="tab"
-                    aria-controls="visium-tab" aria-selected="true">
-                    Visium</button>
-                </li>
+                {% endfor %}
             </ul>
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="overview-tab" role="tabpanel" tabindex="0">
-                    <div class="flow-graph-container" id="submission-overview-graph" style="padding: 10px 10px 10px 10px;"></div>
-                </div>
-                <div class="tab-pane fade" id="library-tab" role="tabpanel" tabindex="1">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-2">Library Name</th>
-                                <th scope="col" class="col-1">Library Type</th>
-                                {% if "pool" in library_table %}
-                                <th scope="col" class="col-2">Pool</th>
+            <div class="tab-content pt-3">
+                {% for sub_form in form.input_fields %}
+                <div class="tab-pane fade show {{ 'active' if loop.first else '' }}" id="pool-form-tab-{{ sub_form.pool_name.data.replace(' ', '_') }}" role="tabpanel" tabindex="{{ loop.index0 }}">
+                    <div>
+                        {{ sub_form.csrf_token() }}
+                        {{    
+                            raw_label_mapping(
+                                raw_label=sub_form.raw_label,
+                                new_label=sub_form.pool_name,
+                                token=sub_form.csrf_token
+                            )
+                        }}
+                        {{ form_group(sub_form.num_m_reads) }}
+                        <h5>Who did the pooling and library prep?</h5>
+                        <div class="row">
+                            {{ form_group(sub_form.contact_person_name, class="col-4") }}
+                            {{ form_group(sub_form.contact_person_email, class="col-4") }}
+                            {{ form_group(sub_form.contact_person_phone, class="col-4") }}
+                        </div>
+                    </div>
+                    <div>
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="col-2">Library</th>
+                                    <th scope="col" class="col-1">Library Type</th>
+                                    <th scope="col" class="col-1">Genome</th>
+                                    <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
+                                    {% if show_adapter %}
+                                    <th scope="col" class="col-1">Adapter</th>
+                                    {% endif %}
+                                    {% if show_index_1 %}
+                                    <th scope="col" class="col-1">Index 1</th>
+                                    {% endif %}
+                                    {% if show_index_2 %}
+                                    <th scope="col" class="col-1">Index 2</th>
+                                    {% endif %}
+                                    {% if show_index_3 %}
+                                    <th scope="col" class="col-1">Index 3</th>
+                                    {% endif %}
+                                    {% if show_index_4 %}
+                                    <th scope="col" class="col-1">Index 4</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for idx, row in library_table[library_table["pool"] == pools[loop.index0]].iterrows() %}
+                                {% if row["error"] %}
+                                <tr {{ tooltip(row["error"], category="error") }}>
+                                {% elif row["warning"] %}
+                                <tr {{ tooltip(row["warning"], category="warning") }}>
+                                {% else %}
+                                <tr>
                                 {% endif %}
-                                {% if "adapter" in library_table %}
-                                <th scope="col" class="col-1">Adapter</th>
-                                {% endif %}
-                                {% if "index_1" in library_table %}
-                                <th scope="col" class="col-1">Index 1 <span class="desc">i7</span></th>
-                                {% endif %}
-                                {% if "index_2" in library_table %}
-                                <th scope="col" class="col-1">Index 2 <span class="desc">i5</span></th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in library_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["library_name"] }}</th>
-                                <td>{{ row["library_type"] }}</td>
-                                {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
-                                {% if "adapter" in library_table %}<td>{{ row["adapter"] }}</td>{% endif %}
-                                {% if "index_1" in library_table %}<td>{{ row["index_1"] }}</td>{% endif %}
-                                {% if "index_2" in library_table %}<td>{{ row["index_2"] }}</td>{% endif %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_name"] }}</td>
+                                    <td>{{ row["library_type"] }}</td>
+                                    <td>{{ row["genome_ref"] }}</td>
+                                    <td {% if row["min_hamming_bases"] < 1 %}
+                                    class="cemm-red"
+                                    {% elif row["min_hamming_bases"] < 2 %}
+                                    class="cemm-yellow"
+                                    {% else %}
+                                    class="cemm-green"
+                                    {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
+                                    {% if show_adapter %}
+                                    <td>{{ row["adapter"] if row["adapter"] }}</td>
+                                    {% endif %}
+                                    {% if show_index_1 %}
+                                    <td class="index-cell-1">{{ row["index_1"] if row["index_1"] }}</td>
+                                    {% endif %}
+                                    {% if show_index_2 %}
+                                    <td class="index-cell-2">{{ row["index_2"] if row["index_2"] }}</td>
+                                    {% endif %}
+                                    {% if show_index_3 %}
+                                    <td class="index-cell-3">{{ row["index_3"] if row["index_3"] }}</td>
+                                    {% endif %}
+                                    {% if show_index_4 %}
+                                    <td class="index-cell-4">{{ row["index_4"] if row["index_4"] }}</td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="tab-pane fade" id="sample-tab" role="tabpanel" tabindex="2">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-2">Sample Name</th>
-                                <th scope="col" class="col-1">Project</th>
-                                <th scope="col" class="col-1">Sequence <span class="desc">CMO</span></th>
-                                <th scope="col" class="col-1">Pattern <span class="desc">CMO</span></th>
-                                <th scope="col" class="col-1">Read <span class="desc">CMO</span></th>
-                                <th scope="col" class="col-6">Libraries</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in sample_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["sample_name"] }}</th>
-                                <td>{{ row["project_name"] }} <span class="desc">{{ row["project_id"] if row["project_id"] == row["project_id"] else "new" }}</span></td>
-                                <td>{{ row["sequence"] if row["sequence"] }}</td>
-                                <td>{{ row["pattern"] if row["pattern"] }}</td>
-                                <td>{{ row["read"] if row["read"] }}</td>
-                                <td>
-                                    <ul class="h-list">
-                                        {% for library_type in row["library_types"] %}
-                                        <li>{{ library_type }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="tab-pane fade" id="pool-tab" role="tabpanel" tabindex="3">
-                    {% if pool_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-3">Pool Name</th>
-                                <th scope="col" class="col-1"># Libraries</th>
-                                <th scope="col" class="col-2">M. Reads</th>
-                                <th scope="col" class="col-2">Contact Name</th>
-                                <th scope="col" class="col-2">Contact Email</th>
-                                <th scope="col" class="col-2">Contact Phone</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in pool_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["name"] }}</th>
-                                <td>{{ library_table[library_table["pool"] == row["name"]].shape[0] }}</td>
-                                <td>{{ row["num_m_reads"] }}</td>
-                                <td>{{ row["contact_person_name"] }}</td>
-                                <td>{{ row["contact_person_email"] }}</td>
-                                <td>{{ row["contact_person_phone"] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
-                <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="4">
-                    {% if feature_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-2">Feature</th>
-                                <th scope="col" class="col-1">Kit</th>
-                                <th scope="col" class="col-1">Sequence</th>
-                                <th scope="col" class="col-1">Pattern</th>
-                                <th scope="col" class="col-1">Read</th>
-                                <th scope="col" class="col-6">Libraries</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for (feature, kit, sequence, pattern, read), df in feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) %}
-                            <tr>
-                                <th scope="row">{{ feature }}</th>
-                                <td>{{ kit if kit == kit }}</td>
-                                <td>{{ sequence }}</td>
-                                <td>{{ pattern }}</td>
-                                <td>{{ read }}</td>
-                                <td>
-                                    <ul class="h-list">
-                                        {% for _, row in df.iterrows() %}
-                                        <li>
-                                            {{ row["library_name"] }}
-                                        </li>
-                                        {% endfor %}
-                                    </ul>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
-                <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="5">
-                    {% if cmo_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-3">Demux Name</th>
-                                <th scope="col" class="col-2">Sample</th>
-                                <th scope="col" class="col-2">Kit</th>
-                                <th scope="col" class="col-2">Feature</th>
-                                <th scope="col" class="col-1">Sequence</th>
-                                <th scope="col" class="col-1">Pattern</th>
-                                <th scope="col" class="col-1">Read</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in cmo_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["demux_name"] }}</th>
-                                <td>{{ row["sample_name"] }}</td>
-                                <td>{{ row["kit"] if row["kit"] == row["kit"] }}</td>
-                                <td>{{ row["feature"] }}</td>
-                                <td>{{ row["sequence"] }}</td>
-                                <td>{{ row["pattern"] }}</td>
-                                <td>{{ row["read"] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
-                <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="6">
-                    {% if visium_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-3">Library Name</th>
-                                <th scope="col" class="col-2">Image</th>
-                                <th scope="col" class="col-2">Slide</th>
-                                <th scope="col" class="col-2">Area</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in visium_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["library_name"] }}</th>
-                                <td>{{ row["image"] }}</td>
-                                <td>{{ row["slide"] }}</td>
-                                <td>{{ row["area"] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
+                {% endfor %}
             </div>
+            {{ form.file_uuid(hidden=True, readonly=True) }}
+            {{ form.csrf_token() }}
         </div>
     </div>
     <div class="modal-footer">
-        <div class="text-nowrap text-muted footer-id" id="complete-sas-form">
-            {{ complete_sas_form.file_uuid.data }}
-            {{ complete_sas_form.file_uuid(hidden=True, readonly=True) }}
-            {{ complete_sas_form.csrf_token() }}
-        </div>
-        <div class="footer-info">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-success" type="button" id="submit-spreadsheet-btn"
-                hx-include="#complete-sas-form" hx-target="#complete-sas-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('library_annotation_workflow.complete', seq_request_id=seq_request.id) }}">
-                Complete
+            <button type="button" class="btn btn-primary"
+                hx-target="#pool-mapping-container" hx-swap="outerHTML"
+                hx-include="#pool-mapping-form" id="submit-pool-mapping-form-btn"
+                hx-post="{{ url_for('library_annotation_workflow.map_pools', seq_request_id=seq_request.id) }}">
+                Next
             </button>
         </div>
     </div>
     <script>
-        $(document).ready(function() {
-            init_tooltips();
-            $("#submit-spreadsheet-btn").on("click", function() {
-                window.onbeforeunload = null;
-            });
-
-            $.getScript("https://d3js.org/d3.v4.min.js", function() {
-                $.getScript("https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js", function() {
-                    const nodes = {{ nodes | tojson }};
-                    const links = {{ links | tojson }};
-
-                    const _h = nodes.length * 50;
-                    const _w = $("#submission-overview-graph").width();
-
-                    var margin = {top: 50, right: 10, bottom: 10, left: 10};
-                    var width =  _w - margin.left - margin.right;
-                    var height = _h - margin.top - margin.bottom;
-
-                    // append the svg object to the body of the page
-                    var svg = d3.select("#submission-overview-graph").append("svg")
-                        .attr("width", width + margin.left + margin.right)
-                        .attr("height", height + margin.top + margin.bottom)
-                        .append("g")
-                            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-                    const dx = width / 3;
-
-                    svg.append("text")
-                        .attr("x", 30)
-                        .attr("y", -margin.top * 0.5)
-                        .attr("text-anchor", "middle")
-                        .style("font-size", "22px")
-                        .text("Project");
-
-                    svg.append("text")
-                        .attr("x", dx * 1)
-                        .attr("y", -margin.top * 0.5)
-                        .attr("text-anchor", "middle")
-                        .style("font-size", "22px")
-                        .text("Sample");
-
-                    svg.append("text")
-                        .attr("x", dx * 2)
-                        .attr("y", -margin.top * 0.5)
-                        .attr("text-anchor", "middle")
-                        .style("font-size", "22px")
-                        .text("Library");
-
-                    svg.append("text")
-                        .attr("x", dx * 3 - 50)
-                        .attr("y", -margin.top * 0.5)
-                        .attr("text-anchor", "middle")
-                        .style("font-size", "22px")
-                        .text("Pool");
-
-                    // Color scale used
-                    var color = d3.scaleOrdinal(d3.schemeCategory20);
-
-                    // Set the sankey diagram properties
-                    var sankey = d3.sankey().nodeWidth(25).nodePadding(15).size([width, height]);
-
-                    sankey.nodes(nodes).links(links).layout(20);
-
-                        // add in the links
-                    var link = svg.append("g")
-                        .selectAll(".link")
-                        .data(links)
-                        .enter()
-                        .append("path")
-                        .attr("class", "link")
-                        .attr("d", sankey.link() )
-                        .style("stroke-width", function(d) { return Math.max(1, d.dy); })
-                        .sort(function(a, b) { return b.dy - a.dy; });
-
-                    
-                    // add in the nodes
-                    var node = svg.append("g")
-                        .selectAll(".node")
-                        .data(nodes)
-                        .enter().append("g")
-                        .attr("class", "node")
-                        .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
-                        .call(d3.drag()
-                            .subject(function(d) { return d; })
-                            .on("start", function() { this.parentNode.appendChild(this); })
-                            .on("drag", dragmove));
-
-                    // add the rectangles for the nodes
-                    node
-                        .append("rect")
-                        .attr("height", function(d) { return d.dy; })
-                        .attr("width", sankey.nodeWidth())
-                        .style("fill", function(d) { return d.color = color(d.name.replace(/ .*/, "")); })
-                        .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
-                        // Add hover text
-                        .append("title")
-                        .text(function(d) { return d.name + "\n" + "There is " + d.value + " stuff in this node"; });
-
-                    // add in the title for the nodes
-                        node
-                        .append("text")
-                            .attr("x", -6)
-                            .attr("y", function(d) { return d.dy / 2; })
-                            .attr("dy", ".35em")
-                            .attr("text-anchor", "end")
-                            .attr("transform", null)
-                            .text(function(d) { return d.name; })
-                        .filter(function(d) { return d.x < width / 2; })
-                            .attr("x", 6 + sankey.nodeWidth())
-                            .attr("text-anchor", "start");
-
-                    // the function for moving the nodes
-                    function dragmove(d) {
-                        d3.select(this)
-                        .attr("transform",
-                                "translate("
-                                + d.x + ","
-                                + (d.y = Math.max(
-                                    0, Math.min(height - d.dy, d3.event.y))
-                                    ) + ")");
-                        sankey.relayout();
-                        link.attr("d", sankey.link() );
-                    }
-                });
-            });
-        });
+        init_tooltips();
     </script>
 </div>

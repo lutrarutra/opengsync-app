@@ -20,6 +20,7 @@ from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
 from .PoolMappingForm import PoolMappingForm
+from .FRPAnnotationForm import FRPAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 
 
@@ -252,6 +253,11 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         self.add_table("comment_table", comment_table)
         self.update_data()
 
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
+            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form.prepare()
+            return frp_annotation_form.make_response(**context)
+
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(self, uuid=self.uuid)
             pool_mapping_form.prepare()
@@ -260,9 +266,4 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         complete_sas_form = CompleteSASForm(self, uuid=self.uuid)
         complete_sas_form.prepare()
         return complete_sas_form.make_response(**context)
-
-
-
-        
-
-        
+ 

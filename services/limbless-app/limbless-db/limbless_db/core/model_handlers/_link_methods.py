@@ -12,6 +12,7 @@ def link_sample_library(
     cmo_sequence: Optional[str] = None,
     cmo_pattern: Optional[str] = None,
     cmo_read: Optional[str] = None,
+    flex_barcode: Optional[str] = None,
     commit: bool = True
 ) -> models.SampleLibraryLink:
     
@@ -36,6 +37,7 @@ def link_sample_library(
         cmo_sequence=cmo_sequence,
         cmo_pattern=cmo_pattern,
         cmo_read=cmo_read,
+        flex_barcode=flex_barcode,
     )
 
     self._session.add(sample_library_link)

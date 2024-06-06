@@ -22,6 +22,7 @@ from .KitMappingForm import KitMappingForm
 from .FeatureReferenceInputForm import FeatureReferenceInputForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .PoolMappingForm import PoolMappingForm
+from .FRPAnnotationForm import FRPAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 
 
@@ -296,6 +297,11 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
             visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response(**context)
+        
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
+            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form.prepare()
+            return frp_annotation_form.make_response(**context)
 
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)

@@ -26,6 +26,7 @@ class SampleLibraryLink(Base):
     cmo_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, default=None)
     cmo_pattern: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, default=None)
     cmo_read: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True, default=None)
+    flex_barcode: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True, default=None)
 
     sample_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sample.id"), primary_key=True)
     library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)

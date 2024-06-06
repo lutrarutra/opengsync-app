@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 
 from limbless_db.categories import LibraryType
-from .... import tools
+from .... import tools, logger
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 
@@ -16,6 +16,7 @@ from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .PoolMappingForm import PoolMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
+from .FRPAnnotationForm import FRPAnnotationForm
 from .KitMappingForm import KitMappingForm
 from .CompleteSASForm import CompleteSASForm
 
@@ -142,10 +143,14 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
         library_table["library_type"] = library_table["library_type_id"].apply(lambda x: LibraryType.get(x).abbreviation)
 
         library_table["is_cmo_sample"] = False
+        library_table["is_flex_sample"] = False
         for sample_name, _df in library_table.groupby("sample_name"):
             if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
                 library_table.loc[library_table["sample_name"] == sample_name, "is_cmo_sample"] = True
-
+            if LibraryType.TENX_FLEX.id in _df["library_type_id"].unique():
+                library_table.loc[library_table["sample_name"] == sample_name, "is_flex_sample"] = True
+        
+        logger.debug(library_table)
         self.update_table("library_table", library_table)
 
         if "index_kit" in library_table and not library_table["index_kit"].isna().all():
@@ -167,6 +172,11 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response(**context)
+        
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
+            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form.prepare()
+            return frp_annotation_form.make_response(**context)
         
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)

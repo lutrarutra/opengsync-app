@@ -144,6 +144,29 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         response.headers["Content-Type"] = f"image/{file.extension[1:]}"
         response.headers["Content-Disposition"] = "inline; filename={file.name}"
         return response
+    
+    @app.route("/download_file/<int:file_id>")
+    @login_required
+    def download_file(file_id: int):
+        if (file := db.get_file(file_id)) is None:
+            return abort(categories.HTTPResponse.NOT_FOUND.id)
+        
+        if file.uploader_id != current_user.id and not current_user.is_insider():
+            if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
+                return abort(categories.HTTPResponse.FORBIDDEN.id)
+
+        filepath = os.path.join(app.config["MEDIA_FOLDER"], file.path)
+        if not os.path.exists(filepath):
+            logger.error(f"File not found: {filepath}")
+            return abort(categories.HTTPResponse.NOT_FOUND.id)
+        
+        with open(filepath, "rb") as f:
+            data = f.read()
+
+        response = make_response(data)
+        response.headers["Content-Type"] = "application/octet-stream"
+        response.headers["Content-Disposition"] = f"attachment; filename={file.name}{file.extension}"
+        return response
 
     @login_manager.unauthorized_handler
     def unauthorized():

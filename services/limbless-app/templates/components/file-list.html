@@ -22,23 +22,30 @@
                 {{ metadata_group("Size", file.size_str(), class="col-2") }}
                 {{ metadata_group("Time", file.timestamp_str(), class="col-2") }}
             </div>
-            <div>
-                {% if file.type.name != "Sequencing Authorization Form" %}
-                <button type="button" class="btn btn-danger"
-                hx-delete="{{ url_for(delete, file_id=file.id, **delete_context) }}"
-                _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Delete file \'{{ file.name }}\'',
-                    showDenyButton: true,
-                    text: 'Are you sure?',
-                    icon: 'question',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()">
-                    Delete
-                </button>
+            <div class="row">
+                <div class="col">
+                    <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary" download>
+                        Download
+                    </a>
+                </div>
+                <div class="col">
+                    {% if file.type.name != "Sequencing Authorization Form" %}
+                    <button type="button" class="btn btn-danger"
+                    hx-delete="{{ url_for(delete, file_id=file.id, **delete_context) }}"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Delete file \'{{ file.name }}\'',
+                        showDenyButton: true,
+                        text: 'Are you sure?',
+                        icon: 'question',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()">
+                        Delete
+                    </button>
+                </div>
                 {% endif %}
             </div>
         </div>

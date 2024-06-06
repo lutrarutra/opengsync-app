@@ -25,7 +25,7 @@ raw_columns = {
     "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 200, str),
     "genome": SpreadSheetColumn("C", "genome", "Genome", "dropdown", 150, str, GenomeRef.names()),
     "project": SpreadSheetColumn("D", "project", "Project", "text", 150, str),
-    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 150, str, LibraryType.names()),
+    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
     "seq_depth": SpreadSheetColumn("F", "seq_depth", "Sequencing Depth", "numeric", 150, float),
 }
 
@@ -34,7 +34,7 @@ pooled_columns = {
     "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 200, str),
     "genome": SpreadSheetColumn("C", "genome", "Genome", "dropdown", 150, str, GenomeRef.names()),
     "project": SpreadSheetColumn("D", "project", "Project", "text", 150, str),
-    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 100, str, LibraryType.names()),
+    "library_type": SpreadSheetColumn("E", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
     "pool": SpreadSheetColumn("F", "pool", "Pool", "text", 100, str),
     "index_kit": SpreadSheetColumn("G", "index_kit", "Index Kit", "text", 150, str),
     "adapter": SpreadSheetColumn("H", "adapter", "Adapter", "text", 100, str),
@@ -203,9 +203,7 @@ class SASInputForm(HTMXFlaskForm):
                 add_error(i + 1, "project", "missing 'Project'", "missing_value")
             
             if self.type == "raw":
-                if pd.isna(row["seq_depth"]):
-                    add_error(i + 1, "seq_depth", "missing 'Sequencing Depth'", "missing_value")
-                else:
+                if pd.notna(row["seq_depth"]):
                     try:
                         if isinstance(row["seq_depth"], str):
                             row["seq_depth"] = row["seq_depth"].strip().replace(" ", "")

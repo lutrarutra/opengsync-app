@@ -168,9 +168,9 @@ def connect_similar_strings(
                 score = difflib.SequenceMatcher(None, word, closest_match[0]).ratio()
                 res.append((search_dict[closest_match[0]], score))
 
-    data = dict(zip(data, res))
+    _data = dict(zip(data, res))
     bests = {}
-    for key, val in data.items():
+    for key, val in _data.items():
         if val is None:
             continue
         
@@ -181,7 +181,7 @@ def connect_similar_strings(
             bests[val[0]] = (key, val[1])
 
     res = {}
-    for key, val in data.items():
+    for key, val in _data.items():
         if val is None:
             res[key] = None
             continue

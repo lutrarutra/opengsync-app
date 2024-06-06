@@ -16,7 +16,7 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 
 
 class CompleteSASForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_annotation/sas-11.html"
+    _template_path = "workflows/library_annotation/sas-complete.html"
     _form_label = "complete_sas_form"
 
     def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
@@ -32,15 +32,19 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         feature_table = self.tables.get("feature_table")
         cmo_table = self.tables.get("cmo_table")
         visium_table = self.tables.get("visium_table")
+        flex_table = self.tables.get("flex_table")
         comment_table = self.tables.get("comment_table")
 
-        sample_table = self.get_sample_table(library_table, project_table, cmo_table)
+        sample_table = self.get_sample_table(library_table, project_table, cmo_table, flex_table)
+        self.add_table("sample_table", sample_table)
+        self.update_data()
 
         self._context["library_table"] = library_table
         self._context["pool_table"] = pool_table
         self._context["feature_table"] = feature_table
         self._context["cmo_table"] = cmo_table
         self._context["visium_table"] = visium_table
+        self._context["flex_table"] = flex_table
         self._context["comment_table"] = comment_table
         self._context["sample_table"] = sample_table
 
@@ -114,7 +118,10 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         self._context["nodes"] = nodes
         self._context["links"] = links
 
-    def get_sample_table(self, library_table: pd.DataFrame, project_table: pd.DataFrame, cmo_table: Optional[pd.DataFrame]) -> pd.DataFrame:
+    def get_sample_table(
+        self, library_table: pd.DataFrame, project_table: pd.DataFrame,
+        cmo_table: Optional[pd.DataFrame], flex_table: Optional[pd.DataFrame]
+    ) -> pd.DataFrame:
         sample_data = {
             "sample_name": [],
             "sample_pool": [],
@@ -124,9 +131,11 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             "project_id": [],
             "library_types": [],
             "is_cmo_sample": [],
+            "is_flex_sample": [],
             "cmo_sequence": [],
             "cmo_pattern": [],
             "cmo_read": [],
+            "flex_barcode": [],
         }
 
         def add_sample(
@@ -136,11 +145,13 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             project_name: str,
             project_id: str,
             is_cmo_sample: bool,
+            is_flex_sample: bool,
             library_types: list[str],
             sample_id: Optional[int] = None,
             cmo_sequence: Optional[str] = None,
             cmo_pattern: Optional[str] = None,
             cmo_read: Optional[str] = None,
+            flex_barcode: Optional[str] = None
         ):
             sample_data["sample_name"].append(sample_name)
             sample_data["sample_pool"].append(sample_pool)
@@ -150,25 +161,16 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             sample_data["sample_id"].append(sample_id)
             sample_data["library_types"].append(library_types)
             sample_data["is_cmo_sample"].append(is_cmo_sample)
+            sample_data["is_flex_sample"].append(is_flex_sample)
             sample_data["cmo_sequence"].append(cmo_sequence)
             sample_data["cmo_pattern"].append(cmo_pattern)
             sample_data["cmo_read"].append(cmo_read)
+            sample_data["flex_barcode"].append(flex_barcode)
 
-        for (sample_name, sample_id, project, is_cmo_sample), _df in library_table.groupby(["sample_name", "sample_id", "project", "is_cmo_sample"], dropna=False):
+        for (sample_name, sample_id, project, is_cmo_sample, is_flex_sample), _df in library_table.groupby(["sample_name", "sample_id", "project", "is_cmo_sample", "is_flex_sample"], dropna=False):
             library_types = [LibraryType.get(library_type_id).abbreviation for library_type_id in _df["library_type_id"].unique()]
             project_row = project_table[project_table["project"] == project].iloc[0]
-            if not is_cmo_sample:
-                add_sample(
-                    sample_name=sample_name,
-                    sample_pool=sample_name,
-                    project_label=project_row["project"],
-                    project_name=project_row["name"],
-                    sample_id=sample_id,
-                    project_id=project_row["id"],
-                    library_types=library_types,
-                    is_cmo_sample=False
-                )
-            else:
+            if is_cmo_sample:
                 if cmo_table is None:
                     logger.error(f"{self.uuid}: CMO reference table not found.")
                     raise Exception("CMO reference should not be None.")
@@ -182,10 +184,44 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         project_id=project_row["id"],
                         library_types=library_types,
                         is_cmo_sample=True,
+                        is_flex_sample=False,
                         cmo_sequence=cmo_row["sequence"],
                         cmo_pattern=cmo_row["pattern"],
                         cmo_read=cmo_row["read"],
                     )
+            elif is_flex_sample:
+                if flex_table is None:
+                    logger.error(f"{self.uuid}: flex reference table not found.")
+                    raise Exception("flex reference should not be None.")
+                
+                for (sample_name, sample_id, library_name, barcode_id), _ in flex_table.groupby(["sample_name", "sample_id", "library_name", "barcode_id"], dropna=False):
+                    project = library_table[library_table["library_name"] == library_name].iloc[0]["project"]
+                    sample_pool = library_table[library_table["library_name"] == library_name].iloc[0]["sample_name"]
+                    project_row = project_table[project_table["project"] == project].iloc[0]
+                    add_sample(
+                        sample_name=sample_name,
+                        sample_pool=sample_pool,
+                        project_label=project_row["project"],
+                        project_name=project_row["name"],
+                        sample_id=sample_id,
+                        is_flex_sample=True,
+                        is_cmo_sample=False,
+                        project_id=project_row["id"],
+                        library_types=library_types,
+                        flex_barcode=barcode_id
+                    )
+            else:
+                add_sample(
+                    sample_name=sample_name,
+                    sample_pool=sample_name,
+                    project_label=project_row["project"],
+                    project_name=project_row["name"],
+                    sample_id=sample_id,
+                    project_id=project_row["id"],
+                    library_types=library_types,
+                    is_cmo_sample=False,
+                    is_flex_sample=False,
+                )
 
         return pd.DataFrame(sample_data)
     
@@ -194,7 +230,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         pool_table: Optional[pd.DataFrame], visium_table: Optional[pd.DataFrame],
         cmo_table: Optional[pd.DataFrame]
     ):
-        self.add_table("sample_table", sample_table)
+        self.update_table("sample_table", sample_table, False)
         self.update_table("library_table", library_table, False)
         self.update_table("project_table", project_table, False)
         if pool_table is not None:
@@ -216,13 +252,12 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         library_table = self.tables["library_table"]
         project_table = self.tables["project_table"]
+        sample_table = self.tables["sample_table"]
         pool_table = self.tables.get("pool_table")
         feature_table = self.tables.get("feature_table")
         cmo_table = self.tables.get("cmo_table")
         visium_table = self.tables.get("visium_table")
         comment_table = self.tables.get("comment_table")
-
-        sample_table = self.get_sample_table(library_table, project_table, cmo_table)
 
         if current_app.debug:
             self.__update_data(
@@ -288,9 +323,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     )
                     pool_table.at[idx, "pool_id"] = pool.id
 
-            logger.debug(pool_table.dtypes)
             pool_table["pool_id"] = pool_table["pool_id"].astype(int)
-            logger.debug(pool_table.dtypes)
 
         with DBSession(db) as session:
             library_table["library_id"] = None
@@ -331,6 +364,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         cmo_sequence=sample_row["cmo_sequence"] if pd.notna(sample_row["cmo_sequence"]) else None,
                         cmo_pattern=sample_row["cmo_pattern"] if pd.notna(sample_row["cmo_pattern"]) else None,
                         cmo_read=sample_row["cmo_read"] if pd.notna(sample_row["cmo_read"]) else None,
+                        flex_barcode=sample_row["flex_barcode"] if pd.notna(sample_row["flex_barcode"]) else None,
                     )
 
             library_table["library_id"] = library_table["library_id"].astype(int)
@@ -362,10 +396,19 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             
         if comment_table is not None:
             for _, row in comment_table.iterrows():
-                comment = session.create_comment(
-                    text=f"Visium data instructions: {row['text']}",
-                    author_id=user.id,
-                )
+                if row["context"] == "visium_instructions":
+                    comment = session.create_comment(
+                        text=f"Visium data instructions: {row['text']}",
+                        author_id=user.id,
+                    )
+                elif row["context"] == "custom_genome_reference":
+                    comment = session.create_comment(
+                        text=f"Custom genome reference: {row['text']}",
+                        author_id=user.id,
+                    )
+                else:
+                    raise ValueError(f"Unknown comment context: {row['context']}")
+                    
                 session.add_seq_request_comment(
                     seq_request_id=seq_request.id,
                     comment_id=comment.id

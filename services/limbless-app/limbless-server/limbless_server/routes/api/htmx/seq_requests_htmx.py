@@ -581,7 +581,7 @@ def overview(seq_request_id: int):
                             links.append({
                                 "source": library_idx,
                                 "target": seq_request_node["node"],
-                                "value": LINK_WIDTH_UNIT
+                                "value": LINK_WIDTH_UNIT * link.library.num_samples
                             })
                         else:
                             contains_pooled = True

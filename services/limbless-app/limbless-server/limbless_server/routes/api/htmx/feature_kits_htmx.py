@@ -6,7 +6,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse
-from .... import db, logger
+from .... import db, logger  # noqa: F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -64,13 +64,17 @@ def query():
     )
 
 
-@feature_kits_htmx.route("table_query/<string:field_name>", methods=["POST"])
+@feature_kits_htmx.route("table_query", methods=["GET"])
 @login_required
-def table_query(field_name: str):
+def table_query():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    if (word := request.form.get(field_name)) is None:
+    if (word := request.args.get("name")) is not None:
+        field_name = "name"
+    elif (word := request.args.get("id")) is not None:
+        field_name = "id"
+    else:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     feature_kits = []

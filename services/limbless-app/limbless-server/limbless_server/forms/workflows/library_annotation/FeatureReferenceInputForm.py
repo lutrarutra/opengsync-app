@@ -24,6 +24,7 @@ from ...SearchBar import OptionalSearchBar
 from .KitMappingForm import KitMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .PoolMappingForm import PoolMappingForm
+from .FRPAnnotationForm import FRPAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 
 
@@ -303,7 +304,9 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
 
         if self.input_type == "predefined":
             with DBSession(db) as session:
-                kit: models.FeatureKit = session.get_feature_kit(self.feature_kit.selected.data)
+                if (kit := session.get_feature_kit(self.feature_kit.selected.data)) is None:
+                    logger.error(f"{self.uuid}: Feature kit with ID {self.feature_kit.selected.data} not found.")
+                    raise Exception(f"Feature kit with ID {self.feature_kit.selected.data} not found.")
                 features = kit.features
 
                 for library_name in abc_libraries_df["library_name"]:
@@ -366,6 +369,11 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
             visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response(**context)
+        
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
+            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form.prepare()
+            return frp_annotation_form.make_response(**context)
 
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)

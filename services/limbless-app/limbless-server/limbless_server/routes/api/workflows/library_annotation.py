@@ -58,6 +58,18 @@ def download_visium_template(uuid: str):
     )
 
 
+@library_annotation_workflow.route("download_frp_template", methods=["GET"])
+@login_required
+def download_frp_template():
+    form = forms.FRPAnnotationForm()
+    template = form.get_template()
+
+    return Response(
+        template.to_csv(sep="\t", index=False), mimetype="text/csv",
+        headers={"Content-disposition": "attachment; filename=frp_annotation.tsv"}
+    )
+
+
 # Template sequencing authorization form
 @library_annotation_workflow.route("seq_auth_form/download", methods=["GET"])
 @login_required
@@ -204,7 +216,7 @@ def map_feature_kits(seq_request_id: int):
     )
 
 
-# 9. Map pools
+# 9. Visium Annotation
 @library_annotation_workflow.route("<int:seq_request_id>/parse_visium_reference/<string:input_type>", methods=["POST"])
 @login_required
 def parse_visium_reference(seq_request_id: int, input_type: Literal["spreadsheet", "file"]):
@@ -218,8 +230,23 @@ def parse_visium_reference(seq_request_id: int, input_type: Literal["spreadsheet
         seq_request=seq_request, user=current_user
     )
 
+
+# 10. Fixed RNA Profiling Annotation
+@library_annotation_workflow.route("<int:seq_request_id>/parse_frp_annotation/<string:input_type>", methods=["POST"])
+@login_required
+def parse_frp_annotation(seq_request_id: int, input_type: Literal["spreadsheet", "file"]):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
-# 10. Map pools
+    if input_type not in ["spreadsheet", "file"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    return forms.FRPAnnotationForm(formdata=request.form | request.files, input_type=input_type).process_request(
+        seq_request=seq_request, user=current_user
+    )
+
+    
+# 11. Map pools
 @library_annotation_workflow.route("<int:seq_request_id>/map_pools", methods=["POST"])
 @login_required
 def map_pools(seq_request_id: int):
@@ -231,7 +258,7 @@ def map_pools(seq_request_id: int):
     )
 
 
-# 11. Confirm SAS
+# Complete SAS
 @library_annotation_workflow.route("<int:seq_request_id>/complete", methods=["POST"])
 @login_required
 def complete(seq_request_id: int):

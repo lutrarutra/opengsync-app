@@ -13,6 +13,24 @@ from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
+class SeqRequestDisclaimerForm(FlaskForm):
+    disclaimer = BooleanField(
+        "I have read and understood the disclaimer",
+        validators=[DataRequired("You must check this field.")],
+    )
+
+    def __init__(self, formdata={}, **kwargs):
+        super().__init__(formdata=formdata, **kwargs)
+        self._validated = False
+
+    def is_validated(self) -> bool:
+        return self._validated and self.errors == {}
+    
+    def validate(self) -> bool:
+        self._validated = super().validate() and self.disclaimer.data is True
+        return self._validated
+
+
 class BasicInfoSubForm(FlaskForm):
     request_name = StringField(
         "Request Name", validators=[DataRequired(), Length(min=6, max=models.SeqRequest.name.type.length)],
@@ -101,8 +119,8 @@ class ContactSubForm(FlaskForm):
         description="E-Mail address of primary contact."
     )
     contact_person_phone = StringField(
-        "Contact Person Phone", validators=[Length(max=models.Contact.phone.type.length)],
-        description="Phone number of primary contact (optional)."
+        "Contact Person Phone", validators=[DataRequired(), Length(max=models.Contact.phone.type.length)],
+        description="Phone number of primary contact."
     )
 
     def __init__(self, formdata={}, **kwargs):
@@ -211,6 +229,7 @@ class SeqRequestForm(HTMXFlaskForm):
     _template_path = "forms/seq_request/seq_request.html"
     _form_label = "seq_request_form"
 
+    disclaimer_form: SeqRequestDisclaimerForm = FormField(SeqRequestDisclaimerForm)  # type: ignore
     basic_info_form: BasicInfoSubForm = FormField(BasicInfoSubForm)  # type: ignore
     technical_info_form: TechinicalInfoSubForm = FormField(TechinicalInfoSubForm)  # type: ignore
     data_processing_form: DataProcessingSubForm = FormField(DataProcessingSubForm)  # type: ignore
@@ -303,7 +322,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         seq_request.contact_person.name = self.contact_form.contact_person_name.data  # type: ignore
         seq_request.contact_person.email = self.contact_form.contact_person_email.data
-        seq_request.contact_person.phone = self.contact_form.contact_person_phone.data
+        seq_request.contact_person.phone = self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None
 
         if self.bioinformatician_form.bioinformatician_name.data:
             if seq_request.bioinformatician_contact is None:
@@ -340,14 +359,14 @@ class SeqRequestForm(HTMXFlaskForm):
         contact_person = db.create_contact(
             name=self.contact_form.contact_person_name.data,  # type: ignore
             email=self.contact_form.contact_person_email.data,
-            phone=self.contact_form.contact_person_phone.data,
+            phone=self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None,
         )
 
         billing_contact = db.create_contact(
             name=self.billing_form.billing_contact.data,  # type: ignore
             email=self.billing_form.billing_email.data,
             address=self.billing_form.billing_address.data,
-            phone=self.billing_form.billing_phone.data,
+            phone=self.billing_form.billing_phone.data.replace(" ", "") if self.billing_form.billing_phone.data else None
         )
 
         organization_contact = db.create_contact(
@@ -359,7 +378,7 @@ class SeqRequestForm(HTMXFlaskForm):
             bioinformatician = db.create_contact(
                 name=self.bioinformatician_form.bioinformatician_name.data,
                 email=self.bioinformatician_form.bioinformatician_email.data,
-                phone=self.bioinformatician_form.bioinformatician_phone.data,
+                phone=self.bioinformatician_form.bioinformatician_phone.data.replace(" ", "") if self.bioinformatician_form.bioinformatician_phone.data else None
             )
             bioinformatician_contact_id = bioinformatician.id
         else:

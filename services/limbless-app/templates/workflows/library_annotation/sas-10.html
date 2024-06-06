@@ -1,129 +1,169 @@
-{% from "components/form_group.jinja2" import form_group %}
-{% from "components/tooltip.jinja2" import tooltip %}
-{% from "components/categorical_mapping.jinja2" import raw_label_mapping %}
+{% from 'components/form_group.jinja2' import form_group %}
+{% from "components/table_input.jinja2" import table_input %}
+{% from "components/legends.jinja2" import color_legend %}
 
-<div id="pool-mapping-container" class="modal-content">
+<div id="frp-reference-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">10. Describe Library-Pools</h1>
+        <h1 class="modal-title fs-5" >10. Fixed RNA Profiling Annotation</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body">
-        <div class="tab-body" id="pool-mapping-form">
+        <div class="tab-body">
             <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
-                {% for sub_form in form.input_fields %}
-                <li class="nav-item" role="presentation"> 
-                    <button class="nav-link {{ 'active' if loop.first else '' }} {% if sub_form.errors %}text-danger{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#pool-form-tab-{{ sub_form.pool_name.data.replace(' ', '_') }}" type="button" role="tab"
-                    aria-controls="pool-form-tab" aria-selected="true">
-                    {{ sub_form.raw_label.data }}</button>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#help-tab" type="button" role="tab"
+                    aria-controls="help-tab" aria-selected="false">
+                    Help</button>
                 </li>
-                {% endfor %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                    id="spreadsheet-tab-btn"
+                    data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                    aria-controls="spreadsheet-tab" aria-selected="true">
+                    Spreadsheet</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
+                    id="file-tab-btn"
+                    data-bs-target="#file-tab" type="button" role="tab"
+                    aria-controls="file-tab" aria-selected="true">
+                    File</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                    data-bs-target="#fixed-1-example-tab" type="button" role="tab"
+                    aria-controls="fixed-1-example-tab" aria-selected="true">
+                    Example 1.</button>
+                </li>
             </ul>
-            <div class="tab-content pt-3">
-                {% for sub_form in form.input_fields %}
-                <div class="tab-pane fade show {{ 'active' if loop.first else '' }}" id="pool-form-tab-{{ sub_form.pool_name.data.replace(' ', '_') }}" role="tabpanel" tabindex="{{ loop.index0 }}">
-                    <div>
-                        {{ sub_form.csrf_token() }}
-                        {{    
-                            raw_label_mapping(
-                                raw_label=sub_form.raw_label,
-                                new_label=sub_form.pool_name,
-                                token=sub_form.csrf_token
-                            )
-                        }}
-                        {{ form_group(sub_form.num_m_reads) }}
-                        <h5>Who did the pooling and library prep?</h5>
-                        <div class="row">
-                            {{ form_group(sub_form.contact_person_name, class="col-4") }}
-                            {{ form_group(sub_form.contact_person_email, class="col-4") }}
-                            {{ form_group(sub_form.contact_person_phone, class="col-4") }}
-                        </div>
-                    </div>
-                    <div>
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th scope="col" class="col-2">Library</th>
-                                    <th scope="col" class="col-1">Library Type</th>
-                                    <th scope="col" class="col-1">Genome</th>
-                                    <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
-                                    {% if show_adapter %}
-                                    <th scope="col" class="col-1">Adapter</th>
-                                    {% endif %}
-                                    {% if show_index_1 %}
-                                    <th scope="col" class="col-1">Index 1</th>
-                                    {% endif %}
-                                    {% if show_index_2 %}
-                                    <th scope="col" class="col-1">Index 2</th>
-                                    {% endif %}
-                                    {% if show_index_3 %}
-                                    <th scope="col" class="col-1">Index 3</th>
-                                    {% endif %}
-                                    {% if show_index_4 %}
-                                    <th scope="col" class="col-1">Index 4</th>
-                                    {% endif %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for idx, row in library_table[library_table["pool"] == pools[loop.index0]].iterrows() %}
-                                {% if row["error"] %}
-                                <tr {{ tooltip(row["error"], category="error") }}>
-                                {% elif row["warning"] %}
-                                <tr {{ tooltip(row["warning"], category="warning") }}>
-                                {% else %}
-                                <tr>
-                                {% endif %}
-                                    <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_name"] }}</td>
-                                    <td>{{ row["library_type"] }}</td>
-                                    <td>{{ row["genome_ref"] }}</td>
-                                    <td {% if row["min_hamming_bases"] < 1 %}
-                                    class="cemm-red"
-                                    {% elif row["min_hamming_bases"] < 2 %}
-                                    class="cemm-yellow"
-                                    {% else %}
-                                    class="cemm-green"
-                                    {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
-                                    {% if show_adapter %}
-                                    <td>{{ row["adapter"] if row["adapter"] }}</td>
-                                    {% endif %}
-                                    {% if show_index_1 %}
-                                    <td class="index-cell-1">{{ row["index_1"] if row["index_1"] }}</td>
-                                    {% endif %}
-                                    {% if show_index_2 %}
-                                    <td class="index-cell-2">{{ row["index_2"] if row["index_2"] }}</td>
-                                    {% endif %}
-                                    {% if show_index_3 %}
-                                    <td class="index-cell-3">{{ row["index_3"] if row["index_3"] }}</td>
-                                    {% endif %}
-                                    {% if show_index_4 %}
-                                    <td class="index-cell-4">{{ row["index_4"] if row["index_4"] }}</td>
-                                    {% endif %}
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            <div class="tab-content" id="frp-reference-form" enctype="multipart/form-data">
+                {{ frp_annotation_form.csrf_token() }}
+                {{ frp_annotation_form.file_uuid(hidden=True, readonly=True) }}
+
+                <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+                    <div class="input-help">
+                        <h5>How to?</h5>
+                        <ul>
+                            <li>Fill in the required columns and submit as a file or live spreadsheet.</li>
+                        </ul>
+                        <h5>Columns: </h5>
+                        <ul>
+                            <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
+                            <li>Barcode ID<span class="desc">e.g. 'BC001'</span></li>
+                            <li>Sample Name <span class="desc">name of the demultiplexed sample</span></li>
+                        </ul>
                     </div>
                 </div>
-                {% endfor %}
+                <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
+                    <div id="spreadsheet-grid" class="spreadsheet-grid">
+                        <div class="invalid-feedback-container">
+                            {% if not disabled %}
+                            {% for error in frp_annotation_form.spreadsheet_dummy.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
+                    <div class="input-help">
+                        <h5>How to?</h5>
+                        <ol>
+                            <li><a href="{{ url_for('library_annotation_workflow.download_frp_template', uuid=frp_annotation_form.file_uuid.data) }}">Download template</a></li>
+                            <li>Fill in the template</li>
+                            <li>Submit the file below</li>
+                        </ol>
+                        <h5>Columns:</h5>
+                        <ul>
+                            <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
+                            <li>Barcode ID<span class="desc">e.g. 'BC001'</span></li>
+                            <li>Sample Name <span class="desc">name of the demultiplexed sample</span></li>
+                        </ul>
+                    </div>
+                    <div class="row">
+                        {{ form_group(frp_annotation_form.separator, class="col-2") }}
+                        {{ form_group(frp_annotation_form.file, class="col-10") }}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="fixed-1-example-tab" role="tabpanel" tabindex="3">
+                    {% include "components/examples/fixed_rna_profiling.html" %}
+                </div>
             </div>
-            {{ form.file_uuid(hidden=True, readonly=True) }}
-            {{ form.csrf_token() }}
         </div>
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ form.file_uuid.data }}
+            {{ frp_annotation_form.file_uuid.data }}
+        </div>
+        <div class="footer-info">
+            {{ color_legend(colors) }}
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-primary"
-                hx-target="#pool-mapping-container" hx-swap="outerHTML"
-                hx-include="#pool-mapping-form" id="submit-pool-mapping-form-btn"
-                hx-post="{{ url_for('library_annotation_workflow.map_pools', seq_request_id=seq_request.id) }}">
-                Next
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-file-form-btn"
+                hx-include="#frp-reference-form" hx-target="#frp-reference-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data" {% if active_tab != "file" %}style="display: none;"{% endif %}
+                hx-post="{{ url_for('library_annotation_workflow.parse_frp_annotation', seq_request_id=seq_request.id, input_type='file') }}">
+                File
+            </button>
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
+                Spreadsheet
             </button>
         </div>
     </div>
     <script>
-        init_tooltips();
+        $(document).ready(function() {
+            init_tooltips();
+
+            $(".example-tab-btn, .help-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+            });
+            $("#file-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+                $("#submit-file-form-btn").show();
+            });
+            $("#spreadsheet-tab-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+                $("#submit-spreadsheet-btn").show();
+            });
+
+            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
+            const csrf_token = "{{ frp_annotation_form.csrf_token._value() }}";
+
+            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
+                data: data,
+                columns: [
+                    {% for col in columns %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                minSpareRows: 10,
+                allowInsertRow: true,
+                allowManualInsertRow: true,
+                allowDeleteRow: true,
+                allowDeleteColumn: false,
+                allowInsertColumn: false,
+                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
+            });
+
+            $("#submit-spreadsheet-btn").on("click", function() {
+                var data = spread_sheet.getData();
+
+                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_frp_annotation', seq_request_id=seq_request.id, input_type='spreadsheet') }}", {
+                    "target": "#frp-reference-form-container",
+                    "swap": "outerHTML",
+                    "values": {
+                        "spreadsheet": JSON.stringify(data),
+                        "csrf_token": csrf_token,
+                        "feature_kit-csrf_token": csrf_token,
+                        "file_uuid": "{{ frp_annotation_form.file_uuid.data }}",
+                    },
+                });
+            });
+        });
     </script>
 </div>
