@@ -72,6 +72,7 @@ class LanePoolingForm(HTMXFlaskForm):
                         raise ValueError(f"Pool with id {row['pool_id']} does not exist")
                     
                     df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]
+                    sample_sub_form.dilution.data = "Orig."
                     
                     for dilution in pool.dilutions:
                         sample_sub_form.dilution.data = dilution.identifier
@@ -86,12 +87,6 @@ class LanePoolingForm(HTMXFlaskForm):
         df["share"] = None
         for _, _df in df.groupby("lane"):
             df.loc[_df.index, "share"] = _df["num_m_reads_requested"] / _df["num_m_reads_requested"].sum()
-
-        df["molarity_color"] = "cemm-green"
-        df.loc[df["molarity"] < models.Pool.warning_min_molarity, "molarity_color"] = "cemm-yellow"
-        df.loc[df["molarity"] > models.Pool.warning_max_molarity, "molarity_color"] = "cemm-yellow"
-        df.loc[df["molarity"] < models.Pool.error_min_molarity, "molarity_color"] = "cemm-red"
-        df.loc[df["molarity"] > models.Pool.error_max_molarity, "molarity_color"] = "cemm-red"
 
         df["pipet"] = DEFAULT_TARGET_NM / df["molarity"] * df["share"] * DEFAULT_TOTAL_VOLUME_TARGET
 
@@ -111,12 +106,13 @@ class LanePoolingForm(HTMXFlaskForm):
             df.loc[pool_idx & lane_idx, "num_m_reads_requested"] = pool_reads_form.m_reads.data
             df.loc[pool_idx & lane_idx, "dilution"] = pool_reads_form.dilution.data
 
-        for (pool_id, lane, identifier), _df in df.groupby(["pool_id", "lane", "dilution"]):
+        logger.debug(df[["pool_id", "dilution"]])
+        for (pool_id, lane, identifier), _df in df.groupby(["pool_id", "lane", "dilution"], dropna=False):
             if identifier == "Orig.":
                 continue
             if (dilution := db.get_pool_dilution(int(pool_id), identifier)) is None:
                 logger.error(f"lane_pools_workflow: PoolDilution with pool_id {pool_id} and identifier {identifier} does not exist")
-                raise ValueError(f"PoolDilution with pool_id {pool_id} and identifier {identifier} does not exist")
+                raise ValueError(f"PoolDilution with pool_id '{pool_id}' and identifier '{identifier}' does not exist")
             
             df.loc[_df.index, "qubit_concentration"] = dilution.qubit_concentration
 

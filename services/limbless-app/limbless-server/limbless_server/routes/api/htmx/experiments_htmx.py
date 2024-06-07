@@ -424,68 +424,73 @@ def overview(experiment_id: int):
 
     libraries = {}
     pools = {}
-    for (request_id, request_name), _df in df.groupby(["request_id", "request_name"]):
+    lanes = {}
+    lane_widths = {}
+    for lane in df["lane"].unique():
+        lane_node = {
+            "node": node_idx,
+            "name": f"Lane {lane}"
+        }
+        node_idx += 1
+        nodes.append(lane_node)
+        lanes[lane] = lane_node
+        lane_widths[lane] = 0
+
+    for (_, request_name), _df in df.groupby(["request_id", "request_name"]):
         request_node = {
             "node": node_idx,
             "name": request_name
         }
         nodes.append(request_node)
         node_idx += 1
-        for lane, __df in _df.groupby("lane"):
-            lane_node = {
-                "node": node_idx,
-                "name": f"Lane {lane}"
-            }
-            node_idx += 1
-            nodes.append(lane_node)
-            lane_width = 0
-            for (pool_id, pool_name), ___df in __df.groupby(["pool_id", "pool_name"]):
-                if pool_id not in pools.keys():
-                    pool_node = {
+        for (pool_id, pool_name, lane), __df in _df.groupby(["pool_id", "pool_name", "lane"]):
+            if pool_id not in pools.keys():
+                pool_node = {
+                    "node": node_idx,
+                    "name": pool_name
+                }
+                node_idx += 1
+                nodes.append(pool_node)
+                pools[pool_id] = pool_node
+            else:
+                pool_node = pools[pool_id]
+
+            width = __df.shape[0] / len(df[df["pool_id"] == pool_id]["lane"].unique())
+            links.append({
+                "source": pool_node["node"],
+                "target": lanes[lane]["node"],
+                "value": LINK_WIDTH_UNIT * width
+            })
+            lane_widths[lane] += width
+
+            for i, row in __df.iterrows():
+                if row["library_id"] not in libraries.keys():
+                    library_node = {
                         "node": node_idx,
-                        "name": pool_name
+                        "name": row["library_type"].name
                     }
                     node_idx += 1
-                    nodes.append(pool_node)
-                    pools[pool_id] = pool_node
+                    nodes.append(library_node)
+                    libraries[row["library_id"]] = library_node
+                    links.append({
+                        "source": library_node["node"],
+                        "target": pool_node["node"],
+                        "value": LINK_WIDTH_UNIT
+                    })
+                    links.append({
+                        "source": request_node["node"],
+                        "target": library_node["node"],
+                        "value": LINK_WIDTH_UNIT
+                    })
                 else:
-                    pool_node = pools[pool_id]
+                    library_node = libraries[row["library_id"]]
 
-                width = ___df.shape[0] / len(_df[_df["pool_id"] == pool_id]["lane"].unique())
-                links.append({
-                    "source": pool_node["node"],
-                    "target": lane_node["node"],
-                    "value": LINK_WIDTH_UNIT * width
-                })
-                lane_width += width
-
-                for i, row in ___df.iterrows():
-                    if row["library_id"] not in libraries.keys():
-                        library_node = {
-                            "node": node_idx,
-                            "name": row["library_type"].name
-                        }
-                        node_idx += 1
-                        nodes.append(library_node)
-                        libraries[row["library_id"]] = library_node
-                        links.append({
-                            "source": library_node["node"],
-                            "target": pool_node["node"],
-                            "value": LINK_WIDTH_UNIT
-                        })
-                        links.append({
-                            "source": request_node["node"],
-                            "target": library_node["node"],
-                            "value": LINK_WIDTH_UNIT
-                        })
-                    else:
-                        library_node = libraries[row["library_id"]]
-
-            links.append({
-                "source": lane_node["node"],
-                "target": experiment_node["node"],
-                "value": LINK_WIDTH_UNIT * lane_width
-            })
+    for lane, _ in df.groupby("lane"):
+        links.append({
+            "source": lanes[lane]["node"],
+            "target": experiment_node["node"],
+            "value": LINK_WIDTH_UNIT * lane_widths[lane]
+        })
 
     return make_response(
         render_template(

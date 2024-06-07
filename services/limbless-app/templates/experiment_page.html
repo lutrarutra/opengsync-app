@@ -258,11 +258,11 @@
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% endif %}
                     {% if all_pools_laned == false and all_pools_qced == false %}
-                    {{ tooltip("All pools must be assigned atleast one lane and 'QC Pools'-workflow must be completed.", category="warning") }}
+                    {{ tooltip("All pools must be assigned atleast one lane and all pools must be QCed.", category="warning") }}
                     {% elif all_pools_laned == false %}
                     {{ tooltip("All pools must be assigned atleast one lane.", category="warning") }}
                     {% else %}
-                    {{ tooltip("'QC Pools'-workflow must be completed first.", category="warning") }}
+                    {{ tooltip("All pools must be QCed.", category="warning") }}
                     {% endif %}>
                     <div class="flip-card-container">
                         <div class="card-front">

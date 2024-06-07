@@ -47,6 +47,8 @@ def lane_pools(experiment_id: int):
         
         experiment.files
 
+    logger.debug(request.form)
+
     if experiment.workflow.combined_lanes:
         form = wff.UnifiedLanePoolingForm(formdata=request.form)
     else:

@@ -15,11 +15,13 @@ def get_experiment_libraries_df(
 ) -> pd.DataFrame:
         
     columns = [
+        models.Experiment.id.label("experiment_id"), models.Experiment.name.label("experiment_name"),
+        models.Lane.number.label("lane"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("reference_id"),
         models.Library.adapter, models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
         models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"), models.Lane.number.label("lane"),
     ]
     if include_seq_request:
         columns.extend([
@@ -44,16 +46,20 @@ def get_experiment_libraries_df(
             models.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.SampleLibraryLink.cmo_read.label("cmo_read"),
         ])
 
-    query = sa.select(*columns).join(
-        models.Pool,
-        models.Pool.id == models.Library.pool_id,
-    ).join(
-        models.LanePoolLink,
-        models.LanePoolLink.pool_id == models.Pool.id,
-        isouter=True
+    query = sa.select(*columns).where(
+        models.Experiment.id == experiment_id
     ).join(
         models.Lane,
-        models.Lane.id == models.LanePoolLink.lane_id,
+        models.Lane.experiment_id == models.Experiment.id
+    ).join(
+        models.LanePoolLink,
+        models.LanePoolLink.lane_id == models.Lane.id
+    ).join(
+        models.Pool,
+        models.Pool.id == models.LanePoolLink.pool_id
+    ).join(
+        models.Library,
+        models.Library.pool_id == models.Pool.id
     )
 
     if include_sample:
@@ -87,23 +93,28 @@ def get_experiment_libraries_df(
             models.VisiumAnnotation.id == models.Library.visium_annotation_id,
             isouter=True
         )
-
-    query = query.join(
-        models.ExperimentPoolLink,
-        models.ExperimentPoolLink.pool_id == models.Pool.id,
-    ).where(
-        models.ExperimentPoolLink.experiment_id == experiment_id
-    )
             
-    query = query.order_by(models.Library.id)
+    query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
     df = pd.read_sql(query, self._engine)
 
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
-    df["refernece"] = df["reference_id"].map(categories.GenomeRef.get)
+    df["reference"] = df["reference_id"].map(categories.GenomeRef.get)
+
+    order = [
+        "lane", "library_id", "library_name", "library_type", "reference", "pool_name",
+        "pool_id", "library_type_id", "reference_id",
+        "index_1", "index_2",
+        "index_3", "index_4",
+    ]
+    order += [c for c in df.columns if c not in order]
+
+    df = df[order]
     
     df = df.dropna(axis="columns", how="all")
     if collapse_lanes:
         df = df.groupby(df.columns.difference(['lane']).tolist(), as_index=False).agg({'lane': list}).rename(columns={'lane': 'lanes'})
+        order[0] = "lanes"
+        df = df[[c for c in order if c in df.columns]]
     
     return df
 

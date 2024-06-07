@@ -253,7 +253,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         self.add_table("comment_table", comment_table)
         self.update_data()
 
-        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
             frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response(**context)
