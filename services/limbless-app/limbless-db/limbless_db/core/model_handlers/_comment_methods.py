@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional
 
 from limbless_db import models
@@ -14,7 +13,7 @@ def create_comment(
         self.open_session()
 
     comment = models.Comment(
-        text=text.strip(),
+        text=text.strip()[:models.Comment.text.type.length],
         author_id=author_id,
         file_id=file_id,
     )

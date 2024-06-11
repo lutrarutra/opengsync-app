@@ -210,6 +210,28 @@
                 <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
                     {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='tech') }}"
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
+                    {% else %}{{ tooltip("You can no longer add samples after the request has been submitted.", category="warning") }}{% endif %}>
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/select-tech.svg') }}" width="90px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">A. Select Product <br><span class="desc">Raw Samples</span></h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Select technology from predefined list of supported technologies. Annotate samples for library preparation, pooling, and sequencing. You can submit this workflow multiple times before submitting the request. The result of this workflow is same as workflow 'B', except the annotation is guided by the technology selected.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
+                    {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='raw') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% else %}{{ tooltip("You can no longer add samples after the request has been submitted.", category="warning") }}{% endif %}>
@@ -219,12 +241,12 @@
                                 <img src="{{ url_for('static', filename='images/licensed/petri-dish.svg') }}" width="90px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">Add Raw Samples</h5>
+                                <h5 class="card-title">B. Add Samples <br><span class="desc">Raw Samples</span></h5>
                             </div>
                         </div>
                         <div class="card-back">
                             <div class="text-container">
-                                <p class="card-text">Submit raw samples for library preparation, pooling, and sequencing. You can submit this workflow multiple times before submitting the request.</p>
+                                <p class="card-text">Submit raw samples for library preparation, pooling, and sequencing. You can submit this workflow multiple times before submitting the request. The result of this workflow is same as workflow 'A', except the annotation process is more manual.</p>
                             </div>
                         </div>
                     </div>
@@ -241,14 +263,14 @@
                                 <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">Add Pooled Libraries</h5>
+                                <h5 class="card-title">C. Add Pooled Libraries <br><span class="desc">Prepared Libraries</span></h5>
                             </div>
                         </div>
                         <div class="card-back">
                             <div class="text-container">
                                 <p class="card-text">
                                     Submit pooled libraries for sequencing. You can submit this workflow multiple times before submitting the request.
-                                    However, you must submit all libraries of a pool in one go.
+                                    However, you must submit all libraries of a pool in one go. 
                                 </p>
                             </div>
                         </div>

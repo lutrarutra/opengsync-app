@@ -90,7 +90,7 @@ def download_seq_auth_form():
 @library_annotation_workflow.route("<int:seq_request_id>/begin/<string:type>", methods=["GET"])
 @login_required
 def begin(seq_request_id: int, type: Literal["raw", "pooled"]):
-    if type not in ["raw", "pooled"]:
+    if type not in ["tech", "raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -99,11 +99,25 @@ def begin(seq_request_id: int, type: Literal["raw", "pooled"]):
     if current_user.id != seq_request.requestor_id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    form = forms.SASInputForm(type=type)
+    if type == "tech":
+        return forms.SpecifyAssayForm().make_response(seq_request=seq_request)
     
+    form = forms.SASInputForm(type=type)
     return form.make_response(
         seq_request=seq_request, type=type, columns=form.get_columns(), colors=forms.SASInputForm.colors
     )
+
+
+@library_annotation_workflow.route("<int:seq_request_id>/parse_assay_form", methods=["POST"])
+@login_required
+def parse_assay_form(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if seq_request.requestor_id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    return forms.SpecifyAssayForm(request.form).process_request(seq_request=seq_request, user=current_user)
         
 
 # 1. Input sample annotation sheet

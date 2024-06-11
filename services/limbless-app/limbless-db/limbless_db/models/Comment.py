@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class Comment(Base):
     __tablename__ = "comment"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    text: Mapped[str] = mapped_column(sa.String(512), nullable=False)
+    text: Mapped[str] = mapped_column(sa.String(2048), nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
     author_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True)

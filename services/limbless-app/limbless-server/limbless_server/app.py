@@ -192,6 +192,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             GenomeRef=categories.GenomeRef,
             LibraryType=categories.LibraryType,
             PoolStatus=categories.PoolStatus,
+            AssayType=categories.AssayType,
         )
     
     @app.before_request

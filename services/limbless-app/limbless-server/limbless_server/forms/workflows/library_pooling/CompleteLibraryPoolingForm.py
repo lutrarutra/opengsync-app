@@ -35,9 +35,12 @@ class CompleteLibraryPoolingForm(HTMXFlaskForm, TableDataForm):
 
         with DBSession(db) as session:
             for idx, row in barcode_table.iterrows():
-                if (_ := session.get_library(row["library_id"])) is None:
+                if (library := session.get_library(row["library_id"])) is None:
                     logger.error(f"{self.uuid}: Library {row['library_id']} not found")
                     raise ValueError(f"Library {row['library_id']} not found")
+                
+                barcode_table.at[idx, "library_type"] = library.type.name
+                barcode_table.at[idx, "genome_ref"] = library.genome_ref.display_name if library.genome_ref is not None else None
 
         self._context["barcode_table"] = barcode_table
         self._context["show_index_1"] = barcode_table["index_1"].notna().any()

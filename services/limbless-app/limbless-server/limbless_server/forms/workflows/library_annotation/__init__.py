@@ -1,9 +1,10 @@
+from .SASInputForm import SASInputForm  # noqa: F401
+from .SpecifyAssayForm import SpecifyAssayForm  # noqa: F401
 from .ProjectMappingForm import ProjectMappingForm  # noqa: F401
 from .VisiumAnnotationForm import VisiumAnnotationForm  # noqa: F401
 from .IndexKitMappingForm import IndexKitMappingForm    # noqa: F401
 from .PoolMappingForm import PoolMappingForm    # noqa: F401
 from .CMOReferenceInputForm import CMOReferenceInputForm    # noqa: F401
-from .SASInputForm import SASInputForm  # noqa: F401
 from .KitMappingForm import KitMappingForm    # noqa: F401
 from .FeatureReferenceInputForm import FeatureReferenceInputForm  # noqa: F401
 from .LibraryMappingForm import LibraryMappingForm  # noqa: F401

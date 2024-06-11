@@ -67,12 +67,12 @@ def edit(pool_id: int):
         return forms.models.PoolForm(None, request.form).process_request(pool=pool)
 
 
-@pools_htmx.route("table_query", methods=["POST"])
+@pools_htmx.route("table_query", methods=["GET"])
 @login_required
 def table_query():
-    if (word := request.form.get("name", None)) is not None:
+    if (word := request.args.get("name", None)) is not None:
         field_name = "name"
-    elif (word := request.form.get("id", None)) is not None:
+    elif (word := request.args.get("id", None)) is not None:
         field_name = "id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)

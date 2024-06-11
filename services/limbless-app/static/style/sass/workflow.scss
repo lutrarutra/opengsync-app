@@ -56,11 +56,15 @@
 
     .card-back {
         display: flex;
-        align-items: center;
         background-color: #fff;
         transform: rotateY(180deg);
-        padding: 10px;
+        padding: 10px 5px 10px 5px;
+        overflow-y: auto;
+        margin: 0;
         p.card-text {
+            min-height: 100%;
+            display: flex;
+            align-items: center;
             font-size: 15px;
             font-weight: 300;
             text-align: center;

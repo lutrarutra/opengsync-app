@@ -406,6 +406,11 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         text=f"Custom genome reference: {row['text']}",
                         author_id=user.id,
                     )
+                elif row["context"] == "assay_tech_selection":
+                    comment = session.create_comment(
+                        text=f"Additional info from assay selection: {row['text']}",
+                        author_id=user.id,
+                    )
                 else:
                     raise ValueError(f"Unknown comment context: {row['context']}")
                     
