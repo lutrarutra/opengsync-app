@@ -15,7 +15,7 @@ from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 
-class CompleteLibraryPoolingForm(HTMXFlaskForm, TableDataForm):
+class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_pooling/pooling-5.html"
     _form_label = "library_pooling_form"
 
@@ -60,25 +60,20 @@ class CompleteLibraryPoolingForm(HTMXFlaskForm, TableDataForm):
             
         return validated
 
-    def process_request(self, current_user: models.User) -> Response:
+    def process_request(self, user: models.User) -> Response:
         if not self.validate():
             return self.make_response()
 
         barcode_table = self.tables["barcode_table"]
 
-        if (contact_person := db.get_user(self.metadata["contact_person_id"])) is None:
-            logger.error(f"{self.uuid}: User {self.metadata['contact_person_id']} not found")
-            raise ValueError(f"{self.uuid}: User {self.metadata['contact_person_id']} not found")
+        if (pool_id := self.metadata.get("pool_id")) is None:
+            logger.error(f"{self.uuid}: Pool id not found")
+            raise ValueError(f"{self.uuid}: Pool id not found")
         
-        pool = db.create_pool(
-            name=self.metadata["pool_name"],
-            contact_name=contact_person.name,
-            contact_email=contact_person.email,
-            owner_id=current_user.id,
-            status=PoolStatus.RECEIVED,
-            num_m_reads_requested=float(barcode_table["seq_depth_requested"].sum())
-        )
-
+        if (pool := db.get_pool(pool_id)) is None:
+            logger.error(f"{self.uuid}: Pool {pool_id} not found")
+            raise ValueError(f"{self.uuid}: Pool {pool_id} not found")
+        
         for _, row in barcode_table.iterrows():
             if (library := db.get_library(row["library_id"])) is None:
                 logger.error(f"{self.uuid}: Library {row['library_id']} not found")

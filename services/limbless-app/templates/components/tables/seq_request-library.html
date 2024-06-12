@@ -99,6 +99,7 @@
     {{ spinner("seq_request-library-table-spinner") }}
     {{ pagination("seq_request-library-table", "seq_requests_htmx.get_libraries", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
     <script>
+        init_tooltips();
         var selected_library_id = null;
         var selected_index_element_id = null;
         var selected_adapter_element_id = null;

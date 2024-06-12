@@ -2,6 +2,8 @@ import os
 from uuid import uuid4
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
@@ -193,6 +195,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             LibraryType=categories.LibraryType,
             PoolStatus=categories.PoolStatus,
             AssayType=categories.AssayType,
+            isna=pd.isna,
         )
     
     @app.before_request

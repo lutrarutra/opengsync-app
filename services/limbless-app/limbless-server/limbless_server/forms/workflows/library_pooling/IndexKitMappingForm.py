@@ -12,7 +12,7 @@ from .... import db, logger
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
-from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
+from .CompleteLibraryIndexingForm import CompleteLibraryIndexingForm
 
 
 class IndexKitSubForm(FlaskForm):
@@ -105,6 +105,6 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         self.update_table("barcode_table", self.barcode_table)
 
-        complete_library_pooling_form = CompleteLibraryPoolingForm(previous_form=self, uuid=self.uuid)
+        complete_library_pooling_form = CompleteLibraryIndexingForm(previous_form=self, uuid=self.uuid)
         complete_library_pooling_form.prepare()
         return complete_library_pooling_form.make_response(**context)

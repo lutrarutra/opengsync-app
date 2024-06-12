@@ -11,7 +11,7 @@ def get_experiment_libraries_df(
     self, experiment_id: int,
     include_sample: bool = False, include_index_kit: bool = False,
     include_visium: bool = False, include_seq_request: bool = False,
-    collapse_lanes: bool = True
+    collapse_lanes: bool = True, drop_empty_columns: bool = True,
 ) -> pd.DataFrame:
         
     columns = [
@@ -110,7 +110,9 @@ def get_experiment_libraries_df(
 
     df = df[order]
     
-    df = df.dropna(axis="columns", how="all")
+    if drop_empty_columns:
+        df = df.dropna(axis="columns", how="all")
+    
     if collapse_lanes:
         df = df.groupby(df.columns.difference(['lane']).tolist(), as_index=False).agg({'lane': list}).rename(columns={'lane': 'lanes'})
         order[0] = "lanes"
@@ -174,34 +176,34 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
     return df
 
 
-def get_pool_libraries_df(self, pool_id: int) -> pd.DataFrame:
-    query = sa.select(
+def get_pool_libraries_df(self, pool_id: int, drop_empty_columns: bool = True) -> pd.DataFrame:
+    columns = [
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
-        models.Library.adapter, models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
+        models.Library.genome_ref_id.label("reference_id"),
+        models.Library.adapter, models.Library.index_kit_id.label("index_kit_id"), models.IndexKit.name.label("kit"),
         models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
         models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
-        models.User.id.label("owner_id"), models.User.email.label("owner_email"),
+    ]
+    query = sa.select(*columns).where(
+        models.Pool.id == pool_id
     ).join(
-        models.Pool,
-        models.Pool.id == models.Library.pool_id
+        models.Library,
+        models.Library.pool_id == models.Pool.id
     ).join(
         models.IndexKit,
         models.IndexKit.id == models.Library.index_kit_id,
         isouter=True
-    ).join(
-        models.User,
-        models.User.id == models.Library.owner_id,
-    ).where(
-        models.Library.pool_id == pool_id,
-    ).distinct()
+    )
 
     query = query.order_by(models.Library.id)
 
     df = pd.read_sql(query, self._engine)
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
 
-    df = df.dropna(axis="columns", how="all")
+    if drop_empty_columns:
+        df = df.dropna(axis="columns", how="all")
+
     df = df.sort_values(by=["library_name"])
 
     return df

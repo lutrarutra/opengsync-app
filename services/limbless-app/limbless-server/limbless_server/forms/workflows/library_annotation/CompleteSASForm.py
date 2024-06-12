@@ -3,6 +3,7 @@ import shutil
 from typing import Optional
 
 import pandas as pd
+import numpy as np
 
 from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
@@ -36,6 +37,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         comment_table = self.tables.get("comment_table")
 
         sample_table = self.get_sample_table(library_table, project_table, cmo_table, flex_table)
+        logger.debug(sample_table[["sample_name", "project_id"]])
         self.add_table("sample_table", sample_table)
         self.update_data()
 
@@ -223,7 +225,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     is_flex_sample=False,
                 )
 
-        return pd.DataFrame(sample_data)
+        return pd.DataFrame(sample_data).fillna(np.nan)
     
     def __update_data(
         self, sample_table: pd.DataFrame, library_table: pd.DataFrame, project_table: pd.DataFrame,

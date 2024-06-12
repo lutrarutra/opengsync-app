@@ -1,5 +1,5 @@
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
@@ -52,6 +52,50 @@ def get(page: int):
             active_page=page, PoolStatus=PoolStatus, status_in=status_in
         )
     )
+
+
+@pools_htmx.route("create", methods=["POST"])
+@login_required
+def create():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    form = forms.models.PoolForm("create", formdata=request.form)
+    return form.process_request(user=current_user)
+
+
+@pools_htmx.route("get_form/<string:form_type>", methods=["GET"])
+@login_required
+def get_form(form_type: Literal["create", "edit"]):
+    if form_type not in ["create", "edit"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if form_type == "create":
+        if (pool_id := request.args.get("pool_id")) is not None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        form = forms.models.PoolForm("create")
+        return form.make_response()
+    
+    if form_type == "edit":
+        if (pool_id := request.args.get("pool_id")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        try:
+            pool_id = int(pool_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        with DBSession(db) as session:
+            if (pool := session.get_pool(pool_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            
+            if not current_user.is_insider() and pool.owner_id != current_user.id:
+                return abort(HTTPResponse.FORBIDDEN.id)
+            
+            form = forms.models.PoolForm("edit")
+            form.prepare(pool)
+            return form.make_response()
     
 
 @pools_htmx.route("<int:pool_id>/edit", methods=["POST"])
@@ -63,8 +107,7 @@ def edit(pool_id: int):
         
         if not current_user.is_insider() and pool.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
-        
-        return forms.models.PoolForm(None, request.form).process_request(pool=pool)
+        return forms.models.PoolForm("edit", formdata=request.form).process_request(user=current_user, pool=pool)
 
 
 @pools_htmx.route("table_query", methods=["GET"])

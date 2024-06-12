@@ -12,15 +12,16 @@ from wtforms.validators import Optional as OptionalValidator
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 
-from .... import logger, tools
+from limbless_db import models
+
+from .... import logger, tools, db
 from ....tools import SpreadSheetColumn
-from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from .IndexKitMappingForm import IndexKitMappingForm
-from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
+from .CompleteLibraryIndexingForm import CompleteLibraryIndexingForm
 
 
-class BarcodeInputForm(HTMXFlaskForm, TableDataForm):
+class BarcodeInputForm(HTMXFlaskForm):
     _template_path = "workflows/library_pooling/pooling-3.html"
     _form_label = "library_pooling_form"
     
@@ -53,25 +54,25 @@ class BarcodeInputForm(HTMXFlaskForm, TableDataForm):
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None, previous_form: Optional[TableDataForm] = None):
+    def __init__(self, pool: models.Pool, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_pooling", uuid=uuid, previous_form=previous_form)
         self.input_type = input_type
+        self.pool = pool
+        self.barcode_table = db.get_pool_libraries_df(self.pool.id, drop_empty_columns=False)
+        self.barcode_table = self.barcode_table[BarcodeInputForm.columns.keys()]
         self._context["columns"] = BarcodeInputForm.columns.values()
         self._context["colors"] = BarcodeInputForm.colors
         self._context["active_tab"] = "help"
+        self._context["pool"] = pool
         self.spreadsheet_style = dict()
 
     def get_template(self) -> pd.DataFrame:
-        barcode_table = self.tables["barcode_table"][BarcodeInputForm.columns.keys()]
-        barcode_table = barcode_table.rename(columns=dict([(col.label, col.name) for col in BarcodeInputForm.columns.values()]))
-        return barcode_table
+        return self.barcode_table.rename(columns=dict([(col.label, col.name) for col in BarcodeInputForm.columns.values()]))
 
     def prepare(self):
-        barcode_table = self.tables["barcode_table"][BarcodeInputForm.columns.keys()]
-        self._context["spreadsheet_data"] = barcode_table.replace(np.nan, "").values.tolist()
+        self._context["spreadsheet_data"] = self.barcode_table.replace(np.nan, "").values.tolist()
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -157,8 +158,6 @@ class BarcodeInputForm(HTMXFlaskForm, TableDataForm):
         self.file.errors = []
         self.spreadsheet_dummy.errors = []
 
-        barcode_table = self.tables["barcode_table"]
-
         def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value", "invalid_input"]):
             if self.input_type == "spreadsheet":
                 self.spreadsheet_style[f"{BarcodeInputForm.columns[column].column}{row_num}"] = f"background-color: {BarcodeInputForm.colors[color]};"
@@ -172,12 +171,12 @@ class BarcodeInputForm(HTMXFlaskForm, TableDataForm):
         for i, (idx, row) in enumerate(self.df.iterrows()):
             if pd.isna(row["library_id"]):
                 add_error(i + 1, "library_id", "missing 'library_id'", "missing_value")
-            elif row["library_id"] not in barcode_table["library_id"].values:
+            elif row["library_id"] not in self.barcode_table["library_id"].values:
                 add_error(i + 1, "library_id", "invalid 'library_id'", "invalid_value")
 
             if pd.isna(row["library_name"]):
                 add_error(i + 1, "library_name", "missing 'library_name'", "missing_value")
-            elif row["library_name"] not in barcode_table["library_name"].values:
+            elif row["library_name"] not in self.barcode_table["library_name"].values:
                 add_error(i + 1, "library_name", "invalid 'library_name'", "invalid_value")
 
             if not kit_barcode.at[idx] and not custom_barcode.at[idx]:
@@ -208,14 +207,12 @@ class BarcodeInputForm(HTMXFlaskForm, TableDataForm):
             validated = validated and (len(self.spreadsheet_dummy.errors) == 0 and len(self.spreadsheet_style) == 0)
 
         for idx, row in self.df.iterrows():
-            barcode_table.loc[barcode_table["library_id"] == row["library_id"], "kit"] = row["kit"]
-            barcode_table.loc[barcode_table["library_id"] == row["library_id"], "adapter"] = row["adapter"]
-            barcode_table.loc[barcode_table["library_id"] == row["library_id"], "index_1"] = row["index_1"]
-            barcode_table.loc[barcode_table["library_id"] == row["library_id"], "index_2"] = row["index_2"]
-            barcode_table.loc[barcode_table["library_id"] == row["library_id"], "index_3"] = row["index_3"]
-            barcode_table.loc[barcode_table["library_id"] == row["library_id"], "index_4"] = row["index_4"]
-
-        self.barcode_table = barcode_table
+            self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "kit"] = row["kit"]
+            self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "adapter"] = row["adapter"]
+            self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "index_1"] = row["index_1"]
+            self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "index_2"] = row["index_2"]
+            self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "index_3"] = row["index_3"]
+            self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "index_4"] = row["index_4"]
 
         return validated
 
@@ -227,18 +224,18 @@ class BarcodeInputForm(HTMXFlaskForm, TableDataForm):
                 if context["spreadsheet_data"] == []:
                     context["spreadsheet_data"] = [[None]]
             else:
-                barcode_table = self.tables["barcode_table"]
-                self._context["spreadsheet_data"] = barcode_table[BarcodeInputForm.columns.keys()].replace(np.nan, "").values.tolist()
+                self._context["spreadsheet_data"] = self.barcode_table[BarcodeInputForm.columns.keys()].replace(np.nan, "").values.tolist()
 
             return self.make_response(**context)
-        
-        self.update_table("barcode_table", self.barcode_table)
 
         if self.barcode_table["kit"].notna().any():
-            index_kit_mapping_form = IndexKitMappingForm(previous_form=self, uuid=self.uuid)
+            index_kit_mapping_form = IndexKitMappingForm(previous_form=self)
+            index_kit_mapping_form.metadat["pool_id"] = self.pool.id
+            index_kit_mapping_form.add_table("barcode_table", self.barcode_table)
+            index_kit_mapping_form.update_data()
             index_kit_mapping_form.prepare()
             return index_kit_mapping_form.make_response(**context)
         
-        complete_library_pooling_form = CompleteLibraryPoolingForm(previous_form=self, uuid=self.uuid)
+        complete_library_pooling_form = CompleteLibraryIndexingForm(previous_form=self)
         complete_library_pooling_form.prepare()
         return complete_library_pooling_form.make_response(**context)

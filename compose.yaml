@@ -7,7 +7,8 @@ services:
         ports:
             - 80:80
         volumes:
-            - static_volume:/usr/src/app/static:ro
+            - ./services/limbless-app/static:/usr/src/app/static:ro
+            - compiled_css:/usr/src/app/static/style/compiled:ro
             - ./media:/usr/src/app/media:ro
             - ./uploads:/usr/src/app/uploads:ro
         depends_on:
@@ -29,7 +30,6 @@ services:
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
-            - static_volume:/usr/src/app/static:ro
             - ./cert:/usr/src/app/cert:ro
         env_file: .env
         expose:
@@ -52,8 +52,8 @@ services:
         container_name: sass-compiler
         image: apluslms/develop-sass
         volumes:
-            - ./services/limbless-app/static/style/sass:/usr/src/static/style/sass
-            - static_volume:/usr/src/app/static
+            - ./services/limbless-app/static/style/sass:/usr/src/static/style/sass:ro
+            - compiled_css:/usr/src/app/static/style/compiled
         command: "sass --style compressed /usr/src/static/style/sass:/usr/src/app/static/style/compiled"
 
     postgres:
@@ -91,4 +91,4 @@ services:
                 restart: true
 
 volumes:
-    static_volume:
+    compiled_css:

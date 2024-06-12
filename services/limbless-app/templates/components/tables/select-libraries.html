@@ -66,7 +66,8 @@
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr onclick="select_library({{ library.id }});" id="library-row-{{ library.id }}" class="library-row">
+            <tr onclick="toggle_library({{ library.id }});" id="library-row-{{ library.id }}"
+            class="library-row {% if library.pool_id is not none %}pooled{% endif %}">
                 <th scope="row">{{ library.id }}</th>
                 <td>{{ library.name }}</td>
                 <td>

@@ -50,8 +50,5 @@ def pool_page(pool_id: int):
                 ]
 
         is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider()
-        pool_form = forms.models.PoolForm(pool=pool)
 
-        return render_template(
-            "pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable, pool_form=pool_form
-        )
+        return render_template("pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable)

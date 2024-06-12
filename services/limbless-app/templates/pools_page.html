@@ -10,9 +10,9 @@
         </div>
         <div>
             <button type="button" class="btn btn-primary"
-            data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-            hx-get="{{ url_for('library_pooling_workflow.begin') }}"
-            hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+            data-bs-toggle="modal" data-bs-target="#xl-modal" 
+            hx-get="{{ url_for('pools_htmx.get_form', form_type='create') }}"
+            hx-target="#xl-modal-content" data-bs-toggle="modal"
             hx-swap="innerHTML" hx-trigger="click">
                 New Pool
             </button>

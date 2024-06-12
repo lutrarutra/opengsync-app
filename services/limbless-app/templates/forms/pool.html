@@ -1,12 +1,65 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
-<div id="pool-form">
-    {{ pool_form.csrf_token() }}
-    <div class="row">
-        {{ form_group(pool_form.name, class="col") }}
-        {{ form_group(pool_form.num_m_reads_requested, class="col") }}
-        {{ select_input(pool_form.status, class="col") }}
+<div id="pool-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Create Pool</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
+    <div class="modal-body">
+        <div id="pool-form">
+            {{ pool_form.csrf_token() }}
+            <div class="row">
+                {{ form_group(pool_form.name, class="col") }}
+                {{ form_group(pool_form.num_m_reads_requested, class="col") }}
+                {{ select_input(pool_form.status, class="col") }}
+            </div>
+            <div class="row">
+                {% if form_type == "create" and current_user.is_insider() %}
+                {{
+                    search_select_field(
+                        pool_form.contact,
+                        query_url=url_for('users_htmx.query', only_insiders=True),
+                        class="col-4"
+                    )
+                }}
+                {{ form_group(pool_form.contact_name, class="col-2") }}
+                {{ form_group(pool_form.contact_email, class="col-3") }}
+                {{ form_group(pool_form.contact_phone, class="col-3") }}
+                {% else %}
+                {{ pool_form.contact.csrf_token() }}
+                {{ form_group(pool_form.contact_name, class="col-4") }}
+                {{ form_group(pool_form.contact_email, class="col-4") }}
+                {{ form_group(pool_form.contact_phone, class="col-4") }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#pool-form" hx-target="#pool-form-container" hx-swap="outerHTML"
+                {% if form_type == "edit" %}
+                hx-post="{{ url_for('pools_htmx.edit', pool_id=pool.id) }}"
+                {% elif form_type == "create" %}
+                hx-post="{{ url_for('pools_htmx.create') }}"
+                {% endif %}>
+                Complete
+            </button>
+        </div>
+    </div>
+    <script>
+        init_tooltips();
+        $(document).ready(function() {
+            $("#contact").on("change", function(){
+                $("#contact_name").val("");
+                $("#contact_email").val("");
+            });
+        });
+    </script>
 </div>
 

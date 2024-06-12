@@ -278,9 +278,9 @@
                 </div>
                 {% if  seq_request.status == SeqRequestStatus.ACCEPTED and current_user.is_insider() %}
                 <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('library_pooling_workflow.begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                    data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                    hx-get="{{ url_for('pools_htmx.get_form', form_type='create') }}"
+                    hx-target="#xl-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
                     <div class="flip-card-container">
                         <div class="card-front">
@@ -288,7 +288,7 @@
                                 <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">Pool Libraries</h5>
+                                <h5 class="card-title">Create Pool</h5>
                             </div>
                         </div>
                         <div class="card-back">

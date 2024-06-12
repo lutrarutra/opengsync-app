@@ -1,5 +1,5 @@
 import json
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Optional
 
 from flask import Blueprint, request, abort, Response, render_template
 from flask_login import login_required
@@ -146,64 +146,65 @@ def query_libraries() -> Response:
     )
 
 
-@library_pooling_workflow.route("download_barcode_table_template/<string:uuid>", methods=["GET"])
+@library_pooling_workflow.route("<int:pool_id>/download_barcode_table_template", methods=["GET"])
 @login_required
-def download_barcode_table_template(uuid: str) -> Response:
-    form = forms.BarcodeInputForm(uuid=uuid)
+def download_barcode_table_template(pool_id: int) -> Response:
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    form = forms.BarcodeInputForm(pool=pool)
     template = form.get_template()
-
-    pool_name = form.metadata.get("pool_name", "pool")
 
     return Response(
         template.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": f"attachment; filename=pooling_{pool_name}.tsv"}
+        headers={"Content-disposition": f"attachment; filename=pooling_{pool.name}.tsv"}
     )
 
 
-@library_pooling_workflow.route("begin", methods=["GET"])
+@library_pooling_workflow.route("<int:pool_id>/select_libraries", methods=["GET", "POST"])
 @login_required
-def begin() -> Response:
+def select_libraries(pool_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    seq_request_id = request.args.get("seq_request_id")
-        
-    form = forms.DefinePoolForm()
-    form.prepare(current_user, seq_request_id=seq_request_id)
-    return form.make_response()
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        form = forms.SelectLibrariesForm(pool=pool, formdata=request.form)
+        form.prepare()
+        return form.make_response()
+    elif request.method == "POST":
+        form = forms.SelectLibrariesForm(pool=pool, formdata=request.form)
+        return form.process_request()
+    
+    return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@library_pooling_workflow.route("define_pool", methods=["POST"])
+@library_pooling_workflow.route("<int:pool_id>/parse_barcodes", methods=["GET", "POST"])
 @login_required
-def define_pool() -> Response:
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-
-    form = forms.DefinePoolForm(formdata=request.form)
-    return form.process_request()
-
-
-@library_pooling_workflow.route("select_libraries", methods=["POST"])
-@login_required
-def select_libraries() -> Response:
+def parse_barcodes(pool_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    form = forms.SelectLibrariesForm(formdata=request.form)
-    return form.process_request()
-
-
-@library_pooling_workflow.route("parse_barcodes/<string:input_type>", methods=["POST"])
-@login_required
-def parse_barcodes(input_type: Literal["file", "spreadsheet"]) -> Response:
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
-    if input_type not in ["file", "spreadsheet"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+    if request.method == "GET":
+        form = forms.BarcodeInputForm(pool=pool, formdata=request.form)
+        form.prepare()
+        return form.make_response()
     
-    form = forms.BarcodeInputForm(input_type=input_type, formdata=request.form | request.files)
-    return form.process_request()
+    if request.method == "POST":
+        if (input_type := request.args.get("input_type")) not in ["file", "spreadsheet"]:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        form = forms.BarcodeInputForm(pool=pool, input_type=input_type, formdata=request.form | request.files)
+        return form.process_request()
+    
+    return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
 @library_pooling_workflow.route("map_index_kits", methods=["POST"])
@@ -222,5 +223,5 @@ def complete_pooling() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    form = forms.CompleteLibraryPoolingForm(formdata=request.form)
-    return form.process_request(current_user=current_user)
+    form = forms.CompleteLibraryIndexingForm(formdata=request.form)
+    return form.process_request(user=current_user)

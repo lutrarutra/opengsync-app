@@ -39,12 +39,6 @@ class LibraryForm(HTMXFlaskForm):
         self.index_2.data = library.index_2_sequence
         self.index_3.data = library.index_3_sequence
         self.index_4.data = library.index_4_sequence
-
-    def validate(self) -> bool:
-        if not super().validate():
-            return False
-
-        return True
     
     def process_request(self, **context) -> Response:
         if not self.validate():

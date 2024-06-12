@@ -116,7 +116,7 @@
                             {% for _, row in sample_table.iterrows() %}
                             <tr>
                                 <th scope="row">{{ row["sample_name"] }}</th>
-                                <td>{{ row["project_name"] }} <span class="desc">{{ row["project_id"] if row["project_id"] == row["project_id"] else "new" }}</span></td>
+                                <td>{{ row["project_name"] }} <span class="desc">{{ row["project_id"] if not isna(row["project_id"]) else "new" }}</span></td>
                                 <td>{{ row["sequence"] if row["sequence"] }}</td>
                                 <td>{{ row["pattern"] if row["pattern"] }}</td>
                                 <td>{{ row["read"] if row["read"] }}</td>

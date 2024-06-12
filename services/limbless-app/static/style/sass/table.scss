@@ -1,3 +1,5 @@
+@import "colors.scss";
+
 table {
     a.sort-btn,
     a.search-btn {
@@ -173,6 +175,12 @@ table input.table-query-input{
     tr.selected {
         th, td {
             background-color: #EAFAF1;
+        }
+    }
+
+    tr.removed {
+        th, td {
+            background-color: #f8d7da;
         }
     }
 

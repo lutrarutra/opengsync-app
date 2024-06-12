@@ -4,7 +4,7 @@
 
 <div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >3. Specify Barcodes</h1>
+        <h1 class="modal-title fs-5" >Specify Barcodes</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body">
@@ -39,7 +39,6 @@
             </ul>
             <div class="tab-content" id="library_pooling-form" enctype="multipart/form-data">
                 {{ library_pooling_form.csrf_token() }}
-                {{ library_pooling_form.file_uuid(hidden=True, readonly=True) }}
                 <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
                     <div class="input-help">
                         <h5>How to?</h5>
@@ -74,7 +73,7 @@
                 </div>
                 <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
                     <div class="input-help">
-                        <a type="button" class="btn btn-primary" href="{{ url_for('library_pooling_workflow.download_barcode_table_template', uuid=library_pooling_form.uuid) }}" target="_blank">Download Template</a>
+                        <a type="button" class="btn btn-primary" href="{{ url_for('library_pooling_workflow.download_barcode_table_template', pool_id=pool.id) }}" target="_blank">Download Template</a>
                         <h5>Columns:</h5>
                         <ul>
                             <li><b>ID</b> <span class="desc">Do not modify</span></li>
@@ -100,7 +99,6 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ library_pooling_form.file_uuid.data }}
         </div>
         <div class="footer-info">
             {{ color_legend(colors) }}
@@ -109,7 +107,7 @@
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-file-form-btn"
                 hx-include="#library_pooling-form" hx-target="#library_pooling-form-container" hx-swap="outerHTML"
                 hx-encoding="multipart/form-data" {% if active_tab != "file" %}style="display: none;"{% endif %}
-                hx-post="{{ url_for('library_pooling_workflow.parse_barcodes', input_type='file') }}">
+                hx-post="{{ url_for('library_pooling_workflow.parse_barcodes', pool_id=pool.id, input_type='file') }}">
                 File
             </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
@@ -158,13 +156,12 @@
             $("#submit-spreadsheet-btn").on("click", function() {
                 var data = spread_sheet.getData();
 
-                htmx.ajax("POST", "{{ url_for('library_pooling_workflow.parse_barcodes', input_type='spreadsheet') }}", {
+                htmx.ajax("POST", "{{ url_for('library_pooling_workflow.parse_barcodes', pool_id=pool.id, input_type='spreadsheet') }}", {
                     "target": "#library_pooling-form-container",
                     "swap": "outerHTML",
                     "values": {
                         "spreadsheet": JSON.stringify(data),
                         "csrf_token": csrf_token,
-                        "file_uuid": "{{ library_pooling_form.file_uuid.data }}",
                     },
                 });
             });
