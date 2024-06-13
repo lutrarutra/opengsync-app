@@ -18,7 +18,7 @@ class Barcode(Base):
     adapter: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, index=True)
     
     index_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("indexkit.id"), nullable=True)
-    index_kit: Mapped[Optional["IndexKit"]] = relationship("IndexKit", back_populates="barcodes", lazy="select",)
+    index_kit: Mapped[Optional["IndexKit"]] = relationship("IndexKit", back_populates="barcodes", lazy="select")
 
     type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 

@@ -4,7 +4,7 @@ from typing import Optional
 
 import sqlalchemy as sa
 
-from ...categories import PoolStatus, PoolStatusEnum
+from ...categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 
@@ -14,6 +14,7 @@ def create_pool(
     owner_id: int,
     contact_name: str,
     contact_email: str,
+    pool_type: PoolTypeEnum = PoolType.EXTERNAL,
     seq_request_id: Optional[int] = None,
     num_m_reads_requested: Optional[float] = None,
     status: PoolStatusEnum = PoolStatus.DRAFT,
@@ -33,6 +34,7 @@ def create_pool(
     pool = models.Pool(
         name=name.strip(),
         owner_id=owner_id,
+        type_id=pool_type.id,
         seq_request_id=seq_request_id,
         num_m_reads_requested=num_m_reads_requested,
         contact=models.Contact(
@@ -332,3 +334,23 @@ def get_pool_dilutions(
         self.close_session()
 
     return dilutions, n_pages
+
+
+def get_next_pool_identifier(self, pool_type: PoolTypeEnum) -> str:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if not pool_type.identifier:
+        raise TypeError(f"Pool type {pool_type} does not have an identifier")
+
+    n_pools = self._session.query(models.Pool).where(
+        models.Pool.type_id == pool_type.id
+    ).count()
+
+    identifier = f"{pool_type.identifier}{n_pools + 1}"
+
+    if not persist_session:
+        self.close_session()
+
+    return identifier

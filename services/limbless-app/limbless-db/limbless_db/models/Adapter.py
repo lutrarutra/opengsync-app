@@ -14,6 +14,7 @@ class Adapter(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
     index_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("indexkit.id"), nullable=True)
+    plate_well: Mapped[Optional[str]] = mapped_column(sa.String(4), nullable=True)
 
     barcode_1_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("barcode.id"), nullable=True, default=None)
     barcode_1: Mapped[Optional["Barcode"]] = relationship("Barcode", lazy="joined", primaryjoin="Adapter.barcode_1_id == Barcode.id")

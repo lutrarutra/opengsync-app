@@ -18,6 +18,10 @@
                 hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click" {% if not is_editable and not current_user.is_insider() %}disabled{% endif %}>Add Libraries</button>
             </span>
 
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                hx-get="{{ url_for('pools_htmx.plate_pool', pool_id=pool.id, form_type='create')}}"
+                hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click" {% if not is_editable and not current_user.is_insider() %}disabled{% endif %}>Plate Pool</button>
+
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                 hx-get="{{ url_for('library_pooling_workflow.parse_barcodes', pool_id=pool.id)}}"
                 hx-target="#fullscreen-modal-content" hx-swap="innerHTML" hx-trigger="click" {% if not is_editable and not current_user.is_insider() %}disabled{% endif %}>Index Pool</button>
@@ -46,6 +50,12 @@
             data-bs-target="#workflow-tab" type="button" role="tab"
             aria-controls="workflow-tab" aria-selected="false">
             Workflows</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#plate-tab" type="button" role="tab"
+            aria-controls="plate-tab" aria-selected="false">
+            Plate</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -80,9 +90,14 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="wetlab-tab" role="tabpanel" tabindex="1">
+        <div class="tab-pane fade" id="workflow-tab" role="tabpanel" tabindex="1">
         </div>
-        <div class="tab-pane fade" id="wetlab-tab" role="tabpanel" tabindex="2">
+        <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="2">
+            <div hx-get="{{ url_for('pools_htmx.get_plate', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="wetlab-tab" role="tabpanel" tabindex="3">
             <div class="row">
                 {{ metadata_group("Avg. Fragment Size", pool.avg_fragment_size if pool.avg_fragment_size, class="col-3", unit="bp") }}
                 {{ metadata_group("Qubit Concentration", pool.qubit_concentration_str, class="col-3", unit="ng/μL") }}
@@ -103,7 +118,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="3">
+        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="4">
             <div class="row">
                 {{ metadata_group("Pool Name", pool.name, class="col-4") }}
                 {{
@@ -124,7 +139,7 @@
                 {{ metadata_group("Contact Phone", pool.contact.phone, class="col-4") }}
             </div>
         </div>
-        <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="4">
+        <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="5">
             {% if pool.ba_report_id %}
             <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
                 <div class="row">

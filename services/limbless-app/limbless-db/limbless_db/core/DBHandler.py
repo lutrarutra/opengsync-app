@@ -52,7 +52,7 @@ class DBHandler():
     from .model_handlers._pool_methods import (
         create_pool, get_pool, get_pools,
         delete_pool, update_pool, query_pools, dilute_pool,
-        get_pool_dilution, get_pool_dilutions,
+        get_pool_dilution, get_pool_dilutions, get_next_pool_identifier
     )
 
     from .model_handlers._library_methods import (
@@ -115,6 +115,11 @@ class DBHandler():
         create_sequencer, get_sequencer, get_sequencers,
         get_num_sequencers, delete_sequencer, get_sequencer_by_name,
         update_sequencer, query_sequencers
+    )
+
+    from .model_handlers._plate_methods import (
+        create_plate, get_plate, get_plates,
+        delete_plate, add_library_to_plate
     )
 
     from .model_handlers._link_methods import (

@@ -31,7 +31,6 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
 
         barcode_table["library_type"] = None
         barcode_table["genome_ref"] = None
-        barcode_table["seq_depth_requested"] = None
 
         with DBSession(db) as session:
             for idx, row in barcode_table.iterrows():
@@ -51,13 +50,6 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
 
     def validate(self) -> bool:
         validated = super().validate()
-        barcode_table = self.tables["barcode_table"]
-
-        for _, row in barcode_table.iterrows():
-            if pd.isna(row["seq_depth_requested"]):
-                self.errors["barcode_table"] = [f"Library id={row['library_id']}: Seq depth requested is required"]
-                return False
-            
         return validated
 
     def process_request(self, user: models.User) -> Response:

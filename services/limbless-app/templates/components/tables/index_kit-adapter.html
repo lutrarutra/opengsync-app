@@ -6,7 +6,8 @@
         <thead>
             <tr>
                 <th scope="col" class="col-1">ID</th>
-                <th scope="col" class="col-3">Adapter</th>
+                <th scope="col" class="col-2">Adapter</th>
+                <th scope="col" class="col-1">Well</th>
                 <th scope="col" class="col-2">Index 1</th>
                 {% if index_kit.num_indices_per_adapter > 1 %}
                 <th scope="col" class="col-2">Index 2</th>
@@ -24,6 +25,7 @@
             <tr>
                 <th scope="row">{{ adapter.id }}</th>
                 <td>{{ adapter.name }}</td>
+                <td>{{ adapter.plate_well }}</td>
                 <td>{{ adapter.barcode_1.sequence }}</td>
                 {% if index_kit.num_indices_per_adapter > 1 %}
                 <td>{{ adapter.barcode_2.sequence }}</td>
@@ -39,5 +41,5 @@
         </tbody>
     </table>
     {{ spinner("index_kit-adapter-table-spinner") }}
-    {{ pagination("index_kit-adapter-table", "barcodes_htmx.get", n_pages, active_page) }}
+    {{ pagination("index_kit-adapter-table", "index_kits_htmx.get_adapters", n_pages, active_page, context={"index_kit_id": index_kit.id}) }}
 </div>

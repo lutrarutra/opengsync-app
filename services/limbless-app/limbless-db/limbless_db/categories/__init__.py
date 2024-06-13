@@ -17,3 +17,4 @@ from .UserRole import UserRole, UserRoleEnum  # noqa: F401
 from .SequencerModel import SequencerModel, SequencerModelEnum  # noqa: F401
 from .PoolStatus import PoolStatus, PoolStatusEnum  # noqa: F401
 from .ExperimentWorkFlow import ExperimentWorkFlow, ExperimentWorkFlowEnum  # noqa: F401
+from .PoolType import PoolType, PoolTypeEnum  # noqa: F401

@@ -43,3 +43,27 @@ def get(page: int):
 @login_required
 def table_query():
     raise NotImplementedError()
+
+
+@index_kits_htmx.route("<int:index_kit_id>/get_adapters", methods=["GET"], defaults={"page": 0})
+@index_kits_htmx.route("<int:index_kit_id>/get_adapters/<int:page>", methods=["GET"])
+@login_required
+def get_adapters(index_kit_id: int, page: int):
+    if (index_kit := db.get_index_kit(index_kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    adapters, n_pages = db.get_adapters(index_kit_id, offset=offset, sort_by=sort_by, descending=descending)
+
+    return make_response(
+        render_template(
+            "components/tables/index_kit-adapter.html", adapters=adapters,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            index_kit=index_kit
+        )
+    )

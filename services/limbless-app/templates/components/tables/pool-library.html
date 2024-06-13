@@ -75,6 +75,7 @@
     {{ spinner("pool-library-table-spinner") }}
     {{ pagination("pool-library-table", "pools_htmx.get_libraries", n_pages, active_page, context={"pool_id": pool.id}) }}
     <script>
+        init_tooltips();
         var selected_index_element_id = null;
         var selected_adapter_element_id = null;
 

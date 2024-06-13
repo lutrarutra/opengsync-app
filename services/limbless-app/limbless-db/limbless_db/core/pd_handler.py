@@ -11,7 +11,7 @@ def get_experiment_libraries_df(
     self, experiment_id: int,
     include_sample: bool = False, include_index_kit: bool = False,
     include_visium: bool = False, include_seq_request: bool = False,
-    collapse_lanes: bool = True, drop_empty_columns: bool = True,
+    collapse_lanes: bool = False, drop_empty_columns: bool = True,
 ) -> pd.DataFrame:
         
     columns = [

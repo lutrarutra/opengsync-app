@@ -5,7 +5,7 @@ from datetime import datetime
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .Links import LibraryFeatureLink, SampleLibraryLink
+from .Links import LibraryFeatureLink, SampleLibraryLink, LibraryPlateLink
 from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum
@@ -54,8 +54,7 @@ class Library(Base):
 
     pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True)
     pool: Mapped[Optional["Pool"]] = relationship(
-        "Pool", back_populates="libraries", lazy="joined",
-        cascade="save-update, merge"
+        "Pool", back_populates="libraries", lazy="joined", cascade="save-update, merge"
     )
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
@@ -63,6 +62,10 @@ class Library(Base):
 
     sample_links: Mapped[list[SampleLibraryLink]] = relationship(
         SampleLibraryLink, back_populates="library", lazy="select",
+        cascade="save-update, merge, delete"
+    )
+    plate_links: Mapped[list[LibraryPlateLink]] = relationship(
+        LibraryPlateLink, back_populates="library", lazy="select",
         cascade="save-update, merge, delete"
     )
 

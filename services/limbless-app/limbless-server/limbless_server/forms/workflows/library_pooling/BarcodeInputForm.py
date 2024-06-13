@@ -7,18 +7,26 @@ import pandas as pd
 import numpy as np
 
 from flask import Response
-from wtforms import SelectField, FileField, StringField
+from wtforms import SelectField, FileField, StringField, FormField
 from wtforms.validators import Optional as OptionalValidator
+from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 
-from limbless_db import models
+from limbless_db import models, DBSession
 
 from .... import logger, tools, db
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CompleteLibraryIndexingForm import CompleteLibraryIndexingForm
+from ...SearchBar import OptionalSearchBar
+
+
+class PlateSubForm(FlaskForm):
+    plate_size = SelectField("Plate Size", choices=[("12x8", "12x8"), ("24x16", "24x16")], default="12x8")
+    index_kit = FormField(OptionalSearchBar, label="Select Index Kit")
+    orientation = SelectField("Orientation", choices=[("default", "Default"), ("flipped", "Flipped")], default="default")
 
 
 class BarcodeInputForm(HTMXFlaskForm):
@@ -53,8 +61,9 @@ class BarcodeInputForm(HTMXFlaskForm):
     separator = SelectField(choices=_allowed_extensions, default="tsv")
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
+    plate_form = FormField(PlateSubForm)
 
-    def __init__(self, pool: models.Pool, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
+    def __init__(self, pool: models.Pool, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file", "plate"]] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
@@ -64,7 +73,7 @@ class BarcodeInputForm(HTMXFlaskForm):
         self.barcode_table = self.barcode_table[BarcodeInputForm.columns.keys()]
         self._context["columns"] = BarcodeInputForm.columns.values()
         self._context["colors"] = BarcodeInputForm.colors
-        self._context["active_tab"] = "help"
+        self._context["active_tab"] = input_type if input_type else "help"
         self._context["pool"] = pool
         self.spreadsheet_style = dict()
 
@@ -77,16 +86,22 @@ class BarcodeInputForm(HTMXFlaskForm):
     def validate(self) -> bool:
         validated = super().validate()
 
-        if self.input_type is None or self.input_type not in ["spreadsheet", "file"]:
+        if self.input_type is None or self.input_type not in ["spreadsheet", "file", "plate"]:
             logger.error("Input type not set")
             raise ValueError("Input type not set")
-        
-        self._context["active_tab"] = self.input_type
         
         if self.input_type == "file":
             if self.file.data is None:
                 self.file.errors = ("Upload a file.",)
                 return False
+            
+        if self.input_type == "plate":
+            if not self.plate_form.plate_size.data:
+                self.plate_form.plate_size.errors = ("Select plate size.",)
+                validated = False
+            if not self.plate_form.index_kit.selected.data:  # type: ignore
+                self.plate_form.index_kit.selected.errors = ("Select index kit.",)  # type: ignore
+                validated = False
             
         if not validated:
             return False
@@ -148,8 +163,41 @@ class BarcodeInputForm(HTMXFlaskForm):
             if len(self.df) == 0:
                 self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
                 return False
+        
+        elif self.input_type == "plate":
+            self.barcode_table = db.get_pool_libraries_df(self.pool.id, drop_empty_columns=False)[BarcodeInputForm.columns.keys()]
+            try:
+                num_cols = int(self.plate_form.plate_size.data.split("x")[0])
+                num_rows = int(self.plate_form.plate_size.data.split("x")[1])
+            except ValueError:
+                logger.error("Invalid plate size from plate form")
+                raise ValueError("Invalid plate size from plate form")
+            
+            flipped = self.plate_form.orientation.data == "flipped"
+            
+            def get_well(i):
+                return models.Plate.well_identifier(i, num_cols, num_rows, flipped)
+
+            with DBSession(db) as session:
+                if (index_kit := session.get_index_kit(self.plate_form.index_kit.selected.data)) is None:  # type: ignore
+                    logger.error("Invalid index kit from search-select-component")
+                    raise ValueError("Invalid index kit from search-select-component")
+                
+                self.barcode_table["kit"] = index_kit.name
+                self.barcode_table["kit_id"] = index_kit.id
+                
+                for idx, row in self.barcode_table.iterrows():
+                    adapter = session.get_adapter_from_index_kit(index_kit_id=index_kit.id, plate_well=get_well(idx))
+                    self.barcode_table.at[idx, "adapter"] = adapter.name
+                    self.barcode_table.at[idx, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 is not None else None
+                    self.barcode_table.at[idx, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 is not None else None
+                    self.barcode_table.at[idx, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 is not None else None
+                    self.barcode_table.at[idx, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 is not None else None
+
+            return True
             
         self.df["adapter"] = self.df["adapter"].apply(tools.make_alpha_numeric)
+        self.df["kit_id"] = None
         self.df["index_1"] = self.df["index_1"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=""))
         self.df["index_2"] = self.df["index_2"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=""))
         self.df["index_3"] = self.df["index_3"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=""))
@@ -228,14 +276,17 @@ class BarcodeInputForm(HTMXFlaskForm):
 
             return self.make_response(**context)
 
-        if self.barcode_table["kit"].notna().any():
-            index_kit_mapping_form = IndexKitMappingForm(previous_form=self)
-            index_kit_mapping_form.metadat["pool_id"] = self.pool.id
+        if self.barcode_table["kit"].notna().any() and self.barcode_table["kit_id"].isna().any():
+            index_kit_mapping_form = IndexKitMappingForm()
+            index_kit_mapping_form.metadata["pool_id"] = self.pool.id
             index_kit_mapping_form.add_table("barcode_table", self.barcode_table)
             index_kit_mapping_form.update_data()
             index_kit_mapping_form.prepare()
             return index_kit_mapping_form.make_response(**context)
         
-        complete_library_pooling_form = CompleteLibraryIndexingForm(previous_form=self)
+        complete_library_pooling_form = CompleteLibraryIndexingForm()
+        complete_library_pooling_form.metadata["pool_id"] = self.pool.id
+        complete_library_pooling_form.add_table("barcode_table", self.barcode_table)
+        complete_library_pooling_form.update_data()
         complete_library_pooling_form.prepare()
         return complete_library_pooling_form.make_response(**context)

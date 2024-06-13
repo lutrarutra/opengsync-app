@@ -1,0 +1,37 @@
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+
+<div id="plate-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Create Plate</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+        <div id="plate-form">
+            {{ plate_form.csrf_token() }}
+            <div class="row">
+                {{ form_group(plate_form.name, class="col") }}
+                {{ form_group(plate_form.num_cols, class="col") }}
+                {{ form_group(plate_form.num_rows, class="col") }}
+                {{ select_input(plate_form.orientation, class="col") }}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#plate-form" hx-target="#plate-form-container" hx-swap="outerHTML"
+            hx-post="{{ url_for('pools_htmx.plate_pool', pool_id=pool.id, form_type='create')}}">
+                Create
+            </button>
+        </div>
+    </div>
+    <script>
+        init_tooltips();
+    </script>
+</div>
+

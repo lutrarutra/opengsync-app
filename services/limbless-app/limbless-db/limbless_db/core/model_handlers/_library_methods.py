@@ -102,10 +102,11 @@ def get_libraries(
     self,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
-    pool_id: Optional[int] = None, sort_by: Optional[str] = None, descending: bool = False,
+    pool_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
+    sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Library], int]:
     persist_session = self._session is not None

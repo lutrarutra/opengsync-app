@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.categories import PoolStatus
+from limbless_db.categories import PoolStatus, PoolType
 
 from ... import logger, db  # noqa F401
 from ..SearchBar import OptionalSearchBar
@@ -19,6 +19,7 @@ class PoolForm(HTMXFlaskForm):
     _form_label = "pool_form"
 
     name = StringField("Pool Name", validators=[DataRequired(), Length(min=4, max=models.Pool.name.type.length)])
+    pool_type = SelectField("Pool Type", choices=PoolType.as_selectable(), coerce=int)
     num_m_reads_requested = FloatField("Number of M Reads Requested", validators=[OptionalValidator()])
     status = SelectField("Status", choices=PoolStatus.as_selectable(), coerce=int)
     contact = FormField(OptionalSearchBar, "Select Existing Contact")
@@ -30,6 +31,7 @@ class PoolForm(HTMXFlaskForm):
         super().__init__(formdata=formdata)
         self.form_type = form_type
         self._context["form_type"] = form_type
+        self._context["identifiers"] = dict([(pool_type.id, pool_type.identifier) for pool_type in PoolType.as_list()])
 
     def validate(self) -> bool:
         if not super().validate():
@@ -61,6 +63,7 @@ class PoolForm(HTMXFlaskForm):
             
             pool.name = self.name.data  # type: ignore
             pool.status_id = PoolStatus.get(self.status.data).id
+            pool.type_id = PoolType.get(self.pool_type.data).id
             pool.num_m_reads_requested = self.num_m_reads_requested.data
             pool.contact.name = self.contact_name.data  # type: ignore
             pool.contact.email = self.contact_email.data  # type: ignore
@@ -76,11 +79,17 @@ class PoolForm(HTMXFlaskForm):
                 logger.error(f"Contact {contact_id} not found")
                 raise ValueError(f"Contact {contact_id} not found")
             
+        pool_type = PoolType.get(self.pool_type.data)
+
+        if pool_type.identifier:
+            self.name.data = db.get_next_pool_identifier(pool_type)
+            
         pool = db.create_pool(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
             owner_id=user.id,
+            pool_type=pool_type,
             contact_name=self.contact_name.data if contact is None else contact.name,  # type: ignore
             contact_email=self.contact_email.data if contact is None else contact.email,  # type: ignore
             contact_phone=self.contact_phone.data  # type: ignore
@@ -90,7 +99,6 @@ class PoolForm(HTMXFlaskForm):
     def process_request(self, user: models.User, pool: Optional[models.Pool] = None) -> Response:
         if not self.validate():
             self._context["pool"] = pool
-            logger.debug(self.errors)
             return self.make_response()
         
         if pool is not None:

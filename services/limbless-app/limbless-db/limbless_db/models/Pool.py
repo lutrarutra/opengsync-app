@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 
 from .Links import LanePoolLink, ExperimentPoolLink
-from ..categories import PoolStatus, PoolStatusEnum
+from ..categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum
 
 if TYPE_CHECKING:
     from .Library import Library
@@ -26,6 +26,7 @@ class Pool(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     timestamp_received_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_qced_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
@@ -62,6 +63,14 @@ class Pool(Base):
     error_min_molarity: ClassVar[float] = 0.5
     error_max_molarity: ClassVar[float] = 10.0
 
+    @property
+    def status(self) -> PoolStatusEnum:
+        return PoolStatus.get(self.status_id)
+    
+    @property
+    def type(self) -> PoolTypeEnum:
+        return PoolType.get(self.type_id)
+    
     @property
     def molarity(self) -> Optional[float]:
         if self.avg_fragment_size is None or self.qubit_concentration is None:
@@ -110,10 +119,6 @@ class Pool(Base):
     
     def search_description(self) -> Optional[str]:
         return None
-    
-    @property
-    def status(self) -> PoolStatusEnum:
-        return PoolStatus.get(self.status_id)
     
     def is_qced(self) -> bool:
         return self.qubit_concentration is not None and self.avg_fragment_size is not None

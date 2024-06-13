@@ -11,6 +11,7 @@
             {{ pool_form.csrf_token() }}
             <div class="row">
                 {{ form_group(pool_form.name, class="col") }}
+                {{ form_group(pool_form.pool_type, class="col") }}
                 {{ form_group(pool_form.num_m_reads_requested, class="col") }}
                 {{ select_input(pool_form.status, class="col") }}
             </div>
@@ -54,10 +55,20 @@
     </div>
     <script>
         init_tooltips();
+        var pool_identifiers = {{ identifiers | tojson }};
         $(document).ready(function() {
             $("#contact").on("change", function(){
                 $("#contact_name").val("");
                 $("#contact_email").val("");
+            });
+
+            $("#pool_type").on("change", function(){
+                const pool_type = $(this).val();
+                if (pool_identifiers[pool_type]) {
+                    $("#name").val(pool_identifiers[pool_type] + "XXX");
+                } else {
+                    $("#name").val("");
+                }
             });
         });
     </script>

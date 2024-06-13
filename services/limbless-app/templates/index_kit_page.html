@@ -1,3 +1,5 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
 {% extends "base.html" %}
 {% set active_page = "barcodes-page" %}
 {% block content %}
@@ -17,7 +19,8 @@
             </button>
         </div>
     </div>
-    {# TODO: lazy loading #}
-    {% include "components/tables/index_kit-adapter.html" %}
+    <div hx-get="{{ url_for('index_kits_htmx.get_adapters', index_kit_id=index_kit.id) }}" hx-trigger="load" hx-swap="outerHMTL">
+        {{ spinner() }}
+    </div>
 </div>
 {% endblock content %}

@@ -6,7 +6,7 @@ from flask_login import login_required
 from limbless_db import models, DBSession
 from limbless_db.categories import HTTPResponse
 
-from .... import db, logger
+from .... import db, logger  # noqa F401
 from ....forms.workflows import lane_qc as wff
 
 if TYPE_CHECKING:

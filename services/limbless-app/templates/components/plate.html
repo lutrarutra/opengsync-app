@@ -1,0 +1,9 @@
+<div id="plate-container" class="plate-container">
+    {% for row in range(0, plate.num_rows) %}    
+    <div class="row">
+        {% for col in range(0, plate.num_cols) %}
+            <div class="col">{{ plate.get_well(row * plate.num_cols + col) }}: {{ plate.get_library_xy(row, col).name }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
