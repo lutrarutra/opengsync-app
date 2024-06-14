@@ -176,8 +176,8 @@ def get_plate(pool_id: int):
             return abort(HTTPResponse.NOT_FOUND.id)
         
         plates, _ = session.get_plates(pool_id=pool_id)
-        plate = plates[0]
-        library_plate_links = plate.library_links
+        plate = plates[0] if len(plates) > 0 else None
+        library_plate_links = plate.library_links if plate is not None else []
     
         if not current_user.is_insider() and pool.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
@@ -207,7 +207,6 @@ def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
         return form.make_response()
     
     return form.process_request(user=current_user)
-
 
 
 @pools_htmx.route("<int:pool_id>/query_libraries", methods=["GET"])

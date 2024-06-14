@@ -19,9 +19,9 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link help-tab-btn{% if active_tab == 'plate' %} active{% endif %}" data-bs-toggle="tab"
-                    id="plate-tab-btn"
-                    data-bs-target="#plate-tab" type="button" role="tab"
-                    aria-controls="plate-tab" aria-selected="false">
+                    id="plate-form-tab-btn"
+                    data-bs-target="#plate-form-tab" type="button" role="tab"
+                    aria-controls="plate-form-tab" aria-selected="false">
                     Plate</button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -68,7 +68,7 @@
                         </ul>
                     </div>
                 </div>
-                <div class="tab-pane fade{% if active_tab == 'plate' %} show active{% endif %}" id="plate-tab" role="tabpanel" tabindex="1">
+                <div class="tab-pane fade{% if active_tab == 'plate' %} show active{% endif %}" id="plate-form-tab" role="tabpanel" tabindex="1">
                     {{ library_pooling_form.plate_form.csrf_token() }}
                     <div class="row">
                         {{ form_group(library_pooling_form.plate_form.plate_size, class="col-4") }}
@@ -152,7 +152,7 @@
                 $(".submit-form-btn").hide();
                 $("#submit-spreadsheet-btn").show();
             });
-            $("#plate-tab-btn").on("click", function() {
+            $("#plate-form-tab-btn").on("click", function() {
                 $(".submit-form-btn").hide();
                 $("#submit-plate-form-btn").show();
             });
