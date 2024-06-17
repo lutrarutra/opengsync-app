@@ -1,0 +1,153 @@
+{% from "components/legends.jinja2" import color_legend %}
+{% from 'components/form_group.jinja2' import form_group %}
+
+<div id="sample-table-submission-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">2. Specify {% if type == "pooled" %} Pooled {% endif %} Libraries</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body">
+        <div class="tab-body">
+            <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                    id="form-tab-help-btn"
+                    data-bs-target="#form-tab-help" type="button" role="tab"
+                    aria-controls="form-tab-help" aria-selected="false">
+                    Help</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                    id="form-tab-spreadsheet-btn"
+                    data-bs-target="#form-tab-spreadsheet" type="button" role="tab"
+                    aria-controls="form-tab-spreadsheet" aria-selected="true">
+                    Sheet</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
+                    id="form-tab-file-btn"
+                    data-bs-target="#form-tab-file" type="button" role="tab"
+                    aria-controls="form-tab-file" aria-selected="true">
+                    File</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab"
+                    id="form-tab-example-btn"
+                    data-bs-target="#form-tab-example" type="button" role="tab"
+                    aria-controls="form-tab-example" aria-selected="true">
+                    Example</button>
+                </li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="form-tab-help" role="tabpanel" tabindex="0">
+                    {% if sas_input_form.metadata["workflow_type"] == "raw" %}
+                    {% include "workflows/library_annotation/raw_instructions.html" %}
+                    {% elif sas_input_form.metadata["workflow_type"] == "pooled" %}
+                    {% include "workflows/library_annotation/pooled_instructions.html" %}
+                    {% endif %}
+                </div>
+                <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="form-tab-spreadsheet" role="tabpanel" tabindex="1">
+                    <div id="grid" class="spreadsheet-grid">
+                        <div class="invalid-feedback-container">
+                            {% for error in sas_input_form.spreadsheet_dummy.errors %}
+                                <p class="">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="form-tab-file" role="tabpanel" tabindex="2">
+                    <div id="sample-table-input-form">
+                        {{ sas_input_form.csrf_token() }}
+                        {{ sas_input_form.file_uuid(hidden=True, readonly=True) }}
+                        <div class="row">
+                            {{ form_group(sas_input_form.separator, class="col-2") }}
+                            {{ form_group(sas_input_form.file, class="col-10") }}
+                        </div>
+                        <a href="{{ url_for('library_annotation_workflow.download_template', file='raw') }}">
+                            Download Template
+                        </a>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="form-tab-example" role="tabpanel" tabindex="3">
+                    {% if sas_input_form.metadata["workflow_type"] == "raw" %}
+                    {% include "components/examples/sas_raw.html" %}
+                    {% elif sas_input_form.metadata["workflow_type"] == "pooled" %}
+                    {% include "components/examples/sas_pooled.html" %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ sas_input_form.file_uuid.data }}
+        </div>
+        <div class="footer-info">
+            {{ color_legend(colors) }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" id="parse-spreadsheet-btn" class="btn btn-primary submit-form-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
+                Upload
+            </button>
+            <button type="button" id="parse-file-btn" class="btn btn-primary submit-form-btn" hx-target="#sample-table-submission-container"
+                hx-swap="outerHTML" hx-include="#sample-table-input-form" hx-encoding="multipart/form-data"
+                hx-post="{{ url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, input_method='file') }}" {% if active_tab != "file" %}style="display: none;"{% endif %}>
+                Parse
+            </button>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            window.onbeforeunload = function() {
+                return "Data will be lost if you leave the page, are you sure?";
+            };
+
+            $("#form-tab-help-btn, #form-tab-example-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+            });
+            
+            $("#form-tab-spreadsheet-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+                $("#parse-spreadsheet-btn").show();
+            });
+
+            $("#form-tab-file-btn").on("click", function() {
+                $(".submit-form-btn").hide();
+                $("#parse-file-btn").show();
+            });
+            
+            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]"}};
+            const csrf_token = "{{ sas_input_form.csrf_token._value() }}";
+
+            var spread_sheet = jspreadsheet(document.getElementById('grid'), {
+                data: data,
+                columns: [
+                    {% for col in sas_input_form.get_columns() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                minSpareRows: 10,
+                allowInsertColumn: false,
+                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
+            });
+
+            $("#parse-spreadsheet-btn").on("click", function() {
+                var data = spread_sheet.getData();
+
+                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, input_method='spreadsheet') }}", {
+                    "target": "#sample-table-submission-container",
+                    "swap": "outerHTML",
+                    "values": {
+                        "file_uuid": "{{ sas_input_form.file_uuid.data }}",
+                        "spreadsheet": JSON.stringify(data),
+                        "csrf_token": csrf_token
+                    },
+                });
+            });
+        });
+    </script>
+</div>

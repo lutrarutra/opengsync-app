@@ -363,24 +363,24 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
         if kit_table["kit_id"].isna().any():
             feature_kit_mapping_form = KitMappingForm(previous_form=self, uuid=self.uuid)
             feature_kit_mapping_form.prepare()
-            return feature_kit_mapping_form.make_response(**context)
+            return feature_kit_mapping_form.make_response()
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
-            return visium_annotation_form.make_response(**context)
+            return visium_annotation_form.make_response()
         
         if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
             frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
             frp_annotation_form.prepare()
-            return frp_annotation_form.make_response(**context)
+            return frp_annotation_form.make_response()
 
         if "pool" in library_table.columns:
             pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
             pool_mapping_form.prepare()
-            return pool_mapping_form.make_response(**context)
+            return pool_mapping_form.make_response()
 
         complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
-        return complete_sas_form.make_response(**context)
+        return complete_sas_form.make_response()
         

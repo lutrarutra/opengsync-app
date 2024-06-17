@@ -210,7 +210,7 @@
                 <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
                     {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='tech') }}"
+                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='tech') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% else %}{{ tooltip("You can no longer add samples after the request has been submitted.", category="warning") }}{% endif %}>
                     <div class="flip-card-container">
@@ -232,7 +232,7 @@
                 <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
                     {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='raw') }}"
+                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='raw') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% else %}{{ tooltip("You can no longer add samples after the request has been submitted.", category="warning") }}{% endif %}>
                     <div class="flip-card-container">
@@ -254,7 +254,7 @@
                 <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
                     {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, type='pooled') }}"
+                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='pooled') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% else %}{{ tooltip("You can no longer add pooled libraries after the request has been submitted.", category="warning") }}{% endif %}>
                     <div class="flip-card-container">

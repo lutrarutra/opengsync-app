@@ -1,9 +1,9 @@
 {% from 'components/form_group.jinja2' import form_group, select_input, readonly_field %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
-{% macro static_categorical_mapping(raw_label, select_field, token) -%}
+{% macro static_categorical_mapping(raw_label, select_field, token=none) -%}
 <td>
-    {{ token() }}
+    {% if token %}{{ token() }}{% endif %}
     <div class="row">
         {{ readonly_field(raw_label, class="col-3")}}
         <div class="col-1 mapping-arrow">
@@ -18,9 +18,9 @@
 </td>
 {%- endmacro %}
 
-{% macro categorical_mapping(raw_label, category, query_url, token) -%}
+{% macro categorical_mapping(raw_label, category, query_url, token=none) -%}
 <td>
-    {{ token() }}
+    {% if token %}{{ token() }}{% endif %}
     <div class="row">
         {{ readonly_field(raw_label, class="col-3") }}
         <div class="col-1 mapping-arrow">
@@ -33,9 +33,9 @@
 </td>
 {%- endmacro %}
 
-{% macro categorical_mapping_with_new_field(raw_label, existing_category, new_category, query_url, token) -%}
+{% macro categorical_mapping_with_new_field(raw_label, existing_category, new_category, query_url, token=none) -%}
 <td>
-    {{ token() }}
+    {% if token %}{{ token() }}{% endif %}
     <div class="row">
         {{ readonly_field(raw_label, class="col-2") }}
         <div class="col-1 mapping-arrow">
@@ -61,9 +61,9 @@
 </script>
 {%- endmacro %}
 
-{% macro raw_label_mapping(raw_label, new_label, token) -%}
+{% macro raw_label_mapping(raw_label, new_label, token=none) -%}
 <td>
-    {{ token() }}
+    {% if token %}{{ token() }}{% endif %}
     <div class="row">
         {{ readonly_field(raw_label, class="col-3") }}
         <div class="col-1 mapping-arrow">

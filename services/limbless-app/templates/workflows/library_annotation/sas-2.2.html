@@ -4,35 +4,35 @@
 
 <div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Specify Assay</h1>
+        <h1 class="modal-title fs-5">2. Specify Assay</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body">
         <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
             <li class="nav-item" role="presentation">
                 <button class="nav-link {% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
-                id="help-tab-btn"
-                data-bs-target="#help-tab" type="button" role="tab"
-                aria-controls="help-tab" aria-selected="false">
+                id="form-tab-form-help-btn"
+                data-bs-target="#form-tab-form-help" type="button" role="tab"
+                aria-controls="form-tab-form-help" aria-selected="false">
                 Help</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
-                id="assay-tab-btn"
-                data-bs-target="#assay-tab" type="button" role="tab"
-                aria-controls="assay-tab" aria-selected="true">
+                id="form-tab-form-assay-btn"
+                data-bs-target="#form-tab-form-assay" type="button" role="tab"
+                aria-controls="form-tab-form-assay" aria-selected="true">
                 Assay Types</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link {% if active_tab == 'form' %} active{% endif %}" data-bs-toggle="tab"
-                id="form-tab-btn"
-                data-bs-target="#form-tab" type="button" role="tab"
-                aria-controls="form-tab" aria-selected="true">
+                id="form-tab-form-btn"
+                data-bs-target="#form-tab-form" type="button" role="tab"
+                aria-controls="form-tab-form" aria-selected="true">
                 Form</button>
             </li>
         </ul>
         <div class="tab-content">
-            <div class="tab-pane fade show {% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+            <div class="tab-pane fade show {% if active_tab == 'help' %} show active{% endif %}" id="form-tab-form-help" role="tabpanel" tabindex="0">
                 <ol>
                     <li>Select assay you want to request.</li>
                     <li>Select additional options related to the assay, if needed.</li>
@@ -40,7 +40,7 @@
                     <li>10X Products: <a href="https://www.10xgenomics.com/products" target="_blank">10xgenomics.com/products</a></li>
                 </ol>
             </div>
-            <div class="tab-pane fade" id="assay-tab" role="tabpanel" tabindex="1">
+            <div class="tab-pane fade" id="form-tab-form-assay" role="tabpanel" tabindex="1">
                 <ul>
                     {% for assay_type in AssayType.as_list() %}
                     <li><b>{{ assay_type.name }}</b> {% if assay_type.platform %}<span class="desc">{{ assay_type.platform }}</span>{% endif %}</li>
@@ -61,7 +61,7 @@
                     {% endfor %}
                 </ul>
             </div>
-            <div class="tab-pane fade {% if active_tab == 'form' %} show active{% endif %}" id="form-tab" role="tabpanel" tabindex="2">
+            <div class="tab-pane fade {% if active_tab == 'form' %} show active{% endif %}" id="form-tab-form" role="tabpanel" tabindex="2">
                 {{ form_group(select_assay_form.assay_type) }}
                 <h5>Additional Assays</h5>
                 <div class="d-flex justify-contents-evenly" style="width: 100%; gap: 20px;">
@@ -89,7 +89,9 @@
         </div>
     </div>
     <div class="modal-footer">
-        <div class="footer-id"></div>
+        <div class="text-nowrap text-muted footer-id">
+            {{ select_assay_form.file_uuid.data }}
+        </div>
         <div class="footer-info">
             {{ color_legend(colors) }}
         </div>
@@ -188,6 +190,7 @@
                     "target": "#assay-form-submission-container",
                     "swap": "outerHTML",
                     "values": {
+                        "file_uuid": "{{ select_assay_form.file_uuid.data }}",
                         "spreadsheet": JSON.stringify(data),
                         "csrf_token": csrf_token,
                         "additional_info": $("#additional_info").val(),

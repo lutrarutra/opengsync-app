@@ -8,14 +8,17 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, TextAreaField, BooleanField, FormField, StringField
 from wtforms.validators import Optional as OptionalValidator, Length, DataRequired
 
-from limbless_db import models
+from limbless_db import models, DBSession
 from limbless_db.categories import AssayType, GenomeRef, LibraryType
 
-from .... import logger
-
-from ...HTMXFlaskForm import HTMXFlaskForm
+from .... import logger, db
 from ....tools import SpreadSheetColumn
-from .ProjectMappingForm import ProjectMappingForm
+from ...HTMXFlaskForm import HTMXFlaskForm
+from ...TableDataForm import TableDataForm
+from .CMOReferenceInputForm import CMOReferenceInputForm
+from .CompleteSASForm import CompleteSASForm
+from .VisiumAnnotationForm import VisiumAnnotationForm
+from .FRPAnnotationForm import FRPAnnotationForm
 
 columns = {
     "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
@@ -36,8 +39,8 @@ class AdditionalSerevicesForm(FlaskForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False)
 
 
-class SpecifyAssayForm(HTMXFlaskForm):
-    _template_path = "workflows/library_annotation/sas-0.html"
+class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
+    _template_path = "workflows/library_annotation/sas-2.2.html"
     _form_label = "select_assay_form"
 
     assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), validators=[DataRequired()])
@@ -46,8 +49,12 @@ class SpecifyAssayForm(HTMXFlaskForm):
     additional_services = FormField(AdditionalSerevicesForm)
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, formdata: Optional[dict] = None):
+    def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, uuid: Optional[str] = None):
         super().__init__(formdata=formdata)
+        if uuid is None:
+            uuid = formdata.get("file_uuid")
+        TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation")
+        self.seq_request = seq_request
         self.spreadsheet_style = {}
         self._context["columns"] = columns.values()
         self._context["colors"] = {
@@ -56,8 +63,10 @@ class SpecifyAssayForm(HTMXFlaskForm):
             "duplicate_value": "#D7BDE2",
         }
         self._context["active_tab"] = "help"
+        self._context["seq_request"] = seq_request
 
     def validate(self) -> bool:
+        self.df = None
         if not super().validate():
             return False
         
@@ -86,15 +95,24 @@ class SpecifyAssayForm(HTMXFlaskForm):
             self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
 
         sample_name_counts = self.df["sample_name"].value_counts()
+        with DBSession(db) as session:
+            if (project_id := self.metadata.get("project_id")) is not None:
+                if (project := session.get_project(project_id)) is None:
+                    logger.error(f"{self.uuid}: Project with ID {project_id} does not exist.")
+                    raise ValueError(f"Project with ID {project_id} does not exist.")
+            else:
+                project = None
 
-        for i, (_, row) in enumerate(self.df.iterrows()):
-            if pd.isna(row["sample_name"]):
-                add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
-            elif sample_name_counts[row["sample_name"]] > 1:
-                add_error(i + 1, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
+            for i, (_, row) in enumerate(self.df.iterrows()):
+                if pd.isna(row["sample_name"]):
+                    add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
+                elif sample_name_counts[row["sample_name"]] > 1:
+                    add_error(i + 1, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
+                elif project is not None and row["sample_name"] in [sample.name for sample in project.samples]:
+                    add_error(i + 1, "sample_name", "Sample name already exists in the project. Rename sample or change project", "duplicate_value")
 
-            if pd.isna(row["genome"]):
-                add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
+                if pd.isna(row["genome"]):
+                    add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
 
         if self.spreadsheet_dummy.errors:
             return False
@@ -103,7 +121,6 @@ class SpecifyAssayForm(HTMXFlaskForm):
         for id, e in GenomeRef.as_tuples():
             genome_map[e.display_name] = id
         
-        logger.debug(genome_map)
         self.df["genome_id"] = self.df["genome"].map(genome_map)
 
         try:
@@ -114,14 +131,15 @@ class SpecifyAssayForm(HTMXFlaskForm):
 
         return True
     
-    def process_request(self, user: models.User, seq_request: models.SeqRequest) -> Response:
-        self._context["seq_request"] = seq_request
-        if not self.validate():
+    def process_request(self) -> Response:
+        if not self.validate() or self.df is None:
+            logger.debug(self.errors)
             self._context["active_tab"] = "form"
             self._context["spreadsheet_style"] = self.spreadsheet_style
-            self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
-            if self._context["spreadsheet_data"] == []:
-                self._context["spreadsheet_data"] = [[None]]
+            if self.df is not None:
+                self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
+                if self._context["spreadsheet_data"] == []:
+                    self._context["spreadsheet_data"] = [[None]]
             return self.make_response()
         
         library_table_data = {
@@ -186,28 +204,39 @@ class SpecifyAssayForm(HTMXFlaskForm):
                 library_table_data["library_type"].append("CRISPR Screening")
                 library_table_data["library_type_id"].append(LibraryType.CRISPR_SCREENING.id)
 
-        project_mapping_form = ProjectMappingForm()
         library_table = pd.DataFrame(library_table_data)
-        library_table["project"] = "Project"
         library_table["seq_depth"] = None
         library_table["is_cmo_sample"] = False
         library_table["is_flex_sample"] = False
         library_table = library_table.sort_values(by=["sample_name", "library_type"]).reset_index(drop=True)
-        project_mapping_form.add_table("library_table", library_table)
-        
+        self.add_table("library_table", library_table)
+
         if self.additional_info.data:
             comment_table = pd.DataFrame({
                 "context": ["assay_tech_selection"],
                 "text": [self.additional_info.data]
             })
-            project_mapping_form.add_table("comment_table", comment_table)
-        
-        project_mapping_form.metadata = dict(workflow="library_annotation", type="tech")
-        project_mapping_form.update_data()
-        project_mapping_form.prepare(user)
-        return project_mapping_form.make_response(seq_request=seq_request)
+            self.add_table("comment_table", comment_table)
 
-            
+        if library_table["library_type_id"].isin([
+            LibraryType.MULTIPLEXING_CAPTURE.id,
+        ]).any():
+            cmo_reference_input_form = CMOReferenceInputForm(previous_form=self, uuid=self.uuid)
+            return cmo_reference_input_form.make_response()
+        
+        if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
+            visium_annotation_form.prepare()
+            return visium_annotation_form.make_response()
+        
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in self.df.columns:
+            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form.prepare()
+            return frp_annotation_form.make_response()
+    
+        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form.prepare()
+        return complete_sas_form.make_response()
         
         
         

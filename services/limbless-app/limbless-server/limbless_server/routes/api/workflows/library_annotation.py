@@ -6,7 +6,7 @@ import pandas as pd
 from flask import Blueprint, request, abort, send_file, current_app, Response
 from flask_login import login_required
 
-from limbless_db import models, DBSession
+from limbless_db import models, DBSession, db_session
 from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
@@ -21,19 +21,19 @@ library_annotation_workflow = Blueprint("library_annotation_workflow", __name__,
 
 
 # Template sample annotation sheet
-@library_annotation_workflow.route("download_template/<string:type>", methods=["GET"])
+@library_annotation_workflow.route("download_template/<string:file>", methods=["GET"])
 @login_required
-def download_template(type: str):
-    if type == "raw":
+def download_template(file: str):
+    if file == "raw":
         name = "raw_sample_annotation.tsv"
         df = pd.DataFrame(columns=list(forms.SASInputForm._feature_mapping_raw.keys()))
-    elif type == "pooled":
+    elif file == "pooled":
         df = pd.DataFrame(columns=list(forms.SASInputForm._feature_mapping_pooled.keys()))
         name = "premade_library_annotation.tsv"
-    elif type == "cmo":
+    elif file == "cmo":
         df = pd.DataFrame(columns=list(forms.CMOReferenceInputForm._mapping.keys()))
         name = "cmo_reference.tsv"
-    elif type == "feature":
+    elif file == "feature":
         df = pd.DataFrame(columns=list(forms.FeatureReferenceInputForm._mapping.keys()))
         name = "feature_reference.tsv"
     else:
@@ -87,10 +87,10 @@ def download_seq_auth_form():
 
 
 # 0. Restart form
-@library_annotation_workflow.route("<int:seq_request_id>/begin/<string:type>", methods=["GET"])
+@library_annotation_workflow.route("<int:seq_request_id>/begin/<string:workflow_type>", methods=["GET"])
 @login_required
-def begin(seq_request_id: int, type: Literal["raw", "pooled"]):
-    if type not in ["tech", "raw", "pooled"]:
+def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
+    if workflow_type not in ["raw", "pooled", "tech"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -99,13 +99,8 @@ def begin(seq_request_id: int, type: Literal["raw", "pooled"]):
     if current_user.id != seq_request.requestor_id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if type == "tech":
-        return forms.SpecifyAssayForm().make_response(seq_request=seq_request)
-    
-    form = forms.SASInputForm(type=type)
-    return form.make_response(
-        seq_request=seq_request, type=type, columns=form.get_columns(), colors=forms.SASInputForm.colors
-    )
+    form = forms.ProjectSelectForm(workflow_type=workflow_type, seq_request=seq_request)
+    return form.make_response()
 
 
 @library_annotation_workflow.route("<int:seq_request_id>/parse_assay_form", methods=["POST"])
@@ -117,16 +112,29 @@ def parse_assay_form(seq_request_id: int):
     if seq_request.requestor_id != current_user.id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.SpecifyAssayForm(request.form).process_request(seq_request=seq_request, user=current_user)
+    return forms.SpecifyAssayForm(seq_request=seq_request, formdata=request.form).process_request()
         
 
-# 1. Input sample annotation sheet
-@library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:type>/<string:input_type>", methods=["POST"])
+# 1. Select project
+@library_annotation_workflow.route("<int:seq_request_id>/project_select/<string:workflow_type>", methods=["POST"])
+@db_session(db)
 @login_required
-def parse_table(seq_request_id: int, type: Literal["raw", "pooled"], input_type: Literal["file", "spreadsheet"]):
-    if type not in ["raw", "pooled"]:
+def select_project(seq_request_id: int, workflow_type: str):
+    if workflow_type not in ["tech", "raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    if input_type not in ["file", "spreadsheet"]:
+    
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    return forms.ProjectSelectForm(workflow_type=workflow_type, formdata=request.form, seq_request=seq_request).process_request(user=current_user)
+    
+
+# 2. Input sample annotation sheet
+@library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:input_method>", methods=["POST"])
+@login_required
+def parse_table(seq_request_id: int, input_method: Literal["file", "spreadsheet"]):
+    logger.debug(request.form)
+    if input_method not in ["file", "spreadsheet"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     with DBSession(db) as session:
@@ -134,22 +142,9 @@ def parse_table(seq_request_id: int, type: Literal["raw", "pooled"], input_type:
             return abort(HTTPResponse.NOT_FOUND.id)
         
         return forms.SASInputForm(
-            type=type, input_type=input_type,
+            seq_request=seq_request, input_method=input_method,
             formdata=request.form | request.files,
-        ).process_request(seq_request=seq_request, user=current_user)
-
-
-# 2. Select project
-@library_annotation_workflow.route("<int:seq_request_id>/project_select", methods=["POST"])
-@login_required
-def select_project(seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    return forms.ProjectMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user,
-        seq_request_id=seq_request_id
-    )
+        ).process_request()
 
 
 # 3. Map organisms if new samples
@@ -279,6 +274,4 @@ def complete(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.CompleteSASForm(formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.CompleteSASForm(formdata=request.form, seq_request=seq_request).process_request(user=current_user)

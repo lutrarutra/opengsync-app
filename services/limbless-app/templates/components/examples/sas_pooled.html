@@ -4,15 +4,15 @@
     $(document).ready(function() {
         jspreadsheet(document.getElementById('example-spreadsheet'), {
             data: [
-                ["multiome_human_A", "multiome_human_A_GEX", "Human (GRCh38)", "Example Project", "scRNA-seq", "pool_1", "Dual Index Kit TS", "SI-TS-A1", "", "", "", ""],
-                ["multiome_human_A", "multiome_human_A_ATAC", "Human (GRCh38)", "Example Project", "scATAC-seq", "pool_2", "", "", "AGACTTTC", "CCGAGGCA", "GATGCAGT", "TTCTACAG"],
-                ["multiome_human_B", "multiome_human_B_GEX", "Human (GRCh38)", "Example Project", "scRNA-seq", "pool_1", "Dual Index Kit TS", "SI-TS-A2", "", "", "", ""],
-                ["multiome_human_B", "multiome_human_B_ATAC", "Human (GRCh38)", "Example Project", "scATAC-seq", "pool_2", "", "", "AGGCTACC", "CTAGCTGT", "GCCAACAA", "TATTGGTG"],
-                ["multiome_mouse", "multiome_mouse_GEX", "Mouse (GRCm38)", "Example Project", "scRNA-seq", "pool_1", "Dual Index Kit TS", "SI-TS-A3", "", "", "", ""],
-                ["multiome_mouse", "multiome_mouse_ATAC", "Mouse (GRCm38)", "Example Project", "scATAC-seq", "pool_2", "", "", "AAACGGCG", "CCTACCAT", "GGCGTTTC", "TTGTAAGA"],
+                ["multiome_human_A", "multiome_human_A_GEX", "Human (GRCh38)", "scRNA-seq", "pool_1", "Dual Index Kit TS", "SI-TS-A1", "", "", "", ""],
+                ["multiome_human_A", "multiome_human_A_ATAC", "Human (GRCh38)", "scATAC-seq", "pool_2", "", "", "AGACTTTC", "CCGAGGCA", "GATGCAGT", "TTCTACAG"],
+                ["multiome_human_B", "multiome_human_B_GEX", "Human (GRCh38)", "scRNA-seq", "pool_1", "Dual Index Kit TS", "SI-TS-A2", "", "", "", ""],
+                ["multiome_human_B", "multiome_human_B_ATAC", "Human (GRCh38)", "scATAC-seq", "pool_2", "", "", "AGGCTACC", "CTAGCTGT", "GCCAACAA", "TATTGGTG"],
+                ["multiome_mouse", "multiome_mouse_GEX", "Mouse (GRCm38)", "scRNA-seq", "pool_1", "Dual Index Kit TS", "SI-TS-A3", "", "", "", ""],
+                ["multiome_mouse", "multiome_mouse_ATAC", "Mouse (GRCm38)", "scATAC-seq", "pool_2", "", "", "AAACGGCG", "CCTACCAT", "GGCGTTTC", "TTGTAAGA"],
             ],
             columns: [
-                {% for col in columns %}
+                {% for col in sas_input_form.get_columns() %}
                 {%- if col.type == "text" or col.type == "numeric" -%}
                 { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
                 {%- elif col["type"] == "dropdown" -%}

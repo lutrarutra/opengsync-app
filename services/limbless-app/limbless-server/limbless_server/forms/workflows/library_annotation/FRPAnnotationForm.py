@@ -229,7 +229,7 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
         library_table = self.tables["library_table"]
         
         self.flex_table["sample_id"] = None
-
+        # FIXME: sample_id should be sample_name?
         for (library_name, sample_id), _ in library_table.groupby(["library_name", "sample_id"]):
             self.flex_table.loc[self.flex_table["library_name"] == library_name, "sample_id"] = sample_id
         

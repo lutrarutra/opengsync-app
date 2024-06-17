@@ -71,7 +71,7 @@
                         <thead>
                             <tr>
                                 <th scope="col" class="col-2">Library Name</th>
-                                <th scope="col" class="col-1">Library Type</th>
+                                <th scope="col" class="col-2">Library Type</th>
                                 {% if "pool" in library_table %}
                                 <th scope="col" class="col-2">Pool</th>
                                 {% endif %}
@@ -104,8 +104,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th scope="col" class="col-2">Sample Name</th>
-                                <th scope="col" class="col-1">Project</th>
+                                <th scope="col" class="col-3">Sample Name</th>
                                 <th scope="col" class="col-1">Sequence <span class="desc">CMO</span></th>
                                 <th scope="col" class="col-1">Pattern <span class="desc">CMO</span></th>
                                 <th scope="col" class="col-1">Read <span class="desc">CMO</span></th>
@@ -116,7 +115,6 @@
                             {% for _, row in sample_table.iterrows() %}
                             <tr>
                                 <th scope="row">{{ row["sample_name"] }}</th>
-                                <td>{{ row["project_name"] }} <span class="desc">{{ row["project_id"] if not isna(row["project_id"]) else "new" }}</span></td>
                                 <td>{{ row["sequence"] if row["sequence"] }}</td>
                                 <td>{{ row["pattern"] if row["pattern"] }}</td>
                                 <td>{{ row["read"] if row["read"] }}</td>

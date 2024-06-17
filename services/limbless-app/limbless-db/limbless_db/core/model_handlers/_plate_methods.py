@@ -121,7 +121,7 @@ def add_library_to_plate(
     if not self._session:
         self.open_session()
 
-    if (plate := self.get_plate(plate_id)) is None:
+    if (_ := self.get_plate(plate_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
     if (library := self.get_library(library_id)) is None:
