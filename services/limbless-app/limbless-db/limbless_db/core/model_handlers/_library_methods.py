@@ -244,7 +244,7 @@ def update_library(
         self.open_session()
     
     if library.pool_id is None:
-        library.status_id = LibraryStatus.ACCEPTED.id
+        library.status_id = LibraryStatus.REQUESTED.id
     self._session.add(library)
 
     if commit:

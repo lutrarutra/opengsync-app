@@ -12,7 +12,7 @@
                         table_container_id='select-libraries-table', column_name='ID', column_var='id',
                         sort_url=workflow + '.get_libraries', context=context,
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=workflow + '.query_libraries', current_query=libraries_current_query,
+                        query_url=workflow + '.query_libraries', current_query=current_query,
                         active_query_field=active_query_field, query_type="number", col_size=1,
                     )
                 }}
@@ -21,7 +21,7 @@
                         table_container_id='select-libraries-table', column_name='Name', column_var='name',
                         sort_url=workflow + '.get_libraries', context=context,
                         sort_by=sort_by, sort_order=sort_order,
-                        query_url=workflow + '.query_libraries', current_query=libraries_current_query,
+                        query_url=workflow + '.query_libraries', current_query=current_query,
                         active_query_field=active_query_field, query_type="text", col_size=3,
                     )
                 }}

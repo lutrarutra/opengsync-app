@@ -68,4 +68,10 @@ class Plate(Base):
     
     def get_library_xy(self, row: int, col: int) -> Optional["Library"]:
         return self.get_library(self.get_well_xy(row, col))
-    
+
+    def get_next_available_well(self) -> Optional[str]:
+        for i in range(self.num_cols * self.num_rows):
+            well = self.get_well(i)
+            if self.get_library(well) is None:
+                return well
+        return None

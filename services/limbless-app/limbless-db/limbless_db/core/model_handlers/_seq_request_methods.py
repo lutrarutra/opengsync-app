@@ -438,7 +438,7 @@ def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum)
     
     if status == SeqRequestStatus.ACCEPTED:
         pool_status = PoolStatus.ACCEPTED
-        library_status = LibraryStatus.ACCEPTED
+        library_status = LibraryStatus.REQUESTED
     elif status == SeqRequestStatus.DRAFT:
         pool_status = PoolStatus.DRAFT
         library_status = LibraryStatus.DRAFT

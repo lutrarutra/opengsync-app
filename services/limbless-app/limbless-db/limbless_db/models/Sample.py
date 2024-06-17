@@ -49,3 +49,9 @@ class Sample(Base):
             if not link.library.is_editable():
                 return False
         return True
+
+    def is_prepared(self) -> bool:
+        for link in self.library_links:
+            if not link.library.is_pooled():
+                return False
+        return True

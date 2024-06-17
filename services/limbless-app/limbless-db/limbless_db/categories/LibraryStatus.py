@@ -15,7 +15,7 @@ class LibraryStatusEnum(DBEnum):
 class LibraryStatus(ExtendedEnum[LibraryStatusEnum], enum_type=LibraryStatusEnum):
     DRAFT = LibraryStatusEnum(0, "Draft", "✍🏼")
     SUBMITTED = LibraryStatusEnum(1, "Submitted", "🚀")
-    ACCEPTED = LibraryStatusEnum(2, "Accepted", "📦")
+    REQUESTED = LibraryStatusEnum(2, "Requested", "📝")
     POOLED = LibraryStatusEnum(3, "Pooled", "🧪")
     SEQUENCED = LibraryStatusEnum(4, "Sequenced", "🧬")
     SHARED = LibraryStatusEnum(5, "Shared", "📬")

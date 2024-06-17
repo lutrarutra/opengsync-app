@@ -1,5 +1,5 @@
 import json
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort, Response, render_template
 from flask_login import login_required
@@ -50,7 +50,7 @@ def get_libraries(page: int) -> Response:
         if len(status_in) == 0:
             status_in = None
     else:
-        status_in = [LibraryStatus.ACCEPTED]
+        status_in = [LibraryStatus.REQUESTED]
 
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)

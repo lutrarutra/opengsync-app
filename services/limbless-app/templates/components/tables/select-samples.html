@@ -1,0 +1,57 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from 'components/spinner.jinja2' import spinner %}
+
+<div id="select-samples-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='select-samples-table', column_name='ID', column_var='id',
+                        sort_url=workflow + '.get_samples', context=context,
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=workflow + '.query_samples', current_query=current_query,
+                        active_query_field=active_query_field, query_type="number", col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='select-samples-table', column_name='Name', column_var='name',
+                        sort_url=workflow + '.get_samples', context=context,
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url=workflow + '.query_samples', current_query=current_query,
+                        active_query_field=active_query_field, query_type="text", col_size=3,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='select-samples-table', column_name='Owner', column_var='owner_id',
+                        sort_url=workflow + '.get_samples', context=context,
+                        sort_by=sort_by, sort_order=sort_order,
+                        col_size=2,
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for sample in samples %}
+            <tr onclick="select_sample({{ sample.id }});" id="sample-row-{{ sample.id }}"
+            class="sample-row">
+                <th scope="row">{{ sample.id }}</th>
+                <td>{{ sample.name }}</td>
+                <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("select-samples-table-spinner") }}
+    {{ pagination("select-samples-table", workflow + ".get_samples", n_pages, active_page, context=context) }}
+    <script>
+        $(document).ready(function() {
+            init_tooltips();
+            update_samples();
+        });
+    </script>
+</div>
