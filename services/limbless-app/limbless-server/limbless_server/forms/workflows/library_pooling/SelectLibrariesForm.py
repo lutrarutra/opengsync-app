@@ -85,7 +85,7 @@ class SelectLibrariesForm(HTMXFlaskForm):
                     logger.error(f"Library {library_id} not found")
                     raise ValueError(f"Library {library_id} not found")
                 
-                session.link_library_pool(library.id, self.pool.id)
+                session.pool_library(library.id, self.pool.id)
 
             for library_id in self.remove_library_ids:
                 if (library := session.get_library(library_id)) is None:

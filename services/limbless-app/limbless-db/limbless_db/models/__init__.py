@@ -26,5 +26,5 @@ from .Links import (  # noqa: F401
     LanePoolLink, SampleLibraryLink,
     ExperimentFileLink, SeqRequestFileLink,
     ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
-    SeqRequestDeliveryEmailLink, ExperimentPoolLink, LibraryPlateLink
+    SeqRequestDeliveryEmailLink, ExperimentPoolLink
 )

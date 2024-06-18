@@ -45,7 +45,7 @@ def get_pools(page: int):
         if len(status_in) == 0:
             status_in = None
     else:
-        status_in = [PoolStatus.ACCEPTED, PoolStatus.RECEIVED]
+        status_in = [PoolStatus.ACCEPTED, PoolStatus.STORED]
 
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -144,7 +144,7 @@ def get_libraries(page: int):
         if len(status_in) == 0:
             status_in = None
     else:
-        status_in = [LibraryStatus.REQUESTED]
+        status_in = [LibraryStatus.ACCEPTED]
 
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)

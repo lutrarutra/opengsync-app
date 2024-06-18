@@ -62,7 +62,7 @@ def get_pools(experiment_id: int, page: int):
         if len(status_in) == 0:
             status_in = None
     else:
-        status_in = [PoolStatus.ACCEPTED, PoolStatus.RECEIVED]
+        status_in = [PoolStatus.ACCEPTED, PoolStatus.STORED]
 
     pools, n_pages = db.get_pools(
         sort_by=sort_by, descending=descending,

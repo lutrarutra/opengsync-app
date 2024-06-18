@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import and_, or_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum
+from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus
 from .. import exceptions
 
 
@@ -108,7 +108,6 @@ def get_seq_requests(
     self,
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
     show_drafts: bool = True,
-    sample_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
@@ -136,18 +135,6 @@ def get_seq_requests(
             or_(
                 models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
                 models.SeqRequest.requestor_id == user_id
-            )
-        )
-
-    if sample_id is not None:
-        query = query.join(
-            models.Library,
-            models.Library.seq_request_id == models.SeqRequest.id,
-        ).join(
-            models.SampleLibraryLink,
-            and_(
-                models.SampleLibraryLink.library_id == models.Library.id,
-                models.SampleLibraryLink.sample_id == sample_id
             )
         )
 
@@ -182,6 +169,7 @@ def submit_seq_request(
     if not self._session:
         self.open_session()
 
+    seq_request: models.SeqRequest
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
@@ -190,7 +178,12 @@ def submit_seq_request(
     for library in seq_request.libraries:
         if library.status == LibraryStatus.DRAFT:
             library.status_id = LibraryStatus.SUBMITTED.id
-        self._session.add(library)
+            self._session.add(library)
+
+    for sample in seq_request.samples:
+        if sample.status == SampleStatus.DRAFT:
+            sample.status_id = SampleStatus.SUBMITTED.id
+            self._session.add(sample)
 
     for pool in seq_request.pools:
         pool.status_id = PoolStatus.SUBMITTED.id
@@ -437,24 +430,31 @@ def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum)
     seq_request.status_id = status.id
     
     if status == SeqRequestStatus.ACCEPTED:
+        sample_status = SampleStatus.ACCEPTED
+        library_status = LibraryStatus.ACCEPTED
         pool_status = PoolStatus.ACCEPTED
-        library_status = LibraryStatus.REQUESTED
     elif status == SeqRequestStatus.DRAFT:
-        pool_status = PoolStatus.DRAFT
+        sample_status = SampleStatus.DRAFT
         library_status = LibraryStatus.DRAFT
+        pool_status = PoolStatus.DRAFT
     elif status == SeqRequestStatus.REJECTED:
-        pool_status = PoolStatus.REJECTED
+        sample_status = SampleStatus.REJECTED
         library_status = LibraryStatus.REJECTED
+        pool_status = PoolStatus.REJECTED
     else:
         raise TypeError(f"Cannot process request to '{status}'.")
-
-    for pool in seq_request.pools:
-        pool.status_id = pool_status.id
-        self._session.add(pool)
+    
+    for sample in seq_request.samples:
+        sample.status_id = sample_status.id
+        self._session.add(sample)
 
     for library in seq_request.libraries:
         library.status_id = library_status.id
         self._session.add(library)
+
+    for pool in seq_request.pools:
+        pool.status_id = pool_status.id
+        self._session.add(pool)
 
     self._session.add(seq_request)
     self._session.commit()

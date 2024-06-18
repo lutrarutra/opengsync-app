@@ -1,0 +1,257 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+{% from 'components/spinner.jinja2' import spinner %}
+
+<div id="store_samples-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">1. Select Samples</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+        <div class="tab-body">
+            <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#available-samples-tab"
+                        type="button" role="tab" aria-controls="available-samples-tab" aria-selected="true">
+                        Samples
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#available-libraries-tab"
+                        type="button" role="tab" aria-controls="available-libraries-tab" aria-selected="true">
+                        Libraries
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
+                        type="button" role="tab" aria-controls="available-pools-tab" aria-selected="true">
+                        Pools
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="selected-samples-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-samples-tab"
+                        type="button" role="tab" aria-controls="selected-samples-tab" aria-selected="false">
+                        Selected Samples ({{ selected_samples | length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
+                        type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
+                        Selected Libraries ({{ selected_libraries | length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
+                        type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
+                        Selected Pools ({{ selected_pools | length }})
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content ba">
+                <div class="invalid-feedback-container">
+                    {% for error in store_samples_form.error_dummy.errors %}
+                        <p class="">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+
+                <div class="tab-pane fade show active" id="available-samples-tab" role="tabpanel" tabindex="0">
+                    <div hx-trigger="intersect once" hx-get="{% if seq_request %}{{ url_for('store_samples_workflow.get_samples', seq_request_id=seq_request.id) }}
+                        {% else %}{{ url_for('store_samples_workflow.get_samples') }}{% endif %}">
+                        {{ spinner() }}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="available-libraries-tab" role="tabpanel" tabindex="1">
+                    <div hx-get="{% if seq_request %}{{ url_for('store_samples_workflow.get_libraries', seq_request_id=seq_request.id) }}
+                        {% else %}{{ url_for('store_samples_workflow.get_libraries') }}{% endif %}" hx-trigger="intersect once">
+                        {{ spinner() }}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="available-pools-tab" role="tabpanel" tabindex="2">
+                    <div hx-get="{% if seq_request %}{{ url_for('store_samples_workflow.get_pools', seq_request_id=seq_request.id) }}
+                        {% else %}{{ url_for('store_samples_workflow.get_pools') }}{% endif %}" hx-trigger="intersect once">
+                        {{ spinner() }}
+                    </div>
+                </div>
+
+
+
+                <div class="tab-pane fade" id="selected-samples-tab" role="tabpanel" tabindex="3">
+                    <table class="table table-hover table-cursor">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-1">ID</th>
+                                <th scope="col" class="col-4">Name</th>
+                                <th scope="col" class="col-3">Status</th>
+                                <th scope="col" class="col-3">Owner</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selected-samples-table-container">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="4">
+                    <table class="table table-hover table-cursor">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-1">ID</th>
+                                <th scope="col" class="col-3">Name</th>
+                                <th scope="col" class="col-2">Type</th>
+                                <th scope="col" class="col-2">Status</th>
+                                <th scope="col" class="col-2">Owner</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selected-libraries-table-container">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="5">
+                    <table class="table table-hover table-cursor">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-1">ID</th>
+                                <th scope="col" class="col-4">Name</th>
+                                <th scope="col" class="col-2">Status</th>
+                                <th scope="col" class="col-3">Owner</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selected-pools-table-container">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-primary" id="submit-store_samples-form-btn">
+                Next
+            </button>
+        </div>
+    </div>
+    <script>
+        var selected_samples = {{ selected_samples | tojson if selected_samples else [] }};
+        var selected_libraries = {{ selected_libraries | tojson if selected_libraries else [] }};
+        var selected_pools = {{ selected_pools | tojson if selected_pools else [] }};
+
+        var num_selected_samples = selected_samples.length;
+        var num_selected_libraries = selected_libraries.length;
+        var num_selected_pools = selected_pools.length;
+
+        init_tooltips();
+
+        function toggle_sample(sample_id) {
+            if (selected_samples.includes(sample_id)) {
+                selected_samples = selected_samples.filter(function(value, index, arr) {
+                    return value != sample_id;
+                });
+
+                $(`#sample-row-${sample_id}`).removeClass("selected");
+                $(`#selected-sample-row-${sample_id}`).remove();
+                num_selected_samples -= 1;
+            } else {
+                selected_samples.push(sample_id);
+                $(`#sample-row-${sample_id}`).addClass("selected");
+
+                const cloned = $(`#sample-row-${sample_id}`).clone();
+                cloned.attr("id", `selected-sample-row-${sample_id}`);
+                $("#selected-samples-table-container").append(cloned);
+                num_selected_samples += 1;
+            }
+            $("#selected-samples-tab-btn").text(`Selected Samples (${num_selected_samples})`);
+        }
+        function update_samples() {
+            $(".sample-row").each(function() {
+                const sample_id = parseInt($(this).attr("id").split("-").pop());
+                if (selected_samples.includes(sample_id)) {
+                    $(this).addClass("selected");
+                }
+            });
+        }
+
+        function toggle_library(library_id) {
+            if (selected_libraries.includes(library_id)) {
+                selected_libraries = selected_libraries.filter(function(value, index, arr) {
+                    return value != library_id;
+                });
+
+                $(`#library-row-${library_id}`).removeClass("selected");
+                $(`#selected-library-row-${library_id}`).remove();
+                num_selected_libraries -= 1;
+            } else {
+                selected_libraries.push(library_id);
+                $(`#library-row-${library_id}`).addClass("selected");
+
+                const cloned = $(`#library-row-${library_id}`).clone();
+                cloned.attr("id", `selected-library-row-${library_id}`);
+                $("#selected-libraries-table-container").append(cloned);
+                num_selected_libraries += 1;
+            }
+            $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
+        }
+
+        function update_libraries() {
+            $(".library-row").each(function() {
+                const library_id = parseInt($(this).attr("id").split("-").pop());
+                if (selected_libraries.includes(library_id)) {
+                    $(this).addClass("selected");
+                }
+            });
+        }
+
+        function toggle_pool(pool_id) {
+            if (selected_pools.includes(pool_id)) {
+                selected_pools = selected_pools.filter(function(value, index, arr) {
+                    return value != pool_id;
+                });
+
+                $(`#pool-row-${pool_id}`).removeClass("selected");
+                $(`#selected-pool-row-${pool_id}`).remove();
+                num_selected_pools -= 1;
+            } else {
+                selected_pools.push(pool_id);
+                $(`#pool-row-${pool_id}`).addClass("selected");
+
+                const cloned = $(`#pool-row-${pool_id}`).clone();
+                cloned.attr("id", `selected-pool-row-${pool_id}`);
+                $("#selected-pools-table-container").append(cloned);
+                num_selected_pools += 1;
+            }
+            $("#selected-pools-tab-btn").text(`Selected Pools (${num_selected_pools})`);
+        }
+        function update_pools() {
+            $(".pool-row").each(function() {
+                const pool_id = parseInt($(this).attr("id").split("-").pop());
+                if (selected_pools.includes(pool_id)) {
+                    $(this).addClass("selected");
+                }
+            });
+        }
+
+
+        $("#submit-store_samples-form-btn").click(function() {
+            if (num_selected_samples + num_selected_libraries + num_selected_pools == 0) {
+                $(".invalid-feedback-container").html("<p>Select at least one sample.</p>");
+                return false;
+            }
+
+            htmx.ajax("POST", "{{ url_for('store_samples_workflow.select',  **url_context) }}", {
+                target: "#store_samples-form-container",
+                swap: "outerHTML",
+                values: {
+                    csrf_token: "{{ store_samples_form.csrf_token._value() }}",
+                    selected_sample_ids: JSON.stringify(selected_samples),
+                    selected_library_ids: JSON.stringify(selected_libraries),
+                    selected_pool_ids: JSON.stringify(selected_pools),
+                },
+            });
+
+        });
+    </script>
+</div>

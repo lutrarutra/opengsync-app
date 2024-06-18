@@ -4,10 +4,14 @@ from typing import Optional
 import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
+from ...categories import SampleStatus, SampleStatusEnum
 from .. import exceptions
 
 
-def create_sample(self, name: str, owner_id: int, project_id: int) -> models.Sample:
+def create_sample(
+    self, name: str, owner_id: int, project_id: int, seq_request_id: int,
+    status: SampleStatusEnum = SampleStatus.DRAFT
+) -> models.Sample:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -17,11 +21,16 @@ def create_sample(self, name: str, owner_id: int, project_id: int) -> models.Sam
 
     if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{owner_id}', not found.")
+    
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
 
     sample = models.Sample(
         name=name.strip(),
         project_id=project_id,
-        owner_id=owner_id
+        owner_id=owner_id,
+        seq_request_id=seq_request.id,
+        status_id=status.id
     )
 
     self._session.add(sample)
@@ -53,6 +62,8 @@ def get_samples(
     self, user_id: Optional[int] = None,
     project_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
+    status: Optional[SampleStatusEnum] = None,
+    status_in: Optional[list[SampleStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Sample], int]:
@@ -62,11 +73,10 @@ def get_samples(
 
     query = self._session.query(models.Sample)
 
-    if sort_by is not None:
-        attr = getattr(models.Sample, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
+    if seq_request_id is not None:
+        query = query.where(
+            models.Sample.seq_request_id == seq_request_id
+        )
 
     if user_id is not None:
         query = query.where(
@@ -78,18 +88,23 @@ def get_samples(
             models.Sample.project_id == project_id
         )
 
-    if seq_request_id is not None:
-        query = query.join(
-            models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id,
-        ).join(
-            models.Library,
-            models.Library.id == models.SampleLibraryLink.library_id,
-        ).where(
-            models.Library.seq_request_id == seq_request_id,
-        ).distinct()
+    if status is not None:
+        query = query.where(
+            models.Sample.status_id == status.id
+        )
+
+    if status_in is not None:
+        query = query.where(
+            models.Sample.status_id.in_([s.id for s in status_in])
+        )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+
+    if sort_by is not None:
+        attr = getattr(models.Sample, sort_by)
+        if descending:
+            attr = attr.desc()
+        query = query.order_by(attr)
     
     if offset is not None:
         query = query.offset(offset)
@@ -105,25 +120,14 @@ def get_samples(
     return samples, n_pages
 
 
-def update_sample(
-    self, sample_id: int,
-    name: Optional[str] = None,
-    commit: bool = True
-) -> models.Sample:
+def update_sample(self, sample: models.Sample) -> models.Sample:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    sample = self._session.get(models.Sample, sample_id)
-    if not sample:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-
-    if name is not None:
-        sample.name = name
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(sample)
+    self._session.add(sample)
+    self._session.commit()
+    self._session.refresh(sample)
 
     if not persist_session:
         self.close_session()
@@ -172,14 +176,8 @@ def query_samples(
         )
 
     if seq_request_id is not None:
-        query = query.join(
-            models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id,
-        ).join(
-            models.Library,
-            models.Library.id == models.SampleLibraryLink.library_id,
-        ).where(
-            models.Library.seq_request_id == seq_request_id,
+        query = query.where(
+            models.Sample.seq_request_id == seq_request_id
         )
 
     query = query.order_by(

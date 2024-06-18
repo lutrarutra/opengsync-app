@@ -93,7 +93,7 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
             pool.qubit_concentration = sub_form.qubit_concentration.data
 
             if pool.status == PoolStatus.ACCEPTED:
-                pool.status_id = PoolStatus.RECEIVED.id
+                pool.status_id = PoolStatus.STORED.id
 
             pool = db.update_pool(pool)
 

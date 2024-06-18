@@ -90,7 +90,7 @@ def test_user_links(db: DBHandler):
         assert len(seq_request.pools) == 1
         assert seq_request.pools[0].id == pool.id
 
-    db.link_library_pool(library.id, pool.id)
+    db.pool_library(library.id, pool.id)
 
     with DBSession(db) as session:
         library = session.get_library(library.id)
@@ -291,7 +291,7 @@ def test_experiment_lanes(db: DBHandler):
 
     for i in range(NUM_POOLS):
         pool = create_pool(db, user, seq_request)
-        db.link_library_pool(libraries[i % NUM_LIBRARIES].id, pool.id)
+        db.pool_library(libraries[i % NUM_LIBRARIES].id, pool.id)
         pools.append(pool)
 
     with DBSession(db) as session:

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from .Pool import Pool
     from .File import File
     from .Comment import Comment
+    from .Sample import Sample
 
 
 class SeqRequest(Base):
@@ -57,6 +58,7 @@ class SeqRequest(Base):
     seq_auth_form_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[seq_auth_form_file_id], cascade="save-update, merge, delete")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
+    samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="seq_request", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
     files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink.__tablename__, lazy="select")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink.__tablename__, lazy="select", cascade="save-update,delete", order_by="Comment.timestamp_utc.desc()")

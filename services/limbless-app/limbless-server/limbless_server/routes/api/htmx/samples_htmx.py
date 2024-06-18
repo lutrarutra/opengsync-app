@@ -229,25 +229,3 @@ def get_libraries(sample_id: int):
             n_pages=n_pages
         )
     )
-
-
-@samples_htmx.route("<int:sample_id>/get_seq_requests", methods=["GET"])
-@login_required
-def get_seq_requests(sample_id: int):
-    if (sample := db.get_sample(sample_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if sample.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    seq_requests, n_pages = db.get_seq_requests(
-        sample_id=sample_id
-    )
-    
-    return make_response(
-        render_template(
-            "components/tables/sample-seq_request.html",
-            sample=sample, seq_requests=seq_requests,
-            n_pages=n_pages
-        )
-    )

@@ -301,7 +301,7 @@
 
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('plate_samples_workflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('store_samples_workflow.begin', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
                     <div class="flip-card-container">

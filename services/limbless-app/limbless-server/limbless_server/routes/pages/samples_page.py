@@ -55,6 +55,12 @@ def sample_page(sample_id):
                 (f"Project {id}", url_for("projects_page.project_page", project_id=id)),
                 (f"Sample {sample_id}", ""),
             ]
+        elif page == "seq_request":
+            path_list = [
+                ("Requests", url_for("seq_requests_page.seq_requests_page")),
+                (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
+                (f"Sample {sample_id}", ""),
+            ]
 
     return render_template(
         "sample_page.html", sample_form=sample_form,

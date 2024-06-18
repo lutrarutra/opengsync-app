@@ -36,23 +36,23 @@ class SelectSamplesForm(HTMXFlaskForm):
     def validate(self) -> bool:
         validated = super().validate()
 
-        selected_pool_ids = self.selected_pool_ids.data
         selected_library_ids = self.selected_library_ids.data
+        selected_pool_ids = self.selected_pool_ids.data
         selected_lane_ids = self.selected_lane_ids.data
         
         if not selected_pool_ids and not selected_library_ids and not selected_lane_ids:
             self.error_dummy.errors = ["Select at least one sample"]
             return False
+        
+        if selected_library_ids:
+            library_ids = json.loads(selected_library_ids)
+        else:
+            library_ids = []
 
         if selected_pool_ids:
             pool_ids = json.loads(selected_pool_ids)
         else:
             pool_ids = []
-
-        if selected_library_ids:
-            library_ids = json.loads(selected_library_ids)
-        else:
-            library_ids = []
 
         if selected_lane_ids:
             lane_ids = json.loads(selected_lane_ids)
@@ -62,6 +62,14 @@ class SelectSamplesForm(HTMXFlaskForm):
         if len(pool_ids) + len(library_ids) + len(lane_ids) == 0:
             self.selected_pool_ids.errors = ["Select at least one sample"]
             return False
+         
+        self.library_ids = []
+        try:
+            for library_id in library_ids:
+                self.library_ids.append(int(library_id))
+        except ValueError:
+            self.selected_library_ids.errors = ["Invalid library id"]
+            return False
         
         self.pool_ids = []
         try:
@@ -69,14 +77,6 @@ class SelectSamplesForm(HTMXFlaskForm):
                 self.pool_ids.append(int(library_id))
         except ValueError:
             self.selected_pool_ids.errors = ["Invalid library id"]
-            return False
-        
-        self.library_ids = []
-        try:
-            for library_id in library_ids:
-                self.library_ids.append(int(library_id))
-        except ValueError:
-            self.selected_library_ids.errors = ["Invalid library id"]
             return False
         
         self.lane_ids = []

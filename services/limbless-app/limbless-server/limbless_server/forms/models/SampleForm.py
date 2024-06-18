@@ -50,11 +50,10 @@ class SampleForm(HTMXFlaskForm):
 
         if not self.validate(user_id=user_id, sample=sample):
             return self.make_response(**context)
+        
+        sample.name = self.name.data
        
-        sample = db.update_sample(
-            sample_id=sample.id,
-            name=self.name.data,
-        )
+        sample = db.update_sample(sample)
 
         flash("Changes saved succesfully!", "success")
         return make_response(

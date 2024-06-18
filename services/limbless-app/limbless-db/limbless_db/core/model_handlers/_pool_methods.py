@@ -4,7 +4,7 @@ from typing import Optional
 
 import sqlalchemy as sa
 
-from ...categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum
+from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 
@@ -14,7 +14,7 @@ def create_pool(
     owner_id: int,
     contact_name: str,
     contact_email: str,
-    pool_type: PoolTypeEnum = PoolType.EXTERNAL,
+    pool_type: PoolTypeEnum,
     seq_request_id: Optional[int] = None,
     num_m_reads_requested: Optional[float] = None,
     status: PoolStatusEnum = PoolStatus.DRAFT,
@@ -43,7 +43,7 @@ def create_pool(
             phone=contact_phone.strip() if contact_phone else None
         ),
         status_id=status.id,
-        timestamp_received_utc=sa.func.now() if status == PoolStatus.RECEIVED else None
+        timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None
     )
     user.num_pools += 1
 

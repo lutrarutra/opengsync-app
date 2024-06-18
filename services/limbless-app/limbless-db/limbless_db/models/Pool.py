@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .actions import PoolAction
     from .File import File
     from .dilutions import PoolDilution
+    from .Plate import Plate
 
 
 class Pool(Base):
@@ -28,9 +29,7 @@ class Pool(Base):
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    timestamp_received_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
-    timestamp_qced_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
-    timestamp_depleted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
+    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
@@ -40,6 +39,10 @@ class Pool(Base):
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="joined")
+
+    plate_well: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
+    plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
+    plate: Mapped[Optional["Plate"]] = relationship("Plate", back_populates="pools", lazy="select")
 
     seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=True)
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", lazy="select")
@@ -104,12 +107,8 @@ class Pool(Base):
         return f"{m:.2f}"
     
     @property
-    def timestamp_received_str(self) -> str:
-        return self.timestamp_received_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_received_utc is not None else ""
-    
-    @property
-    def timestamp_depleted_str(self) -> str:
-        return self.timestamp_depleted_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_depleted_utc is not None else ""
+    def timestamp_stored_str(self) -> str:
+        return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
     
     def search_value(self) -> int:
         return self.id
@@ -122,6 +121,9 @@ class Pool(Base):
     
     def is_qced(self) -> bool:
         return self.qubit_concentration is not None and self.avg_fragment_size is not None
+    
+    def is_editable(self) -> bool:
+        return self.status == PoolStatus.DRAFT
     
     def __str__(self) -> str:
         return f"Pool(id={self.id}, name={self.name})"

@@ -1,15 +1,18 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
+from datetime import datetime
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from ..categories import SampleStatus, SampleStatusEnum
 from .Links import SampleLibraryLink
-
 from .Base import Base
 
 if TYPE_CHECKING:
     from .Project import Project
     from .User import User
+    from .SeqRequest import SeqRequest
+    from .Plate import Plate
 
 
 class Sample(Base):
@@ -17,10 +20,20 @@ class Sample(Base):
     
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
+    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+
+    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
     project_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("project.id"), nullable=False)
     project: Mapped["Project"] = relationship("Project", back_populates="samples", lazy="select")
+
+    plate_well: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
+    plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
+    plate: Mapped[Optional["Plate"]] = relationship("Plate", back_populates="samples", lazy="select")
+
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), nullable=False)
+    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="samples", lazy="select")
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="joined")
@@ -30,7 +43,15 @@ class Sample(Base):
         cascade="save-update, merge, delete"
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
+
+    @property
+    def status(self) -> SampleStatusEnum:
+        return SampleStatus.get(self.status_id)
+    
+    @property
+    def timestamp_stored_str(self) -> str:
+        return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
 
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name})"
@@ -45,13 +66,4 @@ class Sample(Base):
         return self.project.name
     
     def is_editable(self) -> bool:
-        for link in self.library_links:
-            if not link.library.is_editable():
-                return False
-        return True
-
-    def is_prepared(self) -> bool:
-        for link in self.library_links:
-            if not link.library.is_pooled():
-                return False
-        return True
+        return self.status == SampleStatus.DRAFT

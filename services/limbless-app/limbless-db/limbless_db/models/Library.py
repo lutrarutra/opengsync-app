@@ -5,7 +5,7 @@ from datetime import datetime
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .Links import LibraryFeatureLink, SampleLibraryLink, LibraryPlateLink
+from .Links import LibraryFeatureLink, SampleLibraryLink
 from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .VisiumAnnotation import VisiumAnnotation
     from .SeqQuality import SeqQuality
     from .File import File
+    from .Plate import Plate
 
 
 @dataclass
@@ -36,7 +37,7 @@ class Library(Base):
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     genome_ref_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
 
-    timestamp_received_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
+    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
     seq_depth_requested: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Float, nullable=True, default=None)
@@ -57,15 +58,15 @@ class Library(Base):
         "Pool", back_populates="libraries", lazy="joined", cascade="save-update, merge"
     )
 
+    plate_well: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
+    plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
+    plate: Mapped[Optional["Plate"]] = relationship("Plate", back_populates="libraries", lazy="select")
+
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="joined")
 
     sample_links: Mapped[list[SampleLibraryLink]] = relationship(
         SampleLibraryLink, back_populates="library", lazy="select",
-        cascade="save-update, merge, delete"
-    )
-    plate_links: Mapped[list[LibraryPlateLink]] = relationship(
-        LibraryPlateLink, back_populates="library", lazy="select",
         cascade="save-update, merge, delete"
     )
 
@@ -119,6 +120,10 @@ class Library(Base):
             return ""
         return f"{m:.2f}"
     
+    @property
+    def timestamp_stored_str(self) -> str:
+        return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
+    
     def is_multiplexed(self) -> bool:
         return self.num_samples > 1
     
@@ -129,7 +134,7 @@ class Library(Base):
         return self.index_1_sequence is not None
     
     def is_pooled(self) -> bool:
-        return self.pool_id is not None
+        return self.status == LibraryStatus.POOLED
     
     def __str__(self) -> str:
         return f"Library(id: {self.id}, name: {self.name}, type: {self.type})"

@@ -58,7 +58,7 @@ class DBHandler():
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
-        link_library_pool, set_library_seq_quality
+        pool_library, set_library_seq_quality
     )
 
     from .model_handlers._user_methods import (
@@ -119,7 +119,7 @@ class DBHandler():
 
     from .model_handlers._plate_methods import (
         create_plate, get_plate, get_plates,
-        delete_plate, add_library_to_plate
+        delete_plate, add_sample_to_plate, add_library_to_plate, add_pool_to_plate
     )
 
     from .model_handlers._link_methods import (

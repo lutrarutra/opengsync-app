@@ -2,10 +2,10 @@ import math
 from typing import Optional
 
 import sqlalchemy as sa
-from sqlalchemy.sql.operators import or_, and_
+from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, SampleStatus
 from .. import exceptions
 
 
@@ -244,7 +244,7 @@ def update_library(
         self.open_session()
     
     if library.pool_id is None:
-        library.status_id = LibraryStatus.REQUESTED.id
+        library.status_id = LibraryStatus.ACCEPTED.id
     self._session.add(library)
 
     if commit:
@@ -339,23 +339,39 @@ def query_libraries(
     return libraries
 
 
-def link_library_pool(self, library_id: int, pool_id: int):
+def pool_library(self, library_id: int, pool_id: int):
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
+    library: models.Library
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    if library.pool_id is not None:
+        raise exceptions.LinkAlreadyExists(f"Library with id {library_id} is already pooled")
+
+    pool: models.Pool
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
-    if library.pool_id is None:
-        pool.num_libraries += 1
-        self._session.add(pool)
+    pool.num_libraries += 1
+    self._session.add(pool)
         
     library.pool_id = pool_id
     library.status_id = LibraryStatus.POOLED.id
     self._session.add(library)
+    
+    for sample_links in library.sample_links:
+        all_sample_libraries_prepared = True
+        for library_links in sample_links.sample.library_links:
+            if not library_links.library.is_pooled() and library_links.library.id != library_id:
+                all_sample_libraries_prepared = False
+                break
+        if all_sample_libraries_prepared:
+            sample_links.sample.status_id = SampleStatus.PREPARED.id
+            self._session.add(sample_links.sample)
+
     self._session.commit()
 
     if not persist_session:

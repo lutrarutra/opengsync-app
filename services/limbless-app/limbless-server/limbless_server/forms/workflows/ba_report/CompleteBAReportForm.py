@@ -146,7 +146,7 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
             pool.ba_report_id = ba_file.id
 
             if pool.status == PoolStatus.ACCEPTED:
-                pool.status_id = PoolStatus.RECEIVED.id
+                pool.status_id = PoolStatus.STORED.id
 
             pool = db.update_pool(pool)
 

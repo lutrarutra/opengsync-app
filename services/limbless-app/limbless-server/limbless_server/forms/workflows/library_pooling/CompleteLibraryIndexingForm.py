@@ -77,7 +77,7 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             library.index_4_sequence = row["index_4"] if pd.notna(row["index_4"]) else None
             library.adapter = row["adapter"] if pd.notna(row["adapter"]) else None
             library = db.update_library(library)
-            db.link_library_pool(library.id, pool.id)
+            db.pool_library(library.id, pool.id)
 
         flash("Libraries pooled!", "success")
         logger.info(f"{self.uuid}: Libraries pooled")

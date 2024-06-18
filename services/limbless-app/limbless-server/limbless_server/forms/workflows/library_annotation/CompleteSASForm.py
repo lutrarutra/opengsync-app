@@ -9,7 +9,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType
+from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType
 
 from .... import db, logger
 from ...TableDataForm import TableDataForm
@@ -273,7 +273,9 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                 sample = session.create_sample(
                     name=row["sample_name"],
                     project_id=project.id,
-                    owner_id=user.id
+                    owner_id=user.id,
+                    seq_request_id=self.seq_request.id,
+                    status=SampleStatus.DRAFT
                 )
                 sample_table.at[idx, "sample_id"] = sample.id
 
@@ -287,6 +289,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         name=row["name"],
                         owner_id=user.id,
                         seq_request_id=self.seq_request.id,
+                        pool_type=PoolType.EXTERNAL,
                         num_m_reads_requested=row["num_m_reads"],
                         contact_name=row["contact_person_name"],
                         contact_email=row["contact_person_email"],

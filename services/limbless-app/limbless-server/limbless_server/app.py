@@ -195,6 +195,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             LibraryType=categories.LibraryType,
             PoolStatus=categories.PoolStatus,
             AssayType=categories.AssayType,
+            SampleStatus=categories.SampleStatus,
             isna=pd.isna,
         )
     
@@ -234,7 +235,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.lane_qc_workflow)
     app.register_blueprint(api.workflows.load_flow_cell_workflow)
     app.register_blueprint(api.workflows.qubit_measure_workflow)
-    app.register_blueprint(api.workflows.plate_samples_workflow)
+    app.register_blueprint(api.workflows.store_samples_workflow)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

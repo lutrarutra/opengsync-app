@@ -3,13 +3,13 @@ from typing import Optional, TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .Links import LibraryPlateLink
 from .Base import Base
+from .Sample import Sample
+from .Library import Library
+from .Pool import Pool
 
 if TYPE_CHECKING:
-    from .Pool import Pool
     from .User import User
-    from .Library import Library
 
 
 class Plate(Base):
@@ -23,15 +23,9 @@ class Plate(Base):
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", lazy="joined")
 
-    pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True)
-    pool: Mapped[Optional["Pool"]] = relationship(
-        "Pool", lazy="select", cascade="save-update, merge"
-    )
-
-    library_links: Mapped[list[LibraryPlateLink]] = relationship(
-        LibraryPlateLink, back_populates="plate", lazy="select",
-        cascade="save-update, merge, delete", order_by="LibraryPlateLink.well"
-    )
+    samples: Mapped[list[Sample]] = relationship("Sample", back_populates="plate", lazy="select")
+    libraries: Mapped[list[Library]] = relationship("Library", back_populates="plate", lazy="select")
+    pools: Mapped[list[Pool]] = relationship("Pool", back_populates="plate", lazy="select")
         
     def __str__(self) -> str:
         return f"Plate(id: {self.id}, name: {self.name}, num_cols: {self.num_cols}, num_rows: {self.num_rows})"
@@ -60,18 +54,17 @@ class Plate(Base):
     def get_well_xy(self, row: int, col: int) -> str:
         return Plate.well_identifier(row * self.num_cols + col, self.num_cols, self.num_cols)
     
-    def get_library(self, well: str) -> Optional["Library"]:
-        for link in self.library_links:
-            if link.well == well:
-                return link.library
+    def get_sample(self, well: str) -> Optional[Library | Sample | Pool]:
+        for sample in self.samples:
+            if sample.plate_well == well:
+                return sample
+        for library in self.libraries:
+            if library.plate_well == well:
+                return library
+        for pool in self.pools:
+            if pool.plate_well == well:
+                return pool
         return None
     
-    def get_library_xy(self, row: int, col: int) -> Optional["Library"]:
-        return self.get_library(self.get_well_xy(row, col))
-
-    def get_next_available_well(self) -> Optional[str]:
-        for i in range(self.num_cols * self.num_rows):
-            well = self.get_well(i)
-            if self.get_library(well) is None:
-                return well
-        return None
+    def get_sample_xy(self, row: int, col: int) -> Optional[Library | Sample | Pool]:
+        return self.get_sample(self.get_well_xy(row, col))

@@ -1,0 +1,82 @@
+@import "colors.scss";
+
+.plating-container {
+    width: 100%;
+    .header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        width: 100%;
+        .btn {
+            width: 150px;
+        }
+        height: 50px;
+    }
+    .body {
+        height: calc(100% - 50px);
+        padding: 10px;
+        display: flex;
+        gap: 20px;
+
+        .standy-list {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 10px 10px 10px 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 200px;
+            gap: 5px;
+            .selectable-element {
+                cursor: pointer;
+                border-radius: 5px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background-color: $light;
+                border: 1px solid $gray-400;
+            }
+            .selectable-element.selected {
+                background-color: $cemm-yellow;
+                color: white;
+            }
+        }
+        .plate-container {
+            display: flex;
+            .plate {
+                display: flex;
+                border: 2px solid $gray-400;
+                border-radius: 5px;
+                padding: 10px;
+                overflow-y: auto;
+                overflow-x: auto;
+                flex-direction: column;
+                background-color: white;
+                gap: 5px;
+                .plate-row {
+                    gap: 5px;
+                    display: flex;
+                    justify-content: space-evenly;
+                }
+                .plate-cell {
+                    cursor: pointer;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 100px;
+                    height: 50px;
+                    border: 1px solid $gray-400;
+                    background-color: $light;
+                    border-radius: 5px;
+                    color: $gray-400;
+                }
+
+                .plate-cell.filled {
+                    background-color: $cemm-green;
+                    color: white;
+                }
+            }
+        }
+    }
+}

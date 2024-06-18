@@ -49,7 +49,7 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr onclick="select_pool({{ pool.id }});" id="pool-row-{{ pool.id }}" class="pool-row">
+            <tr onclick="toggle_pool({{ pool.id }});" id="pool-row-{{ pool.id }}" class="pool-row">
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
                 <td>{{ pool.status.name }} {{ pool.status.icon }}</td>

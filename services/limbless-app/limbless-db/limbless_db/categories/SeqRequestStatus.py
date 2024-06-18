@@ -18,6 +18,6 @@ class SeqRequestStatus(ExtendedEnum[SeqRequestStatusEnum], enum_type=SeqRequestS
     ACCEPTED = SeqRequestStatusEnum(2, "Accepted", "🧬")
     DATA_PROCESSING = SeqRequestStatusEnum(3, "Data Processing", "👨🏽‍💻")
     FINISHED = SeqRequestStatusEnum(4, "Finished", "✅")
-    ARCHIVED = SeqRequestStatusEnum(5, "Archived", "🗃️")
     FAILED = SeqRequestStatusEnum(10, "Failed", "❌")
     REJECTED = SeqRequestStatusEnum(11, "Rejected", "⛔")
+    ARCHIVED = SeqRequestStatusEnum(12, "Archived", "🗃️")
