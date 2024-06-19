@@ -2,16 +2,16 @@
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 {% from 'components/spinner.jinja2' import spinner %}
 
-<div id="store_samples-form-container" class="modal-content">
+<div id="plate_samples-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">2. Confirm Samples</h1>
+        <h1 class="modal-title fs-5">Put Samples on Plate</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body">
         <div class="plating-container">
             <div class="header">
-                {{ store_samples_form.plate_name() }}
-                {{ store_samples_form.plate_size() }}
+                {{ plate_samples_form.plate_name() }}
+                {{ plate_samples_form.plate_size() }}
                 <button id="plate-sort-abc" type="button" class="btn btn-primary">ABC</button>
                 <button id="plate-sort-id" type="button" class="btn btn-primary">ID</button>
                 <button id="plate-sort-remove" type="button" class="btn btn-danger">No Plate</button>
@@ -44,7 +44,7 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ store_samples_form.file_uuid.data }}
+            {{ plate_samples_form.file_uuid.data }}
         </div>
         <div class="footer-info">
         </div>
@@ -194,13 +194,13 @@
                     plate_order.push(null);
                 }
             });
-            htmx.ajax("POST", "{{ url_for('store_samples_workflow.submit') }}", {
-                "target": "#store_samples-form-container",
+            htmx.ajax("POST", "{{ url_for('plate_samples_workflow.submit', **url_context) }}", {
+                "target": "#plate_samples-form-container",
                 "swap": "outerHTML",
                 "values": {
-                    "file_uuid": "{{ store_samples_form.file_uuid.data }}",
+                    "file_uuid": "{{ plate_samples_form.file_uuid.data }}",
                     "plate_order": JSON.stringify(plate_order),
-                    "csrf_token": "{{ store_samples_form.csrf_token._value() }}",
+                    "csrf_token": "{{ plate_samples_form.csrf_token._value() }}",
                     "plate_name": $("#plate_name").val(),
                     {% if seq_request %}
                     seq_request_id: "{{ seq_request.id }}",

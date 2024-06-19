@@ -10,42 +10,54 @@
     <div class="modal-body">
         <div class="tab-body">
             <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+                {% if select_samples %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#available-samples-tab"
                         type="button" role="tab" aria-controls="available-samples-tab" aria-selected="true">
                         Samples
                     </button>
                 </li>
+                {% endif %}
+                {% if select_libraries %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#available-libraries-tab"
                         type="button" role="tab" aria-controls="available-libraries-tab" aria-selected="true">
                         Libraries
                     </button>
                 </li>
+                {% endif %}
+                {% if select_pools %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
                         type="button" role="tab" aria-controls="available-pools-tab" aria-selected="true">
                         Pools
                     </button>
                 </li>
+                {% endif %}
+                {% if selected_samples %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-samples-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-samples-tab"
                         type="button" role="tab" aria-controls="selected-samples-tab" aria-selected="false">
                         Selected Samples ({{ selected_samples | length }})
                     </button>
                 </li>
+                {% endif %}
+                {% if selected_libraries %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
                         type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
                         Selected Libraries ({{ selected_libraries | length }})
                     </button>
                 </li>
+                {% endif %}
+                {% if selected_pools %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
                         type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
                         Selected Pools ({{ selected_pools | length }})
                     </button>
                 </li>
+                {% endif %}
             </ul>
             <div class="tab-content ba">
                 <div class="invalid-feedback-container">
@@ -56,25 +68,20 @@
 
 
                 <div class="tab-pane fade show active" id="available-samples-tab" role="tabpanel" tabindex="0">
-                    <div hx-trigger="intersect once" hx-get="{% if seq_request %}{{ url_for('store_samples_workflow.get_samples', seq_request_id=seq_request.id) }}
-                        {% else %}{{ url_for('store_samples_workflow.get_samples') }}{% endif %}">
+                    <div hx-trigger="intersect once" hx-get="{{ url_for('samples_htmx.browse', **sample_url_context) }}">
                         {{ spinner() }}
                     </div>
                 </div>
                 <div class="tab-pane fade" id="available-libraries-tab" role="tabpanel" tabindex="1">
-                    <div hx-get="{% if seq_request %}{{ url_for('store_samples_workflow.get_libraries', seq_request_id=seq_request.id) }}
-                        {% else %}{{ url_for('store_samples_workflow.get_libraries') }}{% endif %}" hx-trigger="intersect once">
+                    <div hx-get="{{ url_for('libraries_htmx.browse', **library_url_context) }}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>
                 <div class="tab-pane fade" id="available-pools-tab" role="tabpanel" tabindex="2">
-                    <div hx-get="{% if seq_request %}{{ url_for('store_samples_workflow.get_pools', seq_request_id=seq_request.id) }}
-                        {% else %}{{ url_for('store_samples_workflow.get_pools') }}{% endif %}" hx-trigger="intersect once">
+                    <div hx-get="{{ url_for('pools_htmx.browse', **pool_url_context) }}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>
-
-
 
                 <div class="tab-pane fade" id="selected-samples-tab" role="tabpanel" tabindex="3">
                     <table class="table table-hover table-cursor">
@@ -241,7 +248,7 @@
                 return false;
             }
 
-            htmx.ajax("POST", "{{ url_for('store_samples_workflow.select',  **url_context) }}", {
+            htmx.ajax("POST", "{{ post_url }}", {
                 target: "#store_samples-form-container",
                 swap: "outerHTML",
                 values: {
@@ -249,6 +256,10 @@
                     selected_sample_ids: JSON.stringify(selected_samples),
                     selected_library_ids: JSON.stringify(selected_libraries),
                     selected_pool_ids: JSON.stringify(selected_pools),
+                    workflow: "{{ workflow }}",
+                    {% if seq_request %}
+                    seq_request_id: "{{ seq_request.id }}",
+                    {% endif %}
                 },
             });
 

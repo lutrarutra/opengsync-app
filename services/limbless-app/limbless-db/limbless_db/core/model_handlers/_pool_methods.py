@@ -348,7 +348,7 @@ def get_next_pool_identifier(self, pool_type: PoolTypeEnum) -> str:
         models.Pool.type_id == pool_type.id
     ).count()
 
-    identifier = f"{pool_type.identifier}{n_pools + 1}"
+    identifier = f"{pool_type.identifier}{n_pools + 1:04d}"
 
     if not persist_session:
         self.close_session()

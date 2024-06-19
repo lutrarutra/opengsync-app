@@ -202,3 +202,127 @@ def table_query():
             libraries=libraries, type_in=type_in, status_in=status_in
         )
     )
+
+
+@libraries_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
+@libraries_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
+@login_required
+def browse(workflow: str, page: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+    context = {}
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+            
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    libraries, n_pages = db.get_libraries(
+        sort_by=sort_by, descending=descending, offset=offset,
+        status_in=status_in, experiment_id=experiment_id,
+        type_in=type_in
+    )
+    context["workflow"] = workflow
+    return make_response(
+        render_template(
+            "components/tables/select-libraries.html",
+            libraries=libraries, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, status_in=status_in, context=context,
+            type_in=type_in, workflow=workflow
+        )
+    )
+
+
+@libraries_htmx.route("<string:workflow>/browse_query", methods=["GET"])
+@login_required
+def browse_query(workflow: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (word := request.args.get("name")) is not None:
+        field_name = "name"
+    elif (word := request.args.get("id")) is not None:
+        field_name = "id"
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    context = {}
+    
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+
+    libraries: list[models.Library] = []
+    if field_name == "name":
+        libraries = db.query_libraries(word, status_in=status_in, type_in=type_in, experiment_id=experiment_id)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+            if (library := db.get_library(_id)) is not None:
+                libraries = [library]
+                if status_in is not None and library.status not in status_in:
+                    libraries = []
+                if type_in is not None and library.type not in type_in:
+                    libraries = []
+        except ValueError:
+            pass
+
+    context["workflow"] = workflow
+    return make_response(
+        render_template(
+            "components/tables/select-libraries.html",
+            current_query=word, active_query_field=field_name,
+            libraries=libraries, type_in=type_in, status_in=status_in, context=context,
+            workflow=workflow
+        )
+    )

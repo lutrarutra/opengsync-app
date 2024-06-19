@@ -1,15 +1,13 @@
 from typing import TYPE_CHECKING
 
-import pandas as pd
-
 from flask import Blueprint, request, abort, Response
 from flask_login import login_required
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus
 
 from .... import db, logger  # noqa
-from ....forms.workflows import store_samples as forms
+from ....forms.workflows import plate_samples as forms
 from ....forms import SelectSamplesForm
 
 if TYPE_CHECKING:
@@ -17,10 +15,10 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
-store_samples_workflow = Blueprint("store_samples_workflow", __name__, url_prefix="/api/workflows/store_samples/")
+plate_samples_workflow = Blueprint("plate_samples_workflow", __name__, url_prefix="/api/workflows/plate_samples/")
 
 
-@store_samples_workflow.route("begin", methods=["GET"])
+@plate_samples_workflow.route("begin", methods=["GET"])
 @login_required
 def begin() -> Response:
     if not current_user.is_insider():
@@ -37,15 +35,15 @@ def begin() -> Response:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
     form = SelectSamplesForm(
-        workflow="store_samples", context=context,
-        sample_status_filter=[SampleStatus.ACCEPTED],
-        library_status_filter=[LibraryStatus.ACCEPTED],
-        pool_status_filter=[PoolStatus.ACCEPTED]
+        workflow="plate_samples", context=context,
+        sample_status_filter=[SampleStatus.STORED],
+        library_status_filter=[LibraryStatus.STORED],
+        pool_status_filter=[PoolStatus.STORED]
     )
     return form.make_response()
 
 
-@store_samples_workflow.route("select", methods=["POST"])
+@plate_samples_workflow.route("select", methods=["POST"])
 @login_required
 def select():
     if not current_user.is_insider():
@@ -62,30 +60,30 @@ def select():
             return abort(HTTPResponse.BAD_REQUEST.id)
     else:
         seq_request = None
-
-    form = SelectSamplesForm(workflow="store_samples", context=context, formdata=request.form)
+    
+    form = SelectSamplesForm(workflow="plate_samples", context=context, formdata=request.form)
     
     if not form.validate():
         return form.make_response()
     
     sample_table, library_table, pool_table = form.get_tables()
 
-    store_samples_form = forms.StoreSamplesForm(seq_request=seq_request)
-    store_samples_form.metadata = {"workflow": "store_samples"}
+    plate_samples_form = forms.PlateSamplesForm(seq_request=seq_request)
+    plate_samples_form.metadata = {"workflow": "plate_samples"}
     if seq_request is not None:
-        store_samples_form.metadata["seq_request_id"] = seq_request.id  # type: ignore
-    store_samples_form.add_table("sample_table", sample_table)
-    store_samples_form.add_table("library_table", library_table)
-    store_samples_form.add_table("pool_table", pool_table)
-    store_samples_form.update_data()
+        plate_samples_form.metadata["seq_request_id"] = seq_request.id  # type: ignore
+    plate_samples_form.add_table("sample_table", sample_table)
+    plate_samples_form.add_table("library_table", library_table)
+    plate_samples_form.add_table("pool_table", pool_table)
+    plate_samples_form.update_data()
     
-    store_samples_form.prepare()
-    return store_samples_form.make_response()
+    plate_samples_form.prepare()
+    return plate_samples_form.make_response()
 
 
-@store_samples_workflow.route("submit", methods=["POST"])
+@plate_samples_workflow.route("submit", methods=["POST"])
 @login_required
-def submit() -> Response:
+def submit():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -100,6 +98,6 @@ def submit() -> Response:
             return abort(HTTPResponse.BAD_REQUEST.id)
     else:
         seq_request = None
-
-    form = forms.StoreSamplesForm(seq_request=seq_request, formdata=request.form)
+    
+    form = forms.PlateSamplesForm(seq_request=seq_request, formdata=request.form)
     return form.process_request(user=current_user)

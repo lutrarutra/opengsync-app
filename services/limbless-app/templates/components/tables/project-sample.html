@@ -29,6 +29,14 @@
                 }}
                 {{
                     table_col(
+                        table_container_id='project-samples-table', column_name='Status', column_var='status_id',
+                        sort_url='projects_htmx.get_samples', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
+                    )
+                }}
+                {{
+                    table_col(
                         table_container_id='project-sample-table', column_name='Owner', column_var='owner_id',
                         sort_url='projects_htmx.get_samples', context={'project_id': project.id},
                         sort_by=sort_by, sort_order=sort_order,
@@ -42,6 +50,7 @@
             <tr onclick="redirect(`{{ url_for('samples_page.sample_page', sample_id=sample.id, from='project@' + project.id | string) }}`);">
                 <th scope="row">{{ sample.id }}</th>
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
+                <td>{{ sample.status.name }} {{ sample.status.icon }}</td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
             </tr>
             {% endfor %}

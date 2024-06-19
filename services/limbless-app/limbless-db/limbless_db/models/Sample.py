@@ -67,3 +67,4 @@ class Sample(Base):
     
     def is_editable(self) -> bool:
         return self.status == SampleStatus.DRAFT
+    

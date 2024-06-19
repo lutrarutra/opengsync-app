@@ -9,14 +9,14 @@ from wtforms import StringField, SelectField
 from limbless_db import models, DBSession
 from limbless_db.categories import SampleStatus, LibraryStatus, PoolStatus
 
-from .... import db, logger
-from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
+from ... import db, logger
+from ..HTMXFlaskForm import HTMXFlaskForm
+from ..TableDataForm import TableDataForm
 
 
-class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/store_samples/store-2.html"
-    _form_label = "store_samples_form"
+class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
+    _template_path = "workflows/plate_samples/plate-2.html"
+    _form_label = "plate_samples_form"
 
     plate_order = StringField()
     plate_name = StringField("Plate Name", validators=[OptionalValidator(), Length(min=3, max=models.Plate.name.type.length)])
@@ -139,6 +139,10 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                 else:
                     sample.status_id = SampleStatus.STORED.id
 
+                for library_link in sample.library_links:
+                    logger.debug(f"Library {library_link.library.id} status: {library_link.library.status_id}")
+                    library_link.library.status_id = LibraryStatus.PREPARING.id
+                
                 sample = session.update_sample(sample)
 
             for i, row in library_table.iterrows():
@@ -164,4 +168,4 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
         if self.seq_request is not None:
             return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))
         
-        return make_response(redirect=url_for("index"))
+        return make_response(redirect=url_for("index_page"))

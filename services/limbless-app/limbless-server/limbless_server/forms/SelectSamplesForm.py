@@ -1,20 +1,20 @@
-from typing import Optional, Any
+from typing import Optional
 
 import pandas as pd
 import json
 
-from flask import Response
+from flask import Response, url_for
 from wtforms import StringField
 
 from limbless_db import models, DBSession
+from limbless_db.categories import SampleStatusEnum, LibraryStatusEnum, PoolStatusEnum
 
-from .... import db, logger
-from ...HTMXFlaskForm import HTMXFlaskForm
-from .StoreSamplesForm import StoreSamplesForm
+from .. import db, logger
+from .HTMXFlaskForm import HTMXFlaskForm
 
 
 class SelectSamplesForm(HTMXFlaskForm):
-    _template_path = "workflows/store_samples/store-1.html"
+    _template_path = "forms/select-samples.html"
     _form_label = "store_samples_form"
 
     selected_sample_ids = StringField()
@@ -23,14 +23,45 @@ class SelectSamplesForm(HTMXFlaskForm):
 
     error_dummy = StringField()
 
-    def __init__(self, formdata: dict = {}, seq_request: Optional[models.SeqRequest] = None):
+    def __init__(
+        self, workflow: str, formdata: dict = {}, context: dict = {},
+        select_samples: bool = True, select_libraries: bool = True, select_pools: bool = True,
+        sample_status_filter: Optional[list[SampleStatusEnum]] = None,
+        library_status_filter: Optional[list[LibraryStatusEnum]] = None,
+        pool_status_filter: Optional[list[PoolStatusEnum]] = None,
+    ):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        self._context["url_context"] = {}
-        self.seq_request = seq_request
-        if seq_request is not None:
-            self._context["url_context"]["seq_request_id"] = seq_request.id
-            self._context["seq_request"] = seq_request
+        self.select_samples = select_samples
+        self.select_libraries = select_libraries
+        self.select_pools = select_pools
 
+        self._context["select_samples"] = select_samples
+        self._context["select_libraries"] = select_libraries
+        self._context["select_pools"] = select_pools
+        self._context["workflow"] = workflow
+        self._context = {**self._context, **context}
+
+        logger.debug(self._context)
+
+        url_context = {"workflow": workflow}
+        if "seq_request" in context.keys():
+            url_context["seq_request_id"] = context["seq_request"].id
+        if "experiment" in context.keys():
+            url_context["experiment_id"] = context["experiment"].id
+
+        self._context["post_url"] = url_for(f'{workflow}_workflow.select')  # type: ignore
+        self._context["url_context"] = url_context
+        self._context["sample_url_context"] = url_context.copy()
+        self._context["library_url_context"] = url_context.copy()
+        self._context["pool_url_context"] = url_context.copy()
+
+        if sample_status_filter is not None:
+            self._context["sample_url_context"]["status_id_in"] = json.dumps([status.id for status in sample_status_filter])
+        if library_status_filter is not None:
+            self._context["library_url_context"]["status_id_in"] = json.dumps([status.id for status in library_status_filter])
+        if pool_status_filter is not None:
+            self._context["pool_url_context"]["status_id_in"] = json.dumps([status.id for status in pool_status_filter])
+        
     def validate(self) -> bool:
         validated = super().validate()
 
@@ -89,11 +120,8 @@ class SelectSamplesForm(HTMXFlaskForm):
         self._context["selected_libraries"] = self.library_ids
         self._context["selected_pools"] = self.pool_ids
         return validated
-
-    def process_request(self) -> Response:
-        if not self.validate():
-            return self.make_response()
-        
+    
+    def get_tables(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         sample_data = dict(id=[], name=[], status_id=[])
         library_data = dict(id=[], name=[], status_id=[])
         pool_data = dict(id=[], name=[], status_id=[])
@@ -126,14 +154,4 @@ class SelectSamplesForm(HTMXFlaskForm):
                 pool_data["name"].append(pool.name)
                 pool_data["status_id"].append(pool.status_id)
 
-        store_samples_form = StoreSamplesForm(seq_request=self.seq_request)
-        store_samples_form.metadata = {"workflow": "store_samples"}
-        if self.seq_request is not None:
-            store_samples_form.metadata["seq_request_id"] = self.seq_request.id  # type: ignore
-        store_samples_form.add_table("sample_table", pd.DataFrame(sample_data))
-        store_samples_form.add_table("library_table", pd.DataFrame(library_data))
-        store_samples_form.add_table("pool_table", pd.DataFrame(pool_data))
-        store_samples_form.update_data()
-        
-        store_samples_form.prepare()
-        return store_samples_form.make_response()
+        return pd.DataFrame(sample_data), pd.DataFrame(library_data), pd.DataFrame(pool_data)

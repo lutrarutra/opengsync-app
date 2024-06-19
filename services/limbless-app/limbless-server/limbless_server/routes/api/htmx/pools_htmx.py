@@ -168,27 +168,6 @@ def get_libraries(pool_id: int, page: int):
     )
 
 
-@pools_htmx.route("<int:pool_id>/get_plate", methods=["GET"])
-@login_required
-def get_plate(pool_id: int):
-    with DBSession(db) as session:
-        if (pool := session.get_pool(pool_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        plates, _ = session.get_plates(pool_id=pool_id)
-        plate = plates[0] if len(plates) > 0 else None
-        library_plate_links = plate.library_links if plate is not None else []
-    
-        if not current_user.is_insider() and pool.owner_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
-    return make_response(
-        render_template(
-            "components/plate.html", pool=pool, plate=plate, library_plate_links=library_plate_links
-        )
-    )
-
-
 @pools_htmx.route("<int:pool_id>/plate_pool/<string:form_type>", methods=["GET", "POST"])
 @login_required
 def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
@@ -268,5 +247,108 @@ def get_dilutions(pool_id: int, page: int):
             "components/tables/pool-dilution.html",
             dilutions=dilutions, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order, pool=pool
+        )
+    )
+
+
+@pools_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
+@pools_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
+@login_required
+def browse(workflow: str, page: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    context = {}
+    
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [PoolStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+    
+    pools, n_pages = db.get_pools(
+        sort_by=sort_by, descending=descending, offset=offset, status_in=status_in, experiment_id=experiment_id
+    )
+
+    context["workflow"] = workflow
+    return make_response(
+        render_template(
+            "components/tables/select-pools.html",
+            pools=pools, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, context=context,
+            status_in=status_in, workflow=workflow
+        )
+    )
+
+
+@pools_htmx.route("<string:workflow>/browse_query", methods=["GET"])
+@login_required
+def browse_query(workflow: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (word := request.args.get("name")) is not None:
+        field_name = "name"
+    elif (word := request.args.get("id")) is not None:
+        field_name = "id"
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    context = {}
+    
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    pools: list[models.Pool] = []
+    if field_name == "name":
+        pools = db.query_pools(word, experiment_id=experiment_id)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if (pool := db.get_pool(pool_id=_id)) is not None:
+            if experiment_id in [e.id for e in pool.experiments]:
+                pools = [pool]
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [PoolStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+    
+    context["workflow"] = workflow
+    return make_response(
+        render_template(
+            "components/tables/select-pools.html",
+            context=context, pools=pools, status_in=status_in,
+            workflow=workflow
         )
     )
