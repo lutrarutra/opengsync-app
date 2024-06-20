@@ -3,8 +3,10 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, request, abort, Response
 from flask_login import login_required
 
-from limbless_db import models
-from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus
+import pandas as pd
+
+from limbless_db import models, DBSession
+from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus
 
 from .... import db, logger  # noqa
 from ....forms.workflows import plate_samples as forms
@@ -34,11 +36,39 @@ def begin() -> Response:
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
+    if (pool_id := request.args.get("pool_id")) is not None:
+        with DBSession(db) as session:
+            try:
+                pool_id = int(pool_id)
+                if (pool := session.get_pool(pool_id)) is None:
+                    return abort(HTTPResponse.NOT_FOUND.id)
+                context["pool"] = pool
+            except ValueError:
+                return abort(HTTPResponse.BAD_REQUEST.id)
+            
+            library_data = {
+                "id": [], "name": [], "status_id": [],
+            }
+            for library in pool.libraries:
+                library_data["id"].append(library.id)
+                library_data["name"].append(library.name)
+                library_data["status_id"].append(library.status_id)
+
+        plate_samples_form = forms.PlateSamplesForm(context=context)
+        plate_samples_form.metadata = {"workflow": "plate_samples", "pool_id": pool.id}
+        plate_samples_form.add_table("sample_table", pd.DataFrame(columns=["id", "name", "status_id"]))
+        plate_samples_form.add_table("library_table", pd.DataFrame(library_data))
+        plate_samples_form.add_table("pool_table", pd.DataFrame(columns=["id", "name", "status_id"]))
+        plate_samples_form.update_data()
+        
+        plate_samples_form.prepare()
+        return plate_samples_form.make_response()
+        
     form = SelectSamplesForm(
         workflow="plate_samples", context=context,
         sample_status_filter=[SampleStatus.STORED],
         library_status_filter=[LibraryStatus.STORED],
-        pool_status_filter=[PoolStatus.STORED]
+        select_pools=False
     )
     return form.make_response()
 
@@ -87,6 +117,8 @@ def submit():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
+    logger.debug(request.form)
+    
     context = {}
     if (seq_request_id := request.form.get("seq_request_id")) is not None:
         try:
@@ -96,8 +128,16 @@ def submit():
             context["seq_request"] = seq_request
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
-    else:
-        seq_request = None
+
+    if (pool_id := request.form.get("pool_id")) is not None:
+        with DBSession(db) as session:
+            try:
+                pool_id = int(pool_id)
+                if (pool := session.get_pool(pool_id)) is None:
+                    return abort(HTTPResponse.NOT_FOUND.id)
+                context["pool"] = pool
+            except ValueError:
+                return abort(HTTPResponse.BAD_REQUEST.id)
     
-    form = forms.PlateSamplesForm(seq_request=seq_request, formdata=request.form)
+    form = forms.PlateSamplesForm(context=context, formdata=request.form)
     return form.process_request(user=current_user)

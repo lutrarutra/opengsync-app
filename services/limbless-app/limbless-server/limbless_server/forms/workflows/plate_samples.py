@@ -22,14 +22,20 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
     plate_name = StringField("Plate Name", validators=[OptionalValidator(), Length(min=3, max=models.Plate.name.type.length)])
     plate_size = SelectField("Plate Size", choices=[("12x8", "12x8"), ("24x16", "24x16")], default="12x8")
 
-    def __init__(self, formdata: dict = {}, seq_request: Optional[models.SeqRequest] = None):
+    def __init__(self, formdata: dict = {}, context: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="store_samples", uuid=formdata.get("file_uuid"))
+        logger.debug(formdata.get("file_uuid"))
+        TableDataForm.__init__(self, dirname="plate_samples", uuid=formdata.get("file_uuid"))
         self._context["url_context"] = {}
-        self.seq_request = seq_request
-        if seq_request is not None:
+        if (seq_request := context.get("seq_request")) is not None:
             self._context["url_context"]["seq_request_id"] = seq_request.id
             self._context["seq_request"] = seq_request
+        if (pool := context.get("pool")) is not None:
+            self._context["url_context"]["pool_id"] = pool.id
+            self._context["pool"] = pool
+        
+        self.seq_request = seq_request
+        self.pool = pool
         
     def prepare(self):
         self._context["sample_table"] = self.tables["sample_table"]
@@ -86,7 +92,6 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
     def process_request(self, user: models.User) -> Response:
         if not self.validate():
             self.prepare()
-            logger.debug(self.errors)
             return self.make_response()
         
         if self.plate_name.data is not None and len(self.samples) > 0:
@@ -111,16 +116,8 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
                         well=plate.get_well(i)
                     )
 
-                elif isinstance(sample, models.Pool):
-                    db.add_pool_to_plate(
-                        plate_id=plate.id,
-                        pool_id=sample.id,
-                        well=plate.get_well(i)
-                    )
-
         sample_table = self.tables["sample_table"]
         library_table = self.tables["library_table"]
-        pool_table = self.tables["pool_table"]
 
         with DBSession(db) as session:
             for i, row in sample_table.iterrows():
@@ -156,16 +153,17 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
                     library.status_id = LibraryStatus.STORED.id
                 library = session.update_library(library)
 
-            for i, row in pool_table.iterrows():
-                if (pool := session.get_pool(row["id"])) is None:
-                    logger.error(f"{self.uuid}: Pool {row['id']} not found")
-                    raise ValueError(f"{self.uuid}: Pool {row['id']} not found")
-                
-                pool.status_id = PoolStatus.STORED.id
-                pool = session.update_pool(pool)
+        if self.pool is not None:
+            self.pool.plate_id = plate.id
+            self.pool.status_id = PoolStatus.STORED.id
+            self.pool = db.update_pool(self.pool)
 
         flash("Samples added to plate", "success")
+
         if self.seq_request is not None:
             return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))
+        
+        if self.pool is not None:
+            return make_response(redirect=url_for("pools_page.pool_page", pool_id=self.pool.id))
         
         return make_response(redirect=url_for("index_page"))

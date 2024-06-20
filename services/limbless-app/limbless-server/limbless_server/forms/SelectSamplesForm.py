@@ -3,7 +3,7 @@ from typing import Optional
 import pandas as pd
 import json
 
-from flask import Response, url_for
+from flask import url_for
 from wtforms import StringField
 
 from limbless_db import models, DBSession
@@ -29,15 +29,27 @@ class SelectSamplesForm(HTMXFlaskForm):
         sample_status_filter: Optional[list[SampleStatusEnum]] = None,
         library_status_filter: Optional[list[LibraryStatusEnum]] = None,
         pool_status_filter: Optional[list[PoolStatusEnum]] = None,
+        selected_samples: list[models.Sample] = [],
+        selected_libraries: list[models.Library] = [],
+        selected_pools: list[models.Pool] = [],
     ):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.select_samples = select_samples
         self.select_libraries = select_libraries
         self.select_pools = select_pools
 
+        self.selected_samples = [sample.id for sample in selected_samples]
+        self.selected_libraries = [library.id for library in selected_libraries]
+        self.selected_pools = [pool.id for pool in selected_pools]
+
         self._context["select_samples"] = select_samples
         self._context["select_libraries"] = select_libraries
         self._context["select_pools"] = select_pools
+
+        self._context["selected_samples"] = selected_samples
+        self._context["selected_libraries"] = selected_libraries
+        self._context["selected_pools"] = selected_pools
+
         self._context["workflow"] = workflow
         self._context = {**self._context, **context}
 
@@ -48,6 +60,8 @@ class SelectSamplesForm(HTMXFlaskForm):
             url_context["seq_request_id"] = context["seq_request"].id
         if "experiment" in context.keys():
             url_context["experiment_id"] = context["experiment"].id
+        if "pool" in context.keys():
+            url_context["pool_id"] = context["pool"].id
 
         self._context["post_url"] = url_for(f'{workflow}_workflow.select')  # type: ignore
         self._context["url_context"] = url_context

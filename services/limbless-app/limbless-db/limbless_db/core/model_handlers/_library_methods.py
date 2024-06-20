@@ -235,21 +235,14 @@ def delete_library(self, library_id: int):
         self.close_session()
 
 
-def update_library(
-    self, library: models.Library,
-    commit: bool = True
-) -> models.Library:
+def update_library(self, library: models.Library) -> models.Library:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
     
-    if library.pool_id is None:
-        library.status_id = LibraryStatus.ACCEPTED.id
     self._session.add(library)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(library)
+    self._session.commit()
+    self._session.refresh(library)
 
     if not persist_session:
         self.close_session()

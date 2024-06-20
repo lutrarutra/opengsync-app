@@ -20,7 +20,7 @@
                 {% endif %}
                 {% if select_libraries %}
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#available-libraries-tab"
+                    <button class="nav-link {% if not select_samples %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-libraries-tab"
                         type="button" role="tab" aria-controls="available-libraries-tab" aria-selected="true">
                         Libraries
                     </button>
@@ -28,13 +28,13 @@
                 {% endif %}
                 {% if select_pools %}
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
+                    <button class="nav-link {% if not select_samples and not select_libraries %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
                         type="button" role="tab" aria-controls="available-pools-tab" aria-selected="true">
                         Pools
                     </button>
                 </li>
                 {% endif %}
-                {% if selected_samples %}
+                {% if select_samples %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-samples-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-samples-tab"
                         type="button" role="tab" aria-controls="selected-samples-tab" aria-selected="false">
@@ -42,7 +42,7 @@
                     </button>
                 </li>
                 {% endif %}
-                {% if selected_libraries %}
+                {% if select_libraries %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
                         type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
@@ -50,7 +50,7 @@
                     </button>
                 </li>
                 {% endif %}
-                {% if selected_pools %}
+                {% if select_pools %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
                         type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
@@ -66,23 +66,31 @@
                     {% endfor %}
                 </div>
 
-
+                {% if select_samples %}
                 <div class="tab-pane fade show active" id="available-samples-tab" role="tabpanel" tabindex="0">
                     <div hx-trigger="intersect once" hx-get="{{ url_for('samples_htmx.browse', **sample_url_context) }}">
                         {{ spinner() }}
                     </div>
                 </div>
-                <div class="tab-pane fade" id="available-libraries-tab" role="tabpanel" tabindex="1">
+                {% endif %}
+
+                {% if select_libraries %}
+                <div class="tab-pane fade {% if not select_samples %}show active{% endif %}" id="available-libraries-tab" role="tabpanel" tabindex="1">
                     <div hx-get="{{ url_for('libraries_htmx.browse', **library_url_context) }}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>
-                <div class="tab-pane fade" id="available-pools-tab" role="tabpanel" tabindex="2">
+                {% endif %}
+
+                {% if select_pools %}
+                <div class="tab-pane fade {% if not select_samples and not select_libraries %}show active{% endif %}" id="available-pools-tab" role="tabpanel" tabindex="2">
                     <div hx-get="{{ url_for('pools_htmx.browse', **pool_url_context) }}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>
+                {% endif %}
 
+                {% if select_samples %}
                 <div class="tab-pane fade" id="selected-samples-tab" role="tabpanel" tabindex="3">
                     <table class="table table-hover table-cursor">
                         <thead>
@@ -97,7 +105,9 @@
                         </tbody>
                     </table>
                 </div>
+                {% endif %}
 
+                {% if select_libraries %}
                 <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="4">
                     <table class="table table-hover table-cursor">
                         <thead>
@@ -113,7 +123,9 @@
                         </tbody>
                     </table>
                 </div>
+                {% endif %}
 
+                {% if select_pools %}
                 <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="5">
                     <table class="table table-hover table-cursor">
                         <thead>
@@ -128,6 +140,7 @@
                         </tbody>
                     </table>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -259,6 +272,9 @@
                     workflow: "{{ workflow }}",
                     {% if seq_request %}
                     seq_request_id: "{{ seq_request.id }}",
+                    {% endif %}
+                    {% if pool %}
+                    pool_id: "{{ pool.id }}",
                     {% endif %}
                 },
             });

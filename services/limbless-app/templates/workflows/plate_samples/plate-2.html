@@ -10,8 +10,8 @@
     <div class="modal-body">
         <div class="plating-container">
             <div class="header">
-                {{ plate_samples_form.plate_name() }}
-                {{ plate_samples_form.plate_size() }}
+                {{ plate_samples_form.plate_name(value=pool.name if pool else "", class="form-control") }}
+                {{ plate_samples_form.plate_size(class="form-control") }}
                 <button id="plate-sort-abc" type="button" class="btn btn-primary">ABC</button>
                 <button id="plate-sort-id" type="button" class="btn btn-primary">ID</button>
                 <button id="plate-sort-remove" type="button" class="btn btn-danger">No Plate</button>
@@ -204,6 +204,9 @@
                     "plate_name": $("#plate_name").val(),
                     {% if seq_request %}
                     seq_request_id: "{{ seq_request.id }}",
+                    {% endif %}
+                    {% if pool %}
+                    pool_id: "{{ pool.id }}",
                     {% endif %}
                 },
             });

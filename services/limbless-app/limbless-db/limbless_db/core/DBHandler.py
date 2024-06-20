@@ -119,7 +119,7 @@ class DBHandler():
 
     from .model_handlers._plate_methods import (
         create_plate, get_plate, get_plates,
-        delete_plate, add_sample_to_plate, add_library_to_plate, add_pool_to_plate
+        delete_plate, add_sample_to_plate, add_library_to_plate
     )
 
     from .model_handlers._link_methods import (

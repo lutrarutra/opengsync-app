@@ -40,7 +40,6 @@ class Pool(Base):
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="joined")
 
-    plate_well: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
     plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
     plate: Mapped[Optional["Plate"]] = relationship("Plate", back_populates="pools", lazy="select")
 

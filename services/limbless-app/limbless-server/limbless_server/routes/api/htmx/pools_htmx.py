@@ -1,12 +1,12 @@
 import json
 from typing import TYPE_CHECKING, Literal
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, PoolStatus
+from limbless_db import models, DBSession, PAGE_LIMIT, db_session
+from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus
 
 from .... import db, forms, logger  # noqa
 
@@ -110,6 +110,37 @@ def edit(pool_id: int):
         if not current_user.is_insider() and pool.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
         return forms.models.PoolForm("edit", formdata=request.form).process_request(user=current_user, pool=pool)
+
+
+@pools_htmx.route("<int:pool_id>/remove_library", methods=["DELETE"])
+@login_required
+def remove_library(pool_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if (library_id := request.args.get("library_id")) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    try:
+        library_id = int(library_id)
+    except ValueError:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if library.pool_id != pool.id:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    library.pool_id = None
+    library.status_id = LibraryStatus.PREPARING.id
+    library = db.update_library(library)
+
+    flash("Library removed from pool", "success")
+    return make_response(redirect=url_for("pools_page.pool_page", pool_id=pool_id))
 
 
 @pools_htmx.route("table_query", methods=["GET"])
@@ -350,5 +381,22 @@ def browse_query(workflow: str):
             "components/tables/select-pools.html",
             context=context, pools=pools, status_in=status_in,
             workflow=workflow
+        )
+    )
+
+
+@pools_htmx.route("<int:pool_id>/get_plate", methods=["GET"])
+@db_session(db)
+@login_required
+def get_plate(pool_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    return make_response(
+        render_template(
+            "components/plate_tab.html", plate=pool.plate,
         )
     )

@@ -54,17 +54,14 @@ class Plate(Base):
     def get_well_xy(self, row: int, col: int) -> str:
         return Plate.well_identifier(row * self.num_cols + col, self.num_cols, self.num_cols)
     
-    def get_sample(self, well: str) -> Optional[Library | Sample | Pool]:
+    def get_sample(self, well: str) -> Optional[Library | Sample]:
         for sample in self.samples:
             if sample.plate_well == well:
                 return sample
         for library in self.libraries:
             if library.plate_well == well:
                 return library
-        for pool in self.pools:
-            if pool.plate_well == well:
-                return pool
         return None
     
-    def get_sample_xy(self, row: int, col: int) -> Optional[Library | Sample | Pool]:
+    def get_sample_xy(self, row: int, col: int) -> Optional[Library | Sample]:
         return self.get_sample(self.get_well_xy(row, col))

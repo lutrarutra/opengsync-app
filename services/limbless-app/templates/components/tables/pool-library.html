@@ -76,6 +76,7 @@
     {{ pagination("pool-library-table", "pools_htmx.get_libraries", n_pages, active_page, context={"pool_id": pool.id}) }}
     <script>
         init_tooltips();
+        var selected_library_id = null;
         var selected_index_element_id = null;
         var selected_adapter_element_id = null;
 
@@ -91,6 +92,41 @@
             const content = $("#library-" + library_id + "-adapter-cell").text().trim();
             copy_to_clipboard(content);
         }
+
+        function remove_library() {
+            Swal.fire({
+                title: `Remove library id='${selected_library_id}' from '{{pool.name}}'-request ?`,
+                showDenyButton: true,
+                text: 'Are you sure?',
+                confirmButtonText: 'Yes',
+                icon: 'question',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                        "DELETE", "{{ url_for('pools_htmx.remove_library', pool_id=pool.id) }}?library_id=" + selected_library_id, null,
+                        { target: "#seq_request-seq_request-library-table", swapStyle: "outerHTML" }
+                    );
+                }
+            });
+        }
+
+        $(document).off("contextmenu", ".library-name-cell").on("contextmenu", ".library-name-cell", function(e) {
+            e.preventDefault();
+            const x = e.pageX;
+            const y = e.pageY;
+            selected_library_id = e.target.id.split("-")[3];
+            $("#copy-edit-menu").css({
+                display: "block",
+                left: x + 8, top: y + 8
+            }).empty().append([
+                `<li><a class="dropdown-item" onclick="remove_library()">Remove Library</a></li>`,
+            ]);
+
+            $("#right-click-bg").css({
+                display: "block"
+            });
+        })
 
         $(document).off("contextmenu", ".barcode-cell").on("contextmenu", ".barcode-cell", function(e) {
             e.preventDefault();

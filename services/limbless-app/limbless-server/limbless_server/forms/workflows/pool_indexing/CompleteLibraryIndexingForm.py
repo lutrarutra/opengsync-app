@@ -8,7 +8,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.categories import FileType, PoolStatus
+from limbless_db.categories import FileType
 
 from .... import logger, db, tools
 from ...TableDataForm import TableDataForm
@@ -16,14 +16,14 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 
 
 class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_pooling/pooling-5.html"
-    _form_label = "library_pooling_form"
+    _template_path = "workflows/pool_indexing/indexing-3.html"
+    _form_label = "pool_indexing_form"
 
     def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_pooling", uuid=uuid, previous_form=previous_form)
+        TableDataForm.__init__(self, dirname="pool_indexing", uuid=uuid, previous_form=previous_form)
 
     def prepare(self):
         barcode_table = self.tables["barcode_table"]
@@ -77,12 +77,11 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             library.index_4_sequence = row["index_4"] if pd.notna(row["index_4"]) else None
             library.adapter = row["adapter"] if pd.notna(row["adapter"]) else None
             library = db.update_library(library)
-            db.pool_library(library.id, pool.id)
 
         flash("Libraries pooled!", "success")
         logger.info(f"{self.uuid}: Libraries pooled")
 
-        newdir = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LIBRARY_POOLING_TABLE.dir, str(pool.id))
+        newdir = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.POOL_INDEXING_TABLE.dir, str(pool.id))
         os.makedirs(newdir, exist_ok=True)
         shutil.copy(self.path, os.path.join(newdir, f"{self.uuid}.csv"))
         os.remove(self.path)

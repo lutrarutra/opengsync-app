@@ -21,8 +21,8 @@ class IndexKitSubForm(FlaskForm):
 
 
 class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_pooling/pooling-4.html"
-    _form_label = "library_pooling_form"
+    _template_path = "workflows/pool_indexing/indexing-2.html"
+    _form_label = "pool_indexing_form"
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
@@ -30,7 +30,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_pooling", uuid=uuid, previous_form=previous_form)
+        TableDataForm.__init__(self, dirname="pool_indexing", uuid=uuid, previous_form=previous_form)
 
     def prepare(self):
         barcode_table = self.tables["barcode_table"]
@@ -105,6 +105,6 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         self.update_table("barcode_table", self.barcode_table)
 
-        complete_library_pooling_form = CompleteLibraryIndexingForm(previous_form=self, uuid=self.uuid)
-        complete_library_pooling_form.prepare()
-        return complete_library_pooling_form.make_response(**context)
+        complete_pool_indexing_form = CompleteLibraryIndexingForm(previous_form=self, uuid=self.uuid)
+        complete_pool_indexing_form.prepare()
+        return complete_pool_indexing_form.make_response(**context)

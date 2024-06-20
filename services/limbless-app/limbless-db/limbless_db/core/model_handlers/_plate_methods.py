@@ -154,32 +154,32 @@ def add_library_to_plate(
     return library
 
 
-def add_pool_to_plate(
-    self, plate_id: int, pool_id: int, well: str
-) -> models.Pool:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
+# def add_pool_to_plate(
+#     self, plate_id: int, pool_id: int, well: str
+# ) -> models.Pool:
+#     persist_session = self._session is not None
+#     if not self._session:
+#         self.open_session()
 
-    plate: models.Plate
-    if (plate := self.get_plate(plate_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
+#     plate: models.Plate
+#     if (plate := self.get_plate(plate_id)) is None:
+#         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
-    pool: models.Pool
-    if (pool := self.get_pool(pool_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+#     pool: models.Pool
+#     if (pool := self.get_pool(pool_id)) is None:
+#         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
-    if plate.get_sample(well) is not None:
-        raise exceptions.NotUniqueValue(f"Well {well} is already occupied in plate with id {plate_id}")
+#     if plate.get_sample(well) is not None:
+#         raise exceptions.NotUniqueValue(f"Well {well} is already occupied in plate with id {plate_id}")
     
-    pool.plate_id = plate.id
-    pool.plate_well = well
+#     pool.plate_id = plate.id
+#     pool.plate_well = well
 
-    self._session.add(pool)
-    self._session.commit()
-    self._session.refresh(pool)
+#     self._session.add(pool)
+#     self._session.commit()
+#     self._session.refresh(pool)
 
-    if not persist_session:
-        self.close_session()
+#     if not persist_session:
+#         self.close_session()
 
-    return pool
+#     return pool

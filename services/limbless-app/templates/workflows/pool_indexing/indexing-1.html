@@ -1,4 +1,4 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, select_input %}
 {% from "components/table_input.jinja2" import table_input %}
 {% from "components/legends.jinja2" import color_legend %}
 {% from "components/search_select.jinja2" import search_select_field %}
@@ -18,10 +18,11 @@
                     Help</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link help-tab-btn{% if active_tab == 'plate' %} active{% endif %}" data-bs-toggle="tab"
+                    <button class="nav-link help-tab-btn{% if active_tab == 'plate' %} active{% endif %}{% if not pool.plate_id %}disabled{% endif %}" data-bs-toggle="tab"
                     id="plate-form-tab-btn"
                     data-bs-target="#plate-form-tab" type="button" role="tab"
-                    aria-controls="plate-form-tab" aria-selected="false">
+                    aria-controls="plate-form-tab" aria-selected="false"
+                    {% if not pool.plate_id %}disabled{% endif %}>
                     Plate</button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -46,7 +47,7 @@
                 </li>
             </ul>
             <div class="tab-content" id="library_pooling-form" enctype="multipart/form-data">
-                {{ library_pooling_form.csrf_token() }}
+                {{ pool_indexing_form.csrf_token() }}
                 <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
                     <div class="input-help">
                         <h5>How to?</h5>
@@ -68,19 +69,45 @@
                         </ul>
                     </div>
                 </div>
+                {% if pool.plate_id %}
                 <div class="tab-pane fade{% if active_tab == 'plate' %} show active{% endif %}" id="plate-form-tab" role="tabpanel" tabindex="1">
-                    {{ library_pooling_form.plate_form.csrf_token() }}
+                    {{ pool_indexing_form.plate_form.csrf_token() }}
                     <div class="row">
-                        {{ form_group(library_pooling_form.plate_form.plate_size, class="col-4") }}
-                        {{ search_select_field(library_pooling_form.plate_form.index_kit, query_url=url_for("barcodes_htmx.query_index_kits"), class="col-4") }}
-                        {{ form_group(library_pooling_form.plate_form.orientation, class="col-4") }}
+                        {{ search_select_field(pool_indexing_form.plate_form.index_kit, query_url=url_for("barcodes_htmx.query_index_kits"), class="col-6") }}
+                        {{ select_input(pool_indexing_form.plate_form.starting_index, class="col-6") }}
+                    </div>
+                    <div id="plate-container" class="plate-container">
+                        <div class="plate">
+                            {% for row in range(-1, pool.plate.num_rows) %}
+                            <div class="plate-row" id="plate-row-{{row}}">
+                            {% for col in range(-1, pool.plate.num_cols) %}
+                                {% if row == -1 or col == -1 %}
+                                <div class="plate-header">
+                                    {% if row == col %}
+                                    {% elif col == -1 %}
+                                    {{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[row] }}
+                                    {% else %}
+                                    {{ col + 1 }}
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                {% set well_sample = pool.plate.get_sample_xy(row, col) %}
+                                <div class="plate-cell {% if well_sample %}filled{% else %}empty{% endif %}" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}">
+                                    {% if well_sample %}{{ well_sample.name }} [{{ well_sample.id }}]{% endif %}</span>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
+                {% endif %}
                 <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="2">
                     <div id="spreadsheet-grid" class="spreadsheet-grid">
                         <div class="invalid-feedback-container">
                             {% if not disabled %}
-                            {% for error in library_pooling_form.spreadsheet_dummy.errors %}
+                            {% for error in pool_indexing_form.spreadsheet_dummy.errors %}
                                 <p>{{ error }}</p>
                             {% endfor %}
                             {% endif %}
@@ -89,7 +116,7 @@
                 </div>
                 <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="3">
                     <div class="input-help">
-                        <a type="button" class="btn btn-primary" href="{{ url_for('library_pooling_workflow.download_barcode_table_template', pool_id=pool.id) }}" target="_blank">Download Template</a>
+                        <a type="button" class="btn btn-primary" href="{{ url_for('pool_indexing_workflow.download_barcode_table_template', pool_id=pool.id) }}" target="_blank">Download Template</a>
                         <h5>Columns:</h5>
                         <ul>
                             <li><b>ID</b> <span class="desc">Do not modify</span></li>
@@ -103,8 +130,8 @@
                         </ul>
                     </div>
                     <div class="row">
-                        {{ form_group(library_pooling_form.separator, class="col-2") }}
-                        {{ form_group(library_pooling_form.file, class="col-10") }}
+                        {{ form_group(pool_indexing_form.separator, class="col-2") }}
+                        {{ form_group(pool_indexing_form.file, class="col-10") }}
                     </div>
                 </div>
                 <div class="tab-pane fade" id="index-1-example-tab" role="tabpanel" tabindex="4">
@@ -123,13 +150,13 @@
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-plate-form-btn"
                 hx-include="#library_pooling-form" hx-target="#library_pooling-form-container" hx-swap="outerHTML"
                 {% if active_tab != "plate" %}style="display: none;"{% endif %}
-                hx-post="{{ url_for('library_pooling_workflow.parse_barcodes', pool_id=pool.id, input_type='plate') }}">
+                hx-post="{{ url_for('pool_indexing_workflow.parse_barcodes', pool_id=pool.id, input_type='plate') }}">
                 Plate
             </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-file-form-btn"
                 hx-include="#library_pooling-form" hx-target="#library_pooling-form-container" hx-swap="outerHTML"
                 hx-encoding="multipart/form-data" {% if active_tab != "file" %}style="display: none;"{% endif %}
-                hx-post="{{ url_for('library_pooling_workflow.parse_barcodes', pool_id=pool.id, input_type='file') }}">
+                hx-post="{{ url_for('pool_indexing_workflow.parse_barcodes', pool_id=pool.id, input_type='file') }}">
                 File
             </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
@@ -158,7 +185,7 @@
             });
 
             var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
-            const csrf_token = "{{ library_pooling_form.csrf_token._value() }}";
+            const csrf_token = "{{ pool_indexing_form.csrf_token._value() }}";
 
             var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
                 data: data,
@@ -182,7 +209,7 @@
             $("#submit-spreadsheet-btn").on("click", function() {
                 var data = spread_sheet.getData();
 
-                htmx.ajax("POST", "{{ url_for('library_pooling_workflow.parse_barcodes', pool_id=pool.id, input_type='spreadsheet') }}", {
+                htmx.ajax("POST", "{{ url_for('pool_indexing_workflow.parse_barcodes', pool_id=pool.id, input_type='spreadsheet') }}", {
                     "target": "#library_pooling-form-container",
                     "swap": "outerHTML",
                     "values": {

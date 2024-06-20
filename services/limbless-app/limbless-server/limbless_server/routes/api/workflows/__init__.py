@@ -10,3 +10,4 @@ from .load_flow_cell import load_flow_cell_workflow  # noqa: F401
 from .qubit_measure import qubit_measure_workflow  # noqa: F401
 from .store_samples import store_samples_workflow  # noqa: F401
 from .plate_samples import plate_samples_workflow  # noqa: F401
+from .pool_indexing import pool_indexing_workflow  # noqa: F401

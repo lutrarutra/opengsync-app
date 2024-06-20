@@ -24,14 +24,13 @@ from ...SearchBar import OptionalSearchBar
 
 
 class PlateSubForm(FlaskForm):
-    plate_size = SelectField("Plate Size", choices=[("12x8", "12x8"), ("24x16", "24x16")], default="12x8")
     index_kit = FormField(OptionalSearchBar, label="Select Index Kit")
-    orientation = SelectField("Orientation", choices=[("default", "Default"), ("flipped", "Flipped")], default="default")
+    starting_index = SelectField("Starting Index", choices=[(i, models.Plate.well_identifier(i, 12, 8)) for i in range(96)], default=0)
 
 
 class BarcodeInputForm(HTMXFlaskForm):
-    _template_path = "workflows/library_pooling/pooling-3.html"
-    _form_label = "library_pooling_form"
+    _template_path = "workflows/pool_indexing/indexing-1.html"
+    _form_label = "pool_indexing_form"
     
     columns = {
         "library_id": SpreadSheetColumn("A", "library_id", "ID", "numeric", 50, int),
@@ -96,11 +95,19 @@ class BarcodeInputForm(HTMXFlaskForm):
                 return False
             
         if self.input_type == "plate":
-            if not self.plate_form.plate_size.data:
-                self.plate_form.plate_size.errors = ("Select plate size.",)
-                validated = False
             if not self.plate_form.index_kit.selected.data:  # type: ignore
                 self.plate_form.index_kit.selected.errors = ("Select index kit.",)  # type: ignore
+                validated = False
+            
+            try:
+                starting_index = int(self.plate_form.starting_index.data)
+            except ValueError:
+                self.plate_form.starting_index.errors = ("Invalid starting index.",)
+                validated = False
+
+            logger.debug(starting_index)
+            if len(self.pool.libraries) + starting_index > 96:
+                self.plate_form.starting_index.errors = ("Starting index exceeds plate size.",)
                 validated = False
             
         if not validated:
@@ -166,17 +173,9 @@ class BarcodeInputForm(HTMXFlaskForm):
         
         elif self.input_type == "plate":
             self.barcode_table = db.get_pool_libraries_df(self.pool.id, drop_empty_columns=False)[BarcodeInputForm.columns.keys()]
-            try:
-                num_cols = int(self.plate_form.plate_size.data.split("x")[0])
-                num_rows = int(self.plate_form.plate_size.data.split("x")[1])
-            except ValueError:
-                logger.error("Invalid plate size from plate form")
-                raise ValueError("Invalid plate size from plate form")
-            
-            flipped = self.plate_form.orientation.data == "flipped"
-            
+
             def get_well(i):
-                return models.Plate.well_identifier(i, num_cols, num_rows, flipped)
+                return models.Plate.well_identifier(i, 12, 8)
 
             with DBSession(db) as session:
                 if (index_kit := session.get_index_kit(self.plate_form.index_kit.selected.data)) is None:  # type: ignore
@@ -187,7 +186,8 @@ class BarcodeInputForm(HTMXFlaskForm):
                 self.barcode_table["kit_id"] = index_kit.id
                 
                 for idx, row in self.barcode_table.iterrows():
-                    adapter = session.get_adapter_from_index_kit(index_kit_id=index_kit.id, plate_well=get_well(idx))
+                    barcode_index = idx + starting_index  # type: ignore
+                    adapter = session.get_adapter_from_index_kit(index_kit_id=index_kit.id, plate_well=get_well(barcode_index))
                     self.barcode_table.at[idx, "adapter"] = adapter.name
                     self.barcode_table.at[idx, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 is not None else None
                     self.barcode_table.at[idx, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 is not None else None
@@ -284,9 +284,9 @@ class BarcodeInputForm(HTMXFlaskForm):
             index_kit_mapping_form.prepare()
             return index_kit_mapping_form.make_response(**context)
         
-        complete_library_pooling_form = CompleteLibraryIndexingForm()
-        complete_library_pooling_form.metadata["pool_id"] = self.pool.id
-        complete_library_pooling_form.add_table("barcode_table", self.barcode_table)
-        complete_library_pooling_form.update_data()
-        complete_library_pooling_form.prepare()
-        return complete_library_pooling_form.make_response(**context)
+        complete_pool_indexing_form = CompleteLibraryIndexingForm()
+        complete_pool_indexing_form.metadata["pool_id"] = self.pool.id
+        complete_pool_indexing_form.add_table("barcode_table", self.barcode_table)
+        complete_pool_indexing_form.update_data()
+        complete_pool_indexing_form.prepare()
+        return complete_pool_indexing_form.make_response(**context)
