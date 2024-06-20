@@ -13,3 +13,4 @@ from .seq_requests_htmx import seq_requests_htmx   # noqa: F401
 from .users_htmx import users_htmx   # noqa: F401
 from .index_kits_htmx import index_kits_htmx   # noqa: F401
 from .plates_htmx import plates_htmx   # noqa: F401
+from .lanes_htmx import lanes_htmx   # noqa: F401

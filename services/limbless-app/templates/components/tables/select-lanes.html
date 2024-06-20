@@ -10,14 +10,14 @@
                 {{
                     table_col(
                         table_container_id='select-lanes-table', column_name='Experiment', column_var='experiment_id',
-                        sort_url=workflow + '.get_lanes', context=context,
+                        sort_url='lanes_htmx.browse', context=context,
                         sort_by=sort_by, sort_order=sort_order, col_size=4,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='select-lanes-table', column_name='Lane', column_var='number',
-                        sort_url=workflow + '.get_lanes', context=context,
+                        sort_url='lanes_htmx.browse', context=context,
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
@@ -53,7 +53,7 @@
         </tbody>
     </table>
     {{ spinner("select-lanes-table-spinner") }}
-    {{ pagination("select-lanes-table", workflow + ".get_pools", n_pages, active_page, context=context) }}
+    {{ pagination("select-lanes-table", "lanes_htmx.browse", n_pages, active_page, context=context) }}
 
     <script>
         $(document).ready(function() {

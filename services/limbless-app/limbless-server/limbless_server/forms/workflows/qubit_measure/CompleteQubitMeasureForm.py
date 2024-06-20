@@ -25,8 +25,9 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/qubit_measure/qubit-2.html"
     _form_label = "qubit_measure_form"
 
-    pool_fields = FieldList(FormField(SubForm), min_entries=0)
+    sample_fields = FieldList(FormField(SubForm), min_entries=0)
     library_fields = FieldList(FormField(SubForm), min_entries=0)
+    pool_fields = FieldList(FormField(SubForm), min_entries=0)
     lane_fields = FieldList(FormField(SubForm), min_entries=0)
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, previous_form: Optional[TableDataForm] = None):
@@ -37,18 +38,10 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
         self._context["enumerate"] = enumerate
         
     def prepare(self):
+        sample_table = self.tables["sample_table"]
         pool_table = self.tables["pool_table"]
         library_table = self.tables["library_table"]
         lane_table = self.tables["lane_table"]
-
-        for i, (idx, row) in enumerate(pool_table.iterrows()):
-            if i > len(self.pool_fields) - 1:
-                self.pool_fields.append_entry()
-
-            self.pool_fields[i].obj_id.data = int(row["id"])
-
-            if pd.notna(pool_table.at[idx, "qubit_concentration"]):
-                self.pool_fields[i].qubit_concentration.data = pool_table.at[idx, "qubit_concentration"]
 
         for i, (idx, row) in enumerate(library_table.iterrows()):
             if i > len(self.library_fields) - 1:
@@ -58,6 +51,24 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
 
             if pd.notna(library_table.at[idx, "qubit_concentration"]):
                 self.library_fields[i].qubit_concentration.data = library_table.at[idx, "qubit_concentration"]
+
+        for i, (idx, row) in enumerate(sample_table.iterrows()):
+            if i > len(self.sample_fields) - 1:
+                self.sample_fields.append_entry()
+
+            self.sample_fields[i].obj_id.data = row["id"]
+
+            if pd.notna(sample_table.at[idx, "qubit_concentration"]):
+                self.sample_fields[i].qubit_concentration.data = sample_table.at[idx, "qubit_concentration"]
+
+        for i, (idx, row) in enumerate(pool_table.iterrows()):
+            if i > len(self.pool_fields) - 1:
+                self.pool_fields.append_entry()
+
+            self.pool_fields[i].obj_id.data = int(row["id"])
+
+            if pd.notna(pool_table.at[idx, "qubit_concentration"]):
+                self.pool_fields[i].qubit_concentration.data = pool_table.at[idx, "qubit_concentration"]
 
         for i, (idx, row) in enumerate(lane_table.iterrows()):
             if i > len(self.lane_fields) - 1:

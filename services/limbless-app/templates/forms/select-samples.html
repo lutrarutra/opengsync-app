@@ -2,9 +2,9 @@
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 {% from 'components/spinner.jinja2' import spinner %}
 
-<div id="store_samples-form-container" class="modal-content">
+<div id="select_samples-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">1. Select Samples</h1>
+        <h1 class="modal-title fs-5">Measure Qubit <span class="desc">Select Samples</span></h1>
         <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
@@ -34,6 +34,15 @@
                     </button>
                 </li>
                 {% endif %}
+                {% if select_lanes %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if not select_samples and not select_libraries and not select_pools %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-lanes-tab"
+                        type="button" role="tab" aria-controls="available-lanes-tab" aria-selected="true">
+                        Lanes
+                    </button>
+                </li>
+                {% endif %}
+
                 {% if select_samples %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="selected-samples-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-samples-tab"
@@ -58,10 +67,18 @@
                     </button>
                 </li>
                 {% endif %}
+                {% if select_lanes %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="selected-lanes-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-lanes-tab"
+                        type="button" role="tab" aria-controls="selected-lanes-tab" aria-selected="false">
+                        Selected Lanes ({{ selected_lanes | length }})
+                    </button>
+                </li>
+                {% endif %}
             </ul>
             <div class="tab-content ba">
                 <div class="invalid-feedback-container">
-                    {% for error in store_samples_form.error_dummy.errors %}
+                    {% for error in select_samples_form.error_dummy.errors %}
                         <p class="">{{ error }}</p>
                     {% endfor %}
                 </div>
@@ -85,6 +102,14 @@
                 {% if select_pools %}
                 <div class="tab-pane fade {% if not select_samples and not select_libraries %}show active{% endif %}" id="available-pools-tab" role="tabpanel" tabindex="2">
                     <div hx-get="{{ url_for('pools_htmx.browse', **pool_url_context) }}" hx-trigger="intersect once">
+                        {{ spinner() }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if select_lanes %}
+                <div class="tab-pane fade" id="available-lanes-tab" role="tabpanel" tabindex="3">
+                    <div hx-get="{{ url_for('lanes_htmx.browse', **lane_url_context) }}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>
@@ -141,6 +166,22 @@
                     </table>
                 </div>
                 {% endif %}
+
+                {% if select_lanes %}
+                <div class="tab-pane fade" id="selected-lanes-tab" role="tabpanel" tabindex="6">
+                    <table class="table table-hover table-cursor">
+                        <thead>
+                            <tr>
+                                <th class="col-2" scope="col">Lane</th>
+                                <th class="col-5" scope="col"># Pools</th>
+                                <th class="col-5" scope="col">Qubit Conc.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selected-lanes-table-container">
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -150,7 +191,7 @@
         <div class="footer-info">
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-primary" id="submit-store_samples-form-btn">
+            <button type="button" class="btn btn-primary" id="submit-select_samples-form-btn">
                 Next
             </button>
         </div>
@@ -159,10 +200,12 @@
         var selected_samples = {{ selected_samples | tojson if selected_samples else [] }};
         var selected_libraries = {{ selected_libraries | tojson if selected_libraries else [] }};
         var selected_pools = {{ selected_pools | tojson if selected_pools else [] }};
+        var selected_lanes = {{ selected_lanes | tojson if selected_lanes else [] }};
 
         var num_selected_samples = selected_samples.length;
         var num_selected_libraries = selected_libraries.length;
         var num_selected_pools = selected_pools.length;
+        var num_selected_lanes = selected_lanes.length;
 
         init_tooltips();
 
@@ -254,28 +297,54 @@
             });
         }
 
+        function toggle_lane(lane_id) {
+            if (selected_lanes.includes(lane_id)) {
+                selected_lanes = selected_lanes.filter(function(value, index, arr) {
+                    return value != lane_id;
+                });
 
-        $("#submit-store_samples-form-btn").click(function() {
+                $(`#lane-row-${lane_id}`).removeClass("selected");
+                $(`#selected-lane-row-${lane_id}`).remove();
+                num_selected_lanes -= 1;
+            } else {
+                selected_lanes.push(lane_id);
+                $(`#lane-row-${lane_id}`).addClass("selected");
+
+                const cloned = $(`#lane-row-${lane_id}`).clone();
+                cloned.attr("id", `selected-lane-row-${lane_id}`);
+                $("#selected-lanes-table-container").append(cloned);
+                num_selected_lanes += 1;
+            }
+            $("#selected-lanes-tab-btn").text(`Selected Lanes (${num_selected_lanes})`);
+        }
+
+        function update_lanes() {
+            $(".lane-row").each(function() {
+                const lane_id = parseInt($(this).attr("id").split("-").pop());
+                if (selected_lanes.includes(lane_id)) {
+                    $(this).addClass("selected");
+                }
+            });
+        }
+
+        $("#submit-select_samples-form-btn").click(function() {
             if (num_selected_samples + num_selected_libraries + num_selected_pools == 0) {
                 $(".invalid-feedback-container").html("<p>Select at least one sample.</p>");
                 return false;
             }
 
             htmx.ajax("POST", "{{ post_url }}", {
-                target: "#store_samples-form-container",
+                target: "#select_samples-form-container",
                 swap: "outerHTML",
                 values: {
-                    csrf_token: "{{ store_samples_form.csrf_token._value() }}",
+                    csrf_token: "{{ select_samples_form.csrf_token._value() }}",
                     selected_sample_ids: JSON.stringify(selected_samples),
                     selected_library_ids: JSON.stringify(selected_libraries),
                     selected_pool_ids: JSON.stringify(selected_pools),
                     workflow: "{{ workflow }}",
-                    {% if seq_request %}
-                    seq_request_id: "{{ seq_request.id }}",
-                    {% endif %}
-                    {% if pool %}
-                    pool_id: "{{ pool.id }}",
-                    {% endif %}
+                    {% if seq_request %}seq_request_id: "{{ seq_request.id }}",{% endif %}
+                    {% if pool %}pool_id: "{{ pool.id }}",{% endif %}
+                    {% if experiment %}experiment_id: "{{ experiment.id }}",{% endif %}
                 },
             });
 

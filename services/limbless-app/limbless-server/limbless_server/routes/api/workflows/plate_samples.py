@@ -96,7 +96,7 @@ def select():
     if not form.validate():
         return form.make_response()
     
-    sample_table, library_table, pool_table = form.get_tables()
+    sample_table, library_table, pool_table, _ = form.get_tables()
 
     plate_samples_form = forms.PlateSamplesForm(seq_request=seq_request)
     plate_samples_form.metadata = {"workflow": "plate_samples"}

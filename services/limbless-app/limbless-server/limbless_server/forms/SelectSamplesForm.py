@@ -15,23 +15,26 @@ from .HTMXFlaskForm import HTMXFlaskForm
 
 class SelectSamplesForm(HTMXFlaskForm):
     _template_path = "forms/select-samples.html"
-    _form_label = "store_samples_form"
+    _form_label = "select_samples_form"
 
     selected_sample_ids = StringField()
     selected_library_ids = StringField()
     selected_pool_ids = StringField()
+    selected_lanes_ids = StringField()
 
     error_dummy = StringField()
 
     def __init__(
         self, workflow: str, formdata: dict = {}, context: dict = {},
         select_samples: bool = True, select_libraries: bool = True, select_pools: bool = True,
+        select_lanes: bool = False,
         sample_status_filter: Optional[list[SampleStatusEnum]] = None,
         library_status_filter: Optional[list[LibraryStatusEnum]] = None,
         pool_status_filter: Optional[list[PoolStatusEnum]] = None,
         selected_samples: list[models.Sample] = [],
         selected_libraries: list[models.Library] = [],
         selected_pools: list[models.Pool] = [],
+        selected_lanes: list[models.Lane] = []
     ):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.select_samples = select_samples
@@ -41,19 +44,20 @@ class SelectSamplesForm(HTMXFlaskForm):
         self.selected_samples = [sample.id for sample in selected_samples]
         self.selected_libraries = [library.id for library in selected_libraries]
         self.selected_pools = [pool.id for pool in selected_pools]
+        self.selected_lanes = [lane.id for lane in selected_lanes]
 
         self._context["select_samples"] = select_samples
         self._context["select_libraries"] = select_libraries
         self._context["select_pools"] = select_pools
+        self._context["select_lanes"] = select_lanes
 
         self._context["selected_samples"] = selected_samples
         self._context["selected_libraries"] = selected_libraries
         self._context["selected_pools"] = selected_pools
+        self._context["selected_lanes"] = selected_lanes
 
         self._context["workflow"] = workflow
         self._context = {**self._context, **context}
-
-        logger.debug(self._context)
 
         url_context = {"workflow": workflow}
         if "seq_request" in context.keys():
@@ -68,6 +72,7 @@ class SelectSamplesForm(HTMXFlaskForm):
         self._context["sample_url_context"] = url_context.copy()
         self._context["library_url_context"] = url_context.copy()
         self._context["pool_url_context"] = url_context.copy()
+        self._context["lane_url_context"] = url_context.copy()
 
         if sample_status_filter is not None:
             self._context["sample_url_context"]["status_id_in"] = json.dumps([status.id for status in sample_status_filter])
@@ -82,8 +87,9 @@ class SelectSamplesForm(HTMXFlaskForm):
         selected_sample_ids = self.selected_sample_ids.data
         selected_library_ids = self.selected_library_ids.data
         selected_pool_ids = self.selected_pool_ids.data
+        selected_lanes_ids = self.selected_lanes_ids.data
         
-        if not selected_pool_ids and not selected_library_ids and not selected_sample_ids:
+        if not selected_pool_ids and not selected_library_ids and not selected_sample_ids and not selected_lanes_ids:
             self.error_dummy.errors = ["Select at least one sample"]
             return False
 
@@ -102,7 +108,12 @@ class SelectSamplesForm(HTMXFlaskForm):
         else:
             pool_ids = []
 
-        if len(pool_ids) + len(library_ids) + len(sample_ids) == 0:
+        if selected_lanes_ids:
+            lane_ids = json.loads(selected_lanes_ids)
+        else:
+            lane_ids = []
+
+        if len(pool_ids) + len(library_ids) + len(sample_ids) + len(lane_ids) == 0:
             self.selected_pool_ids.errors = ["Select at least one sample"]
             return False
         
@@ -130,15 +141,25 @@ class SelectSamplesForm(HTMXFlaskForm):
             self.selected_pool_ids.errors = ["Invalid library id"]
             return False
         
+        self.lane_ids = []
+        try:
+            for lane_id in lane_ids:
+                self.lane_ids.append(int(lane_id))
+        except ValueError:
+            self.selected_lanes_ids.errors = ["Invalid lane id"]
+            return False
+        
         self._context["selected_samples"] = self.sample_ids
         self._context["selected_libraries"] = self.library_ids
         self._context["selected_pools"] = self.pool_ids
+        self._context["selected_lanes"] = self.lane_ids
         return validated
     
-    def get_tables(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def get_tables(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         sample_data = dict(id=[], name=[], status_id=[])
         library_data = dict(id=[], name=[], status_id=[])
         pool_data = dict(id=[], name=[], status_id=[])
+        lane_data = dict(id=[], name=[], status_id=[])
 
         with DBSession(db) as session:
             for sample_id in self.sample_ids:
@@ -168,4 +189,13 @@ class SelectSamplesForm(HTMXFlaskForm):
                 pool_data["name"].append(pool.name)
                 pool_data["status_id"].append(pool.status_id)
 
-        return pd.DataFrame(sample_data), pd.DataFrame(library_data), pd.DataFrame(pool_data)
+            for lane_id in self.lane_ids:
+                if (lane := session.get_lane(lane_id)) is None:
+                    logger.error(f"Lane {lane_id} not found")
+                    raise ValueError(f"Lane {lane_id} not found")
+
+                lane_data["id"].append(lane.id)
+                lane_data["name"].append(f"{lane.experiment.name}-L{lane.number}")
+                lane_data["status_id"].append(None)
+
+        return pd.DataFrame(sample_data), pd.DataFrame(library_data), pd.DataFrame(pool_data), pd.DataFrame(lane_data)

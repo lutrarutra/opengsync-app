@@ -8,7 +8,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.categories import FileType
+from limbless_db.categories import FileType, SampleStatus
 
 from .... import logger, db, tools
 from ...TableDataForm import TableDataForm
@@ -66,17 +66,26 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             logger.error(f"{self.uuid}: Pool {pool_id} not found")
             raise ValueError(f"{self.uuid}: Pool {pool_id} not found")
         
-        for _, row in barcode_table.iterrows():
-            if (library := db.get_library(row["library_id"])) is None:
-                logger.error(f"{self.uuid}: Library {row['library_id']} not found")
-                raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
-            
-            library.index_1_sequence = row["index_1"] if pd.notna(row["index_1"]) else None
-            library.index_2_sequence = row["index_2"] if pd.notna(row["index_2"]) else None
-            library.index_3_sequence = row["index_3"] if pd.notna(row["index_3"]) else None
-            library.index_4_sequence = row["index_4"] if pd.notna(row["index_4"]) else None
-            library.adapter = row["adapter"] if pd.notna(row["adapter"]) else None
-            library = db.update_library(library)
+        with DBSession(db) as session:
+            for _, row in barcode_table.iterrows():
+                if (library := session.get_library(row["library_id"])) is None:
+                    logger.error(f"{self.uuid}: Library {row['library_id']} not found")
+                    raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
+                
+                library.index_1_sequence = row["index_1"] if pd.notna(row["index_1"]) else None
+                library.index_2_sequence = row["index_2"] if pd.notna(row["index_2"]) else None
+                library.index_3_sequence = row["index_3"] if pd.notna(row["index_3"]) else None
+                library.index_4_sequence = row["index_4"] if pd.notna(row["index_4"]) else None
+                library.adapter = row["adapter"] if pd.notna(row["adapter"]) else None
+                for sample_link in library.sample_links:
+                    sample_is_prepped = True
+                    for library_link in sample_link.sample.library_links:
+                        if library_link.library != library and not library_link.library.is_indexed():
+                            sample_is_prepped = False
+                            break
+                    if sample_is_prepped:
+                        sample_link.sample.status_id = SampleStatus.PREPARED.id
+                library = db.update_library(library)
 
         flash("Libraries pooled!", "success")
         logger.info(f"{self.uuid}: Libraries pooled")

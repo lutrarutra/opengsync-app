@@ -63,7 +63,7 @@ def select() -> Response:
     if not form.validate():
         return form.make_response()
 
-    _, library_table, _ = form.get_tables()
+    _, library_table, _, _ = form.get_tables()
 
     for _, row in library_table.iterrows():
         if (library := db.get_library(row["id"])) is None:

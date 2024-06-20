@@ -68,7 +68,7 @@ def select():
     if not form.validate():
         return form.make_response()
     
-    sample_table, library_table, pool_table = form.get_tables()
+    sample_table, library_table, pool_table, _ = form.get_tables()
 
     store_samples_form = forms.StoreSamplesForm(seq_request=seq_request)
     store_samples_form.metadata = {"workflow": "store_samples"}

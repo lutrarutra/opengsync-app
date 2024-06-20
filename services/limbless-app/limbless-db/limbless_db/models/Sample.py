@@ -23,6 +23,8 @@ class Sample(Base):
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
+    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
     project_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("project.id"), nullable=False)
