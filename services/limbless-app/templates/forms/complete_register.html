@@ -4,7 +4,7 @@
     {{ complete_registration_form.csrf_token() }}
     <div class="row">
         {{ metadata_group("Email", email, class="col") }}
-        {{ metadata_group("Role", user_role.value, class="col") }}
+        {{ metadata_group("Role", user_role.name, class="col") }}
     </div>
     <div class="row">
         {{ form_group(complete_registration_form.first_name, class="col") }}

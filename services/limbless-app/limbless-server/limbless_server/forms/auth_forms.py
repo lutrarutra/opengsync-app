@@ -79,9 +79,10 @@ class UserForm(HTMXFlaskForm):
                 self.role.errors = ("Invalid role.",)
                 return False
 
-            elif user.role != UserRole.ADMIN and user_role == UserRole.ADMIN:
-                self.role.errors = ("Only an admin can create another admin.",)
+            elif user.role != UserRole.ADMIN and user_role != UserRole.CLIENT:
+                self.role.errors = ("Only an admin can create another insider.",)
                 return False
+            
         except ValueError:
             self.role.errors = ("Invalid role.",)
             return False
