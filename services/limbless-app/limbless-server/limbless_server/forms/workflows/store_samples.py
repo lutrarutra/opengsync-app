@@ -1,5 +1,6 @@
 import json
 from typing import Optional
+from datetime import datetime
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -111,13 +112,6 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                         well=plate.get_well(i)
                     )
 
-                elif isinstance(sample, models.Pool):
-                    db.add_pool_to_plate(
-                        plate_id=plate.id,
-                        pool_id=sample.id,
-                        well=plate.get_well(i)
-                    )
-
         sample_table = self.tables["sample_table"]
         library_table = self.tables["library_table"]
         pool_table = self.tables["pool_table"]
@@ -138,6 +132,8 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                     sample.status_id = SampleStatus.PREPARED.id
                 else:
                     sample.status_id = SampleStatus.STORED.id
+
+                sample.timestamp_stored_utc = datetime.now()
 
                 for library_link in sample.library_links:
                     logger.debug(f"Library {library_link.library.id} status: {library_link.library.status_id}")

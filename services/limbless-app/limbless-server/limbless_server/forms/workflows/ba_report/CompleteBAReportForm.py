@@ -26,15 +26,16 @@ class SubForm(FlaskForm):
 
 
 class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/ba_report/bar-2.html"
+    _template_path = "workflows/ba_report/bar-1.html"
     _form_label = "ba_report_form"
 
     _allowed_extensions: list[tuple[str, str]] = [
         ("pdf", "PDF"),
     ]
 
-    pool_fields = FieldList(FormField(SubForm), min_entries=0)
+    sample_fields = FieldList(FormField(SubForm), min_entries=0)
     library_fields = FieldList(FormField(SubForm), min_entries=0)
+    pool_fields = FieldList(FormField(SubForm), min_entries=0)
     lane_fields = FieldList(FormField(SubForm), min_entries=0)
 
     file = FileField("Bio Analyzer Report", validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])], description="Report exported from the BioAnalyzer software (pdf).")
@@ -45,11 +46,22 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="ba_report", uuid=uuid)
         self.max_size_mbytes = max_size_mbytes
+        self._context["enumerate"] = enumerate
 
     def prepare(self):
-        pool_table = self.tables["pool_table"]
+        sample_table = self.tables["sample_table"]
         library_table = self.tables["library_table"]
+        pool_table = self.tables["pool_table"]
         lane_table = self.tables["lane_table"]
+
+        for i, (idx, row) in enumerate(sample_table.iterrows()):
+            if i > len(self.sample_fields) - 1:
+                self.sample_fields.append_entry()
+
+            self.sample_fields[i].obj_id.data = row["id"]
+
+            if pd.notna(sample_table.at[idx, "avg_fragment_size"]):
+                self.sample_fields[i].avg_fragment_size.data = int(sample_table.at[idx, "avg_fragment_size"])
 
         for i, (idx, row) in enumerate(pool_table.iterrows()):
             if i > len(self.pool_fields) - 1:
@@ -78,8 +90,9 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
             if pd.notna(lane_table.at[idx, "avg_fragment_size"]):
                 self.lane_fields[i].avg_fragment_size.data = int(lane_table.at[idx, "avg_fragment_size"])
 
-        self._context["pool_table"] = pool_table
+        self._context["sample_table"] = sample_table
         self._context["library_table"] = library_table
+        self._context["pool_table"] = pool_table
         self._context["lane_table"] = lane_table
     
     def validate(self) -> bool:
@@ -97,17 +110,19 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
         return True
     
     def process_request(self, user: models.User) -> Response:
-        if not self.validate():
-            logger.debug(self.errors)
-            return self.make_response(
-                pool_table=self.tables["pool_table"],
-                library_table=self.tables["library_table"],
-                lane_table=self.tables["lane_table"]
-            )
-        
+        sample_table = self.tables["sample_table"]
         library_table = self.tables["library_table"]
         pool_table = self.tables["pool_table"]
         lane_table = self.tables["lane_table"]
+
+        if not self.validate():
+            return self.make_response(
+                sample_table=sample_table,
+                library_table=library_table,
+                pool_table=pool_table,
+                lane_table=lane_table,
+            )
+        
         metadata = self.metadata.copy()
 
         filename, extension = os.path.splitext(self.file.data.filename)
@@ -137,6 +152,28 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
             "uuid": _uuid,
         }
 
+        for sub_form in self.sample_fields:
+            if (sample := db.get_sample(sub_form.obj_id.data)) is None:
+                logger.error(f"{self.uuid}: Sample {sub_form.obj_id.data} not found")
+                raise ValueError(f"{self.uuid}: Sample {sub_form.obj_id.data} not found")
+            
+            sample.avg_fragment_size = sub_form.avg_fragment_size.data
+            sample.ba_report_id = ba_file.id
+            sample = db.update_sample(sample)
+
+            sample_table.loc[sample_table["id"] == sample.id, "avg_fragment_size"] = sample.avg_fragment_size
+
+        for sub_form in self.library_fields:
+            if (library := db.get_library(sub_form.obj_id.data)) is None:
+                logger.error(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
+                raise ValueError(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
+            
+            library.avg_fragment_size = sub_form.avg_fragment_size.data
+            library.ba_report_id = ba_file.id
+            library = db.update_library(library)
+
+            library_table.loc[library_table["id"] == library.id, "avg_fragment_size"] = library.avg_fragment_size
+
         for sub_form in self.pool_fields:
             if (pool := db.get_pool(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
@@ -151,17 +188,6 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
             pool = db.update_pool(pool)
 
             pool_table.loc[pool_table["id"] == pool.id, "avg_fragment_size"] = pool.avg_fragment_size
-
-        for sub_form in self.library_fields:
-            if (library := db.get_library(sub_form.obj_id.data)) is None:
-                logger.error(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
-                raise ValueError(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
-            
-            library.avg_fragment_size = sub_form.avg_fragment_size.data
-            library.ba_report_id = ba_file.id
-            library = db.update_library(library)
-
-            library_table.loc[library_table["id"] == library.id, "avg_fragment_size"] = library.avg_fragment_size
 
         for sub_form in self.lane_fields:
             if (lane := db.get_lane(sub_form.obj_id.data)) is None:

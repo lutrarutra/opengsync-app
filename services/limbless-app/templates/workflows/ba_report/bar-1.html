@@ -1,258 +1,92 @@
 {% from 'components/form_group.jinja2' import form_group, form_cell %}
-{% from 'components/metadata_group.jinja2' import metadata_group %}
-{% from 'components/spinner.jinja2' import spinner %}
 
-<div id="ba_report-form-container" class="modal-content">
+<div class="modal-content" id="ba_report-form-container">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">1. BA: Select Samples</h1>
-        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+        <h1 class="modal-title fs-5">Upload Bio Analyzer Report</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body">
-            <ul class="nav nav-tabs" id="auth-tab" role="tablist">
-                {% if not experiment %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#available-libraries-tab"
-                        type="button" role="tab" aria-controls="available-libraries-tab" aria-selected="true">
-                        Libraries
-                    </button>
-                </li>
-                {% endif %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if experiment %} active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
-                        type="button" role="tab" aria-controls="available-pools-tab" aria-selected="true">
-                        Pools
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link " data-bs-toggle="tab" data-bs-target="#available-lanes-tab"
-                        type="button" role="tab" aria-controls="available-lanes-tab" aria-selected="true">
-                        Lanes
-                    </button>
-                </li>
-                {% if not experiment %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
-                        type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
-                        Selected Libraries ({{ selected_libraries | length }})
-                    </button>
-                </li>
-                {% endif %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
-                        type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
-                        Selected Pools ({{ selected_pools | length }})
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-lanes-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-lanes-tab"
-                        type="button" role="tab" aria-controls="selected-lanes-tab" aria-selected="false">
-                        Selected Lanes ({{ selected_lanes | length }})
-                    </button>
-                </li>
-            </ul>
-            <div class="tab-content ba">
-                <div class="invalid-feedback-container">
-                    {% for error in ba_report_form.error_dummy.errors %}
-                        <p class="">{{ error }}</p>
-                    {% endfor %}
-                </div>
-                {% if not experiment %}
-                <div class="tab-pane fade show active" id="available-libraries-tab" role="tabpanel" tabindex="0">
-                    <div hx-get="{{ url_for('ba_report_workflow.get_libraries') }}" hx-trigger="intersect once">
-                        {{ spinner() }}
-                    </div>
-                </div>
-                {% endif %}
-                <div class="tab-pane fade {% if experiment %}show active{% endif %}" id="available-pools-tab" role="tabpanel" tabindex="1">
-                    <div hx-get="{% if experiment %}{{ url_for('ba_report_workflow.get_pools', experiment_id=experiment.id) }}{% else %}{{ url_for('ba_report_workflow.get_pools') }}{% endif %}" hx-trigger="intersect once">
-                        {{ spinner() }}
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="available-lanes-tab" role="tabpanel" tabindex="2">
-                    <div hx-get="{{ url_for('ba_report_workflow.get_lanes', **url_context) }}" hx-trigger="intersect once">
-                        {{ spinner() }}
-                    </div>
-                </div>
-                {% if not experiment %}
-                <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="3">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-1">ID</th>
-                                <th scope="col" class="col-3">Name</th>
-                                <th scope="col" class="col-2">Type</th>
-                                <th scope="col" class="col-2">Status</th>
-                                <th scope="col" class="col-2">Owner</th>
-                                <th scope="col" class="col-2">Avg. Fragment Size</th>
-                            </tr>
-                        </thead>
-                        <tbody id="selected-libraries-table-container">
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
-                <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="4">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-1">ID</th>
-                                <th scope="col" class="col-4">Name</th>
-                                <th scope="col" class="col-2">Status</th>
-                                <th scope="col" class="col-3">Owner</th>
-                                <th scope="col" class="col-2">Avg. Fragment Size</th>
-                            </tr>
-                        </thead>
-                        <tbody id="selected-pools-table-container">
-                        </tbody>
-                    </table>
-                </div>
-                <div class="tab-pane fade" id="selected-lanes-tab" role="tabpanel" tabindex="5">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th class="col-2" scope="col">Lane</th>
-                                <th class="col-5" scope="col"># Pools</th>
-                                <th class="col-5" scope="col">Avg. Fragment Size</th>
-                            </tr>
-                        </thead>
-                        <tbody id="selected-lanes-table-container">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    <div class="modal-body" id="ba_report-form">
+        {{ ba_report_form.csrf_token() }}
+        {{ form_group(ba_report_form.file) }}
+        {{ ba_report_form.file_uuid(hidden=True, readonly=True) }}
+        <h4>Samples</h4>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col" class="col-1">ID</th>
+                    <th scope="col" class="col-4">Sample Name</th>
+                    <th scope="col" class="col-4">Sample Type <span class="desc">Sample/Library/Pool/Lane</span></th>
+                    <th scope="col" class="col-3">Avg. Fragment Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i, (_, row) in enumerate(sample_table.iterrows()) %}
+                {% set sub_form = ba_report_form.sample_fields[i] %}
+                {{ sub_form.csrf_token() }}
+                <tr>
+                    <th scope="row">{{ row["id"] | int }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
+                    <td>{{ row["name"] }}</td>
+                    <td>Sample</td>
+                    <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
+                </tr>
+                {% endfor %}
+
+                {% for _, row in library_table.iterrows() %}
+                {% set sub_form = ba_report_form.library_fields[loop.index0] %}
+                {{ sub_form.csrf_token() }}
+                <tr>
+                    <th scope="row">{{ row["id"] }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
+                    <td>{{ row["name"] }}</td>
+                    <td>Library</td>
+                    <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
+                </tr>
+                {% endfor %}
+
+                {% for _, row in pool_table.iterrows() %}
+                {% set sub_form = ba_report_form.pool_fields[loop.index0] %}
+                {{ sub_form.csrf_token() }}
+                <tr>
+                    <th scope="row">{{ row["id"] }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
+                    <td>{{ row["name"] }}</td>
+                    <td>Pool</td>
+                    <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
+                </tr>
+                {% endfor %}
+
+                {% for _, row in lane_table.iterrows() %}
+                {% set sub_form = ba_report_form.lane_fields[loop.index0] %}
+                {{ sub_form.csrf_token() }}
+                <tr>
+                    <th scope="row">{{ row["id"] | int }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
+                    <td>{{ row["name"] }}</td>
+                    <td>Lane</td>
+                    <td>{{ form_cell(sub_form.avg_fragment_size, unit="bp") }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" id="popup-footer">
         <div class="text-nowrap text-muted footer-id">
+            {{ ba_report_form.file_uuid.data }}
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-primary" id="submit-ba_report-form-btn">
+            <button class="btn btn-primary" id="submit-ba_report-form-btn" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.complete') }}">
                 Next
             </button>
         </div>
     </div>
-    <script>
-        var selected_libraries = {{ selected_libraries | tojson if selected_libraries else [] }};
-        var num_selected_libraries = {{ selected_libraries | length if selected_libraries else 0 }};
-        var selected_pools = {{ selected_pools | tojson if selected_pools else [] }};
-        var num_selected_pools = {{ selected_pools | length if selected_pools else 0 }};
-        var selected_lanes = {{ selected_lanes | tojson if selected_lanes else [] }};
-        var num_selected_lanes = {{ selected_lanes | length if selected_lanes else 0 }};
-
-
-        init_tooltips();
-
-        function select_pool(pool_id) {
-            if (selected_pools.includes(pool_id)) {
-                selected_pools = selected_pools.filter(function(value, index, arr) {
-                    return value != pool_id;
-                });
-
-                $(`#pool-row-${pool_id}`).removeClass("selected");
-                $(`#selected-pool-row-${pool_id}`).remove();
-                num_selected_pools -= 1;
-            } else {
-                selected_pools.push(pool_id);
-                $(`#pool-row-${pool_id}`).addClass("selected");
-
-                const cloned = $(`#pool-row-${pool_id}`).clone();
-                cloned.attr("id", `selected-pool-row-${pool_id}`);
-                $("#selected-pools-table-container").append(cloned);
-                num_selected_pools += 1;
-            }
-            $("#selected-pools-tab-btn").text(`Selected Pools (${num_selected_pools})`);
-        }
-        function update_pools() {
-            $(".pool-row").each(function() {
-                const pool_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_pools.includes(pool_id)) {
-                    $(this).addClass("selected");
-                }
-            });
-        }
-
-        function select_lane(lane_id) {
-            if (selected_lanes.includes(lane_id)) {
-                selected_lanes = selected_lanes.filter(function(value, index, arr) {
-                    return value != lane_id;
-                });
-
-                $(`#lane-row-${lane_id}`).removeClass("selected");
-                $(`#selected-lane-row-${lane_id}`).remove();
-                num_selected_lanes -= 1;
-            } else {
-                selected_lanes.push(lane_id);
-                $(`#lane-row-${lane_id}`).addClass("selected");
-
-                const cloned = $(`#lane-row-${lane_id}`).clone();
-                cloned.attr("id", `selected-lane-row-${lane_id}`);
-                $("#selected-lanes-table-container").append(cloned);
-                num_selected_lanes += 1;
-            }
-            $("#selected-lanes-tab-btn").text(`Selected Lanes (${num_selected_lanes})`);
-        }
-
-        function update_lanes() {
-            $(".lane-row").each(function() {
-                const lane_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_lanes.includes(lane_id)) {
-                    $(this).addClass("selected");
-                }
-            });
-        }
-
-        {% if not experiment %}
-        function select_library(library_id) {
-            if (selected_libraries.includes(library_id)) {
-                selected_libraries = selected_libraries.filter(function(value, index, arr) {
-                    return value != library_id;
-                });
-
-                $(`#library-row-${library_id}`).removeClass("selected");
-                $(`#selected-library-row-${library_id}`).remove();
-                num_selected_libraries -= 1;
-            } else {
-                selected_libraries.push(library_id);
-                $(`#library-row-${library_id}`).addClass("selected");
-
-                const cloned = $(`#library-row-${library_id}`).clone();
-                cloned.attr("id", `selected-library-row-${library_id}`);
-                $("#selected-libraries-table-container").append(cloned);
-                num_selected_libraries += 1;
-            }
-            $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
-        }
-
-        function update_libraries() {
-            $(".library-row").each(function() {
-                const library_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_libraries.includes(library_id)) {
-                    $(this).addClass("selected");
-                }
-            });
-        }
-        {% endif %}
-
-        $("#submit-ba_report-form-btn").click(function() {
-            if (num_selected_libraries + num_selected_pools + num_selected_lanes == 0) {
-                $(".invalid-feedback-container").html("<p>Select at least one sample.</p>");
-                return false;
-            }
-
-            htmx.ajax("POST", "{{ url_for('ba_report_workflow.select',  **url_context) }}", {
-                target: "#ba_report-form-container",
-                swap: "outerHTML",
-                values: {
-                    csrf_token: "{{ ba_report_form.csrf_token._value() }}",
-                    selected_pool_ids: JSON.stringify(selected_pools),
-                    selected_library_ids: JSON.stringify(selected_libraries),
-                    selected_lane_ids: JSON.stringify(selected_lanes),
-                },
-            });
-
-        });
-    </script>
 </div>
+<script>
+    init_tooltips();
+    window.onbeforeunload = function() {
+        return "Data will be lost if you leave the page, are you sure?";
+    };
+
+    $("#submit-ba_report-form-btn").on("click", function() {
+        window.onbeforeunload = null;
+    });
+</script>

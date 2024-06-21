@@ -21,10 +21,10 @@
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
-                {% if workflow == "qubit_measure_workflow" %}
-                <th class="col-5" scope="col">Qubit Conc.</th>
-                {% elif workflow == "ba_report_workflow" %}
-                <th class="col-5" scope="col">Avg. Fragment Size</th>
+                {% if workflow == "qubit_measure" %}
+                <th class="col-2" scope="col">Qubit Conc.</th>
+                {% elif workflow == "ba_report" %}
+                <th class="col-2" scope="col">Avg. Fragment Size</th>
                 {% endif %}
             </tr>
         </thead>
@@ -33,14 +33,14 @@
             <tr onclick="select_lane({{ lane.id }});" id="lane-row-{{ lane.id }}" class="pool-row">
                 <th scope="row">{{ lane.experiment.name }}</th>
                 <th>{{ lane.number }}</th>
-                {% if workflow == "qubit_measure_workflow" %}
+                {% if workflow == "qubit_measure" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ lane.original_qubit_concentration if lane.original_qubit_concentration }}</div>
                         <div class="unit">ng/μL</div>
                     </div>
                 </td>
-                {% elif workflow == "ba_report_workflow" %}
+                {% elif workflow == "ba_report" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ lane.avg_fragment_size if lane.avg_fragment_size }}</div>

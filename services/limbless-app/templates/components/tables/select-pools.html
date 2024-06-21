@@ -38,11 +38,11 @@
                         sort_by=sort_by, sort_order=sort_order, col_size=3,
                     )
                 }}
-                {% if workflow == "qubit_measure_workflow" %}
+                {% if workflow == "qubit_measure" %}
                 <th class="col-3" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
-                {% elif workflow == "ba_report_workflow" %}
+                {% elif workflow == "ba_report" %}
                 <th class="col-3" scope="col">Avg. Fragment Size</th>
-                {% elif workflow == "select_experiment_pools_workflow" %}
+                {% elif workflow == "select_experiment_pools" %}
                 <th class="col-3" scope="col"># Reads Requested</th>
                 {% endif %}
             </tr>
@@ -54,21 +54,21 @@
                 <td>{{ pool.name }}</td>
                 <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
-                {% if workflow == "qubit_measure_workflow" %}
+                {% if workflow == "qubit_measure" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ pool.qubit_concentration_str }}</div>
                         <div class="unit">ng/μL</div>
                     </div>
                 </td>
-                {% elif workflow == "ba_report_workflow" %}
+                {% elif workflow == "ba_report" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ pool.avg_fragment_size if pool.avg_fragment_size }}</div>
                         <div class="unit">bp</div>
                     </div>
                 </td>
-                {% elif workflow == "select_experiment_pools_workflow" %}
+                {% elif workflow == "select_experiment_pools" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ pool.num_m_reads_requested if pool.num_m_reads_requested }}</div>

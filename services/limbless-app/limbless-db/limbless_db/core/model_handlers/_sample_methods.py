@@ -61,6 +61,7 @@ def get_sample(self, sample_id: int) -> Optional[models.Sample]:
 def get_samples(
     self, user_id: Optional[int] = None,
     project_id: Optional[int] = None,
+    library_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     status: Optional[SampleStatusEnum] = None,
     status_in: Optional[list[SampleStatusEnum]] = None,
@@ -86,6 +87,14 @@ def get_samples(
     if project_id is not None:
         query = query.where(
             models.Sample.project_id == project_id
+        )
+
+    if library_id is not None:
+        query = query.join(
+            models.SampleLibraryLink,
+            models.SampleLibraryLink.sample_id == models.Sample.id
+        ).where(
+            models.SampleLibraryLink.library_id == library_id
         )
 
     if status is not None:

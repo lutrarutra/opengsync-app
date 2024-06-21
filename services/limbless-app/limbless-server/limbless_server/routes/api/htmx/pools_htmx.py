@@ -199,26 +199,6 @@ def get_libraries(pool_id: int, page: int):
     )
 
 
-@pools_htmx.route("<int:pool_id>/plate_pool/<string:form_type>", methods=["GET", "POST"])
-@login_required
-def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
-    if form_type not in ["create", "edit"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    if (pool := db.get_pool(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if not current_user.is_insider() and pool.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    form = forms.models.PlateForm(form_type=form_type, pool=pool, formdata=request.form)
-    
-    if request.method == "GET":
-        form.prepare()
-        return form.make_response()
-    
-    return form.process_request(user=current_user)
-
-
 @pools_htmx.route("<int:pool_id>/query_libraries", methods=["GET"])
 @login_required
 def query_libraries(pool_id: int):
@@ -254,6 +234,26 @@ def query_libraries(pool_id: int):
             pool=pool, libraries=libraries,
         )
     )
+
+
+@pools_htmx.route("<int:pool_id>/plate_pool/<string:form_type>", methods=["GET", "POST"])
+@login_required
+def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
+    if form_type not in ["create", "edit"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and pool.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    form = forms.models.PlateForm(form_type=form_type, pool=pool, formdata=request.form)
+    
+    if request.method == "GET":
+        form.prepare()
+        return form.make_response()
+    
+    return form.process_request(user=current_user)
 
 
 @pools_htmx.route("<int:pool_id>/get_dilutions/<int:page>", methods=["GET"])

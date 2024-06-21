@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from .User import User
     from .SeqRequest import SeqRequest
     from .Plate import Plate
+    from .File import File
 
 
 class Sample(Base):
@@ -24,11 +25,14 @@ class Sample(Base):
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-
+    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
     project_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("project.id"), nullable=False)
     project: Mapped["Project"] = relationship("Project", back_populates="samples", lazy="select")
+
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
+    ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
     plate_well: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
     plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)

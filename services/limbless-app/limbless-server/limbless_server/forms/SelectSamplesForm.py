@@ -40,6 +40,7 @@ class SelectSamplesForm(HTMXFlaskForm):
         self.select_samples = select_samples
         self.select_libraries = select_libraries
         self.select_pools = select_pools
+        self.workflow = workflow
 
         self.selected_samples = [sample.id for sample in selected_samples]
         self.selected_libraries = [library.id for library in selected_libraries]
@@ -161,6 +162,18 @@ class SelectSamplesForm(HTMXFlaskForm):
         pool_data = dict(id=[], name=[], status_id=[])
         lane_data = dict(id=[], name=[], status_id=[])
 
+        if self.workflow == "qubit_measure":
+            sample_data["qubit_concentration"] = []
+            library_data["qubit_concentration"] = []
+            pool_data["qubit_concentration"] = []
+            lane_data["qubit_concentration"] = []
+
+        if self.workflow == "ba_report":
+            sample_data["avg_fragment_size"] = []
+            library_data["avg_fragment_size"] = []
+            pool_data["avg_fragment_size"] = []
+            lane_data["avg_fragment_size"] = []
+
         with DBSession(db) as session:
             for sample_id in self.sample_ids:
                 if (sample := session.get_sample(sample_id)) is None:
@@ -170,6 +183,10 @@ class SelectSamplesForm(HTMXFlaskForm):
                 sample_data["id"].append(sample.id)
                 sample_data["name"].append(sample.name)
                 sample_data["status_id"].append(sample.status_id)
+                if self.workflow == "qubit_measure":
+                    sample_data["qubit_concentration"].append(sample.qubit_concentration)
+                elif self.workflow == "ba_report":
+                    sample_data["avg_fragment_size"].append(sample.avg_fragment_size)
 
             for library_id in self.library_ids:
                 if (library := session.get_library(library_id)) is None:
@@ -179,6 +196,10 @@ class SelectSamplesForm(HTMXFlaskForm):
                 library_data["id"].append(library.id)
                 library_data["name"].append(library.name)
                 library_data["status_id"].append(library.status_id)
+                if self.workflow == "qubit_measure":
+                    library_data["qubit_concentration"].append(library.qubit_concentration)
+                elif self.workflow == "ba_report":
+                    library_data["avg_fragment_size"].append(library.avg_fragment_size)
 
             for pool_id in self.pool_ids:
                 if (pool := session.get_pool(pool_id)) is None:
@@ -188,6 +209,10 @@ class SelectSamplesForm(HTMXFlaskForm):
                 pool_data["id"].append(pool.id)
                 pool_data["name"].append(pool.name)
                 pool_data["status_id"].append(pool.status_id)
+                if self.workflow == "qubit_measure":
+                    pool_data["qubit_concentration"].append(pool.qubit_concentration)
+                elif self.workflow == "ba_report":
+                    pool_data["avg_fragment_size"].append(pool.avg_fragment_size)
 
             for lane_id in self.lane_ids:
                 if (lane := session.get_lane(lane_id)) is None:
@@ -197,5 +222,9 @@ class SelectSamplesForm(HTMXFlaskForm):
                 lane_data["id"].append(lane.id)
                 lane_data["name"].append(f"{lane.experiment.name}-L{lane.number}")
                 lane_data["status_id"].append(None)
+                if self.workflow == "qubit_measure":
+                    lane_data["qubit_concentration"].append(lane.original_qubit_concentration)
+                elif self.workflow == "ba_report":
+                    lane_data["avg_fragment_size"].append(lane.avg_fragment_size)
 
         return pd.DataFrame(sample_data), pd.DataFrame(library_data), pd.DataFrame(pool_data), pd.DataFrame(lane_data)

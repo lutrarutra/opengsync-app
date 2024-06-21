@@ -204,6 +204,34 @@ def table_query():
     )
 
 
+@libraries_htmx.route("<int:library_id>/get_samples", methods=["GET"], defaults={"page": 0})
+@libraries_htmx.route("<int:library_id>/get_samples/<int:page>", methods=["GET"])
+@login_required
+def get_samples(library_id: int, page: int):
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and library.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+    
+    samples, n_pages = db.get_samples(
+        offset=offset, library_id=library_id, sort_by=sort_by, descending=descending
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/library-sample.html",
+            samples=samples, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, library=library
+        )
+    )
+
+
 @libraries_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
 @libraries_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
 @login_required

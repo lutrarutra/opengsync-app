@@ -34,6 +34,7 @@ def sample_page(sample_id):
         
         is_editable = sample.is_editable()
         sample.project
+        sample.ba_report
 
         sample_form = forms.models.SampleForm(sample=sample)
 

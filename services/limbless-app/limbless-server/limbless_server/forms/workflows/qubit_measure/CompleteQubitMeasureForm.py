@@ -22,7 +22,7 @@ class SubForm(FlaskForm):
 
 
 class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/qubit_measure/qubit-2.html"
+    _template_path = "workflows/qubit_measure/qubit-1.html"
     _form_label = "qubit_measure_form"
 
     sample_fields = FieldList(FormField(SubForm), min_entries=0)
@@ -43,15 +43,6 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
         library_table = self.tables["library_table"]
         lane_table = self.tables["lane_table"]
 
-        for i, (idx, row) in enumerate(library_table.iterrows()):
-            if i > len(self.library_fields) - 1:
-                self.library_fields.append_entry()
-
-            self.library_fields[i].obj_id.data = row["id"]
-
-            if pd.notna(library_table.at[idx, "qubit_concentration"]):
-                self.library_fields[i].qubit_concentration.data = library_table.at[idx, "qubit_concentration"]
-
         for i, (idx, row) in enumerate(sample_table.iterrows()):
             if i > len(self.sample_fields) - 1:
                 self.sample_fields.append_entry()
@@ -60,6 +51,15 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
 
             if pd.notna(sample_table.at[idx, "qubit_concentration"]):
                 self.sample_fields[i].qubit_concentration.data = sample_table.at[idx, "qubit_concentration"]
+
+        for i, (idx, row) in enumerate(library_table.iterrows()):
+            if i > len(self.library_fields) - 1:
+                self.library_fields.append_entry()
+
+            self.library_fields[i].obj_id.data = row["id"]
+
+            if pd.notna(library_table.at[idx, "qubit_concentration"]):
+                self.library_fields[i].qubit_concentration.data = library_table.at[idx, "qubit_concentration"]
 
         for i, (idx, row) in enumerate(pool_table.iterrows()):
             if i > len(self.pool_fields) - 1:
@@ -79,8 +79,9 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
             if pd.notna(lane_table.at[idx, "qubit_concentration"]):
                 self.lane_fields[i].qubit_concentration.data = lane_table.at[idx, "qubit_concentration"]
 
-        self._context["pool_table"] = pool_table
+        self._context["sample_table"] = sample_table
         self._context["library_table"] = library_table
+        self._context["pool_table"] = pool_table
         self._context["lane_table"] = lane_table
     
     def process_request(self) -> Response:

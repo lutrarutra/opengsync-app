@@ -41,6 +41,11 @@
                         col_size=2,
                     )
                 }}
+                {% if workflow == "qubit_measure" %}
+                <th class="col-2" scope="col">Qubit Conc.</th>
+                {% elif workflow == "ba_report" %}
+                <th class="col-2" scope="col">Avg. Fragment Size</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -51,6 +56,21 @@
                 <td>{{ sample.name }}</td>
                 <td>{{ sample.status.name }} {{ sample.status.icon }}</td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
+                {% if workflow == "qubit_measure" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ sample.qubit_concentration if sample.original_qubit_concentration }}</div>
+                        <div class="unit">ng/μL</div>
+                    </div>
+                </td>
+                {% elif workflow == "ba_report" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ sample.avg_fragment_size if sample.avg_fragment_size }}</div>
+                        <div class="unit">bp</div>
+                    </div>
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>

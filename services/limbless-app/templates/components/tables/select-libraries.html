@@ -49,15 +49,15 @@
                         col_size=2,
                     )
                 }}
-                {% if workflow == "qubit_measure_workflow" %}
+                {% if workflow == "qubit_measure" %}
                 <th class="col-2" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
-                {% elif workflow == "ba_report_workflow" %}
+                {% elif workflow == "ba_report" %}
                 <th class="col-2" scope="col">Avg. Fragment Size</th>
-                {% elif workflow == "library_pooling_workflow" %}
+                {% elif workflow == "library_pooling" %}
                 {{
                     table_col(
                         table_container_id='experiment-library-table', column_name='Pool', column_var='pool_id',
-                        sort_url="libraries_htmx.browse", context={"experiment_id": experiment.id} if experiment_id else {},
+                        sort_url="libraries_htmx.browse", context=context,
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
@@ -77,21 +77,21 @@
                 </td>
                 <td>{{ library.status.name }} {{ library.status.icon }}</td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                {% if workflow == "qubit_measure_workflow" %}
+                {% if workflow == "qubit_measure" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ library.qubit_concentration_str }}</div>
                         <div class="unit">ng/μL</div>
                     </div>
                 </td>
-                {% elif workflow == "ba_report_workflow" %}
+                {% elif workflow == "ba_report" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ library.avg_fragment_size if library.avg_fragment_size }}</div>
                         <div class="unit">bp</div>
                     </div>
                 </td>
-                {% elif workflow == "library_pooling_workflow" %}
+                {% elif workflow == "library_pooling" %}
                 <td>{{ library.pool.name }}</td>
                 {% endif %}
             </tr>

@@ -1,2 +1,1 @@
-from .SelectSamplesForm import SelectSamplesForm  # noqa
-from .CompleteQubitMeasureForm import CompleteQubitMeasureForm  # noqa
+from .CompleteQubitMeasureForm import CompleteQubitMeasureForm  # noqa F401
