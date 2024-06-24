@@ -1,8 +1,6 @@
-import json
 from typing import TYPE_CHECKING, Any
 
-from flask import Blueprint, request, abort, render_template, Request
-from flask_htmx import make_response
+from flask import Blueprint, request, abort, Request
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, DBSession

@@ -308,6 +308,9 @@ def browse(workflow: str, page: int):
         if len(status_in) == 0:
             status_in = None
 
+    if workflow == "select_experiment_pools":
+        experiment_id = None
+
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
