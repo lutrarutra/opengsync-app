@@ -16,7 +16,7 @@ class SequencerForm(HTMXFlaskForm):
     _template_path = "forms/sequencer.html"
 
     name = StringField("Sequencer Name", validators=[
-        DataRequired(), Length(min=6, max=models.Sequencer.name.type.length)
+        DataRequired(), Length(min=3, max=models.Sequencer.name.type.length)
     ])
 
     model = SelectField("Sequencer Model", choices=SequencerModel.as_selectable(), coerce=int)

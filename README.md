@@ -23,6 +23,8 @@ Web app for NGS sample/library/project tracking
     - password: `$(PGADMIN_PASSWORD)`
 
 ## pgAdmin Server Setup
+    - Dev dir: `db/dev_pgadmin` permissions should be 5050:5050 (`sudo chown -R 5050:5050 db/dev_pgadmin`)
+    - Prod dir: `db/pgadmin` permsissions should be 5050:5050 (`sudo chown -R 5050:5050 db/pgadmin`)
     - host: `postgres` & port: `5432` or
     - Find the IP address of the container:
         1. `docker ps`

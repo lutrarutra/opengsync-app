@@ -1,4 +1,3 @@
 #!/bin/bash
-source .env
 
-docker compose -f compose.yaml -p limbless-prod up --build "$@"
+docker compose --env-file=.prod.env -f compose.yaml -p limbless-prod up --build "$@"

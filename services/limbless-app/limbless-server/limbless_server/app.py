@@ -44,8 +44,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.config["MAIL_PORT"] = 587
     app.config["MAIL_USE_TLS"] = True
     # app.config["MAIL_USE_SSL"] = True
-    app.config["MAIL_USERNAME"] = os.environ.get("EMAIL_USER")
-    app.config["MAIL_PASSWORD"] = os.environ.get("EMAIL_PASS")
+    app.config["MAIL_USERNAME"] = os.environ["EMAIL_USER"]
+    app.config["MAIL_PASSWORD"] = os.environ["EMAIL_PASS"]
     assert app.config["MAIL_USERNAME"]
     assert app.config["MAIL_PASSWORD"]
 

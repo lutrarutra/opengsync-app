@@ -7,6 +7,7 @@ if [ $? -eq 1 ] && [ "$LIMBLESS_TESTING" == 0 ]; then
     python3 init_db.py --create_users
 fi
 
+echo "$@"
 
 if [ $? -eq 0 ]; then
     exec "$@"
