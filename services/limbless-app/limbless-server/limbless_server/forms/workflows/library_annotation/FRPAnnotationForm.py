@@ -12,6 +12,7 @@ from wtforms.validators import Optional as OptionalValidator
 from flask import Response
 from werkzeug.utils import secure_filename
 
+from limbless_db import models
 from limbless_db.categories import LibraryType
 
 from .... import logger, tools
@@ -50,12 +51,14 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
+    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.input_type = input_type
+        self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
         self._context["columns"] = FRPAnnotationForm.columns.values()
         self._context["active_tab"] = "help"
         self._context["colors"] = FRPAnnotationForm.colors
@@ -212,15 +215,15 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
             validated = validated and (len(self.spreadsheet_dummy.errors) == 0 and len(self.spreadsheet_style) == 0)
         return validated
     
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         if not self.validate():
             if self.input_type == "spreadsheet":
                 self._context["spreadsheet_style"] = self.spreadsheet_style
                 if self.flex_table is not None:
-                    context["spreadsheet_data"] = self.flex_table.replace(np.nan, "").values.tolist()
-                    if context["spreadsheet_data"] == []:
-                        context["spreadsheet_data"] = [[]]
-            return self.make_response(**context)
+                    self._context["spreadsheet_data"] = self.flex_table.replace(np.nan, "").values.tolist()
+                    if self._context["spreadsheet_data"] == []:
+                        self._context["spreadsheet_data"] = [[]]
+            return self.make_response()
         
         if self.flex_table is None:
             logger.error(f"{self.uuid}: FRP table is None.")
@@ -228,22 +231,21 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
         
         library_table = self.tables["library_table"]
         
-        self.flex_table["sample_id"] = None
-        # FIXME: sample_id should be sample_name?
-        for (library_name, sample_id), _ in library_table.groupby(["library_name", "sample_id"]):
-            self.flex_table.loc[self.flex_table["library_name"] == library_name, "sample_id"] = sample_id
+        self.flex_table["sample_name"] = None
+        for (library_name, sample_name), _ in library_table.groupby(["library_name", "sample_name"]):
+            self.flex_table.loc[self.flex_table["library_name"] == library_name, "sample_name"] = sample_name
         
         self.add_table("flex_table", self.flex_table)
         self.update_data()
 
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(self, uuid=self.uuid)
+            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             pool_mapping_form.prepare()
-            return pool_mapping_form.make_response(**context)
+            return pool_mapping_form.make_response()
         
-        complete_sas_form = CompleteSASForm(self, uuid=self.uuid)
+        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
-        return complete_sas_form.make_response(**context)
+        return complete_sas_form.make_response()
 
 
 

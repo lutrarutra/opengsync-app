@@ -54,13 +54,15 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
+    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.input_type = input_type
+        self.seq_request = seq_request
         self._context["columns"] = VisiumAnnotationForm.columns.values()
+        self._context["seq_request"] = seq_request
         self._context["active_tab"] = "help"
         self._context["colors"] = VisiumAnnotationForm.colors
         self.spreadsheet_style = dict()
@@ -219,15 +221,15 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
             validated = validated and (len(self.spreadsheet_dummy.errors) == 0 and len(self.spreadsheet_style) == 0)
         return validated
     
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         if not self.validate():
             if self.input_type == "spreadsheet":
                 self._context["spreadsheet_style"] = self.spreadsheet_style
                 if self.visium_table is not None:
-                    context["spreadsheet_data"] = self.visium_table.replace(np.nan, "").values.tolist()
-                    if context["spreadsheet_data"] == []:
+                    self._context["spreadsheet_data"] = self.visium_table.replace(np.nan, "").values.tolist()
+                    if self._context["spreadsheet_data"] == []:
                         self.prepare()
-            return self.make_response(**context)
+            return self.make_response()
         
         if self.visium_table is None:
             logger.error(f"{self.uuid}: Visium table is None.")
@@ -254,16 +256,16 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         self.update_data()
 
         if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
-            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
-            return frp_annotation_form.make_response(**context)
+            return frp_annotation_form.make_response()
 
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(self, uuid=self.uuid)
+            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             pool_mapping_form.prepare()
-            return pool_mapping_form.make_response(**context)
+            return pool_mapping_form.make_response()
         
-        complete_sas_form = CompleteSASForm(self, uuid=self.uuid)
+        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
-        return complete_sas_form.make_response(**context)
+        return complete_sas_form.make_response()
  

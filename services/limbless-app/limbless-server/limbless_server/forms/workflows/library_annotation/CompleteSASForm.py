@@ -20,23 +20,14 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-complete.html"
     _form_label = "complete_sas_form"
 
-    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, seq_request: Optional[models.SeqRequest] = None):
+    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         
-        if seq_request is not None:
-            self.seq_request = seq_request
-            self._context["seq_request"] = seq_request
-        else:
-            if (seq_request_id := self.metadata.get("seq_request_id")) is not None:
-                if (seq_request := db.get_seq_request(seq_request_id)) is None:
-                    logger.error(f"{self.uuid}: SeqRequest with id {seq_request_id} not found.")
-                    raise ValueError(f"SeqRequest with id {seq_request_id} not found.")
-                
-                self._context["seq_request"] = seq_request
-                self.seq_request = seq_request
+        self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
 
     def prepare(self):
         library_table = self.tables["library_table"]
@@ -47,9 +38,17 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         flex_table = self.tables.get("flex_table")
         comment_table = self.tables.get("comment_table")
 
+        library_table["is_cmo_sample"] = False
+        library_table["is_flex_sample"] = False
+        for sample_name, _df in library_table.groupby("sample_name"):
+            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
+                library_table.loc[library_table["sample_name"] == sample_name, "is_cmo_sample"] = True
+            if LibraryType.TENX_FLEX.id in _df["library_type_id"].unique():
+                library_table.loc[library_table["sample_name"] == sample_name, "is_flex_sample"] = True
+
         sample_table = self.get_sample_table(library_table, cmo_table, flex_table)
         self.add_table("sample_table", sample_table)
-        self.update_data()
+        self.update_table("library_table", library_table)
 
         self._context["library_table"] = library_table
         self._context["pool_table"] = pool_table

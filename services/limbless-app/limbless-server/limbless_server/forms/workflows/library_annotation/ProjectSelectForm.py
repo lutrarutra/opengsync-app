@@ -20,7 +20,7 @@ class ProjectSelectForm(HTMXFlaskForm):
     new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.name.type.length)])
     project_description = TextAreaField("Project Description", validators=[OptionalValidator(), Length(max=models.Project.description.type.length)], description="New projects only: brief context/background of the project.")
 
-    def __init__(self, workflow_type: Literal["raw", "pooled", "tech"], seq_request: models.SeqRequest, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, workflow_type: Literal["raw", "pooled", "tech"], formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.workflow_type = workflow_type
         self.seq_request = seq_request

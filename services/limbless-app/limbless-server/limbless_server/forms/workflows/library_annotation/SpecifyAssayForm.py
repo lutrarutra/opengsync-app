@@ -206,8 +206,6 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
 
         library_table = pd.DataFrame(library_table_data)
         library_table["seq_depth"] = None
-        library_table["is_cmo_sample"] = False
-        library_table["is_flex_sample"] = False
         library_table = library_table.sort_values(by=["sample_name", "library_type"]).reset_index(drop=True)
         self.add_table("library_table", library_table)
 
@@ -221,20 +219,20 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         if library_table["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
-            cmo_reference_input_form = CMOReferenceInputForm(previous_form=self, uuid=self.uuid)
+            cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
         if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in self.df.columns:
-            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
     
-        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
         return complete_sas_form.make_response()
         

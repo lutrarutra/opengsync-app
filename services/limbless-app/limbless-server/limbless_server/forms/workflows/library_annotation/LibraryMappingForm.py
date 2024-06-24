@@ -6,8 +6,9 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, FieldList, FormField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-
+from limbless_db import models
 from limbless_db.categories import LibraryType
+
 from .... import tools, logger
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -93,11 +94,13 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
     
     input_fields = FieldList(FormField(LibrarySubForm), min_entries=1)
 
-    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
 
     def prepare(self):
         library_table = self.tables["library_table"]
@@ -119,17 +122,17 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
 
             else:
                 if library_type is not None:
-                    similars = tools.connect_similar_strings(LibraryType.as_selectable(), [library_type], similars=LibrarySubForm._similars, cutoff=0.2)
+                    similars = tools.connect_similar_strings(LibraryType.as_selectable(), [library_type], similars=LibrarySubForm._similars, cutoff=0.2)  # type: ignore
                     if (similar := similars[library_type]) is not None:
                         selected_library_type = LibraryType.get(similar)
 
             if selected_library_type is not None:
                 self.input_fields[i].library_type.process_data(selected_library_type.id)
     
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         validated = self.validate()
         if not validated:
-            return self.make_response(**context)
+            return self.make_response()
         
         library_table = self.tables["library_table"]
 
@@ -141,48 +144,39 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             library_table.loc[library_table["library_type"] == library_type, "library_type_id"] = int(self.input_fields[i].library_type.data)
         
         library_table["library_type"] = library_table["library_type_id"].apply(lambda x: LibraryType.get(x).abbreviation)
-
-        library_table["is_cmo_sample"] = False
-        library_table["is_flex_sample"] = False
-        for sample_name, _df in library_table.groupby("sample_name"):
-            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
-                library_table.loc[library_table["sample_name"] == sample_name, "is_cmo_sample"] = True
-            if LibraryType.TENX_FLEX.id in _df["library_type_id"].unique():
-                library_table.loc[library_table["sample_name"] == sample_name, "is_flex_sample"] = True
         
-        logger.debug(library_table)
         self.update_table("library_table", library_table)
 
         if "index_kit" in library_table and not library_table["index_kit"].isna().all():
-            index_kit_mapping_form = IndexKitMappingForm(previous_form=self, uuid=self.uuid)
+            index_kit_mapping_form = IndexKitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             index_kit_mapping_form.prepare()
-            return index_kit_mapping_form.make_response(**context)
+            return index_kit_mapping_form.make_response()
         
         if library_table["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
-            cmo_reference_input_form = CMOReferenceInputForm(previous_form=self, uuid=self.uuid)
-            return cmo_reference_input_form.make_response(**context)
+            cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            return cmo_reference_input_form.make_response()
         
         if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
-            kit_reference_input_form = KitMappingForm(previous_form=self, uuid=self.uuid)
-            return kit_reference_input_form.make_response(**context)
+            kit_reference_input_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            return kit_reference_input_form.make_response()
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
-            return visium_annotation_form.make_response(**context)
+            return visium_annotation_form.make_response()
         
         if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
-            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
-            return frp_annotation_form.make_response(**context)
+            return frp_annotation_form.make_response()
         
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
+            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             pool_mapping_form.prepare()
-            return pool_mapping_form.make_response(**context)
+            return pool_mapping_form.make_response()
 
-        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
-        return complete_sas_form.make_response(**context)
+        return complete_sas_form.make_response()

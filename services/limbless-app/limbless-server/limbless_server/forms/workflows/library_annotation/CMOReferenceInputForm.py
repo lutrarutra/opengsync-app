@@ -12,6 +12,7 @@ from wtforms.validators import Optional as OptionalValidator
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 
+from limbless_db import models
 from limbless_db.categories import LibraryType, FeatureType
 
 from .... import logger, tools
@@ -56,15 +57,17 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
+    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        self.seq_request = seq_request
         self.input_type = input_type
         self._context["columns"] = CMOReferenceInputForm.columns.values()
         self._context["active_tab"] = "help"
         self._context["colors"] = CMOReferenceInputForm.colors
+        self._context["seq_request"] = seq_request
         self.spreadsheet_style = dict()
 
     def validate(self) -> bool:
@@ -259,14 +262,14 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
             self.cmo_table["kit_feature"] = kit_feature
         return validated
     
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         if not self.validate():
             if self.input_type == "spreadsheet":
                 self._context["spreadsheet_style"] = self.spreadsheet_style
-                context["spreadsheet_data"] = self.cmo_table.replace(np.nan, "").values.tolist()
-                if context["spreadsheet_data"] == []:
-                    context["spreadsheet_data"] = [[None]]
-            return self.make_response(**context)
+                self._context["spreadsheet_data"] = self.cmo_table.replace(np.nan, "").values.tolist()
+                if self._context["spreadsheet_data"] == []:
+                    self._context["spreadsheet_data"] = [[None]]
+            return self.make_response()
 
         library_table = self.tables["library_table"]
 
@@ -285,29 +288,29 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         self.update_data()
 
         if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
-            feature_reference_input_form = FeatureReferenceInputForm(previous_form=self, uuid=self.uuid)
-            return feature_reference_input_form.make_response(**context)
+            feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            return feature_reference_input_form.make_response()
 
         if kit_table["kit_id"].isna().any():
-            feature_kit_mapping_form = KitMappingForm(previous_form=self, uuid=self.uuid)
+            feature_kit_mapping_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             feature_kit_mapping_form.prepare()
-            return feature_kit_mapping_form.make_response(**context)
+            return feature_kit_mapping_form.make_response()
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
-            return visium_annotation_form.make_response(**context)
+            return visium_annotation_form.make_response()
         
         if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
-            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
-            return frp_annotation_form.make_response(**context)
+            return frp_annotation_form.make_response()
 
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
+            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             pool_mapping_form.prepare()
-            return pool_mapping_form.make_response(**context)
+            return pool_mapping_form.make_response()
 
-        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
-        return complete_sas_form.make_response(**context)
+        return complete_sas_form.make_response()

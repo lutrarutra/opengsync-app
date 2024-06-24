@@ -126,14 +126,13 @@ def select_project(seq_request_id: int, workflow_type: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.ProjectSelectForm(workflow_type=workflow_type, formdata=request.form, seq_request=seq_request).process_request(user=current_user)
+    return forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, formdata=request.form).process_request(user=current_user)
     
 
 # 2. Input sample annotation sheet
 @library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:input_method>", methods=["POST"])
 @login_required
 def parse_table(seq_request_id: int, input_method: Literal["file", "spreadsheet"]):
-    logger.debug(request.form)
     if input_method not in ["file", "spreadsheet"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -154,9 +153,7 @@ def map_genomes(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.GenomeRefMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.GenomeRefMappingForm(seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 4. Map libraries
@@ -166,9 +163,7 @@ def map_libraries(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.LibraryMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.LibraryMappingForm(seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 5. Map index_kits
@@ -178,9 +173,7 @@ def map_index_kits(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.IndexKitMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.IndexKitMappingForm(seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 6. Specify CMO reference
@@ -193,9 +186,7 @@ def parse_cmo_reference(seq_request_id: int, input_type: Literal["spreadsheet", 
     if input_type not in ["spreadsheet", "file"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    return forms.CMOReferenceInputForm(formdata=request.form | request.files, input_type=input_type).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.CMOReferenceInputForm(seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
 
 
 # 7. Specify Features
@@ -208,9 +199,7 @@ def select_feature_reference(seq_request_id: int, input_type: Literal["predefine
     if input_type not in ["predefined", "spreadsheet", "file"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    return forms.FeatureReferenceInputForm(formdata=request.form | request.files, input_type=input_type).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.FeatureReferenceInputForm(seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
 
 
 # 8. Map Feature Kits
@@ -220,9 +209,7 @@ def map_feature_kits(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.KitMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.KitMappingForm(seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 9. Visium Annotation
@@ -235,9 +222,7 @@ def parse_visium_reference(seq_request_id: int, input_type: Literal["spreadsheet
     if input_type not in ["spreadsheet", "file"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    return forms.VisiumAnnotationForm(formdata=request.form | request.files, input_type=input_type).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.VisiumAnnotationForm(seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
 
 
 # 10. Fixed RNA Profiling Annotation
@@ -250,9 +235,7 @@ def parse_frp_annotation(seq_request_id: int, input_type: Literal["spreadsheet",
     if input_type not in ["spreadsheet", "file"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    return forms.FRPAnnotationForm(formdata=request.form | request.files, input_type=input_type).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.FRPAnnotationForm(seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
 
     
 # 11. Map pools
@@ -262,9 +245,7 @@ def map_pools(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.PoolMappingForm(formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    return forms.PoolMappingForm(seq_request=seq_request, formdata=request.form).process_request()
 
 
 # Complete SAS

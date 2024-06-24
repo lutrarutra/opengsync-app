@@ -4,12 +4,12 @@ import pandas as pd
 
 from flask_wtf import FlaskForm
 from wtforms import FieldList, FormField, StringField, SelectField, TextAreaField
-from wtforms.validators import Optional as OptionalValidator, DataRequired, Length
+from wtforms.validators import Optional as OptionalValidator, Length
 
 from limbless_db.categories import GenomeRef
 from limbless_db import models
 
-from .... import db, tools
+from .... import tools
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from .LibraryMappingForm import LibraryMappingForm
@@ -27,11 +27,13 @@ class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(GenomeRefSubForm), min_entries=1)
     custom_reference = TextAreaField("Custom Reference", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], description="If the reference genome is not in the list, specify it here.")
 
-    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
 
     def validate(self) -> bool:
         valid = super().validate()
@@ -70,10 +72,10 @@ class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
                     
                         entry.genome.data = selected_genome.id
     
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         validated = self.validate()
         if not validated:
-            return self.make_response(**context)
+            return self.make_response()
         
         genome_id_mapping = {}
         library_table: pd.DataFrame = self.tables["library_table"]
@@ -102,6 +104,6 @@ class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
         
         self.update_table("library_table", library_table)
 
-        library_mapping_form = LibraryMappingForm(previous_form=self, uuid=self.uuid)
+        library_mapping_form = LibraryMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         library_mapping_form.prepare()
-        return library_mapping_form.make_response(**context)
+        return library_mapping_form.make_response()

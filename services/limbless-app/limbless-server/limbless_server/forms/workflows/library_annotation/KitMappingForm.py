@@ -6,6 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
+from limbless_db import models
 from limbless_db.categories import LibraryType, FeatureType
 
 from .... import db, logger
@@ -28,11 +29,13 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
 
     input_fields = FieldList(FormField(FeatureMappingSubForm), min_entries=1)
 
-    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
     
     def prepare(self):
         kit_table = self.tables["kit_table"]
@@ -253,10 +256,10 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
 
         return pd.DataFrame(cmo_data)
     
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         validated = self.validate()
         if not validated:
-            return self.make_response(**context)
+            return self.make_response()
         
         library_table = self.tables["library_table"]
         cmo_table = self.tables.get("cmo_table")
@@ -286,20 +289,20 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
         self.update_data()
 
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
-            return visium_annotation_form.make_response(**context)
+            return visium_annotation_form.make_response()
         
         if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
-            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
-            return frp_annotation_form.make_response(**context)
+            return frp_annotation_form.make_response()
 
         if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
+            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             pool_mapping_form.prepare()
-            return pool_mapping_form.make_response(**context)
+            return pool_mapping_form.make_response()
 
-        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
-        return complete_sas_form.make_response(**context)
+        return complete_sas_form.make_response()

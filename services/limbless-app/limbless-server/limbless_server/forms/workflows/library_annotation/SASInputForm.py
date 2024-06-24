@@ -265,18 +265,14 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
     def __map_library_types(self):
         library_type_map = {}
         for id, e in LibraryType.as_tuples():
-            library_type_map[e.name] = id
+            library_type_map[e.display_name] = id
         
         self.df["library_type_id"] = self.df["library_type"].map(library_type_map)
-        self.df["is_cmo_sample"] = False
-        for sample_name, _df in self.df.groupby("sample_name"):
-            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
-                self.df.loc[self.df["sample_name"] == sample_name, "is_cmo_sample"] = True
 
     def __map_organisms(self):
         organism_map = {}
         for id, e in GenomeRef.as_tuples():
-            organism_map[e.name] = id
+            organism_map[e.display_name] = id
         
         self.df["genome_id"] = self.df["genome"].map(organism_map)
     
@@ -290,47 +286,47 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             
             return self.make_response()
 
-        self.add_table("library_table", self.df)
-        self.update_data()
         self.__map_library_types()
         self.__map_organisms()
+        self.add_table("library_table", self.df)
+        self.update_data()
 
         if self.df["genome_id"].isna().any():
-            organism_mapping_form = GenomeRefMappingForm(previous_form=self, uuid=self.uuid)
+            organism_mapping_form = GenomeRefMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             organism_mapping_form.prepare()
             return organism_mapping_form.make_response()
         
         if self.df["library_type_id"].isna().any():
-            library_mapping_form = LibraryMappingForm(previous_form=self, uuid=self.uuid)
+            library_mapping_form = LibraryMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             library_mapping_form.prepare()
             return library_mapping_form.make_response()
 
         if "index_kit" in self.df and not self.df["index_kit"].isna().all():
-            index_kit_mapping_form = IndexKitMappingForm(previous_form=self, uuid=self.uuid)
+            index_kit_mapping_form = IndexKitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             index_kit_mapping_form.prepare()
             return index_kit_mapping_form.make_response()
         
         if self.df["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
         ]).any():
-            cmo_reference_input_form = CMOReferenceInputForm(previous_form=self, uuid=self.uuid)
+            cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
         
         if (self.df["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
-            visium_annotation_form = VisiumAnnotationForm(previous_form=self, uuid=self.uuid)
+            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
         if LibraryType.TENX_FLEX.id in self.df["library_type_id"].values and "pool" in self.df.columns:
-            frp_annotation_form = FRPAnnotationForm(self, uuid=self.uuid)
+            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
         
         if "pool" in self.df.columns:
-            pool_mapping_form = PoolMappingForm(previous_form=self, uuid=self.uuid)
+            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             pool_mapping_form.prepare()
             return pool_mapping_form.make_response()
     
-        complete_sas_form = CompleteSASForm(previous_form=self, uuid=self.uuid)
+        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
         return complete_sas_form.make_response()

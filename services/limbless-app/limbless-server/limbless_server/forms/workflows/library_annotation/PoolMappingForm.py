@@ -37,11 +37,13 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
 
     _template_path = "workflows/library_annotation/sas-11.html"
 
-    def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
 
     def prepare(self):
         library_table = self.tables["library_table"]
@@ -88,11 +90,11 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
 
         return validated, self
     
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         validated = self.validate()
         if not validated:
             self.prepare()
-            return self.make_response(**context)
+            return self.make_response()
         
         library_table = self.tables["library_table"]
         library_table["pool"] = library_table["pool"].astype(str)
@@ -121,6 +123,6 @@ class PoolMappingForm(HTMXFlaskForm, TableDataForm):
         self.add_table("pool_table", pd.DataFrame(pool_data))
         self.update_table("library_table", library_table)
         
-        complete_sas_form = CompleteSASForm(self, uuid=self.uuid)
+        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
-        return complete_sas_form.make_response(**context)
+        return complete_sas_form.make_response()
