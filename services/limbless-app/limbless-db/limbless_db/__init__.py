@@ -4,7 +4,10 @@ import pytz
 import datetime as dt
 
 PAGE_LIMIT = 15
-TIMEZONE: pytz.BaseTzInfo = pytz.timezone(os.environ['TIMEZONE'])
+if (__timezone := os.environ.get("TIMEZONE")) is None:
+    import tzlocal
+    __timezone = tzlocal.get_localzone_name()
+TIMEZONE: pytz.BaseTzInfo = pytz.timezone(__timezone)
 
 
 def localize(timestamp: dt.datetime) -> dt.datetime:
