@@ -2,11 +2,11 @@ from typing import Any, Optional
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms import StringField, SelectField, IntegerField
+from wtforms import StringField, SelectField, IntegerField, FloatField
 from wtforms.validators import DataRequired, Length
 
 from limbless_db import models
-from limbless_db.categories import ExperimentStatus, ReadType, ExperimentStatus
+from limbless_db.categories import RunStatus, ReadType, RunStatusEnum
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -16,7 +16,7 @@ class SeqRunForm(HTMXFlaskForm):
     _form_label = "seq_run_form"
 
     experiment_name = StringField("Experiment Name", validators=[DataRequired(), Length(min=3, max=models.SeqRun.experiment_name.type.length)])
-    status = SelectField("Status", choices=ExperimentStatus.as_selectable(), validators=[DataRequired()], coerce=int)
+    status = SelectField("Status", choices=RunStatus.as_selectable(), validators=[DataRequired()], coerce=int)
 
     run_folder = StringField("Run Folder", validators=[DataRequired(), Length(min=1, max=models.SeqRun.run_folder.type.length)])
     flowcell_id = StringField("Flowcell ID", validators=[DataRequired(), Length(min=1, max=models.SeqRun.flowcell_id.type.length)])
@@ -30,6 +30,18 @@ class SeqRunForm(HTMXFlaskForm):
     r2_cycles = IntegerField("R2 Cycles", validators=[DataRequired()])
     i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
     i2_cycles = IntegerField("I2 Cycles", validators=[DataRequired()])
+
+    cluster_count_m = FloatField("Cluster Count M")
+    cluster_count_m_pf = FloatField("Cluster Count M PF")
+    error_rate = FloatField("Error Rate")
+    first_cycle_intensity = FloatField("First Cycle Intensity")
+    percent_aligned = FloatField("Percent Aligned")
+    percent_q30 = FloatField("Percent Q30")
+    percent_occupied = FloatField("Percent Occupied")
+    projected_yield = FloatField("Projected Yield")
+    reads_m = FloatField("Reads M")
+    reads_m_pf = FloatField("Reads M PF")
+    yield_g = FloatField("Yield G")
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, seq_run: Optional[models.SeqRun] = None, csrf_enabled: bool = True):
         super().__init__(formdata=formdata, meta={"csrf": csrf_enabled})
@@ -56,7 +68,7 @@ class SeqRunForm(HTMXFlaskForm):
             return False
         
         try:
-            ExperimentStatus.get(int(self.status.data))
+            RunStatus.get(int(self.status.data))
         except ValueError:
             self.status.errors = ("Invalid status",)
             return False
@@ -70,7 +82,7 @@ class SeqRunForm(HTMXFlaskForm):
     def create_seq_run(self) -> models.SeqRun:
         seq_run = db.create_seq_run(
             experiment_name=self.experiment_name.data,  # type: ignore
-            status=ExperimentStatus.get(int(self.status.data)),
+            status=RunStatus.get(int(self.status.data)),
             run_folder=self.run_folder.data,  # type: ignore
             flowcell_id=self.flowcell_id.data,  # type: ignore
             read_type=ReadType.get(int(self.read_type.data)),
@@ -81,7 +93,18 @@ class SeqRunForm(HTMXFlaskForm):
             r1_cycles=self.r1_cycles.data,  # type: ignore
             r2_cycles=self.r2_cycles.data,  # type: ignore
             i1_cycles=self.i1_cycles.data,  # type: ignore
-            i2_cycles=self.i2_cycles.data  # type: ignore
+            i2_cycles=self.i2_cycles.data,  # type: ignore
+            cluster_count_m=self.cluster_count_m.data,
+            cluster_count_m_pf=self.cluster_count_m_pf.data,
+            error_rate=self.error_rate.data,
+            first_cycle_intensity=self.first_cycle_intensity.data,
+            percent_aligned=self.percent_aligned.data,
+            percent_q30=self.percent_q30.data,
+            percent_occupied=self.percent_occupied.data,
+            projected_yield=self.projected_yield.data,
+            reads_m=self.reads_m.data,
+            reads_m_pf=self.reads_m_pf.data,
+            yield_g=self.yield_g.data
         )
 
         if (experiment := db.get_experiment(name=seq_run.experiment_name)) is not None:
@@ -104,6 +127,17 @@ class SeqRunForm(HTMXFlaskForm):
         seq_run.r2_cycles = self.r2_cycles.data  # type: ignore
         seq_run.i1_cycles = self.i1_cycles.data  # type: ignore
         seq_run.i2_cycles = self.i2_cycles.data  # type: ignore
+        seq_run.cluster_count_m = self.cluster_count_m.data
+        seq_run.cluster_count_m_pf = self.cluster_count_m_pf.data
+        seq_run.error_rate = self.error_rate.data
+        seq_run.first_cycle_intensity = self.first_cycle_intensity.data
+        seq_run.percent_aligned = self.percent_aligned.data
+        seq_run.percent_q30 = self.percent_q30.data
+        seq_run.percent_occupied = self.percent_occupied.data
+        seq_run.projected_yield = self.projected_yield.data
+        seq_run.reads_m = self.reads_m.data
+        seq_run.reads_m_pf = self.reads_m_pf.data
+        seq_run.yield_g = self.yield_g.data
 
         return db.update_seq_run(seq_run)
     
@@ -120,9 +154,7 @@ class SeqRunForm(HTMXFlaskForm):
         
         seq_run = self.update_seq_run(seq_run)
         flash(f"SeqRun {seq_run.id} edited successfully", "success")
-        return make_response(
-            redirect=url_for("")
-        )
+        return make_response(redirect=url_for(""))
 
 
 

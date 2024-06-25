@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, SampleStatus
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, SampleStatus, PoolStatus
 from .. import exceptions
 
 
@@ -377,7 +377,7 @@ def set_library_seq_quality(
     mean_quality_pf_r1: float, q30_perc_r1: float,
     mean_quality_pf_i1: float, q30_perc_i1: float,
     mean_quality_pf_r2: Optional[float], q30_perc_r2: Optional[float],
-    mean_quality_pf_i2: Optional[float], q30_perc_i2: Optional[float]
+    mean_quality_pf_i2: Optional[float], q30_perc_i2: Optional[float],
 ) -> models.SeqQuality:
     
     persist_session = self._session is not None
@@ -387,6 +387,10 @@ def set_library_seq_quality(
     if library_id is not None:
         if (library := self._session.get(models.Library, library_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+        
+        library.status_id = LibraryStatus.SEQUENCED.id
+        library.pool.status_id = PoolStatus.SEQUENCED.id
+        self._session.add(library)
         
     if (quality := self._session.query(models.SeqQuality).where(
         models.SeqQuality.library_id == library_id,
@@ -403,7 +407,6 @@ def set_library_seq_quality(
         quality.q30_perc_r2 = q30_perc_r2
         quality.mean_quality_pf_i2 = mean_quality_pf_i2
         quality.q30_perc_i2 = q30_perc_i2
-
     else:
         quality = models.SeqQuality(
             library_id=library_id, lane=lane, experiment_id=experiment_id,
@@ -411,7 +414,7 @@ def set_library_seq_quality(
             mean_quality_pf_r1=mean_quality_pf_r1, q30_perc_r1=q30_perc_r1,
             mean_quality_pf_i1=mean_quality_pf_i1, q30_perc_i1=q30_perc_i1,
             mean_quality_pf_r2=mean_quality_pf_r2, q30_perc_r2=q30_perc_r2,
-            mean_quality_pf_i2=mean_quality_pf_i2, q30_perc_i2=q30_perc_i2
+            mean_quality_pf_i2=mean_quality_pf_i2, q30_perc_i2=q30_perc_i2,
         )
 
     self._session.add(quality)

@@ -3,6 +3,9 @@ import argparse
 import requests
 import pathlib
 import glob
+import interop
+
+import pandas as pd
 
 import xml.etree.ElementTree as ET
 
@@ -23,11 +26,14 @@ class Requestor():
         return response.status_code == 200
 
     def post_seq_run(
-        self, experiment_name: str, status: categories.ExperimentStatusEnum,
+        self, experiment_name: str, status: categories.RunStatusEnum,
         run_name: str, flowcell_id: str, read_type: categories.ReadTypeEnum,
         rta_version: str, recipe_version: str, side: str,
         flowcell_mode: str, r1_cycles: int, r2_cycles: int, i1_cycles: int, i2_cycles: int,
-
+        cluster_count_m: float, cluster_count_m_pf: float, error_rate: float,
+        first_cycle_intensity: float, percent_aligned: float, percent_q30: float,
+        percent_occupied: float, projected_yield: float, reads_m: float, reads_m_pf: float,
+        yield_g: float
     ) -> requests.Response:
         response = requests.post(
             self.url + "/api/seq_run/create",
@@ -45,12 +51,22 @@ class Requestor():
                 "r2_cycles": r2_cycles,
                 "i1_cycles": i1_cycles,
                 "i2_cycles": i2_cycles,
-
+                "cluster_count_m": cluster_count_m,
+                "cluster_count_m_pf": cluster_count_m_pf,
+                "error_rate": error_rate,
+                "first_cycle_intensity": first_cycle_intensity,
+                "percent_aligned": percent_aligned,
+                "percent_q30": percent_q30,
+                "percent_occupied": percent_occupied,
+                "projected_yield": projected_yield,
+                "reads_m": reads_m,
+                "reads_m_pf": reads_m_pf,
+                "yield_g": yield_g
             }
         )
         return response
 
-    def update_run_status(self, experiment_name: str, status: categories.ExperimentStatusEnum) -> requests.Response:
+    def update_run_status(self, experiment_name: str, status: categories.RunStatusEnum) -> requests.Response:
         response = requests.put(f"{self.url}/api/seq_run/{experiment_name}/update_status/{status.id}")
         return response
 
@@ -150,7 +166,7 @@ def process_run_folder(illumina_run_folder: str, requestor: Requestor) -> None:
             
             run_parameters_path = os.path.join(illumina_run_folder, run, "RunParameters.xml")
             if not os.path.exists(run_parameters_path) and experiment_name not in archived:
-                response = requestor.update_run_status(experiment_name=experiment_name, status=categories.ExperimentStatus.ARCHIVED)
+                response = requestor.update_run_status(experiment_name=experiment_name, status=categories.RunStatus.ARCHIVED)
                 print(f"{run} - HTTP[{response.status_code}]: Archived.")
                 archived.append(experiment_name)
 
@@ -165,9 +181,9 @@ def process_run_folder(illumina_run_folder: str, requestor: Requestor) -> None:
         run_name = os.path.basename(run_folder)
         
         if os.path.exists(os.path.join(run_folder, "RTAComplete.txt")):
-            status = categories.ExperimentStatus.FINISHED
+            status = categories.RunStatus.FINISHED
         else:
-            status = categories.ExperimentStatus.SEQUENCING
+            status = categories.RunStatus.RUNNING
 
         new_run = run_name not in runs_statuses.keys()
         status_change = not new_run and status.id > runs_statuses[run_name]
@@ -183,7 +199,22 @@ def process_run_folder(illumina_run_folder: str, requestor: Requestor) -> None:
             continue
         
         experiment_name = parsed_data["experiment_name"]
-        
+
+        metrics = interop.read(run_folder)
+        metrics_df = pd.DataFrame(interop.summary(metrics))
+
+        parsed_data["cluster_count_m"] = metrics_df["Cluster Count"].values[0] / 1_000_000
+        parsed_data["cluster_count_m_pf"] = metrics_df["Cluster Count Pf"].values[0] / 1_000_000
+        parsed_data["error_rate"] = metrics_df["Error Rate"].values[0]
+        parsed_data["first_cycle_intensity"] = metrics_df["First Cycle Intensity"].values[0]
+        parsed_data["percent_aligned"] = metrics_df["% Aligned"].values[0]
+        parsed_data["percent_q30"] = metrics_df["% >= Q30"].values[0]
+        parsed_data["percent_occupied"] = metrics_df["% Occupied"].values[0]
+        parsed_data["projected_yield"] = metrics_df["Projected Yield G"].values[0]
+        parsed_data["reads_m"] = metrics_df["Reads"].values[0] / 1_000_000
+        parsed_data["reads_m_pf"] = metrics_df["Reads Pf"].values[0] / 1_000_000
+        parsed_data["yield_g"] = metrics_df["Yield G"].values[0]
+
         if status_change:
             response = requestor.update_run_status(experiment_name=experiment_name, status=status)
         else:
