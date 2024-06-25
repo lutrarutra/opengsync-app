@@ -1,4 +1,3 @@
-import json
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort, flash, url_for

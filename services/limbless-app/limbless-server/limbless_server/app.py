@@ -196,6 +196,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             PoolStatus=categories.PoolStatus,
             AssayType=categories.AssayType,
             SampleStatus=categories.SampleStatus,
+            RunStatus=categories.RunStatus,
             isna=pd.isna,
         )
     
@@ -223,6 +224,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.index_kits_htmx)
     app.register_blueprint(api.htmx.plates_htmx)
     app.register_blueprint(api.htmx.lanes_htmx)
+    app.register_blueprint(api.htmx.seq_runs_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.seq_run_api)
@@ -253,5 +255,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(pages.devices_page_bp)
     app.register_blueprint(pages.pools_page_bp)
     app.register_blueprint(pages.feature_kits_page_bp)
+    app.register_blueprint(pages.seq_runs_page_bp)
 
     return app

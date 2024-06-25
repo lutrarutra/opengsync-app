@@ -1,12 +1,13 @@
-from .samples_page import samples_page_bp
-from .projects_page import projects_page_bp
-from .experiments_page import experiments_page_bp
-from .libraries_page import libraries_page_bp
-from .auth_page import auth_page_bp
-from .users_page import users_page_bp
-from .error_pages import errors_bp
-from .seq_requests_page import seq_requests_page_bp
-from .index_kits_page import index_kits_page_bp
-from .devices_page import devices_page_bp
-from .pools_page import pools_page_bp
-from .feature_kits_page import feature_kits_page_bp
+from .samples_page import samples_page_bp  # noqa: F401
+from .projects_page import projects_page_bp  # noqa: F401
+from .experiments_page import experiments_page_bp  # noqa: F401
+from .libraries_page import libraries_page_bp  # noqa: F401
+from .auth_page import auth_page_bp  # noqa: F401
+from .users_page import users_page_bp  # noqa: F401
+from .error_pages import errors_bp  # noqa: F401
+from .seq_requests_page import seq_requests_page_bp  # noqa: F401
+from .index_kits_page import index_kits_page_bp  # noqa: F401
+from .devices_page import devices_page_bp  # noqa: F401
+from .pools_page import pools_page_bp  # noqa: F401
+from .feature_kits_page import feature_kits_page_bp  # noqa: F401
+from .seq_runs_page import seq_runs_page_bp  # noqa: F401

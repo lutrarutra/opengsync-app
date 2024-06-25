@@ -111,6 +111,11 @@
                 <a class="nav-link {{'active' if active_page == 'devices-page' else ''}}" id="devices-page" href="{{ url_for('devices_page.devices_page') }}">Devices</a>
             </div>
             {% endif %}
+            {% if current_user.is_authenticated and current_user.is_insider() %}
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" id="seq_run-page" href="{{ url_for('seq_runs_page.seq_runs_page') }}">Runs</a>
+            </div>
+            {% endif %}
         </div>
         <div class="nav-right">
             {% if current_user.is_authenticated %}

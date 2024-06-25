@@ -3,12 +3,12 @@ from typing import Optional
 
 from ...models import SeqRun
 from ... import PAGE_LIMIT
-from ...categories import ReadTypeEnum, ExperimentStatusEnum
+from ...categories import ReadTypeEnum, RunStatusEnum
 
 
 def create_seq_run(
     self, experiment_name: str,
-    status: ExperimentStatusEnum,
+    status: RunStatusEnum,
     run_folder: str,
     flowcell_id: str,
     read_type: ReadTypeEnum,
@@ -75,7 +75,10 @@ def get_seq_run(self, id: Optional[int] = None, experiment_name: Optional[str] =
 
 
 def get_seq_runs(
-    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self,
+    status: Optional[RunStatusEnum] = None,
+    status_in: Optional[list[RunStatusEnum]] = None,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[SeqRun], int]:
     persist_session = self._session is not None
@@ -83,6 +86,12 @@ def get_seq_runs(
         self.open_session()
 
     query = self._session.query(SeqRun)
+
+    if status is not None:
+        query = query.where(SeqRun.status_id == status.id)
+
+    if status_in is not None:
+        query = query.where(SeqRun.status_id.in_([s.id for s in status_in]))
 
     if sort_by is not None:
         attr = getattr(SeqRun, sort_by)

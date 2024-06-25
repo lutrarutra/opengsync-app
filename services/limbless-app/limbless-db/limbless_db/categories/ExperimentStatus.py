@@ -10,7 +10,7 @@ class ExperimentStatusEnum(DBEnum):
     @property
     def select_name(self) -> str:
         return self.icon
-    
+
 
 class ExperimentStatus(ExtendedEnum[ExperimentStatusEnum], enum_type=ExperimentStatusEnum):
     DRAFT = ExperimentStatusEnum(0, "Draft", "✍🏼")

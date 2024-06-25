@@ -19,3 +19,4 @@ from .PoolStatus import PoolStatus, PoolStatusEnum  # noqa: F401
 from .ExperimentWorkFlow import ExperimentWorkFlow, ExperimentWorkFlowEnum  # noqa: F401
 from .PoolType import PoolType, PoolTypeEnum  # noqa: F401
 from .SampleStatus import SampleStatus, SampleStatusEnum  # noqa: F401
+from .RunStatus import RunStatus, RunStatusEnum  # noqa: F401

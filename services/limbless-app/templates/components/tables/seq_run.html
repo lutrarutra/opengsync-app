@@ -1,0 +1,53 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="seq_run-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='seq_run-table', column_name='ID', column_var='id',
+                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='seq_run-table', column_name='Experiment Name', column_var='name',
+                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='seq_run-table', column_name='Status', column_var='status_id',
+                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        multiselect_choices=RunStatus.as_list(), multiselect_selected=status_in
+                    )
+                }}
+                <th scope="col" class="col-1">Cycles</th>
+                <th scope="col" class="col-1">Flowcell ID</th>
+                <th scope="col" class="col-2">Run Folder</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for seq_run in seq_runs %}
+            <tr>
+                <th scope="row">{{ seq_run.id }}</th>
+                <td>{{ seq_run.experiment_name }}</td>
+                <td>{{ seq_run.status.name }} {{ seq_run.status.icon }}</td>
+                <td>{{ seq_run.r1_cycles }}-{{ seq_run.i1_cycles }}-{{ seq_run.i2_cycles }}-{{ seq_run.r2_cycles }}</td>
+                <td>{{ seq_run.flowcell_id }}</td>
+                <td>{{ seq_run.run_folder }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("seq_run-table-spinner") }}
+    {{ pagination("seq_run-table", "seq_run_htmx.get", n_pages, active_page) }}
+</div>
+<script>
+    init_tooltips();
+</script>

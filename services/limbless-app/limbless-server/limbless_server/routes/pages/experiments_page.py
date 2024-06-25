@@ -20,7 +20,7 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 @login_required
 def experiments_page():
     if not current_user.is_insider():
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return render_template("experiments_page.html")
 
