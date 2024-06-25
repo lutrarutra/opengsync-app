@@ -385,7 +385,7 @@ def set_library_seq_quality(
         self.open_session()
 
     if library_id is not None:
-        if (_ := self._session.get(models.Library, library_id)) is None:
+        if (library := self._session.get(models.Library, library_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
         
     if (quality := self._session.query(models.SeqQuality).where(

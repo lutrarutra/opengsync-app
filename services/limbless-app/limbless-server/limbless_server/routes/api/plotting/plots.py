@@ -68,7 +68,7 @@ def experiment_library_reads(experiment_id: int):
     fig = _add_traces(barplot, fig)
     fig.update_layout(
         width=width,
-        height=20 * len(df),
+        height=40 * len(df) + 200,
         margin=dict(t=25, r=5, b=5, l=5),
         paper_bgcolor="rgba(0,0,0,0)",
         yaxis=dict(tickfont=dict(size=15)),

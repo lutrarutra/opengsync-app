@@ -95,16 +95,14 @@
                 Comments
             </button>
         </li>
-        {% if experiment.seq_run %}
         <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
+            <button class="nav-link {% if not experiment.seq_run %}disabled{% endif %}" data-bs-toggle="tab"
             data-bs-target="#experiment-seq_run-tab" type="button" role="tab"
             aria-controls="experiment-seq_run-tab" aria-selected="true"
-            id="experiment-seq_run-tab-btn">
+            id="experiment-seq_run-tab-btn" {% if not experiment.seq_run %}disabled{% endif %}>
                 Run
             </button>
         </li>
-        {% endif %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#experiment-num_reads-tab" type="button" role="tab"

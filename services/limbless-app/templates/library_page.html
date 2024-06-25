@@ -76,6 +76,12 @@
             BA Report</button>
         </li>
         {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if (library.read_qualitites | length) == 0 %}disabled{% endif %}" data-bs-toggle="tab"
+            data-bs-target="#run-tab" type="button" role="tab"
+            aria-controls="run-tab" aria-selected="true" {% if (library.read_qualitites | length) == 0 %}disabled{% endif %}>
+            Run</button>
+        </li>
     </ul>
 </div>
 

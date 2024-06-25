@@ -9,7 +9,7 @@ seq_run_api = Blueprint("seq_run_api", __name__, url_prefix="/api/seq_run/")
 
 @seq_run_api.route("create", methods=["POST"])
 def create():
-    form = forms.SeqRunForm(request.form, csrf_enabled=False)
+    form = forms.models.SeqRunForm(request.form, csrf_enabled=False)
     validated = form.validate()
     if not validated:
         if len(form.errors) == 1 and "experiment_name not unique" in form.errors["experiment_name"]:
