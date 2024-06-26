@@ -6,7 +6,7 @@ from wtforms import StringField, SelectField, IntegerField, FloatField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import RunStatus, ReadType
+from limbless_db.categories import RunStatus, ReadType, ExperimentStatus
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -110,9 +110,18 @@ class SeqRunForm(HTMXFlaskForm):
         )
 
         if (experiment := db.get_experiment(name=seq_run.experiment_name)) is not None:
-            if seq_run.status != experiment.status:
-                experiment.status_id = seq_run.status.id
-                experiment = db.update_experiment(experiment)
+            if seq_run.status == RunStatus.FINISHED:
+                experiment.status_id = ExperimentStatus.FINISHED.id
+                db.update_experiment(experiment)
+            elif seq_run.status == RunStatus.FAILED:
+                experiment.status_id = ExperimentStatus.FAILED.id
+                db.update_experiment(experiment)
+            elif seq_run.status == RunStatus.RUNNING:
+                experiment.status_id = ExperimentStatus.SEQUENCING.id
+                db.update_experiment(experiment)
+            elif seq_run.status == RunStatus.ARCHIVED:
+                experiment.status_id = ExperimentStatus.ARCHIVED.id
+                db.update_experiment(experiment)
 
         return seq_run
     

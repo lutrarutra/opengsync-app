@@ -229,6 +229,7 @@ def dilute_pool(
 
 def query_pools(
     self, name: str, experiment_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
     status_in: Optional[list[PoolStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Pool]:
@@ -244,6 +245,11 @@ def query_pools(
             models.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
             models.ExperimentPoolLink.experiment_id == experiment_id
+        )
+
+    if seq_request_id is not None:
+        query = query.where(
+            models.Pool.seq_request_id == seq_request_id
         )
 
     if status_in is not None:

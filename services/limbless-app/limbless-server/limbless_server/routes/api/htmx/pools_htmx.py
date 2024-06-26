@@ -298,6 +298,13 @@ def browse(workflow: str, page: int):
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+            context["seq_request_id"] = seq_request_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
@@ -317,7 +324,8 @@ def browse(workflow: str, page: int):
     offset = PAGE_LIMIT * page
     
     pools, n_pages = db.get_pools(
-        sort_by=sort_by, descending=descending, offset=offset, status_in=status_in, experiment_id=experiment_id
+        sort_by=sort_by, descending=descending, offset=offset, status_in=status_in, experiment_id=experiment_id,
+        seq_request_id=seq_request_id
     )
 
     context["workflow"] = workflow
@@ -352,10 +360,17 @@ def browse_query(workflow: str):
             context["experiment_id"] = experiment_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+            context["seq_request_id"] = seq_request_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
     
     pools: list[models.Pool] = []
     if field_name == "name":
-        pools = db.query_pools(word, experiment_id=experiment_id)
+        pools = db.query_pools(word, experiment_id=experiment_id, seq_request_id=seq_request_id)
     elif field_name == "id":
         try:
             _id = int(word)

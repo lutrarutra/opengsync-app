@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT
+from limbless_db import models, DBSession, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus
 from .... import db, forms, logger  # noqa
 
@@ -232,6 +232,22 @@ def get_samples(library_id: int, page: int):
     )
 
 
+@libraries_htmx.route("<int:library_id>/reads_tab", methods=["GET"])
+@db_session(db)
+@login_required
+def reads_tab(library_id: int):
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    logger.debug(len(library.read_qualities))
+    
+    if not current_user.is_insider() and library.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    
+    return make_response(render_template("components/library-reads.html", library=library))
+
+
 @libraries_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
 @libraries_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
 @login_required
@@ -271,11 +287,18 @@ def browse(workflow: str, page: int):
             context["experiment_id"] = experiment_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+            context["seq_request_id"] = seq_request_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
     
     libraries, n_pages = db.get_libraries(
         sort_by=sort_by, descending=descending, offset=offset,
-        status_in=status_in, experiment_id=experiment_id,
-        type_in=type_in
+        seq_request_id=seq_request_id, experiment_id=experiment_id,
+        type_in=type_in, status_in=status_in
     )
     context["workflow"] = workflow
     return make_response(
@@ -307,6 +330,13 @@ def browse_query(workflow: str):
         try:
             experiment_id = int(experiment_id)
             context["experiment_id"] = experiment_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+            context["seq_request_id"] = seq_request_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     

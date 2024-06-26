@@ -30,11 +30,12 @@
             </div>
 
             <div class="row">
-                {{ form_group(experiment_form.r1_cycles, class="col") }}
-                {{ form_group(experiment_form.i1_cycles, class="col") }}
-                {{ form_group(experiment_form.i2_cycles, class="col") }}
-                {{ form_group(experiment_form.r2_cycles, class="col") }}
+                {{ form_group(experiment_form.r1_cycles, class="col-3") }}
+                {{ form_group(experiment_form.i1_cycles, class="col-3") }}
+                {{ form_group(experiment_form.i2_cycles, class="col-3") }}
+                {{ form_group(experiment_form.r2_cycles, class="col-3") }}
             </div>
+            {{ select_input(experiment_form.status) }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">

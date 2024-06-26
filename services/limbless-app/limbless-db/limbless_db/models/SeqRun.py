@@ -51,3 +51,23 @@ class SeqRun(Base):
     def read_type(self) -> ReadTypeEnum:
         return ReadType.get(self.read_type_id)
     
+    @property
+    def cycles_str(self) -> str:
+        res = f"{self.r1_cycles}"
+        
+        if self.i1_cycles is not None:
+            res += f"-{self.i1_cycles}"
+        else:
+            res += "-0"
+        
+        if self.i2_cycles is not None:
+            res += f"-{self.i2_cycles}"
+        else:
+            res += "-0"
+
+        if self.r2_cycles is not None:
+            res += f"-{self.r2_cycles}"
+        else:
+            res += "-0"
+
+        return res

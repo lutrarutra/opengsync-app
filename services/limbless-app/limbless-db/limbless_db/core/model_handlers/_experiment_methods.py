@@ -10,7 +10,7 @@ from ...categories import ExperimentWorkFlowEnum, ExperimentStatus, ExperimentSt
 
 
 def create_experiment(
-    self, name: str, workflow: ExperimentWorkFlowEnum,
+    self, name: str, workflow: ExperimentWorkFlowEnum, status: ExperimentStatusEnum,
     sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None
 ) -> models.Experiment:
@@ -29,8 +29,8 @@ def create_experiment(
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
+        status_id=status.id,
         num_lanes=workflow.flow_cell_type.num_lanes,
-        status_id=ExperimentStatus.DRAFT.id,
         operator_id=operator_id,
     )
 

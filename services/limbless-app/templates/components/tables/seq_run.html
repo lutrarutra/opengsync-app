@@ -38,7 +38,7 @@
                 <th scope="row">{{ seq_run.id }}</th>
                 <td>{{ seq_run.experiment_name }}</td>
                 <td>{{ seq_run.status.name }} {{ seq_run.status.icon }}</td>
-                <td>{{ seq_run.r1_cycles }}-{{ seq_run.i1_cycles }}-{{ seq_run.i2_cycles }}-{{ seq_run.r2_cycles }}</td>
+                <td>{{ seq_run.cycles_str }}</td>
                 <td>{{ seq_run.flowcell_id }}</td>
                 <td>{{ seq_run.run_folder }}</td>
             </tr>

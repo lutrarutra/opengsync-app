@@ -1,0 +1,22 @@
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link %}
+
+{% for read_quality in library.read_qualities %}
+<h3>Lane {{ read_quality.lane }}</h2>
+<div class="row">
+    {{ metadata_group("# Library Reads", "{:,}".format(read_quality.num_library_reads).replace(",", " "), class="col-4") }}
+    {{ metadata_group("% of the Lane", "%0.1f" % (read_quality.num_library_reads / read_quality.num_lane_reads * 100.0), class="col-4", unit="%") }}
+    {{ metadata_group("# Lane Reads", "{:,}".format(read_quality.num_lane_reads).replace(",", " "), class="col-4") }}
+</div>
+<div class="row">
+    {{ metadata_group("R1 PF μ-Quality", read_quality.mean_quality_pf_r1, class="col-3") }}
+    {{ metadata_group("R1 Q30%", read_quality.q30_perc_r1, class="col-3", unit="%") }}
+    {{ metadata_group("R2 PF μ-Quality", read_quality.mean_quality_pf_r2, class="col-3") }}
+    {{ metadata_group("R2 Q30%", read_quality.q30_perc_r2, class="col-3", unit="%") }}
+</div>
+<div class="row">
+    {{ metadata_group("I1 PF μ-Quality", read_quality.mean_quality_pf_i1, class="col-3") }}
+    {{ metadata_group("I1 Q30%", read_quality.q30_perc_i1, class="col-3", unit="%") }}
+    {{ metadata_group("I2 PF μ-Quality", read_quality.mean_quality_pf_i2, class="col-3") }}
+    {{ metadata_group("I2 Q30%", read_quality.q30_perc_i2, class="col-3", unit="%") }}
+</div>
+{% endfor %}

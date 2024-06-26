@@ -6,7 +6,7 @@ from wtforms import StringField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from limbless_db import models, exceptions
-from limbless_db.categories import ExperimentWorkFlow
+from limbless_db.categories import ExperimentWorkFlow, ExperimentStatus
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ... import db
 from ..SearchBar import SearchBar
@@ -23,6 +23,11 @@ class ExperimentForm(HTMXFlaskForm):
         "Workflow", choices=ExperimentWorkFlow.as_selectable(),
         description="Select the workflow for the experiment.",
         coerce=int, default=None
+    )
+
+    status = SelectField(
+        "Status", choices=ExperimentStatus.as_selectable(),
+        coerce=int, default=ExperimentStatus.DRAFT.id
     )
     
     r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
@@ -55,6 +60,7 @@ class ExperimentForm(HTMXFlaskForm):
             self.i2_cycles.data = experiment.i2_cycles
             self.operator.selected.data = experiment.operator_id
             self.operator.search_bar.data = experiment.operator.search_name()
+            self.status.data = experiment.status_id
 
     def validate(self, experiment: Optional[models.Experiment]) -> bool:
         if (validated := super().validate()) is False:
@@ -67,11 +73,24 @@ class ExperimentForm(HTMXFlaskForm):
                     return False
         except exceptions.ElementDoesNotExist:
             pass
+        
+        try:
+            ExperimentWorkFlow.get(self.workflow.data)
+        except ValueError:
+            self.workflow.errors = ("Invalid workflow",)
+            return False
+        
+        try:
+            ExperimentStatus.get(self.status.data)
+        except ValueError:
+            self.status.errors = ("Invalid status",)
+            return False
             
         return validated
     
     def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
         workflow = ExperimentWorkFlow.get(self.workflow.data)
+        status = ExperimentStatus.get(self.status.data)
 
         experiment.name = self.name.data  # type: ignore
         experiment.workflow_id = workflow.id
@@ -81,6 +100,7 @@ class ExperimentForm(HTMXFlaskForm):
         experiment.i1_cycles = self.i1_cycles.data  # type: ignore
         experiment.i2_cycles = self.i2_cycles.data
         experiment.operator_id = self.operator.selected.data
+        experiment.status_id = status.id
 
         experiment = db.update_experiment(experiment)
 
@@ -90,6 +110,8 @@ class ExperimentForm(HTMXFlaskForm):
 
     def __create_new_experiment(self) -> Response:
         workflow = ExperimentWorkFlow.get(self.workflow.data)
+        status = ExperimentStatus.get(self.status.data)
+
         experiment = db.create_experiment(
             name=self.name.data,  # type: ignore
             workflow=workflow,
@@ -99,6 +121,7 @@ class ExperimentForm(HTMXFlaskForm):
             i1_cycles=self.i1_cycles.data,  # type: ignore
             i2_cycles=self.i2_cycles.data,
             operator_id=self.operator.selected.data,
+            status=status
         )
 
         flash(f"Created experiment '{experiment.name}'.", "success")

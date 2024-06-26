@@ -446,15 +446,27 @@ def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum)
     
     for sample in seq_request.samples:
         sample.status_id = sample_status.id
-        self._session.add(sample)
+        if sample_status != SampleStatus.ACCEPTED:
+            continue
+        
+        is_prepared = True
+        for library_link in sample.library_links:
+            if library_link.library.pool_id is None:
+                is_prepared = False
+                break
+        if is_prepared:
+            sample.status_id = SampleStatus.PREPARED.id
 
     for library in seq_request.libraries:
         library.status_id = library_status.id
-        self._session.add(library)
+        if library_status != LibraryStatus.ACCEPTED:
+            continue
+        
+        if library.pool_id is not None:
+            library.status_id = LibraryStatus.POOLED.id
 
     for pool in seq_request.pools:
         pool.status_id = pool_status.id
-        self._session.add(pool)
 
     self._session.add(seq_request)
     self._session.commit()

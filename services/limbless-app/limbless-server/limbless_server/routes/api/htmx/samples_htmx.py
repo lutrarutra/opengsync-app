@@ -278,7 +278,7 @@ def browse(workflow: str, page: int):
     
         if len(status_in) == 0:
             status_in = None
-    
+
     samples, n_pages = db.get_samples(
         seq_request_id=seq_request_id, status_in=status_in, offset=offset, sort_by=sort_by, descending=descending
     )

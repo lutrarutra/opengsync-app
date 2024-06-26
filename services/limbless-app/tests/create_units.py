@@ -3,7 +3,7 @@ import uuid
 from limbless_db import DBHandler, DBSession, models
 from limbless_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, FlowCellType, ExperimentWorkFlow, ExperimentWorkFlowEnum, SequencerModel,
-    ReadType
+    ReadType, ExperimentStatus, PoolType
 )
 
 
@@ -50,12 +50,13 @@ def create_seq_request(db: DBHandler, user: models.User) -> models.SeqRequest:
     )
 
 
-def create_sample(db: DBHandler, user: models.User, project: models.Project) -> models.Sample:
+def create_sample(db: DBHandler, user: models.User, project: models.Project, seq_request: models.SeqRequest) -> models.Sample:
     _uuid = str(uuid.uuid1())
     return db.create_sample(
         name=_uuid,
         owner_id=user.id,
         project_id=project.id,
+        seq_request_id=seq_request.id,
     )
 
 
@@ -77,6 +78,7 @@ def create_pool(db: DBHandler, user: models.User, seq_request: models.SeqRequest
         contact_name=_uuid,
         contact_email=_uuid,
         seq_request_id=seq_request.id,
+        pool_type=PoolType.EXTERNAL,
     )
 
 
@@ -102,6 +104,7 @@ def create_experiment(db: DBHandler, user: models.User, workflow: ExperimentWork
     return db.create_experiment(
         name=_uuid[:5],
         workflow=workflow,
+        status=ExperimentStatus.DRAFT,
         sequencer_id=create_sequencer(db).id,
         r1_cycles=1,
         i1_cycles=1,
