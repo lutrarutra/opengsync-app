@@ -25,7 +25,7 @@ Web app for NGS sample/library/project tracking
 ## pgAdmin Server Setup
     - Dev dir: `db/dev_pgadmin` permissions should be 5050:5050 (`sudo chown -R 5050:5050 db/dev_pgadmin`)
     - Prod dir: `db/pgadmin` permsissions should be 5050:5050 (`sudo chown -R 5050:5050 db/pgadmin`)
-    - host: `postgres` & port: `5432` or
+    - host: `postgres` & port: `5432` (prod) `5433` (dev) or
     - Find the IP address of the container:
         1. `docker ps`
         2. `docker inspect limbless-postgres-db | grep IPAddress`

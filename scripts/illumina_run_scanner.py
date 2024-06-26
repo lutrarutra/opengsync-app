@@ -28,7 +28,7 @@ class Requestor():
     def post_seq_run(
         self, experiment_name: str, status: categories.RunStatusEnum,
         run_name: str, flowcell_id: str, read_type: categories.ReadTypeEnum,
-        rta_version: str, recipe_version: str, side: str,
+        instrument_name: str, rta_version: str, recipe_version: str, side: str,
         flowcell_mode: str, r1_cycles: int, r2_cycles: int, i1_cycles: int, i2_cycles: int,
         cluster_count_m: float, cluster_count_m_pf: float, error_rate: float,
         first_cycle_intensity: float, percent_aligned: float, percent_q30: float,
@@ -61,7 +61,8 @@ class Requestor():
                 "projected_yield": projected_yield,
                 "reads_m": reads_m,
                 "reads_m_pf": reads_m_pf,
-                "yield_g": yield_g
+                "yield_g": yield_g,
+                "instrument_name": instrument_name
             }
         )
         return response
@@ -71,56 +72,25 @@ class Requestor():
         return response
 
 
-def parse_run_parameters_xml(run_info_path: str) -> dict:
-    tree = ET.parse(run_info_path)
+def parse_run_parameters(run_folder: str) -> dict:
+    run_parameters_path = os.path.join(run_folder, "RunParameters.xml")
+
+    tree = ET.parse(os.path.join(run_folder, run_parameters_path))
     root = tree.getroot()
 
     if (experiment_name_el := root.find("ExperimentName")) is not None:
         experiment_name = experiment_name_el.text
     else:
         raise ValueError("ExperimentName not found")
-
-    if (rtype_el := root.find("ReadType")) is not None:
-        if rtype_el.text == "PairedEnd":
-            read_type = categories.ReadType.PAIRED_END
-        elif rtype_el.text == "SingleEnd":
-            read_type = categories.ReadType.SINGLE_END
-        else:
-            raise ValueError(f"Unknown read type: {rtype_el.text}")
-    else:
-        raise ValueError("ReadType not found")
-
+    
     if (side_el := root.find("Side")) is not None:
         side = side_el.text
     else:
-        raise ValueError("Side not found")
-
-    if (r1_cycles_el := root.find("Read1NumberOfCycles")) is not None:
-        r1_cycles = int(r1_cycles_el.text)
-    else:
-        raise ValueError("Read1NumberOfCycles not found")
-
-    if (r2_cycles_el := root.find("Read2NumberOfCycles")) is not None:
-        r2_cycles = int(r2_cycles_el.text)
-    else:
-        raise ValueError("Read2NumberOfCycles not found")
-
-    if (i1_cycles_el := root.find("IndexRead1NumberOfCycles")) is not None:
-        i1_cycles = int(i1_cycles_el.text)
-    else:
-        raise ValueError("IndexRead1NumberOfCycles not found")
-
-    if (i2_cycles_el := root.find("IndexRead2NumberOfCycles")) is not None:
-        i2_cycles = int(i2_cycles_el.text)
-    else:
-        raise ValueError("IndexRead2NumberOfCycles not found")
-
-    if (flowcell_id_el := root.find("RfidsInfo").find("FlowCellSerialBarcode")) is not None:
-        flowcell_id = flowcell_id_el.text
-    else:
-        raise ValueError("FlowCellSerialBarcode not found")
-
+        side = ""
+    
     if (rta_version_el := root.find("RtaVersion")) is not None:
+        rta_version = rta_version_el.text.removeprefix("v")
+    elif (rta_version_el := root.find("RTAVersion")) is not None:
         rta_version = rta_version_el.text.removeprefix("v")
     else:
         raise ValueError("RTAVersion not found")
@@ -128,19 +98,87 @@ def parse_run_parameters_xml(run_info_path: str) -> dict:
     if (recipe_version_el := root.find("RecipeVersion")) is not None:
         recipe_version = recipe_version_el.text.removeprefix("v")
     else:
-        raise ValueError("RecipeVersion not found")
+        recipe_version = ""
 
-    if (flowcell_mode_el := root.find("RfidsInfo").find("FlowCellMode")) is not None:
-        flowcell_mode = flowcell_mode_el.text
+    if (flowcell_mode_el := root.find("RfidsInfo")) is not None:
+        flowcell_mode = flowcell_mode_el.find("FlowCellMode").text
     else:
-        raise ValueError("FlowCellMode not found")
+        flowcell_mode = ""
+
+    run_info = interop.py_interop_run.info()     # type: ignore
+    run_info.read(run_folder)
     
+    flowcell_id = run_info.flowcell().barcode()
+    instrument_name = run_info.instrument_name()
+    
+    if run_info.is_paired_end():
+        read_type = categories.ReadType.PAIRED_END
+    else:
+        read_type = categories.ReadType.SINGLE_END
+
+    r1_cycles, i1_cycles, i2_cycles, r2_cycles = None, None, None, None
+    _reads = run_info.reads()
+    for i in range(0, len(_reads)):
+        read = _reads[i]
+        read_number = read.number()
+        if read_number == 1:
+            if read.is_index():
+                raise Exception("r1 is index-read")
+            r1_cycles = read.total_cycles()
+        elif read_number == 2:
+            if not read.is_index():
+                raise Exception("i1 is not index-read")
+            i1_cycles = read.total_cycles()
+        elif read_number == 3:
+            if not read.is_index():
+                raise Exception("i2 is not index-read")
+            if read_type != categories.ReadType.PAIRED_END:
+                raise Exception("i2 present but read type is not paired-end")
+            i2_cycles = read.total_cycles()
+        elif read_number == 4:
+            if read.is_index():
+                raise Exception("r2 is index-read")
+            if read_type != categories.ReadType.PAIRED_END:
+                raise Exception("r2 present but read type is not paired-end")
+            r2_cycles = read.total_cycles()
+
+    try:
+        metrics = interop.read(run_folder)
+        metrics_df = pd.DataFrame(interop.summary(metrics))
+        cluster_count_m = metrics_df["Cluster Count"].values[0] / 1_000_000
+        cluster_count_m_pf = metrics_df["Cluster Count Pf"].values[0] / 1_000_000
+        error_rate = metrics_df["Error Rate"].values[0] if "Error Rate" in metrics_df.columns else None
+        first_cycle_intensity = metrics_df["First Cycle Intensity"].values[0]
+        percent_aligned = metrics_df["% Aligned"].values[0]
+        percent_q30 = metrics_df["% >= Q30"].values[0]
+        percent_occupied = metrics_df["% Occupied"].values[0]
+        projected_yield = metrics_df["Projected Yield G"].values[0]
+        reads_m = metrics_df["Reads"].values[0] / 1_000_000
+        reads_m_pf = metrics_df["Reads Pf"].values[0] / 1_000_000
+        yield_g = metrics_df["Yield G"].values[0]
+    except Exception:
+        print("Could not parse metrics...")
+        cluster_count_m = None
+        cluster_count_m_pf = None
+        error_rate = None
+        first_cycle_intensity = None
+        percent_aligned = None
+        percent_q30 = None
+        percent_occupied = None
+        projected_yield = None
+        reads_m = None
+        reads_m_pf = None
+        yield_g = None
+
     return dict(
         experiment_name=experiment_name,
         read_type=read_type, side=side, r1_cycles=r1_cycles,
         r2_cycles=r2_cycles, i1_cycles=i1_cycles, i2_cycles=i2_cycles,
         flowcell_id=flowcell_id, rta_version=rta_version, recipe_version=recipe_version,
-        flowcell_mode=flowcell_mode
+        flowcell_mode=flowcell_mode, cluster_count_m=cluster_count_m, cluster_count_m_pf=cluster_count_m_pf,
+        error_rate=error_rate, first_cycle_intensity=first_cycle_intensity, percent_aligned=percent_aligned,
+        percent_q30=percent_q30, percent_occupied=percent_occupied, projected_yield=projected_yield,
+        reads_m=reads_m, reads_m_pf=reads_m_pf, yield_g=yield_g, instrument_name=instrument_name
     )
 
 
@@ -179,6 +217,7 @@ def process_run_folder(illumina_run_folder: str, requestor: Requestor) -> None:
     for run_parameters_path in runs:
         run_folder = os.path.dirname(run_parameters_path)
         run_name = os.path.basename(run_folder)
+        print(f"Processing: {run_name}")
         
         if os.path.exists(os.path.join(run_folder, "RTAComplete.txt")):
             status = categories.RunStatus.FINISHED
@@ -193,27 +232,12 @@ def process_run_folder(illumina_run_folder: str, requestor: Requestor) -> None:
             continue
         
         try:
-            parsed_data = parse_run_parameters_xml(run_parameters_path)
+            parsed_data = parse_run_parameters(run_folder)
         except Exception as e:
             print(f"{run_name} - ERROR: {e}")
             continue
         
         experiment_name = parsed_data["experiment_name"]
-
-        metrics = interop.read(run_folder)
-        metrics_df = pd.DataFrame(interop.summary(metrics))
-
-        parsed_data["cluster_count_m"] = metrics_df["Cluster Count"].values[0] / 1_000_000
-        parsed_data["cluster_count_m_pf"] = metrics_df["Cluster Count Pf"].values[0] / 1_000_000
-        parsed_data["error_rate"] = metrics_df["Error Rate"].values[0]
-        parsed_data["first_cycle_intensity"] = metrics_df["First Cycle Intensity"].values[0]
-        parsed_data["percent_aligned"] = metrics_df["% Aligned"].values[0]
-        parsed_data["percent_q30"] = metrics_df["% >= Q30"].values[0]
-        parsed_data["percent_occupied"] = metrics_df["% Occupied"].values[0]
-        parsed_data["projected_yield"] = metrics_df["Projected Yield G"].values[0]
-        parsed_data["reads_m"] = metrics_df["Reads"].values[0] / 1_000_000
-        parsed_data["reads_m_pf"] = metrics_df["Reads Pf"].values[0] / 1_000_000
-        parsed_data["yield_g"] = metrics_df["Yield G"].values[0]
 
         if status_change:
             response = requestor.update_run_status(experiment_name=experiment_name, status=status)
