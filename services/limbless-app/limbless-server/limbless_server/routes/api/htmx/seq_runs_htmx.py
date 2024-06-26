@@ -39,6 +39,6 @@ def get(page: int):
     seq_runs, n_pages = db.get_seq_runs(offset=offset, sort_by=sort_by, descending=descending, status_in=status_in)
     
     return make_response(render_template(
-        "components/tables/seq_run.html", seq_runs=seq_runs, n_pages=n_pages, page=page, sort_by=sort_by, sort_order=sort_order,
-        status_in=status_in
+        "components/tables/seq_run.html", seq_runs=seq_runs, n_pages=n_pages,
+        active_page=page, sort_by=sort_by, sort_order=sort_order, status_in=status_in, 
     ))

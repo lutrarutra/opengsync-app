@@ -3,10 +3,10 @@ from typing import Any, Optional
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import StringField, SelectField, IntegerField, FloatField
-from wtforms.validators import DataRequired, Length
+from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import RunStatus, ReadType, RunStatusEnum
+from limbless_db.categories import RunStatus, ReadType
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -18,18 +18,19 @@ class SeqRunForm(HTMXFlaskForm):
     experiment_name = StringField("Experiment Name", validators=[DataRequired(), Length(min=3, max=models.SeqRun.experiment_name.type.length)])
     status = SelectField("Status", choices=RunStatus.as_selectable(), validators=[DataRequired()], coerce=int)
 
+    instrument_name = StringField("Instrument Name", validators=[DataRequired(), Length(min=1, max=models.SeqRun.instrument_name.type.length)])
     run_folder = StringField("Run Folder", validators=[DataRequired(), Length(min=1, max=models.SeqRun.run_folder.type.length)])
     flowcell_id = StringField("Flowcell ID", validators=[DataRequired(), Length(min=1, max=models.SeqRun.flowcell_id.type.length)])
     read_type = SelectField("Read Type", choices=ReadType.as_selectable(), validators=[DataRequired()], coerce=int)
     rta_version = StringField("RTA Version", validators=[DataRequired(), Length(min=1, max=models.SeqRun.rta_version.type.length)])
-    recipe_version = StringField("Recipe Version", validators=[DataRequired(), Length(min=1, max=models.SeqRun.recipe_version.type.length)])
-    side = StringField("Side", validators=[DataRequired(), Length(min=1, max=models.SeqRun.side.type.length)])
-    flowcell_mode = StringField("Flowcell Mode", validators=[DataRequired(), Length(min=1, max=models.SeqRun.flowcell_mode.type.length)])
+    recipe_version = StringField("Recipe Version", validators=[OptionalValidator(), Length(min=1, max=models.SeqRun.recipe_version.type.length)])
+    side = StringField("Side", validators=[OptionalValidator(), Length(min=1, max=models.SeqRun.side.type.length)])
+    flowcell_mode = StringField("Flowcell Mode", validators=[OptionalValidator(), Length(min=1, max=models.SeqRun.flowcell_mode.type.length)])
 
-    r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
-    r2_cycles = IntegerField("R2 Cycles", validators=[DataRequired()])
-    i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
-    i2_cycles = IntegerField("I2 Cycles", validators=[DataRequired()])
+    r1_cycles = IntegerField("R1 Cycles", validators=[OptionalValidator()])
+    r2_cycles = IntegerField("R2 Cycles", validators=[OptionalValidator()])
+    i1_cycles = IntegerField("I1 Cycles", validators=[OptionalValidator()])
+    i2_cycles = IntegerField("I2 Cycles", validators=[OptionalValidator()])
 
     cluster_count_m = FloatField("Cluster Count M")
     cluster_count_m_pf = FloatField("Cluster Count M PF")
@@ -84,16 +85,17 @@ class SeqRunForm(HTMXFlaskForm):
             experiment_name=self.experiment_name.data,  # type: ignore
             status=RunStatus.get(int(self.status.data)),
             run_folder=self.run_folder.data,  # type: ignore
+            instrument_name=self.instrument_name.data,  # type: ignore
             flowcell_id=self.flowcell_id.data,  # type: ignore
             read_type=ReadType.get(int(self.read_type.data)),
             rta_version=self.rta_version.data,  # type: ignore
             recipe_version=self.recipe_version.data,  # type: ignore
             side=self.side.data,  # type: ignore
             flowcell_mode=self.flowcell_mode.data,  # type: ignore
-            r1_cycles=self.r1_cycles.data,  # type: ignore
-            r2_cycles=self.r2_cycles.data,  # type: ignore
-            i1_cycles=self.i1_cycles.data,  # type: ignore
-            i2_cycles=self.i2_cycles.data,  # type: ignore
+            r1_cycles=self.r1_cycles.data,
+            r2_cycles=self.r2_cycles.data,
+            i1_cycles=self.i1_cycles.data,
+            i2_cycles=self.i2_cycles.data,
             cluster_count_m=self.cluster_count_m.data,
             cluster_count_m_pf=self.cluster_count_m_pf.data,
             error_rate=self.error_rate.data,
@@ -121,12 +123,13 @@ class SeqRunForm(HTMXFlaskForm):
         seq_run.read_type_id = int(self.read_type.data)  # type: ignore
         seq_run.rta_version = self.rta_version.data  # type: ignore
         seq_run.recipe_version = self.recipe_version.data  # type: ignore
+        seq_run.instrument_name = self.instrument_name.data  # type: ignore
         seq_run.side = self.side.data  # type: ignore
         seq_run.flowcell_mode = self.flowcell_mode.data  # type: ignore
-        seq_run.r1_cycles = self.r1_cycles.data  # type: ignore
-        seq_run.r2_cycles = self.r2_cycles.data  # type: ignore
-        seq_run.i1_cycles = self.i1_cycles.data  # type: ignore
-        seq_run.i2_cycles = self.i2_cycles.data  # type: ignore
+        seq_run.r1_cycles = self.r1_cycles.data
+        seq_run.r2_cycles = self.r2_cycles.data
+        seq_run.i1_cycles = self.i1_cycles.data
+        seq_run.i2_cycles = self.i2_cycles.data
         seq_run.cluster_count_m = self.cluster_count_m.data
         seq_run.cluster_count_m_pf = self.cluster_count_m_pf.data
         seq_run.error_rate = self.error_rate.data

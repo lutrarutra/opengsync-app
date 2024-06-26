@@ -379,9 +379,16 @@
         {% if experiment.seq_run %}
         <div class="tab-pane fade" id="experiment-seq_run-tab" role="tabpanel" tabindex="7">
             <div class="row">
-                {{ metadata_group("Run Folder", experiment.seq_run.run_folder, class="col") }}
-                {{ metadata_group("Flowcell ID", experiment.seq_run.flowcell_id, class="col") }}
-                {{ metadata_group("Read Type", experiment.seq_run.read_type.name, class="col") }}
+                {{
+                    metadata_group_link(
+                        "Run", experiment.seq_run.id,
+                        url_for("seq_runs_page.seq_run_page", seq_run_id=experiment.seq_run.id, from="experiment@" + experiment.id | string),
+                        class="col-3"
+                    )
+                }}
+                {{ metadata_group("Run Folder", experiment.seq_run.run_folder, class="col-3") }}
+                {{ metadata_group("Flowcell ID", experiment.seq_run.flowcell_id, class="col-3") }}
+                {{ metadata_group("Read Type", experiment.seq_run.read_type.name, class="col-3") }}
             </div>
             <div class="row">
                 {{ metadata_group("RTA Version", experiment.seq_run.rta_version, class="col") }}
@@ -414,6 +421,7 @@
         </div>
     </div>
 </div>
+
 <script>
     init_tooltips();
 

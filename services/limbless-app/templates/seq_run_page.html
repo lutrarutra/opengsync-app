@@ -1,0 +1,85 @@
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link %}
+
+{% extends "base.html" %}
+{% set active_page = "seq_run-page" %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <div>
+            <h1>{{ seq_run.experiment_name }} <span class="desc">{{ seq_run.status.name }} {{ seq_run.status.icon }}</span></h1>
+        </div>
+        <div>
+        </div>
+    </div>
+    <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="metadata-tab-btn" data-bs-toggle="tab" data-bs-target="#metadata-tab"
+                type="button" role="tab" aria-controls="metadata-tab" aria-selected="true">
+                Metadata
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="stats-tab-btn" data-bs-toggle="tab" data-bs-target="#stats-tab"
+                type="button" role="tab" aria-controls="stats-tab" aria-selected="true">
+                Stats
+            </button>
+        </li>
+    </ul>
+</div>
+
+<div class="container">
+    <div class="page-content tab-content pt-1">
+        <div class="tab-pane fade show active" id="metadata-tab" role="tabpanel" tabindex="0">
+            <div class="row">
+                {% if experiment %}
+                {{
+                    metadata_group_link(
+                        "Experiment", seq_run.experiment_name,
+                        url_for("experiments_page.experiment_page", experiment_id=experiment.id, from="seq_run@" + seq_run.id | string),
+                        class="col-3"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Experiment", seq_run.experiment_name, class="col-3") }}
+                {% endif %}
+                {{ metadata_group("Run Folder", seq_run.run_folder, class="col-3") }}
+                {{ metadata_group("Instrument", seq_run.instrument_name, class="col-3") }}
+                {{ metadata_group("Flow Cell ID", seq_run.flowcell_id, class="col-3") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("Read Type", seq_run.read_type.name + " " + seq_run.read_type.icon, class="col-3") }}
+                {{ metadata_group("RTA Version", seq_run.rta_version, class="col-3") }}
+                {{ metadata_group("Recipe Version", seq_run.recipe_version, class="col-3") }}
+                {{ metadata_group("Flow Cell Mode", seq_run.flowcell_mode, class="col-2") }}
+                {{ metadata_group("Side", seq_run.side, class="col-1") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("R1 Cycles", seq_run.r1_cycles, class="col-3") }}
+                {{ metadata_group("I1 Cycles", seq_run.i1_cycles, class="col-3") }}
+                {{ metadata_group("I2 Cycles", seq_run.i2_cycles, class="col-3") }}
+                {{ metadata_group("R2 Cycles", seq_run.r2_cycles, class="col-3") }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="stats-tab" role="tabpanel" tabindex="1">
+            <div class="row">
+                {{ metadata_group("Cluster Count", "%0.1f" % seq_run.cluster_count_m if seq_run.cluster_count_m, class="col-3", unit="M") }}
+                {{ metadata_group("Cluster Count pf", "%0.1f" % seq_run.cluster_count_m_pf if seq_run.cluster_count_m_pf, class="col-3", unit="M") }}
+                {{ metadata_group("Error Rate", "%0.3f" % seq_run.error_rate if seq_run.error_rate, class="col-3", unit="%") }}
+                {{ metadata_group("1st Cycle Intensity", "%0.3f" % seq_run.first_cycle_intensity if seq_run.first_cycle_intensity, class="col-3", unit="%") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("Aligned", "%0.3f" % seq_run.percent_aligned if seq_run.percent_aligned, class="col-3", unit="%") }}
+                {{ metadata_group("Q30", "%0.3f" % seq_run.percent_q30 if seq_run.percent_q30, class="col-3", unit="%") }}
+                {{ metadata_group("Occupied", "%0.2f" % seq_run.percent_occupied if seq_run.percent_occupied, class="col-3", unit="%") }}
+                {{ metadata_group("Projected Yield", "%0.3f" % seq_run.projected_yield if seq_run.projected_yield, class="col-3") }}
+            </div>
+            <div class="row">
+                {{ metadata_group("Reads", seq_run.reads_m if seq_run.reads_m, class="col-4", unit="M") }}
+                {{ metadata_group("Reads PF", seq_run.reads_m_pf if seq_run.reads_m_pf, class="col-4", unit="M") }}
+                {{ metadata_group("Yield", "%0.1f" % seq_run.yield_g if seq_run.yield_g, class="col-4", unit="G") }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

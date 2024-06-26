@@ -7,10 +7,10 @@ from ...categories import ReadTypeEnum, RunStatusEnum
 
 
 def create_seq_run(
-    self, experiment_name: str, status: RunStatusEnum,
+    self, experiment_name: str, status: RunStatusEnum, instrument_name: str,
     run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
-    rta_version: str, recipe_version: str, side: str, flowcell_mode: str,
-    r1_cycles: int, i1_cycles: int, r2_cycles: int, i2_cycles: int,
+    rta_version: str, recipe_version: Optional[str], side: Optional[str], flowcell_mode: Optional[str],
+    r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
     cluster_count_m: Optional[float] = None, cluster_count_m_pf: Optional[float] = None,
     error_rate: Optional[float] = None, first_cycle_intensity: Optional[float] = None,
     percent_aligned: Optional[float] = None, percent_q30: Optional[float] = None,
@@ -25,12 +25,13 @@ def create_seq_run(
     seq_run = SeqRun(
         experiment_name=experiment_name.strip(),
         status_id=status.id,
+        instrument_name=instrument_name.strip(),
         run_folder=run_folder.strip(),
         flowcell_id=flowcell_id.strip(),
         read_type_id=read_type.id,
         rta_version=rta_version.strip(),
-        recipe_version=recipe_version.strip(),
-        side=side.strip(),
+        recipe_version=recipe_version.strip() if recipe_version else None,
+        side=side.strip() if side else None,
         flowcell_mode=flowcell_mode.strip(),
         r1_cycles=r1_cycles,
         r2_cycles=r2_cycles,

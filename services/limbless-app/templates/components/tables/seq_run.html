@@ -34,7 +34,7 @@
         </thead>
         <tbody>
             {% for seq_run in seq_runs %}
-            <tr>
+            <tr onclick="redirect('{{ url_for('seq_runs_page.seq_run_page', seq_run_id=seq_run.id) }}');">
                 <th scope="row">{{ seq_run.id }}</th>
                 <td>{{ seq_run.experiment_name }}</td>
                 <td>{{ seq_run.status.name }} {{ seq_run.status.icon }}</td>
@@ -46,7 +46,7 @@
         </tbody>
     </table>
     {{ spinner("seq_run-table-spinner") }}
-    {{ pagination("seq_run-table", "seq_run_htmx.get", n_pages, active_page) }}
+    {{ pagination("seq_run-table", "seq_runs_htmx.get", n_pages, active_page) }}
 </div>
 <script>
     init_tooltips();

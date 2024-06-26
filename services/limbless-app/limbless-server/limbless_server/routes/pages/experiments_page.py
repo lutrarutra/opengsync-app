@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, render_template, url_for, abort
+from flask import Blueprint, render_template, url_for, abort, request
 from flask_login import login_required
 
 from limbless_db import models, DBSession
@@ -84,6 +84,14 @@ def experiment_page(experiment_id: int):
             ("Experiments", url_for("experiments_page.experiments_page")),
             (f"Experiment {experiment_id}", ""),
         ]
+        if (_from := request.args.get("from", None)) is not None:
+            page, id = _from.split("@")
+            if page == "seq_run":
+                path_list = [
+                    ("Runs", url_for("seq_runs_page.seq_runs_page")),
+                    (f"Run {id}", url_for("seq_runs_page.seq_run_page", seq_run_id=id)),
+                    (f"Experiment {experiment_id}", ""),
+                ]
 
         laning_completed = False
         for file in experiment.files:
