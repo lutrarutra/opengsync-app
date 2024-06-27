@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
     nginx:
         container_name: nginx-proxy
@@ -7,7 +5,7 @@ services:
         ports:
             - 80:80
         volumes:
-            - ./services/limbless-app/static:/usr/src/app/static:ro
+            - ./services/limbless-app/static:/usr/src/app/static:ro     # remove :ro when running for the first time
             - compiled_css:/usr/src/app/static/style/compiled:ro
             - ./media:/usr/src/app/media:ro
             - ./uploads:/usr/src/app/uploads:ro
@@ -30,8 +28,8 @@ services:
             - ./logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
-            - ./cert:/usr/src/app/cert:ro
-        env_file: .prod.env
+            - ./cert:/usr/src/app/cert
+        env_file: .env
         expose:
             - ${LIMBLESS_PORT}
         depends_on:
