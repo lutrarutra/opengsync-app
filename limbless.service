@@ -1,0 +1,12 @@
+[Unit]
+Description=Containerized web app for NGS sample tracking
+After=docker.service
+
+[Service]
+Restart=always
+WorkingDirectory=/home/agynter/limbless-app-prod
+ExecStart=/usr/bin/docker compose --env-file=.env -f compose.yaml -p limbless-prod up --build
+ExecStop=/usr/bin/docker compose -f compose.yaml -p limbless-prod down
+
+[Install]
+WantedBy=multi-user.target

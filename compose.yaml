@@ -1,4 +1,19 @@
 services:
+    ofelia:
+        container_name: ofelia
+        image: mcuadros/ofelia:latest
+        depends_on:
+            - limbless-app
+        command: daemon --docker
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./uploads:/usr/src/uploads
+        labels:
+            ofelia.job-local.uploads-cleanup.schedule: "0 1 * * *"  # every night at 1am
+            ofelia.job-local.uploads-cleanup.command: "find /usr/src/uploads -type f -mtime +1 -delete"
+            # ofelia.job-local.uploads-cleanup.schedule: "@every 10s"
+            # ofelia.job-local.uploads-cleanup.command: "find /usr/src/uploads -type f -mmin +1 -delete"
+
     nginx:
         container_name: nginx-proxy
         build: ./services/nginx
