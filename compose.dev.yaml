@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
     limbless-app:
         container_name: limbless-app-dev
@@ -20,7 +18,7 @@ services:
             - compiled_css:/usr/src/app/static/style/compiled:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
             - ./cert:/usr/src/app/cert
-        env_file: .dev.env
+        env_file: .env
         ports:
             - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
         expose:
