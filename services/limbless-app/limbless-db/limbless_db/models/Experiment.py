@@ -97,6 +97,9 @@ class Experiment(Base):
     def __str__(self) -> str:
         return f"Experiment(id={self.id}, num_lanes={self.num_lanes})"
     
+    def __repr__(self) -> str:
+        return str(self)
+    
     def search_name(self) -> str:
         return self.name
     

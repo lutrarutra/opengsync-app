@@ -16,7 +16,7 @@ from ..TableDataForm import TableDataForm
 
 
 class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/store_samples/store-2.html"
+    _template_path = "workflows/store_samples/store-1.html"
     _form_label = "store_samples_form"
 
     plate_order = StringField()
@@ -164,4 +164,4 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
         if self.seq_request is not None:
             return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))
         
-        return make_response(redirect=url_for("index"))
+        return make_response(redirect=url_for("index_page"))

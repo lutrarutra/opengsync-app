@@ -61,6 +61,9 @@ class Sample(Base):
 
     def __str__(self):
         return f"Sample(id: {self.id}, name:{self.name})"
+    
+    def __repr__(self):
+        return self.__str__()
 
     def search_value(self) -> int:
         return self.id

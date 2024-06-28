@@ -15,7 +15,7 @@ class Project(Base):
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    description: Mapped[Optional[str]] = mapped_column(sa.String(64), default=None, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(sa.String(1024), default=None, nullable=True)
 
     num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
 

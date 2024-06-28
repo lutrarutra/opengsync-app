@@ -7,10 +7,31 @@ from flask import url_for
 from wtforms import StringField
 
 from limbless_db import models, DBSession
-from limbless_db.categories import SampleStatusEnum, LibraryStatusEnum, PoolStatusEnum
+from limbless_db.categories import SampleStatusEnum, LibraryStatusEnum, PoolStatusEnum, SampleStatus, LibraryStatus, PoolStatus
 
 from .. import db, logger
 from .HTMXFlaskForm import HTMXFlaskForm
+
+
+workflow_settings = {
+    "store_samples": dict(
+        sample_status_filter=[SampleStatus.ACCEPTED],
+        library_status_filter=[LibraryStatus.ACCEPTED],
+        pool_status_filter=[PoolStatus.ACCEPTED],
+        select_all_samples=True,
+        select_all_libraries=True,
+        select_samples=True,
+        select_libraries=True,
+        select_pools=True,
+        select_lanes=False
+    ),
+    "select_experiment_pools": dict(
+        pool_status_filter=[PoolStatus.STORED],
+        select_lanes=False,
+        select_libraries=False,
+        select_samples=False,
+    ),
+}
 
 
 class SelectSamplesForm(HTMXFlaskForm):
@@ -24,6 +45,24 @@ class SelectSamplesForm(HTMXFlaskForm):
 
     error_dummy = StringField()
 
+    @staticmethod
+    def create_workflow_form(
+        workflow: str, formdata: dict = {}, context: dict = {},
+        selected_samples: list[models.Sample] = [],
+        selected_libraries: list[models.Library] = [],
+        selected_pools: list[models.Pool] = [],
+        selected_lanes: list[models.Lane] = [],
+
+    ) -> "SelectSamplesForm":
+        return SelectSamplesForm(
+            workflow=workflow, formdata=formdata, context=context,
+            selected_samples=selected_samples,
+            selected_libraries=selected_libraries,
+            selected_pools=selected_pools,
+            selected_lanes=selected_lanes,
+            **workflow_settings[workflow]
+        )
+
     def __init__(
         self, workflow: str, formdata: dict = {}, context: dict = {},
         select_samples: bool = True, select_libraries: bool = True, select_pools: bool = True,
@@ -34,7 +73,9 @@ class SelectSamplesForm(HTMXFlaskForm):
         selected_samples: list[models.Sample] = [],
         selected_libraries: list[models.Library] = [],
         selected_pools: list[models.Pool] = [],
-        selected_lanes: list[models.Lane] = []
+        selected_lanes: list[models.Lane] = [],
+        select_all_samples: bool = False,
+        select_all_libraries: bool = False,
     ):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.select_samples = select_samples
@@ -42,20 +83,23 @@ class SelectSamplesForm(HTMXFlaskForm):
         self.select_pools = select_pools
         self.workflow = workflow
 
-        self.selected_samples = [sample.id for sample in selected_samples]
-        self.selected_libraries = [library.id for library in selected_libraries]
-        self.selected_pools = [pool.id for pool in selected_pools]
-        self.selected_lanes = [lane.id for lane in selected_lanes]
-
         self._context["select_samples"] = select_samples
         self._context["select_libraries"] = select_libraries
         self._context["select_pools"] = select_pools
         self._context["select_lanes"] = select_lanes
 
+        self._context["selected_samples_ids"] = [sample.id for sample in selected_samples]
+        self._context["selected_libraries_ids"] = [library.id for library in selected_libraries]
+        self._context["selected_pools_ids"] = [pool.id for pool in selected_pools]
+        self._context["selected_lanes_ids"] = [lane.id for lane in selected_lanes]
+
         self._context["selected_samples"] = selected_samples
         self._context["selected_libraries"] = selected_libraries
         self._context["selected_pools"] = selected_pools
         self._context["selected_lanes"] = selected_lanes
+
+        self._context["select_all_samples"] = select_all_samples
+        self._context["select_all_libraries"] = select_all_libraries
 
         self._context["workflow"] = workflow
         self._context = {**self._context, **context}
@@ -63,10 +107,13 @@ class SelectSamplesForm(HTMXFlaskForm):
         url_context = {"workflow": workflow}
         if "seq_request" in context.keys():
             url_context["seq_request_id"] = context["seq_request"].id
+            self._context["context"] = f"{context['seq_request'].name} ({context['seq_request'].id})"
         if "experiment" in context.keys():
             url_context["experiment_id"] = context["experiment"].id
+            self._context["context"] = f"{context['experiment'].name} ({context['experiment'].id})"
         if "pool" in context.keys():
             url_context["pool_id"] = context["pool"].id
+            self._context["context"] = f"{context['pool'].name} ({context['pool'].id})"
 
         self._context["post_url"] = url_for(f'{workflow}_workflow.select')  # type: ignore
         self._context["url_context"] = url_context
