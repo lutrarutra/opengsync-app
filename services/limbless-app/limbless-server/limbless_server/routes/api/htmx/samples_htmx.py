@@ -5,7 +5,6 @@ from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-
 from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler, db_session
 from limbless_db.categories import HTTPResponse, UserRole, SampleStatus
 from .... import db, logger, forms
@@ -333,3 +332,39 @@ def browse_query(workflow: str):
             workflow=workflow, context=context
         )
     )
+
+
+@samples_htmx.route("<string:workflow>/select_all", methods=["GET"])
+@login_required
+def select_all(workflow: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    context = {}
+    if (seq_request_id := request.form.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["seq_request"] = seq_request
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        seq_request = None
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [SampleStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    samples, _ = db.get_samples(
+        seq_request_id=seq_request_id, status_in=status_in, limit=None
+    )
+
+    form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_samples=samples)
+    return form.make_response(samples=samples)

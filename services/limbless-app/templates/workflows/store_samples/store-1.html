@@ -19,13 +19,13 @@
             <div class="body">
                 <div class="standy-list">
                     {% for _, row in sample_table.iterrows() %}
-                    <div class="selectable-element" name="row['name']}}" id="s-{{row['id']}}">{{ row['name'] }}</div>
+                    <div class="selectable-element" name="{{ row['name'] }}" id="s-{{ '%07d' % row['id'] }}">{{ row['name'] }}</div>
                     {% endfor %}
                     {% for _, row in library_table.iterrows() %}
-                    <div class="selectable-element" name="row['name']}}" id="l-{{row['id']}}">{{ row['name'] }}</div>
+                    <div class="selectable-element" name="{{ row['name'] }}" id="l-{{ '%07d' % row['id'] }}">{{ row['name'] }}</div>
                     {% endfor %}
                     {% for _, row in pool_table.iterrows() %}
-                    <div class="selectable-element" name="row['name']}}" id="p-{{row['id']}}">{{ row['name'] }}</div>
+                    <div class="selectable-element" name="{{ row['name'] }}" id="p-{{ '%07d' % row['id'] }}">{{ row['name'] }}</div>
                     {% endfor %}
                 </div>
                 <div id="plate-container" class="plate-container">

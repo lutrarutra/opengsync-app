@@ -1,5 +1,3 @@
-import numpy as np
-
 from flask import Response, url_for
 from flask_htmx import make_response
 

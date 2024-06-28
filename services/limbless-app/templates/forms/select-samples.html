@@ -86,6 +86,11 @@
 
                 {% if select_samples %}
                 <div class="tab-pane fade show active" id="available-samples-tab" role="tabpanel" tabindex="0">
+                    {% if select_all_samples %}
+                    <button type="button" class="btn btn-primary" id="select-all-samples-btn">
+                        Select All Samples
+                    </button>
+                    {% endif %}
                     <div hx-trigger="intersect once" hx-get="{{ url_for('samples_htmx.browse', **sample_url_context) }}">
                         {{ spinner() }}
                     </div>
@@ -94,6 +99,11 @@
 
                 {% if select_libraries %}
                 <div class="tab-pane fade {% if not select_samples %}show active{% endif %}" id="available-libraries-tab" role="tabpanel" tabindex="1">
+                    {% if select_all_libraries %}
+                    <button type="button" class="btn btn-primary" id="select-all-libraries-btn">
+                        Select All Libraries
+                    </button>
+                    {% endif %}
                     <div hx-get="{{ url_for('libraries_htmx.browse', **library_url_context) }}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
@@ -133,6 +143,29 @@
                             </tr>
                         </thead>
                         <tbody id="selected-samples-table-container">
+                            {% for sample in selected_samples %}
+                            <tr onclick="toggle_sample({{sample.id}});" id="selected-sample-row-{{ sample.id }}" class="sample-row selected">
+                                <th scope="row">{{ sample.id }}</th>
+                                <td>{{ sample.name }}</td>
+                                <td>{{ sample.status.name }} {{ sample.status.icon }}</td>
+                                <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
+                                {% if workflow == "qubit_measure" %}
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ sample.qubit_concentration if sample.original_qubit_concentration }}</div>
+                                        <div class="unit">ng/μL</div>
+                                    </div>
+                                </td>
+                                {% elif workflow == "ba_report" %}
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ sample.avg_fragment_size if sample.avg_fragment_size }}</div>
+                                        <div class="unit">bp</div>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -158,6 +191,37 @@
                             </tr>
                         </thead>
                         <tbody id="selected-libraries-table-container">
+                        {% for library in selected_libraries %}
+                            <tr onclick="toggle_library({{ library.id }});" id="selected-library-row-{{ library.id }}"
+                            class="library-row {% if library.pool_id is not none %}pooled{% endif %} selected">
+                                <th scope="row">{{ library.id }}</th>
+                                <td>{{ library.name }}</td>
+                                <td>
+                                    <span {{ tooltip(library.type.name) }}>
+                                        {{ library.type.abbreviation }}
+                                    </span>
+                                </td>
+                                <td>{{ library.status.name }} {{ library.status.icon }}</td>
+                                <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                                {% if workflow == "qubit_measure" %}
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ library.qubit_concentration_str }}</div>
+                                        <div class="unit">ng/μL</div>
+                                    </div>
+                                </td>
+                                {% elif workflow == "ba_report" %}
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ library.avg_fragment_size if library.avg_fragment_size }}</div>
+                                        <div class="unit">bp</div>
+                                    </div>
+                                </td>
+                                {% elif workflow == "library_pooling" %}
+                                <td>{{ library.pool.name }}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -212,6 +276,7 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
+            {{ context }}
         </div>
         <div class="footer-info">
         </div>
@@ -222,10 +287,12 @@
         </div>
     </div>
     <script>
-        var selected_samples = {{ selected_samples | tojson if selected_samples else [] }};
-        var selected_libraries = {{ selected_libraries | tojson if selected_libraries else [] }};
-        var selected_pools = {{ selected_pools | tojson if selected_pools else [] }};
-        var selected_lanes = {{ selected_lanes | tojson if selected_lanes else [] }};
+        var selected_samples = {{ selected_samples_ids | tojson if selected_samples_ids else [] }};
+        var selected_libraries = {{ selected_libraries_ids | tojson if selected_libraries_ids else [] }};
+        var selected_pools = {{ selected_pools_ids | tojson if selected_pools_ids else [] }};
+        var selected_lanes = {{ selected_lanes_ids | tojson if selected_lanes_ids else [] }};
+
+        console.log(selected_samples);
 
         var num_selected_samples = selected_samples.length;
         var num_selected_libraries = selected_libraries.length;
@@ -374,5 +441,27 @@
             });
 
         });
+        {% if select_all_samples %}
+        $("#select-all-samples-btn").on("click", function() {
+            var state = get_table_state("select-samples-table");
+
+            htmx.ajax("GET", "{{ url_for('samples_htmx.select_all', **url_context) }}", {
+                target: "#select_samples-form-container",
+                swap: "outerHTML",
+                values: state
+            });
+        });
+        {% endif %}
+        {% if select_all_libraries %}
+        $("#select-all-libraries-btn").on("click", function() {
+            var state = get_table_state("select-libraries-table");
+
+            htmx.ajax("GET", "{{ url_for('libraries_htmx.select_all', **url_context) }}", {
+                target: "#select_samples-form-container",
+                swap: "outerHTML",
+                values: state
+            });
+        });
+        {% endif %}
     </script>
 </div>

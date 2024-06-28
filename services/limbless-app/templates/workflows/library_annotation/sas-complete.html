@@ -18,48 +18,48 @@
                     <button class="nav-link" data-bs-toggle="tab"
                     data-bs-target="#library-tab" type="button" role="tab"
                     aria-controls="library-tab" aria-selected="false">
-                    Libraries</button>
+                    Libraries ({{ library_table.shape[0] if library_table is not none else "0" }})</button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" data-bs-toggle="tab"
                     data-bs-target="#sample-tab" type="button" role="tab"
                     aria-controls="sample-tab" aria-selected="false">
-                    Samples</button>
+                    Samples ({{ sample_table.shape[0] if sample_table is not none else "0" }})</button>
                 </li>
                 <li class="nav-item" role="presentation"
                 {% if pool_table is none %}{{ tooltip("You are submitting raw samples.", category="warning") }}{% endif %}>
                     <button class="nav-link {% if pool_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                     data-bs-target="#pool-tab" type="button" role="tab"
                     aria-controls="pool-tab" aria-selected="true">
-                    Pools</button>
+                    Pools ({{ pool_table.shape[0] if pool_table is not none else "0" }})</button>
                 </li>
                 <li class="nav-item" role="presentation"
                 {% if feature_table is none %}{{ tooltip("No antibody feature libraries detected.", category="warning") }}{% endif %}>
                     <button class="nav-link {% if feature_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                     data-bs-target="#feature-tab" type="button" role="tab"
                     aria-controls="feature-tab" aria-selected="true">
-                    Features</button>
+                    Features ({{ feature_table.shape[0] if feature_table is not none else "0" }})</button>
                 </li>
                 <li class="nav-item" role="presentation"
                 {% if cmo_table is none %}{{ tooltip("No cell multiplexing libraries detected.", category="warning") }}{% endif %}>
                     <button class="nav-link {% if cmo_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                     data-bs-target="#cmo-tab" type="button" role="tab"
                     aria-controls="cmo-tab" aria-selected="true">
-                    CMOs</button>
+                    CMOs ({{ cmo_table.shape[0] if cmo_table is not none else "0" }})</button>
                 </li>
                 <li class="nav-item" role="presentation"
                 {% if visium_table is none %}{{ tooltip("No visium libraries detected.", category="warning") }}{% endif %}>
                     <button class="nav-link {% if visium_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                     data-bs-target="#visium-tab" type="button" role="tab"
                     aria-controls="visium-tab" aria-selected="true">
-                    Visium</button>
+                    Visium ({{ visium_table.shape[0] if visium_table is not none else "0" }})</button>
                 </li>
                 <li class="nav-item" role="presentation"
                 {% if flex_table is none %}{{ tooltip("No flex libraries detected.", category="warning") }}{% endif %}>
                     <button class="nav-link {% if flex_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                     data-bs-target="#flex-tab" type="button" role="tab"
                     aria-controls="flex-tab" aria-selected="true">
-                    Flex</button>
+                    Flex ({{ flex_table.shape[0] if flex_table is not none else "0" }})</button>
                 </li>
             </ul>
             <div class="tab-content">

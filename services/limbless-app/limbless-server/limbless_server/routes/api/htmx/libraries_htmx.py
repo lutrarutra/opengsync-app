@@ -239,11 +239,8 @@ def reads_tab(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    logger.debug(len(library.read_qualities))
-    
     if not current_user.is_insider() and library.owner_id != current_user.id:
         return abort(HTTPResponse.FORBIDDEN.id)
-
     
     return make_response(render_template("components/library-reads.html", library=library))
 
@@ -384,3 +381,52 @@ def browse_query(workflow: str):
             workflow=workflow
         )
     )
+
+
+@libraries_htmx.route("<string:workflow>/select_all", methods=["GET"])
+@login_required
+def select_all(workflow: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    context = {}
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+            
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+
+    if (experiment_id := request.args.get("experiment_id")) is not None:
+        try:
+            experiment_id = int(experiment_id)
+            context["experiment_id"] = experiment_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+            context["seq_request_id"] = seq_request_id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+
+    libraries, _ = db.get_libraries(
+        seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None
+    )
+
+    form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)
+    return form.make_response(libraries=libraries)

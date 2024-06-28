@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -15,12 +14,12 @@ from ..TableDataForm import TableDataForm
 
 
 class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/plate_samples/plate-2.html"
+    _template_path = "workflows/plate_samples/plate-1.html"
     _form_label = "plate_samples_form"
 
     plate_order = StringField()
     plate_name = StringField("Plate Name", validators=[OptionalValidator(), Length(min=3, max=models.Plate.name.type.length)])
-    plate_size = SelectField("Plate Size", choices=[("12x8", "12x8"), ("24x16", "24x16")], default="12x8")
+    plate_size = SelectField("Plate Size", choices=[("12x8", "12x8")], default="12x8")
 
     def __init__(self, formdata: dict = {}, context: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)

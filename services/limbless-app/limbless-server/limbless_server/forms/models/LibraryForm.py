@@ -8,7 +8,7 @@ from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
 from limbless_db.categories import LibraryType, GenomeRef
-from ... import db, logger
+from ... import db, logger  # noqa: F401
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -20,7 +20,7 @@ class LibraryForm(HTMXFlaskForm):
     adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=models.Library.adapter.type.length)])
     library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), coerce=int)
     genome = SelectField("Reference Genome", choices=GenomeRef.as_selectable(), coerce=int)
-    index_1 = StringField("Index 1 (i7)", validators=[DataRequired(), Length(min=1, max=models.Library.index_1_sequence.type.length)])
+    index_1 = StringField("Index 1 (i7)", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_1_sequence.type.length)])
     index_2 = StringField("Index 2 (i5)", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_2_sequence.type.length)])
     index_3 = StringField("Index 3", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_3_sequence.type.length)])
     index_4 = StringField("Index 4", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_4_sequence.type.length)])

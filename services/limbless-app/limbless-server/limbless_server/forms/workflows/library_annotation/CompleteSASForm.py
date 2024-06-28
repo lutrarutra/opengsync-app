@@ -161,7 +161,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             sample_data["cmo_read"].append(cmo_read)
             sample_data["flex_barcode"].append(flex_barcode)
 
-        for (sample_name, is_cmo_sample, is_flex_sample), _df in library_table.groupby(["sample_name", "is_cmo_sample", "is_flex_sample"], dropna=False):
+        for (sample_name, is_cmo_sample, is_flex_sample), _df in library_table.groupby(["sample_name", "is_cmo_sample", "is_flex_sample"], dropna=False, sort=False):
             library_types = [LibraryType.get(library_type_id).abbreviation for library_type_id in _df["library_type_id"].unique()]
             if is_cmo_sample:
                 if cmo_table is None:

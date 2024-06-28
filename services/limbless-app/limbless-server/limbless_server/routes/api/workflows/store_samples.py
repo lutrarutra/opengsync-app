@@ -1,12 +1,11 @@
+import json
 from typing import TYPE_CHECKING
-
-import pandas as pd
 
 from flask import Blueprint, request, abort, Response
 from flask_login import login_required
 
-from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus
+from limbless_db import models
+from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import store_samples as forms
@@ -36,12 +35,7 @@ def begin() -> Response:
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-    form = SelectSamplesForm(
-        workflow="store_samples", context=context,
-        sample_status_filter=[SampleStatus.ACCEPTED],
-        library_status_filter=[LibraryStatus.ACCEPTED],
-        pool_status_filter=[PoolStatus.ACCEPTED]
-    )
+    form = SelectSamplesForm.create_workflow_form("store_samples", context=context)
     return form.make_response()
 
 
