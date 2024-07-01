@@ -349,7 +349,10 @@ def pool_library(self, library_id: int, pool_id: int):
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
         
     library.pool_id = pool_id
-    library.status_id = LibraryStatus.POOLED.id
+    if library.is_indexed():
+        library.status_id = LibraryStatus.POOLED.id
+    else:
+        library.status_id = LibraryStatus.PREPARING.id
     self._session.add(library)
 
     pool.num_libraries += 1

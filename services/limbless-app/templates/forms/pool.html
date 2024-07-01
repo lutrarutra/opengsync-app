@@ -10,10 +10,10 @@
         <div id="pool-form">
             {{ pool_form.csrf_token() }}
             <div class="row">
-                {{ form_group(pool_form.name, class="col") }}
-                {{ form_group(pool_form.pool_type, class="col") }}
-                {{ form_group(pool_form.num_m_reads_requested, class="col") }}
-                {{ select_input(pool_form.status, class="col") }}
+                {{ form_group(pool_form.pool_type, class="col-3") }}
+                {{ form_group(pool_form.name, class="col-3") }}
+                {{ form_group(pool_form.num_m_reads_requested, class="col-3") }}
+                {{ select_input(pool_form.status, class="col-3") }}
             </div>
             <div class="row">
                 {% if form_type == "create" and current_user.is_insider() %}
@@ -61,7 +61,7 @@
                 $("#contact_name").val("");
                 $("#contact_email").val("");
             });
-
+            {% if form_type == "create" %}
             $("#pool_type").on("change", function(){
                 const pool_type = $(this).val();
                 if (pool_identifiers[pool_type]) {
@@ -70,6 +70,7 @@
                     $("#name").val("");
                 }
             });
+            {% endif %}
         });
     </script>
 </div>

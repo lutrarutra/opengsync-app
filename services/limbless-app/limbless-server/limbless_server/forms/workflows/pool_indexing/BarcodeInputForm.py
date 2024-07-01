@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 from flask import Response
-from wtforms import SelectField, FileField, StringField, FormField
+from wtforms import SelectField, FileField, StringField, FormField, BooleanField
 from wtforms.validators import Optional as OptionalValidator
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed
@@ -26,6 +26,7 @@ from ...SearchBar import OptionalSearchBar
 class PlateSubForm(FlaskForm):
     index_kit = FormField(OptionalSearchBar, label="Select Index Kit")
     starting_index = SelectField("Starting Index", choices=[(i, models.Plate.well_identifier(i, 12, 8)) for i in range(96)], default=0)
+    flipped = BooleanField("Flipped", default=False)
 
 
 class BarcodeInputForm(HTMXFlaskForm):
@@ -105,7 +106,6 @@ class BarcodeInputForm(HTMXFlaskForm):
                 self.plate_form.starting_index.errors = ("Invalid starting index.",)
                 validated = False
 
-            logger.debug(starting_index)
             if len(self.pool.libraries) + starting_index > 96:
                 self.plate_form.starting_index.errors = ("Starting index exceeds plate size.",)
                 validated = False
@@ -172,10 +172,15 @@ class BarcodeInputForm(HTMXFlaskForm):
                 return False
         
         elif self.input_type == "plate":
+            if self.pool.plate is None:
+                logger.error("Pool has no plate")
+                raise ValueError("Pool has no plate")
+            
             self.barcode_table = db.get_pool_libraries_df(self.pool.id, drop_empty_columns=False)[BarcodeInputForm.columns.keys()]
-
+            
+            # FIXME: board flip
             def get_well(i):
-                return models.Plate.well_identifier(i, 12, 8)
+                return models.Plate.well_identifier(i, num_cols=12, num_rows=8, flipped=self.plate_form.flipped.data)
 
             with DBSession(db) as session:
                 if (index_kit := session.get_index_kit(self.plate_form.index_kit.selected.data)) is None:  # type: ignore
@@ -184,15 +189,21 @@ class BarcodeInputForm(HTMXFlaskForm):
                 
                 self.barcode_table["kit"] = index_kit.name
                 self.barcode_table["kit_id"] = index_kit.id
-                
-                for idx, row in self.barcode_table.iterrows():
-                    barcode_index = idx + starting_index  # type: ignore
-                    adapter = session.get_adapter_from_index_kit(index_kit_id=index_kit.id, plate_well=get_well(barcode_index))
-                    self.barcode_table.at[idx, "adapter"] = adapter.name
-                    self.barcode_table.at[idx, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 is not None else None
-                    self.barcode_table.at[idx, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 is not None else None
-                    self.barcode_table.at[idx, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 is not None else None
-                    self.barcode_table.at[idx, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 is not None else None
+
+                for i in range(self.pool.plate.num_cols * self.pool.plate.num_rows):
+                    well = get_well(i)
+                    if (sample := self.pool.plate.get_sample(well)) is None:
+                        continue
+                    elif isinstance(sample, models.Library):
+                        adapter = session.get_adapter_from_index_kit(index_kit_id=index_kit.id, plate_well=well)
+                        self.barcode_table.loc[self.barcode_table["library_id"] == sample.id, "adapter"] = adapter.name
+                        self.barcode_table.loc[self.barcode_table["library_id"] == sample.id, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 is not None else None
+                        self.barcode_table.loc[self.barcode_table["library_id"] == sample.id, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 is not None else None
+                        self.barcode_table.loc[self.barcode_table["library_id"] == sample.id, "index_3"] = adapter.barcode_3.sequence if adapter.barcode_3 is not None else None
+                        self.barcode_table.loc[self.barcode_table["library_id"] == sample.id, "index_4"] = adapter.barcode_4.sequence if adapter.barcode_4 is not None else None
+                    else:
+                        logger.error("Sample (not library) cannot be indexed")  # this should never happen
+                        raise ValueError("Sample (not library) cannot be indexed")
 
             return True
             

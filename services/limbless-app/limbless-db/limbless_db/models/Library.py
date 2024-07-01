@@ -134,7 +134,7 @@ class Library(Base):
         return self.index_1_sequence is not None
     
     def is_pooled(self) -> bool:
-        return self.status == LibraryStatus.POOLED
+        return self.index_1_sequence is not None and self.pool_id is not None
     
     def __str__(self) -> str:
         return f"Library(id: {self.id}, name: {self.name}, type: {self.type})"

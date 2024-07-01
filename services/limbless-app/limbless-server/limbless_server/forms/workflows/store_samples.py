@@ -136,7 +136,6 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                 sample.timestamp_stored_utc = datetime.now()
 
                 for library_link in sample.library_links:
-                    logger.debug(f"Library {library_link.library.id} status: {library_link.library.status_id}")
                     library_link.library.status_id = LibraryStatus.PREPARING.id
                 
                 sample = session.update_sample(sample)

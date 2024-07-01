@@ -1,4 +1,4 @@
-{% from 'components/form_group.jinja2' import form_group, select_input %}
+{% from 'components/form_group.jinja2' import form_group, select_input, switch_input %}
 {% from "components/table_input.jinja2" import table_input %}
 {% from "components/legends.jinja2" import color_legend %}
 {% from "components/search_select.jinja2" import search_select_field %}
@@ -76,6 +76,7 @@
                         {{ search_select_field(pool_indexing_form.plate_form.index_kit, query_url=url_for("barcodes_htmx.query_index_kits"), class="col-6") }}
                         {{ select_input(pool_indexing_form.plate_form.starting_index, class="col-6") }}
                     </div>
+                    {{ switch_input(pool_indexing_form.plate_form.flipped) }}
                     <div id="plate-container" class="plate-container">
                         <div class="plate">
                             {% for row in range(-1, pool.plate.num_rows) %}

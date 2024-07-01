@@ -341,7 +341,7 @@ def select_all(workflow: str):
         return abort(HTTPResponse.FORBIDDEN.id)
     
     context = {}
-    if (seq_request_id := request.form.get("seq_request_id")) is not None:
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -349,8 +349,6 @@ def select_all(workflow: str):
             context["seq_request"] = seq_request
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
-    else:
-        seq_request = None
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
