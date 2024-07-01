@@ -256,9 +256,8 @@
                     <table class="table table-hover table-cursor">
                         <thead>
                             <tr>
+                                <th class="col-2" scope="col">Experiment</th>
                                 <th class="col-2" scope="col">Lane</th>
-                                <th class="col-5" scope="col"># Pools</th>
-                                <th class="col-5" scope="col">Qubit Conc.</th>
                                 {% if workflow == "qubit_measure" %}
                                 <th class="col-2" scope="col">Qubit Conc.</th>
                                 {% elif workflow == "ba_report" %}
@@ -420,7 +419,7 @@
         }
 
         $("#submit-select_samples-form-btn").click(function() {
-            if (num_selected_samples + num_selected_libraries + num_selected_pools == 0) {
+            if (num_selected_samples + num_selected_libraries + num_selected_pools + num_selected_lanes == 0) {
                 $(".invalid-feedback-container").html("<p>Select at least one sample.</p>");
                 return false;
             }
@@ -433,6 +432,7 @@
                     selected_sample_ids: JSON.stringify(selected_samples),
                     selected_library_ids: JSON.stringify(selected_libraries),
                     selected_pool_ids: JSON.stringify(selected_pools),
+                    selected_lanes_ids: JSON.stringify(selected_lanes),
                     workflow: "{{ workflow }}",
                     {% if seq_request %}seq_request_id: "{{ seq_request.id }}",{% endif %}
                     {% if pool %}pool_id: "{{ pool.id }}",{% endif %}
@@ -456,7 +456,7 @@
         $("#select-all-libraries-btn").on("click", function() {
             var state = get_table_state("select-libraries-table");
 
-            htmx.ajax("GET", "{{ url_for('libraries_htmx.select_all', **url_context) }}", {
+            htmx.ajax("GET", "{{ url_for('libraries_htmx.select_all', **url_context) | safe }}", {
                 target: "#select_samples-form-container",
                 swap: "outerHTML",
                 values: state

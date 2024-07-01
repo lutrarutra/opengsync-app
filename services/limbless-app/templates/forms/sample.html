@@ -3,6 +3,7 @@
 <div id="sample-form">
     {{ sample_form.csrf_token() }}
     <div class="row">
-        {{ form_group(sample_form.name, class="col") }}
+        {{ form_group(sample_form.name, class="col-6") }}
+        {{ select_input(sample_form.status, class="col-6") }}
     </div>
 </div>

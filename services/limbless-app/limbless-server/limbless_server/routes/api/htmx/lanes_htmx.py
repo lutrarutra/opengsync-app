@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT
+from limbless_db import models, PAGE_LIMIT, DBSession
 from limbless_db.categories import HTTPResponse
 
 from .... import db, forms, logger  # noqa
@@ -38,16 +38,17 @@ def browse(workflow: str, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
     
-    lanes, n_pages = db.get_lanes(
-        sort_by=sort_by, descending=descending, offset=offset, experiment_id=experiment_id
-    )
-
-    context["workflow"] = workflow
-    return make_response(
-        render_template(
-            "components/tables/select-lanes.html",
-            lanes=lanes, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, context=context,
-            workflow=workflow
+    with DBSession(db) as session:
+        lanes, n_pages = session.get_lanes(
+            sort_by=sort_by, descending=descending, offset=offset, experiment_id=experiment_id
         )
-    )
+
+        context["workflow"] = workflow
+        return make_response(
+            render_template(
+                "components/tables/select-lanes.html",
+                lanes=lanes, n_pages=n_pages, active_page=page,
+                sort_by=sort_by, sort_order=sort_order, context=context,
+                workflow=workflow
+            )
+        )

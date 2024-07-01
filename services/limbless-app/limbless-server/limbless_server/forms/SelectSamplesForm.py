@@ -31,6 +31,17 @@ workflow_settings = {
         select_libraries=False,
         select_samples=False,
     ),
+    "plate_samples": dict(
+        sample_status_filter=[SampleStatus.STORED],
+        library_status_filter=[LibraryStatus.STORED],
+        select_pools=False,
+        select_all_samples=True,
+        select_all_libraries=True,
+    ),
+    "library_pooling": dict(
+        select_samples=False, select_pools=False, select_all_libraries=True,
+        library_status_filter=[LibraryStatus.PREPARING, LibraryStatus.STORED]
+    ),
 }
 
 
@@ -105,17 +116,20 @@ class SelectSamplesForm(HTMXFlaskForm):
         self._context = {**self._context, **context}
 
         url_context = {"workflow": workflow}
+        if "pool" in context.keys():
+            url_context["pool_id"] = context["pool"].id
+            self._context["context"] = f"{context['pool'].name} ({context['pool'].id})"
         if "seq_request" in context.keys():
             url_context["seq_request_id"] = context["seq_request"].id
             self._context["context"] = f"{context['seq_request'].name} ({context['seq_request'].id})"
         if "experiment" in context.keys():
             url_context["experiment_id"] = context["experiment"].id
             self._context["context"] = f"{context['experiment'].name} ({context['experiment'].id})"
-        if "pool" in context.keys():
-            url_context["pool_id"] = context["pool"].id
-            self._context["context"] = f"{context['pool'].name} ({context['pool'].id})"
+            if workflow in ["qubit_measure", "ba_report"]:
+                self._context["select_samples"] = False
+                self._context["select_libraries"] = False
 
-        self._context["post_url"] = url_for(f'{workflow}_workflow.select')  # type: ignore
+        self._context["post_url"] = url_for(f"{workflow}_workflow.select")  # type: ignore
         self._context["url_context"] = url_context
         self._context["sample_url_context"] = url_context.copy()
         self._context["library_url_context"] = url_context.copy()

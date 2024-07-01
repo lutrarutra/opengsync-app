@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, UserRole, SeqRequestStatus
-from .... import db, logger
+from .... import db, logger  # noqa F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore

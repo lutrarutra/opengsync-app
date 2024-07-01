@@ -30,7 +30,7 @@
         </thead>
         <tbody>
             {% for lane in lanes %}
-            <tr onclick="select_lane({{ lane.id }});" id="lane-row-{{ lane.id }}" class="pool-row">
+            <tr onclick="toggle_lane({{ lane.id }});" id="lane-row-{{ lane.id }}" class="pool-row">
                 <th scope="row">{{ lane.experiment.name }}</th>
                 <th>{{ lane.number }}</th>
                 {% if workflow == "qubit_measure" %}

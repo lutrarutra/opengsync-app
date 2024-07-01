@@ -6,7 +6,7 @@ from flask_login import login_required
 import pandas as pd
 
 from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus
+from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import plate_samples as forms
@@ -64,12 +64,7 @@ def begin() -> Response:
         plate_samples_form.prepare()
         return plate_samples_form.make_response()
         
-    form = SelectSamplesForm(
-        workflow="plate_samples", context=context,
-        sample_status_filter=[SampleStatus.STORED],
-        library_status_filter=[LibraryStatus.STORED],
-        select_pools=False
-    )
+    form = SelectSamplesForm.create_workflow_form("plate_samples", context=context)
     return form.make_response()
 
 
@@ -91,14 +86,14 @@ def select():
     else:
         seq_request = None
     
-    form = SelectSamplesForm(workflow="plate_samples", context=context, formdata=request.form)
+    form = SelectSamplesForm.create_workflow_form("plate_samples", context=context, formdata=request.form)
     
     if not form.validate():
         return form.make_response()
     
     sample_table, library_table, pool_table, _ = form.get_tables()
 
-    plate_samples_form = forms.PlateSamplesForm(seq_request=seq_request)
+    plate_samples_form = forms.PlateSamplesForm(context=context)
     plate_samples_form.metadata = {"workflow": "plate_samples"}
     if seq_request is not None:
         plate_samples_form.metadata["seq_request_id"] = seq_request.id  # type: ignore

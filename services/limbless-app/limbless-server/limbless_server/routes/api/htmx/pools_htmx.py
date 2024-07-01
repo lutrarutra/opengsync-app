@@ -173,6 +173,35 @@ def table_query():
     )
 
 
+@pools_htmx.route("query", methods=["POST"])
+@login_required
+def query():
+    field_name = next(iter(request.form.keys()))
+    query = request.form.get(field_name)
+
+    if query is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [PoolStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    results = db.query_pools(query, status_in=status_in)
+    
+    return make_response(
+        render_template(
+            "components/search_select_results.html",
+            results=results, field_name=field_name
+        )
+    )
+
+
 @pools_htmx.route("<int:pool_id>/get_libraries/<int:page>", methods=["GET"])
 @pools_htmx.route("<int:pool_id>/get_libraries", methods=["GET"], defaults={"page": 0})
 @login_required

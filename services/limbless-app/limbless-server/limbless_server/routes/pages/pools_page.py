@@ -48,6 +48,12 @@ def pool_page(pool_id: int):
                 (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
+        elif page == "library":
+            path_list = [
+                ("Libraries", url_for("libraries_page.libraries_page")),
+                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                (f"Pool {pool_id}", ""),
+            ]
 
     is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider()
     is_plated = True and len(pool.libraries) > 0
