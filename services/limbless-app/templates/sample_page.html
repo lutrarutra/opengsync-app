@@ -89,12 +89,12 @@
         </div>
         <div class="tab-pane fade" id="sample-metadata-tab" role="tabpanel" tabindex="1">
             <div class="row">
-                {{ metadata_group("Name", sample.name, class="col") }}
+                {{ metadata_group("Name", sample.name, class="col-3") }}
                 {{
                     metadata_group_link(
                         "Project", sample.project.name,
                         url_for("projects_page.project_page", project_id=sample.project_id),
-                        class="col"
+                        class="col-3"
                     )
                 }}
                 {{ 
@@ -102,16 +102,18 @@
                         "Owner Name",
                         sample.owner.first_name + " " + sample.owner.last_name,
                         url_for("users_page.user_page", user_id=sample.owner_id),
-                        class="col"
+                        class="col-3"
                     )
                 }}
                 {{
                     metadata_group_email_link(
-                        "Owner Email", sample.owner.email, class="col",
+                        "Owner Email", sample.owner.email, class="col-3",
                         subject="BSF Sample: " + sample.name + " (" + sample.id | string + ")"
                     )
                 }}
             </div>
+            {{ metadata_group("Time Stored", sample.timestamp_stored_str, class="col-3") }}
+
         </div>
         {% if current_user.is_insider() %}
         <div class="tab-pane fade" id="sample-plate-tab" role="tabpanel" tabindex="2">

@@ -150,6 +150,8 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                     library.status_id = LibraryStatus.POOLED.id
                 else:
                     library.status_id = LibraryStatus.STORED.id
+                
+                library.timestamp_stored_utc = datetime.now()
                 library = session.update_library(library)
 
             for i, row in pool_table.iterrows():
@@ -158,9 +160,10 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                     raise ValueError(f"{self.uuid}: Pool {row['id']} not found")
                 
                 pool.status_id = PoolStatus.STORED.id
+                pool.timestamp_stored_utc = datetime.now()
                 pool = session.update_pool(pool)
 
-        flash("Samples added to plate", "success")
+        flash("Samples stored!", "success")
         if self.seq_request is not None:
             return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))
         

@@ -2,11 +2,12 @@ from typing import Optional, Any
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms import StringField
+from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length
 
 
 from limbless_db import models, DBSession
+from limbless_db.categories import SampleStatus
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -16,6 +17,7 @@ class SampleForm(HTMXFlaskForm):
     _form_label = "sample_form"
 
     name = StringField("Sample Name", validators=[DataRequired(), Length(min=6, max=models.Sample.name.type.length)])
+    status = SelectField("Status", choices=SampleStatus.as_selectable(), coerce=int)
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, sample: Optional[models.Sample] = None):
         super().__init__(formdata=formdata)
@@ -24,6 +26,7 @@ class SampleForm(HTMXFlaskForm):
 
     def __fill_form(self, sample: models.Sample):
         self.name.data = sample.name
+        self.status.data = sample.status.id
 
     def validate(self, user_id: int, sample: models.Sample) -> bool:
         if not super().validate():
@@ -51,7 +54,8 @@ class SampleForm(HTMXFlaskForm):
         if not self.validate(user_id=user_id, sample=sample):
             return self.make_response(**context)
         
-        sample.name = self.name.data
+        sample.name = self.name.data  # type: ignore
+        sample.status_id = self.status.data
        
         sample = db.update_sample(sample)
 

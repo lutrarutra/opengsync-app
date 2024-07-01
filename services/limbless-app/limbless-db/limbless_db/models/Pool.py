@@ -113,10 +113,10 @@ class Pool(Base):
         return self.id
     
     def search_name(self) -> str:
-        return self.name
+        return f"{self.name}"
     
     def search_description(self) -> Optional[str]:
-        return None
+        return f"{self.status.name} {self.status.icon}"
     
     def is_qced(self) -> bool:
         return self.qubit_concentration is not None and self.avg_fragment_size is not None

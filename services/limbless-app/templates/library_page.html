@@ -89,11 +89,22 @@
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="library-barcodes-tab" role="tabpanel" tabindex="0">
             <div class="row">
+            {% if library.pool_id %}
+            {{ 
+                metadata_group_link(
+                    "Pool", library.pool.name,
+                    url_for("pools_page.pool_page", pool_id=library.pool.id, from="library@" + library.id | string),
+                    class="col-2"
+                )
+            }}
+            {% else %}
+            {{ metadata_group("Pool", "", class="col-2") }}
+            {% endif %}
             {{
                 metadata_group(
                     "Adapter",
                     library.index_1_adapter if library.index_1_adapter else "",
-                    class="col-4"
+                    class="col-2"
                 )
             }}
             {{

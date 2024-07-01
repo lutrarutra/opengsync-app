@@ -347,23 +347,13 @@ def pool_library(self, library_id: int, pool_id: int):
     pool: models.Pool
     if (pool := self._session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-
-    pool.num_libraries += 1
-    self._session.add(pool)
         
     library.pool_id = pool_id
     library.status_id = LibraryStatus.POOLED.id
     self._session.add(library)
-    
-    for sample_links in library.sample_links:
-        all_sample_libraries_prepared = True
-        for library_links in sample_links.sample.library_links:
-            if not library_links.library.is_pooled() and library_links.library.id != library_id:
-                all_sample_libraries_prepared = False
-                break
-        if all_sample_libraries_prepared:
-            sample_links.sample.status_id = SampleStatus.PREPARED.id
-            self._session.add(sample_links.sample)
+
+    pool.num_libraries += 1
+    self._session.add(pool)
 
     self._session.commit()
 

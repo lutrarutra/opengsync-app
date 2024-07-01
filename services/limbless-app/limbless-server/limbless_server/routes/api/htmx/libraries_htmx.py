@@ -281,21 +281,35 @@ def browse(workflow: str, page: int):
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            context["experiment_id"] = experiment_id
+            if (experiment := db.get_experiment(experiment_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["experiment"] = experiment
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            context["seq_request_id"] = seq_request_id
+            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["seq_request"] = seq_request
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (pool_id := request.args.get("pool_id")) is not None:
+        try:
+            pool_id = int(pool_id)
+            if (pool := db.get_pool(pool_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["pool"] = pool
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     
     libraries, n_pages = db.get_libraries(
         sort_by=sort_by, descending=descending, offset=offset,
         seq_request_id=seq_request_id, experiment_id=experiment_id,
-        type_in=type_in, status_in=status_in
+        type_in=type_in, status_in=status_in,
+        pool_id=pool_id if workflow != "library_pooling" else None
     )
     context["workflow"] = workflow
     return make_response(
@@ -326,14 +340,27 @@ def browse_query(workflow: str):
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            context["experiment_id"] = experiment_id
+            if (experiment := db.get_experiment(experiment_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["experiment"] = experiment
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            context["seq_request_id"] = seq_request_id
+            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["seq_request"] = seq_request
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (pool_id := request.args.get("pool_id")) is not None:
+        try:
+            pool_id = int(pool_id)
+            if (pool := db.get_pool(pool_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["pool"] = pool
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -359,7 +386,10 @@ def browse_query(workflow: str):
 
     libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(word, status_in=status_in, type_in=type_in, experiment_id=experiment_id)
+        libraries = db.query_libraries(
+            word, status_in=status_in, type_in=type_in, experiment_id=experiment_id,
+            pool_id=pool_id if workflow != "library_pooling" else None, seq_request_id=seq_request_id
+        )
     elif field_name == "id":
         try:
             _id = int(word)
@@ -368,6 +398,9 @@ def browse_query(workflow: str):
                 if status_in is not None and library.status not in status_in:
                     libraries = []
                 if type_in is not None and library.type not in type_in:
+                    libraries = []
+                # FIXME: during library pooling workflow
+                if library.pool_id != pool_id:
                     libraries = []
         except ValueError:
             pass
@@ -413,19 +446,33 @@ def select_all(workflow: str):
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            context["experiment_id"] = experiment_id
+            if (experiment := db.get_experiment(experiment_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["experiment"] = experiment
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            context["seq_request_id"] = seq_request_id
+            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["seq_request"] = seq_request
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (pool_id := request.args.get("pool_id")) is not None:
+        try:
+            pool_id = int(pool_id)
+            if (pool := db.get_pool(pool_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["pool"] = pool
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
 
     libraries, _ = db.get_libraries(
-        seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None
+        seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
+        pool_id=pool_id if workflow != "library_pooling" else None
     )
 
     form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)
