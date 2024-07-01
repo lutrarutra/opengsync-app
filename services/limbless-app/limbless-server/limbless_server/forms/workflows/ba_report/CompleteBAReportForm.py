@@ -12,8 +12,8 @@ from wtforms.validators import NumberRange, DataRequired
 from wtforms import IntegerField, FieldList, FormField
 from flask_wtf import FlaskForm
 
-from limbless_db import models
-from limbless_db.categories import PoolStatus, FileType
+from limbless_db import models, DBSession
+from limbless_db.categories import PoolStatus, FileType, LibraryStatus, SampleStatus
 
 from .... import db, logger  # noqa
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -170,22 +170,37 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
             
             library.avg_fragment_size = sub_form.avg_fragment_size.data
             library.ba_report_id = ba_file.id
+                            
             library = db.update_library(library)
 
             library_table.loc[library_table["id"] == library.id, "avg_fragment_size"] = library.avg_fragment_size
 
         for sub_form in self.pool_fields:
-            if (pool := db.get_pool(sub_form.obj_id.data)) is None:
-                logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
-                raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
-            
-            pool.avg_fragment_size = sub_form.avg_fragment_size.data
-            pool.ba_report_id = ba_file.id
+            with DBSession(db) as session:
+                if (pool := session.get_pool(sub_form.obj_id.data)) is None:
+                    logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+                    raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+                
+                pool.avg_fragment_size = sub_form.avg_fragment_size.data
+                pool.ba_report_id = ba_file.id
 
-            if pool.status == PoolStatus.ACCEPTED:
-                pool.status_id = PoolStatus.STORED.id
+                if pool.avg_fragment_size is not None:
+                    for library in pool.libraries:
+                        if library.is_pooled():
+                            library.status_id = LibraryStatus.POOLED.id
+                            for sample_link in library.sample_links:
+                                sample_is_prepped = True
+                                for library_link in sample_link.sample.library_links:
+                                    if library_link.library != library and not library_link.library.is_indexed():
+                                        sample_is_prepped = False
+                                        break
+                                if sample_is_prepped:
+                                    sample_link.sample.status_id = SampleStatus.PREPARED.id
 
-            pool = db.update_pool(pool)
+                if pool.status == PoolStatus.ACCEPTED:
+                    pool.status_id = PoolStatus.STORED.id
+
+                pool = session.update_pool(pool)
 
             pool_table.loc[pool_table["id"] == pool.id, "avg_fragment_size"] = pool.avg_fragment_size
 

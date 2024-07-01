@@ -9,7 +9,8 @@ from flask_htmx import make_response
 from wtforms import FloatField, IntegerField, FieldList, FormField
 from wtforms.validators import NumberRange, DataRequired
 
-from limbless_db.categories import PoolStatus
+from limbless_db.categories import PoolStatus, LibraryStatus, SampleStatus
+from limbless_db import DBSession
 
 from .... import db, logger
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -92,24 +93,10 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
                 lane_table=self.tables["lane_table"]
             )
         
-        pool_table = self.tables["pool_table"]
         library_table = self.tables["library_table"]
+        pool_table = self.tables["pool_table"]
         lane_table = self.tables["lane_table"]
         metadata = self.metadata.copy()
-
-        for sub_form in self.pool_fields:
-            if (pool := db.get_pool(sub_form.obj_id.data)) is None:
-                logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
-                raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
-            
-            pool.qubit_concentration = sub_form.qubit_concentration.data
-
-            if pool.status == PoolStatus.ACCEPTED:
-                pool.status_id = PoolStatus.STORED.id
-
-            pool = db.update_pool(pool)
-
-            pool_table.loc[pool_table["id"] == pool.id, "qubit_concentration"] = pool.qubit_concentration
 
         for sub_form in self.library_fields:
             if (library := db.get_library(sub_form.obj_id.data)) is None:
@@ -120,6 +107,34 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
             library = db.update_library(library)
 
             library_table.loc[library_table["id"] == library.id, "qubit_concentration"] = library.qubit_concentration
+
+        for sub_form in self.pool_fields:
+            with DBSession(db) as session:
+                if (pool := session.get_pool(sub_form.obj_id.data)) is None:
+                    logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+                    raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+                
+                pool.qubit_concentration = sub_form.qubit_concentration.data
+
+                if pool.qubit_concentration is not None:
+                    for library in pool.libraries:
+                        if library.is_pooled():
+                            library.status_id = LibraryStatus.POOLED.id
+                            for sample_link in library.sample_links:
+                                sample_is_prepped = True
+                                for library_link in sample_link.sample.library_links:
+                                    if library_link.library != library and not library_link.library.is_indexed():
+                                        sample_is_prepped = False
+                                        break
+                                if sample_is_prepped:
+                                    sample_link.sample.status_id = SampleStatus.PREPARED.id
+
+                if pool.status == PoolStatus.ACCEPTED:
+                    pool.status_id = PoolStatus.STORED.id
+
+                pool = session.update_pool(pool)
+
+            pool_table.loc[pool_table["id"] == pool.id, "qubit_concentration"] = pool.qubit_concentration
 
         for sub_form in self.lane_fields:
             if (lane := db.get_lane(sub_form.obj_id.data)) is None:

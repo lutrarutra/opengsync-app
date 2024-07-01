@@ -33,7 +33,7 @@ class PoolForm(HTMXFlaskForm):
         self._context["form_type"] = form_type
         self._context["identifiers"] = dict([(pool_type.id, pool_type.identifier) for pool_type in PoolType.as_list()])
 
-    def validate(self) -> bool:
+    def validate(self, pool: Optional[models.Pool]) -> bool:
         if not super().validate():
             return False
 
@@ -44,11 +44,20 @@ class PoolForm(HTMXFlaskForm):
         if self.contact.selected.data is None and not self.contact_email.data:
             self.contact_email.errors = ("Select an existing contact or provide a email",)
             return False
+        
+        pool_type = PoolType.get(self.pool_type.data)
+        if self.form_type == "edit":
+            if pool is None:
+                raise Exception("Pool not passed as argument for edit form")
+            if pool_type != pool.type:
+                self.pool_type.errors = ("Pool type cannot be changed, please create a new pool",)
+                return False
 
         return True
 
     def prepare(self, pool: models.Pool):
         self.name.data = pool.name
+        self.pool_type.data = pool.type.id
         self.status.data = pool.status_id
         self.num_m_reads_requested.data = pool.num_m_reads_requested
         self.contact_name.data = pool.contact.name
@@ -60,7 +69,7 @@ class PoolForm(HTMXFlaskForm):
         with DBSession(db) as session:
             if (pool := session.get_pool(pool_id)) is None:
                 raise ValueError(f"Pool {pool_id} not found")
-            
+                
             pool.name = self.name.data  # type: ignore
             pool.status_id = PoolStatus.get(self.status.data).id
             pool.type_id = PoolType.get(self.pool_type.data).id
@@ -97,7 +106,7 @@ class PoolForm(HTMXFlaskForm):
         return pool
     
     def process_request(self, user: models.User, pool: Optional[models.Pool] = None) -> Response:
-        if not self.validate():
+        if not self.validate(pool=pool):
             self._context["pool"] = pool
             return self.make_response()
         

@@ -175,6 +175,7 @@
             <div class="row">
                 {{ metadata_group("# Libraries", pool.num_libraries, class="col-2") }}
                 {{ metadata_group("Time Stored", pool.timestamp_stored_str, class="col-5") }}
+                {{ metadata_group("Pool Type", pool.type.display_name, class="col-5") }}
             </div>
             <div class="d-flex justify-content-between">
                 <div>

@@ -208,6 +208,7 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         library_table["seq_depth"] = None
         library_table = library_table.sort_values(by=["sample_name", "library_type"]).reset_index(drop=True)
         self.add_table("library_table", library_table)
+        self.update_data()
 
         if self.additional_info.data:
             comment_table = pd.DataFrame({
