@@ -1,6 +1,6 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 
-{% macro form_group(field, class='', id=none, disabled=false, trigger_dest_id=none, autocomplete="on", unit=none) -%}
+{% macro form_group(field, class="", id=none, disabled=false, trigger_dest_id=none, autocomplete="on", unit=none) -%}
 <div class="{{class}} form-group">
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
