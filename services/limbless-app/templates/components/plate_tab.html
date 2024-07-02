@@ -1,4 +1,5 @@
 <div id="plate-container" class="plate-container">
+    {% if plate %}
     <div class="plate">
         {% for row in range(-1, plate.num_rows) %}
         <div class="plate-row" id="plate-row-{{row}}">
@@ -34,4 +35,7 @@
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    <h3>Plate does not exist. You can create one in 'workflows'-tab.</h3>
+    {% endif %}
 </div>
