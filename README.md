@@ -31,3 +31,19 @@ Web app for NGS sample/library/project tracking
         2. `docker inspect limbless-postgres-db | grep IPAddress`
     - username: `$(POSTGRES_USER)`
     - password: `$(POSTGRES_PASSWORD)`
+
+## Production server service
+
+### Start production server as systemd service
+    - `sudo cp limbless.service /lib/systemd/system/limbless.service`
+    - `sudo systemctl daemon-reload`
+    - `sudo systemctl start limbless`
+
+### Restart service (e.g. update)
+    - `sudo systemctl restart limbless`
+
+### Check service status
+    - `sudo systemctl status limbless`
+
+### Logs
+    - `sudo journalctl -u limbless -e`
