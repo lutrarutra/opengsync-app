@@ -3,7 +3,7 @@
 {% macro random_string(len) -%}{% for i in range(0,len) -%}{{ [0,1,2,3,4,5,6,7,8,9,"a","b","c","d","e","f"]|random }}{% endfor %}{%- endmacro -%}
 {% macro random_guid() -%} {{ random_string(8) + "-" + random_string(4) + "-" + random_string(4) + "-" + random_string(4) + "-" + random_string(12) }}{%- endmacro -%}
 
-{% macro metadata_group(label, value, class="", input_id=none, unit=none) -%}
+{% macro metadata_group(label, value,, input_id=none, unit=none) -%}
 {% set guid = random_guid() %}
 <div class="{{class}} form-group metadata-group" id="{{guid}}">
     <label>{{ label }}</label>
@@ -28,7 +28,7 @@
 </div>
 {%- endmacro %}
 
-{% macro metadata_group_select(label, value, options, class="") -%}
+{% macro metadata_group_select(label, value, options,) -%}
 <div class="{{class}} form-group metadata-group">
     <label>{{ label }}</label>
     <select class="form-control" readonly>
@@ -39,14 +39,14 @@
 </div>
 {%- endmacro %}
 
-{% macro metadata_group_textarea(label, value, class="") -%}
+{% macro metadata_group_textarea(label, value,) -%}
 <div class="{{class}} form-group metadata-group">
     <label>{{ label }}</label>
     <textarea class="form-control" readonly>{{ value }}</textarea>
 </div>
 {%- endmacro %}
 
-{% macro metadata_group_link(label, value, url, class="") -%}
+{% macro metadata_group_link(label, value, url,) -%}
 {% set guid = random_guid() %}
 <div class="{{class}} form-group metadata-group" id="{{guid}}">
     <label>{{ label }}</label>
@@ -70,7 +70,7 @@
 </div>
 {%- endmacro %}
 
-{% macro metadata_group_email_link(label, email, class="", subject="") -%}
+{% macro metadata_group_email_link(label, email,, subject="") -%}
 {% set guid = random_guid() %}
 <div class="{{class}} form-group metadata-group" id="{{guid}}">
     <label>{{ label }}</label>

@@ -1,6 +1,6 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 
-{% macro search_select_field(field, query_url, class="") -%}
+{% macro search_select_field(field, query_url,) -%}
 <div class="mb-3 search-select {{ class }}">
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}

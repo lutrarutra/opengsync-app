@@ -32,7 +32,7 @@ def create_seq_run(
         rta_version=rta_version.strip(),
         recipe_version=recipe_version.strip() if recipe_version else None,
         side=side.strip() if side else None,
-        flowcell_mode=flowcell_mode.strip(),
+        flowcell_mode=flowcell_mode.strip() if flowcell_mode else None,
         r1_cycles=r1_cycles,
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,

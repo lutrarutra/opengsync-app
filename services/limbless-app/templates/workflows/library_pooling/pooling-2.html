@@ -31,7 +31,7 @@
             <div class="tab-content">
                 <div class="invalid-feedback-container">
                     {% for error in library_pooling_form.selected_library_ids.errors %}
-                        <p class="">{{ error }}</p>
+                        <p>{{ error }}</p>
                     {% endfor %}
                 </div>
                 <div class="tab-pane fade show active" id="available-tab" role="tabpanel" tabindex="0">
