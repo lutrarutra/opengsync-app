@@ -21,7 +21,7 @@ seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_r
 @seq_runs_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
-    sort_by = request.args.get("sort_by", "id")
+    sort_by = request.args.get("sort_by", "experiment_name")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
@@ -40,5 +40,5 @@ def get(page: int):
     
     return make_response(render_template(
         "components/tables/seq_run.html", seq_runs=seq_runs, n_pages=n_pages,
-        active_page=page, sort_by=sort_by, sort_order=sort_order, status_in=status_in, 
+        active_page=page, sort_by=sort_by, sort_order=sort_order, status_in=status_in,
     ))

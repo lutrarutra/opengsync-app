@@ -64,6 +64,47 @@ def create():
     return form.process_request(user=current_user)
 
 
+@pools_htmx.route("<int:pool_id>/delete", methods=["DELETE"])
+@login_required
+def delete(pool_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if pool.type.identifier != "":
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    db.delete_pool(pool.id)
+    flash("Pool deleted", "success")
+    return make_response(redirect=url_for("index_page"))
+
+
+@pools_htmx.route("<int:pool_id>/remove_libraries", methods=["DELETE"])
+@login_required
+def remove_libraries(pool_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    with DBSession(db) as session:
+        if (pool := session.get_pool(pool_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        if pool.status != PoolStatus.DRAFT:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
+        for library in pool.libraries:
+            library.pool_id = None
+            library.status_id = LibraryStatus.PREPARING.id
+
+        pool.num_libraries = 0
+        session.update_pool(pool)
+    
+    flash("Libraries removed from pool", "success")
+    return make_response(redirect=url_for("pools_page.pool_page", pool_id=pool_id))
+
+
 @pools_htmx.route("get_form/<string:form_type>", methods=["GET"])
 @login_required
 def get_form(form_type: Literal["create", "edit"]):

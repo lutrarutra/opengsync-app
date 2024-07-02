@@ -3,10 +3,10 @@ from datetime import datetime
 from typing import Optional
 
 import sqlalchemy as sa
-from sqlalchemy.sql.operators import and_, or_
+from sqlalchemy.sql.operators import or_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus
+from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType
 from .. import exceptions
 
 
@@ -235,7 +235,8 @@ def delete_seq_request(self, seq_request_id: int) -> None:
         self.delete_library(library.id)
 
     for pool in seq_request.pools:
-        self.delete_pool(pool.id)
+        if pool.type == PoolType.EXTERNAL:
+            self.delete_pool(pool.id)
 
     seq_request.requestor.num_seq_requests -= 1
     self._session.delete(seq_request)

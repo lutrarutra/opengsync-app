@@ -19,6 +19,21 @@
                     Edit Pool
                 </button>
             </span>
+            <span {% if not is_editable %} {{ tooltip("You can only edit draft pools.", "left", "warning") }} {% endif %}>
+                <button type="button" class="btn btn-danger"
+                hx-delete="{{ url_for('pools_htmx.remove_libraries', pool_id=pool.id) }}"
+                _="on htmx:confirm(issueRequest)
+                halt the event
+                call Swal.fire({
+                    title: 'Remove all libraries from pool \'{{ pool.name }}\'',
+                    showDenyButton: true,
+                    text: 'Proceed?',
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'No'
+                })
+                if result.isConfirmed issueRequest()"
+                {% if not is_editable %}disabled{% endif %}>Remove Libraries</button>
+            </span>
         </div>
     </div>
 

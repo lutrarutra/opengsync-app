@@ -283,7 +283,7 @@ def browse(workflow: str, page: int):
             experiment_id = int(experiment_id)
             if (experiment := db.get_experiment(experiment_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
-            context["experiment"] = experiment
+            context["experiment_id"] = experiment.id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
@@ -292,7 +292,7 @@ def browse(workflow: str, page: int):
             seq_request_id = int(seq_request_id)
             if (seq_request := db.get_seq_request(seq_request_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
-            context["seq_request"] = seq_request
+            context["seq_request_id"] = seq_request.id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
@@ -301,7 +301,7 @@ def browse(workflow: str, page: int):
             pool_id = int(pool_id)
             if (pool := db.get_pool(pool_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
-            context["pool"] = pool
+            context["pool_id"] = pool.id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -309,9 +309,11 @@ def browse(workflow: str, page: int):
         sort_by=sort_by, descending=descending, offset=offset,
         seq_request_id=seq_request_id, experiment_id=experiment_id,
         type_in=type_in, status_in=status_in,
-        pool_id=pool_id if workflow != "library_pooling" else None
+        pool_id=pool_id if workflow != "library_pooling" else None,
+        pooled=False if workflow == "library_pooling" else None
     )
     context["workflow"] = workflow
+
     return make_response(
         render_template(
             "components/tables/select-libraries.html",
