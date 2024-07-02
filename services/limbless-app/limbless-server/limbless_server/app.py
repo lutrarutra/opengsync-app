@@ -79,7 +79,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             if current_user.is_insider():
                 show_drafts = False
                 _user_id = None
-                recent_experiments, _ = session.get_experiments(sort_by="id", descending=False)
+                recent_experiments, _ = session.get_experiments(sort_by="id", descending=True)
             else:
                 show_drafts = True
                 _user_id = current_user.id

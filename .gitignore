@@ -20,6 +20,7 @@ licensed/
 **/style/compiled/
 .~lock.*
 poetry.lock
+_init_db.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
