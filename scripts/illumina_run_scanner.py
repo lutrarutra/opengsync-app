@@ -132,14 +132,10 @@ def parse_run_parameters(run_folder: str) -> dict:
         elif read_number == 3:
             if not read.is_index():
                 raise Exception("i2 is not index-read")
-            if read_type != categories.ReadType.PAIRED_END:
-                raise Exception("i2 present but read type is not paired-end")
             i2_cycles = read.total_cycles()
         elif read_number == 4:
             if read.is_index():
                 raise Exception("r2 is index-read")
-            if read_type != categories.ReadType.PAIRED_END:
-                raise Exception("r2 present but read type is not paired-end")
             r2_cycles = read.total_cycles()
 
     try:
