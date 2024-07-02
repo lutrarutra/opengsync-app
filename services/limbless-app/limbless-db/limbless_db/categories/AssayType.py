@@ -30,3 +30,13 @@ class AssayType(ExtendedEnum[AssayTypeEnum], enum_type=AssayTypeEnum):
     TENX_HD_SPATIAL_GEX = AssayTypeEnum(15, "10X HD Spatial Gene Expression", "10X HD Spatial", "10X Visium", library_types=[LibraryType.SPATIAL_TRANSCRIPTOMIC])
     TENX_VISIUM_GEX_FFPE = AssayTypeEnum(16, "10X Visium Gene Expression FFPE", "10X Visium FFPE", "10X Visium", library_types=[LibraryType.SPATIAL_TRANSCRIPTOMIC])
     TENX_VISIUM_GEX = AssayTypeEnum(17, "10X Visium Gene Expression", "10X Visium", "10X Visium", library_types=[LibraryType.SPATIAL_TRANSCRIPTOMIC])
+
+    RNA_SEQ = AssayTypeEnum(100, "RNA-Seq", "RNA-Seq", library_types=[LibraryType.BULK_RNA_SEQ])
+    WGS = AssayTypeEnum(101, "Whole Genome Sequencing", "WGS", library_types=[LibraryType.GENOME_SEQ])
+    WES = AssayTypeEnum(102, "Whole Exome Sequencing", "WES", library_types=[LibraryType.EXOME_SEQ])
+    EXOME_SEQ = AssayTypeEnum(103, "Exome Sequencing", "Exome", library_types=[LibraryType.EXOME_SEQ])
+    ATAC_SEQ = AssayTypeEnum(104, "ATAC-Seq", "ATAC-Seq", library_types=[LibraryType.ATAC_SEQ])
+    AMPLICON_SEQ = AssayTypeEnum(105, "Amplicon Sequencing", "Amplicon", library_types=[LibraryType.AMPLICON_SEQ])
+    RBS_SEQ = AssayTypeEnum(106, "RBS Sequencing", "RBS", library_types=[LibraryType.RBS_SEQ])
+    CITE_SEQ = AssayTypeEnum(107, "CITE-Seq", "CITE-Seq", library_types=[LibraryType.CITE_SEQ])
+    EM_SEQ = AssayTypeEnum(108, "Enzymatic Methyl-Seq", "EM-Seq", library_types=[LibraryType.EM_SEQ])

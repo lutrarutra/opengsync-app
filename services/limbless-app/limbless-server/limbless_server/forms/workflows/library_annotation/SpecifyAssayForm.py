@@ -151,9 +151,14 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             "library_type_id": [],
         }
         for library_type in self.assay_type_enum.library_types:
-            for i, row in self.df.iterrows():
+            for _, row in self.df.iterrows():
+                if len(self.assay_type_enum.library_types) > 1:
+                    library_name = f"{row['sample_name']}_{library_type.assay_type}"
+                else:
+                    library_name = row["sample_name"]
+
                 library_table_data["sample_name"].append(row["sample_name"])
-                library_table_data["library_name"].append(f"{row['sample_name']}_{library_type.assay_type}")
+                library_table_data["library_name"].append(library_name)
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append(library_type.name)
