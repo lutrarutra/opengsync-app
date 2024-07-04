@@ -1,0 +1,14 @@
+{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+
+<div class="d-flex justify-content-between align-items-center pt-3 pb-1">
+    <div class="row">
+        {{ metadata_group_link("File 💾", prep_file.name + prep_file.extension, url_for('download_file', file_id=prep_file.id), class="col-3") }}
+        {{ metadata_group_link("Uploader", prep_file.uploader.name, url_for('users_page.user_page', user_id=prep_file.uploader_id), class="col-3") }}
+        {{ metadata_group("Size", prep_file.size_str(), class="col-3") }}
+        {{ metadata_group("Time Edited", prep_file.timestamp_str(), class="col-3") }}
+    </div>
+</div>
+
+<div class="dataframe-container">
+    {{ table | safe }}
+</div>

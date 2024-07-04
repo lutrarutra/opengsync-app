@@ -50,9 +50,12 @@ class Pool(Base):
     contact: Mapped["Contact"] = relationship("Contact", lazy="select")
 
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
-    ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
+    ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[ba_report_id])
 
-    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select")
+    prep_file_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
+    prep_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[prep_file_id])
+
+    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
     lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
     experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
     actions: Mapped[list["PoolAction"]] = relationship("PoolAction", lazy="select", order_by="PoolAction.status_id", cascade="merge, save-update, delete, delete-orphan")
