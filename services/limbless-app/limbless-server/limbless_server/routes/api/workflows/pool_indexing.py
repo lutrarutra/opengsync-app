@@ -1,11 +1,10 @@
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, request, abort, Response, render_template, flash, url_for
+from flask import Blueprint, request, abort, Response
 from flask_login import login_required
-from flask_htmx import make_response
 
 from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse, LibraryStatus, LibraryType
+from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import pool_indexing as forms

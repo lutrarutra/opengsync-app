@@ -19,3 +19,4 @@ class FileType(ExtendedEnum[FileTypeEnum], enum_type=FileTypeEnum):
     LANE_POOLING_TABLE = FileTypeEnum(4, "Lane Pooling Table", "lane_pooling_tables", ["tsv"])
     LIBRARY_ANNOTATION = FileTypeEnum(5, "Library Annotation", "library_annotation", ["tsv"])
     POOL_INDEXING_TABLE = FileTypeEnum(6, "Pool Indexing Table", "pool_indexing_tables", ["tsv"])
+    RNA_PREP_TABLE = FileTypeEnum(7, "RNA Prep Table", "rna_prep_tables", ["tsv"])

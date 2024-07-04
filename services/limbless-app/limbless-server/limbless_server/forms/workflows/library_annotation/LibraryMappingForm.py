@@ -9,7 +9,7 @@ from wtforms.validators import DataRequired, Optional as OptionalValidator
 from limbless_db import models
 from limbless_db.categories import LibraryType
 
-from .... import tools, logger
+from .... import tools, logger  # noqa F401
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 

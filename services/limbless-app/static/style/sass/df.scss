@@ -1,0 +1,15 @@
+.dataframe-container {
+    width: 100%;
+    height: inherit;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+table.dataframe {
+    width: 100%;
+    height: 100%;
+    tbody td, thead th td {
+        border-right: 1px solid #e9ecef;
+        border-left: 1px solid #e9ecef;
+    }
+}

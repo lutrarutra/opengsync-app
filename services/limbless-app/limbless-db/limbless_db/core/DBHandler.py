@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, Union
 
 import sqlalchemy as sa
@@ -16,6 +17,9 @@ class DBHandler():
         except Exception as e:
             raise Exception(f"Could not connect to DB '{self._url}':\n{e}")
         self._session: Optional[orm.Session] = None
+
+    def timestamp(self) -> datetime:
+        return datetime.now()
 
     def create_tables(self) -> None:
         Base.metadata.create_all(self._engine)
