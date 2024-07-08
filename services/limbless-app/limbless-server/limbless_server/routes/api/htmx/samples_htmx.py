@@ -33,12 +33,22 @@ def get(page: int):
     if sort_by not in models.Sample.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [SampleStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+    
     samples: list[models.Sample] = []
 
     samples, n_pages = db.get_samples(
         offset=offset,
         user_id=current_user.id if not current_user.is_insider() else None,
-        sort_by=sort_by, descending=descending
+        sort_by=sort_by, descending=descending, status_in=status_in
     )
     
     return make_response(
@@ -46,6 +56,7 @@ def get(page: int):
             "components/tables/sample.html", samples=samples,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
+            status_in=status_in
         )
     )
 
@@ -268,6 +279,15 @@ def browse(workflow: str, page: int):
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
+    if (pool_id := request.args.get("pool_id")) is not None:
+        try:
+            pool_id = int(pool_id)
+            if (pool := db.get_pool(pool_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["pool_id"] = pool.id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
@@ -279,7 +299,8 @@ def browse(workflow: str, page: int):
             status_in = None
 
     samples, n_pages = db.get_samples(
-        seq_request_id=seq_request_id, status_in=status_in, offset=offset, sort_by=sort_by, descending=descending
+        seq_request_id=seq_request_id, status_in=status_in, offset=offset, sort_by=sort_by, descending=descending,
+        pool_id=pool_id
     )
     context["workflow"] = workflow
     return make_response(
@@ -304,6 +325,7 @@ def browse_query(workflow: str):
         field_name = "id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
+    
     context = {}
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
@@ -311,11 +333,20 @@ def browse_query(workflow: str):
             context["seq_request_id"] = seq_request_id
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (pool_id := request.args.get("pool_id")) is not None:
+        try:
+            pool_id = int(pool_id)
+            if (pool := db.get_pool(pool_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["pool_id"] = pool.id
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
 
     samples: list[models.Sample] = []
 
     if field_name == "name":
-        samples = db.query_samples(word=word, seq_request_id=seq_request_id)
+        samples = db.query_samples(word=word, seq_request_id=seq_request_id, pool_id=pool_id)
     elif field_name == "id":
         try:
             sample_id = int(word)
