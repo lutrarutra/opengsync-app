@@ -267,6 +267,7 @@ class BarcodeInputForm(HTMXFlaskForm):
 
         for idx, row in self.df.iterrows():
             self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "kit"] = row["kit"]
+            self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "kit_id"] = row["kit_id"]
             self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "adapter"] = row["adapter"]
             self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "index_1"] = row["index_1"]
             self.barcode_table.loc[self.barcode_table["library_id"] == row["library_id"], "index_2"] = row["index_2"]

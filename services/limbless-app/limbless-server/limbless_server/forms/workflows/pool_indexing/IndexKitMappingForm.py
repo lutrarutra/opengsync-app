@@ -82,7 +82,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 
                 for idx, row in _df.iterrows():
                     adapter_name = str(row["adapter"])
-                    if (adapter := session.get_adapter_from_index_kit(adapter_name, kit_id)) is None:
+                    if (adapter := session.get_adapter_from_index_kit(adapter=adapter_name, index_kit_id=kit_id)) is None:
                         index_kit_search_field.selected.errors = (f"Unknown adapter '{adapter_name}' does not belong to this index kit.",)
                         return False
                     
