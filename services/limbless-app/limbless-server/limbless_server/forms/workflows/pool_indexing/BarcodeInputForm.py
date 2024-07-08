@@ -275,17 +275,17 @@ class BarcodeInputForm(HTMXFlaskForm):
 
         return validated
 
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         if not self.validate():
             if self.input_type == "spreadsheet":
                 self._context["spreadsheet_style"] = self.spreadsheet_style
-                context["spreadsheet_data"] = self.df[BarcodeInputForm.columns.keys()].replace(np.nan, "").values.tolist()
-                if context["spreadsheet_data"] == []:
-                    context["spreadsheet_data"] = [[None]]
+                self._context["spreadsheet_data"] = self.df[BarcodeInputForm.columns.keys()].replace(np.nan, "").values.tolist()
+                if self._context["spreadsheet_data"] == []:
+                    self._context["spreadsheet_data"] = [[None]]
             else:
                 self._context["spreadsheet_data"] = self.barcode_table[BarcodeInputForm.columns.keys()].replace(np.nan, "").values.tolist()
 
-            return self.make_response(**context)
+            return self.make_response()
 
         if self.barcode_table["kit"].notna().any() and self.barcode_table["kit_id"].isna().any():
             index_kit_mapping_form = IndexKitMappingForm()
@@ -293,11 +293,11 @@ class BarcodeInputForm(HTMXFlaskForm):
             index_kit_mapping_form.add_table("barcode_table", self.barcode_table)
             index_kit_mapping_form.update_data()
             index_kit_mapping_form.prepare()
-            return index_kit_mapping_form.make_response(**context)
+            return index_kit_mapping_form.make_response()
         
         complete_pool_indexing_form = CompleteLibraryIndexingForm()
         complete_pool_indexing_form.metadata["pool_id"] = self.pool.id
         complete_pool_indexing_form.add_table("barcode_table", self.barcode_table)
         complete_pool_indexing_form.update_data()
         complete_pool_indexing_form.prepare()
-        return complete_pool_indexing_form.make_response(**context)
+        return complete_pool_indexing_form.make_response()

@@ -62,6 +62,7 @@ def parse_barcodes(pool_id: int) -> Response:
     
     if (input_type := request.args.get("input_type")) not in ["file", "spreadsheet", "plate"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
+    
     form = forms.BarcodeInputForm(pool=pool, input_type=input_type, formdata=request.form | request.files)
     return form.process_request()
 
