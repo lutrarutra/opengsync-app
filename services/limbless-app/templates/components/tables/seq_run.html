@@ -18,6 +18,8 @@
                     table_col(
                         table_container_id='seq_run-table', column_name='Experiment Name', column_var='experiment_name',
                         sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        query_url="seq_runs_htmx.table_query", current_query=current_query,
+                        active_query_field=active_query_field, query_type="text",
                     )
                 }}
                 {{

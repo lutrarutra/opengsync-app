@@ -1,6 +1,9 @@
 import math
 from typing import Optional
 
+import sqlalchemy as sa
+
+
 from ...models import SeqRun
 from ... import PAGE_LIMIT
 from ...categories import ReadTypeEnum, RunStatusEnum
@@ -132,3 +135,25 @@ def update_seq_run(
         self.close_session()
 
     return seq_run
+
+
+def query_seq_runs(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[SeqRun]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    query = self._session.query(SeqRun)
+    
+    query = query.order_by(
+        sa.func.similarity(SeqRun.experiment_name, word).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    seq_runs = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return seq_runs
