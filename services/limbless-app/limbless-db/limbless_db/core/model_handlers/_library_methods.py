@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, SampleStatus, PoolStatus
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus
 from .. import exceptions
 
 
@@ -255,6 +255,7 @@ def query_libraries(
     seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
+    pooled: Optional[bool] = None,
     status: Optional[LibraryStatusEnum] = None, pool_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Library]:
@@ -305,6 +306,16 @@ def query_libraries(
         query = query.where(
             models.Library.status_id == status.id
         )
+
+    if pooled is not None:
+        if pooled:
+            query = query.where(
+                models.Library.pool_id != None # noqa
+            )
+        else:
+            query = query.where(
+                models.Library.pool_id == None # noqa
+            )
 
     if experiment_id is not None:
         query = query.join(

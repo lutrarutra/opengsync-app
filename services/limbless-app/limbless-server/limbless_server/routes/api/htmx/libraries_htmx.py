@@ -389,8 +389,9 @@ def browse_query(workflow: str):
     libraries: list[models.Library] = []
     if field_name == "name":
         libraries = db.query_libraries(
-            word, status_in=status_in, type_in=type_in, experiment_id=experiment_id,
-            pool_id=pool_id if workflow != "library_pooling" else None, seq_request_id=seq_request_id
+            word, status_in=status_in, type_in=type_in, experiment_id=experiment_id, seq_request_id=seq_request_id,
+            pool_id=pool_id if workflow != "library_pooling" else None,
+            pooled=False if workflow == "library_pooling" else None
         )
     elif field_name == "id":
         try:
@@ -474,7 +475,8 @@ def select_all(workflow: str):
 
     libraries, _ = db.get_libraries(
         seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
-        pool_id=pool_id if workflow != "library_pooling" else None
+        pool_id=pool_id if workflow != "library_pooling" else None,
+        pooled=False if workflow == "library_pooling" else None
     )
 
     form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)

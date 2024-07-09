@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .VisiumAnnotation import VisiumAnnotation
     from .SeqQuality import SeqQuality
     from .File import File
-    from .Plate import Plate
+    from .Links import SamplePlateLink
 
 
 @dataclass
@@ -58,9 +58,7 @@ class Library(Base):
         "Pool", back_populates="libraries", lazy="joined", cascade="save-update, merge"
     )
 
-    plate_well: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
-    plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
-    plate: Mapped[Optional["Plate"]] = relationship("Plate", back_populates="libraries", lazy="select")
+    plate_links: Mapped[list["SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="joined")

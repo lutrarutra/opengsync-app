@@ -21,10 +21,11 @@ from .Lane import Lane  # noqa: F401
 from .actions import PoolAction, ExperimentAction  # noqa: F401
 from .dilutions import PoolDilution  # noqa: F401
 from .Plate import Plate  # noqa: F401
+from .SampleAttribute import SampleAttribute  # noqa: F401
 
 from .Links import (  # noqa: F401
     LanePoolLink, SampleLibraryLink,
     ExperimentFileLink, SeqRequestFileLink,
     ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
-    SeqRequestDeliveryEmailLink, ExperimentPoolLink
+    SeqRequestDeliveryEmailLink, ExperimentPoolLink, SamplePlateLink
 )

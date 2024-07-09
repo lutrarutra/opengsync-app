@@ -56,15 +56,13 @@ def pool_page(pool_id: int):
             ]
 
     is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider()
-    is_plated = True and len(pool.libraries) > 0
     is_indexed = True and len(pool.libraries) > 0
     for library in pool.libraries:
-        if library.plate_id is None:
-            is_plated = False
         if not library.is_indexed():
             is_indexed = False
+            break
 
     return render_template(
         "pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable,
-        is_plated=is_plated, is_indexed=is_indexed
+        is_plated=False, is_indexed=is_indexed
     )

@@ -41,7 +41,7 @@ class Pool(Base):
     owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="joined")
 
     plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
-    plate: Mapped[Optional["Plate"]] = relationship("Plate", back_populates="pools", lazy="select")
+    plate: Mapped[Optional["Plate"]] = relationship("Plate", lazy="select")
 
     seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=True)
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", lazy="select")

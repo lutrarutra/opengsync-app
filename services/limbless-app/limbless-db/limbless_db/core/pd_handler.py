@@ -140,6 +140,30 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
     return df
 
 
+def get_plate_df(self, plate_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Plate.id, models.Plate.name, models.SamplePlateLink.well_idx,
+        models.SamplePlateLink.sample_id, models.SamplePlateLink.library_id,
+        models.Sample.name.label("sample_name"), models.Library.name.label("library_name"),
+    ).where(
+        models.Plate.id == plate_id
+    ).join(
+        models.SamplePlateLink,
+        models.SamplePlateLink.plate_id == models.Plate.id
+    ).join(
+        models.Sample,
+        models.Sample.id == models.SamplePlateLink.sample_id,
+        isouter=True
+    ).join(
+        models.Library,
+        models.Library.id == models.SamplePlateLink.library_id,
+        isouter=True
+    )
+
+    df = pd.read_sql(query, self._engine)
+    return df
+
+
 def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Lane.id, models.Lane.number.label("lane"),
@@ -178,9 +202,9 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
 
 def get_pool_libraries_df(self, pool_id: int, drop_empty_columns: bool = True) -> pd.DataFrame:
     columns = [
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
-        models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
-        models.Library.genome_ref_id.label("reference_id"),
+        models.Pool.id.label("pool_id"),
+        models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.status_id,
+        models.Library.type_id.label("library_type_id"), models.Library.genome_ref_id.label("reference_id"),
         models.Library.adapter, models.Library.index_kit_id.label("index_kit_id"), models.IndexKit.name.label("kit"),
         models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
         models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),

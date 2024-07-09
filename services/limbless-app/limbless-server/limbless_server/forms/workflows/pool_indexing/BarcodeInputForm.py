@@ -25,7 +25,7 @@ from ...SearchBar import OptionalSearchBar
 
 class PlateSubForm(FlaskForm):
     index_kit = FormField(OptionalSearchBar, label="Select Index Kit")
-    starting_index = SelectField("Starting Index", choices=[(i, models.Plate.well_identifier(i, 12, 8)) for i in range(96)], default=0)
+    starting_index = SelectField("Starting Index", choices=[(i, models.Plate.well_identifier(i, 12, 8)) for i in range(96)], default=0, coerce=int)
     flipped = BooleanField("Flipped", default=False)
 
 
@@ -191,11 +191,10 @@ class BarcodeInputForm(HTMXFlaskForm):
                 self.barcode_table["kit_id"] = index_kit.id
 
                 for i in range(self.pool.plate.num_cols * self.pool.plate.num_rows):
-                    well = get_well(i)
-                    if (sample := self.pool.plate.get_sample(well)) is None:
+                    if (sample := session.get_plate_sample(plate_id=self.pool.plate_id, well_idx=i)) is None:
                         continue
                     elif isinstance(sample, models.Library):
-                        adapter = session.get_adapter_from_index_kit(index_kit_id=index_kit.id, plate_well=well)
+                        adapter = session.get_adapter_from_index_kit(index_kit_id=index_kit.id, plate_well=get_well(i + self.plate_form.starting_index.data))
                         self.barcode_table.loc[self.barcode_table["library_id"] == sample.id, "adapter"] = adapter.name
                         self.barcode_table.loc[self.barcode_table["library_id"] == sample.id, "index_1"] = adapter.barcode_1.sequence if adapter.barcode_1 is not None else None
                         self.barcode_table.loc[self.barcode_table["library_id"] == sample.id, "index_2"] = adapter.barcode_2.sequence if adapter.barcode_2 is not None else None

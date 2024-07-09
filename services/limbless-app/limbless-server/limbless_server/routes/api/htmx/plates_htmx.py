@@ -27,8 +27,4 @@ def plate_tab(plate_id: int):
     if (plate := db.get_plate(plate_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return make_response(
-        render_template(
-            "components/plate_tab.html", plate=plate,
-        )
-    )
+    return make_response(render_template("components/plate.html", plate=plate))

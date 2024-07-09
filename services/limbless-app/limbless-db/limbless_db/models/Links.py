@@ -11,6 +11,20 @@ if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
     from .SeqRequest import SeqRequest
+    from .Plate import Plate
+
+
+class SamplePlateLink(Base):
+    __tablename__ = "sample_plate_link"
+    plate_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), primary_key=True)
+    well_idx: Mapped[int] = mapped_column(sa.Integer, nullable=False, primary_key=True)
+    
+    sample_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("sample.id"), nullable=True)
+    library_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), nullable=True)
+
+    plate: Mapped["Plate"] = relationship("Plate", back_populates="sample_links", lazy="joined")
+    sample: Mapped[Optional["Sample"]] = relationship("Sample", back_populates="plate_links", lazy="joined")
+    library: Mapped[Optional["Library"]] = relationship("Library", back_populates="plate_links", lazy="joined")
 
 
 class ExperimentPoolLink(Base):

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 from .Sample import Sample
 from .Library import Library
-from .Pool import Pool
+from .Links import SamplePlateLink
 
 if TYPE_CHECKING:
     from .User import User
@@ -23,10 +23,8 @@ class Plate(Base):
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", lazy="joined")
 
-    samples: Mapped[list[Sample]] = relationship("Sample", back_populates="plate", lazy="select")
-    libraries: Mapped[list[Library]] = relationship("Library", back_populates="plate", lazy="select")
-    pools: Mapped[list[Pool]] = relationship("Pool", back_populates="plate", lazy="select")
-        
+    sample_links: Mapped[list[SamplePlateLink]] = relationship(SamplePlateLink, back_populates="plate", lazy="select", order_by="SamplePlateLink.well_idx")
+
     def __str__(self) -> str:
         return f"Plate(id: {self.id}, name: {self.name}, num_cols: {self.num_cols}, num_rows: {self.num_rows})"
     
@@ -54,14 +52,15 @@ class Plate(Base):
     def get_well_xy(self, row: int, col: int) -> str:
         return Plate.well_identifier(row * self.num_cols + col, self.num_cols, self.num_cols)
     
-    def get_sample(self, well: str) -> Optional[Library | Sample]:
-        for sample in self.samples:
-            if sample.plate_well == well:
-                return sample
-        for library in self.libraries:
-            if library.plate_well == well:
-                return library
+    def get_sample(self, well_idx: int) -> Optional[Sample | Library]:
+        for link in self.sample_links:
+            if link.well_idx == well_idx:
+                if link.sample is not None:
+                    return link.sample
+                if link.library is not None:
+                    return link.library
+                raise ValueError(f"SamplePlateLink {link} has neither a sample nor a library")
         return None
     
-    def get_sample_xy(self, row: int, col: int) -> Optional[Library | Sample]:
-        return self.get_sample(self.get_well_xy(row, col))
+    def get_sample_xy(self, row: int, col: int) -> Optional[Sample | Library]:
+        return self.get_sample(row * self.num_cols + col)

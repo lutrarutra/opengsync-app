@@ -16,16 +16,22 @@
                 <button id="plate-sort-id" type="button" class="btn btn-primary">ID</button>
                 <button id="plate-sort-remove" type="button" class="btn btn-danger">No Plate</button>
             </div>
+            <div class="invalid-feedback-container">
+                {% for error in plate_samples_form.error_dummy.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
             <div class="body">
                 <div class="standy-list">
                     {% for _, row in sample_table.iterrows() %}
+                    {% if plate_table is not defined or row["id"] not in plate_table["sample_id"].values %}
                     <div class="selectable-element" name="{{ row['name'] }}" id="s-{{ '%07d' % row['id'] }}">{{ row['name'] }}</div>
+                    {% endif %}
                     {% endfor %}
                     {% for _, row in library_table.iterrows() %}
+                    {% if plate_table is not defined or row["id"] not in plate_table["library_id"].values %}
                     <div class="selectable-element" name="{{ row['name'] }}" id="l-{{ '%07d' % row['id'] }}">{{ row['name'] }}</div>
-                    {% endfor %}
-                    {% for _, row in pool_table.iterrows() %}
-                    <div class="selectable-element" name="{{ row['name'] }}" id="p-{{ '%07d' % row['id'] }}">{{ row['name'] }}</div>
+                    {% endif %}
                     {% endfor %}
                 </div>
                 <div id="plate-container" class="plate-container">
@@ -33,7 +39,26 @@
                         {% for row in range(0, 8) %}
                         <div class="plate-row" id="plate-row-{{row}}">
                         {% for col in range(0, 12) %}
-                            <div class="plate-cell" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}"></div>
+                            {% if plate is defined and plate_table is defined %}
+                                {% set well_idx = (row * plate.num_cols + col) %}
+                                {% if well_idx in plate_table["well_idx"].values %}
+                                    {% set sample_row = plate_table[plate_table["well_idx"] == well_idx].iloc[0] %}
+                                    <div class="plate-cell filled" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}">
+                                        {% if not isna(sample_row["sample_id"]) %}
+                                        {% set sample = sample_row["sample_name"] %}
+                                        {% set id = "s-" + '%07d' % sample_row["sample_id"] %}
+                                        {% else %}
+                                        {% set sample = sample_row["library_name"] %}
+                                        {% set id = "l-" + '%07d' % sample_row["library_id"] %}
+                                        {% endif %}
+                                        <div class="selectable-element" name="{{ sample }}" id="{{ id }}">{{ sample }}</div>
+                                    </div>
+                                {% else %}
+                                    <div class="plate-cell" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}"></div>
+                                {% endif %}
+                            {% else %}
+                                <div class="plate-cell" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}"></div>
+                            {% endif %}
                         {% endfor %}
                         </div>
                         {% endfor %}
@@ -132,6 +157,18 @@
             });
         }
 
+        function get_plate_samples() {
+            var plate_samples = [];
+            $("#plate-container .plate-cell").each(function(){
+                if ($(this).hasClass("filled")) {
+                    plate_samples.push($(this).children(".selectable-element").attr("id"));
+                } else {
+                    plate_samples.push(null);
+                }
+            });
+            return plate_samples
+        }
+
         $(document).ready(function(){
             window.onbeforeunload = function() {
                 return "Data will be lost if you leave the page, are you sure?";
@@ -146,6 +183,10 @@
                     plate_sample($(this));
                 }
             });
+            $(".filled .selectable-element").on("contextmenu", function(ev){
+                ev.preventDefault();
+                deplate_sample($(this));
+            });
         });
 
         $("#plate-sort-remove").on("click", function(){
@@ -153,7 +194,7 @@
         });
 
         $("#plate-sort-abc").on("click", function(){
-            $(".plate-cell .selectable-element").each(function() {
+            $("#plate-container .plate-cell .selectable-element").each(function() {
                 deplate_sample($(this));
             });
             $(".standy-list").html($(".standy-list .selectable-element").sort(function(a, b){
@@ -169,7 +210,7 @@
         });
 
         $("#plate-sort-id").on("click", function(){
-            $(".plate-cell .selectable-element").each(function() {
+            $("#plate-container .plate-cell .selectable-element").each(function() {
                 deplate_sample($(this));
             });
             $(".standy-list").html($(".standy-list .selectable-element").sort(function(a, b){
@@ -184,22 +225,21 @@
             });
         });
 
+
         $("#submit-store_samples-form-btn").on("click", function() {
             window.onbeforeunload = null;
-            var plate_order = [];
-            $(".plate-cell").each(function(){
-                if ($(this).hasClass("filled")) {
-                    plate_order.push($(this).children(".selectable-element").attr("id"));
-                } else {
-                    plate_order.push(null);
-                }
-            });
+            var plate_samples = get_plate_samples();
+            if (plate_samples.length > 96) {
+                $(".invalid-feedback-container").html("<p>Plate size is too large.</p>");
+                return;
+            }
+
             htmx.ajax("POST", "{{ url_for('plate_samples_workflow.submit', **url_context) }}", {
                 "target": "#plate_samples-form-container",
                 "swap": "outerHTML",
                 "values": {
                     "file_uuid": "{{ plate_samples_form.file_uuid.data }}",
-                    "plate_order": JSON.stringify(plate_order),
+                    "plate_order": JSON.stringify(plate_samples),
                     "csrf_token": "{{ plate_samples_form.csrf_token._value() }}",
                     "plate_name": $("#plate_name").val(),
                     {% if seq_request %}

@@ -252,7 +252,7 @@ def get_plate(sample_id: int):
     
     return make_response(
         render_template(
-            "components/plate_tab.html", plate=sample.plate,
+            "components/plate.html", plate=sample.plate,
             sample=sample
         )
     )

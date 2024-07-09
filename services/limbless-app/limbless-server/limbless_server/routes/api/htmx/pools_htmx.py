@@ -477,23 +477,6 @@ def browse_query(workflow: str):
     )
 
 
-@pools_htmx.route("<int:pool_id>/get_plate", methods=["GET"])
-@db_session(db)
-@login_required
-def get_plate(pool_id: int):
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    if (pool := db.get_pool(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    return make_response(
-        render_template(
-            "components/plate_tab.html", plate=pool.plate,
-        )
-    )
-
-
 @pools_htmx.route("<int:pool_id>/get_prep_table", methods=["GET"])
 @db_session(db)
 @login_required

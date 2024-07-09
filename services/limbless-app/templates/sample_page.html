@@ -117,9 +117,6 @@
         </div>
         {% if current_user.is_insider() %}
         <div class="tab-pane fade" id="sample-plate-tab" role="tabpanel" tabindex="2">
-            <div hx-get="{{ url_for('samples_htmx.get_plate', sample_id=sample.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
-                {{ spinner() }}
-            </div>
         </div>
         {% if sample.ba_report_id %}
         <div class="tab-pane fade show" id="ba_report-tab" role="tabpanel" tabindex="3">
