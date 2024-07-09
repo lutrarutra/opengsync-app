@@ -157,7 +157,7 @@ class DBHandler():
     )
 
     from .model_handlers._seq_run_methods import (
-        create_seq_run, get_seq_run, get_seq_runs, update_seq_run
+        create_seq_run, get_seq_run, get_seq_runs, update_seq_run, query_seq_runs
     )
 
     from .pd_handler import (

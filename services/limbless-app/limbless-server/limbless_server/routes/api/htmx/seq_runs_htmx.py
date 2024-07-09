@@ -42,3 +42,30 @@ def get(page: int):
         "components/tables/seq_run.html", seq_runs=seq_runs, n_pages=n_pages,
         active_page=page, sort_by=sort_by, sort_order=sort_order, status_in=status_in,
     ))
+
+
+@seq_runs_htmx.route("table_query", methods=["GET"])
+@login_required
+def table_query():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (word := request.args.get("experiment_name", None)) is not None:
+        field_name = "experiment_name"
+    elif (word := request.args.get("id", None)) is not None:
+        field_name = "id"
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    seq_runs = []
+    if field_name == "experiment_name":
+        seq_runs = db.query_seq_runs(word)
+
+    elif field_name == "id":
+        try:
+            if (seq_run := db.get_seq_run(int(word))) is not None:
+                seq_runs.append(seq_run)
+        except ValueError:
+            pass
+        
+    return make_response(render_template("components/tables/seq_run.html", seq_runs=seq_runs, current_query=word, field_name=field_name))

@@ -62,6 +62,7 @@ def get_samples(
     self, user_id: Optional[int] = None,
     project_id: Optional[int] = None,
     library_id: Optional[int] = None,
+    pool_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     status: Optional[SampleStatusEnum] = None,
     status_in: Optional[list[SampleStatusEnum]] = None,
@@ -95,6 +96,17 @@ def get_samples(
             models.SampleLibraryLink.sample_id == models.Sample.id
         ).where(
             models.SampleLibraryLink.library_id == library_id
+        )
+
+    if pool_id is not None:
+        query = query.join(
+            models.SampleLibraryLink,
+            models.SampleLibraryLink.sample_id == models.Sample.id
+        ).join(
+            models.Library,
+            models.Library.id == models.SampleLibraryLink.library_id
+        ).where(
+            models.Library.pool_id == pool_id
         )
 
     if status is not None:
@@ -164,6 +176,7 @@ def query_samples(
     self, word: str,
     user_id: Optional[int] = None,
     project_id: Optional[int] = None,
+    pool_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Sample]:
@@ -187,6 +200,17 @@ def query_samples(
     if seq_request_id is not None:
         query = query.where(
             models.Sample.seq_request_id == seq_request_id
+        )
+
+    if pool_id is not None:
+        query = query.join(
+            models.SampleLibraryLink,
+            models.SampleLibraryLink.sample_id == models.Sample.id
+        ).join(
+            models.Library,
+            models.Library.id == models.SampleLibraryLink.library_id
+        ).where(
+            models.Library.pool_id == pool_id
         )
 
     query = query.order_by(
