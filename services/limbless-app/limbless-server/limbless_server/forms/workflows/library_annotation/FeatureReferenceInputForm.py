@@ -23,7 +23,6 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
 from .KitMappingForm import KitMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .PoolMappingForm import PoolMappingForm
 from .FRPAnnotationForm import FRPAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 
@@ -376,11 +375,6 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
-
-        if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            pool_mapping_form.prepare()
-            return pool_mapping_form.make_response()
 
         complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()

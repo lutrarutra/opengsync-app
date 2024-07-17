@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus, BarcodeType
 from .. import exceptions
 
 
@@ -18,11 +18,6 @@ def create_library(
     genome_ref: Optional[GenomeRefEnum] = None,
     index_kit_id: Optional[int] = None,
     pool_id: Optional[int] = None,
-    index_1_sequence: Optional[str] = None,
-    index_2_sequence: Optional[str] = None,
-    index_3_sequence: Optional[str] = None,
-    index_4_sequence: Optional[str] = None,
-    adapter: Optional[str] = None,
     visium_annotation_id: Optional[int] = None,
     seq_depth_requested: Optional[float] = None,
     commit: bool = True
@@ -65,15 +60,11 @@ def create_library(
         owner_id=owner_id,
         index_kit_id=index_kit_id,
         pool_id=pool_id,
-        index_1_sequence=index_1_sequence.strip() if index_1_sequence else None,
-        index_2_sequence=index_2_sequence.strip() if index_2_sequence else None,
-        index_3_sequence=index_3_sequence.strip() if index_3_sequence else None,
-        index_4_sequence=index_4_sequence.strip() if index_4_sequence else None,
-        adapter=adapter.strip() if adapter else None,
         status_id=library_status_id,
         visium_annotation_id=visium_annotation_id,
         seq_depth_requested=seq_depth_requested
     )
+
     self._session.add(library)
 
     if commit:
@@ -429,3 +420,31 @@ def set_library_seq_quality(
         self.close_session()
 
     return quality
+
+
+def add_library_index(
+    self, library_id: int, name_i7: Optional[str], sequence_i7: str, name_i5: Optional[str], sequence_i5: Optional[str]
+) -> models.Library:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    library.indices.append(models.LibraryIndex(
+        library_id=library_id,
+        name_i7=name_i7,
+        sequence_i7=sequence_i7,
+        name_i5=name_i5,
+        sequence_i5=sequence_i5,
+    ))
+
+    self._session.add(library)
+    self._session.commit()
+    self._session.refresh(library)
+
+    if not persist_session:
+        self.close_session()
+
+    return library

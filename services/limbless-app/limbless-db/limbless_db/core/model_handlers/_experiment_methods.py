@@ -1,12 +1,11 @@
 import math
-from datetime import datetime
 from typing import Optional
 
 import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import ExperimentWorkFlowEnum, ExperimentStatus, ExperimentStatusEnum, ExperimentWorkFlow
+from ...categories import ExperimentWorkFlowEnum, ExperimentStatusEnum, ExperimentWorkFlow
 
 
 def create_experiment(
@@ -40,14 +39,6 @@ def create_experiment(
     )
     self._session.add(comment)
 
-    action = models.ExperimentAction(
-        status_id=ExperimentStatus.DRAFT.id,
-        user_id=operator_id,
-        comment_id=comment.id,
-        experiment_id=experiment.id
-    )
-
-    experiment.actions.append(action)
     self._session.add(experiment)
     self._session.commit()
     self._session.refresh(experiment)

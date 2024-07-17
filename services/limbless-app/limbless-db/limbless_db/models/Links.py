@@ -79,7 +79,7 @@ class ExperimentFileLink(Base):
 class SeqRequestFileLink(Base):
     __tablename__ = "seq_request_file_link"
     file_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), primary_key=True)
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True)
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True)
 
     def __str__(self) -> str:
         return f"SeqRequestFileLink(file_id: {self.file_id}, seq_request_id: {self.seq_request_id})"
@@ -96,7 +96,7 @@ class ExperimentCommentLink(Base):
 
 class SeqRequestCommentLink(Base):
     __tablename__ = "seq_request_comment_link"
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True)
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True)
     comment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("comment.id"), primary_key=True)
 
     def __str__(self) -> str:
@@ -111,19 +111,11 @@ class LibraryFeatureLink(Base):
 
     def __str__(self) -> str:
         return f"LibraryFeatureLink(library_id: {self.library_id}, feature_id: {self.feature_id})"
-    
-
-# LibraryFeatureLink = sa.Table(
-#     "library_feature_link",
-#     Base.metadata,
-#     sa.Column("library_id", sa.Integer, sa.ForeignKey("library.id"), primary_key=True),
-#     sa.Column("feature_id", sa.Integer, sa.ForeignKey("feature.id"), primary_key=True)
-# )
 
 
 class SeqRequestDeliveryEmailLink(Base):
     __tablename__ = "seq_request_delivery_email_link"
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True, nullable=False)
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True, nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), primary_key=True, nullable=False, index=True)
     
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=DeliveryStatus.PENDING.id)

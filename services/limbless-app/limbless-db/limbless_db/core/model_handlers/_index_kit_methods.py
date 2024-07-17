@@ -3,14 +3,14 @@ from typing import Optional
 
 import sqlalchemy as sa
 
+from ...categories import IndexTypeEnum
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
 def create_index_kit(
     self, name: str,
-    num_indices_per_adapter: int,
-    commit: bool = True
+    type: IndexTypeEnum,
 ) -> models.IndexKit:
     persist_session = self._session is not None
     if not self._session:
@@ -21,12 +21,11 @@ def create_index_kit(
 
     seq_kit = models.IndexKit(
         name=name.strip(),
-        num_indices_per_adapter=num_indices_per_adapter
+        type_id=type.id
     )
     self._session.add(seq_kit)
-    if commit:
-        self._session.commit()
-        self._session.refresh(seq_kit)
+    self._session.commit()
+    self._session.refresh(seq_kit)
 
     if not persist_session:
         self.close_session()

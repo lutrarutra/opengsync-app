@@ -19,9 +19,7 @@ from .... import logger, db
 from ....tools import SpreadSheetColumn, tools
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
-from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
-from .PoolMappingForm import PoolMappingForm
 from .CompleteSASForm import CompleteSASForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .GenomeRefMappingForm import GenomeRefMappingForm
@@ -29,25 +27,18 @@ from .FRPAnnotationForm import FRPAnnotationForm
 from .LibraryMappingForm import LibraryMappingForm
 
 raw_columns = {
-    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str),
-    "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 200, str),
-    "genome": SpreadSheetColumn("C", "genome", "Genome", "dropdown", 150, str, GenomeRef.names()),
-    "library_type": SpreadSheetColumn("D", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
-    "seq_depth": SpreadSheetColumn("E", "seq_depth", "Sequencing Depth", "numeric", 150, float),
+    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str),
+    "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
+    "library_type": SpreadSheetColumn("C", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
+    "seq_depth": SpreadSheetColumn("D", "seq_depth", "Sequencing Depth", "numeric", 150, float),
 }
 
 pooled_columns = {
-    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str),
-    "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 200, str),
-    "genome": SpreadSheetColumn("C", "genome", "Genome", "dropdown", 150, str, GenomeRef.names()),
-    "library_type": SpreadSheetColumn("D", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
-    "pool": SpreadSheetColumn("E", "pool", "Pool", "text", 100, str),
-    "index_kit": SpreadSheetColumn("F", "index_kit", "Index Kit", "text", 150, str),
-    "adapter": SpreadSheetColumn("G", "adapter", "Adapter", "text", 100, str),
-    "index_1": SpreadSheetColumn("H", "index_1", "Index 1 (i7)", "text", 120, str),
-    "index_2": SpreadSheetColumn("I", "index_2", "Index 2 (i5)", "text", 120, str),
-    "index_3": SpreadSheetColumn("J", "index_3", "Index 3", "text", 80, str),
-    "index_4": SpreadSheetColumn("K", "index_4", "Index 4", "text", 80, str),
+    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str),
+    "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
+    "library_type": SpreadSheetColumn("C", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
+    "index_i7": SpreadSheetColumn("D", "index_i7", "Index i7 sequence/name", "text", 250, str),
+    "index_i5": SpreadSheetColumn("E", "index_i5", "Index i5 sequence/name", "text", 250, str),
 }
 
 
@@ -177,8 +168,8 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             elif column.var_type == int:
                 self.df[label] = self.df[label].apply(tools.parse_int)
 
-        library_name_counts = self.df["library_name"].value_counts()
-        seq_request_library_names = [library.name for library in self.seq_request.libraries]
+        # library_name_counts = self.df["library_name"].value_counts()
+        # seq_request_library_names = [library.name for library in self.seq_request.libraries]
 
         self.file.errors = []
         self.spreadsheet_dummy.errors = []
@@ -190,6 +181,16 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             else:
                 self.file.errors.append(f"Row {row_num}: {message}")  # type: ignore
 
+        self.library_table = self.df.copy()
+        if self.metadata["workflow_type"] == "pooled":
+            self.library_table["index_i7_sequences"] = None
+            self.library_table["index_i5_sequences"] = None
+            self.library_table["index_i7_name"] = None
+            self.library_table["index_i5_name"] = None
+
+        def base_filter(x: str) -> list[str]:
+            return [c for c in x if c not in "ACGT"]
+
         with DBSession(db) as session:
             if (project_id := self.metadata.get("project_id")) is not None:
                 if (project := session.get_project(project_id)) is None:
@@ -198,20 +199,20 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             else:
                 project = None
 
-            for i, (_, row) in enumerate(self.df.iterrows()):
+            for i, (idx, row) in enumerate(self.df.iterrows()):
                 if pd.isna(row["sample_name"]):
                     add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
                 elif project is not None and row["sample_name"] in [sample.name for sample in project.samples]:
                     add_error(i + 1, "sample_name", "Sample name already exists in the project. Rename sample or change project", "duplicate_value")
                     
-                if pd.isna(row["library_name"]):
-                    add_error(i + 1, "library_name", "missing 'Library Name'", "missing_value")
+                # if pd.isna(row["library_name"]):
+                #     add_error(i + 1, "library_name", "missing 'Library Name'", "missing_value")
 
-                elif library_name_counts[row["library_name"]] > 1:
-                    add_error(i + 1, "library_name", "duplicate 'Library Name'", "duplicate_value")
+                # elif library_name_counts[row["library_name"]] > 1:
+                #     add_error(i + 1, "library_name", "duplicate 'Library Name'", "duplicate_value")
 
-                elif row["library_name"] in seq_request_library_names:
-                    add_error(i + 1, "library_name", "Library name already exists in the request.", "duplicate_value")
+                # elif row["library_name"] in seq_request_library_names:
+                #     add_error(i + 1, "library_name", "Library name already exists in the request.", "duplicate_value")
 
                 if pd.isna(row["library_type"]):
                     add_error(i + 1, "library_type", "missing 'Library Type'", "missing_value")
@@ -230,26 +231,62 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                             add_error(i + 1, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
 
                 elif self.metadata["workflow_type"] == "pooled":
-                    adapter_defined = pd.notna(row["adapter"])
-                    index_kit_defined = pd.notna(row["index_kit"])
+                    if pd.isna(row["index_i7"]):
+                        add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
 
-                    if pd.isna(row["pool"]):
-                        add_error(i + 1, "pool", "missing 'Pool'", "missing_value")
-                    
-                    if adapter_defined and not index_kit_defined:
-                        add_error(i + 1, "index_kit", "missing 'Index Kit'", "missing_value")
-                    elif not adapter_defined and index_kit_defined:
-                        add_error(i + 1, "adapter", "missing 'Adapter'", "missing_value")
+                    if (index_1_kit_id := self.metadata["index_1_kit_id"]) is not None:
+                        if (index_1_kit := session.get_index_kit(index_1_kit_id)) is None:
+                            logger.error(f"{self.uuid}: Index kit with ID {index_1_kit_id} does not exist.")
+                            raise ValueError(f"Index kit with ID {index_1_kit_id} does not exist.")
+                        if pd.isna(row["index_i7"]):
+                            add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
+                            continue
+                        
+                        if (adapter_1 := session.get_adapter_from_index_kit(index_kit_id=index_1_kit_id, adapter=row["index_i7"].strip())) is None:
+                            add_error(i + 1, "index_i7", f"Adapter '{row['index_i7']}' not found in selected index-kit '{index_1_kit.name}'", "invalid_value")
+                            continue
+                        
+                        if (index_2_kit_id := self.metadata["index_2_kit_id"]) is None or index_1_kit_id == self.metadata["index_2_kit_id"]:
+                            adapter_2 = adapter_1
+                            index_2_kit = index_1_kit
+                        else:
+                            if (index_2_kit := session.get_index_kit(index_2_kit_id)) is None:
+                                logger.error(f"{self.uuid}: Index kit with ID {index_2_kit_id} does not exist.")
+                                raise ValueError(f"Index kit with ID {index_2_kit_id} does not exist.")
+                            
+                            if (adapter_2 := session.get_adapter_from_index_kit(index_kit_id=index_2_kit_id, adapter=row["index_i5"].strip())) is None:
+                                add_error(i + 1, "index_i5", f"Adapter '{row['index_i5']}' not found in selected index-kit '{index_2_kit.name}'", "invalid_value")
+                                continue
 
-                    elif not adapter_defined and pd.isna(row["index_1"]):
-                        add_error(i + 1, "index_1", "missing 'Index 1'", "missing_value")
-                        add_error(i + 1, "adapter", "missing 'Adapter'", "missing_value")
-                        add_error(i + 1, "index_kit", "missing 'Index Kit'", "missing_value")
+                        self.library_table.at[idx, "index_i7_sequences"] = ";".join([bc_i7.sequence for bc_i7 in adapter_1.barcodes_i7])
+                        self.library_table.at[idx, "index_i7_name"] = adapter_1.name
+                        self.library_table.at[idx, "index_i5_sequences"] = ";".join([bc_i5.sequence for bc_i5 in adapter_2.barcodes_i5])
+                        if len(adapter_2.barcodes_i5) > 0:
+                            self.library_table.at[idx, "index_i5_name"] = adapter_2.name
+
+                    else:
+                        index_i7_sequences = row["index_i7"].split(";")
+                        
+                        for index_i7_sequence in index_i7_sequences:
+                            if len(unknown_bases := base_filter(index_i7_sequence)) > 0:
+                                add_error(i + 1, "index_i7", f"Invalid base(s) in 'Index i7': {', '.join(unknown_bases)}", "invalid_value")
+
+                        self.library_table.at[idx, "index_i7_sequences"] = ";".join(index_i7_sequences)
+                        
+                        if pd.notna(row["index_i5"]):
+                            index_i5_sequences = row["index_i5"].split(";")
+                            if len(index_i5_sequences) != len(index_i7_sequences):
+                                add_error(i + 1, "index_i5", "Number of 'Index i5'-barcodes sequences should match 'Index i7'-barcodes", "invalid_value")
+                            for index_i5_sequence in index_i5_sequences:
+                                if len(unknown_bases := base_filter(index_i5_sequence)) > 0:
+                                    add_error(i + 1, "index_i5", f"Invalid base(s) in 'Index i5': {', '.join(unknown_bases)}", "invalid_value")
+
+                            self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
 
         if len(self.spreadsheet_style) != 0 or (self.file.errors is not None and len(self.file.errors) != 0):
             return False
             
-        self.df = self.df[[col.label for col in self.get_columns()]]
+        self.df = self.library_table.drop(columns=["index_i7", "index_i5"], errors="ignore")
         return True
     
     def get_columns(self):
@@ -268,6 +305,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             library_type_map[e.display_name] = id
         
         self.df["library_type_id"] = self.df["library_type"].map(library_type_map)
+        self.df["library_name"] = self.df["sample_name"] + self.df["library_type_id"].apply(lambda x: f"_{LibraryType.get(x).assay_type}")
 
     def __map_organisms(self):
         organism_map = {}
@@ -300,11 +338,6 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             library_mapping_form = LibraryMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             library_mapping_form.prepare()
             return library_mapping_form.make_response()
-
-        if "index_kit" in self.df and not self.df["index_kit"].isna().all():
-            index_kit_mapping_form = IndexKitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            index_kit_mapping_form.prepare()
-            return index_kit_mapping_form.make_response()
         
         if self.df["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
@@ -321,11 +354,6 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
-        
-        if "pool" in self.df.columns:
-            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            pool_mapping_form.prepare()
-            return pool_mapping_form.make_response()
     
         complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()

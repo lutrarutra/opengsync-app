@@ -11,6 +11,7 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
 from .SASInputForm import SASInputForm
 from .SpecifyAssayForm import SpecifyAssayForm
+from .PoolDefinitionForm import PoolDefinitionForm
 
 
 class ProjectSelectForm(HTMXFlaskForm):
@@ -72,6 +73,8 @@ class ProjectSelectForm(HTMXFlaskForm):
 
         if self.workflow_type == "tech":
             form = SpecifyAssayForm(seq_request=self.seq_request)
+        elif self.workflow_type == "pooled":
+            form = PoolDefinitionForm(seq_request=self.seq_request)
         else:
             form = SASInputForm(seq_request=self.seq_request)
         

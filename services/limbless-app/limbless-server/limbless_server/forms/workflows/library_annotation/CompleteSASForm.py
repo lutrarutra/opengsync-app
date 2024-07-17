@@ -31,7 +31,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
     def prepare(self):
         library_table = self.tables["library_table"]
-        pool_table = self.tables.get("pool_table")
         feature_table = self.tables.get("feature_table")
         cmo_table = self.tables.get("cmo_table")
         visium_table = self.tables.get("visium_table")
@@ -51,7 +50,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         self.update_table("library_table", library_table)
 
         self._context["library_table"] = library_table
-        self._context["pool_table"] = pool_table
         self._context["feature_table"] = feature_table
         self._context["cmo_table"] = cmo_table
         self._context["visium_table"] = visium_table
@@ -207,13 +205,10 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
     
     def __update_data(
         self, sample_table: pd.DataFrame, library_table: pd.DataFrame,
-        pool_table: Optional[pd.DataFrame], visium_table: Optional[pd.DataFrame],
-        cmo_table: Optional[pd.DataFrame]
+        visium_table: Optional[pd.DataFrame], cmo_table: Optional[pd.DataFrame]
     ):
         self.update_table("sample_table", sample_table, False)
         self.update_table("library_table", library_table, False)
-        if pool_table is not None:
-            self.update_table("pool_table", pool_table, False)
         if visium_table is not None:
             self.update_table("visium_table", visium_table, False)
         if cmo_table is not None:
@@ -228,7 +223,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         library_table = self.tables["library_table"]
         sample_table = self.tables["sample_table"]
-        pool_table = self.tables.get("pool_table")
         feature_table = self.tables.get("feature_table")
         cmo_table = self.tables.get("cmo_table")
         visium_table = self.tables.get("visium_table")
@@ -238,7 +232,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             self.__update_data(
                 sample_table=sample_table,
                 library_table=library_table,
-                pool_table=pool_table,
                 visium_table=visium_table,
                 cmo_table=cmo_table
             )
@@ -280,23 +273,22 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
             sample_table["sample_id"] = sample_table["sample_id"].astype(int)
 
-        if pool_table is not None:
-            pool_table["pool_id"] = None
-            with DBSession(db) as session:
-                for idx, row in pool_table.iterrows():
-                    pool = session.create_pool(
-                        name=row["name"],
-                        owner_id=user.id,
-                        seq_request_id=self.seq_request.id,
-                        pool_type=PoolType.EXTERNAL,
-                        num_m_reads_requested=row["num_m_reads"],
-                        contact_name=row["contact_person_name"],
-                        contact_email=row["contact_person_email"],
-                        contact_phone=row["contact_person_phone"] if pd.notna(row["contact_person_phone"]) else None,
-                    )
-                    pool_table.at[idx, "pool_id"] = pool.id
-
-            pool_table["pool_id"] = pool_table["pool_id"].astype(int)
+        if self.metadata["workflow_type"] == "pooled":
+            if (pool_id := self.metadata["existing_pool_id"]) is not None:
+                if (pool := db.get_pool(pool_id)) is None:
+                    logger.error(f"{self.uuid}: Pool with id {pool_id} not found.")
+                    raise ValueError(f"Pool with id {pool_id} not found.")
+            else:
+                pool = db.create_pool(
+                    name=self.metadata["pool_name"],
+                    owner_id=user.id,
+                    seq_request_id=self.seq_request.id,
+                    pool_type=PoolType.EXTERNAL,
+                    contact_email=self.metadata["pool_contact_email"],
+                    contact_name=self.metadata["pool_contact_name"],
+                    contact_phone=self.metadata["pool_contact_phone"],
+                    num_m_reads_requested=self.metadata["pool_num_m_reads_requested"]
+                )
 
         with DBSession(db) as session:
             library_table["library_id"] = None
@@ -307,28 +299,34 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                 else:
                     visium_annotation_id = None
 
-                if pool_table is not None:
-                    pool_row = pool_table[pool_table["name"] == row["pool"]].iloc[0]
-                    pool_id = int(pool_row["pool_id"])
-                else:
-                    pool_id = None
-
                 library = session.create_library(
                     name=row["library_name"],
                     seq_request_id=self.seq_request.id,
                     library_type=LibraryType.get(row["library_type_id"]),
                     owner_id=user.id,
                     genome_ref=GenomeRef.get(row["genome_id"]),
-                    index_1_sequence=row["index_1"].strip() if "index_1" in row and pd.notna(row["index_1"]) else None,
-                    index_2_sequence=row["index_2"].strip() if "index_2" in row and pd.notna(row["index_2"]) else None,
-                    index_3_sequence=row["index_3"].strip() if "index_3" in row and pd.notna(row["index_3"]) else None,
-                    index_4_sequence=row["index_4"].strip() if "index_4" in row and pd.notna(row["index_4"]) else None,
-                    adapter=row["adapter"].strip() if "adapter" in row and pd.notna(row["adapter"]) else None,
                     visium_annotation_id=visium_annotation_id,
-                    pool_id=pool_id,
+                    pool_id=pool.id,
                     seq_depth_requested=row["seq_depth"] if "seq_depth" in row and pd.notna(row["seq_depth"]) else None,
                 )
+
                 library_table.at[idx, "library_id"] = library.id
+                
+                if self.metadata["workflow_type"] == "pooled":
+                    index_i7_seqs = row["index_i7_sequences"].split(";")
+                    index_i5_seqs = row["index_i5_sequences"].split(";") if pd.notna(row["index_i5_sequences"]) else None
+
+                    for i in range(len(index_i7_seqs)):
+                        index_i7_seq = index_i7_seqs[i]
+                        index_i5_seq = index_i5_seqs[i] if index_i5_seqs is not None and len(index_i5_seqs) > i else None
+                        library = session.add_library_index(
+                            library_id=library.id,
+                            sequence_i7=index_i7_seq,
+                            sequence_i5=index_i5_seq if pd.notna(index_i5_seq) else None,
+                            name_i7=row["index_i7_name"] if pd.notna(row["index_i7_name"]) else None,
+                            name_i5=row["index_i5_name"] if pd.notna(row["index_i5_name"]) else None,
+                        )
+
                 library_samples = sample_table[sample_table["sample_pool"] == row["sample_name"]]
                 for idx, sample_row in library_samples.iterrows():
                     session.link_sample_library(
@@ -395,7 +393,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         self.__update_data(
             sample_table=sample_table,
             library_table=library_table,
-            pool_table=pool_table,
             visium_table=visium_table,
             cmo_table=cmo_table
         )

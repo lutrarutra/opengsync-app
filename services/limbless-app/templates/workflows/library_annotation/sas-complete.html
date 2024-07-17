@@ -27,13 +27,6 @@
                     Samples ({{ sample_table.shape[0] if sample_table is not none else "0" }})</button>
                 </li>
                 <li class="nav-item" role="presentation"
-                {% if pool_table is none %}{{ tooltip("You are submitting raw samples.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if pool_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#pool-tab" type="button" role="tab"
-                    aria-controls="pool-tab" aria-selected="true">
-                    Pools ({{ pool_table.shape[0] if pool_table is not none else "0" }})</button>
-                </li>
-                <li class="nav-item" role="presentation"
                 {% if feature_table is none %}{{ tooltip("No antibody feature libraries detected.", category="warning") }}{% endif %}>
                     <button class="nav-link {% if feature_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                     data-bs-target="#feature-tab" type="button" role="tab"
@@ -70,19 +63,16 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th scope="col" class="col-2">Library Name</th>
-                                <th scope="col" class="col-2">Library Type</th>
+                                <th scope="col" class="col-1">Library Name</th>
+                                <th scope="col" class="col-1">Library Type</th>
                                 {% if "pool" in library_table %}
                                 <th scope="col" class="col-2">Pool</th>
                                 {% endif %}
-                                {% if "adapter" in library_table %}
-                                <th scope="col" class="col-1">Adapter</th>
+                                {% if "index_i7_sequences" in library_table %}
+                                <th scope="col" class="col-3">Barcode i7</th>
                                 {% endif %}
-                                {% if "index_1" in library_table %}
-                                <th scope="col" class="col-1">Index 1 <span class="desc">i7</span></th>
-                                {% endif %}
-                                {% if "index_2" in library_table %}
-                                <th scope="col" class="col-1">Index 2 <span class="desc">i5</span></th>
+                                {% if "index_i5_sequences" in library_table %}
+                                <th scope="col" class="col-3">Barcode i5</th>
                                 {% endif %}
                             </tr>
                         </thead>
@@ -92,9 +82,8 @@
                                 <th scope="row">{{ row["library_name"] }}</th>
                                 <td>{{ row["library_type"] }}</td>
                                 {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
-                                {% if "adapter" in library_table %}<td>{{ row["adapter"] }}</td>{% endif %}
-                                {% if "index_1" in library_table %}<td>{{ row["index_1"] }}</td>{% endif %}
-                                {% if "index_2" in library_table %}<td>{{ row["index_2"] }}</td>{% endif %}
+                                {% if "index_i7_sequences" in library_table %}<td>{{ ", ".join(row["index_i7_sequences"].split(";")) }}</td>{% endif %}
+                                {% if "index_i5_sequences" in library_table %}<td>{{ ", ".join(row["index_i5_sequences"].split(";")) }}</td>{% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -130,35 +119,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="tab-pane fade" id="pool-tab" role="tabpanel" tabindex="3">
-                    {% if pool_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-3">Pool Name</th>
-                                <th scope="col" class="col-1"># Libraries</th>
-                                <th scope="col" class="col-2">M. Reads</th>
-                                <th scope="col" class="col-2">Contact Name</th>
-                                <th scope="col" class="col-2">Contact Email</th>
-                                <th scope="col" class="col-2">Contact Phone</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in pool_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["name"] }}</th>
-                                <td>{{ library_table[library_table["pool"] == row["name"]].shape[0] }}</td>
-                                <td>{{ row["num_m_reads"] }}</td>
-                                <td>{{ row["contact_person_name"] }}</td>
-                                <td>{{ row["contact_person_email"] }}</td>
-                                <td>{{ row["contact_person_phone"] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
-                <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="4">
+                <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="3">
                     {% if feature_table is not none %}
                     <table class="table table-hover">
                         <thead>
@@ -194,7 +155,7 @@
                     </table>
                     {% endif %}
                 </div>
-                <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="5">
+                <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="4">
                     {% if cmo_table is not none %}
                     <table class="table table-hover">
                         <thead>
@@ -224,7 +185,7 @@
                     </table>
                     {% endif %}
                 </div>
-                <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="6">
+                <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="5">
                     {% if visium_table is not none %}
                     <table class="table table-hover">
                         <thead>

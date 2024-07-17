@@ -237,7 +237,13 @@ def query():
         if len(status_in) == 0:
             status_in = None
 
-    results = db.query_pools(query, status_in=status_in)
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+
+    results = db.query_pools(query, status_in=status_in, seq_request_id=seq_request_id)
     
     return make_response(
         render_template(

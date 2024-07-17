@@ -20,3 +20,5 @@ from .ExperimentWorkFlow import ExperimentWorkFlow, ExperimentWorkFlowEnum  # no
 from .PoolType import PoolType, PoolTypeEnum  # noqa: F401
 from .SampleStatus import SampleStatus, SampleStatusEnum  # noqa: F401
 from .RunStatus import RunStatus, RunStatusEnum  # noqa: F401
+from .AttributeType import AttributeType, AttributeTypeEnum  # noqa: F401
+from .IndexType import IndexType, IndexTypeEnum  # noqa: F401

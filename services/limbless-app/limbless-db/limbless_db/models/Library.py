@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .SeqQuality import SeqQuality
     from .File import File
     from .Links import SamplePlateLink
+    from .LibraryIndex import LibraryIndex
 
 
 @dataclass
@@ -50,7 +51,7 @@ class Library(Base):
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
-    index_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("indexkit.id"), nullable=True)
+    index_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=True)
     index_kit: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="select")
 
     pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True)
@@ -70,14 +71,10 @@ class Library(Base):
 
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
 
-    seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=False)
+    seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=False)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")
 
-    adapter: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
-    index_1_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
-    index_2_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
-    index_3_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
-    index_4_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete")
 
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="delete")
 
@@ -129,13 +126,29 @@ class Library(Base):
         return self.status == LibraryStatus.DRAFT
     
     def is_indexed(self) -> bool:
-        return self.index_1_sequence is not None
+        return self.is_pooled()
     
     def is_pooled(self) -> bool:
-        return self.index_1_sequence is not None and self.pool_id is not None
+        return self.status == LibraryStatus.POOLED
     
     def __str__(self) -> str:
         return f"Library(id: {self.id}, name: {self.name}, type: {self.type})"
     
     def __repr__(self) -> str:
         return str(self)
+    
+    def sequences_i7_str(self) -> str:
+        i7s = []
+        for index in self.indices:
+            if index.sequence_i7:
+                i7s.append(index.sequence_i7)
+
+        return ", ".join(i7s)
+    
+    def sequences_i5_str(self) -> str:
+        i5s = []
+        for index in self.indices:
+            if index.sequence_i5:
+                i5s.append(index.sequence_i5)
+
+        return ", ".join(i5s)

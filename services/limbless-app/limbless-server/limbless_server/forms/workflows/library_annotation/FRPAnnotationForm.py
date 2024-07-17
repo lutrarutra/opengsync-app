@@ -19,7 +19,6 @@ from .... import logger, tools
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
-from .PoolMappingForm import PoolMappingForm
 from .CompleteSASForm import CompleteSASForm
 
 
@@ -237,18 +236,7 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
         
         self.add_table("flex_table", self.flex_table)
         self.update_data()
-
-        if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            pool_mapping_form.prepare()
-            return pool_mapping_form.make_response()
         
         complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()
         return complete_sas_form.make_response()
-
-
-
-        
-
-        

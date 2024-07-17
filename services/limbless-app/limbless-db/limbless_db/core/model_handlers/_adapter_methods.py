@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy.sql.operators import and_
 
+from ...categories import BarcodeTypeEnum
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
@@ -10,11 +11,6 @@ from .. import exceptions
 def create_adapter(
     self, name: str, index_kit_id: int,
     plate_well: Optional[str] = None,
-    barcode_1_id: Optional[int] = None,
-    barcode_2_id: Optional[int] = None,
-    barcode_3_id: Optional[int] = None,
-    barcode_4_id: Optional[int] = None,
-    commit: bool = True
 ) -> models.Adapter:
     
     persist_session = self._session is not None
@@ -37,21 +33,17 @@ def create_adapter(
     ).first():
         raise exceptions.NotUniqueValue(f"adapter with plate_well '{plate_well}', already exists.")
 
+    name = name.strip()
+
     adapter = models.Adapter(
-        name=name.strip(),
+        name=name,
         plate_well=plate_well,
         index_kit_id=index_kit_id,
-        barcode_1_id=barcode_1_id,
-        barcode_2_id=barcode_2_id,
-        barcode_3_id=barcode_3_id,
-        barcode_4_id=barcode_4_id
     )
 
     self._session.add(adapter)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(adapter)
+    self._session.commit()
+    self._session.refresh(adapter)
 
     if not persist_session:
         self.close_session()
@@ -110,11 +102,38 @@ def get_adapters(
     return res, n_pages
 
 
+def add_barcode_to_adapter(
+    self, adapter_id: int, sequence: str, type: BarcodeTypeEnum,
+) -> models.Adapter:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (adapter := self._session.get(models.Adapter, adapter_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Adapter with id '{adapter_id}', not found.")
+    
+    barcode = models.Barcode(
+        sequence=sequence,
+        type_id=type.id,
+        adapter_id=adapter_id,
+        index_kit_id=adapter.index_kit_id,
+    )
+
+    self._session.add(barcode)
+    self._session.commit()
+    self._session.refresh(adapter)
+
+    if not persist_session:
+        self.close_session()
+
+    return adapter
+
+
 def get_adapter_from_index_kit(
     self, index_kit_id: int,
     adapter: Optional[str] = None,
     plate_well: Optional[str] = None
-) -> models.Adapter:
+) -> Optional[models.Adapter]:
     
     if plate_well is not None and adapter is not None:
         raise ValueError("Both 'adapter' and 'plate_well' cannot be provided at the same time.")

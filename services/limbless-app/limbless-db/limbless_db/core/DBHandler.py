@@ -62,7 +62,7 @@ class DBHandler():
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
-        pool_library, set_library_seq_quality
+        pool_library, set_library_seq_quality, add_library_index
     )
 
     from .model_handlers._user_methods import (
@@ -70,11 +70,6 @@ class DBHandler():
         delete_user, update_user,
         get_user_by_email, get_num_users,
         query_users, query_users_by_email,
-    )
-
-    from .model_handlers._barcode_methods import (
-        create_barcode, get_num_seqbarcodes, get_seqbarcodes,
-        update_barcode, reverse_complement,
     )
 
     from .model_handlers._index_kit_methods import (
@@ -97,7 +92,7 @@ class DBHandler():
 
     from .model_handlers._adapter_methods import (
         create_adapter, get_adapter, get_adapters,
-        get_adapter_from_index_kit
+        get_adapter_from_index_kit, add_barcode_to_adapter
     )
 
     from .model_handlers._lane_methods import (

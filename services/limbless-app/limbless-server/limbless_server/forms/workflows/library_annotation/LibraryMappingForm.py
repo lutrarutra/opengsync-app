@@ -13,9 +13,7 @@ from .... import tools, logger  # noqa F401
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 
-from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
-from .PoolMappingForm import PoolMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
 from .KitMappingForm import KitMappingForm
@@ -146,11 +144,6 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
         library_table["library_type"] = library_table["library_type_id"].apply(lambda x: LibraryType.get(x).abbreviation)
         
         self.update_table("library_table", library_table)
-
-        if "index_kit" in library_table and not library_table["index_kit"].isna().all():
-            index_kit_mapping_form = IndexKitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            index_kit_mapping_form.prepare()
-            return index_kit_mapping_form.make_response()
         
         if library_table["library_type_id"].isin([
             LibraryType.MULTIPLEXING_CAPTURE.id,
@@ -171,11 +164,6 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
-        
-        if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            pool_mapping_form.prepare()
-            return pool_mapping_form.make_response()
 
         complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()

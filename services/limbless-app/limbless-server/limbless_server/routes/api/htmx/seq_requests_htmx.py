@@ -775,6 +775,36 @@ def get_samples(seq_request_id: int, page: int):
         )
     
 
+@seq_requests_htmx.route("<int:seq_request_id>/get_pools/<int:page>", methods=["GET"])
+@seq_requests_htmx.route("<int:seq_request_id>/get_pools", methods=["GET"], defaults={"page": 0})
+@login_required
+def get_pools(seq_request_id: int, page: int):
+    # Seq request - pool table not implemented, is it needed?
+    raise NotImplementedError()
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    pools, n_pages = db.get_pools(
+        seq_request_id=seq_request_id, offset=offset, sort_by=sort_by, descending=descending
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/seq_request-pool.html",
+            pools=pools, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request
+        )
+    )
+
+
 @seq_requests_htmx.route("<int:seq_request_id>/get_comments", methods=["GET"])
 @login_required
 def get_comments(seq_request_id: int):

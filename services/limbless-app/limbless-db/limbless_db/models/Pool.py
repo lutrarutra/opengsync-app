@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
     from .Lane import Lane
     from .Contact import Contact
-    from .actions import PoolAction
     from .File import File
     from .dilutions import PoolDilution
     from .Plate import Plate
@@ -43,7 +42,7 @@ class Pool(Base):
     plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
     plate: Mapped[Optional["Plate"]] = relationship("Plate", lazy="select")
 
-    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seqrequest.id"), nullable=True)
+    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", lazy="select")
     
     contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
@@ -58,7 +57,6 @@ class Pool(Base):
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
     lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
     experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
-    actions: Mapped[list["PoolAction"]] = relationship("PoolAction", lazy="select", order_by="PoolAction.status_id", cascade="merge, save-update, delete, delete-orphan")
     dilutions: Mapped[list["PoolDilution"]] = relationship("PoolDilution", back_populates="pool", lazy="select", cascade="merge, save-update, delete, delete-orphan", order_by="PoolDilution.timestamp_utc")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]

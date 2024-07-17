@@ -49,18 +49,8 @@
                         sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
-                <th scope="col" class="col-1">
-                    Index 1 <span class="desc">i7</span>
-                </th>
-                <th scope="col" class="col-1">
-                    Index 2 <span class="desc">i5</span>
-                </th>
-                <th scope="col" class="col-1">
-                    Index 3
-                </th>
-                <th scope="col" class="col-1">
-                    Index 4
-                </th>
+                <th scope="col" class="col-2">Index i7</th>
+                <th scope="col" class="col-2">Index i5</th>
             </tr>
         </thead>
         <tbody>
@@ -77,11 +67,9 @@
                     {{ library.status.icon }} {{ library.status.name }}
                 </td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                <td class="adapter-cell" id="library-{{library.id}}-adapter-cell">{{ library.adapter if library.adapter }}</td>
-                <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.index_1_sequence if library.index_1_sequence }}</td>
-                <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.index_2_sequence if library.index_2_sequence }}</td>
-                <td class="barcode-cell" id="library-{{library.id}}-index-cell-3">{{ library.index_3_sequence if library.index_3_sequence }}</td>
-                <td class="barcode-cell" id="library-{{library.id}}-index-cell-4">{{ library.index_4_sequence if library.index_4_sequence }}</td>
+                <td></td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.sequences_i7_str() }}</td>
+                <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.sequences_i5_str() }}</td>
             </tr>
             {% endfor %}
         </tbody>

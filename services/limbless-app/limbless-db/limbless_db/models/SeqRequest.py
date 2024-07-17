@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class SeqRequest(Base):
-    __tablename__ = "seqrequest"
+    __tablename__ = "seq_request"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
 
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
