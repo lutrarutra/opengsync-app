@@ -22,3 +22,4 @@ from .SampleStatus import SampleStatus, SampleStatusEnum  # noqa: F401
 from .RunStatus import RunStatus, RunStatusEnum  # noqa: F401
 from .AttributeType import AttributeType, AttributeTypeEnum  # noqa: F401
 from .IndexType import IndexType, IndexTypeEnum  # noqa: F401
+from .SubmissionType import SubmissionType, SubmissionTypeEnum  # noqa: F401

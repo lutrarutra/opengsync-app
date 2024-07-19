@@ -17,8 +17,8 @@ class Adapter(Base):
     name: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
     plate_well: Mapped[Optional[str]] = mapped_column(sa.String(4), nullable=True)
 
-    barcodes_i7: Mapped[list["Barcode"]] = relationship("Barcode", lazy="select", cascade="all, save-update, merge, delete", primaryjoin=f"and_(Adapter.id == Barcode.adapter_id, Barcode.type_id == {BarcodeType.INDEX_I7.id})")
-    barcodes_i5: Mapped[list["Barcode"]] = relationship("Barcode", lazy="select", cascade="all, save-update, merge, delete", primaryjoin=f"and_(Adapter.id == Barcode.adapter_id, Barcode.type_id == {BarcodeType.INDEX_I5.id})")
+    barcodes_i7: Mapped[list["Barcode"]] = relationship("Barcode", lazy="select", cascade="all, save-update, merge, delete", primaryjoin=f"and_(Adapter.id == Barcode.adapter_id, Barcode.type_id == {BarcodeType.INDEX_I7.id})", overlaps="barcodes_i5")
+    barcodes_i5: Mapped[list["Barcode"]] = relationship("Barcode", lazy="select", cascade="all, save-update, merge, delete", primaryjoin=f"and_(Adapter.id == Barcode.adapter_id, Barcode.type_id == {BarcodeType.INDEX_I5.id})", overlaps="barcodes_i7")
     
     index_kit_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=False)
     index_kit: Mapped["IndexKit"] = relationship("IndexKit", back_populates="adapters", lazy="select")

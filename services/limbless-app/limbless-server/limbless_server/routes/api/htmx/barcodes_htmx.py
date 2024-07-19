@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT
+from limbless_db import models, DBSession, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse
 from .... import db
 
@@ -39,6 +39,7 @@ def get(page: int):
 
 
 @barcodes_htmx.route("query_index_kits", methods=["POST"])
+@db_session(db)
 @login_required
 def query_index_kits():
     field_name = next(iter(request.form.keys()))

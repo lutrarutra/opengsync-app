@@ -12,7 +12,7 @@ from wtforms.validators import Optional as OptionalValidator
 from flask_wtf.file import FileField, FileAllowed
 from werkzeug.utils import secure_filename
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import LibraryType, GenomeRef
 
 from .... import logger, db
@@ -168,9 +168,6 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             elif column.var_type == int:
                 self.df[label] = self.df[label].apply(tools.parse_int)
 
-        # library_name_counts = self.df["library_name"].value_counts()
-        # seq_request_library_names = [library.name for library in self.seq_request.libraries]
-
         self.file.errors = []
         self.spreadsheet_dummy.errors = []
 
@@ -190,98 +187,90 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
 
         def base_filter(x: str) -> list[str]:
             return [c for c in x if c not in "ACGT"]
+        
+        duplicate_sample_libraries = self.library_table.duplicated(subset=["sample_name", "library_type"], keep=False)
 
-        with DBSession(db) as session:
-            if (project_id := self.metadata.get("project_id")) is not None:
-                if (project := session.get_project(project_id)) is None:
-                    logger.error(f"{self.uuid}: Project with ID {project_id} does not exist.")
-                    raise ValueError(f"Project with ID {project_id} does not exist.")
-            else:
-                project = None
+        seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
 
-            for i, (idx, row) in enumerate(self.df.iterrows()):
-                if pd.isna(row["sample_name"]):
-                    add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
-                elif project is not None and row["sample_name"] in [sample.name for sample in project.samples]:
-                    add_error(i + 1, "sample_name", "Sample name already exists in the project. Rename sample or change project", "duplicate_value")
-                    
-                # if pd.isna(row["library_name"]):
-                #     add_error(i + 1, "library_name", "missing 'Library Name'", "missing_value")
+        for i, (idx, row) in enumerate(self.df.iterrows()):
+            if pd.isna(row["sample_name"]):
+                add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
 
-                # elif library_name_counts[row["library_name"]] > 1:
-                #     add_error(i + 1, "library_name", "duplicate 'Library Name'", "duplicate_value")
+            if duplicate_sample_libraries[i]:
+                add_error(i + 1, "sample_name", "Duplicate 'Sample Name' and 'Library Type'", "duplicate_value")
 
-                # elif row["library_name"] in seq_request_library_names:
-                #     add_error(i + 1, "library_name", "Library name already exists in the request.", "duplicate_value")
+            if ((seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.name) == row["library_type"])).any():
+                add_error(i + 1, "library_type", f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request", "duplicate_value")
 
-                if pd.isna(row["library_type"]):
-                    add_error(i + 1, "library_type", "missing 'Library Type'", "missing_value")
+            if pd.isna(row["library_type"]):
+                add_error(i + 1, "library_type", "missing 'Library Type'", "missing_value")
 
-                if pd.isna(row["genome"]):
-                    add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
-                
-                if self.metadata["workflow_type"] == "raw":
-                    if pd.notna(row["seq_depth"]):
-                        try:
-                            if isinstance(row["seq_depth"], str):
-                                row["seq_depth"] = row["seq_depth"].strip().replace(" ", "")
+            if pd.isna(row["genome"]):
+                add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
+            
+            if self.metadata["workflow_type"] == "raw":
+                if pd.notna(row["seq_depth"]):
+                    try:
+                        if isinstance(row["seq_depth"], str):
+                            row["seq_depth"] = row["seq_depth"].strip().replace(" ", "")
 
-                            row["seq_depth"] = float(row["seq_depth"])
-                        except ValueError:
-                            add_error(i + 1, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
+                        row["seq_depth"] = float(row["seq_depth"])
+                    except ValueError:
+                        add_error(i + 1, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
 
-                elif self.metadata["workflow_type"] == "pooled":
+            elif self.metadata["workflow_type"] == "pooled":
+                if pd.isna(row["index_i7"]):
+                    add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
+                    continue
+
+                if (index_1_kit_id := self.metadata["index_1_kit_id"]) is not None:
+                    if (index_1_kit := db.get_index_kit(index_1_kit_id)) is None:
+                        logger.error(f"{self.uuid}: Index kit with ID {index_1_kit_id} does not exist.")
+                        raise ValueError(f"Index kit with ID {index_1_kit_id} does not exist.")
                     if pd.isna(row["index_i7"]):
                         add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
-
-                    if (index_1_kit_id := self.metadata["index_1_kit_id"]) is not None:
-                        if (index_1_kit := session.get_index_kit(index_1_kit_id)) is None:
-                            logger.error(f"{self.uuid}: Index kit with ID {index_1_kit_id} does not exist.")
-                            raise ValueError(f"Index kit with ID {index_1_kit_id} does not exist.")
-                        if pd.isna(row["index_i7"]):
-                            add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
-                            continue
-                        
-                        if (adapter_1 := session.get_adapter_from_index_kit(index_kit_id=index_1_kit_id, adapter=row["index_i7"].strip())) is None:
-                            add_error(i + 1, "index_i7", f"Adapter '{row['index_i7']}' not found in selected index-kit '{index_1_kit.name}'", "invalid_value")
-                            continue
-                        
-                        if (index_2_kit_id := self.metadata["index_2_kit_id"]) is None or index_1_kit_id == self.metadata["index_2_kit_id"]:
-                            adapter_2 = adapter_1
-                            index_2_kit = index_1_kit
-                        else:
-                            if (index_2_kit := session.get_index_kit(index_2_kit_id)) is None:
-                                logger.error(f"{self.uuid}: Index kit with ID {index_2_kit_id} does not exist.")
-                                raise ValueError(f"Index kit with ID {index_2_kit_id} does not exist.")
-                            
-                            if (adapter_2 := session.get_adapter_from_index_kit(index_kit_id=index_2_kit_id, adapter=row["index_i5"].strip())) is None:
-                                add_error(i + 1, "index_i5", f"Adapter '{row['index_i5']}' not found in selected index-kit '{index_2_kit.name}'", "invalid_value")
-                                continue
-
-                        self.library_table.at[idx, "index_i7_sequences"] = ";".join([bc_i7.sequence for bc_i7 in adapter_1.barcodes_i7])
-                        self.library_table.at[idx, "index_i7_name"] = adapter_1.name
-                        self.library_table.at[idx, "index_i5_sequences"] = ";".join([bc_i5.sequence for bc_i5 in adapter_2.barcodes_i5])
-                        if len(adapter_2.barcodes_i5) > 0:
-                            self.library_table.at[idx, "index_i5_name"] = adapter_2.name
-
+                        continue
+                    
+                    if (adapter_1 := db.get_adapter_from_index_kit(index_kit_id=index_1_kit_id, adapter=row["index_i7"].strip())) is None:
+                        add_error(i + 1, "index_i7", f"Adapter '{row['index_i7']}' not found in selected index-kit '{index_1_kit.name}'", "invalid_value")
+                        continue
+                    
+                    if (index_2_kit_id := self.metadata["index_2_kit_id"]) is None or index_1_kit_id == self.metadata["index_2_kit_id"]:
+                        adapter_2 = adapter_1
+                        index_2_kit = index_1_kit
                     else:
-                        index_i7_sequences = row["index_i7"].split(";")
+                        if (index_2_kit := db.get_index_kit(index_2_kit_id)) is None:
+                            logger.error(f"{self.uuid}: Index kit with ID {index_2_kit_id} does not exist.")
+                            raise ValueError(f"Index kit with ID {index_2_kit_id} does not exist.")
                         
-                        for index_i7_sequence in index_i7_sequences:
-                            if len(unknown_bases := base_filter(index_i7_sequence)) > 0:
-                                add_error(i + 1, "index_i7", f"Invalid base(s) in 'Index i7': {', '.join(unknown_bases)}", "invalid_value")
+                        if (adapter_2 := db.get_adapter_from_index_kit(index_kit_id=index_2_kit_id, adapter=row["index_i5"].strip())) is None:
+                            add_error(i + 1, "index_i5", f"Adapter '{row['index_i5']}' not found in selected index-kit '{index_2_kit.name}'", "invalid_value")
+                            continue
 
-                        self.library_table.at[idx, "index_i7_sequences"] = ";".join(index_i7_sequences)
-                        
-                        if pd.notna(row["index_i5"]):
-                            index_i5_sequences = row["index_i5"].split(";")
-                            if len(index_i5_sequences) != len(index_i7_sequences):
-                                add_error(i + 1, "index_i5", "Number of 'Index i5'-barcodes sequences should match 'Index i7'-barcodes", "invalid_value")
-                            for index_i5_sequence in index_i5_sequences:
-                                if len(unknown_bases := base_filter(index_i5_sequence)) > 0:
-                                    add_error(i + 1, "index_i5", f"Invalid base(s) in 'Index i5': {', '.join(unknown_bases)}", "invalid_value")
+                    self.library_table.at[idx, "index_i7_sequences"] = ";".join([bc_i7.sequence for bc_i7 in adapter_1.barcodes_i7])
+                    self.library_table.at[idx, "index_i7_name"] = adapter_1.name
+                    self.library_table.at[idx, "index_i5_sequences"] = ";".join([bc_i5.sequence for bc_i5 in adapter_2.barcodes_i5])
+                    if len(adapter_2.barcodes_i5) > 0:
+                        self.library_table.at[idx, "index_i5_name"] = adapter_2.name
 
-                            self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
+                else:
+                    index_i7_sequences = row["index_i7"].split(";")
+                    
+                    for index_i7_sequence in index_i7_sequences:
+                        if len(unknown_bases := base_filter(index_i7_sequence)) > 0:
+                            add_error(i + 1, "index_i7", f"Invalid base(s) in 'Index i7': {', '.join(unknown_bases)}", "invalid_value")
+
+                    self.library_table.at[idx, "index_i7_sequences"] = ";".join(index_i7_sequences)
+                    
+                    if pd.notna(row["index_i5"]):
+                        index_i5_sequences = row["index_i5"].split(";")
+                        if len(index_i5_sequences) != len(index_i7_sequences):
+                            add_error(i + 1, "index_i5", "Number of 'Index i5'-barcodes sequences should match 'Index i7'-barcodes", "invalid_value")
+                        for index_i5_sequence in index_i5_sequences:
+                            if len(unknown_bases := base_filter(index_i5_sequence)) > 0:
+                                add_error(i + 1, "index_i5", f"Invalid base(s) in 'Index i5': {', '.join(unknown_bases)}", "invalid_value")
+
+                        self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
 
         if len(self.spreadsheet_style) != 0 or (self.file.errors is not None and len(self.file.errors) != 0):
             return False
@@ -313,6 +302,17 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             organism_map[e.display_name] = id
         
         self.df["genome_id"] = self.df["genome"].map(organism_map)
+
+    def __map_existing_samples(self):
+        if (project := db.get_project(self.metadata["project_id"])) is None:
+            logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
+            raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
+        
+        self.df["sample_id"] = None
+        for sample in project.samples:
+            logger.debug(sample.name)
+            logger.debug(sample.id)
+            self.df.loc[self.df["sample_name"] == sample.name, "sample_id"] = sample.id
     
     def process_request(self) -> Response:
         if not self.validate() or self.df is None:
@@ -326,6 +326,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
 
         self.__map_library_types()
         self.__map_organisms()
+        self.__map_existing_samples()
         self.add_table("library_table", self.df)
         self.update_data()
 

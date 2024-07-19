@@ -237,7 +237,7 @@ def query_pools(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.Pool)
+    query = sa.select(models.Pool)
 
     if experiment_id is not None:
         query = query.join(
@@ -264,7 +264,7 @@ def query_pools(
     if limit is not None:
         query = query.limit(limit)
 
-    pools = query.all()
+    pools = self._session.scalars(query).all()
 
     if not persist_session:
         self.close_session()

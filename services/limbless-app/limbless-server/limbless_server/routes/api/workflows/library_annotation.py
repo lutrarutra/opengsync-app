@@ -126,34 +126,45 @@ def select_project(seq_request_id: int, workflow_type: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if request.method == "GET":
+        if (uuid := request.args.get("uuid")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, uuid=uuid)
+    
     return forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, formdata=request.form).process_request(user=current_user)
     
 
 # 1.5 Pool Definition
-@library_annotation_workflow.route("<int:seq_request_id>/define_pool", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/define_pool", methods=["POST", "GET"])
+@db_session(db)
 @login_required
 def define_pool(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.PoolDefinitionForm(seq_request=seq_request, formdata=request.form).process_request()
+    if request.method == "GET":
+        if (uuid := request.args.get("uuid")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        return forms.PoolDefinitionForm(uuid=uuid, seq_request=seq_request).make_response()
+    
+    return forms.PoolDefinitionForm(seq_request=seq_request, formdata=request.form).process_request(user=current_user)
 
 
 # 2. Input sample annotation sheet
 @library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:input_method>", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_table(seq_request_id: int, input_method: Literal["file", "spreadsheet"]):
     if input_method not in ["file", "spreadsheet"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        return forms.SASInputForm(
-            seq_request=seq_request, input_method=input_method,
-            formdata=request.form | request.files,
-        ).process_request()
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    return forms.SASInputForm(
+        seq_request=seq_request, input_method=input_method,
+        formdata=request.form | request.files,
+    ).process_request()
 
 
 # 3. Map organisms if new samples

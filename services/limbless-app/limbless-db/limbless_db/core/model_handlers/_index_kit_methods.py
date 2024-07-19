@@ -96,14 +96,14 @@ def query_index_kit(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.IndexKit)
+    query = sa.select(models.IndexKit)
 
     query = query.order_by(sa.func.similarity(models.IndexKit.name, word).desc())
 
     if limit is not None:
         query = query.limit(limit)
 
-    res = query.all()
+    res = self._session.scalars(query).all()
 
     if not persist_session:
         self.close_session()

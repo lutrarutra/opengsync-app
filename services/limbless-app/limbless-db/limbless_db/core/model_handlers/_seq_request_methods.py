@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType
+from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType, SubmissionTypeEnum
 from .. import exceptions
 
 
@@ -17,6 +17,7 @@ def create_seq_request(
     billing_contact_id: int,
     data_delivery_mode: DataDeliveryModeEnum,
     read_type: ReadTypeEnum,
+    submission_type: SubmissionTypeEnum,
     contact_person_id: int,
     organization_contact_id: int,
     bioinformatician_contact_id: Optional[int] = None,
@@ -58,6 +59,7 @@ def create_seq_request(
         read_type_id=read_type.id,
         special_requirements=special_requirements,
         billing_contact_id=billing_contact_id,
+        submission_type_id=submission_type.id,
         contact_person_id=contact_person_id,
         organization_contact_id=organization_contact_id,
         bioinformatician_contact_id=bioinformatician_contact_id,

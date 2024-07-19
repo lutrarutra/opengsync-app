@@ -207,7 +207,9 @@
                 </div>
             </div>
             <div class="workflow-container">
-                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
+                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES or current_user.is_insider() %}
+                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES and current_user.is_insider() %}muted{% endif %}"
+                    style="width: 250px;"
                     {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='tech') }}"
@@ -229,7 +231,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
+                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES and current_user.is_insider() %}muted{% endif %}"
+                    style="width: 250px;"
                     {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='raw') }}"
@@ -251,7 +254,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %}" style="width: 250px;"
+                {% endif %}
+                {% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES or current_user.is_insider() %}
+                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.POOLED_LIBRARIES and current_user.is_insider() %}muted{% endif %}"
+                    style="width: 250px;"
                     {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='pooled') }}"
@@ -263,7 +269,7 @@
                                 <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">C. Submit ready-to-sequence Pool <br><span class="desc">Pooled Libraries</span></h5>
+                                <h5 class="card-title">C. Define ready-to-sequence Pool <br><span class="desc">Pooled Libraries</span></h5>
                             </div>
                         </div>
                         <div class="card-back">
@@ -276,6 +282,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
                 {% if  seq_request.status == SeqRequestStatus.ACCEPTED and current_user.is_insider() %}
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
@@ -367,7 +374,7 @@
                 {% endif %}
             </div>
         </div>
-        <div class="tab-pane fade show" id="request-metadata-tab" role="tabpanel" tabindex="2">
+        <div class="tab-pane fade" id="request-metadata-tab" role="tabpanel" tabindex="2">
             <div class="display-form">
                 <h4>Request Info</h4>
                 {{ metadata_group("Request Name", seq_request.name) }}
@@ -466,7 +473,7 @@
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade show" id="request-samples-tab" role="tabpanel" tabindex="3">
+        <div class="tab-pane fade" id="request-samples-tab" role="tabpanel" tabindex="3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Samples</h2>
@@ -476,7 +483,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade show" id="request-seq_auth-tab" role="tabpanel" tabindex="4">
+        <div class="tab-pane fade" id="request-seq_auth-tab" role="tabpanel" tabindex="4">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Sequencing Authorization</h2>
@@ -518,17 +525,17 @@
             <embed src="{{ url_for('pdf_file', file_id=seq_request.seq_auth_form_file_id) }}" width="100%" height="1000px">
             {% endif %}
         </div>
-        <div class="tab-pane fade show" id="request-overview-tab" role="tabpanel" tabindex="5">
+        <div class="tab-pane fade" id="request-overview-tab" role="tabpanel" tabindex="5">
             <div hx-get="{{ url_for('seq_requests_htmx.overview', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade show" id="seq_request-files-tab" role="tabpanel" tabindex="6">
+        <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="6">
             <div hx-get="{{ url_for('seq_requests_htmx.get_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade show" id="request-comments-tab" role="tabpanel" tabindex="7">
+        <div class="tab-pane fade" id="request-comments-tab" role="tabpanel" tabindex="7">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Comments</h2>
@@ -543,7 +550,7 @@
                 {{ spinner() }}
             </div>
         </div>  
-        <div class="tab-pane fade show" id="request-share-tab" role="tabpanel" tabindex="8">
+        <div class="tab-pane fade" id="request-share-tab" role="tabpanel" tabindex="8">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>The data will be shared with following emails:</h2>

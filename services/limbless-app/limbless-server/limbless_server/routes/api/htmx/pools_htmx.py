@@ -219,6 +219,7 @@ def table_query():
 
 
 @pools_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))

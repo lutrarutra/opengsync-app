@@ -6,7 +6,7 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 
 from limbless_db import models
 
-from .... import logger  # noqa F401
+from .... import logger, db  # noqa F401
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
@@ -41,7 +41,7 @@ class PoolDefinitionForm(HTMXFlaskForm, TableDataForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
-    def validate(self) -> bool:
+    def validate(self, user: models.User) -> bool:
         if self.name.data and self.existing_pool.selected.data:
             self.existing_pool.selected.errors = ["Define new pool or select an existing pool, not both."]
             self.name.errors = ["Define new pool or select an existing pool, not both."]
@@ -62,11 +62,16 @@ class PoolDefinitionForm(HTMXFlaskForm, TableDataForm):
             if not self.contact_phone.data:
                 self.contact_phone.errors = ["This field is required."]
                 return False
+            
+            self.name.data = self.name.data.strip()
+            if self.name.data in [pool.name for pool in user.pools]:
+                self.name.errors = ["You already have a pool with this name."]
+                return False
 
         return True
 
-    def process_request(self) -> Response:
-        if not self.validate():
+    def process_request(self, user: models.User) -> Response:
+        if not self.validate(user=user):
             return self.make_response()
 
         sas_input_form = SASInputForm(seq_request=self.seq_request, uuid=self.uuid)

@@ -128,6 +128,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
     ) -> pd.DataFrame:
         sample_data = {
             "sample_name": [],
+            "sample_id": [],
             "sample_pool": [],
             "library_types": [],
             "is_cmo_sample": [],
@@ -140,6 +141,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         def add_sample(
             sample_name: str,
+            sample_id: Optional[int],
             sample_pool: str,
             is_cmo_sample: bool,
             is_flex_sample: bool,
@@ -150,6 +152,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             flex_barcode: Optional[str] = None
         ):
             sample_data["sample_name"].append(sample_name)
+            sample_data["sample_id"].append(sample_id)
             sample_data["sample_pool"].append(sample_pool)
             sample_data["library_types"].append(library_types)
             sample_data["is_cmo_sample"].append(is_cmo_sample)
@@ -159,7 +162,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             sample_data["cmo_read"].append(cmo_read)
             sample_data["flex_barcode"].append(flex_barcode)
 
-        for (sample_name, is_cmo_sample, is_flex_sample), _df in library_table.groupby(["sample_name", "is_cmo_sample", "is_flex_sample"], dropna=False, sort=False):
+        for (sample_name, sample_id, is_cmo_sample, is_flex_sample), _df in library_table.groupby(["sample_name", "sample_id", "is_cmo_sample", "is_flex_sample"], dropna=False, sort=False):
             library_types = [LibraryType.get(library_type_id).abbreviation for library_type_id in _df["library_type_id"].unique()]
             if is_cmo_sample:
                 if cmo_table is None:
@@ -173,6 +176,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         library_types=library_types,
                         is_cmo_sample=True,
                         is_flex_sample=False,
+                        sample_id=sample_id if pd.notna(sample_id) else None,
                         cmo_sequence=cmo_row["sequence"],
                         cmo_pattern=cmo_row["pattern"],
                         cmo_read=cmo_row["read"],
@@ -190,7 +194,8 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         is_flex_sample=True,
                         is_cmo_sample=False,
                         library_types=library_types,
-                        flex_barcode=barcode_id
+                        flex_barcode=barcode_id,
+                        sample_id=sample_id if pd.notna(sample_id) else None,
                     )
             else:
                 add_sample(
@@ -199,6 +204,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     library_types=library_types,
                     is_cmo_sample=False,
                     is_flex_sample=False,
+                    sample_id=sample_id if pd.notna(sample_id) else None,
                 )
 
         return pd.DataFrame(sample_data).fillna(np.nan)
@@ -262,6 +268,9 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         with DBSession(db) as session:
             for idx, row in sample_table.iterrows():
+                if row["sample_id"] is not None:
+                    continue
+                
                 sample = session.create_sample(
                     name=row["sample_name"],
                     project_id=project.id,

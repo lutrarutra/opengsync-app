@@ -66,6 +66,11 @@
             {{ pool_form.file_uuid.data }}
         </div>
         <div class="footer-controls">
+            <button type="button" class="btn btn-warning"
+                hx-target="#pool-mapping-container" hx-swap="outerHTML"
+                hx-get="{{ url_for('library_annotation_workflow.select_project', seq_request_id=seq_request.id, workflow_type='pooled', uuid=pool_form.uuid) }}">
+                Back
+            </button>
             <button type="button" class="btn btn-primary"
                 hx-target="#pool-mapping-container" hx-swap="outerHTML"
                 hx-include="#pool-definition-form" id="submit-pool-definition-form-btn"
