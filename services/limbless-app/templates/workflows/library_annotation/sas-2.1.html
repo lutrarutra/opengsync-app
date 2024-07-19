@@ -63,7 +63,7 @@
                             {{ form_group(sas_input_form.separator, class="col-2") }}
                             {{ form_group(sas_input_form.file, class="col-10") }}
                         </div>
-                        <a href="{{ url_for('library_annotation_workflow.download_template', file='raw') }}">
+                        <a href="{{ url_for('library_annotation_workflow.download_template', file=sas_input_form.metadata['workflow_type']) }}">
                             Download Template
                         </a>
                     </div>

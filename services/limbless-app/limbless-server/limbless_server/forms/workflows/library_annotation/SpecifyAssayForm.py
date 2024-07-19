@@ -19,6 +19,7 @@ from .CMOReferenceInputForm import CMOReferenceInputForm
 from .CompleteSASForm import CompleteSASForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
+from .FeatureReferenceInputForm import FeatureReferenceInputForm
 
 columns = {
     "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
@@ -242,11 +243,13 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             })
             self.add_table("comment_table", comment_table)
 
-        if library_table["library_type_id"].isin([
-            LibraryType.MULTIPLEXING_CAPTURE.id,
-        ]).any():
+        if library_table["library_type_id"].isin([LibraryType.MULTIPLEXING_CAPTURE.id]).any():
             cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
+        
+        if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
+            feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            return feature_reference_input_form.make_response()
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

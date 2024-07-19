@@ -4,7 +4,7 @@ from flask_login import login_required
 
 from limbless_db import db_session
 from limbless_db.models import User
-from limbless_db.categories import HTTPResponse, LibraryType
+from limbless_db.categories import HTTPResponse
 from ... import db, forms
 
 if TYPE_CHECKING:
