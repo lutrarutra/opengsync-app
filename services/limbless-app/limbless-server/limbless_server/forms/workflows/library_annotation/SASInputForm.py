@@ -296,7 +296,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
         self.df["library_type_id"] = self.df["library_type"].map(library_type_map)
         self.df["library_name"] = self.df["sample_name"] + self.df["library_type_id"].apply(lambda x: f"_{LibraryType.get(x).assay_type}")
 
-    def __map_organisms(self):
+    def __map_genome_ref(self):
         organism_map = {}
         for id, e in GenomeRef.as_tuples():
             organism_map[e.display_name] = id
@@ -304,14 +304,14 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
         self.df["genome_id"] = self.df["genome"].map(organism_map)
 
     def __map_existing_samples(self):
+        self.df["sample_id"] = None
+        if self.metadata["project_id"] is None:
+            return
         if (project := db.get_project(self.metadata["project_id"])) is None:
             logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
             raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
         
-        self.df["sample_id"] = None
         for sample in project.samples:
-            logger.debug(sample.name)
-            logger.debug(sample.id)
             self.df.loc[self.df["sample_name"] == sample.name, "sample_id"] = sample.id
     
     def process_request(self) -> Response:
@@ -325,7 +325,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             return self.make_response()
 
         self.__map_library_types()
-        self.__map_organisms()
+        self.__map_genome_ref()
         self.__map_existing_samples()
         self.add_table("library_table", self.df)
         self.update_data()

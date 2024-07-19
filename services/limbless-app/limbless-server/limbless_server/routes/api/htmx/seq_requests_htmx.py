@@ -9,7 +9,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-from limbless_db import models, DBSession, PAGE_LIMIT
+from limbless_db import models, DBSession, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, SeqRequestStatus, UserRole, LibraryStatus, LibraryType
 from limbless_db.core import exceptions
 from .... import db, forms, logger
@@ -507,6 +507,7 @@ def remove_share_email(seq_request_id: int, email: str):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/overview", methods=["GET"])
+@db_session(db)
 @login_required
 def overview(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -518,108 +519,107 @@ def overview(seq_request_id: int):
 
     LINK_WIDTH_UNIT = 1
 
-    with DBSession(db) as session:
-        samples, _ = session.get_samples(seq_request_id=seq_request_id, limit=None)
-        
-        nodes = []
-        links = []
-        contains_pooled = False
+    samples, _ = db.get_samples(seq_request_id=seq_request_id, limit=None)
+    
+    nodes = []
+    links = []
+    contains_pooled = False
 
-        seq_request_node = {
-            "node": 0,
-            "name": seq_request.name,
-            "id": f"seq_request-{seq_request.id}"
-        }
-        nodes.append(seq_request_node)
+    seq_request_node = {
+        "node": 0,
+        "name": seq_request.name,
+        "id": f"seq_request-{seq_request.id}"
+    }
+    nodes.append(seq_request_node)
 
-        idx = 1
+    idx = 1
 
-        project_nodes: dict[int, int] = {}
-        sample_nodes: dict[int, int] = {}
-        library_nodes: dict[int, int] = {}
-        pool_nodes: dict[int, int] = {}
-        pool_link_widths: dict[int, int] = {}
+    project_nodes: dict[int, int] = {}
+    sample_nodes: dict[int, int] = {}
+    library_nodes: dict[int, int] = {}
+    pool_nodes: dict[int, int] = {}
+    pool_link_widths: dict[int, int] = {}
 
-        for sample in samples:
-            if sample.project_id not in project_nodes.keys():
-                project_node = {
-                    "node": idx,
-                    "name": sample.project.name,
-                    "id": f"project-{sample.project_id}"
-                }
-                nodes.append(project_node)
-                project_nodes[sample.project.id] = idx
-                project_idx = idx
-                idx += 1
-            else:
-                project_idx = project_nodes[sample.project.id]
-
-            sample_node = {
+    for sample in samples:
+        if sample.project_id not in project_nodes.keys():
+            project_node = {
                 "node": idx,
-                "name": sample.name,
-                "id": f"sample-{sample.id}"
+                "name": sample.project.name,
+                "id": f"project-{sample.project_id}"
             }
-            nodes.append(sample_node)
-            sample_nodes[sample.id] = idx
+            nodes.append(project_node)
+            project_nodes[sample.project.id] = idx
+            project_idx = idx
             idx += 1
-            n_sample_links = 0
-            for link in sample.library_links:
-                if link.library.seq_request_id == seq_request_id:
-                    n_sample_links += 1
-                    if link.library.id not in library_nodes.keys():
-                        library_node = {
-                            "node": idx,
-                            "name": f"{link.library.type.abbreviation} - {link.library.name}",
-                            "id": f"library-{link.library.id}"
-                        }
-                        nodes.append(library_node)
-                        library_nodes[link.library.id] = idx
-                        library_idx = idx
-                        idx += 1
+        else:
+            project_idx = project_nodes[sample.project.id]
 
-                        if not link.library.is_pooled():
-                            links.append({
-                                "source": library_idx,
-                                "target": seq_request_node["node"],
-                                "value": LINK_WIDTH_UNIT * link.library.num_samples
-                            })
-                        else:
-                            contains_pooled = True
-                            if link.library.pool_id not in pool_nodes.keys():
-                                pool_node = {
-                                    "node": idx,
-                                    "name": link.library.pool.name,         # type: ignore
-                                    "id": f"pool-{link.library.pool.id}"    # type: ignore
-                                }
-                                nodes.append(pool_node)
-                                pool_nodes[link.library.pool.id] = idx      # type: ignore
-                                pool_link_widths[link.library.pool.id] = 0  # type: ignore
-                                pool_idx = idx
+        sample_node = {
+            "node": idx,
+            "name": sample.name,
+            "id": f"sample-{sample.id}"
+        }
+        nodes.append(sample_node)
+        sample_nodes[sample.id] = idx
+        idx += 1
+        n_sample_links = 0
+        for link in sample.library_links:
+            if link.library.seq_request_id == seq_request_id:
+                n_sample_links += 1
+                if link.library.id not in library_nodes.keys():
+                    library_node = {
+                        "node": idx,
+                        "name": f"{link.library.type.abbreviation} - {link.library.name}",
+                        "id": f"library-{link.library.id}"
+                    }
+                    nodes.append(library_node)
+                    library_nodes[link.library.id] = idx
+                    library_idx = idx
+                    idx += 1
 
-                                idx += 1
-                            else:
-                                pool_idx = pool_nodes[link.library.pool.id]     # type: ignore
-
-                            pool_link_widths[link.library.pool.id] += LINK_WIDTH_UNIT * link.library.num_samples    # type: ignore
-                            
-                            links.append({
-                                "source": library_nodes[link.library_id],
-                                "target": pool_idx,
-                                "value": LINK_WIDTH_UNIT * link.library.num_samples
-                            })
+                    if not link.library.is_pooled():
+                        links.append({
+                            "source": library_idx,
+                            "target": seq_request_node["node"],
+                            "value": LINK_WIDTH_UNIT * link.library.num_samples
+                        })
                     else:
-                        library_idx = library_nodes[link.library.id]
-                    links.append({
-                        "source": sample_node["node"],
-                        "target": library_idx,
-                        "value": LINK_WIDTH_UNIT
-                    })
+                        contains_pooled = True
+                        if link.library.pool_id not in pool_nodes.keys():
+                            pool_node = {
+                                "node": idx,
+                                "name": link.library.pool.name,         # type: ignore
+                                "id": f"pool-{link.library.pool.id}"    # type: ignore
+                            }
+                            nodes.append(pool_node)
+                            pool_nodes[link.library.pool.id] = idx      # type: ignore
+                            pool_link_widths[link.library.pool.id] = 0  # type: ignore
+                            pool_idx = idx
 
-            links.append({
-                "source": project_idx,
-                "target": sample_nodes[sample.id],
-                "value": LINK_WIDTH_UNIT * n_sample_links
-            })
+                            idx += 1
+                        else:
+                            pool_idx = pool_nodes[link.library.pool.id]     # type: ignore
+
+                        pool_link_widths[link.library.pool.id] += LINK_WIDTH_UNIT * link.library.num_samples    # type: ignore
+                        
+                        links.append({
+                            "source": library_nodes[link.library_id],
+                            "target": pool_idx,
+                            "value": LINK_WIDTH_UNIT * link.library.num_samples
+                        })
+                else:
+                    library_idx = library_nodes[link.library.id]
+                links.append({
+                    "source": sample_node["node"],
+                    "target": library_idx,
+                    "value": LINK_WIDTH_UNIT
+                })
+
+        links.append({
+            "source": project_idx,
+            "target": sample_nodes[sample.id],
+            "value": LINK_WIDTH_UNIT * n_sample_links
+        })
 
     for pool_id, pool_node in pool_nodes.items():
         links.append({
@@ -750,6 +750,7 @@ def query_libraries(seq_request_id: int):
 
 @seq_requests_htmx.route("<int:seq_request_id>/get_samples/<int:page>", methods=["GET"])
 @seq_requests_htmx.route("<int:seq_request_id>/get_samples", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get_samples(seq_request_id: int, page: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -763,16 +764,15 @@ def get_samples(seq_request_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    with DBSession(db) as session:
-        samples, n_pages = session.get_samples(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
+    samples, n_pages = db.get_samples(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
 
-        return make_response(
-            render_template(
-                "components/tables/seq_request-sample.html",
-                samples=samples, n_pages=n_pages, active_page=page,
-                sort_by=sort_by, sort_order=sort_order, seq_request=seq_request
-            )
+    return make_response(
+        render_template(
+            "components/tables/seq_request-sample.html",
+            samples=samples, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request
         )
+    )
     
 
 @seq_requests_htmx.route("<int:seq_request_id>/get_pools/<int:page>", methods=["GET"])

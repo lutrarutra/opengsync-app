@@ -104,6 +104,7 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
 
 
 @library_annotation_workflow.route("<int:seq_request_id>/parse_assay_form", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_assay_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:

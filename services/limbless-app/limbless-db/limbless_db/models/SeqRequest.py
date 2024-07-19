@@ -59,11 +59,16 @@ class SeqRequest(Base):
     seq_auth_form_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[seq_auth_form_file_id], cascade="save-update, merge, delete")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
-    samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="seq_request", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
     files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink.__tablename__, lazy="select")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink.__tablename__, lazy="select", cascade="save-update,delete", order_by="Comment.timestamp_utc.desc()")
     delivery_email_links: Mapped[list[SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete", back_populates="seq_request")
+    samples: Mapped[list["Sample"]] = relationship(
+        "Sample",
+        secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id).join(Library, Library.id == SampleLibraryLink.library_id)",
+        primaryjoin="SeqRequest.id == Library.seq_request_id",
+        viewonly=True
+    )
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 

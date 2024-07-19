@@ -30,9 +30,9 @@
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
-            data-bs-target="#library-barcodes-tab" type="button" role="tab"
-            aria-controls="library-barcodes-tab" aria-selected="true">
-            Barcodes</button>
+            data-bs-target="#library-main-tab" type="button" role="tab"
+            aria-controls="library-main-tab" aria-selected="true">
+            Library</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -87,54 +87,68 @@
 
 <div class="container">
     <div class="tab-content pt-3">
-        <div class="tab-pane fade show active" id="library-barcodes-tab" role="tabpanel" tabindex="0">
+        <div class="tab-pane fade show active" id="library-main-tab" role="tabpanel" tabindex="0">
             <div class="row">
-            {% if library.pool_id %}
-            {{ 
-                metadata_group_link(
-                    "Pool", library.pool.name,
-                    url_for("pools_page.pool_page", pool_id=library.pool.id, from="library@" + library.id | string),
-                    class="col-2"
-                )
-            }}
-            {% else %}
-            {{ metadata_group("Pool", "", class="col-2") }}
-            {% endif %}
-            {{
-                metadata_group(
-                    "Adapter",
-                    library.index_1_adapter if library.index_1_adapter else "",
-                    class="col-2"
-                )
-            }}
-            {{
-                metadata_group(
-                    "Index 1 (i7)",
-                    library.index_1_sequence if library.index_1_sequence else "",
-                    class="col-2"
-                )
-            }}
-            {{
-                metadata_group(
-                    "Index 2 (i5)",
-                    library.index_2_sequence if library.index_2_sequence else "",
-                    class="col-2"
-                )
-            }}
-            {{
-                metadata_group(
-                    "Index 3",
-                    library.index_3_sequence if library.index_3_sequence else "",
-                    class="col-2"
-                )
-            }}
-            {{
-                metadata_group(
-                    "Index 4",
-                    library.index_4_sequence if library.index_4_sequence else "",
-                    class="col-2"
-                )
-            }}
+                {% if library.pool_id %}
+                {{ 
+                    metadata_group_link(
+                        "Request", library.seq_request.name,
+                        url_for("seq_requests_page.seq_request_page", seq_request_id=library.seq_request_id, from="library@" + library.id | string),
+                        class="col-6"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Pool", "", class="col-6") }}
+                {% endif %}
+                {% if library.pool_id %}
+                {{ 
+                    metadata_group_link(
+                        "Pool", library.pool.name,
+                        url_for("pools_page.pool_page", pool_id=library.pool.id, from="library@" + library.id | string),
+                        class="col-6"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Pool", "", class="col-6") }}
+                {% endif %}
+            </div>
+            <h4>Barcodes</h4>
+            <div class="row">
+                {{
+                    metadata_group(
+                        "Adapter",
+                        library.index_1_adapter if library.index_1_adapter else "",
+                        class="col-2"
+                    )
+                }}
+                {{
+                    metadata_group(
+                        "Index 1 (i7)",
+                        library.index_1_sequence if library.index_1_sequence else "",
+                        class="col-2"
+                    )
+                }}
+                {{
+                    metadata_group(
+                        "Index 2 (i5)",
+                        library.index_2_sequence if library.index_2_sequence else "",
+                        class="col-2"
+                    )
+                }}
+                {{
+                    metadata_group(
+                        "Index 3",
+                        library.index_3_sequence if library.index_3_sequence else "",
+                        class="col-2"
+                    )
+                }}
+                {{
+                    metadata_group(
+                        "Index 4",
+                        library.index_4_sequence if library.index_4_sequence else "",
+                        class="col-2"
+                    )
+                }}
             </div>
         </div>
         <div class="tab-pane fade show" id="library-wetlab-tab" role="tabpanel" tabindex="1">

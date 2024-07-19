@@ -37,8 +37,12 @@ class Sample(Base):
     
     plate_links: Mapped[list["SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="sample", lazy="select")
 
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), nullable=False)
-    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="samples", lazy="select")
+    seq_requests: Mapped[list["SeqRequest"]] = relationship(
+        "SeqRequest", back_populates="samples", lazy="select",
+        secondary="join(SeqRequest, Library, SeqRequest.id == Library.seq_request_id).join(SampleLibraryLink, Library.id == SampleLibraryLink.library_id)",
+        primaryjoin="SampleLibraryLink.sample_id == Sample.id",
+        viewonly=True
+    )
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="joined")

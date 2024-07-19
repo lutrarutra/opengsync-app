@@ -9,7 +9,7 @@ from .. import exceptions
 
 
 def create_sample(
-    self, name: str, owner_id: int, project_id: int, seq_request_id: int,
+    self, name: str, owner_id: int, project_id: int,
     status: SampleStatusEnum = SampleStatus.DRAFT
 ) -> models.Sample:
     persist_session = self._session is not None
@@ -21,15 +21,11 @@ def create_sample(
 
     if (user := self._session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{owner_id}', not found.")
-    
-    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
 
     sample = models.Sample(
         name=name.strip(),
         project_id=project_id,
         owner_id=owner_id,
-        seq_request_id=seq_request.id,
         status_id=status.id
     )
 
@@ -76,8 +72,14 @@ def get_samples(
     query = self._session.query(models.Sample)
 
     if seq_request_id is not None:
-        query = query.where(
-            models.Sample.seq_request_id == seq_request_id
+        query = query.join(
+            models.SampleLibraryLink,
+            models.SampleLibraryLink.sample_id == models.Sample.id
+        ).join(
+            models.Library,
+            models.Library.id == models.SampleLibraryLink.library_id
+        ).where(
+            models.Library.seq_request_id == seq_request_id
         )
 
     if user_id is not None:
@@ -198,8 +200,14 @@ def query_samples(
         )
 
     if seq_request_id is not None:
-        query = query.where(
-            models.Sample.seq_request_id == seq_request_id
+        query = query.join(
+            models.SampleLibraryLink,
+            models.SampleLibraryLink.sample_id == models.Sample.id
+        ).join(
+            models.Library,
+            models.Library.id == models.SampleLibraryLink.library_id
+        ).where(
+            models.Library.seq_request_id == seq_request_id
         )
 
     if pool_id is not None:

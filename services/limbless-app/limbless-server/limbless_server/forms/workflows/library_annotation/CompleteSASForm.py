@@ -268,14 +268,13 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         with DBSession(db) as session:
             for idx, row in sample_table.iterrows():
-                if row["sample_id"] is not None:
+                if pd.notna(row["sample_id"]):
                     continue
                 
                 sample = session.create_sample(
                     name=row["sample_name"],
                     project_id=project.id,
                     owner_id=user.id,
-                    seq_request_id=self.seq_request.id,
                     status=SampleStatus.DRAFT
                 )
                 sample_table.at[idx, "sample_id"] = sample.id
@@ -298,6 +297,8 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     contact_phone=self.metadata["pool_contact_phone"],
                     num_m_reads_requested=self.metadata["pool_num_m_reads_requested"]
                 )
+        else:
+            pool = None
 
         with DBSession(db) as session:
             library_table["library_id"] = None
@@ -315,7 +316,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     owner_id=user.id,
                     genome_ref=GenomeRef.get(row["genome_id"]),
                     visium_annotation_id=visium_annotation_id,
-                    pool_id=pool.id,
+                    pool_id=pool.id if pool is not None else None,
                     seq_depth_requested=row["seq_depth"] if "seq_depth" in row and pd.notna(row["seq_depth"]) else None,
                 )
 
