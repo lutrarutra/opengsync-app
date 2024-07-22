@@ -49,8 +49,8 @@ class DBHandler():
 
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
-        delete_sample, update_sample,
-        query_samples
+        delete_sample, update_sample, query_samples,
+        set_sample_attribute, get_sample_attribute, get_sample_attributes
     )
 
     from .model_handlers._pool_methods import (

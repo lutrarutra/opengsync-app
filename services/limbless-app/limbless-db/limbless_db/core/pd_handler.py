@@ -371,7 +371,8 @@ def get_seq_request_samples_df(
         models.Library.seq_request_id == models.SeqRequest.id
     ).join(
         models.Pool,
-        models.Pool.id == models.Library.pool_id
+        models.Pool.id == models.Library.pool_id,
+        isouter=True
     ).join(
         models.SampleLibraryLink,
         models.SampleLibraryLink.library_id == models.Library.id,

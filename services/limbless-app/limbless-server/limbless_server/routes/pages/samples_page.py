@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, url_for, abort, request
 from flask_login import login_required
 
-from limbless_db import DBSession
+from limbless_db import db_session
 from limbless_db.models import User
 from limbless_db.categories import HTTPResponse
 from ... import db, forms
@@ -23,20 +23,17 @@ def samples_page():
 
 
 @samples_page_bp.route("/samples/<sample_id>")
+@db_session(db)
 @login_required
 def sample_page(sample_id):
-    with DBSession(db) as session:
-        if (sample := session.get_sample(sample_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+    if (sample := db.get_sample(sample_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
-        if not current_user.is_insider() and sample.owner_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        is_editable = sample.is_editable()
-        sample.project
-        sample.ba_report
-
-        sample_form = forms.models.SampleForm(sample=sample)
+    if not current_user.is_insider() and sample.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    is_editable = sample.is_editable()
+    sample_form = forms.models.SampleForm(sample=sample)
 
     path_list = [
         ("Samples", url_for("samples_page.samples_page")),

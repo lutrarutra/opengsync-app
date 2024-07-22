@@ -16,10 +16,10 @@ from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
-from .CompleteSASForm import CompleteSASForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
 from .FeatureReferenceInputForm import FeatureReferenceInputForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 columns = {
     "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
@@ -103,11 +103,32 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         else:
             project = None
 
+        seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
+
+        selected_library_types = [t.abbreviation for t in AssayType.get(self.assay_type.data).library_types]
+        if self.optional_assays.antibody_capture.data:
+            selected_library_types.append(LibraryType.ANTIBODY_CAPTURE.abbreviation)
+        if self.optional_assays.vdj_b.data:
+            selected_library_types.append(LibraryType.VDJ_B.abbreviation)
+        if self.optional_assays.vdj_t.data:
+            selected_library_types.append(LibraryType.VDJ_T.abbreviation)
+        if self.optional_assays.vdj_t_gd.data:
+            selected_library_types.append(LibraryType.VDJ_T_GD.abbreviation)
+        if self.optional_assays.crispr_screening.data:
+            selected_library_types.append(LibraryType.CRISPR_SCREENING.abbreviation)
+        if self.additional_services.multiplexing.data:
+            selected_library_types.append(LibraryType.MULTIPLEXING_CAPTURE.abbreviation)
+
         for i, (_, row) in enumerate(self.df.iterrows()):
             if pd.isna(row["sample_name"]):
                 add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
             elif sample_name_counts[row["sample_name"]] > 1:
                 add_error(i + 1, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
+
+            duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
+            if (duplicate_library).any():
+                library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore
+                add_error(i + 1, "sample_name", f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request", "duplicate_value")
 
             if pd.isna(row["genome"]):
                 add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
@@ -261,9 +282,9 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
     
-        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        complete_sas_form.prepare()
-        return complete_sas_form.make_response()
+        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form.prepare()
+        return sample_annotation_form.make_response()
         
         
         

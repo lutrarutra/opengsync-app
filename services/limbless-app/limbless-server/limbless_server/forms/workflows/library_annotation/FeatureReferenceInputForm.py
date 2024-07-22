@@ -24,7 +24,7 @@ from ...SearchBar import OptionalSearchBar
 from .KitMappingForm import KitMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .CompleteSASForm import CompleteSASForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 
 class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
@@ -376,7 +376,7 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
 
-        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        complete_sas_form.prepare()
-        return complete_sas_form.make_response()
+        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form.prepare()
+        return sample_annotation_form.make_response()
         

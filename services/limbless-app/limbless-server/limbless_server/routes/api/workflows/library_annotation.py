@@ -249,6 +249,19 @@ def parse_frp_annotation(seq_request_id: int, input_type: Literal["spreadsheet",
     
     return forms.FRPAnnotationForm(seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
 
+
+# 11. Parse sample annotations
+@library_annotation_workflow.route("<int:seq_request_id>/parse_sas_form/<string:input_method>", methods=["POST"])
+@login_required
+def parse_sas_form(seq_request_id: int, input_method: Literal["spreadsheet", "file"]):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if input_method not in ["spreadsheet", "file"]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    return forms.SampleAnnotationForm(seq_request=seq_request, formdata=request.form | request.files, input_method=input_method).process_request()
+
     
 # Complete SAS
 @library_annotation_workflow.route("<int:seq_request_id>/complete", methods=["POST"])

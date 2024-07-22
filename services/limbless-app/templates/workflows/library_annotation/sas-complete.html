@@ -93,27 +93,41 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th scope="col" class="col-3">Sample Name</th>
-                                <th scope="col" class="col-1">Sequence <span class="desc">CMO</span></th>
-                                <th scope="col" class="col-1">Pattern <span class="desc">CMO</span></th>
-                                <th scope="col" class="col-1">Read <span class="desc">CMO</span></th>
-                                <th scope="col" class="col-6">Libraries</th>
+                                <th scope="col" class="col-2">Sample Name</th>
+                                <th scope="col" class="col-2">Libraries</th>
+                                {% for col in sample_table.columns %}
+                                {% if "_attr_" in col %}
+                                <th scope="col" class="col-1">{{ col.removeprefix("_attr_").replace("_", " ").title() }}</th>
+                                {% endif %}
+                                {% endfor %}
+                                {% if cmo_table is not none %}
+                                <th scope="col" class="col-1">Sequence <span class="desc">HTO</span></th>
+                                <th scope="col" class="col-1">Pattern <span class="desc">HTO</span></th>
+                                <th scope="col" class="col-1">Read <span class="desc">HTO</span></th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for _, row in sample_table.iterrows() %}
                             <tr>
                                 <th scope="row">{{ row["sample_name"] }}</th>
-                                <td>{{ row["sequence"] if row["sequence"] }}</td>
-                                <td>{{ row["pattern"] if row["pattern"] }}</td>
-                                <td>{{ row["read"] if row["read"] }}</td>
                                 <td>
                                     <ul class="h-list">
-                                        {% for library_type in row["library_types"] %}
+                                        {% for library_type in row["library_types"].split(";") %}
                                         <li>{{ library_type }}</li>
                                         {% endfor %}
                                     </ul>
                                 </td>
+                                {% for col in sample_table.columns %}
+                                {% if "_attr_" in col %}
+                                <td>{{ row[col] }}</td>
+                                {% endif %}
+                                {% endfor %}
+                                {% if cmo_table is not none %}
+                                <td>{{ row["sequence"] if row["sequence"] }}</td>
+                                <td>{{ row["pattern"] if row["pattern"] }}</td>
+                                <td>{{ row["read"] if row["read"] }}</td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

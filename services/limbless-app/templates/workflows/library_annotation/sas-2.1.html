@@ -91,7 +91,6 @@
                 hx-get="{{ url_for('library_annotation_workflow.define_pool', seq_request_id=seq_request.id, uuid=sas_input_form.uuid) }}">
                 Back
             </button>
-
             <button type="button" id="parse-spreadsheet-btn" class="btn btn-primary submit-form-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
                 Upload
             </button>

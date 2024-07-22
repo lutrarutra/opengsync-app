@@ -19,7 +19,7 @@ from .... import logger, tools
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
-from .CompleteSASForm import CompleteSASForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 
 class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
@@ -237,6 +237,6 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
         self.add_table("flex_table", self.flex_table)
         self.update_data()
         
-        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        complete_sas_form.prepare()
-        return complete_sas_form.make_response()
+        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form.prepare()
+        return sample_annotation_form.make_response()

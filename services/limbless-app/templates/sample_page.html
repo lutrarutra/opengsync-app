@@ -112,8 +112,12 @@
                     )
                 }}
             </div>
+            <div class="row">
+                {% for attribute in sample.attributes %}
+                    {{ metadata_group(attribute.name, attribute.value, class="col-3") }}
+                {% endfor %}
+            </div>
             {{ metadata_group("Time Stored", sample.timestamp_stored_str, class="col-3") }}
-
         </div>
         {% if current_user.is_insider() %}
         <div class="tab-pane fade" id="sample-plate-tab" role="tabpanel" tabindex="2">

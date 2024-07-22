@@ -198,6 +198,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             SampleStatus=categories.SampleStatus,
             RunStatus=categories.RunStatus,
             SubmissionType=categories.SubmissionType,
+            AttributeType=categories.AttributeType,
             isna=pd.isna,
         )
     

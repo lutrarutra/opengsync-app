@@ -2,9 +2,10 @@ import math
 from typing import Optional
 
 import sqlalchemy as sa
+from sqlalchemy.sql import and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SampleStatus, SampleStatusEnum
+from ...categories import SampleStatus, SampleStatusEnum, AttributeTypeEnum
 from .. import exceptions
 
 
@@ -234,3 +235,73 @@ def query_samples(
         self.close_session()
 
     return res
+
+
+def set_sample_attribute(
+    self, sample_id: int, value: str, type: AttributeTypeEnum, name: Optional[str]
+) -> models.Sample:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if name is None:
+        name = type.label
+
+    if (sample := self._session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+    
+    if (attribute := self._session.query(models.SampleAttribute).where(
+        and_(models.SampleAttribute.sample_id == sample_id, models.SampleAttribute.name == name)
+    ).first()) is not None:
+        attribute.value = value
+    else:
+        attribute = models.SampleAttribute(
+            value=value,
+            name=name,
+            type_id=type.id
+        )
+
+    sample.attributes.append(attribute)
+
+    self._session.add(sample)
+    self._session.commit()
+    self._session.refresh(sample)
+
+    if not persist_session:
+        self.close_session()
+    return sample
+
+
+def get_sample_attribute(
+    self, sample_id: int, name: str
+) -> Optional[models.SampleAttribute]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    attribute = self._session.query(models.SampleAttribute).where(
+        and_(
+            models.SampleAttribute.sample_id == sample_id,
+            models.SampleAttribute.name == name
+        )
+    ).first()
+
+    if not persist_session:
+        self.close_session()
+    return attribute
+
+
+def get_sample_attributes(
+    self, sample_id: int
+) -> list[models.SampleAttribute]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    attributes = self._session.query(models.SampleAttribute).where(
+        models.SampleAttribute.sample_id == sample_id
+    ).all()
+
+    if not persist_session:
+        self.close_session()
+    return attributes
