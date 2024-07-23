@@ -23,9 +23,6 @@ from ...TableDataForm import TableDataForm
 from .CompleteSASForm import CompleteSASForm
 
 
-columns = {"sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str)} | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list())])
-
-
 class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-11.html"
     _form_label = "sample_annotation_form"
@@ -40,10 +37,11 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
         "duplicate_value": "#D7BDE2",
     }
 
+    predefined_columns = {"sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str)} | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()) if t.label != "custom"])
+
     separator = SelectField(choices=_allowed_extensions, default="tsv", coerce=str)
     file = FileField(validators=[OptionalValidator(), FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
-    custom_attribute_name = StringField(validators=[OptionalValidator()])
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, input_method: Optional[Literal["spreadsheet", "file"]] = None, previous_form: Optional[TableDataForm] = None, uuid: Optional[str] = None):
         if uuid is None:
@@ -58,7 +56,7 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
         self.input_method = input_method
         self._context["colors"] = SampleAnnotationForm.colors
         self._context["active_tab"] = "help"
-        self._context["columns"] = columns.values()
+        self._context["columns"] = SampleAnnotationForm.predefined_columns.values()
         self.upload_path = os.path.join("uploads", "seq_request")
 
     def prepare(self):
@@ -157,32 +155,41 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
                     sample_id=sample_id if pd.notna(sample_id) else None,
                 )
 
-        sample_table = pd.DataFrame(sample_data).fillna(np.nan)
-        self._context["sample_table"] = sample_table
-        self.add_table("sample_table", sample_table)
+        self.sample_table = pd.DataFrame(sample_data).fillna(np.nan)
+        self._context["sample_table"] = self.sample_table
+        self.add_table("sample_table", self.sample_table)
         self.update_data()
-
-        template = sample_table[["sample_name"]].copy()
-        for col in columns.values():
+        template = self.sample_table[["sample_name"]].copy()
+        for col in SampleAnnotationForm.predefined_columns.values():
             if col.label in template.columns:
                 continue
             
             template[col.label] = ""
 
-        for _, row in sample_table.iterrows():
+        for _, row in self.sample_table.iterrows():
             attributes = db.get_sample_attributes(sample_id=row["sample_id"])
             for attr in attributes:
-                if attr.name not in template.columns:
-                    template.loc[template["sample_name"] == row["sample_name"], "custom"] = attr.value
-                else:
-                    template.loc[template["sample_name"] == row["sample_name"], attr.name] = attr.value
+                template.loc[template["sample_name"] == row["sample_name"], attr.name] = attr.value
 
-        self._context["spreadsheet_data"] = template.replace(np.nan, "").values.tolist()
+        columns = self.set_columns(template)
+        self._context["spreadsheet_data"] = template[list(columns.keys())].replace(np.nan, "").values.tolist()
+
+    def set_columns(self, df: pd.DataFrame) -> dict[str, SpreadSheetColumn]:
+        columns = {}
+        for col in df.columns:
+            if col in SampleAnnotationForm.predefined_columns.keys():
+                columns[col] = SampleAnnotationForm.predefined_columns[col]
+            else:
+                columns[col] = SpreadSheetColumn(string.ascii_uppercase[len(columns) + 1], col, col.replace("_", " ").title(), "text", 100, str)
+        
+        self._context["columns"] = columns.values()
+        return columns
 
     def columns_mapping(self):
-        return dict([(col.name, col.label) for col in columns.values()])
+        return dict([(col.name, col.label) for col in SampleAnnotationForm.predefined_columns.values()])
 
     def validate(self) -> bool:
+        self.df = None
         validated = super().validate()
         
         if self.input_method is None:
@@ -199,6 +206,8 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
         if not validated:
             return False
         
+        self.sample_table = self.tables["sample_table"]
+        
         if self.input_method == "spreadsheet":
             import json
             data = json.loads(self.formdata["spreadsheet"])  # type: ignore
@@ -208,11 +217,16 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
                 self.spreadsheet_dummy.errors = (str(e),)
                 return False
             
-            if len(self.df.columns) != len(list(columns.keys())):
-                self.spreadsheet_dummy.errors = (f"Invalid number of columns (expected {len(columns)}). Do not insert new columns or rearrange existing columns.",)
+            if not self.spreadsheet_dummy.data:
+                logger.error("Spreadsheet dummy data not found.")
+                raise Exception("Spreadsheet dummy data not found.")
+            
+            attribute_columns = json.loads(self.spreadsheet_dummy.data).split(",")
+            if len(duplicate_columns := set(self.sample_table.columns.tolist()) & set(attribute_columns)) > 0:
+                self.spreadsheet_dummy.errors = (f"Column(s) '{','.join(duplicate_columns)}' are duplicated/reserved.",)
                 return False
             
-            self.df.columns = list(columns.keys())
+            self.df.columns = attribute_columns
             self.df = self.df.replace(r'^\s*$', None, regex=True)
             self.df = self.df.dropna(how="all")
 
@@ -221,7 +235,7 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
                 return False
 
         elif self.input_method == "file":
-            col_mapping = dict([(col.name, col) for col in columns.values()])
+            col_mapping = dict([(col.name, col) for col in SampleAnnotationForm.predefined_columns.values()])
             sep = "\t" if self.separator.data == "tsv" else ","
             filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
             filename = secure_filename(filename)
@@ -243,34 +257,27 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
             if len(missing_cols) > 0:
                 self.file.errors = (str(f"Uploaded table is missing column(s): [{', '.join(missing_cols)}]"),)
                 return False
+        else:
+            logger.error("Invalid input method.")
+            raise Exception("Invalid input method.")
 
-            self.df = self.df.rename(columns=self.columns_mapping())
+        self.df = self.df.rename(columns=self.columns_mapping())
+        column_order = self.df.columns.tolist()
 
         self.file.errors = []
         self.spreadsheet_dummy.errors = []
 
         def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value"]):
             if self.input_method == "spreadsheet":
-                self.spreadsheet_style[f"{columns[column].column}{row_num}"] = f"background-color: {SampleAnnotationForm.colors[color]};"
+                self.spreadsheet_style[f"{string.ascii_uppercase[column_order.index(column)]}{row_num}"] = f"background-color: {SampleAnnotationForm.colors[color]};"
                 self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
             else:
                 self.file.errors.append(f"Row {row_num}: {message}")  # type: ignore
 
-        sample_table = self.tables["sample_table"]
-        missing_samples = sample_table.loc[~sample_table["sample_name"].isin(self.df["sample_name"]), "sample_name"].values.tolist()
+        missing_samples = self.sample_table.loc[~self.sample_table["sample_name"].isin(self.df["sample_name"]), "sample_name"].values.tolist()
         if len(missing_samples) > 0:
             self.spreadsheet_dummy.errors.append(f"Sample(s) not found in the sample table: {', '.join(missing_samples)}")
             validated = False
-
-        if self.df["custom"].notna().any():
-            if not self.custom_attribute_name.data:
-                self.custom_attribute_name.errors = ("Please provide a name for the custom attribute.",)
-                validated = False
-            elif self.custom_attribute_name.data.lower().strip().replace(" ", "_") in columns.keys():
-                self.custom_attribute_name.errors = ("Custom attribute name should not be the same as the predefined attributes.",)
-                validated = False
-            else:
-                self.custom_attribute_name.data = self.custom_attribute_name.data.lower().strip().replace(" ", "_")
 
         for i, (idx, row) in enumerate(self.df.iterrows()):
             if pd.isna(row["sample_name"]) or row["sample_name"] == "":
@@ -283,7 +290,10 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
                 validated = False
                 continue
             
-            for col in columns.keys():
+            for col in self.df.keys():
+                if col == "sample_name":
+                    continue
+                
                 if pd.isna(self.df[col]).all():
                     continue
                 
@@ -296,27 +306,24 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
         return validated
 
     def process_request(self) -> Response:
-        if not self.validate():
-            logger.debug(self.spreadsheet_style)
+        if not self.validate() or self.df is None:
             if self.input_method == "spreadsheet":
                 self._context["spreadsheet_style"] = self.spreadsheet_style
-                self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
+                if self.df is not None:
+                    self.set_columns(self.df)
+                    self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
                 if self._context["spreadsheet_data"] == []:
                     self._context["spreadsheet_data"] = [[None]]
             return self.make_response()
         
-        sample_table = self.tables["sample_table"]
         for idx, row in self.df.iterrows():
             sample_name = row["sample_name"]
             for col in self.df.columns:
                 if col == "sample_name" or self.df[col].isna().all():
                     continue
-                if col == "custom":
-                    sample_table.loc[sample_table["sample_name"] == sample_name, f"_attr_{self.custom_attribute_name.data}"] = row[col]
-                else:
-                    sample_table.loc[sample_table["sample_name"] == sample_name, f"_attr_{col}"] = row[col]
+                self.sample_table.loc[self.sample_table["sample_name"] == sample_name, f"_attr_{col}"] = row[col]
 
-        self.update_table("sample_table", sample_table)
+        self.update_table("sample_table", self.sample_table)
         
         complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         complete_sas_form.prepare()

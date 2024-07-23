@@ -40,7 +40,6 @@
             <div class="tab-content" id="sample_annotation_form" enctype="multipart/form-data">
                 {{ sample_annotation_form.csrf_token() }}
                 {{ sample_annotation_form.file_uuid(hidden=True, readonly=True) }}
-                {{ form_group(sample_annotation_form.custom_attribute_name) }}
 
                 <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
                     <div class="input-help">
@@ -147,13 +146,15 @@
                 allowInsertRow: false,
                 allowManualInsertRow: false,
                 allowDeleteRow: false,
-                allowDeleteColumn: false,
-                allowInsertColumn: false,
+                allowDeleteColumn: true,
+                allowInsertColumn: true,
                 style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
             });
 
             $("#submit-spreadsheet-btn").on("click", function() {
                 var data = spread_sheet.getData();
+
+                console.log(spread_sheet.getHeaders());
 
                 htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id, input_method='spreadsheet') }}", {
                     "target": "#sample_annotation_form-container",
@@ -163,7 +164,7 @@
                         "csrf_token": csrf_token,
                         "feature_kit-csrf_token": csrf_token,
                         "file_uuid": "{{ sample_annotation_form.file_uuid.data }}",
-                        "custom_attribute_name": $("#custom_attribute_name").val(),
+                        "spreadsheet_dummy": JSON.stringify(spread_sheet.getHeaders()),
                     },
                 });
             });

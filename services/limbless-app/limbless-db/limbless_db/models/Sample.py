@@ -52,7 +52,10 @@ class Sample(Base):
         cascade="save-update, merge, delete"
     )
 
-    attributes: Mapped[list["SampleAttribute"]] = relationship("SampleAttribute", lazy="select")
+    attributes: Mapped[list["SampleAttribute"]] = relationship(
+        "SampleAttribute", lazy="select",
+        cascade="save-update, merge, delete, delete-orphan",
+    )
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
 

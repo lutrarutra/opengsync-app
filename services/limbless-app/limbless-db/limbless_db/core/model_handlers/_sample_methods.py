@@ -246,6 +246,8 @@ def set_sample_attribute(
 
     if name is None:
         name = type.label
+    else:
+        name = name.lower().strip().replace(" ", "_")
 
     if (sample := self._session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
@@ -278,6 +280,8 @@ def get_sample_attribute(
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
+
+    name = name.lower()
 
     attribute = self._session.query(models.SampleAttribute).where(
         and_(
