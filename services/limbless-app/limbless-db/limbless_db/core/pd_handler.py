@@ -415,3 +415,21 @@ def get_experiment_seq_qualities_df(self, experiment_id: int) -> pd.DataFrame:
     df["library_id"] = df["library_id"].astype(int)
 
     return df
+
+
+def get_index_kit_barcodes_df(self, index_kit_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Barcode.sequence.label("sequence"), models.Barcode.well.label("well"),
+        models.Barcode.name.label("name"), models.Barcode.adapter_id.label("adapter_id"),
+        models.Barcode.type_id.label("type_id"),
+    ).where(
+        models.Barcode.index_kit_id == index_kit_id
+    )
+
+    df = pd.read_sql(query, self._engine)
+    df["type"] = df["type_id"].map(categories.BarcodeType.get)
+
+    df = df.groupby(df.columns.difference(["sequence", "name", "type_id", "type"]).tolist(), as_index=False, dropna=False).agg({"sequence": list, "name": list, "type_id": list, "type": list}).rename(columns={"sequence": "sequences", "name": "names", "type_id": "type_ids", "type": "types"})
+
+
+    return df

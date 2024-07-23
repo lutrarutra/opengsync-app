@@ -90,11 +90,6 @@ class DBHandler():
         create_contact, update_contact
     )
 
-    from .model_handlers._adapter_methods import (
-        create_adapter, get_adapter, get_adapters,
-        get_adapter_from_index_kit, add_barcode_to_adapter
-    )
-
     from .model_handlers._lane_methods import (
         create_lane, get_lane, get_lanes, update_lane, get_experiment_lane
     )
@@ -116,10 +111,18 @@ class DBHandler():
         update_sequencer, query_sequencers
     )
 
+    from .model_handlers._adapter_methods import (
+        create_adapter, get_adapter, get_adapters
+    )
+
     from .model_handlers._plate_methods import (
         create_plate, get_plate, get_plates,
         delete_plate, add_sample_to_plate, add_library_to_plate, clear_plate,
         get_plate_sample
+    )
+
+    from .model_handlers._barcode_methods import (
+        create_barcode, get_barcode, get_barcodes
     )
 
     from .model_handlers._link_methods import (
@@ -162,5 +165,5 @@ class DBHandler():
         get_pool_libraries_df, get_seq_request_libraries_df,
         get_seq_requestor_df, get_seq_request_share_emails_df,
         get_library_features_df, get_library_cmos_df, get_experiment_seq_qualities_df,
-        get_plate_df, get_seq_request_samples_df
+        get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df
     )

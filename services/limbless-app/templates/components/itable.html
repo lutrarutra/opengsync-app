@@ -1,0 +1,24 @@
+<div id="static-spreadsheet-grid" class="spreadsheet-grid">
+</div>
+<script>
+    var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
+
+    var spread_sheet = jspreadsheet(document.getElementById("static-spreadsheet-grid"), {
+        data: data,
+        columns: [
+            {% for col in columns %}
+            {%- if col.type == "text" or col.type == "numeric" -%}
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+            {%- elif col["type"] == "dropdown" -%}
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+            {%- endif -%}
+            {% endfor %}
+        ],
+        allowInsertRow: false,
+        allowManualInsertRow: false,
+        allowDeleteRow: false,
+        allowDeleteColumn: false,
+        allowInsertColumn: false,
+        style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
+    });
+</script>

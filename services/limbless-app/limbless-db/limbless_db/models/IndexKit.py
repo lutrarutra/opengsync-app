@@ -7,6 +7,7 @@ from ..categories import IndexType, IndexTypeEnum
 from .Base import Base
 
 if TYPE_CHECKING:
+    from .Barcode import Barcode
     from .Adapter import Adapter
 
 
@@ -17,6 +18,7 @@ class IndexKit(Base):
 
     type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     
+    barcodes: Mapped[list["Barcode"]] = relationship("Barcode", back_populates="index_kit", lazy="select")
     adapters: Mapped[list["Adapter"]] = relationship("Adapter", back_populates="index_kit", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name"]

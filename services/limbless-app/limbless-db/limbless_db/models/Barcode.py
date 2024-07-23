@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,21 +8,23 @@ from .Base import Base
 from limbless_db.categories import BarcodeType, BarcodeTypeEnum
 
 if TYPE_CHECKING:
-    from .Adapter import Adapter
+    from .IndexKit import IndexKit
 
 
 class Barcode(Base):
     __tablename__ = "barcode"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, default=None)
 
-    sequence: Mapped[str] = mapped_column(sa.String(16), nullable=False)
-    name: Mapped[Optional[str]] = mapped_column(sa.String(16), nullable=True)
-    
-    adapter: Mapped["Adapter"] = relationship("Adapter", lazy="select", overlaps="barcodes_i7,barcodes_i5")
-    adapter_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("adapter.id"), nullable=False)
-    
-    index_kit_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=False)
+    sequence: Mapped[str] = mapped_column(sa.String(32), nullable=False)
+    name: Mapped[str] = mapped_column(sa.String(16), nullable=False, index=True)
+    well: Mapped[Optional[str]] = mapped_column(sa.String(4), nullable=True)
+
     type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+
+    adapter_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("adapter.id"), nullable=False)
+
+    index_kit_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=False)
+    index_kit: Mapped["IndexKit"] = relationship("IndexKit", back_populates="barcodes", lazy="select")
 
     @property
     def type(self) -> BarcodeTypeEnum:

@@ -53,7 +53,7 @@ def get(page: int):
         render_template(
             "components/tables/pool.html", pools=pools, n_pages=n_pages,
             sort_by=sort_by, sort_order=sort_order,
-            active_page=page, PoolStatus=PoolStatus, status_in=status_in
+            active_page=page, status_in=status_in
         )
     )
 
