@@ -82,8 +82,8 @@
                                 <th scope="row">{{ row["library_name"] }}</th>
                                 <td>{{ row["library_type"] }}</td>
                                 {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
-                                {% if "index_i7_sequences" in library_table %}<td>{{ ", ".join(row["index_i7_sequences"].split(";")) }}</td>{% endif %}
-                                {% if "index_i5_sequences" in library_table %}<td>{{ ", ".join(row["index_i5_sequences"].split(";")) }}</td>{% endif %}
+                                {% if "index_i7_sequences" in library_table %}<td>{{ ", ".join(row["index_i7_sequences"].split(";") if not isna(row["index_i7_sequences"]) else "") }}</td>{% endif %}
+                                {% if "index_i5_sequences" in library_table %}<td>{{ ", ".join(row["index_i5_sequences"].split(";") if not isna(row["index_i5_sequences"]) else "") }}</td>{% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

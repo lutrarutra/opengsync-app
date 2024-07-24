@@ -3,7 +3,6 @@ from typing import Optional
 
 from sqlalchemy.sql.operators import and_
 
-from ...categories import BarcodeTypeEnum
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 

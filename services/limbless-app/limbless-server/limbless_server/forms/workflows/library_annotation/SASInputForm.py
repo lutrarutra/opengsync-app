@@ -13,7 +13,7 @@ from flask_wtf.file import FileField, FileAllowed
 from werkzeug.utils import secure_filename
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, GenomeRef
+from limbless_db.categories import LibraryType, GenomeRef, BarcodeType, IndexType
 
 from .... import logger, db
 from ....tools import SpreadSheetColumn, tools
@@ -185,6 +185,32 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             self.library_table["index_i7_name"] = None
             self.library_table["index_i5_name"] = None
 
+            kit_1_df = None
+            kit_2_df = None
+            kit_1 = None
+            kit_2 = None
+            if self.metadata["index_1_kit_id"] is not None:
+                if (kit_1 := db.get_index_kit(self.metadata["index_1_kit_id"])) is None:
+                    logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_1_kit_id']} does not exist.")
+                    raise ValueError(f"Index kit with ID {self.metadata['index_1_kit_id']} does not exist.")
+                
+                if len(kit_1_df := db.get_index_kit_barcodes_df(self.metadata["index_1_kit_id"], per_adapter=False)) == 0:
+                    logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_1_kit_id']} does not exist.")
+                    raise ValueError(f"Index kit with ID {self.metadata['index_1_kit_id']} does not exist.")
+            if self.metadata["index_2_kit_id"] is None or self.metadata["index_2_kit_id"] == self.metadata["index_1_kit_id"]:
+                kit_2_df = kit_1_df
+                kit_2 = kit_1
+            else:
+                if (kit_2 := db.get_index_kit(self.metadata["index_2_kit_id"])) is None:
+                    logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
+                    raise ValueError(f"Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
+                if len(kit_2_df := db.get_index_kit_barcodes_df(self.metadata["index_2_kit_id"], per_adapter=False)) == 0:
+                    logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
+                    raise ValueError(f"Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
+            
+            assert kit_1_df is not None and kit_2_df is not None
+            assert kit_1 is not None and kit_2 is not None
+
         def base_filter(x: str) -> list[str]:
             return [c for c in x if c not in "ACGT"]
         
@@ -223,35 +249,25 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                     add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
                     continue
 
-                if (index_1_kit_id := self.metadata["index_1_kit_id"]) is not None:
-                    if (index_1_kit := db.get_index_kit(index_1_kit_id)) is None:
-                        logger.error(f"{self.uuid}: Index kit with ID {index_1_kit_id} does not exist.")
-                        raise ValueError(f"Index kit with ID {index_1_kit_id} does not exist.")
-                    if pd.isna(row["index_i7"]):
-                        add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
+                if kit_1_df is not None:
+                    if len(index_i7_sequences := kit_1_df.loc[(kit_1_df["name"] == row["index_i7"]) & (kit_1_df["type"] == BarcodeType.INDEX_I7), "sequence"].tolist()) == 0:  # type: ignore
+                        add_error(i + 1, "index_i7", f"Index i7 '{row['index_i7']}' not found in specified index-kit.", "invalid_value")
                         continue
                     
-                    if (adapter_1 := db.get_adapter_from_index_kit(index_kit_id=index_1_kit_id, adapter=row["index_i7"].strip())) is None:
-                        add_error(i + 1, "index_i7", f"Adapter '{row['index_i7']}' not found in selected index-kit '{index_1_kit.name}'", "invalid_value")
-                        continue
-                    
-                    if (index_2_kit_id := self.metadata["index_2_kit_id"]) is None or index_1_kit_id == self.metadata["index_2_kit_id"]:
-                        adapter_2 = adapter_1
-                        index_2_kit = index_1_kit
-                    else:
-                        if (index_2_kit := db.get_index_kit(index_2_kit_id)) is None:
-                            logger.error(f"{self.uuid}: Index kit with ID {index_2_kit_id} does not exist.")
-                            raise ValueError(f"Index kit with ID {index_2_kit_id} does not exist.")
-                        
-                        if (adapter_2 := db.get_adapter_from_index_kit(index_kit_id=index_2_kit_id, adapter=row["index_i5"].strip())) is None:
-                            add_error(i + 1, "index_i5", f"Adapter '{row['index_i5']}' not found in selected index-kit '{index_2_kit.name}'", "invalid_value")
-                            continue
+                    self.library_table.at[idx, "index_i7_sequences"] = ";".join(index_i7_sequences)
+                    self.library_table.at[idx, "index_i7_name"] = row["index_i7"]
 
-                    self.library_table.at[idx, "index_i7_sequences"] = ";".join([bc_i7.sequence for bc_i7 in adapter_1.barcodes_i7])
-                    self.library_table.at[idx, "index_i7_name"] = adapter_1.name
-                    self.library_table.at[idx, "index_i5_sequences"] = ";".join([bc_i5.sequence for bc_i5 in adapter_2.barcodes_i5])
-                    if len(adapter_2.barcodes_i5) > 0:
-                        self.library_table.at[idx, "index_i5_name"] = adapter_2.name
+                    if kit_2.type == IndexType.DUAL_INDEX:
+                        if pd.isna(row["index_i5"]):
+                            self.df.at[idx, "index_i5"] = row["index_i7"]
+                            row["index_i5"] = row["index_i7"]
+                            
+                        if len(index_i5_sequences := kit_2_df.loc[(kit_2_df["name"] == row["index_i5"]) & (kit_2_df["type"] == BarcodeType.INDEX_I5), "sequence"].tolist()) == 0:  # type: ignore
+                            add_error(i + 1, "index_i5", f"Index i5 '{row['index_i5']}' not found in specified index-kit.", "invalid_value")
+                            continue
+                        
+                        self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
+                        self.library_table.at[idx, "index_i5_name"] = row["index_i5"]
 
                 else:
                     index_i7_sequences = row["index_i7"].split(";")

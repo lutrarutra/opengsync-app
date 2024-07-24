@@ -779,8 +779,6 @@ def get_samples(seq_request_id: int, page: int):
 @seq_requests_htmx.route("<int:seq_request_id>/get_pools", methods=["GET"], defaults={"page": 0})
 @login_required
 def get_pools(seq_request_id: int, page: int):
-    # Seq request - pool table not implemented, is it needed?
-    raise NotImplementedError()
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

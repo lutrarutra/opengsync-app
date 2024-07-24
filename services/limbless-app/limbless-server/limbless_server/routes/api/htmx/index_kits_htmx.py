@@ -138,7 +138,6 @@ def render_table(index_kit_id: int):
             barcode_data["sequence_i7"].append(row["sequences"][0])
 
     df = pd.DataFrame(barcode_data)
-    logger.debug(df)
 
     columns = []
     for i, col in enumerate(df.columns):

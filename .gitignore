@@ -18,6 +18,7 @@ test*.ipynb
 containers/images/
 licensed/
 **/style/compiled/
+.VSCodeCounter/
 .~lock.*
 poetry.lock
 _init_db.ipynb

@@ -48,13 +48,6 @@
                         multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-library-table', column_name='Adapter', column_var='adapter',
-                        sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
                 <th scope="col" class="col-2">Index i7</th>
                 <th scope="col" class="col-2">Index i5</th>
             </tr>
@@ -77,7 +70,6 @@
                 <td>
                     {{ library.status.icon }} {{ library.status.name }}
                 </td>
-                <td></td>
                 <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.sequences_i7_str() }}</td>
                 <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.sequences_i5_str() }}</td>
             </tr>

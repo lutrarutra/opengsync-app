@@ -54,6 +54,12 @@ def pool_page(pool_id: int):
                 (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
+        elif page == "seq_request":
+            path_list = [
+                ("Requests", url_for("seq_requests_page.seq_requests_page")),
+                (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
+                (f"Pool {pool_id}", ""),
+            ]
 
     is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider()
     is_indexed = True and len(pool.libraries) > 0

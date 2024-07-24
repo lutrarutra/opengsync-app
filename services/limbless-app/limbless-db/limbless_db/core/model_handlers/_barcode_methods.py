@@ -94,5 +94,20 @@ def get_barcodes(
     return barcodes, n_pages
 
 
+def get_barcode_from_kit(
+    self, index_kit_id: int, name: str, type: BarcodeTypeEnum
+) -> Optional[models.Barcode]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
 
-    
+    barcode = self._session.query(models.Barcode).where(
+        models.Barcode.index_kit_id == index_kit_id,
+        models.Barcode.name == name,
+        models.Barcode.type_id == type.id
+    ).first()
+
+    if not persist_session:
+        self.close_session()
+
+    return barcode
