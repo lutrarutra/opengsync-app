@@ -31,7 +31,6 @@ class PoolForm(HTMXFlaskForm):
         super().__init__(formdata=formdata)
         self.form_type = form_type
         self._context["form_type"] = form_type
-        self._context["identifiers"] = dict([(pool_type.id, pool_type.identifier) for pool_type in PoolType.as_list()])
 
     def validate(self, pool: Optional[models.Pool]) -> bool:
         if not super().validate():
@@ -89,9 +88,6 @@ class PoolForm(HTMXFlaskForm):
                 raise ValueError(f"Contact {contact_id} not found")
             
         pool_type = PoolType.get(self.pool_type.data)
-
-        if pool_type.identifier:
-            self.name.data = db.get_next_pool_identifier(pool_type)
             
         pool = db.create_pool(
             name=self.name.data,  # type: ignore

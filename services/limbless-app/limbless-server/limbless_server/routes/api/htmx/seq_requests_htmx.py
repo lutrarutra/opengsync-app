@@ -69,6 +69,7 @@ def get(page: int):
 
 
 @seq_requests_htmx.route("get_form/<string:form_type>", methods=["GET"])
+@db_session(db)
 @login_required
 def get_form(form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
@@ -83,14 +84,13 @@ def get_form(form_type: Literal["create", "edit"]):
         if form_type != "edit":
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        with DBSession(db) as session:
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            
-            if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-                return abort(HTTPResponse.FORBIDDEN.id)
-            
-            return forms.models.SeqRequestForm(form_type=form_type, seq_request=seq_request).make_response()
+        if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        if seq_request.requestor_id != current_user.id and not current_user.is_insider():
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+        return forms.models.SeqRequestForm(form_type=form_type, seq_request=seq_request).make_response()
     
     # seq_request_id must be provided if form_type is "edit"
     if form_type == "edit":

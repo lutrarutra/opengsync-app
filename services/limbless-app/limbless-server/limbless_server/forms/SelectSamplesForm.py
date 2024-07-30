@@ -42,6 +42,10 @@ workflow_settings = {
         select_samples=False, select_pools=False, select_all_libraries=True,
         library_status_filter=[LibraryStatus.PREPARING, LibraryStatus.STORED]
     ),
+    "library_prep": dict(
+        select_samples=False, select_pools=False, select_libraries=True,
+        library_status_filter=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING]
+    )
 }
 
 
@@ -128,8 +132,11 @@ class SelectSamplesForm(HTMXFlaskForm):
             if workflow in ["qubit_measure", "ba_report"]:
                 self._context["select_samples"] = False
                 self._context["select_libraries"] = False
+        if "lab_prep" in context.keys():
+            url_context["lab_prep_id"] = context["lab_prep"].id
+            self._context["context"] = f"{context['lab_prep'].name} ({context['lab_prep'].id})"
 
-        self._context["post_url"] = url_for(f"{workflow}_workflow.select")  # type: ignore
+        self._context["post_url"] = url_for(f"{workflow}_workflow.select", **url_context)  # type: ignore
         self._context["url_context"] = url_context
         self._context["sample_url_context"] = url_context.copy()
         self._context["library_url_context"] = url_context.copy()

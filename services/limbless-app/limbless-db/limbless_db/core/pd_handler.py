@@ -203,11 +203,9 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
 def get_pool_libraries_df(self, pool_id: int, drop_empty_columns: bool = True) -> pd.DataFrame:
     columns = [
         models.Pool.id.label("pool_id"),
-        models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.status_id,
-        models.Library.type_id.label("library_type_id"), models.Library.genome_ref_id.label("reference_id"),
-        models.Library.adapter, models.Library.index_kit_id.label("index_kit_id"), models.IndexKit.name.label("kit"),
-        models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
-        models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
+        models.Library.id.label("library_id"), models.Library.name.label("library_name"),
+        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("sequence_i7"),
+        models.LibraryIndex.name_i7.label("name_i5"), models.LibraryIndex.name_i5.label("sequence_i5"),
     ]
     query = sa.select(*columns).where(
         models.Pool.id == pool_id
@@ -215,20 +213,16 @@ def get_pool_libraries_df(self, pool_id: int, drop_empty_columns: bool = True) -
         models.Library,
         models.Library.pool_id == models.Pool.id
     ).join(
-        models.IndexKit,
-        models.IndexKit.id == models.Library.index_kit_id,
+        models.LibraryIndex,
+        models.LibraryIndex.library_id == models.Library.id,
         isouter=True
     )
 
     query = query.order_by(models.Library.id)
 
-    df = pd.read_sql(query, self._engine)
-    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
+    df = pd.read_sql(query, self._engine).drop(columns=["pool_id"])
 
-    if drop_empty_columns:
-        df = df.dropna(axis="columns", how="all")
-
-    df = df.sort_values(by=["library_name"])
+    df = df.groupby(df.columns.difference(["name_i7", "sequence_i7", "name_i5", "sequence_i5"]).tolist(), as_index=False, dropna=False).agg({"name_i7": list, "sequence_i7": list, "name_i5": list, "sequence_i5": list}).rename(columns={"name_i7": "names_i7", "sequence_i7": "sequences_i7", "name_i5": "names_i5", "sequence_i5": "sequences_i5"})
 
     return df
 
@@ -307,6 +301,7 @@ def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
 
 def get_seq_request_libraries_df(
     self, seq_request_id: int, include_indices: bool = False,
+    collapse_indicies: bool = False
 ) -> pd.DataFrame:
     
     columns = [
@@ -318,7 +313,7 @@ def get_seq_request_libraries_df(
 
     if include_indices:
         columns.extend([
-            models.LibraryIndex.sequence_i7.label("index_i7"), models.LibraryIndex.sequence_i5.label("index_i5"),
+            models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
             models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
         ])
     
@@ -342,8 +337,13 @@ def get_seq_request_libraries_df(
 
     df = pd.read_sql(query, self._engine)
 
-    if include_indices:
-        df = df.groupby(df.columns.difference(["index_i7", "index_i5", "name_i7", "name_i5"]).tolist(), as_index=False).agg({"index_i7": list, "index_i5": list, "name_i7": list, "name_i5": list}).copy()
+    if include_indices and collapse_indicies:
+        df = df.groupby(df.columns.difference(["sequence_i7", "sequence_i5", "name_i7", "name_i5"]).tolist(), as_index=False).agg({"sequence_i7": list, "sequence_i5": list, "name_i7": list, "name_i5": list}).copy().rename(
+            columns={
+                "sequence_i7": "sequences_i7", "sequence_i5": "sequences_i5",
+                "name_i7": "names_i7", "name_i5": "names_i5"
+            }
+        )
 
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
     df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)

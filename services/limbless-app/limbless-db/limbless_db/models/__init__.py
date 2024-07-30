@@ -22,10 +22,12 @@ from .Plate import Plate  # noqa: F401
 from .SampleAttribute import SampleAttribute  # noqa: F401
 from .Barcode import Barcode  # noqa: F401
 from .LibraryIndex import LibraryIndex  # noqa: F401
+from .LabPrep import LabPrep  # noqa: F401
 
 from .Links import (  # noqa: F401
     LanePoolLink, SampleLibraryLink,
     ExperimentFileLink, SeqRequestFileLink,
     ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
     SeqRequestDeliveryEmailLink, ExperimentPoolLink, SamplePlateLink,
+    LibraryLabPrepLink
 )

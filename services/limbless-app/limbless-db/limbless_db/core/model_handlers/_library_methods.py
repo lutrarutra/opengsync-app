@@ -93,7 +93,7 @@ def get_libraries(
     self,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
-    pool_id: Optional[int] = None,
+    pool_id: Optional[int] = None, lab_prep_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
@@ -153,6 +153,14 @@ def get_libraries(
     if pool_id is not None:
         query = query.where(
             models.Library.pool_id == pool_id
+        )
+
+    if lab_prep_id is not None:
+        query = query.join(
+            models.LibraryLabPrepLink,
+            models.LibraryLabPrepLink.library_id == models.Library.id
+        ).where(
+            models.LibraryLabPrepLink.lab_prep_id == lab_prep_id
         )
 
     if type_in is not None:
@@ -441,6 +449,26 @@ def add_library_index(
     ))
 
     self._session.add(library)
+    self._session.commit()
+    self._session.refresh(library)
+
+    if not persist_session:
+        self.close_session()
+
+    return library
+
+
+def remove_library_indices(self, library_id: int) -> models.Library:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    for index in library.indices:
+        self._session.delete(index)
+
     self._session.commit()
     self._session.refresh(library)
 

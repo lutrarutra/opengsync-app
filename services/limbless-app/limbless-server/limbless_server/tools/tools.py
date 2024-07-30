@@ -36,17 +36,17 @@ def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFra
     df["error"] = None
     df["warning"] = None
 
-    indices = ["index_1"]
-    if "index_2" in df.columns and not df["index_2"].isna().all():
-        indices.append("index_2")
+    indices = ["sequence_i7"]
+    if "sequence_i5" in df.columns and not df["sequence_i5"].isna().all():
+        indices.append("sequence_i5")
 
     df["combined_index"] = ""
     for index in indices:
         _max = df[index].str.len().max()
         df["combined_index"] += df[index].apply(lambda x: x + " " * (_max - len(x)) if x is not None else "")
 
-    if "index_2" in df.columns:
-        same_barcode_in_different_indices = df["index_1"] == df["index_2"]
+    if "sequence_i5" in df.columns:
+        same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
         df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
 
     df["min_hamming_dist"] = None

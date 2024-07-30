@@ -340,23 +340,3 @@ def get_pool_dilutions(
         self.close_session()
 
     return dilutions, n_pages
-
-
-def get_next_pool_identifier(self, pool_type: PoolTypeEnum) -> str:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if not pool_type.identifier:
-        raise TypeError(f"Pool type {pool_type} does not have an identifier")
-
-    n_pools = self._session.query(models.Pool).where(
-        models.Pool.type_id == pool_type.id
-    ).count()
-
-    identifier = f"{pool_type.identifier}{n_pools + 1:04d}"
-
-    if not persist_session:
-        self.close_session()
-
-    return identifier

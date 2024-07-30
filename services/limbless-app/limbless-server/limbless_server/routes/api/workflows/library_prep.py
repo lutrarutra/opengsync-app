@@ -1,13 +1,14 @@
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, request, abort, Response
+from flask import Blueprint, request, abort, Response, current_app, url_for, flash
 from flask_login import login_required
+from flask_htmx import make_response
 
 from limbless_db import models, db_session
 from limbless_db.categories import HTTPResponse
 
-from .... import db, logger  # noqa
-from ....forms.workflows import library_prep as forms
+from .... import db, logger, forms  # noqa
+from ....forms.SelectSamplesForm import SelectSamplesForm
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -17,44 +18,47 @@ else:
 library_prep_workflow = Blueprint("library_prep_workflow", __name__, url_prefix="/api/workflows/library_prep/")
 
 
-@library_prep_workflow.route("<int:pool_id>/begin", methods=["GET"])
+@library_prep_workflow.route("begin/<int:lab_prep_id>", methods=["GET"])
 @db_session(db)
 @login_required
-def begin(pool_id: int) -> Response:
+def begin(lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    # if pool.type == PoolType.RNA_SEQ:
+    #     form = forms.RNAPrepForm(pool=pool, formdata=request.form)
+    # else:
+    #     return abort(HTTPResponse.BAD_REQUEST.id)
+
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = forms.RNAPrepForm(pool=pool, formdata=request.form)
-    form.prepare()
+    form = SelectSamplesForm.create_workflow_form("library_prep", context={"lab_prep": lab_prep})
     return form.make_response()
 
 
-@library_prep_workflow.route("<int:pool_id>/save", methods=["POST"])
+@library_prep_workflow.route("select/<int:lab_prep_id>", methods=["POST"])
 @db_session(db)
 @login_required
-def save(pool_id: int) -> Response:
+def select(lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = forms.RNAPrepForm(pool=pool, formdata=request.form)
-    return form.process_request(current_user, "save")
-
-
-@library_prep_workflow.route("<int:pool_id>/update", methods=["POST"])
-@db_session(db)
-@login_required
-def update(pool_id: int) -> Response:
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    form = SelectSamplesForm.create_workflow_form("library_prep", formdata=request.form, context={"lab_prep": lab_prep})
     
-    if (pool := db.get_pool(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+    if not form.validate():
+        return form.make_response()
     
-    form = forms.RNAPrepForm(pool=pool, formdata=request.form)
-    return form.process_request(current_user, "update")
+    _, library_table, _, _ = form.get_tables()
+
+    for _, row in library_table.iterrows():
+        lab_prep = db.add_library_to_prep(
+            lab_prep_id=lab_prep_id,
+            library_id=row["id"],
+        )
+
+    flash("Libraries added!", "success")
+    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))

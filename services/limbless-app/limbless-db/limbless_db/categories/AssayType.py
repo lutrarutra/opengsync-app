@@ -40,3 +40,6 @@ class AssayType(ExtendedEnum[AssayTypeEnum], enum_type=AssayTypeEnum):
     RBS_SEQ = AssayTypeEnum(106, "RBS Sequencing", "RBS", library_types=[LibraryType.RBS_SEQ])
     CITE_SEQ = AssayTypeEnum(107, "CITE-Seq", "CITE-Seq", library_types=[LibraryType.CITE_SEQ])
     EM_SEQ = AssayTypeEnum(108, "Enzymatic Methyl-Seq", "EM-Seq", library_types=[LibraryType.EM_SEQ])
+    QUANT_SEQ = AssayTypeEnum(109, "Quant-Seq", "Quant-Seq", library_types=[LibraryType.QUANT_SEQ])
+    SMART_SEQ = AssayTypeEnum(110, "SMART-Seq", "SMART-Seq", library_types=[LibraryType.SMART_SEQ])
+    IMMUNE_SEQ = AssayTypeEnum(111, "Immune-Seq", "Immune-Seq", library_types=[LibraryType.IMMUNE_SEQ])

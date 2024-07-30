@@ -22,12 +22,6 @@ if TYPE_CHECKING:
     from .LibraryIndex import LibraryIndex
 
 
-@dataclass
-class Index:
-    sequence: Optional[str]
-    adapter: Optional[str]
-
-
 class Library(Base):
     __tablename__ = "library"
 

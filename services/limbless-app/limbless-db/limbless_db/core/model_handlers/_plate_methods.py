@@ -165,7 +165,6 @@ def clear_plate(self, plate_id: int) -> models.Plate:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
     for link in plate.sample_links:
-        print(link, flush=True)
         self._session.delete(link)
     
     self._session.add(plate)

@@ -132,100 +132,6 @@
                     </div>
                 </div>
 
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#xl-modal"
-                    hx-get="{{ url_for('qubit_measure_workflow.begin', pool_id=pool.id)}}"
-                    hx-target="#xl-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/fluorometer.svg') }}" width="55px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Qubit Concentration</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Measure qubit concentration</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                    hx-get="{{ url_for('ba_report_workflow.begin', pool_id=pool.id) }}"
-                    hx-target="#xl-modal-content"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/analyzer.svg') }}" width="80px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Bio Analyzer Report</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Upload results form Bio Analyzer.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if pool.libraries | length == 0 %} text-muted disabled{% elif is_plated %} workflow-completed{% endif %}"
-                    {% if pool.libraries | length %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('library_prep_workflow.begin', pool_id=pool.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"
-                    {% else %}
-                    {{ tooltip("You must first add libraries to the pool!", category="warning") }}
-                    {% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/prepare.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Prepare Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Prepare libraries in the pool</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flip-card card{% if pool.libraries | length == 0 %} text-muted disabled{% elif is_plated %} workflow-completed{% endif %}"
-                    {% if pool.libraries | length %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('plate_samples_workflow.begin', pool_id=pool.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"
-                    {% else %}
-                    {{ tooltip("You must first add libraries to the pool!", category="warning") }}
-                    {% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/plate.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Plate Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Put all libraries from the pool on a plate.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <div class="flip-card card{% if pool.libraries | length == 0 %} text-muted disabled{% elif is_indexed %} workflow-completed{% endif %}"
                     {% if pool.libraries | length %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
@@ -286,23 +192,34 @@
         </div>
         <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="4">
             <div class="row">
-                {{ metadata_group("Pool Name", pool.name, class="col-4") }}
+                {{ metadata_group("Name", pool.name, class="col-3") }}
+                {{ metadata_group("Type", pool.type, class="col-3") }}
                 {{
                     metadata_group_link(
-                        "Owner",
-                        pool.owner.name,
+                        "Owner", pool.owner.name,
                         url_for("users_page.user_page", user_id=pool.owner.id, from='pool@' + pool.id | string),
-                        class="col-4"
+                        class="col-3"
                     )
                 }}
                 {{ 
-                    metadata_group_email_link("Owner Email", pool.owner.email, class="col-4")
+                    metadata_group_email_link("Owner Email", pool.owner.email, class="col-3")
                 }}
             </div>
             <div class="row">
-                {{ metadata_group("Contact Name", pool.contact.name, class="col-4") }}
-                {{ metadata_group_email_link("Contact Email", pool.contact.email, class="col-4") }}
-                {{ metadata_group("Contact Phone", pool.contact.phone, class="col-4") }}
+                {% if pool.seq_request_id %}
+                {{                     
+                    metadata_group_link(
+                        "Request", pool.seq_request.name,
+                        url_for("seq_requests_page.seq_request_page", seq_request_id=pool.seq_request_id, from='pool@' + pool.id | string),
+                        class="col-3"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Request", "", class="col-3") }}
+                {% endif %}
+                {{ metadata_group("Contact Name", pool.contact.name, class="col-3") }}
+                {{ metadata_group_email_link("Contact Email", pool.contact.email, class="col-3") }}
+                {{ metadata_group("Contact Phone", pool.contact.phone, class="col-3") }}
             </div>
         </div>
         <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="5">
@@ -325,7 +242,7 @@
         </div>
         <div class="tab-pane fade" id="prep_table-tab" role="tabpanel" tabindex="6">
             {% if pool.prep_file_id %}
-            <div hx-get="{{ url_for('pools_htmx.get_prep_table', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('files_htmx.render_xlsx', file_id=pool.prep_file_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
                 {{ spinner() }}
             </div>
             {% endif %}

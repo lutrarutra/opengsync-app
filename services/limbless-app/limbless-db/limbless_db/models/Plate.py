@@ -1,3 +1,4 @@
+import re
 from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -51,6 +52,14 @@ class Plate(Base):
     
     def get_well_xy(self, row: int, col: int) -> str:
         return Plate.well_identifier(row * self.num_cols + col, self.num_cols, self.num_cols)
+        
+    def get_well_idx(self, well: str) -> int:
+        well = re.sub(r'([A-Z])0*([1-9]\d*)', r'\1\2', well)
+        
+        row = ord(well[0].upper()) - ord('A')
+        col = int(well[1:]) - 1
+
+        return row * self.num_cols + col
     
     def get_sample(self, well_idx: int) -> Optional[Sample | Library]:
         for link in self.sample_links:

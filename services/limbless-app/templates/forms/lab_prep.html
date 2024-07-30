@@ -1,0 +1,51 @@
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+
+<div class="modal-content" id="lab_prep-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if lab_prep_form.form_type == "create" %}Create{% elif lab_prep_form.form_type == "edit" %}Edit{% endif %} Prep</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <div id="lab_prep-form">
+            {{ lab_prep_form.csrf_token() }}
+            <div class="row">
+                {{ select_input(lab_prep_form.protocol, class="col-6") }}
+                {{ form_group(lab_prep_form.name, class="col-6") }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if lab_prep_form.form_type == "edit" %}
+            <button class="btn btn-primary" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('lab_preps_htmx.edit', lab_prep_id=lab_prep.id) }}">Submit</button>
+            {% elif lab_prep_form.form_type == "create" %}
+            <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container"
+                hx-swap="outerHTML" hx-post="{{ url_for('lab_preps_htmx.create') }}">Create</button>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        init_tooltips();
+        var protocol_identifiers = {{ identifiers | tojson }};
+
+        $(document).ready(function() {
+            {% if lab_prep_form.form_type == "create" %}
+            $("#protocol").on("change", function(){
+                const protocol = $(this).val();
+                if (protocol_identifiers[protocol]) {
+                    $("#name").val(protocol_identifiers[protocol] + "XXX");
+                } else {
+                    $("#name").val("");
+                }
+            });
+            {% endif %}
+        });
+    </script>
+</div>

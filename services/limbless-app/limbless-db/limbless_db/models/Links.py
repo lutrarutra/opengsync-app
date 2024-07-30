@@ -14,6 +14,15 @@ if TYPE_CHECKING:
     from .Plate import Plate
 
 
+class LibraryLabPrepLink(Base):
+    __tablename__ = "library_lab_prep_link"
+    library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)
+    lab_prep_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lab_prep.id"), primary_key=True)
+
+    def __str__(self) -> str:
+        return f"LibraryLabPrepLink(library_id: {self.library_id}, lab_prep_id: {self.lab_prep_id})"
+
+
 class SamplePlateLink(Base):
     __tablename__ = "sample_plate_link"
     plate_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), primary_key=True)

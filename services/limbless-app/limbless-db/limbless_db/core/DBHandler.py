@@ -56,13 +56,14 @@ class DBHandler():
     from .model_handlers._pool_methods import (
         create_pool, get_pool, get_pools,
         delete_pool, update_pool, query_pools, dilute_pool,
-        get_pool_dilution, get_pool_dilutions, get_next_pool_identifier
+        get_pool_dilution, get_pool_dilutions
     )
 
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
-        pool_library, set_library_seq_quality, add_library_index
+        pool_library, set_library_seq_quality, add_library_index,
+        remove_library_indices
     )
 
     from .model_handlers._user_methods import (
@@ -123,6 +124,11 @@ class DBHandler():
 
     from .model_handlers._barcode_methods import (
         create_barcode, get_barcode, get_barcodes
+    )
+
+    from .model_handlers._lab_prep_methods import (
+        create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_identifier,
+        update_lab_prep, add_library_to_prep, remove_library_from_prep
     )
 
     from .model_handlers._link_methods import (

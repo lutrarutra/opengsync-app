@@ -55,6 +55,12 @@ def seq_request_page(seq_request_id: int):
                 (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
+        elif page == "pool":
+            path_list = [
+                ("Pools", url_for("pools_page.pools_page")),
+                (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
+                (f"Request {seq_request_id}", ""),
+            ]
 
     process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
     seq_auth_form = forms.SeqAuthForm()
