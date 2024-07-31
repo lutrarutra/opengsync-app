@@ -1,4 +1,5 @@
 import os
+import json
 from typing import Optional, Literal
 
 import pandas as pd
@@ -60,13 +61,7 @@ class BarcodeInputForm(HTMXFlaskForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.input_type = input_type
         self.lab_prep = lab_prep
-
-        if self.lab_prep.prep_file_id is not None:
-            prep_table = pd.read_excel(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), "prep_table")  # type: ignore
-            prep_table = prep_table.dropna(subset=["library_id", "library_name"])
-            self.library_table = prep_table[BarcodeInputForm.columns.keys()].copy()
-
-        self.library_table = self.library_table[BarcodeInputForm.columns.keys()]
+        self.library_table = self.get_template()
         self._context["columns"] = BarcodeInputForm.columns.values()
         self._context["colors"] = BarcodeInputForm.colors
         self._context["active_tab"] = input_type if input_type else "help"
@@ -74,8 +69,27 @@ class BarcodeInputForm(HTMXFlaskForm):
         self.spreadsheet_style = dict()
 
     def get_template(self) -> pd.DataFrame:
-        return self.library_table.rename(columns=dict([(col.label, col.name) for col in BarcodeInputForm.columns.values()]))
+        if self.lab_prep.prep_file_id is not None:
+            prep_table = pd.read_excel(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), "prep_table")  # type: ignore
+            prep_table = prep_table.dropna(subset=["library_id", "library_name"])
+            return prep_table[BarcodeInputForm.columns.keys()].copy()
+        
+        library_data = dict([(key, []) for key in BarcodeInputForm.columns.keys()])
 
+        for library in self.lab_prep.libraries:
+            library_data["library_id"].append(library.id)
+            library_data["library_name"].append(library.name)
+            library_data["index_well"].append(None)
+            library_data["pool"].append(None)
+            library_data["kit_i7"].append(None)
+            library_data["name_i7"].append(None)
+            library_data["sequence_i7"].append(None)
+            library_data["kit_i5"].append(None)
+            library_data["name_i5"].append(None)
+            library_data["sequence_i5"].append(None)
+
+        return pd.DataFrame(library_data)
+        
     def prepare(self):
         self._context["spreadsheet_data"] = self.library_table.replace(np.nan, "").values.tolist()
 
@@ -86,26 +100,25 @@ class BarcodeInputForm(HTMXFlaskForm):
             logger.error("Input type not set")
             raise ValueError("Input type not set")
             
-        if self.input_type == "plate":
-            if not self.plate_form.index_kit.selected.data:  # type: ignore
-                self.plate_form.index_kit.selected.errors = ("Select index kit.",)  # type: ignore
-                validated = False
+        # if self.input_type == "plate":
+        #     if not self.plate_form.index_kit.selected.data:  # type: ignore
+        #         self.plate_form.index_kit.selected.errors = ("Select index kit.",)  # type: ignore
+        #         validated = False
             
-            try:
-                starting_index = int(self.plate_form.starting_index.data)
-            except ValueError:
-                self.plate_form.starting_index.errors = ("Invalid starting index.",)
-                validated = False
+        #     try:
+        #         starting_index = int(self.plate_form.starting_index.data)
+        #     except ValueError:
+        #         self.plate_form.starting_index.errors = ("Invalid starting index.",)
+        #         validated = False
 
-            if len(self.lab_prep.plate.sample_links) + starting_index > 96:  # type: ignore
-                self.plate_form.starting_index.errors = ("Starting index exceeds plate size.",)
-                validated = False
+        #     if len(self.lab_prep.plate.sample_links) + starting_index > 96:  # type: ignore
+        #         self.plate_form.starting_index.errors = ("Starting index exceeds plate size.",)
+        #         validated = False
             
         if not validated:
             return False
             
         if self.input_type == "spreadsheet":
-            import json
             data = json.loads(self.formdata["spreadsheet"])  # type: ignore
             try:
                 self.df = pd.DataFrame(data)
@@ -186,9 +199,6 @@ class BarcodeInputForm(HTMXFlaskForm):
         if self.input_type == "spreadsheet":
             validated = validated and (len(self.spreadsheet_dummy.errors) == 0 and len(self.spreadsheet_style) == 0)
 
-        if self.df["pool"].isna().all():
-            self.df["pool"] = "1"
-
         return validated
 
     def process_request(self) -> Response:
@@ -202,8 +212,11 @@ class BarcodeInputForm(HTMXFlaskForm):
                 self._context["spreadsheet_data"] = self.library_table[BarcodeInputForm.columns.keys()].replace(np.nan, "").values.tolist()
 
             return self.make_response()
+        
+        if self.df["pool"].isna().all():
+            self.df["pool"] = "1"
 
-        if self.library_table["kit_i7"].notna().any():
+        if self.df["kit_i7"].notna().any():
             index_kit_mapping_form = IndexKitMappingForm()
             index_kit_mapping_form.metadata["lab_prep_id"] = self.lab_prep.id
             index_kit_mapping_form.add_table("library_table", self.df)

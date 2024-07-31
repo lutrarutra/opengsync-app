@@ -9,6 +9,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models
+from limbless_db.categories import PoolType
 
 from .... import logger, db, tools
 from ...TableDataForm import TableDataForm
@@ -41,6 +42,7 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             return self.make_response()
         
         barcode_table = self.tables["barcode_table"]
+        library_table = self.tables["library_table"]
         
         if (lab_prep_id := self.metadata.get("lab_prep_id")) is None:
             logger.error(f"{self.uuid}: LabPrep id not found")
@@ -50,13 +52,50 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             logger.error(f"{self.uuid}: LabPrep not found")
             raise ValueError(f"{self.uuid}: LabPrep not found")
         
+        for pool in lab_prep.pools:
+            db.delete_pool(pool.id)
+        
+        pools = {}
+        if len(library_table["pool"].unique()) > 1:
+            for pool_suffix, _df in library_table.groupby("pool"):
+                pools[pool_suffix] = db.create_pool(
+                    name=f"{lab_prep.name}_{pool_suffix}", pool_type=PoolType.INTERNAL,
+                    contact_email=user.email, contact_name=user.name, owner_id=user.id,
+                    lab_prep_id=lab_prep.id
+                )
+        else:
+            library_table["pool"] = 1
+            pools[1] = db.create_pool(
+                name=lab_prep.name, pool_type=PoolType.INTERNAL,
+                contact_email=user.email, contact_name=user.name, owner_id=user.id,
+                lab_prep_id=lab_prep.id
+            )
+
+        for i, (idx, row) in enumerate(library_table.iterrows()):
+            if (library := db.get_library(row["library_id"])) is None:
+                logger.error(f"{self.uuid}: Library {row['library_id']} not found")
+                raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
+            
+            library = db.remove_library_indices(library.id)
+
+            df = barcode_table[barcode_table["library_id"] == row["library_id"]].copy()
+
+            for j in range(len(df["sequence_i7"].values)):
+                library = db.add_library_index(
+                    library_id=library.id,
+                    name_i7=row["name_i7"],
+                    name_i5=row["name_i5"],
+                    sequence_i7=df["sequence_i7"].values[j],
+                    sequence_i5=df["sequence_i5"].values[j] if len(df["sequence_i5"].values) > j and pd.notna(df["sequence_i5"].values[j]) else None,
+                )
+
+            library.pool_id = None
+            library = db.update_library(library)
+            library = db.pool_library(library_id=library.id, pool_id=pools[row["pool"]].id)
+        
         if lab_prep.prep_file is not None:
             wb = openpyxl.load_workbook(os.path.join(current_app.config["MEDIA_FOLDER"], lab_prep.prep_file.path))
             active_sheet = wb["prep_table"]
-            prep_table = pd.DataFrame(active_sheet.values)
-            prep_table.columns = prep_table.iloc[0]
-            prep_table = prep_table.drop(0)
-            prep_table = prep_table.drop(prep_table[prep_table["library_id"].isna()].index)
             
             column_mapping: dict[str, str] = {}
             for col_i in range(1, active_sheet.max_column):
@@ -64,27 +103,19 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
                 column_name = active_sheet[f"{col}1"].value
                 column_mapping[column_name] = col
             
-            for i, (idx, row) in enumerate(prep_table.iterrows()):
-                if (library := db.get_library(row["library_id"])) is None:
-                    logger.error(f"{self.uuid}: Library {row['library_id']} not found")
-                    raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
-                
-                library = db.remove_library_indices(library.id)
-
-                df = barcode_table[barcode_table["library_id"] == row["library_id"]].copy()
-                for j in range(len(df["sequence_i7"].values)):
-                    library = db.add_library_index(
-                        library_id=library.id,
-                        name_i7=row["name_i7"],
-                        name_i5=row["name_i5"],
-                        sequence_i7=df["sequence_i7"].values[j],
-                        sequence_i5=df["sequence_i5"].values[j] if len(df["sequence_i5"].values) > j else None,
-                    )
-
-                sequence_i7 = ";".join(df["sequence_i7"].values)
-                sequence_i5 = ";".join(df["sequence_i5"].values)
+            for i, (idx, row) in enumerate(library_table.iterrows()):
+                df = barcode_table[barcode_table["library_id"] == row["library_id"]]
+                logger.debug(df)
+                sequence_i7 = ";".join([s for s in df["sequence_i7"].values if pd.notna(s)])
+                sequence_i5 = ";".join([s for s in df["sequence_i5"].values if pd.notna(s)])
                 active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = sequence_i7
                 active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = sequence_i5
+                active_sheet[f"{column_mapping['pool']}{i + 2}"].value = row["pool"]
+                active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = row["name_i7"]
+                active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = row["name_i5"]
+                active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = row["kit_i7"]
+                active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = row["kit_i5"]
+                active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = row["index_well"]
 
             wb.save(os.path.join(current_app.config["MEDIA_FOLDER"], lab_prep.prep_file.path))
 

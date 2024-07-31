@@ -3,6 +3,7 @@ import io
 from typing import TYPE_CHECKING, Literal
 
 import openpyxl
+from openpyxl import styles as openpyxl_styles
 from openpyxl.utils import get_column_letter
 
 from flask import Blueprint, render_template, request, abort, flash, url_for, current_app, Response
@@ -168,9 +169,9 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
         raise ValueError("Static folder not set")
     
     if lab_prep.protocol == LabProtocol.RNA_SEQ:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", f"RNA_{direction}.xlsx")
+        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "RNA.xlsx")
     else:
-        raise NotImplementedError()
+        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "template.xlsx")
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
@@ -178,22 +179,39 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
 
     template = openpyxl.load_workbook(filepath)
 
-    for sheet_name in template.sheetnames:
-        active_sheet = template[sheet_name]
-        column_mapping: dict[str, str] = {}
-        for col_i in range(1, active_sheet.max_column):
-            col = get_column_letter(col_i + 1)
-            column_name = active_sheet[f"{col}1"].value
-            column_mapping[column_name] = col
+    n = 12 if direction == "rows" else 8
+    pattern = [True] * n + [False] * n
 
-        if sheet_name != "prep_table":
-            continue
-            
-        for i, library in enumerate(lab_prep.libraries):
-            library_id_cell = active_sheet[f"{column_mapping['library_id']}{i + 2}"]
-            library_name_cell = active_sheet[f"{column_mapping['library_name']}{i + 2}"]
-            library_id_cell.value = library.id
-            library_name_cell.value = library.name
+    def if_color(i):
+        return pattern[i]
+
+    active_sheet = template["prep_table"]
+    column_mapping: dict[str, str] = {}
+    
+    for col_i in range(1, active_sheet.max_column):
+        col = get_column_letter(col_i + 1)
+        column_name = active_sheet[f"{col}1"].value
+        column_mapping[column_name] = col
+        
+        for row_idx, cell in enumerate(active_sheet[col][1:]):
+            if if_color(row_idx % (n * 2)):
+                cell.fill = openpyxl_styles.PatternFill(start_color="ced4da", end_color="ced4da", fill_type="solid")
+            else:
+                cell.fill = openpyxl_styles.PatternFill(start_color="ffffff", end_color="ffffff", fill_type="solid")
+
+    for row_idx, cell in enumerate(active_sheet[column_mapping["plate_well"]][1:]):
+        cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
+
+    for row_idx, cell in enumerate(active_sheet[column_mapping["index_well"]][1:]):
+        cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
+        
+    for i, library in enumerate(lab_prep.libraries):
+        library_id_cell = active_sheet[f"{column_mapping['library_id']}{i + 2}"]
+        library_name_cell = active_sheet[f"{column_mapping['library_name']}{i + 2}"]
+        requestor_cell = active_sheet[f"{column_mapping['requestor']}{i + 2}"]
+        library_id_cell.value = library.id
+        library_name_cell.value = library.name
+        requestor_cell.value = library.seq_request.requestor.name
 
     bytes_io = io.BytesIO()
     template.save(bytes_io)
@@ -217,11 +235,7 @@ def file_upload_form(lab_prep_id: int) -> Response:
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if lab_prep.protocol == LabProtocol.RNA_SEQ:
-        form = forms.workflows.library_prep.RNAPrepForm(lab_prep=lab_prep)
-    else:
-        raise NotImplementedError()
-    
+    form = forms.workflows.library_prep.LibraryPrepForm(lab_prep=lab_prep)
     return form.make_response()
 
 
@@ -235,9 +249,34 @@ def upload_file(lab_prep_id: int) -> Response:
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if lab_prep.protocol == LabProtocol.RNA_SEQ:
-        form = forms.workflows.library_prep.RNAPrepForm(lab_prep=lab_prep, formdata=request.form | request.files)
-    else:
-        raise NotImplementedError()
+    form = forms.workflows.library_prep.LibraryPrepForm(lab_prep=lab_prep, formdata=request.form | request.files)
     
     return form.process_request(user=current_user)
+
+
+@lab_preps_htmx.route("<int:lab_prep_id>/get_pools/<int:page>", methods=["GET"])
+@lab_preps_htmx.route("<int:lab_prep_id>/get_pools", methods=["GET"], defaults={"page": 0})
+@login_required
+def get_pools(lab_prep_id: int, page: int):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    pools, n_pages = db.get_pools(
+        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/lab_prep-pool.html",
+            pools=pools, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
+        )
+    )

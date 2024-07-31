@@ -143,7 +143,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 barcode_table_data["library_name"].append(row["library_name"])
                 barcode_table_data["pool"].append(row["pool"])
                 barcode_table_data["sequence_i7"].append(barcodes_i7[i])
-                barcode_table_data["sequence_i5"].append(barcodes_i5[i])
+                barcode_table_data["sequence_i5"].append(barcodes_i5[i] if len(barcodes_i5) > i else None)
 
         self.barcode_table = pd.DataFrame(barcode_table_data)
  

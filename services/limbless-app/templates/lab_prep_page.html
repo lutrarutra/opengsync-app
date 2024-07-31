@@ -13,14 +13,19 @@
             <h1>{{ lab_prep.name }} <span class="desc">{{ lab_prep.protocol.name }}</span></h1>
         </div>
         <div>
-            <a type="button" class="btn btn-primary"
-            href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}">
-                Rows Template
-            </a>
-            <a type="button" class="btn btn-primary"
-            href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}">
-                Cols Template
-            </a>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Template
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}">Rows</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}">Columns</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -34,6 +39,11 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#lab_prep-workflows-tab" type="button" role="tab"
             aria-controls="lab_prep-workflows-tab" aria-selected="true">Workflows</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-pools-tab" type="button" role="tab"
+            aria-controls="lab_prep-pools-tab" aria-selected="true">Pools</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -142,7 +152,20 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="prep_table-tab" role="tabpanel" tabindex="2">
+        <div class="tab-pane fade" id="lab_prep-pools-tab" role="tabpanel" tabindex="2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Pools</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('lab_preps_htmx.get_pools', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="prep_table-tab" role="tabpanel" tabindex="3">
             {% if lab_prep.prep_file_id %}
             <div hx-get="{{ url_for('files_htmx.render_xlsx', file_id=lab_prep.prep_file_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
                 {{ spinner() }}
@@ -150,7 +173,7 @@
             {% endif %}
         </div>
 
-        <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="3">
+        <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="4">
             {% if lab_prep.plate_id %}
             <div hx-get="{{ url_for('plates_htmx.plate_tab', plate_id=lab_prep.plate_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
                 {{ spinner() }}

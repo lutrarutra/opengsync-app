@@ -44,7 +44,7 @@ workflow_settings = {
     ),
     "library_prep": dict(
         select_samples=False, select_pools=False, select_libraries=True,
-        library_status_filter=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING]
+        library_status_filter=[LibraryStatus.ACCEPTED]
     )
 }
 

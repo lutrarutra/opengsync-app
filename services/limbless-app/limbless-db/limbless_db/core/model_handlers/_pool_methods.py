@@ -16,6 +16,7 @@ def create_pool(
     contact_email: str,
     pool_type: PoolTypeEnum,
     seq_request_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None,
     num_m_reads_requested: Optional[float] = None,
     status: PoolStatusEnum = PoolStatus.DRAFT,
     contact_phone: Optional[str] = None
@@ -42,6 +43,7 @@ def create_pool(
             email=contact_email.strip(),
             phone=contact_phone.strip() if contact_phone else None
         ),
+        lab_prep_id=lab_prep_id,
         status_id=status.id,
         timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None
     )
@@ -75,6 +77,7 @@ def get_pools(
     user_id: Optional[int] = None,
     library_id: Optional[int] = None,
     experiment_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     status: Optional[PoolStatusEnum] = None,
@@ -110,6 +113,11 @@ def get_pools(
     if seq_request_id is not None:
         query = query.where(
             models.Pool.seq_request_id == seq_request_id
+        )
+
+    if lab_prep_id is not None:
+        query = query.where(
+            models.Pool.lab_prep_id == lab_prep_id
         )
 
     if status is not None:

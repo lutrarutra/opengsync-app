@@ -13,7 +13,7 @@ from .... import logger, db  # noqa F401
 from .PrepTableForm import PrepTableForm
 
 
-class RNAPrepForm(PrepTableForm):
+class LibraryPrepForm(PrepTableForm):
     def get_table(self) -> pd.DataFrame:
         if self.lab_prep.prep_file is not None:
             prep_table = pd.read_csv(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), sep="\t")
@@ -30,12 +30,12 @@ class RNAPrepForm(PrepTableForm):
         return prep_table
     
     def validate(self) -> bool:
-        max_bytes = RNAPrepForm.MAX_SIZE_MBYTES * 1024 * 1024
+        max_bytes = LibraryPrepForm.MAX_SIZE_MBYTES * 1024 * 1024
         size_bytes = len(self.file.data.read())
         self.file.data.seek(0)
 
         if size_bytes > max_bytes:
-            self.file.errors = (f"File size exceeds {RNAPrepForm.MAX_SIZE_MBYTES} MB",)
+            self.file.errors = (f"File size exceeds {LibraryPrepForm.MAX_SIZE_MBYTES} MB",)
             return False
         
         prep_table = pd.read_excel(self.file.data, "prep_table")

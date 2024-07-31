@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .File import File
     from .dilutions import PoolDilution
     from .Plate import Plate
+    from .LabPrep import LabPrep
 
 
 class Pool(Base):
@@ -51,8 +52,8 @@ class Pool(Base):
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[ba_report_id])
 
-    prep_file_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
-    prep_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[prep_file_id])
+    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+    lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", lazy="select")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
     lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")

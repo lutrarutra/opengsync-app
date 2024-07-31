@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Literal
 
 import pandas as pd
@@ -68,15 +69,16 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
 
     def validate(self) -> bool:
         self.df = None
-        if not super().validate():
-            return False
+        validated = super().validate()
         
-        import json
         data = json.loads(self.formdata["spreadsheet"])  # type: ignore
         try:
             self.df = pd.DataFrame(data)
         except ValueError as e:
             self.spreadsheet_dummy.errors = (str(e),)
+            return False
+
+        if not validated:
             return False
         
         if len(self.df.columns) != len(list(columns.keys())):

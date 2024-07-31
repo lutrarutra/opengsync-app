@@ -1,0 +1,71 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/tooltip.jinja2" import tooltip %}
+
+<div id="lab_prep-pool-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='lab_prep-pool-table', column_name='ID', column_var='id',
+                        sort_url='lab_preps_htmx.get_pools', context={"lab_prep_id": lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-pool-table', column_name='Pool Name', column_var='name',
+                        sort_url='lab_preps_htmx.get_pools', context={"lab_prep_id": lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-pool-table', column_name='Status', column_var='status_id',
+                        sort_url='lab_preps_htmx.get_pools', context={"lab_prep_id": lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order,col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-pool-table', column_name='Owner', column_var='owner_id',
+                        sort_url='lab_preps_htmx.get_pools', context={"lab_prep_id": lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-pool-table', column_name='# Libraries', column_var='num_libraries',
+                        sort_url='lab_preps_htmx.get_pools', context={"lab_prep_id": lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                    )
+                }}
+                <th class="col-1" scope="col"># Reads Requested</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pool in pools %}
+            <tr onclick="redirect('{{ url_for('pools_page.pool_page', pool_id=pool.id, from='lab_prep@' + lab_prep.id | string) }}');">
+                <th scope="row">{{ pool.id }}</th>
+                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">{{ pool.name }}</td>
+                <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
+                <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+                <td>{{ pool.num_libraries }}</td>
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
+                        <div class="unit">M</div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("lab_prep-pool-table-spinner") }}
+    {{ pagination("lab_prep-pool-table", "lab_preps_htmx.get_pools", n_pages, active_page, context={"lab_prep_id": lab_prep.id}) }}
+    <script>
+        init_tooltips();
+    </script>
+</div>

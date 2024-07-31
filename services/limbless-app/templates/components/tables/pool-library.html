@@ -39,13 +39,6 @@
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
-                {{
-                    table_col(
-                        table_container_id="pool-library-table", column_name="Adapter", column_var="adapter",
-                        sort_url="pools_htmx.get_libraries", context={"pool_id": pool.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
                 <th scope="col" class="col-2">Index i7</th>
                 <th scope="col" class="col-2">Index i5</th>
             </tr>
@@ -61,7 +54,6 @@
                     </span>
                 </td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                <td class="adapter-cell" id="library-{{library.id}}-adapter-cell"></td>
                 <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.sequences_i7_str() }}</td>
                 <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.sequences_i5_str() }}</td>
             </tr>
@@ -74,7 +66,6 @@
         init_tooltips();
         var selected_library_id = null;
         var selected_index_element_id = null;
-        var selected_adapter_element_id = null;
 
         function copy_sequence_to_clipboard() {
             const library_id = selected_index_element_id.split("-")[1];
@@ -83,11 +74,6 @@
             copy_to_clipboard(content);
         }
 
-        function copy_adapter_to_clipboard() {
-            const library_id = selected_adapter_element_id.split("-")[1];
-            const content = $("#library-" + library_id + "-adapter-cell").text().trim();
-            copy_to_clipboard(content);
-        }
 
         function remove_library() {
             Swal.fire({
@@ -134,23 +120,6 @@
                 left: x + 8, top: y + 8
             }).empty().append([
                 `<li><a class="dropdown-item" onclick="copy_sequence_to_clipboard()">Copy Sequence</a></li>`,
-            ]);
-
-            $("#right-click-bg").css({
-                display: "block"
-            });
-        });
-
-        $(document).off("contextmenu", ".adapter-cell").on("contextmenu", ".adapter-cell", function(e) {
-            e.preventDefault();
-            const x = e.pageX;
-            const y = e.pageY;
-            selected_adapter_element_id = e.target.id;
-            $("#copy-edit-menu").css({
-                display: "block",
-                left: x + 8, top: y + 8
-            }).empty().append([
-                `<li><a class="dropdown-item" onclick="copy_adapter_to_clipboard()">Copy Adapter</a></li>`,
             ]);
 
             $("#right-click-bg").css({

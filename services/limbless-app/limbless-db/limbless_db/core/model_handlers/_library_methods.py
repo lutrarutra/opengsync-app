@@ -342,7 +342,7 @@ def query_libraries(
     return libraries
 
 
-def pool_library(self, library_id: int, pool_id: int):
+def pool_library(self, library_id: int, pool_id: int) -> models.Library:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -372,6 +372,8 @@ def pool_library(self, library_id: int, pool_id: int):
 
     if not persist_session:
         self.close_session()
+
+    return library
 
 
 def set_library_seq_quality(

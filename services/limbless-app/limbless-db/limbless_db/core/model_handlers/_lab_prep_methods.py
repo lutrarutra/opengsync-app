@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 from ... import models, PAGE_LIMIT
-from ...categories import LabProtocolEnum
+from ...categories import LabProtocolEnum, LibraryStatus
 from .. import exceptions
 
 
@@ -129,6 +129,7 @@ def add_library_to_prep(
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
     
+    library.status_id = LibraryStatus.PREPARING.id
     lab_prep.libraries.append(library)
 
     self._session.add(lab_prep)

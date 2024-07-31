@@ -63,6 +63,12 @@ def library_page(library_id):
                 (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
                 (f"Library {library.id}", ""),
             ]
+        elif page == "lab_prep":
+            path_list = [
+                ("Lab Preps", url_for("lab_preps_page.lab_preps_page")),
+                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep_page", lab_prep_id=id)),
+                (f"Library {library.id}", ""),
+            ]
 
     library_form = forms.models.LibraryForm(library=library)
 
