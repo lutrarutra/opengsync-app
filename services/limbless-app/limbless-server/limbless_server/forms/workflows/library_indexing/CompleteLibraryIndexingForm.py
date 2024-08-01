@@ -28,7 +28,6 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
 
     def prepare(self):
         barcode_table = self.tables["barcode_table"]
-
         barcode_table = tools.check_indices(barcode_table, groupby="pool")
 
         self._context["barcode_table"] = barcode_table
@@ -80,13 +79,16 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
 
             df = barcode_table[barcode_table["library_id"] == row["library_id"]].copy()
 
-            for j in range(len(df["sequence_i7"].values)):
+            seq_i7s = df["sequence_i7"].values
+            seq_i5s = df["sequence_i5"].values
+
+            for j in range(max(len(seq_i7s), len(seq_i5s))):
                 library = db.add_library_index(
                     library_id=library.id,
-                    name_i7=row["name_i7"],
-                    name_i5=row["name_i5"],
-                    sequence_i7=df["sequence_i7"].values[j],
-                    sequence_i5=df["sequence_i5"].values[j] if len(df["sequence_i5"].values) > j and pd.notna(df["sequence_i5"].values[j]) else None,
+                    name_i7=row["name_i7"] if pd.notna(row["name_i7"]) else None,
+                    name_i5=row["name_i5"] if pd.notna(row["name_i5"]) else None,
+                    sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
+                    sequence_i5=seq_i5s[j] if len(seq_i5s) > j and pd.notna(seq_i5s[j]) else None,
                 )
 
             library.pool_id = None
@@ -105,7 +107,6 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             
             for i, (idx, row) in enumerate(library_table.iterrows()):
                 df = barcode_table[barcode_table["library_id"] == row["library_id"]]
-                logger.debug(df)
                 sequence_i7 = ";".join([s for s in df["sequence_i7"].values if pd.notna(s)])
                 sequence_i5 = ";".join([s for s in df["sequence_i5"].values if pd.notna(s)])
                 active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = sequence_i7

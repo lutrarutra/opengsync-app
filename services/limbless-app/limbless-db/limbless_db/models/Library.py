@@ -1,5 +1,4 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
-from dataclasses import dataclass
 from datetime import datetime
 
 import sqlalchemy as sa
@@ -27,6 +26,7 @@ class Library(Base):
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
     type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
@@ -131,18 +131,18 @@ class Library(Base):
     def __repr__(self) -> str:
         return str(self)
     
-    def sequences_i7_str(self) -> str:
+    def sequences_i7_str(self, sep: str = ", ") -> str:
         i7s = []
         for index in self.indices:
             if index.sequence_i7:
                 i7s.append(index.sequence_i7)
 
-        return ", ".join(i7s)
+        return sep.join(i7s)
     
-    def sequences_i5_str(self) -> str:
+    def sequences_i5_str(self, sep: str = ", ") -> str:
         i5s = []
         for index in self.indices:
             if index.sequence_i5:
                 i5s.append(index.sequence_i5)
 
-        return ", ".join(i5s)
+        return sep.join(i5s)

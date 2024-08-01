@@ -42,10 +42,7 @@ def parse_barcodes(lab_prep_id: int) -> Response:
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if (input_type := request.args.get("input_type")) not in ["spreadsheet", "plate"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    form = forms.BarcodeInputForm(lab_prep=lab_prep, input_type=input_type, formdata=request.form)
+    form = forms.BarcodeInputForm(lab_prep=lab_prep, formdata=request.form)
     return form.process_request()
 
 

@@ -5,13 +5,14 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus, BarcodeType
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus
 from .. import exceptions
 
 
 def create_library(
     self,
     name: str,
+    sample_name: str,
     library_type: LibraryTypeEnum,
     owner_id: int,
     seq_request_id: int,
@@ -54,6 +55,7 @@ def create_library(
 
     library = models.Library(
         name=name.strip(),
+        sample_name=sample_name,
         seq_request_id=seq_request_id,
         genome_ref_id=genome_ref.id if genome_ref is not None else None,
         type_id=library_type.id,
@@ -433,7 +435,7 @@ def set_library_seq_quality(
 
 
 def add_library_index(
-    self, library_id: int, name_i7: Optional[str], sequence_i7: str, name_i5: Optional[str], sequence_i5: Optional[str]
+    self, library_id: int, name_i7: Optional[str], sequence_i7: Optional[str], name_i5: Optional[str], sequence_i5: Optional[str]
 ) -> models.Library:
     persist_session = self._session is not None
     if not self._session:

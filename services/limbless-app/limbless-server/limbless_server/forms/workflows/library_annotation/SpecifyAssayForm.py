@@ -45,7 +45,7 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-2.2.html"
     _form_label = "select_assay_form"
 
-    assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), validators=[DataRequired()], coerce=int)
+    assay_type = SelectField("Assay Type", choices=AssayType.as_selectable()[1:], validators=[DataRequired()], coerce=int)
     additional_info = TextAreaField("Additional Information", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
     optional_assays = FormField(OptionalAssaysForm)
     additional_services = FormField(AdditionalSerevicesForm)

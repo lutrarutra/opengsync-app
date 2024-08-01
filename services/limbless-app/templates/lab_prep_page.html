@@ -19,10 +19,12 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li>
-                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}">Rows</a>
+                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}"
+                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Rows</a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}">Columns</a>
+                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}"
+                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Columns</a>
                     </li>
                 </ul>
             </div>
@@ -184,6 +186,22 @@
 </div>
 <script>
     init_tooltips();
+    function confirmation(ev) {
+        ev.preventDefault();
+        var url = ev.target.href;
+        Swal.fire({
+            title: 'Prep \'{{ lab_prep.name }}\' is empty.',
+            showDenyButton: true,
+            text: 'Do you want to download empty template?',
+            confirmButtonText: 'Yes',
+            denyButtonText: 'No',
+            icon: 'question'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
+    }
 </script>
 
 {% endblock %}

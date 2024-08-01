@@ -17,14 +17,6 @@
                     aria-controls="help-tab" aria-selected="false">
                     Help</button>
                 </li>
-                {# <li class="nav-item" role="presentation">
-                    <button class="nav-link help-tab-btn{% if active_tab == 'plate' %} active{% endif %}{% if not lab_prep.plate_id %}disabled{% endif %}" data-bs-toggle="tab"
-                    id="plate-form-tab-btn"
-                    data-bs-target="#plate-form-tab" type="button" role="tab"
-                    aria-controls="plate-form-tab" aria-selected="false"
-                    {% if not lab_prep.plate_id %}disabled{% endif %}>
-                    Plate</button>
-                </li> #}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
                     id="spreadsheet-tab-btn"
@@ -53,40 +45,6 @@
                         </ul>
                     </div>
                 </div>
-                {% if lab_prep.plate_id %}
-                {# <div class="tab-pane fade{% if active_tab == 'plate' %} show active{% endif %}" id="plate-form-tab" role="tabpanel" tabindex="1">
-                    {{ library_indexing_form.plate_form.csrf_token() }}
-                    <div class="row">
-                        {{ search_select_field(library_indexing_form.plate_form.index_kit, query_url=url_for("barcodes_htmx.query_index_kits"), class="col-6") }}
-                        {{ select_input(library_indexing_form.plate_form.starting_index, class="col-6") }}
-                    </div>
-                    <div id="plate-container" class="plate-container">
-                        <div class="plate">
-                            {% for row in range(-1, lab_prep.plate.num_rows) %}
-                            <div class="plate-row" id="plate-row-{{row}}">
-                            {% for col in range(-1, lab_prep.plate.num_cols) %}
-                                {% if row == -1 or col == -1 %}
-                                <div class="plate-header">
-                                    {% if row == col %}
-                                    {% elif col == -1 %}
-                                    {{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[row] }}
-                                    {% else %}
-                                    {{ col + 1 }}
-                                    {% endif %}
-                                </div>
-                                {% else %}
-                                {% set well_sample = lab_prep.plate.get_sample_xy(row, col) %}
-                                <div class="plate-cell {% if well_sample %}filled{% else %}empty{% endif %}" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}">
-                                    {% if well_sample %}{{ well_sample.name }} [{{ well_sample.id }}]{% endif %}</span>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div> #}
-                {% endif %}
                 <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="2">
                     <div id="spreadsheet-grid" class="spreadsheet-grid">
                         <div class="invalid-feedback-container">
@@ -111,20 +69,8 @@
             {{ color_legend(colors) }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-primary submit-form-btn" type="button" id="submit-plate-form-btn"
-                hx-include="#library_pooling-form" hx-target="#library_pooling-form-container" hx-swap="outerHTML"
-                {% if active_tab != "plate" %}style="display: none;"{% endif %}
-                hx-post="{{ url_for('library_indexing_workflow.parse_barcodes', lab_prep_id=lab_prep.id, input_type='plate') }}">
-                Plate
-            </button>
-            <button class="btn btn-primary submit-form-btn" type="button" id="submit-file-form-btn"
-                hx-include="#library_pooling-form" hx-target="#library_pooling-form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data" {% if active_tab != "file" %}style="display: none;"{% endif %}
-                hx-post="{{ url_for('library_indexing_workflow.parse_barcodes', lab_prep_id=lab_prep.id, input_type='file') }}">
-                File
-            </button>
-            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
-                Spreadsheet
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
+                Submit
             </button>
         </div>
     </div>

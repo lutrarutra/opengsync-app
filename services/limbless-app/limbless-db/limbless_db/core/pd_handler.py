@@ -19,9 +19,7 @@ def get_experiment_libraries_df(
         models.Lane.number.label("lane"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
-        models.Library.genome_ref_id.label("reference_id"),
-        models.Library.adapter, models.Library.index_1_sequence.label("index_1"), models.Library.index_2_sequence.label("index_2"),
-        models.Library.index_3_sequence.label("index_3"), models.Library.index_4_sequence.label("index_4"),
+        models.Library.genome_ref_id.label("reference_id"), models.Library.sample_name.label("sample_name"),
     ]
     if include_seq_request:
         columns.extend([
@@ -103,8 +101,6 @@ def get_experiment_libraries_df(
     order = [
         "lane", "library_id", "library_name", "library_type", "reference", "pool_name",
         "pool_id", "library_type_id", "reference_id",
-        "index_1", "index_2",
-        "index_3", "index_4",
     ]
     order += [c for c in df.columns if c not in order]
 
@@ -118,6 +114,34 @@ def get_experiment_libraries_df(
         order[0] = "lanes"
         df = df[[c for c in order if c in df.columns]]
     
+    return df
+
+
+def get_experiment_barcodes_df(self, experiment_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Lane.id.label("lane_id"), models.Lane.number.label("lane"),
+        models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.sample_name.label("sample_name"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+        models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
+        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+    ).where(
+        models.Lane.experiment_id == experiment_id
+    ).join(
+        models.LanePoolLink,
+        models.LanePoolLink.lane_id == models.Lane.id
+    ).join(
+        models.Pool,
+        models.Pool.id == models.LanePoolLink.pool_id
+    ).join(
+        models.Library,
+        models.Library.pool_id == models.Pool.id
+    ).join(
+        models.LibraryIndex,
+        models.LibraryIndex.library_id == models.Library.id
+    )
+
+    df = pd.read_sql(query, self._engine)
+
     return df
 
 

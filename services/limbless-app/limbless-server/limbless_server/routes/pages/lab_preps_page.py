@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, abort
 from flask_login import login_required, current_user
 
+from limbless_db import db_session
 from limbless_db.categories import HTTPResponse
+
 from ... import db
 
 lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
@@ -17,6 +19,7 @@ def lab_preps_page():
 
 
 @lab_preps_page_bp.route("/preps/<int:lab_prep_id>", methods=["GET"])
+@db_session(db)
 @login_required
 def lab_prep_page(lab_prep_id: int):
     if not current_user.is_insider():

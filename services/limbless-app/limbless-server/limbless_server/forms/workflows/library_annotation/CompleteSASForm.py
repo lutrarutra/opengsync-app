@@ -237,6 +237,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
                 library = session.create_library(
                     name=row["library_name"],
+                    sample_name=row["sample_name"],
                     seq_request_id=self.seq_request.id,
                     library_type=LibraryType.get(row["library_type_id"]),
                     owner_id=user.id,

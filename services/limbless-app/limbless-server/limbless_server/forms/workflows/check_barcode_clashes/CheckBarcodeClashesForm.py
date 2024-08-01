@@ -13,7 +13,7 @@ class CheckBarcodeClashesForm(HTMXFlaskForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
 
     def prepare(self, experiment_id) -> dict:
-        df = db.get_experiment_libraries_df(experiment_id, collapse_lanes=False)
+        df = db.get_experiment_barcodes_df(experiment_id)
         df = tools.check_indices(df, "lane")
         df = df.sort_values(["lane", "pool_name", "library_id"])
 

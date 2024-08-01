@@ -13,7 +13,7 @@ class LibraryIndex(Base):
 
     name_i7: Mapped[Optional[str]] = mapped_column(sa.String(16), nullable=True)
     name_i5: Mapped[Optional[str]] = mapped_column(sa.String(16), nullable=True)
-    sequence_i7: Mapped[str] = mapped_column(sa.String(32), nullable=False)
+    sequence_i7: Mapped[str] = mapped_column(sa.String(32), nullable=True)
     sequence_i5: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
 
     def __str__(self) -> str:

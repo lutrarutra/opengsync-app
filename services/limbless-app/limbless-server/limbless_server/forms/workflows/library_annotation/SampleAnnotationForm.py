@@ -8,10 +8,8 @@ import pandas as pd
 import numpy as np
 
 from flask import Response
-from wtforms import SelectField, StringField
+from wtforms import StringField
 from wtforms.validators import Optional as OptionalValidator
-from flask_wtf.file import FileField, FileAllowed
-from werkzeug.utils import secure_filename
 
 from limbless_db import models
 from limbless_db.categories import LibraryType, AttributeType
@@ -39,11 +37,9 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
 
     predefined_columns = {"sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str)} | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()) if t.label != "custom"])
 
-    separator = SelectField(choices=_allowed_extensions, default="tsv", coerce=str)
-    file = FileField(validators=[OptionalValidator(), FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, input_method: Optional[Literal["spreadsheet", "file"]] = None, previous_form: Optional[TableDataForm] = None, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, previous_form: Optional[TableDataForm] = None, uuid: Optional[str] = None):
         if uuid is None:
             uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
@@ -53,7 +49,6 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
         self._context["seq_request"] = seq_request
 
         self.spreadsheet_style = dict()
-        self.input_method = input_method
         self._context["colors"] = SampleAnnotationForm.colors
         self._context["active_tab"] = "help"
         self._context["columns"] = SampleAnnotationForm.predefined_columns.values()
@@ -191,88 +186,49 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
     def validate(self) -> bool:
         self.df = None
         validated = super().validate()
-        
-        if self.input_method is None:
-            logger.error("Input type not specified in constructor.")
-            raise Exception("Input type not specified in constructor.")
-        
-        self._context["active_tab"] = self.input_method
-
-        if self.input_method == "file":
-            if self.file.data is None:
-                self.file.errors = ("Upload a file.",)
-                return False
-            
+                
         if not validated:
             return False
         
         self.sample_table = self.tables["sample_table"]
         
-        if self.input_method == "spreadsheet":
-            import json
-            data = json.loads(self.formdata["spreadsheet"])  # type: ignore
-            try:
-                self.df = pd.DataFrame(data)
-            except ValueError as e:
-                self.spreadsheet_dummy.errors = (str(e),)
-                return False
-            
-            if not self.spreadsheet_dummy.data:
-                logger.error("Spreadsheet dummy data not found.")
-                raise Exception("Spreadsheet dummy data not found.")
-            
-            attribute_columns = json.loads(self.spreadsheet_dummy.data).split(",")
-            if len(duplicate_columns := set(self.sample_table.columns.tolist()) & set(attribute_columns)) > 0:
-                self.spreadsheet_dummy.errors = (f"Column(s) '{','.join(duplicate_columns)}' are duplicated/reserved.",)
-                return False
-            
-            self.df.columns = attribute_columns
-            self.df = self.df.replace(r'^\s*$', None, regex=True)
-            self.df = self.df.dropna(how="all")
+        import json
+        data = json.loads(self.formdata["spreadsheet"])  # type: ignore
+        try:
+            self.df = pd.DataFrame(data)
+        except ValueError as e:
+            self.spreadsheet_dummy.errors = (str(e),)
+            return False
+        
+        if not self.spreadsheet_dummy.data:
+            logger.error("Spreadsheet dummy data not found.")
+            raise Exception("Spreadsheet dummy data not found.")
+        
+        attribute_columns = json.loads(self.spreadsheet_dummy.data).split(",")
+        if len(duplicate_columns := set(self.sample_table.columns.tolist()) & set(attribute_columns)) > 0:
+            self.spreadsheet_dummy.errors = (f"Column(s) '{','.join(duplicate_columns)}' are duplicated/reserved.",)
+            return False
+        
+        self.df.columns = attribute_columns
+        self.df = self.df.replace(r'^\s*$', None, regex=True)
+        self.df = self.df.dropna(how="all")
 
-            if len(self.df) == 0:
-                self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
-                return False
-
-        elif self.input_method == "file":
-            col_mapping = dict([(col.name, col) for col in SampleAnnotationForm.predefined_columns.values()])
-            sep = "\t" if self.separator.data == "tsv" else ","
-            filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
-            filename = secure_filename(filename)
-            filepath = os.path.join(self.upload_path, filename)
-            self.file.data.save(filepath)
-            
-            try:
-                self.df = pd.read_csv(filepath, sep=sep, index_col=False, header=0)
-            except pd.errors.ParserError as e:
-                self.file.errors = (str(e),)
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-                return False
-
-            if os.path.exists(filepath):
-                os.remove(filepath)
-
-            missing_cols = [col for col in col_mapping.keys() if col not in self.df.columns]
-            if len(missing_cols) > 0:
-                self.file.errors = (str(f"Uploaded table is missing column(s): [{', '.join(missing_cols)}]"),)
-                return False
-        else:
-            logger.error("Invalid input method.")
-            raise Exception("Invalid input method.")
+        if len(self.df) == 0:
+            self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
+            return False
 
         self.df = self.df.rename(columns=self.columns_mapping())
         column_order = self.df.columns.tolist()
+        if self.df.columns.str.len().min() < 3:
+            shortest_col = self.df.columns[self.df.columns.str.len() == self.df.columns.str.len().min()].values[0]
+            self.spreadsheet_dummy.errors = (f"Column: '{shortest_col}', specify more descriptive column name by right-clicking column and 'Rename this column'",)
+            return False
 
-        self.file.errors = []
         self.spreadsheet_dummy.errors = []
 
         def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value"]):
-            if self.input_method == "spreadsheet":
-                self.spreadsheet_style[f"{string.ascii_uppercase[column_order.index(column)]}{row_num}"] = f"background-color: {SampleAnnotationForm.colors[color]};"
-                self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
-            else:
-                self.file.errors.append(f"Row {row_num}: {message}")  # type: ignore
+            self.spreadsheet_style[f"{string.ascii_uppercase[column_order.index(column)]}{row_num}"] = f"background-color: {SampleAnnotationForm.colors[color]};"
+            self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
 
         missing_samples = self.sample_table.loc[~self.sample_table["sample_name"].isin(self.df["sample_name"]), "sample_name"].values.tolist()
         if len(missing_samples) > 0:
@@ -307,13 +263,13 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
 
     def process_request(self) -> Response:
         if not self.validate() or self.df is None:
-            if self.input_method == "spreadsheet":
-                self._context["spreadsheet_style"] = self.spreadsheet_style
-                if self.df is not None:
-                    self.set_columns(self.df)
-                    self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
-                if self._context["spreadsheet_data"] == []:
-                    self._context["spreadsheet_data"] = [[None]]
+            self._context["active_tab"] = "spreadsheet"
+            self._context["spreadsheet_style"] = self.spreadsheet_style
+            if self.df is not None:
+                self.set_columns(self.df)
+                self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
+            if self._context["spreadsheet_data"] == []:
+                self._context["spreadsheet_data"] = [[None]]
             return self.make_response()
         
         for idx, row in self.df.iterrows():

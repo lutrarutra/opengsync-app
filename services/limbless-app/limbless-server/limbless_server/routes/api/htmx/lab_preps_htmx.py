@@ -209,10 +209,21 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
         library_id_cell = active_sheet[f"{column_mapping['library_id']}{i + 2}"]
         library_name_cell = active_sheet[f"{column_mapping['library_name']}{i + 2}"]
         requestor_cell = active_sheet[f"{column_mapping['requestor']}{i + 2}"]
+        sequence_i7_cell = active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"]
+        sequence_i5_cell = active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"]
+        # kit_i7_cell = active_sheet[f"{column_mapping['kit_i7']}{i + 2}"]
+        # kit_i5_cell = active_sheet[f"{column_mapping['kit_i5']}{i + 2}"]
+        name_i7_cell = active_sheet[f"{column_mapping['name_i7']}{i + 2}"]
+        name_i5_cell = active_sheet[f"{column_mapping['name_i5']}{i + 2}"]
         library_id_cell.value = library.id
         library_name_cell.value = library.name
         requestor_cell.value = library.seq_request.requestor.name
-
+        if len(library.indices) > 0:
+            name_i7_cell.value = library.indices[0].name_i7
+            name_i5_cell.value = library.indices[0].name_i5
+        sequence_i7_cell.value = library.sequences_i7_str(";")
+        sequence_i5_cell.value = library.sequences_i5_str(";")
+        
     bytes_io = io.BytesIO()
     template.save(bytes_io)
 

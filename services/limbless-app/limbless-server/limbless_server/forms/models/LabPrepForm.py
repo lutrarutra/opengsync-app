@@ -16,7 +16,7 @@ class LabPrepForm(HTMXFlaskForm):
     _template_path = "forms/lab_prep.html"
     _form_label = "lab_prep_form"
 
-    protocol = SelectField("Protocol", choices=LabProtocol.as_selectable(), validators=[DataRequired()], coerce=int)
+    protocol = SelectField("Protocol", choices=LabProtocol.as_selectable(), coerce=int)
     name = StringField("Name", validators=[DataRequired()])
 
     def __init__(self, form_type: Literal["create", "edit"], lab_prep: Optional[models.LabPrep] = None, formdata: dict = {}):

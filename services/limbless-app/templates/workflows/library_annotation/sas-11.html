@@ -1,5 +1,4 @@
 {% from 'components/form_group.jinja2' import form_group %}
-{% from "components/table_input.jinja2" import table_input %}
 {% from "components/legends.jinja2" import color_legend %}
 
 <div id="sample_annotation_form-container" class="modal-content">
@@ -24,20 +23,13 @@
                     Spreadsheet</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
-                    id="file-tab-btn"
-                    data-bs-target="#file-tab" type="button" role="tab"
-                    aria-controls="file-tab" aria-selected="true">
-                    File</button>
-                </li>
-                <li class="nav-item" role="presentation">
                     <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                     data-bs-target="#visium-1-example-tab" type="button" role="tab"
                     aria-controls="visium-1-example-tab" aria-selected="true">
                     Example 1.</button>
                 </li>
             </ul>
-            <div class="tab-content" id="sample_annotation_form" enctype="multipart/form-data">
+            <div class="tab-content" id="sample_annotation_form">
                 {{ sample_annotation_form.csrf_token() }}
                 {{ sample_annotation_form.file_uuid(hidden=True, readonly=True) }}
 
@@ -45,14 +37,10 @@
                     <div class="input-help">
                         <h5>How to?</h5>
                         <ul>
-                            <li>Fill in the required columns and submit as a file or live spreadsheet.</li>
+                            <li>Fill in the required columns in the spreadsheet.</li>
                         </ul>
                         <h5>Columns: </h5>
                         <ul>
-                            <li>Library Name <span class="desc">the library name from annotation sheet that this image belongs to</span></li>
-                            <li>Image <span class="desc">the filename of the image, e.g. 'sample_a.tif'</span></li>
-                            <li>Slide <span class="desc">the visium slide of the image, e.g. 'V01A02-123'</span></li>
-                            <li>Area <span class="desc">the area of the image, e.g. 'A1'</span></li>
                         </ul>
                     </div>
                 </div>
@@ -67,29 +55,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
-                    <div class="input-help">
-                        <h5>How to?</h5>
-                        <ol>
-                            <li><a href="{{ url_for('library_annotation_workflow.download_visium_template', uuid=sample_annotation_form.file_uuid.data) }}">Download template</a></li>
-                            <li>Fill in the template</li>
-                            <li>Submit the file below</li>
-                        </ol>
-                        <h5>Columns:</h5>
-                        <ul>
-                            <li>Library Name <span class="desc">the library name from annotation sheet that this image belongs to</span></li>
-                            <li>Image <span class="desc">the filename of the image, e.g. 'sample_a.tif'</span></li>
-                            <li>Slide <span class="desc">the visium slide of the image, e.g. 'V01A02-123'</span></li>
-                            <li>Area <span class="desc">the area of the image, e.g. 'A1'</span></li>
-                        </ul>
-                    </div>
-                    <div class="row">
-                        {{ form_group(sample_annotation_form.separator, class="col-2") }}
-                        {{ form_group(sample_annotation_form.file, class="col-10") }}
-                    </div>
-                </div>
                 <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="3">
-                    {% include "components/examples/visium.html" %}
+                    {% include "components/examples/sample_annotation.html" %}
                 </div>
             </div>
         </div>
@@ -102,13 +69,7 @@
             {{ color_legend(colors) }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-primary submit-form-btn" type="button" id="submit-file-form-btn"
-                hx-include="#sample_annotation_form" hx-target="#sample_annotation_form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data" {% if active_tab != "file" %}style="display: none;"{% endif %}
-                hx-post="{{ url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id, input_method='file') }}">
-                File
-            </button>
-            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
                 Spreadsheet
             </button>
         </div>
@@ -156,7 +117,7 @@
 
                 console.log(spread_sheet.getHeaders());
 
-                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id, input_method='spreadsheet') }}", {
+                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id) }}", {
                     "target": "#sample_annotation_form-container",
                     "swap": "outerHTML",
                     "values": {
