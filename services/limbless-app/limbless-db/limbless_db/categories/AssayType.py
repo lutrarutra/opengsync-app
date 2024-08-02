@@ -22,7 +22,7 @@ class AssayTypeEnum(DBEnum):
 class AssayType(ExtendedEnum[AssayTypeEnum], enum_type=AssayTypeEnum):
     CUSTOM = AssayTypeEnum(0, "Custom", "Custom")
 
-    TENX_SC_GEX_FLEX = AssayTypeEnum(10, "10X Single Cell Gene Expression Flex", "10X Flex", "10X Chromium", True, library_types=[LibraryType.TENX_FLEX], optional_library_types=[LibraryType.ANTIBODY_CAPTURE])
+    TENX_SC_GEX_FLEX = AssayTypeEnum(10, "10X Single Cell Gene Expression Flex", "10X Flex", "10X Chromium", False, library_types=[LibraryType.TENX_FLEX], optional_library_types=[LibraryType.ANTIBODY_CAPTURE])
     TENX_SC_ATAC = AssayTypeEnum(11, "10X Single Cell ATAC", "10X ATAC", "10X Chromium", library_types=[LibraryType.SC_ATAC])
     TENX_SC_GEX_3PRIME = AssayTypeEnum(12, "10X Single Cell Gene Expression 3'", "10X 3'", "10X Chromium", True, library_types=[LibraryType.SC_RNA_SEQ], optional_library_types=[LibraryType.ANTIBODY_CAPTURE])
     TENX_SC_IMMUNE_PROFILING_5PRIME = AssayTypeEnum(13, "10X Single Cell Immune Profiling 5'", "10X 5'", "10X Chromium", True, library_types=[LibraryType.SC_RNA_SEQ], optional_library_types=[LibraryType.ANTIBODY_CAPTURE, LibraryType.CRISPR_SCREENING, LibraryType.VDJ_B, LibraryType.VDJ_T, LibraryType.VDJ_T_GD])

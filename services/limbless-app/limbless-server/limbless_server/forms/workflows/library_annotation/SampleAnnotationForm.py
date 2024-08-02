@@ -130,7 +130,7 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
                     raise Exception("flex reference should not be None.")
                 
                 for (sample_name, library_name, barcode_id), _ in flex_table.groupby(["sample_name", "library_name", "barcode_id"], dropna=False):
-                    sample_pool = library_table[library_table["library_name"] == library_name].iloc[0]["sample_name"]
+                    sample_pool = library_table[library_table["sample_name"] == library_name].iloc[0]["sample_name"]
                     add_sample(
                         sample_name=sample_name,
                         sample_pool=sample_pool,

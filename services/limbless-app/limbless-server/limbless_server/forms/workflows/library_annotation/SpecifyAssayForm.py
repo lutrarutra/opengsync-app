@@ -279,7 +279,7 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in self.df.columns:
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()

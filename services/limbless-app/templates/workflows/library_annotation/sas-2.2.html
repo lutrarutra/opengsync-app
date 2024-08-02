@@ -114,8 +114,56 @@
             },
             {% endfor %}
         };
+
+        function update_optional_assays(assay_id) {
+            const optional_library_types = assays[assay_id].optional_library_types;
+            const multiplexing = assays[assay_id].multiplexing;
+            
+            $(".opt-checkbox input").each(function() {
+                $(this).addClass("disabled");
+                $(this).prop("disabled", true);
+                $(this).prop("checked", false);
+            });
+            $(".opt-checkbox label").each(function() {
+                $(this).addClass("text-muted");
+            });
+
+            if (multiplexing) {
+                $(".service-checkbox-multiplexing input").each(function() {
+                    $(this).removeClass("disabled");
+                    $(this).prop("disabled", false);
+                });
+
+                $(".service-checkbox-multiplexing label").each(function() {
+                    $(this).removeClass("text-muted");
+                });
+            } else {
+                $(".service-checkbox-multiplexing input").each(function() {
+                    $(this).addClass("disabled");
+                    $(this).prop("disabled", true);
+                    $(this).prop("checked", false);
+                });
+
+                $(".service-checkbox-multiplexing label").each(function() {
+                    $(this).addClass("text-muted");
+                });
+            }
+
+            optional_library_types.forEach(function(library_type_id) {
+                $(`.opt-checkbox-${library_type_id} input`).each(function() {
+                    $(this).removeClass("disabled");
+                    $(this).prop("disabled", false);
+                });
+
+                $(`.opt-checkbox-${library_type_id} label`).each(function() {
+                    $(this).removeClass("text-muted");
+                });
+            });
+        }
+
         $(document).ready(function() {
             init_tooltips();
+            update_optional_assays($("#assay_type").val());
 
             var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]"}};
             const csrf_token = "{{ select_assay_form.csrf_token._value() }}";
@@ -137,50 +185,7 @@
             });
 
             $("#assay_type").on("change", function() {
-                const assay_id = $(this).val();
-                const optional_library_types = assays[assay_id].optional_library_types;
-                const multiplexing = assays[assay_id].multiplexing;
-                
-                $(".opt-checkbox input").each(function() {
-                    $(this).addClass("disabled");
-                    $(this).prop("disabled", true);
-                    $(this).prop("checked", false);
-                });
-                $(".opt-checkbox label").each(function() {
-                    $(this).addClass("text-muted");
-                });
-
-                if (multiplexing) {
-                    $(".service-checkbox-multiplexing input").each(function() {
-                        $(this).removeClass("disabled");
-                        $(this).prop("disabled", false);
-                    });
-
-                    $(".service-checkbox-multiplexing label").each(function() {
-                        $(this).removeClass("text-muted");
-                    });
-                } else {
-                    $(".service-checkbox-multiplexing input").each(function() {
-                        $(this).addClass("disabled");
-                        $(this).prop("disabled", true);
-                        $(this).prop("checked", false);
-                    });
-
-                    $(".service-checkbox-multiplexing label").each(function() {
-                        $(this).addClass("text-muted");
-                    });
-                }
-
-                optional_library_types.forEach(function(library_type_id) {
-                    $(`.opt-checkbox-${library_type_id} input`).each(function() {
-                        $(this).removeClass("disabled");
-                        $(this).prop("disabled", false);
-                    });
-
-                    $(`.opt-checkbox-${library_type_id} label`).each(function() {
-                        $(this).removeClass("text-muted");
-                    });
-                });
+                update_optional_assays($(this).val());
             });
 
             $("#parse-spreadsheet-btn").on("click", function() {
