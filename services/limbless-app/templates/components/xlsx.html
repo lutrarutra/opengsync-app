@@ -1,0 +1,38 @@
+{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_link %}
+
+<div class="row">
+    <div class="col-10">
+        <div class="row">
+            {{ metadata_group("Filename", file.name + file.extension, class="col-4") }}
+            {{ metadata_group_link("Uploader", file.uploader.name, url_for('users_page.user_page', user_id=file.uploader_id), class="col-2") }}
+            {{ metadata_group("Size", file.size_str(), class="col-2") }}
+            {{ metadata_group("Time", file.timestamp_str(), class="col-4") }}
+        </div>
+    </div>
+    <div class="col-2 d-flex align-items-center justify-content-evenly">
+        <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary" download style="margin-top: 10px;">
+            Download
+        </a>
+    </div>
+</div>
+
+<ul class="nav nav-tabs" role="tablist">
+    {% for sheet_name in sheets.keys() %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if loop.index0 == 0 %}active{% endif %}" data-bs-toggle="tab"
+        data-bs-target="#file-{{ sheet_name }}-tab" type="button" role="tab"
+        aria-controls="file-{{ sheet_name }}-tab" aria-selected="true">
+        {{ sheet_name }}</button>
+    </li>
+    {% endfor %}
+</ul>
+
+<div class="tab-content pt-1" style="width: 100%; overflow-x: hidden;">
+    {% for sheet_name, sheet_html in sheets.items() %}
+    <div class="tab-pane fade{% if loop.index0 == 0 %} show active{% endif %}" id="file-{{ sheet_name }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+        <div style="width: 100%; overflow-x: auto;">
+            {{ sheet_html | safe }}
+        </div>
+    </div>
+    {% endfor %}
+</div>

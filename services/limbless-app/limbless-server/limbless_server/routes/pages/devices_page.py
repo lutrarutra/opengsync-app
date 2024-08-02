@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required, current_user
 
-from limbless_db import DBSession
 from limbless_db.categories import UserRole, HTTPResponse
 from ... import forms, db
 

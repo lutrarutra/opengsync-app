@@ -1,6 +1,5 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
-{% from 'components/search_select.jinja2' import search_select_field %}
 
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
@@ -69,7 +68,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade show" id="project-data-tab" role="tabpanel" tabindex="1">
+        <div class="tab-pane fade" id="project-data-tab" role="tabpanel" tabindex="1">
             <div class="row">
                 {{ 
                     metadata_group_link(

@@ -21,12 +21,8 @@ samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/hmtx/samples
 @samples_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
 def get(page: int):
-    if not (sort_by := request.args.get("sort_by", None)):
-        sort_by = "id"
-    
-    if not (sort_order := request.args.get("sort_order", None)):
-        sort_order = "desc"
-
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
@@ -252,7 +248,7 @@ def get_plate(sample_id: int):
     
     return make_response(
         render_template(
-            "components/plate_tab.html", plate=sample.plate,
+            "components/plate.html", plate=sample.plate,
             sample=sample
         )
     )

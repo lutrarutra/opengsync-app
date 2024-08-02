@@ -5,7 +5,7 @@ from flask_login import login_required
 from flask_htmx import make_response
 
 from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse, LibraryStatus
+from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms import SelectSamplesForm
@@ -92,8 +92,6 @@ def begin(pool_id: int) -> Response:
 def select() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    
-    logger.debug(request.form)
     
     if (pool_id := request.form.get("pool_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)

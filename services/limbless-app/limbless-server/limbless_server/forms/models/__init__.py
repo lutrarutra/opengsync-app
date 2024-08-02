@@ -7,3 +7,4 @@ from .SeqRequestForm import SeqRequestForm   # noqa
 from .PoolForm import PoolForm   # noqa
 from .SeqRunForm import SeqRunForm   # noqa
 from .PlateForm import PlateForm # noqa
+from .LabPrepForm import LabPrepForm # noqa

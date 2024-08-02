@@ -7,7 +7,7 @@
     </div>
     <div class="modal-body">
         <div id="library_pooling-form">
-            {% for sub_form in pool_indexing_form.input_fields %}
+            {% for sub_form in library_indexing_form.input_fields %}
             {{    
                 categorical_mapping(
                     raw_label=sub_form.raw_label,
@@ -17,13 +17,13 @@
                 )
             }}
             {% endfor %}
-            {{ pool_indexing_form.file_uuid(hidden=True, readonly=True) }}
-            {{ pool_indexing_form.csrf_token() }}
+            {{ library_indexing_form.file_uuid(hidden=True, readonly=True) }}
+            {{ library_indexing_form.csrf_token() }}
         </div>
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ pool_indexing_form.file_uuid.data }}
+            {{ library_indexing_form.file_uuid.data }}
         </div>
         <div class="footer-info">
         </div>
@@ -31,8 +31,8 @@
             <button type="button" class="btn btn-primary"
                 hx-target="#library_pooling-form-container" hx-swap="outerHTML"
                 hx-include="#library_pooling-form"
-                hx-post="{{ url_for('pool_indexing_workflow.map_index_kits') }}">
-                Map Index Kits
+                hx-post="{{ url_for('library_indexing_workflow.map_index_kits') }}">
+                Map Kits
             </button>
         </div>
     </div>

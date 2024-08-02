@@ -112,17 +112,18 @@
                     )
                 }}
             </div>
+            <div class="row">
+                {% for attribute in sample.attributes %}
+                    {{ metadata_group(attribute.name, attribute.value, class="col-3") }}
+                {% endfor %}
+            </div>
             {{ metadata_group("Time Stored", sample.timestamp_stored_str, class="col-3") }}
-
         </div>
         {% if current_user.is_insider() %}
         <div class="tab-pane fade" id="sample-plate-tab" role="tabpanel" tabindex="2">
-            <div hx-get="{{ url_for('samples_htmx.get_plate', sample_id=sample.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
-                {{ spinner() }}
-            </div>
         </div>
         {% if sample.ba_report_id %}
-        <div class="tab-pane fade show" id="ba_report-tab" role="tabpanel" tabindex="3">
+        <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="3">
             <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
                 <div class="row">
                     {{ metadata_group("Filename", sample.ba_report.name + sample.ba_report.extension, class="col-3") }}

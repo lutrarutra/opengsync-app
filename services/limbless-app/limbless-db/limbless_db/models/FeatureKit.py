@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class FeatureKit(Base):
-    __tablename__ = "featurekit"
+    __tablename__ = "feature_kit"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True, unique=True)
 

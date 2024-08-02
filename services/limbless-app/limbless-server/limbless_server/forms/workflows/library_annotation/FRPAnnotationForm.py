@@ -19,8 +19,7 @@ from .... import logger, tools
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
-from .PoolMappingForm import PoolMappingForm
-from .CompleteSASForm import CompleteSASForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 
 class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
@@ -163,51 +162,31 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
         duplicate_samples = self.flex_table.duplicated(subset=["library_name", "sample_name"], keep=False)
         duplicate_barcode = self.flex_table.duplicated(subset=["library_name", "barcode_id"], keep=False)
 
+        def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value"]):
+            if self.input_type == "file":
+                self.file.errors.append(f"Row {row_num}: {message}")  # type: ignore
+            else:
+                self.spreadsheet_style[f"{FRPAnnotationForm.columns[column].column}{row_num}"] = f"background-color: {self._context['colors'][color]};"
+                self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
+
         for i, (idx, row) in enumerate(self.flex_table.iterrows()):
             if pd.isna(row["library_name"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: Library is missing.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: Library is missing.")
-                    self.spreadsheet_style[f"{FRPAnnotationForm.columns['library_name'].column}{i + 1}"] = f"background-color: {FRPAnnotationForm.colors['missing_value']};"
-            elif row["library_name"] not in library_table["library_name"].values:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: Library is not found in the library table.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: Library is not found in the library table.")
-                    self.spreadsheet_style[f"{FRPAnnotationForm.columns['library_name'].column}{i + 1}"] = f"background-color: {FRPAnnotationForm.colors['invalid_value']};"
+                add_error(i + 1, "library_name", "'Library Name' is missing.", "missing_value")
+            elif row["library_name"].removesuffix(f"_{LibraryType.TENX_FLEX.assay_type}") not in library_table["sample_name"].values:
+                add_error(i + 1, "library_name", f"Library is not found in the library table. Must be one of: {', '.join(library_table['sample_name'])}", "invalid_value")
             elif (library_table[library_table["library_name"] == row["library_name"]]["library_type_id"] != LibraryType.TENX_FLEX.id).any():
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: Library is not a Fixed RNA Profiling library.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: Library is not a Fixed RNA Profiling library.")
-                    self.spreadsheet_style[f"{FRPAnnotationForm.columns['library_name'].column}{i + 1}"] = f"background-color: {FRPAnnotationForm.colors['invalid_value']};"
+                add_error(i + 1, "library_name", "Library is not a Fixed RNA Profiling library.", "invalid_value")
             elif duplicate_barcode.at[idx]:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Barcode ID' is not unique in the library.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Barcode ID' is not unique in the library.")
-                    self.spreadsheet_style[f"{FRPAnnotationForm.columns['barcode_id'].column}{i + 1}"] = f"background-color: {FRPAnnotationForm.colors['duplicate_value']};"
+                add_error(i + 1, "barcode_id", "'Barcode ID' is not unique in the library.", "duplicate_value")
 
             if pd.isna(row["barcode_id"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Barcode ID' is missing.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Barcode ID' is missing.")
-                    self.spreadsheet_style[f"{FRPAnnotationForm.columns['barcode_id'].column}{i + 1}"] = f"background-color: {FRPAnnotationForm.colors['missing_value']};"
+                add_error(i + 1, "barcode_id", "'Barcode ID' is missing.", "missing_value")
             
             if pd.isna(row["sample_name"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Sample Name' is missing.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Sample Name' is missing.")
-                    self.spreadsheet_style[f"{FRPAnnotationForm.columns['sample_name'].column}{i + 1}"] = f"background-color: {FRPAnnotationForm.colors['missing_value']};"
+                add_error(i + 1, "sample_name", "'Sample Name' is missing.", "missing_value")
+
             elif duplicate_samples.at[idx]:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Sample Name' is not unique in the library.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Sample Name' is not unique in the library")
-                    self.spreadsheet_style[f"{FRPAnnotationForm.columns['sample_name'].column}{i + 1}"] = f"background-color: {FRPAnnotationForm.colors['duplicate_value']};"
+                add_error(i + 1, "sample_name", "'Sample Name' is not unique in the library.", "duplicate_value")
 
         if self.input_type == "file":
             validated = validated and len(self.file.errors) == 0
@@ -229,26 +208,9 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
             logger.error(f"{self.uuid}: FRP table is None.")
             raise Exception("FRP table is None.")
         
-        library_table = self.tables["library_table"]
-        
-        self.flex_table["sample_name"] = None
-        for (library_name, sample_name), _ in library_table.groupby(["library_name", "sample_name"]):
-            self.flex_table.loc[self.flex_table["library_name"] == library_name, "sample_name"] = sample_name
-        
         self.add_table("flex_table", self.flex_table)
         self.update_data()
-
-        if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            pool_mapping_form.prepare()
-            return pool_mapping_form.make_response()
         
-        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        complete_sas_form.prepare()
-        return complete_sas_form.make_response()
-
-
-
-        
-
-        
+        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form.prepare()
+        return sample_annotation_form.make_response()

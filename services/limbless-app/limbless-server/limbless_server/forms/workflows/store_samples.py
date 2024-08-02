@@ -103,13 +103,13 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                     db.add_sample_to_plate(
                         plate_id=plate.id,
                         sample_id=sample.id,
-                        well=plate.get_well(i)
+                        well_idx=i
                     )
                 elif isinstance(sample, models.Library):
                     db.add_library_to_plate(
                         plate_id=plate.id,
                         library_id=sample.id,
-                        well=plate.get_well(i)
+                        well_idx=i
                     )
 
         sample_table = self.tables["sample_table"]

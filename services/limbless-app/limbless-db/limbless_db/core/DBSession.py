@@ -1,3 +1,5 @@
+from sqlalchemy.exc import IllegalStateChangeError
+
 from .DBHandler import DBHandler
 
 
@@ -11,4 +13,7 @@ class DBSession():
         return self.db_handler
 
     def __exit__(self, *_):
-        self.db_handler.close_session()
+        try:
+            self.db_handler.close_session()
+        except IllegalStateChangeError:
+            pass

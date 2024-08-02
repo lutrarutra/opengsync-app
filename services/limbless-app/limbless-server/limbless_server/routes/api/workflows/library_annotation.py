@@ -104,6 +104,7 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
 
 
 @library_annotation_workflow.route("<int:seq_request_id>/parse_assay_form", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_assay_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -126,24 +127,45 @@ def select_project(seq_request_id: int, workflow_type: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if request.method == "GET":
+        if (uuid := request.args.get("uuid")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, uuid=uuid)
+    
     return forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, formdata=request.form).process_request(user=current_user)
     
 
+# 1.5 Pool Definition
+@library_annotation_workflow.route("<int:seq_request_id>/define_pool", methods=["POST", "GET"])
+@db_session(db)
+@login_required
+def define_pool(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        if (uuid := request.args.get("uuid")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        return forms.PoolDefinitionForm(uuid=uuid, seq_request=seq_request).make_response()
+    
+    return forms.PoolDefinitionForm(seq_request=seq_request, formdata=request.form).process_request(user=current_user)
+
+
 # 2. Input sample annotation sheet
 @library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:input_method>", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_table(seq_request_id: int, input_method: Literal["file", "spreadsheet"]):
     if input_method not in ["file", "spreadsheet"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        return forms.SASInputForm(
-            seq_request=seq_request, input_method=input_method,
-            formdata=request.form | request.files,
-        ).process_request()
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    return forms.SASInputForm(
+        seq_request=seq_request, input_method=input_method,
+        formdata=request.form | request.files,
+    ).process_request()
 
 
 # 3. Map organisms if new samples
@@ -164,16 +186,6 @@ def map_libraries(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.LibraryMappingForm(seq_request=seq_request, formdata=request.form).process_request()
-
-
-# 5. Map index_kits
-@library_annotation_workflow.route("<int:seq_request_id>/map_index_kits", methods=["POST"])
-@login_required
-def map_index_kits(seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-
-    return forms.IndexKitMappingForm(seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 6. Specify CMO reference
@@ -237,17 +249,17 @@ def parse_frp_annotation(seq_request_id: int, input_type: Literal["spreadsheet",
     
     return forms.FRPAnnotationForm(seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
 
-    
-# 11. Map pools
-@library_annotation_workflow.route("<int:seq_request_id>/map_pools", methods=["POST"])
+
+# 11. Parse sample annotations
+@library_annotation_workflow.route("<int:seq_request_id>/parse_sas_form", methods=["POST"])
 @login_required
-def map_pools(seq_request_id: int):
+def parse_sas_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.PoolMappingForm(seq_request=seq_request, formdata=request.form).process_request()
+    return forms.SampleAnnotationForm(seq_request=seq_request, formdata=request.form).process_request()
 
-
+    
 # Complete SAS
 @library_annotation_workflow.route("<int:seq_request_id>/complete", methods=["POST"])
 @login_required

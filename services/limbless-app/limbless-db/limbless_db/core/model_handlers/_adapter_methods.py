@@ -8,50 +8,28 @@ from .. import exceptions
 
 
 def create_adapter(
-    self, name: str, index_kit_id: int,
-    plate_well: Optional[str] = None,
-    barcode_1_id: Optional[int] = None,
-    barcode_2_id: Optional[int] = None,
-    barcode_3_id: Optional[int] = None,
-    barcode_4_id: Optional[int] = None,
-    commit: bool = True
+    self, index_kit_id: int,
+    well: Optional[str] = None,
 ) -> models.Adapter:
     
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    if self._session.query(models.Adapter).where(
-        and_(
-            models.Adapter.name == name,
-            models.Adapter.index_kit_id == index_kit_id
-        )
-    ).first():
-        raise exceptions.NotUniqueValue(f"adapter with name '{name}', already exists.")
-    
-    if self._session.query(models.Adapter).where(
-        and_(
-            models.Adapter.plate_well == plate_well,
-            models.Adapter.index_kit_id == index_kit_id
-        )
-    ).first():
-        raise exceptions.NotUniqueValue(f"adapter with plate_well '{plate_well}', already exists.")
+    if well is not None:
+        if self._session.query(models.Adapter).where(
+            and_(
+                models.Adapter.well == well,
+                models.Adapter.index_kit_id == index_kit_id
+            )
+        ).first():
+            raise exceptions.NotUniqueValue(f"Adapter with plate_well '{well}', already exists.")
 
-    adapter = models.Adapter(
-        name=name.strip(),
-        plate_well=plate_well,
-        index_kit_id=index_kit_id,
-        barcode_1_id=barcode_1_id,
-        barcode_2_id=barcode_2_id,
-        barcode_3_id=barcode_3_id,
-        barcode_4_id=barcode_4_id
-    )
+    adapter = models.Adapter(well=well, index_kit_id=index_kit_id,)
 
     self._session.add(adapter)
-
-    if commit:
-        self._session.commit()
-        self._session.refresh(adapter)
+    self._session.commit()
+    self._session.refresh(adapter)
 
     if not persist_session:
         self.close_session()
@@ -108,36 +86,3 @@ def get_adapters(
         self.close_session()
 
     return res, n_pages
-
-
-def get_adapter_from_index_kit(
-    self, index_kit_id: int,
-    adapter: Optional[str] = None,
-    plate_well: Optional[str] = None
-) -> models.Adapter:
-    
-    if plate_well is not None and adapter is not None:
-        raise ValueError("Both 'adapter' and 'plate_well' cannot be provided at the same time.")
-    elif plate_well is None and adapter is None:
-        raise ValueError("Either 'adapter' or 'plate_well' must be provided.")
-    elif plate_well is not None:
-        fltr = and_(
-            models.Adapter.plate_well == plate_well,
-            models.Adapter.index_kit_id == index_kit_id
-        )
-    else:
-        fltr = and_(
-            models.Adapter.name == adapter,
-            models.Adapter.index_kit_id == index_kit_id
-        )
-    
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    res = self._session.query(models.Adapter).where(fltr).first()
-
-    if not persist_session:
-        self.close_session()
-
-    return res

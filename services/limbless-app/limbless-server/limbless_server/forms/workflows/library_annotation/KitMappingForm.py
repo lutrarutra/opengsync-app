@@ -13,7 +13,6 @@ from .... import db, logger
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
-from .PoolMappingForm import PoolMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
 from .CompleteSASForm import CompleteSASForm
@@ -298,11 +297,6 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
 
-        if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            pool_mapping_form.prepare()
-            return pool_mapping_form.make_response()
-
-        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        complete_sas_form.prepare()
-        return complete_sas_form.make_response()
+        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form.prepare()
+        return sample_annotation_form.make_response()

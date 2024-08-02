@@ -33,8 +33,6 @@ def pool_page(pool_id: int):
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
         return abort(HTTPResponse.FORBIDDEN.id)
-    
-    pool.contact
 
     path_list = [
         ("Pools", url_for("pools_page.pools_page")),
@@ -54,17 +52,27 @@ def pool_page(pool_id: int):
                 (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
+        elif page == "seq_request":
+            path_list = [
+                ("Requests", url_for("seq_requests_page.seq_requests_page")),
+                (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
+                (f"Pool {pool_id}", ""),
+            ]
+        elif page == "lab_prep":
+            path_list = [
+                ("Lab Preps", url_for("lab_preps_page.lab_preps_page")),
+                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep_page", lab_prep_id=id)),
+                (f"Pool {pool_id}", ""),
+            ]
 
     is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider()
-    is_plated = True and len(pool.libraries) > 0
     is_indexed = True and len(pool.libraries) > 0
     for library in pool.libraries:
-        if library.plate_id is None:
-            is_plated = False
         if not library.is_indexed():
             is_indexed = False
+            break
 
     return render_template(
         "pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable,
-        is_plated=is_plated, is_indexed=is_indexed
+        is_plated=False, is_indexed=is_indexed
     )

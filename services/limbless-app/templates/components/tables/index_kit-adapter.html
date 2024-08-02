@@ -6,17 +6,21 @@
         <thead>
             <tr>
                 <th scope="col" class="col-1">ID</th>
-                <th scope="col" class="col-2">Adapter</th>
                 <th scope="col" class="col-1">Well</th>
-                <th scope="col" class="col-2">Index 1</th>
-                {% if index_kit.num_indices_per_adapter > 1 %}
-                <th scope="col" class="col-2">Index 2</th>
-                {% endif %}
-                {% if index_kit.num_indices_per_adapter > 2 %}
-                <th scope="col" class="col-2">Index 3</th>
-                {% endif %}
-                {% if index_kit.num_indices_per_adapter > 3 %}
-                <th scope="col" class="col-2">Index 4</th>
+                {% if index_kit.type == IndexType.SINGLE_INDEX %}
+                <th scope="col" class="col-2">Name i7</th>
+                <th scope="col" class="col-2">Index i7</th>
+                {% elif index_kit.type == IndexType.DUAL_INDEX %}
+                <th scope="col" class="col-1">Name i7</th>
+                <th scope="col" class="col-2">Sequence i7</th>
+                <th scope="col" class="col-1">Name i5</th>
+                <th scope="col" class="col-2">Sequence i5</th>
+                {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
+                <th scope="col" class="col-1">Name</th>
+                <th scope="col" class="col-1">Index 1</th>
+                <th scope="col" class="col-1">Index 2</th>
+                <th scope="col" class="col-1">Index 3</th>
+                <th scope="col" class="col-1">Index 4</th>
                 {% endif %}
             </tr>
         </thead>
@@ -24,17 +28,21 @@
             {% for adapter in adapters %}
             <tr>
                 <th scope="row">{{ adapter.id }}</th>
-                <td>{{ adapter.name }}</td>
-                <td>{{ adapter.plate_well }}</td>
-                <td>{{ adapter.barcode_1.sequence }}</td>
-                {% if index_kit.num_indices_per_adapter > 1 %}
-                <td>{{ adapter.barcode_2.sequence }}</td>
-                {% endif %}
-                {% if index_kit.num_indices_per_adapter > 2 %}
-                <td>{{ adapter.barcode_3.sequence }}</td>
-                {% endif %}
-                {% if index_kit.num_indices_per_adapter > 3 %}
-                <td>{{ adapter.barcode_4.sequence }}</td>
+                <td>{{ adapter.well }}</td>
+                {% if index_kit.type == IndexType.SINGLE_INDEX %}
+                <td>{{ adapter.barcodes_i7[0].name }}</td>
+                <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+                {% elif index_kit.type == IndexType.DUAL_INDEX %}
+                <td>{{ adapter.barcodes_i7[0].name }}</td>
+                <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+                <td>{{ adapter.barcodes_i5[0].name }}</td>
+                <td>{{ adapter.barcodes_i5[0].sequence }}</td>
+                {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
+                <td>{{ adapter.barcodes_i7[0].name }}</td>
+                <td>{{ adapter.barcodes_i7[0].sequence }}</td>
+                <td>{{ adapter.barcodes_i7[1].sequence }}</td>
+                <td>{{ adapter.barcodes_i7[2].sequence }}</td>
+                <td>{{ adapter.barcodes_i7[3].sequence }}</td>
                 {% endif %}
             </tr>
             {% endfor %}

@@ -1,0 +1,41 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+
+<div class="modal-content" id="prep_table-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Upload Library Preparation Table</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body" id="prep_table-form" style="height: 100%; overflow-y: hidden;">
+        <div id="table-input-form">
+            {{ form.csrf_token() }}
+            {{ form_group(form.file) }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ lab_prep.name }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" id="parse-file-btn" class="btn btn-success submit-form-btn" hx-target="#prep_table-form-container"
+                hx-swap="outerHTML" hx-include="#table-input-form" hx-encoding="multipart/form-data"
+                hx-post="{{ url_for('lab_preps_htmx.upload_file', lab_prep_id=lab_prep.id) }}"
+                {% if lab_prep.prep_file_id %}
+                _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Warning',
+                        showDenyButton: true,
+                        text: 'There is already prep table uploaded at {{ lab_prep.prep_file.timestamp_str() }} by \'{{ lab_prep.prep_file.uploader.name }}\', do you want to overwrite it?',
+                        confirmButtonText: 'Yes',
+                        icon: 'warning',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
+                {% endif %}>
+                Upload
+            </button>
+        </div>
+    </div>
+</div>

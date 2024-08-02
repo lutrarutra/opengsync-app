@@ -1,0 +1,86 @@
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+
+<div id="pool-mapping-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">1.5 Describe Library-Pools</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body">
+        <div class="tab-body" id="pool-definition-form">
+            <h4>Define new Pool</h4>
+            {{ pool_form.csrf_token() }}
+            <div class="row">
+                {{ form_group(pool_form.name, class="col-6") }}
+                {{ form_group(pool_form.num_m_reads_requested, class="col-6") }}
+            </div>
+            <div class="row">
+                {{ form_group(pool_form.contact_name, class="col-4") }}
+                {{ form_group(pool_form.contact_email, class="col-4") }}
+                {{ form_group(pool_form.contact_phone, class="col-4") }}
+            </div>
+            <h5 class="text-muted">or</h5>
+            <h4>Existing Pool</h4>
+            {{
+                search_select_field(
+                    pool_form.existing_pool,
+                    url_for('pools_htmx.query', seq_request_id=seq_request.id),
+                )
+            }}
+            <hr>
+            <h4>Select Common Index Kit(s)</h4>
+            <div class="help">
+                <ul>
+                    <li>In next step you will specify barcode indices used for each library.</li>
+                    <li>If you used a common index kit, one that is found in <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">Index Kits</a>, please select the kit here.</li>
+                    <li>If you used two different kits for Index 1 (i7) and Index 2 (i5), please specify both.</li>
+                    <li>If index kit is specified, specify the name of the barcode (adapter) <b>in next step</b>, e.g. 'SI-TT-A1'. Otherwise, specify the index sequence, e.g. 'GTAACATGCG'.</li>
+                    <li>If index kit is specified, the existense of barcode is checked in next step.</li>
+                    <li>If you used indices from two different kits, or used custom kit, specify the barcode sequences manually in the next step.</li>
+                    <li>If specifying barcode sequences manually, input all sequences in <b>reverse complement</b> orientation.</li>
+                    <li>We recommend to specify index kit in order to minimize the probability of mistakes and typos.</li>
+                </ul>
+            </div>
+            <div class="row">
+                {{
+                    search_select_field(
+                        pool_form.index_1_kit,
+                        url_for('barcodes_htmx.query_index_kits'),
+                        class="col-6"
+                    )
+                }}
+                {{
+                    search_select_field(
+                        pool_form.index_2_kit,
+                        url_for('barcodes_htmx.query_index_kits'),
+                        class="col-6"
+                    )
+                }}
+            </div>
+            {{ pool_form.file_uuid(hidden=True, readonly=True) }}
+            {{ pool_form.csrf_token() }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ pool_form.file_uuid.data }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning"
+                hx-target="#pool-mapping-container" hx-swap="outerHTML"
+                hx-get="{{ url_for('library_annotation_workflow.select_project', seq_request_id=seq_request.id, workflow_type='pooled', uuid=pool_form.uuid) }}">
+                Back
+            </button>
+            <button type="button" class="btn btn-primary"
+                hx-target="#pool-mapping-container" hx-swap="outerHTML"
+                hx-include="#pool-definition-form" id="submit-pool-definition-form-btn"
+                hx-post="{{ url_for('library_annotation_workflow.define_pool', seq_request_id=seq_request.id) }}">
+                Next
+            </button>
+        </div>
+    </div>
+    <script>
+        init_tooltips();
+    </script>
+</div>

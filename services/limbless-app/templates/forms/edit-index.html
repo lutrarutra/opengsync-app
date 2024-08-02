@@ -1,6 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+
 <form id="edit-index-form">
     {{ index_form.csrf_token }}
     {{ metadata_group("Sample", sample.name if sample) }}

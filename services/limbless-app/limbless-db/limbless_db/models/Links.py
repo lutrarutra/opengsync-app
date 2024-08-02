@@ -11,6 +11,29 @@ if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
     from .SeqRequest import SeqRequest
+    from .Plate import Plate
+
+
+class LibraryLabPrepLink(Base):
+    __tablename__ = "library_lab_prep_link"
+    library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)
+    lab_prep_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lab_prep.id"), primary_key=True)
+
+    def __str__(self) -> str:
+        return f"LibraryLabPrepLink(library_id: {self.library_id}, lab_prep_id: {self.lab_prep_id})"
+
+
+class SamplePlateLink(Base):
+    __tablename__ = "sample_plate_link"
+    plate_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), primary_key=True)
+    well_idx: Mapped[int] = mapped_column(sa.Integer, nullable=False, primary_key=True)
+    
+    sample_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("sample.id"), nullable=True)
+    library_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), nullable=True)
+
+    plate: Mapped["Plate"] = relationship("Plate", back_populates="sample_links", lazy="joined")
+    sample: Mapped[Optional["Sample"]] = relationship("Sample", back_populates="plate_links", lazy="joined")
+    library: Mapped[Optional["Library"]] = relationship("Library", back_populates="plate_links", lazy="joined")
 
 
 class ExperimentPoolLink(Base):
@@ -65,7 +88,7 @@ class ExperimentFileLink(Base):
 class SeqRequestFileLink(Base):
     __tablename__ = "seq_request_file_link"
     file_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), primary_key=True)
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True)
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True)
 
     def __str__(self) -> str:
         return f"SeqRequestFileLink(file_id: {self.file_id}, seq_request_id: {self.seq_request_id})"
@@ -82,7 +105,7 @@ class ExperimentCommentLink(Base):
 
 class SeqRequestCommentLink(Base):
     __tablename__ = "seq_request_comment_link"
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True)
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True)
     comment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("comment.id"), primary_key=True)
 
     def __str__(self) -> str:
@@ -97,19 +120,11 @@ class LibraryFeatureLink(Base):
 
     def __str__(self) -> str:
         return f"LibraryFeatureLink(library_id: {self.library_id}, feature_id: {self.feature_id})"
-    
-
-# LibraryFeatureLink = sa.Table(
-#     "library_feature_link",
-#     Base.metadata,
-#     sa.Column("library_id", sa.Integer, sa.ForeignKey("library.id"), primary_key=True),
-#     sa.Column("feature_id", sa.Integer, sa.ForeignKey("feature.id"), primary_key=True)
-# )
 
 
 class SeqRequestDeliveryEmailLink(Base):
     __tablename__ = "seq_request_delivery_email_link"
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), primary_key=True, nullable=False)
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True, nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), primary_key=True, nullable=False, index=True)
     
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=DeliveryStatus.PENDING.id)

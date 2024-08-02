@@ -43,12 +43,12 @@ label_search_columns: dict[str, list[str]] = {
     str(models.Pool.__tablename__): ["name"],
     str(models.Experiment.__tablename__): ["name"],
     str(models.SeqRun.__tablename__): ["experiment_name"],
-    str(models.Barcode.__tablename__): ["sequence", "adapter"],
     str(models.IndexKit.__tablename__): ["name"],
     str(models.User.__tablename__): ["email", "last_name", "first_name"],
     str(models.FeatureKit.__tablename__): ["name"],
     str(models.Feature.__tablename__): ["name", "target_name", "target_id"],
     str(models.SeqRun.__tablename__): ["experiment_name"],
+    str(models.Plate.__tablename__): ["name"],
 }
 
 

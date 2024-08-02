@@ -3,24 +3,43 @@
 {% extends "base.html" %}
 {% set active_page = "barcodes-page" %}
 {% block content %}
-<div class="container">
+<div class="page-header-container">
     <div class="page-header">
         <div>
-            <h1>{{ index_kit.name }}</h1>
+            <h1>{{ index_kit.name }} <span class="desc">{{ index_kit.type.name }}</span></h1>
         </div>
         <div>
-            <button type="button" id="open-sample-form-popup" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#sample-form-popup">
-                Add Adapter
-            </button>
-            <button type="button" id="open-sample-table-form-popup" class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#sample-table-form-popup">
-                Add Adapters from Table
-            </button>
         </div>
     </div>
-    <div hx-get="{{ url_for('index_kits_htmx.get_adapters', index_kit_id=index_kit.id) }}" hx-trigger="load" hx-swap="outerHMTL">
-        {{ spinner() }}
+
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#barcodes-tab" type="button" role="tab"
+            aria-controls="barcodes-tab" aria-selected="true">
+            Barcodes</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#table-tab" type="button" role="tab"
+            aria-controls="table-tab" aria-selected="true">
+            Table</button>
+        </li>
+    </ul>
+</div>
+
+<div class="container">
+    <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="barcodes-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('index_kits_htmx.get_adapters', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="table-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock content %}

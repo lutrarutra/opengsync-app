@@ -12,8 +12,9 @@ if TYPE_CHECKING:
     from .Project import Project
     from .User import User
     from .SeqRequest import SeqRequest
-    from .Plate import Plate
     from .File import File
+    from .SampleAttribute import SampleAttribute
+    from .Links import SamplePlateLink
 
 
 class Sample(Base):
@@ -33,13 +34,15 @@ class Sample(Base):
 
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
+    
+    plate_links: Mapped[list["SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="sample", lazy="select")
 
-    plate_well: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
-    plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
-    plate: Mapped[Optional["Plate"]] = relationship("Plate", back_populates="samples", lazy="select")
-
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seqrequest.id"), nullable=False)
-    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="samples", lazy="select")
+    seq_requests: Mapped[list["SeqRequest"]] = relationship(
+        "SeqRequest", back_populates="samples", lazy="select",
+        secondary="join(SeqRequest, Library, SeqRequest.id == Library.seq_request_id).join(SampleLibraryLink, Library.id == SampleLibraryLink.library_id)",
+        primaryjoin="SampleLibraryLink.sample_id == Sample.id",
+        viewonly=True
+    )
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="joined")
@@ -47,6 +50,11 @@ class Sample(Base):
     library_links: Mapped[list["SampleLibraryLink"]] = relationship(
         SampleLibraryLink, back_populates="sample", lazy="select",
         cascade="save-update, merge, delete"
+    )
+
+    attributes: Mapped[list["SampleAttribute"]] = relationship(
+        "SampleAttribute", lazy="select",
+        cascade="save-update, merge, delete, delete-orphan",
     )
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]

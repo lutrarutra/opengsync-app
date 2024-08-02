@@ -2,9 +2,9 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required
 
-from limbless_db import DBSession
+from limbless_db import db_session
 from limbless_db.models import User
-from limbless_db.categories import HTTPResponse, LibraryType
+from limbless_db.categories import HTTPResponse
 from ... import db, forms
 
 if TYPE_CHECKING:
@@ -23,17 +23,15 @@ def libraries_page():
 
 
 @libraries_page_bp.route("/libraries/<int:library_id>")
+@db_session(db)
 @login_required
 def library_page(library_id):
-    with DBSession(db) as session:
-        if (library := session.get_library(library_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if not current_user.is_insider():
-            if library.owner_id != current_user.id:
-                return abort(HTTPResponse.FORBIDDEN.id)
-            
-        library.ba_report
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider():
+        if library.owner_id != current_user.id:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
         ("Libraries", url_for("libraries_page.libraries_page")),
@@ -63,6 +61,12 @@ def library_page(library_id):
             path_list = [
                 ("Pools", url_for("pools_page.pools_page")),
                 (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
+                (f"Library {library.id}", ""),
+            ]
+        elif page == "lab_prep":
+            path_list = [
+                ("Lab Preps", url_for("lab_preps_page.lab_preps_page")),
+                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep_page", lab_prep_id=id)),
                 (f"Library {library.id}", ""),
             ]
 

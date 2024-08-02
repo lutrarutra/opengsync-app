@@ -1,6 +1,8 @@
 import math
 from typing import Optional
 
+from sqlalchemy.sql.operators import and_
+
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
@@ -93,8 +95,8 @@ def delete_plate(self, plate_id: int):
 
 
 def add_sample_to_plate(
-    self, plate_id: int, sample_id: int, well: str
-) -> models.Sample:
+    self, plate_id: int, sample_id: int, well_idx: int
+) -> models.Plate:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -103,29 +105,29 @@ def add_sample_to_plate(
     if (plate := self.get_plate(plate_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
-    sample: models.Sample
-    if (sample := self.get_sample(sample_id)) is None:
+    if (_ := self.get_sample(sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
-    if plate.get_sample(well) is not None:
-        raise exceptions.NotUniqueValue(f"Well {well} is already occupied in plate with id {plate_id}")
+    if self._session.query(models.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
+        raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
     
-    sample.plate_id = plate.id
-    sample.plate_well = well
+    plate.sample_links.append(models.SamplePlateLink(
+        plate_id=plate_id, well_idx=well_idx, sample_id=sample_id
+    ))
 
-    self._session.add(sample)
+    self._session.add(plate)
     self._session.commit()
-    self._session.refresh(sample)
+    self._session.refresh(plate)
 
     if not persist_session:
         self.close_session()
 
-    return sample
+    return plate
 
 
 def add_library_to_plate(
-    self, plate_id: int, library_id: int, well: str
-) -> models.Library:
+    self, plate_id: int, library_id: int, well_idx: int
+) -> models.Plate:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -134,52 +136,64 @@ def add_library_to_plate(
     if (plate := self.get_plate(plate_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
-    library: models.Library
-    if (library := self.get_library(library_id)) is None:
+    if (_ := self.get_library(library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if plate.get_sample(well) is not None:
-        raise exceptions.NotUniqueValue(f"Well {well} is already occupied in plate with id {plate_id}")
+    if self._session.query(models.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
+        raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
     
-    library.plate_id = plate.id
-    library.plate_well = well
+    plate.sample_links.append(models.SamplePlateLink(
+        plate_id=plate_id, well_idx=well_idx, library_id=library_id
+    ))
 
-    self._session.add(library)
+    self._session.add(plate)
     self._session.commit()
-    self._session.refresh(library)
+    self._session.refresh(plate)
 
     if not persist_session:
         self.close_session()
 
-    return library
+    return plate
 
 
-# def add_pool_to_plate(
-#     self, plate_id: int, pool_id: int, well: str
-# ) -> models.Pool:
-#     persist_session = self._session is not None
-#     if not self._session:
-#         self.open_session()
-
-#     plate: models.Plate
-#     if (plate := self.get_plate(plate_id)) is None:
-#         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
+def clear_plate(self, plate_id: int) -> models.Plate:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
     
-#     pool: models.Pool
-#     if (pool := self.get_pool(pool_id)) is None:
-#         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+    if (plate := self.get_plate(plate_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
-#     if plate.get_sample(well) is not None:
-#         raise exceptions.NotUniqueValue(f"Well {well} is already occupied in plate with id {plate_id}")
+    for link in plate.sample_links:
+        self._session.delete(link)
     
-#     pool.plate_id = plate.id
-#     pool.plate_well = well
+    self._session.add(plate)
+    self._session.commit()
+    self._session.refresh(plate)
 
-#     self._session.add(pool)
-#     self._session.commit()
-#     self._session.refresh(pool)
+    if not persist_session:
+        self.close_session()
 
-#     if not persist_session:
-#         self.close_session()
+    return plate
 
-#     return pool
+
+def get_plate_sample(self, plate_id: int, well_idx: int) -> Optional[models.Sample | models.Library]:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+    
+    link: Optional[models.SamplePlateLink]
+    link = self._session.query(models.SamplePlateLink).where(
+        and_(
+            models.SamplePlateLink.plate_id == plate_id,
+            models.SamplePlateLink.well_idx == well_idx
+        )
+    ).first()
+
+    if not persist_session:
+        self.close_session()
+
+    if link is None:
+        return None
+    
+    return link.sample if link.sample is not None else link.library

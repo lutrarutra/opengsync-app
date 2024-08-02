@@ -9,7 +9,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType
+from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType
 
 from .... import db, logger
 from ...TableDataForm import TableDataForm
@@ -31,33 +31,20 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
     def prepare(self):
         library_table = self.tables["library_table"]
-        pool_table = self.tables.get("pool_table")
+        sample_table = self.tables["sample_table"]
         feature_table = self.tables.get("feature_table")
         cmo_table = self.tables.get("cmo_table")
         visium_table = self.tables.get("visium_table")
         flex_table = self.tables.get("flex_table")
         comment_table = self.tables.get("comment_table")
 
-        library_table["is_cmo_sample"] = False
-        library_table["is_flex_sample"] = False
-        for sample_name, _df in library_table.groupby("sample_name"):
-            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
-                library_table.loc[library_table["sample_name"] == sample_name, "is_cmo_sample"] = True
-            if LibraryType.TENX_FLEX.id in _df["library_type_id"].unique():
-                library_table.loc[library_table["sample_name"] == sample_name, "is_flex_sample"] = True
-
-        sample_table = self.get_sample_table(library_table, cmo_table, flex_table)
-        self.add_table("sample_table", sample_table)
-        self.update_table("library_table", library_table)
-
         self._context["library_table"] = library_table
-        self._context["pool_table"] = pool_table
+        self._context["sample_table"] = sample_table
         self._context["feature_table"] = feature_table
         self._context["cmo_table"] = cmo_table
         self._context["visium_table"] = visium_table
         self._context["flex_table"] = flex_table
         self._context["comment_table"] = comment_table
-        self._context["sample_table"] = sample_table
 
         input_type = "raw" if "pool" not in library_table.columns else "pooled"
 
@@ -123,97 +110,13 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         self._context["nodes"] = nodes
         self._context["links"] = links
-
-    def get_sample_table(
-        self, library_table: pd.DataFrame,
-        cmo_table: Optional[pd.DataFrame], flex_table: Optional[pd.DataFrame]
-    ) -> pd.DataFrame:
-        sample_data = {
-            "sample_name": [],
-            "sample_pool": [],
-            "library_types": [],
-            "is_cmo_sample": [],
-            "is_flex_sample": [],
-            "cmo_sequence": [],
-            "cmo_pattern": [],
-            "cmo_read": [],
-            "flex_barcode": [],
-        }
-
-        def add_sample(
-            sample_name: str,
-            sample_pool: str,
-            is_cmo_sample: bool,
-            is_flex_sample: bool,
-            library_types: list[str],
-            cmo_sequence: Optional[str] = None,
-            cmo_pattern: Optional[str] = None,
-            cmo_read: Optional[str] = None,
-            flex_barcode: Optional[str] = None
-        ):
-            sample_data["sample_name"].append(sample_name)
-            sample_data["sample_pool"].append(sample_pool)
-            sample_data["library_types"].append(library_types)
-            sample_data["is_cmo_sample"].append(is_cmo_sample)
-            sample_data["is_flex_sample"].append(is_flex_sample)
-            sample_data["cmo_sequence"].append(cmo_sequence)
-            sample_data["cmo_pattern"].append(cmo_pattern)
-            sample_data["cmo_read"].append(cmo_read)
-            sample_data["flex_barcode"].append(flex_barcode)
-
-        for (sample_name, is_cmo_sample, is_flex_sample), _df in library_table.groupby(["sample_name", "is_cmo_sample", "is_flex_sample"], dropna=False, sort=False):
-            library_types = [LibraryType.get(library_type_id).abbreviation for library_type_id in _df["library_type_id"].unique()]
-            if is_cmo_sample:
-                if cmo_table is None:
-                    logger.error(f"{self.uuid}: CMO reference table not found.")
-                    raise Exception("CMO reference should not be None.")
-                
-                for _, cmo_row in cmo_table[cmo_table["sample_name"] == sample_name].iterrows():
-                    add_sample(
-                        sample_name=cmo_row["demux_name"],
-                        sample_pool=sample_name,
-                        library_types=library_types,
-                        is_cmo_sample=True,
-                        is_flex_sample=False,
-                        cmo_sequence=cmo_row["sequence"],
-                        cmo_pattern=cmo_row["pattern"],
-                        cmo_read=cmo_row["read"],
-                    )
-            elif is_flex_sample:
-                if flex_table is None:
-                    logger.error(f"{self.uuid}: flex reference table not found.")
-                    raise Exception("flex reference should not be None.")
-                
-                for (sample_name, library_name, barcode_id), _ in flex_table.groupby(["sample_name", "library_name", "barcode_id"], dropna=False):
-                    sample_pool = library_table[library_table["library_name"] == library_name].iloc[0]["sample_name"]
-                    add_sample(
-                        sample_name=sample_name,
-                        sample_pool=sample_pool,
-                        is_flex_sample=True,
-                        is_cmo_sample=False,
-                        library_types=library_types,
-                        flex_barcode=barcode_id
-                    )
-            else:
-                add_sample(
-                    sample_name=sample_name,
-                    sample_pool=sample_name,
-                    library_types=library_types,
-                    is_cmo_sample=False,
-                    is_flex_sample=False,
-                )
-
-        return pd.DataFrame(sample_data).fillna(np.nan)
     
     def __update_data(
         self, sample_table: pd.DataFrame, library_table: pd.DataFrame,
-        pool_table: Optional[pd.DataFrame], visium_table: Optional[pd.DataFrame],
-        cmo_table: Optional[pd.DataFrame]
+        visium_table: Optional[pd.DataFrame], cmo_table: Optional[pd.DataFrame]
     ):
         self.update_table("sample_table", sample_table, False)
         self.update_table("library_table", library_table, False)
-        if pool_table is not None:
-            self.update_table("pool_table", pool_table, False)
         if visium_table is not None:
             self.update_table("visium_table", visium_table, False)
         if cmo_table is not None:
@@ -228,7 +131,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         library_table = self.tables["library_table"]
         sample_table = self.tables["sample_table"]
-        pool_table = self.tables.get("pool_table")
         feature_table = self.tables.get("feature_table")
         cmo_table = self.tables.get("cmo_table")
         visium_table = self.tables.get("visium_table")
@@ -238,7 +140,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             self.__update_data(
                 sample_table=sample_table,
                 library_table=library_table,
-                pool_table=pool_table,
                 visium_table=visium_table,
                 cmo_table=cmo_table
             )
@@ -268,35 +169,62 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             )
 
         with DBSession(db) as session:
+            predefined_attrs = [f"_attr_{attr.label}" for attr in AttributeType.as_list()]
+            custom_sample_attributes = [attr for attr in sample_table.columns if attr.startswith("_attr_") and attr not in predefined_attrs]
+            logger.debug(custom_sample_attributes)
             for idx, row in sample_table.iterrows():
-                sample = session.create_sample(
-                    name=row["sample_name"],
-                    project_id=project.id,
+                if pd.notna(row["sample_id"]):
+                    if (sample := session.get_sample(row["sample_id"])) is None:
+                        logger.error(f"{self.uuid}: Sample with id {row['sample_id']} not found.")
+                        raise ValueError(f"Sample with id {row['sample_id']} not found.")
+                else:
+                    sample = session.create_sample(
+                        name=row["sample_name"],
+                        project_id=project.id,
+                        owner_id=user.id,
+                        status=SampleStatus.DRAFT
+                    )
+                    sample_table.at[idx, "sample_id"] = sample.id
+
+                for attr in AttributeType.as_list():
+                    attr_label = f"_attr_{attr.label}"
+                    if attr_label in row.keys() and pd.notna(row[attr_label]):
+                        sample = session.set_sample_attribute(
+                            sample_id=sample.id,
+                            type=attr,
+                            value=row[attr_label],
+                            name=None
+                        )
+
+                for attr_label in custom_sample_attributes:
+                    if attr_label in row.keys() and pd.notna(row[attr_label]):
+                        sample = session.set_sample_attribute(
+                            sample_id=sample.id,
+                            type=AttributeType.CUSTOM,
+                            value=row[attr_label],
+                            name=attr_label.removeprefix("_attr_")
+                        )
+
+        sample_table["sample_id"] = sample_table["sample_id"].astype(int)
+
+        if self.metadata["workflow_type"] == "pooled":
+            if (pool_id := self.metadata["existing_pool_id"]) is not None:
+                if (pool := db.get_pool(pool_id)) is None:
+                    logger.error(f"{self.uuid}: Pool with id {pool_id} not found.")
+                    raise ValueError(f"Pool with id {pool_id} not found.")
+            else:
+                pool = db.create_pool(
+                    name=self.metadata["pool_name"],
                     owner_id=user.id,
                     seq_request_id=self.seq_request.id,
-                    status=SampleStatus.DRAFT
+                    pool_type=PoolType.EXTERNAL,
+                    contact_email=self.metadata["pool_contact_email"],
+                    contact_name=self.metadata["pool_contact_name"],
+                    contact_phone=self.metadata["pool_contact_phone"],
+                    num_m_reads_requested=self.metadata["pool_num_m_reads_requested"]
                 )
-                sample_table.at[idx, "sample_id"] = sample.id
-
-            sample_table["sample_id"] = sample_table["sample_id"].astype(int)
-
-        if pool_table is not None:
-            pool_table["pool_id"] = None
-            with DBSession(db) as session:
-                for idx, row in pool_table.iterrows():
-                    pool = session.create_pool(
-                        name=row["name"],
-                        owner_id=user.id,
-                        seq_request_id=self.seq_request.id,
-                        pool_type=PoolType.EXTERNAL,
-                        num_m_reads_requested=row["num_m_reads"],
-                        contact_name=row["contact_person_name"],
-                        contact_email=row["contact_person_email"],
-                        contact_phone=row["contact_person_phone"] if pd.notna(row["contact_person_phone"]) else None,
-                    )
-                    pool_table.at[idx, "pool_id"] = pool.id
-
-            pool_table["pool_id"] = pool_table["pool_id"].astype(int)
+        else:
+            pool = None
 
         with DBSession(db) as session:
             library_table["library_id"] = None
@@ -307,28 +235,35 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                 else:
                     visium_annotation_id = None
 
-                if pool_table is not None:
-                    pool_row = pool_table[pool_table["name"] == row["pool"]].iloc[0]
-                    pool_id = int(pool_row["pool_id"])
-                else:
-                    pool_id = None
-
                 library = session.create_library(
                     name=row["library_name"],
+                    sample_name=row["sample_name"],
                     seq_request_id=self.seq_request.id,
                     library_type=LibraryType.get(row["library_type_id"]),
                     owner_id=user.id,
                     genome_ref=GenomeRef.get(row["genome_id"]),
-                    index_1_sequence=row["index_1"].strip() if "index_1" in row and pd.notna(row["index_1"]) else None,
-                    index_2_sequence=row["index_2"].strip() if "index_2" in row and pd.notna(row["index_2"]) else None,
-                    index_3_sequence=row["index_3"].strip() if "index_3" in row and pd.notna(row["index_3"]) else None,
-                    index_4_sequence=row["index_4"].strip() if "index_4" in row and pd.notna(row["index_4"]) else None,
-                    adapter=row["adapter"].strip() if "adapter" in row and pd.notna(row["adapter"]) else None,
                     visium_annotation_id=visium_annotation_id,
-                    pool_id=pool_id,
+                    pool_id=pool.id if pool is not None else None,
                     seq_depth_requested=row["seq_depth"] if "seq_depth" in row and pd.notna(row["seq_depth"]) else None,
                 )
+
                 library_table.at[idx, "library_id"] = library.id
+                
+                if self.metadata["workflow_type"] == "pooled":
+                    index_i7_seqs = row["index_i7_sequences"].split(";")
+                    index_i5_seqs = row["index_i5_sequences"].split(";") if pd.notna(row["index_i5_sequences"]) else None
+
+                    for i in range(len(index_i7_seqs)):
+                        index_i7_seq = index_i7_seqs[i]
+                        index_i5_seq = index_i5_seqs[i] if index_i5_seqs is not None and len(index_i5_seqs) > i else None
+                        library = session.add_library_index(
+                            library_id=library.id,
+                            sequence_i7=index_i7_seq,
+                            sequence_i5=index_i5_seq if pd.notna(index_i5_seq) else None,
+                            name_i7=row["index_i7_name"] if pd.notna(row["index_i7_name"]) else None,
+                            name_i5=row["index_i5_name"] if pd.notna(row["index_i5_name"]) else None,
+                        )
+
                 library_samples = sample_table[sample_table["sample_pool"] == row["sample_name"]]
                 for idx, sample_row in library_samples.iterrows():
                     session.link_sample_library(
@@ -395,7 +330,6 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         self.__update_data(
             sample_table=sample_table,
             library_table=library_table,
-            pool_table=pool_table,
             visium_table=visium_table,
             cmo_table=cmo_table
         )

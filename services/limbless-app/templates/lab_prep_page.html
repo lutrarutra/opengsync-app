@@ -1,0 +1,207 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+{% from "components/form_group.jinja2" import form_group %}
+{% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
+{% from "components/spinner.jinja2" import spinner %}
+
+{% extends "base.html" %}
+{% set active_page = "lab_preps-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div>
+            <h1>{{ lab_prep.name }} <span class="desc">{{ lab_prep.protocol.name }}</span></h1>
+        </div>
+        <div>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Template
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}"
+                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Rows</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}"
+                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Columns</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-libraries-tab" type="button" role="tab"
+            aria-controls="lab_prep-libraries-tab" aria-selected="true">Libraries</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-workflows-tab" type="button" role="tab"
+            aria-controls="lab_prep-workflows-tab" aria-selected="true">Workflows</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-pools-tab" type="button" role="tab"
+            aria-controls="lab_prep-pools-tab" aria-selected="true">Pools</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#prep_table-tab" type="button" role="tab"
+            aria-controls="prep_table-tab" aria-selected="false"
+            {% if not lab_prep.prep_file_id %}disabled{% endif %}>
+            Prep Table</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#plate-tab" type="button" role="tab"
+            aria-controls="plate-tab" aria-selected="false"
+            {% if not lab_prep.plate_id %}disabled{% endif %}>
+            Plate</button>
+        </li>
+    </ul>
+</div>
+
+<div class="container">
+    <div class="tab-content pt-1">
+        <div class="tab-pane fade show active" id="lab_prep-libraries-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('lab_preps_htmx.get_libraries', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="lab_prep-workflows-tab" role="tabpanel" tabindex="1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Workflows</h3>
+                </div>
+            </div>
+            <div class="workflow-container">
+                <div class="flip-card card"
+                    data-bs-toggle="modal" data-bs-target="#xl-modal"
+                    hx-get="{{ url_for('library_prep_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                    hx-target="#xl-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click">
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="120px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Add Libraries</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Select libraries to prepare</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card card"
+                    data-bs-toggle="modal" data-bs-target="#xl-modal"
+                    hx-get="{{ url_for('lab_preps_htmx.file_upload_form', lab_prep_id=lab_prep.id) }}"
+                    hx-target="#xl-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click">
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/prepare.svg') }}" width="120px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Upload Prep Table <span class="desc">{{ lab_prep.protocol.abbreviation }}</span></h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Upload prep table</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card card"
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('library_indexing_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click">
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="110px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Index Libraries</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Index libraries in the workflow</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="lab_prep-pools-tab" role="tabpanel" tabindex="2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Pools</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('lab_preps_htmx.get_pools', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="prep_table-tab" role="tabpanel" tabindex="3">
+            {% if lab_prep.prep_file_id %}
+            <div hx-get="{{ url_for('files_htmx.render_xlsx', file_id=lab_prep.prep_file_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="4">
+            {% if lab_prep.plate_id %}
+            <div hx-get="{{ url_for('plates_htmx.plate_tab', plate_id=lab_prep.plate_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                {{ spinner() }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<script>
+    init_tooltips();
+    function confirmation(ev) {
+        ev.preventDefault();
+        var url = ev.target.href;
+        Swal.fire({
+            title: 'Prep \'{{ lab_prep.name }}\' is empty.',
+            showDenyButton: true,
+            text: 'Do you want to download empty template?',
+            confirmButtonText: 'Yes',
+            denyButtonText: 'No',
+            icon: 'question'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
+    }
+</script>
+
+{% endblock %}

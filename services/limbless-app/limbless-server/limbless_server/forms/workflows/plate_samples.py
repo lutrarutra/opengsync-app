@@ -2,7 +2,7 @@ import json
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms.validators import Optional as OptionalValidator, Length
+from wtforms.validators import DataRequired, Length
 from wtforms import StringField, SelectField
 
 from limbless_db import models, DBSession
@@ -18,20 +18,29 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
     _form_label = "plate_samples_form"
 
     plate_order = StringField()
-    plate_name = StringField("Plate Name", validators=[OptionalValidator(), Length(min=3, max=models.Plate.name.type.length)])
+    plate_name = StringField("Plate Name", validators=[DataRequired(), Length(min=3, max=models.Plate.name.type.length)])
     plate_size = SelectField("Plate Size", choices=[("12x8", "12x8")], default="12x8")
+    error_dummy = StringField()
 
     def __init__(self, formdata: dict = {}, context: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="plate_samples", uuid=formdata.get("file_uuid"))
         self._context["url_context"] = {}
+
+        self.plate = None
+        
         if (seq_request := context.get("seq_request")) is not None:
             self._context["url_context"]["seq_request_id"] = seq_request.id
             self._context["seq_request"] = seq_request
             self._context["context"] = f"{seq_request.name} ({seq_request.id})"
+        
         if (pool := context.get("pool")) is not None:
             self._context["url_context"]["pool_id"] = pool.id
             self._context["pool"] = pool
+            if pool.plate_id is not None:
+                self._context["plate_table"] = db.get_plate_df(pool.plate_id)
+                self.plate = pool.plate
+                self._context["plate"] = pool.plate
             self._context["context"] = f"{pool.name} ({pool.id})"
         
         self.seq_request = seq_request
@@ -40,7 +49,6 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
     def prepare(self):
         self._context["sample_table"] = self.tables["sample_table"]
         self._context["library_table"] = self.tables["library_table"]
-        self._context["pool_table"] = self.tables["pool_table"]
         
     def validate(self) -> bool:
         validated = super().validate()
@@ -48,18 +56,26 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
         if not validated:
             return False
 
-        self.samples: list[tuple[models.Sample | models.Library | models.Pool, int]] = []
+        self.samples: list[tuple[models.Sample | models.Library, int]] = []
         if (plate_order := self.plate_order.data) is not None:
             if not self.plate_name.data:
-                self.plate_name.errors = ["Plate name is required"]
+                self.error.errors = ["Plate name is required"]
                 return False
 
             plate_order = json.loads(plate_order)
+            if len(plate_order) > 96:
+                self.error_dummy.errors = ["Plate can only contain 96 samples"]
+                return False
+            
+            logger.debug(plate_order)
 
             num_plate_samples = 0
             for i, id in enumerate(plate_order):
                 if id is None:
                     continue
+                
+                logger.debug(i)
+                logger.debug(id)
                 num_plate_samples += id is not None
                 sample_type = id.split("-")[0]
                 try:
@@ -72,20 +88,13 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
                     if (sample := db.get_sample(sample_id)) is None:
                         self.plate_order.errors = [f"Sample with ID {sample_id} does not exist"]
                         return False
-                    
                     self.samples.append((sample, i))
+
                 elif sample_type == "l":
                     if (library := db.get_library(sample_id)) is None:
                         self.plate_order.errors = [f"Library with ID {sample_id} does not exist"]
                         return False
-                    
                     self.samples.append((library, i))
-                elif sample_type == "p":
-                    if (pool := db.get_pool(sample_id)) is None:
-                        self.plate_order.errors = [f"Pool with ID {sample_id} does not exist"]
-                        return False
-                    
-                    self.samples.append((pool, i))
 
         return True
     
@@ -94,27 +103,21 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
             self.prepare()
             return self.make_response()
         
-        if self.plate_name.data is not None and len(self.samples) > 0:
-            plate = db.create_plate(
-                name=self.plate_name.data.strip(),
+        if self.plate is None:
+            self.plate = db.create_plate(
+                name=self.plate_name.data.strip(),  # type: ignore
                 num_cols=int(self.plate_size.data.split("x")[0]),
                 num_rows=int(self.plate_size.data.split("x")[1]),
                 owner_id=user.id
             )
+        else:
+            self.plate = db.clear_plate(self.plate.id)
 
-            for sample, i in self.samples:
-                if isinstance(sample, models.Sample):
-                    db.add_sample_to_plate(
-                        plate_id=plate.id,
-                        sample_id=sample.id,
-                        well=plate.get_well(i)
-                    )
-                elif isinstance(sample, models.Library):
-                    db.add_library_to_plate(
-                        plate_id=plate.id,
-                        library_id=sample.id,
-                        well=plate.get_well(i)
-                    )
+        for sample, i in self.samples:
+            if isinstance(sample, models.Sample):
+                self.plate = db.add_sample_to_plate(plate_id=self.plate.id, sample_id=sample.id, well_idx=i)
+            elif isinstance(sample, models.Library):
+                self.plate = db.add_library_to_plate(plate_id=self.plate.id, library_id=sample.id, well_idx=i)
 
         sample_table = self.tables["sample_table"]
         library_table = self.tables["library_table"]
@@ -137,7 +140,6 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
                     sample.status_id = SampleStatus.STORED.id
 
                 for library_link in sample.library_links:
-                    logger.debug(f"Library {library_link.library.id} status: {library_link.library.status_id}")
                     library_link.library.status_id = LibraryStatus.PREPARING.id
                 
                 sample = session.update_sample(sample)
@@ -154,7 +156,7 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
                 library = session.update_library(library)
 
         if self.pool is not None:
-            self.pool.plate_id = plate.id
+            self.pool.plate_id = self.plate.id
             self.pool.status_id = PoolStatus.STORED.id
             self.pool = db.update_pool(self.pool)
 

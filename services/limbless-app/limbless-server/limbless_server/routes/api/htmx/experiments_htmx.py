@@ -241,7 +241,7 @@ def table_query():
     return make_response(
         render_template(
             "components/tables/experiment.html",
-            experiments=experiments, experiments_current_query=word, field_name=field_name,
+            experiments=experiments, current_query=word, field_name=field_name,
             ExperimentWorkFlow=ExperimentWorkFlow, workflow_in=workflow_in
         )
     )

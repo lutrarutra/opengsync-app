@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import ReadType, DataDeliveryMode
+from limbless_db.categories import ReadType, DataDeliveryMode, SubmissionType
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -64,6 +64,11 @@ class TechinicalInfoSubForm(FlaskForm):
         coerce=int
     )
 
+    submission_type = SelectField(
+        "Submission Type", choices=[(-1, "")] + SubmissionType.as_selectable(), validators=[DataRequired()],
+        coerce=int, default=None
+    )
+
     read_length = IntegerField(
         "Read Length", validators=[OptionalValidator(), NumberRange(min=1)],
         description="Read length.", default=None
@@ -88,6 +93,9 @@ class TechinicalInfoSubForm(FlaskForm):
     
     def validate(self) -> bool:
         self._validated = super().validate()
+        if self.submission_type.data == -1:
+            self.submission_type.errors = ("Submission type is required",)
+            self._validated = False
         return self._validated
 
 
@@ -278,10 +286,13 @@ class SeqRequestForm(HTMXFlaskForm):
         return True
     
     def __fill_form(self, seq_request: models.SeqRequest):
+        self.disclaimer_form.disclaimer.data = True
+        
         self.basic_info_form.request_name.data = seq_request.name
         self.basic_info_form.request_description.data = seq_request.description
         
         self.technical_info_form.read_length.data = seq_request.read_length
+        self.technical_info_form.submission_type.data = seq_request.submission_type.id
         self.technical_info_form.num_lanes.data = seq_request.num_lanes
         self.technical_info_form.special_requirements.data = seq_request.special_requirements
         self.technical_info_form.read_type.data = seq_request.read_type.id
@@ -315,6 +326,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         seq_request.read_type_id = ReadType.get(self.technical_info_form.read_type.data).id
         seq_request.read_length = self.technical_info_form.read_length.data
+        seq_request.submission_type_id = SubmissionType.get(self.technical_info_form.submission_type.data).id
         seq_request.special_requirements = self.technical_info_form.special_requirements.data
         seq_request.num_lanes = self.technical_info_form.num_lanes.data
 
@@ -387,11 +399,12 @@ class SeqRequestForm(HTMXFlaskForm):
         seq_request = db.create_seq_request(
             name=self.basic_info_form.request_name.data,  # type: ignore
             description=self.basic_info_form.request_description.data,
-            
+    
             data_delivery_mode=DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data),
             
             num_lanes=self.technical_info_form.num_lanes.data,
             read_type=ReadType.get(self.technical_info_form.read_type.data),
+            submission_type=SubmissionType.get(self.technical_info_form.submission_type.data),
             read_length=self.technical_info_form.read_length.data,
             special_requirements=self.technical_info_form.special_requirements.data,
             

@@ -95,6 +95,11 @@
     background-color: #f4f4f4;
 }
 
+.flip-card.muted .card-front,
+.flip-card.muted .card-back {
+    background-color: #f6f6f6;
+}
+
 .flip-card.disabled:hover {
     cursor: not-allowed;
     box-shadow: none;

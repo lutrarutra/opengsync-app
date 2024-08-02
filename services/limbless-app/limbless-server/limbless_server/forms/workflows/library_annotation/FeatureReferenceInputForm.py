@@ -23,9 +23,8 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
 from .KitMappingForm import KitMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .PoolMappingForm import PoolMappingForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .CompleteSASForm import CompleteSASForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 
 class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
@@ -154,7 +153,7 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
 
         self.feature_table["library_name"] = self.feature_table["library_name"].apply(lambda x: tools.make_alpha_numeric(x))
         self.feature_table["sequence"] = self.feature_table["sequence"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
-        self.feature_table["pattern"] = self.feature_table["pattern"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
+        self.feature_table["pattern"] = self.feature_table["pattern"].apply(lambda x: x.strip())
         self.feature_table["read"] = self.feature_table["read"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
         self.feature_table["kit_feature"] = pd.notna(self.feature_table["kit"])
         self.feature_table["custom_feature"] = pd.notna(self.feature_table["feature"]) & pd.notna(self.feature_table["sequence"]) & pd.notna(self.feature_table["pattern"]) & pd.notna(self.feature_table["read"])
@@ -377,12 +376,7 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
 
-        if "pool" in library_table.columns:
-            pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            pool_mapping_form.prepare()
-            return pool_mapping_form.make_response()
-
-        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        complete_sas_form.prepare()
-        return complete_sas_form.make_response()
+        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form.prepare()
+        return sample_annotation_form.make_response()
         

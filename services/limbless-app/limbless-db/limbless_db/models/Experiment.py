@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from .SeqQuality import SeqQuality
     from .SeqRun import SeqRun
     from .Lane import Lane
-    from .actions import ExperimentAction
 
 
 class Experiment(Base):
@@ -51,7 +50,6 @@ class Experiment(Base):
     files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink.__tablename__, lazy="select", cascade="delete")
     comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="merge, save-update, delete", order_by="Comment.timestamp_utc.desc()")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
-    actions: Mapped[list["ExperimentAction"]] = relationship("ExperimentAction", lazy="select", order_by="ExperimentAction.status_id.desc()", cascade="merge, save-update, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "num_lanes", "flowcell_type_id", "workflow_id"]
 

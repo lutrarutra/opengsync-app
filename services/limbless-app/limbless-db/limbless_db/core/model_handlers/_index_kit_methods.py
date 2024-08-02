@@ -3,14 +3,14 @@ from typing import Optional
 
 import sqlalchemy as sa
 
+from ...categories import IndexTypeEnum
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
 def create_index_kit(
     self, name: str,
-    num_indices_per_adapter: int,
-    commit: bool = True
+    type: IndexTypeEnum,
 ) -> models.IndexKit:
     persist_session = self._session is not None
     if not self._session:
@@ -21,12 +21,11 @@ def create_index_kit(
 
     seq_kit = models.IndexKit(
         name=name.strip(),
-        num_indices_per_adapter=num_indices_per_adapter
+        type_id=type.id
     )
     self._session.add(seq_kit)
-    if commit:
-        self._session.commit()
-        self._session.refresh(seq_kit)
+    self._session.commit()
+    self._session.refresh(seq_kit)
 
     if not persist_session:
         self.close_session()
@@ -59,7 +58,8 @@ def get_index_kit_by_name(self, name: str) -> Optional[models.IndexKit]:
 
 
 def get_index_kits(
-    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
+    self, type_in: Optional[list[IndexTypeEnum]] = None,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.IndexKit], int]:
     persist_session = self._session is not None
@@ -67,6 +67,9 @@ def get_index_kits(
         self.open_session()
 
     query = self._session.query(models.IndexKit)
+
+    if type_in is not None:
+        query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
 
     n_pages = math.ceil(query.count() / limit) if limit is not None else 1
 
@@ -97,14 +100,14 @@ def query_index_kit(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.IndexKit)
+    query = sa.select(models.IndexKit)
 
     query = query.order_by(sa.func.similarity(models.IndexKit.name, word).desc())
 
     if limit is not None:
         query = query.limit(limit)
 
-    res = query.all()
+    res = self._session.scalars(query).all()
 
     if not persist_session:
         self.close_session()

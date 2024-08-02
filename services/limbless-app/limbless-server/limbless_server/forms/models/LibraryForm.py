@@ -17,13 +17,13 @@ class LibraryForm(HTMXFlaskForm):
     _form_label = "library_form"
 
     name = StringField("Name", validators=[DataRequired(), Length(min=3, max=models.Library.name.type.length)])
-    adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=models.Library.adapter.type.length)])
+    # adapter = StringField("Adapter", validators=[OptionalValidator(), Length(min=1, max=models.Library.adapter.type.length)])
     library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), coerce=int)
     genome = SelectField("Reference Genome", choices=GenomeRef.as_selectable(), coerce=int)
-    index_1 = StringField("Index 1 (i7)", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_1_sequence.type.length)])
-    index_2 = StringField("Index 2 (i5)", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_2_sequence.type.length)])
-    index_3 = StringField("Index 3", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_3_sequence.type.length)])
-    index_4 = StringField("Index 4", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_4_sequence.type.length)])
+    index_1 = StringField("Index 1 (i7)", validators=[OptionalValidator(), Length(min=1, max=models.Barcode.sequence.type.length)])
+    index_2 = StringField("Index 2 (i5)", validators=[OptionalValidator(), Length(min=1, max=models.Barcode.sequence.type.length)])
+    # index_3 = StringField("Index 3", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_3_sequence.type.length)])
+    # index_4 = StringField("Index 4", validators=[OptionalValidator(), Length(min=1, max=models.Library.index_4_sequence.type.length)])
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, library: Optional[models.Library] = None):
         super().__init__(formdata=formdata)
@@ -32,13 +32,10 @@ class LibraryForm(HTMXFlaskForm):
 
     def __fill_form(self, library: models.Library):
         self.name.data = library.name
-        self.adapter.data = library.adapter
         self.library_type.data = library.type_id
         self.genome.data = library.genome_ref_id
-        self.index_1.data = library.index_1_sequence
-        self.index_2.data = library.index_2_sequence
-        self.index_3.data = library.index_3_sequence
-        self.index_4.data = library.index_4_sequence
+        # self.index_1.data = library.index_1_sequence
+        # self.index_2.data = library.
     
     def process_request(self, **context) -> Response:
         if not self.validate():
@@ -48,11 +45,8 @@ class LibraryForm(HTMXFlaskForm):
 
         library.name = self.name.data   # type: ignore
         library.type_id = LibraryType.get(int(self.library_type.data)).id
-        library.index_1_sequence = self.index_1.data.strip() if self.index_1.data and self.index_1.data.strip() else None
-        library.index_2_sequence = self.index_2.data.strip() if self.index_2.data and self.index_2.data.strip() else None
-        library.index_3_sequence = self.index_3.data.strip() if self.index_3.data and self.index_3.data.strip() else None
-        library.index_4_sequence = self.index_4.data.strip() if self.index_4.data and self.index_4.data.strip() else None
-        library.adapter = self.adapter.data.strip() if self.adapter.data and self.adapter.data.strip() else None
+        # library.index_1_sequence = self.index_1.data.strip() if self.index_1.data and self.index_1.data.strip() else None
+        # library.index_2_sequence = self.index_2.data.strip() if self.index_2.data and self.index_2.data.strip() else None
         library.genome_ref_id = GenomeRef.get(self.genome.data).id
 
         library = db.update_library(library)

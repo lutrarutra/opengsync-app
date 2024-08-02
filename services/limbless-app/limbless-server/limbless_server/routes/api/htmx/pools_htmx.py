@@ -53,7 +53,7 @@ def get(page: int):
         render_template(
             "components/tables/pool.html", pools=pools, n_pages=n_pages,
             sort_by=sort_by, sort_order=sort_order,
-            active_page=page, PoolStatus=PoolStatus, status_in=status_in
+            active_page=page, status_in=status_in
         )
     )
 
@@ -219,6 +219,7 @@ def table_query():
 
 
 @pools_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))
@@ -237,7 +238,13 @@ def query():
         if len(status_in) == 0:
             status_in = None
 
-    results = db.query_pools(query, status_in=status_in)
+    if (seq_request_id := request.args.get("seq_request_id")) is not None:
+        try:
+            seq_request_id = int(seq_request_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+
+    results = db.query_pools(query, status_in=status_in, seq_request_id=seq_request_id)
     
     return make_response(
         render_template(
@@ -473,23 +480,6 @@ def browse_query(workflow: str):
             "components/tables/select-pools.html",
             context=context, pools=pools, status_in=status_in,
             workflow=workflow
-        )
-    )
-
-
-@pools_htmx.route("<int:pool_id>/get_plate", methods=["GET"])
-@db_session(db)
-@login_required
-def get_plate(pool_id: int):
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    if (pool := db.get_pool(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    return make_response(
-        render_template(
-            "components/plate_tab.html", plate=pool.plate,
         )
     )
 

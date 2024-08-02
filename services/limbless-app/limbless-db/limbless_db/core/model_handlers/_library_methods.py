@@ -5,24 +5,20 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, SampleStatus, PoolStatus
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus
 from .. import exceptions
 
 
 def create_library(
     self,
     name: str,
+    sample_name: str,
     library_type: LibraryTypeEnum,
     owner_id: int,
     seq_request_id: int,
     genome_ref: Optional[GenomeRefEnum] = None,
     index_kit_id: Optional[int] = None,
     pool_id: Optional[int] = None,
-    index_1_sequence: Optional[str] = None,
-    index_2_sequence: Optional[str] = None,
-    index_3_sequence: Optional[str] = None,
-    index_4_sequence: Optional[str] = None,
-    adapter: Optional[str] = None,
     visium_annotation_id: Optional[int] = None,
     seq_depth_requested: Optional[float] = None,
     commit: bool = True
@@ -59,21 +55,18 @@ def create_library(
 
     library = models.Library(
         name=name.strip(),
+        sample_name=sample_name,
         seq_request_id=seq_request_id,
         genome_ref_id=genome_ref.id if genome_ref is not None else None,
         type_id=library_type.id,
         owner_id=owner_id,
         index_kit_id=index_kit_id,
         pool_id=pool_id,
-        index_1_sequence=index_1_sequence.strip() if index_1_sequence else None,
-        index_2_sequence=index_2_sequence.strip() if index_2_sequence else None,
-        index_3_sequence=index_3_sequence.strip() if index_3_sequence else None,
-        index_4_sequence=index_4_sequence.strip() if index_4_sequence else None,
-        adapter=adapter.strip() if adapter else None,
         status_id=library_status_id,
         visium_annotation_id=visium_annotation_id,
         seq_depth_requested=seq_depth_requested
     )
+
     self._session.add(library)
 
     if commit:
@@ -102,7 +95,7 @@ def get_libraries(
     self,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
-    pool_id: Optional[int] = None,
+    pool_id: Optional[int] = None, lab_prep_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
@@ -162,6 +155,14 @@ def get_libraries(
     if pool_id is not None:
         query = query.where(
             models.Library.pool_id == pool_id
+        )
+
+    if lab_prep_id is not None:
+        query = query.join(
+            models.LibraryLabPrepLink,
+            models.LibraryLabPrepLink.library_id == models.Library.id
+        ).where(
+            models.LibraryLabPrepLink.lab_prep_id == lab_prep_id
         )
 
     if type_in is not None:
@@ -255,6 +256,7 @@ def query_libraries(
     seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
+    pooled: Optional[bool] = None,
     status: Optional[LibraryStatusEnum] = None, pool_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Library]:
@@ -306,6 +308,16 @@ def query_libraries(
             models.Library.status_id == status.id
         )
 
+    if pooled is not None:
+        if pooled:
+            query = query.where(
+                models.Library.pool_id != None # noqa
+            )
+        else:
+            query = query.where(
+                models.Library.pool_id == None # noqa
+            )
+
     if experiment_id is not None:
         query = query.join(
             models.Pool,
@@ -332,7 +344,7 @@ def query_libraries(
     return libraries
 
 
-def pool_library(self, library_id: int, pool_id: int):
+def pool_library(self, library_id: int, pool_id: int) -> models.Library:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -362,6 +374,8 @@ def pool_library(self, library_id: int, pool_id: int):
 
     if not persist_session:
         self.close_session()
+
+    return library
 
 
 def set_library_seq_quality(
@@ -418,3 +432,51 @@ def set_library_seq_quality(
         self.close_session()
 
     return quality
+
+
+def add_library_index(
+    self, library_id: int, name_i7: Optional[str], sequence_i7: Optional[str], name_i5: Optional[str], sequence_i5: Optional[str]
+) -> models.Library:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    library.indices.append(models.LibraryIndex(
+        library_id=library_id,
+        name_i7=name_i7,
+        sequence_i7=sequence_i7,
+        name_i5=name_i5,
+        sequence_i5=sequence_i5,
+    ))
+
+    self._session.add(library)
+    self._session.commit()
+    self._session.refresh(library)
+
+    if not persist_session:
+        self.close_session()
+
+    return library
+
+
+def remove_library_indices(self, library_id: int) -> models.Library:
+    persist_session = self._session is not None
+    if not self._session:
+        self.open_session()
+
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    for index in library.indices:
+        self._session.delete(index)
+
+    self._session.commit()
+    self._session.refresh(library)
+
+    if not persist_session:
+        self.close_session()
+
+    return library

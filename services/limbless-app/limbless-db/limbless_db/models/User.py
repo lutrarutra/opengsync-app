@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
     from .File import File
+    from .LabPrep import LabPrep
 
 
 class UserMixin():
@@ -85,6 +86,7 @@ class User(Base, UserMixin):
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="owner", lazy="select")
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="owner", lazy="select")
     files: Mapped[list["File"]] = relationship("File", back_populates="uploader", lazy="select")
+    preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
 

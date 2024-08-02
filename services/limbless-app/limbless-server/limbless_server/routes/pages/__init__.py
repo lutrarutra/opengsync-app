@@ -11,3 +11,4 @@ from .devices_page import devices_page_bp  # noqa: F401
 from .pools_page import pools_page_bp  # noqa: F401
 from .feature_kits_page import feature_kits_page_bp  # noqa: F401
 from .seq_runs_page import seq_runs_page_bp  # noqa: F401
+from .lab_preps_page import lab_preps_page_bp  # noqa: F401

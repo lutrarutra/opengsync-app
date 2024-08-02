@@ -27,25 +27,11 @@
                         <thead>
                             <tr>
                                 <th scope="col" class="col-1">Library ID</th>
-                                <th scope="col" class="col-2">Name</th>
-                                <th scope="col" class="col-2">Library Type</th>
+                                <th scope="col" class="col-3">Name</th>
                                 <th scope="col" class="col-2">Pool</th>
-                                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
-                                {% if show_adapter %}
-                                <th scope="col" class="col-1">Adapter</th>
-                                {% endif %}
-                                {% if show_index_1 %}
-                                <th scope="col" class="col-1">Index 1</th>
-                                {% endif %}
-                                {% if show_index_2 %}
-                                <th scope="col" class="col-1">Index 2</th>
-                                {% endif %}
-                                {% if show_index_3 %}
-                                <th scope="col" class="col-1">Index 3</th>
-                                {% endif %}
-                                {% if show_index_4 %}
-                                <th scope="col" class="col-1">Index 4</th>
-                                {% endif %}
+                                <th scope="col" class="col-2"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
+                                <th scope="col" class="col-2">Index i7</th>
+                                <th scope="col" class="col-2">Index i5</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -59,7 +45,6 @@
                             {% endif %}
                                 <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] }}</td>
                                 <td>{{ row["library_name"] }}</td>
-                                <td>{{ row["library_type"] }}</td>
                                 <td>{{ row["pool_name"] }}</td>
                                 <td {% if row["min_hamming_bases"] < 1 %}
                                 class="cemm-red"
@@ -68,21 +53,8 @@
                                 {% else %}
                                 class="cemm-green"
                                 {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
-                                {% if show_adapter %}
-                                <td>{{ row["adapter"] if row["adapter"] }}</td>
-                                {% endif %}
-                                {% if show_index_1 %}
-                                <td class="index-cell-1">{{ row["index_1"] if row["index_1"] }}</td>
-                                {% endif %}
-                                {% if show_index_2 %}
-                                <td class="index-cell-2">{{ row["index_2"] if row["index_2"] }}</td>
-                                {% endif %}
-                                {% if show_index_3 %}
-                                <td class="index-cell-3">{{ row["index_3"] if row["index_3"] }}</td>
-                                {% endif %}
-                                {% if show_index_4 %}
-                                <td class="index-cell-4">{{ row["index_4"] if row["index_4"] }}</td>
-                                {% endif %}
+                                <td class="index-cell-1">{{ row["sequence_i7"] if not isna(row["sequence_i7"]) }}</td>
+                                <td class="index-cell-2">{{ row["sequence_i5"] if not isna(row["sequence_i5"]) }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

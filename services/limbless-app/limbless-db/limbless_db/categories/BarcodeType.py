@@ -9,7 +9,5 @@ class BarcodeTypeEnum(DBEnum):
 
 
 class BarcodeType(ExtendedEnum[BarcodeTypeEnum], enum_type=BarcodeTypeEnum):
-    INDEX_1 = BarcodeTypeEnum(1, "Index 1", "index_1")
-    INDEX_2 = BarcodeTypeEnum(2, "Index 2", "index_2")
-    INDEX_3 = BarcodeTypeEnum(3, "Index 3", "index_3")
-    INDEX_4 = BarcodeTypeEnum(4, "Index 4", "index_4")
+    INDEX_I7 = BarcodeTypeEnum(1, "Index i7", "index_i7")
+    INDEX_I5 = BarcodeTypeEnum(2, "Index i5", "index_i5")

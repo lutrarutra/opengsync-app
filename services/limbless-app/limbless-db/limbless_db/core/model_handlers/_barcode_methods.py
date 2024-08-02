@@ -1,68 +1,84 @@
 import math
 from typing import Optional
 
+import sqlalchemy as sa
+
 from ... import models, PAGE_LIMIT
 from ...categories import BarcodeTypeEnum
+from .. import exceptions
 
 
 def create_barcode(
-    self, sequence: str,
-    barcode_type: BarcodeTypeEnum,
-    adapter: Optional[str] = None,
-    index_kit_id: Optional[int] = None,
-    commit: bool = True
+    self, name: str, sequence: str, well: str | None, type: BarcodeTypeEnum, adapter_id: int
 ) -> models.Barcode:
-
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
+    if (adapter := self._session.get(models.Adapter, adapter_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Adapter with id '{adapter_id}', not found.")
+    
     barcode = models.Barcode(
+        name=name.strip(),
         sequence=sequence.strip(),
-        adapter=adapter.strip() if adapter else None,
-        index_kit_id=index_kit_id,
-        type_id=barcode_type.id
+        well=well,
+        type_id=type.id,
+        adapter_id=adapter_id,
+        index_kit_id=adapter.index_kit_id
     )
 
     self._session.add(barcode)
-    if commit:
-        self._session.commit()
-        self._session.refresh(barcode)
+    self._session.commit()
+    self._session.refresh(barcode)
 
     if not persist_session:
         self.close_session()
+
     return barcode
 
 
-def get_barcode(self, id: int) -> models.Barcode:
+def get_barcode(
+    self, barcode_id: int
+) -> Optional[models.Barcode]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.Barcode).where(models.Barcode.id == id).first()
+    barcode = self._session.get(models.Barcode, barcode_id)
+
     if not persist_session:
         self.close_session()
-    return res
+
+    return barcode
 
 
-def get_seqbarcodes(
-    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, descending: bool = False
+def get_barcodes(
+    self, index_kit_id: Optional[int] = None,
+    adapter_id: Optional[int] = None,
+    type: Optional[BarcodeTypeEnum] = None,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Barcode], int]:
-
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
     query = self._session.query(models.Barcode)
 
-    if sort_by is not None:
-        attr = getattr(models.Barcode, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
+    if index_kit_id is not None:
+        query = query.filter(models.Barcode.index_kit_id == index_kit_id)
 
-    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+    if type is not None:
+        query = query.filter(models.Barcode.type_id == type.id)
+
+    if adapter_id is not None:
+        query = query.filter(models.Barcode.adapter_id == adapter_id)
+
+    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+
+    if sort_by is not None:
+        column = getattr(models.Barcode, sort_by)
+        query = query.order_by(sa.desc(column) if descending else column)
 
     if offset is not None:
         query = query.offset(offset)
@@ -78,49 +94,20 @@ def get_seqbarcodes(
     return barcodes, n_pages
 
 
-def get_num_seqbarcodes(self) -> int:
+def get_barcode_from_kit(
+    self, index_kit_id: int, name: str, type: BarcodeTypeEnum
+) -> Optional[models.Barcode]:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
 
-    res = self._session.query(models.Barcode).count()
-    if not persist_session:
-        self.close_session()
-    return res
-
-
-def update_barcode(
-    self, barcode: models.Barcode,
-    commit: bool = True
-) -> models.Barcode:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    self._session.add(barcode)
-    if commit:
-        self._session.commit()
-        self._session.refresh(barcode)
+    barcode = self._session.query(models.Barcode).where(
+        models.Barcode.index_kit_id == index_kit_id,
+        models.Barcode.name == name,
+        models.Barcode.type_id == type.id
+    ).first()
 
     if not persist_session:
         self.close_session()
-    return barcode
 
-
-def reverse_complement(
-    self, barcode_id: int,
-) -> models.Barcode:
-    
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    barcode = self._session.get(models.Barcode, barcode_id)
-    barcode.sequence = models.Barcode.reverse_complement(barcode.sequence)
-    self._session.add(barcode)
-    self._session.commit()
-    self._session.refresh(barcode)
-
-    if not persist_session:
-        self.close_session()
     return barcode

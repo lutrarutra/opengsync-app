@@ -49,20 +49,21 @@ class DBHandler():
 
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
-        delete_sample, update_sample,
-        query_samples
+        delete_sample, update_sample, query_samples,
+        set_sample_attribute, get_sample_attribute, get_sample_attributes
     )
 
     from .model_handlers._pool_methods import (
         create_pool, get_pool, get_pools,
         delete_pool, update_pool, query_pools, dilute_pool,
-        get_pool_dilution, get_pool_dilutions, get_next_pool_identifier
+        get_pool_dilution, get_pool_dilutions
     )
 
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
-        pool_library, set_library_seq_quality
+        pool_library, set_library_seq_quality, add_library_index,
+        remove_library_indices
     )
 
     from .model_handlers._user_methods import (
@@ -70,11 +71,6 @@ class DBHandler():
         delete_user, update_user,
         get_user_by_email, get_num_users,
         query_users, query_users_by_email,
-    )
-
-    from .model_handlers._barcode_methods import (
-        create_barcode, get_num_seqbarcodes, get_seqbarcodes,
-        update_barcode, reverse_complement,
     )
 
     from .model_handlers._index_kit_methods import (
@@ -93,11 +89,6 @@ class DBHandler():
 
     from .model_handlers._contact_methods import (
         create_contact, update_contact
-    )
-
-    from .model_handlers._adapter_methods import (
-        create_adapter, get_adapter, get_adapters,
-        get_adapter_from_index_kit
     )
 
     from .model_handlers._lane_methods import (
@@ -121,9 +112,23 @@ class DBHandler():
         update_sequencer, query_sequencers
     )
 
+    from .model_handlers._adapter_methods import (
+        create_adapter, get_adapter, get_adapters
+    )
+
     from .model_handlers._plate_methods import (
         create_plate, get_plate, get_plates,
-        delete_plate, add_sample_to_plate, add_library_to_plate
+        delete_plate, add_sample_to_plate, add_library_to_plate, clear_plate,
+        get_plate_sample
+    )
+
+    from .model_handlers._barcode_methods import (
+        create_barcode, get_barcode, get_barcodes
+    )
+
+    from .model_handlers._lab_prep_methods import (
+        create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_identifier,
+        update_lab_prep, add_library_to_prep, remove_library_from_prep
     )
 
     from .model_handlers._link_methods import (
@@ -165,5 +170,7 @@ class DBHandler():
         get_experiment_lanes_df, get_experiment_laned_pools_df,
         get_pool_libraries_df, get_seq_request_libraries_df,
         get_seq_requestor_df, get_seq_request_share_emails_df,
-        get_library_features_df, get_library_cmos_df, get_experiment_seq_qualities_df
+        get_library_features_df, get_library_cmos_df, get_experiment_seq_qualities_df,
+        get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df,
+        get_experiment_barcodes_df
     )

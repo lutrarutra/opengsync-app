@@ -16,6 +16,7 @@ def create_pool(
     contact_email: str,
     pool_type: PoolTypeEnum,
     seq_request_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None,
     num_m_reads_requested: Optional[float] = None,
     status: PoolStatusEnum = PoolStatus.DRAFT,
     contact_phone: Optional[str] = None
@@ -42,6 +43,7 @@ def create_pool(
             email=contact_email.strip(),
             phone=contact_phone.strip() if contact_phone else None
         ),
+        lab_prep_id=lab_prep_id,
         status_id=status.id,
         timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None
     )
@@ -75,6 +77,7 @@ def get_pools(
     user_id: Optional[int] = None,
     library_id: Optional[int] = None,
     experiment_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     status: Optional[PoolStatusEnum] = None,
@@ -110,6 +113,11 @@ def get_pools(
     if seq_request_id is not None:
         query = query.where(
             models.Pool.seq_request_id == seq_request_id
+        )
+
+    if lab_prep_id is not None:
+        query = query.where(
+            models.Pool.lab_prep_id == lab_prep_id
         )
 
     if status is not None:
@@ -237,7 +245,7 @@ def query_pools(
     if not self._session:
         self.open_session()
 
-    query = self._session.query(models.Pool)
+    query = sa.select(models.Pool)
 
     if experiment_id is not None:
         query = query.join(
@@ -264,7 +272,7 @@ def query_pools(
     if limit is not None:
         query = query.limit(limit)
 
-    pools = query.all()
+    pools = self._session.scalars(query).all()
 
     if not persist_session:
         self.close_session()
@@ -340,23 +348,3 @@ def get_pool_dilutions(
         self.close_session()
 
     return dilutions, n_pages
-
-
-def get_next_pool_identifier(self, pool_type: PoolTypeEnum) -> str:
-    persist_session = self._session is not None
-    if not self._session:
-        self.open_session()
-
-    if not pool_type.identifier:
-        raise TypeError(f"Pool type {pool_type} does not have an identifier")
-
-    n_pools = self._session.query(models.Pool).where(
-        models.Pool.type_id == pool_type.id
-    ).count()
-
-    identifier = f"{pool_type.identifier}{n_pools + 1:04d}"
-
-    if not persist_session:
-        self.close_session()
-
-    return identifier

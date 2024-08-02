@@ -68,9 +68,10 @@
                     <div class="accordion-body">
                         {{ sub_form.csrf_token() }}
                         <div class="row">
-                            {{ select_input(sub_form.read_type, class="col-4") }}
-                            {{ form_group(sub_form.num_lanes, class="col-4") }}
-                            {{ form_group(sub_form.read_length, class="col-4") }}
+                            {{ select_input(sub_form.read_type, class="col-3") }}
+                            {{ select_input(sub_form.submission_type, class="col-3") }}
+                            {{ form_group(sub_form.num_lanes, class="col-3") }}
+                            {{ form_group(sub_form.read_length, class="col-3") }}
                         </div>
                         {{ form_group(sub_form.special_requirements) }}
                     </div>

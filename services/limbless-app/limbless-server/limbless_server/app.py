@@ -169,7 +169,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         response.headers["Content-Type"] = "application/octet-stream"
         response.headers["Content-Disposition"] = f"attachment; filename={file.name}{file.extension}"
         return response
-
+    
     @login_manager.unauthorized_handler
     def unauthorized():
         next = url_for(request.endpoint, **request.view_args)   # type: ignore
@@ -197,6 +197,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             AssayType=categories.AssayType,
             SampleStatus=categories.SampleStatus,
             RunStatus=categories.RunStatus,
+            SubmissionType=categories.SubmissionType,
+            AttributeType=categories.AttributeType,
+            IndexType=categories.IndexType,
             isna=pd.isna,
         )
     
@@ -225,6 +228,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.plates_htmx)
     app.register_blueprint(api.htmx.lanes_htmx)
     app.register_blueprint(api.htmx.seq_runs_htmx)
+    app.register_blueprint(api.htmx.files_htmx)
+    app.register_blueprint(api.htmx.lab_preps_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.seq_run_api)
@@ -241,7 +246,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.qubit_measure_workflow)
     app.register_blueprint(api.workflows.store_samples_workflow)
     app.register_blueprint(api.workflows.plate_samples_workflow)
-    app.register_blueprint(api.workflows.pool_indexing_workflow)
+    app.register_blueprint(api.workflows.library_indexing_workflow)
     app.register_blueprint(api.workflows.library_prep_workflow)
 
     app.register_blueprint(pages.samples_page_bp)
@@ -257,5 +262,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(pages.pools_page_bp)
     app.register_blueprint(pages.feature_kits_page_bp)
     app.register_blueprint(pages.seq_runs_page_bp)
+    app.register_blueprint(pages.lab_preps_page_bp)
 
     return app

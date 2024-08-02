@@ -6,6 +6,8 @@ import pandas as pd
 import scipy
 import numpy as np
 
+from .. import logger
+
 
 tab_10_colors = [
     "#1f77b4",
@@ -36,17 +38,17 @@ def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFra
     df["error"] = None
     df["warning"] = None
 
-    indices = ["index_1"]
-    if "index_2" in df.columns and not df["index_2"].isna().all():
-        indices.append("index_2")
+    indices = ["sequence_i7"]
+    if "sequence_i5" in df.columns and not df["sequence_i5"].isna().all():
+        indices.append("sequence_i5")
 
     df["combined_index"] = ""
     for index in indices:
-        _max = df[index].str.len().max()
-        df["combined_index"] += df[index].apply(lambda x: x + " " * (_max - len(x)) if x is not None else "")
+        _max = int(df[index].str.len().max())
+        df["combined_index"] += df[index].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
 
-    if "index_2" in df.columns:
-        same_barcode_in_different_indices = df["index_1"] == df["index_2"]
+    if "sequence_i5" in df.columns:
+        same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
         df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
 
     df["min_hamming_dist"] = None
@@ -56,6 +58,8 @@ def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFra
         return scipy.spatial.distance.hamming(list(x[0]), list(y[0]))
     
     if groupby is None:
+        _max = int(df["combined_index"].str.len().max())
+        df["combined_index"] = df["combined_index"].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
         a = np.array(df["combined_index"]).reshape(-1, 1)
         dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
         p_dist = scipy.spatial.distance.squareform(dists)
@@ -65,7 +69,11 @@ def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFra
         df["min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
     else:
         for _, _df in df.groupby(groupby):
+            _max = int(df["combined_index"].str.len().max())
+            _df["combined_index"] = _df["combined_index"].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
+
             a = np.array(_df["combined_index"]).reshape(-1, 1)
+
             dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
             p_dist = scipy.spatial.distance.squareform(dists)
             np.fill_diagonal(p_dist, np.nan)

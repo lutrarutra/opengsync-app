@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Literal
 
 import pandas as pd
@@ -8,7 +9,7 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, TextAreaField, BooleanField, FormField, StringField
 from wtforms.validators import Optional as OptionalValidator, Length, DataRequired
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import AssayType, GenomeRef, LibraryType
 
 from .... import logger, db
@@ -16,9 +17,10 @@ from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
-from .CompleteSASForm import CompleteSASForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
+from .FeatureReferenceInputForm import FeatureReferenceInputForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 columns = {
     "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
@@ -35,7 +37,7 @@ class OptionalAssaysForm(FlaskForm):
 
 
 class AdditionalSerevicesForm(FlaskForm):
-    multiplexing = BooleanField("Sample Multiplexing", description="Multiple samples per library with cell multiplexing oligo (CMO) tag", default=False)
+    multiplexing = BooleanField("Sample Multiplexing", description="Multiple samples per library with cell multiplexing hashtag-oligo (HTO)", default=False)
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False)
 
 
@@ -43,7 +45,7 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-2.2.html"
     _form_label = "select_assay_form"
 
-    assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), validators=[DataRequired()])
+    assay_type = SelectField("Assay Type", choices=AssayType.as_selectable()[1:], validators=[DataRequired()], coerce=int)
     additional_info = TextAreaField("Additional Information", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
     optional_assays = FormField(OptionalAssaysForm)
     additional_services = FormField(AdditionalSerevicesForm)
@@ -67,15 +69,16 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
 
     def validate(self) -> bool:
         self.df = None
-        if not super().validate():
-            return False
+        validated = super().validate()
         
-        import json
         data = json.loads(self.formdata["spreadsheet"])  # type: ignore
         try:
             self.df = pd.DataFrame(data)
         except ValueError as e:
             self.spreadsheet_dummy.errors = (str(e),)
+            return False
+
+        if not validated:
             return False
         
         if len(self.df.columns) != len(list(columns.keys())):
@@ -95,33 +98,60 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
 
         sample_name_counts = self.df["sample_name"].value_counts()
-        with DBSession(db) as session:
-            if (project_id := self.metadata.get("project_id")) is not None:
-                if (project := session.get_project(project_id)) is None:
-                    logger.error(f"{self.uuid}: Project with ID {project_id} does not exist.")
-                    raise ValueError(f"Project with ID {project_id} does not exist.")
-            else:
-                project = None
+        if (project_id := self.metadata.get("project_id")) is not None:
+            if (project := db.get_project(project_id)) is None:
+                logger.error(f"{self.uuid}: Project with ID {project_id} does not exist.")
+                raise ValueError(f"Project with ID {project_id} does not exist.")
+        else:
+            project = None
 
-            for i, (_, row) in enumerate(self.df.iterrows()):
-                if pd.isna(row["sample_name"]):
-                    add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
-                elif sample_name_counts[row["sample_name"]] > 1:
-                    add_error(i + 1, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
-                elif project is not None and row["sample_name"] in [sample.name for sample in project.samples]:
-                    add_error(i + 1, "sample_name", "Sample name already exists in the project. Rename sample or change project", "duplicate_value")
+        seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
 
-                if pd.isna(row["genome"]):
-                    add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
+        selected_library_types = [t.abbreviation for t in AssayType.get(self.assay_type.data).library_types]
+        if self.optional_assays.antibody_capture.data:
+            selected_library_types.append(LibraryType.ANTIBODY_CAPTURE.abbreviation)
+        if self.optional_assays.vdj_b.data:
+            selected_library_types.append(LibraryType.VDJ_B.abbreviation)
+        if self.optional_assays.vdj_t.data:
+            selected_library_types.append(LibraryType.VDJ_T.abbreviation)
+        if self.optional_assays.vdj_t_gd.data:
+            selected_library_types.append(LibraryType.VDJ_T_GD.abbreviation)
+        if self.optional_assays.crispr_screening.data:
+            selected_library_types.append(LibraryType.CRISPR_SCREENING.abbreviation)
+        if self.additional_services.multiplexing.data:
+            selected_library_types.append(LibraryType.MULTIPLEXING_CAPTURE.abbreviation)
 
-        if self.spreadsheet_dummy.errors:
-            return False
+        for i, (_, row) in enumerate(self.df.iterrows()):
+            if pd.isna(row["sample_name"]):
+                add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
+            elif sample_name_counts[row["sample_name"]] > 1:
+                add_error(i + 1, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
+
+            duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
+            if (duplicate_library).any():
+                library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore
+                add_error(i + 1, "sample_name", f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request", "duplicate_value")
+
+            if pd.isna(row["genome"]):
+                add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
         
         genome_map = {}
         for id, e in GenomeRef.as_tuples():
             genome_map[e.display_name] = id
         
         self.df["genome_id"] = self.df["genome"].map(genome_map)
+
+        self.df["sample_id"] = None
+        if (project_id := self.metadata.get("project_id")) is not None:
+            if (project := db.get_project(project_id)) is None:
+                logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
+                raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
+            
+            for sample in project.samples:
+                self.df.loc[self.df["sample_name"] == sample.name, "sample_id"] = sample.id
+
+        if self.spreadsheet_dummy.errors:
+            return False
 
         try:
             self.assay_type_enum = AssayType.get(int(self.assay_type.data))
@@ -133,17 +163,17 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
     
     def process_request(self) -> Response:
         if not self.validate() or self.df is None:
-            logger.debug(self.errors)
             self._context["active_tab"] = "form"
             self._context["spreadsheet_style"] = self.spreadsheet_style
             if self.df is not None:
-                self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
+                self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values[:, :len(columns)].tolist()
                 if self._context["spreadsheet_data"] == []:
                     self._context["spreadsheet_data"] = [[None]]
             return self.make_response()
-        
+
         library_table_data = {
             "sample_name": [],
+            "sample_id": [],
             "library_name": [],
             "genome": [],
             "genome_id": [],
@@ -152,12 +182,11 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         }
         for library_type in self.assay_type_enum.library_types:
             for _, row in self.df.iterrows():
-                if len(self.assay_type_enum.library_types) > 1:
-                    library_name = f"{row['sample_name']}_{library_type.assay_type}"
-                else:
-                    library_name = row["sample_name"]
-
                 library_table_data["sample_name"].append(row["sample_name"])
+                library_table_data["sample_id"].append(row["sample_id"])
+                
+                library_name = f"{row['sample_name']}_{library_type.assay_type}"
+
                 library_table_data["library_name"].append(library_name)
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
@@ -167,7 +196,10 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         if self.optional_assays.antibody_capture.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
+                library_table_data["sample_id"].append(row["sample_id"])
+
                 library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.ANTIBODY_CAPTURE.assay_type}")
+                
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("Antibody Capture")
@@ -176,7 +208,10 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         if self.optional_assays.vdj_b.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
+                library_table_data["sample_id"].append(row["sample_id"])
+
                 library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.VDJ_B.assay_type}")
+
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("VDJ-B")
@@ -185,7 +220,10 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         if self.optional_assays.vdj_t.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
+                library_table_data["sample_id"].append(row["sample_id"])
+
                 library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.VDJ_T.assay_type}")
+
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("VDJ-T")
@@ -194,7 +232,10 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         if self.optional_assays.vdj_t_gd.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
+                library_table_data["sample_id"].append(row["sample_id"])
+
                 library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.VDJ_T_GD.assay_type}")
+
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("VDJ-T-GD")
@@ -203,7 +244,10 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         if self.optional_assays.crispr_screening.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
+                library_table_data["sample_id"].append(row["sample_id"])
+
                 library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.CRISPR_SCREENING.assay_type}")
+
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("CRISPR Screening")
@@ -222,25 +266,27 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             })
             self.add_table("comment_table", comment_table)
 
-        if library_table["library_type_id"].isin([
-            LibraryType.MULTIPLEXING_CAPTURE.id,
-        ]).any():
+        if library_table["library_type_id"].isin([LibraryType.MULTIPLEXING_CAPTURE.id]).any():
             cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
+        
+        if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
+            feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            return feature_reference_input_form.make_response()
         
         if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
             visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in self.df.columns:
+        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
     
-        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        complete_sas_form.prepare()
-        return complete_sas_form.make_response()
+        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form.prepare()
+        return sample_annotation_form.make_response()
         
         
         
