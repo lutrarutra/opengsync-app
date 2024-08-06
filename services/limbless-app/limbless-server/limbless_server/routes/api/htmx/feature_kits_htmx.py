@@ -97,3 +97,30 @@ def table_query():
             feature_kits=feature_kits, current_query=word
         )
     )
+
+
+@feature_kits_htmx.route("<int:feature_kit_id>/get_features", methods=["GET"], defaults={"page": 0})
+@feature_kits_htmx.route("<int:feature_kit_id>/get_features/<int:page>", methods=["GET"])
+@login_required
+def get_features(feature_kit_id: int, page: int):
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    if sort_by not in models.Feature.sortable_fields:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    feature_kit = db.get_feature_kit(feature_kit_id)
+    features, n_pages = db.get_features(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending)
+    
+    return make_response(
+        render_template(
+            "components/tables/feature_kit-feature.html",
+            features=features, feature_kit=feature_kit,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            n_pages=n_pages,
+            active_page=page,
+        )
+    )

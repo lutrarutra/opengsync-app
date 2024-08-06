@@ -457,3 +457,19 @@ def get_index_kit_barcodes_df(self, index_kit_id: int, per_adapter: bool = True)
         df = df.groupby(df.columns.difference(["sequence", "name", "type_id", "type"]).tolist(), as_index=False, dropna=False).agg({"sequence": list, "name": list, "type_id": list, "type": list}).rename(columns={"sequence": "sequences", "name": "names", "type_id": "type_ids", "type": "types"})
 
     return df
+
+
+def get_feature_kit_features_df(self, feature_kit_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Feature.id.label("feature_id"), models.Feature.name.label("name"),
+        models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
+        models.Feature.type_id.label("type_id"),
+        models.Feature.target_name.label("target_name"), models.Feature.target_id.label("target_id"), 
+    ).where(
+        models.Feature.feature_kit_id == feature_kit_id
+    )
+
+    df = pd.read_sql(query, self._engine)
+    df["type"] = df["type_id"].map(categories.FeatureType.get)
+
+    return df
