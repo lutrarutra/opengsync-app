@@ -62,9 +62,9 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
         library_table["is_cmo_sample"] = False
         library_table["is_flex_sample"] = False
         for sample_name, _df in library_table.groupby("sample_name"):
-            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
+            if LibraryType.TENX_MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
                 library_table.loc[library_table["sample_name"] == sample_name, "is_cmo_sample"] = True
-            if LibraryType.TENX_FLEX.id in _df["library_type_id"].unique():
+            if LibraryType.TENX_SC_GEX_FLEX.id in _df["library_type_id"].unique():
                 library_table.loc[library_table["sample_name"] == sample_name, "is_flex_sample"] = True
 
         self.update_table("library_table", library_table, False)

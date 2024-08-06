@@ -17,7 +17,7 @@ from .CMOReferenceInputForm import CMOReferenceInputForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
 from .KitMappingForm import KitMappingForm
-from .CompleteSASForm import CompleteSASForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 
 class LibrarySubForm(FlaskForm):
@@ -146,21 +146,21 @@ class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
         self.update_table("library_table", library_table)
         
         if library_table["library_type_id"].isin([
-            LibraryType.MULTIPLEXING_CAPTURE.id,
+            LibraryType.TENX_MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
         
-        if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
+        if (library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
             kit_reference_input_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return kit_reference_input_form.make_response()
         
-        if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+        if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
             visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
+        if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()

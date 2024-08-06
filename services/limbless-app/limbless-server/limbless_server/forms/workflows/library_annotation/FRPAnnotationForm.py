@@ -172,9 +172,9 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
         for i, (idx, row) in enumerate(self.flex_table.iterrows()):
             if pd.isna(row["library_name"]):
                 add_error(i + 1, "library_name", "'Library Name' is missing.", "missing_value")
-            elif row["library_name"].removesuffix(f"_{LibraryType.TENX_FLEX.assay_type}") not in library_table["sample_name"].values:
+            elif row["library_name"].removesuffix(f"_{LibraryType.TENX_SC_GEX_FLEX.identifier}") not in library_table["sample_name"].values:
                 add_error(i + 1, "library_name", f"Library is not found in the library table. Must be one of: {', '.join(library_table['sample_name'])}", "invalid_value")
-            elif (library_table[library_table["library_name"] == row["library_name"]]["library_type_id"] != LibraryType.TENX_FLEX.id).any():
+            elif (library_table[library_table["library_name"] == row["library_name"]]["library_type_id"] != LibraryType.TENX_SC_GEX_FLEX.id).any():
                 add_error(i + 1, "library_name", "Library is not a Fixed RNA Profiling library.", "invalid_value")
             elif duplicate_barcode.at[idx]:
                 add_error(i + 1, "barcode_id", "'Barcode ID' is not unique in the library.", "duplicate_value")

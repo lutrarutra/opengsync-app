@@ -37,8 +37,14 @@ pooled_columns = {
     "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str),
     "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
     "library_type": SpreadSheetColumn("C", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
-    "index_i7": SpreadSheetColumn("D", "index_i7", "Index i7 sequence/name", "text", 250, str),
-    "index_i5": SpreadSheetColumn("E", "index_i5", "Index i5 sequence/name", "text", 250, str),
+    "index_i7": SpreadSheetColumn("D", "index_i7", "Index i7 well/name", "text", 250, str),
+    "index_i5": SpreadSheetColumn("E", "index_i5", "Index i5 well/name", "text", 250, str),
+}
+
+pooled_non_indexed_columns = {
+    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str),
+    "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
+    "library_type": SpreadSheetColumn("C", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
 }
 
 
@@ -61,6 +67,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
 
     _feature_mapping_raw = dict([(col.name, col) for col in raw_columns.values()])
     _feature_mapping_pooled = dict([(col.name, col) for col in pooled_columns.values()])
+    _feature_mapping_pooled_non_indexed = dict([(col.name, col) for col in pooled_non_indexed_columns.values()])
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, input_method: Optional[Literal["spreadsheet", "file"]] = None, uuid: Optional[str] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
@@ -298,6 +305,8 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
         if self.metadata["workflow_type"] == "raw":
             return list(SASInputForm._feature_mapping_raw.values())
         elif self.metadata["workflow_type"] == "pooled":
+            if self.metadata["index_1_kit_id"] is None and self.metadata["index_2_kit_id"] is None:
+                return list(SASInputForm._feature_mapping_pooled_non_indexed.values())
             return list(SASInputForm._feature_mapping_pooled.values())
         raise ValueError("Invalid type")
     
@@ -310,7 +319,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             library_type_map[e.display_name] = id
         
         self.df["library_type_id"] = self.df["library_type"].map(library_type_map)
-        self.df["library_name"] = self.df["sample_name"] + self.df["library_type_id"].apply(lambda x: f"_{LibraryType.get(x).assay_type}")
+        self.df["library_name"] = self.df["sample_name"] + self.df["library_type_id"].apply(lambda x: f"_{LibraryType.get(x).identifier}")
 
     def __map_genome_ref(self):
         organism_map = {}
@@ -357,17 +366,17 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             return library_mapping_form.make_response()
         
         if self.df["library_type_id"].isin([
-            LibraryType.MULTIPLEXING_CAPTURE.id,
+            LibraryType.TENX_MULTIPLEXING_CAPTURE.id,
         ]).any():
             cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
         
-        if (self.df["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+        if (self.df["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
             visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if LibraryType.TENX_FLEX.id in self.df["library_type_id"].values and "pool" in self.df.columns:
+        if LibraryType.TENX_SC_GEX_FLEX.id in self.df["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()

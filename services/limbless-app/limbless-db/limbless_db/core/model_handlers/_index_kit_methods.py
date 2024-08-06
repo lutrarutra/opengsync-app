@@ -3,13 +3,14 @@ from typing import Optional
 
 import sqlalchemy as sa
 
-from ...categories import IndexTypeEnum
+from ...categories import IndexTypeEnum, LabProtocolEnum
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
 def create_index_kit(
-    self, name: str,
+    self, identifier: str, name: str,
+    supported_protocols: list[LabProtocolEnum],
     type: IndexTypeEnum,
 ) -> models.IndexKit:
     persist_session = self._session is not None
@@ -20,8 +21,10 @@ def create_index_kit(
         raise exceptions.NotUniqueValue(f"index_kit with name '{name}', already exists.")
 
     seq_kit = models.IndexKit(
+        identifier=identifier.strip(),
         name=name.strip(),
-        type_id=type.id
+        type_id=type.id,
+        supported_protocol_ids=[p.id for p in supported_protocols]
     )
     self._session.add(seq_kit)
     self._session.commit()
@@ -93,8 +96,9 @@ def get_index_kits(
     return res, n_pages
 
 
-def query_index_kit(
-    self, word: str, limit: Optional[int] = PAGE_LIMIT
+def query_index_kits(
+    self, word: str, limit: Optional[int] = PAGE_LIMIT,
+    type_in: Optional[list[IndexTypeEnum]] = None,
 ) -> list[models.IndexKit]:
     persist_session = self._session is not None
     if not self._session:
@@ -102,7 +106,12 @@ def query_index_kit(
 
     query = sa.select(models.IndexKit)
 
-    query = query.order_by(sa.func.similarity(models.IndexKit.name, word).desc())
+    if type_in is not None:
+        query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
+
+    query = query.order_by(
+        sa.func.similarity(models.IndexKit.identifier + ' ' + models.IndexKit.name, word).desc()
+    )
 
     if limit is not None:
         query = query.limit(limit)

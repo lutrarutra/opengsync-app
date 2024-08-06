@@ -62,26 +62,21 @@ def init_db(create_users: bool):
     """
     df = pd.read_sql(q, db_handler._engine)
 
-    with open("db_structure.txt", "w") as f:
+    with open(os.path.join("init", "tables.txt"), "w") as f:
         for table in Base.metadata.tables.items():
             table_name = table[0]
+            f.write(f"{table_name}\n")
             if table_name not in df["tablename"].values:
                 raise Exception(f"Table {table[0]} is missing from the DB.")
 
             print(table_name)
             for column in table[1].columns:
                 column_name = column.name
+                f.write(f" - {column_name}\n")
                 print(f" - {column_name}")
                 q = f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' and column_name='{column_name}';"
                 if len(pd.read_sql(q, db_handler._engine)) == 0:
                     raise Exception(f"Column {column_name} is missing from the table {table_name}.")
-            
-    with open("db_structure.txt", "w") as f:
-        for table in Base.metadata.tables.items():
-            table_name = table[0]
-            f.write(f"{table_name}\n")
-            for column in table[1].columns:
-                f.write(f" - {column.name}\n")
 
     # Extensions
     q = """
@@ -162,6 +157,15 @@ def init_db(create_users: bool):
                 "lims_user"
             USING
                 gin ((first_name || ' ' || last_name) gin_trgm_ops);COMMIT;
+        """))
+
+        conn.execute(sqla.text("""
+            CREATE INDEX IF NOT EXISTS
+                trgm_index_kit_identifier_name_idx
+            ON
+                "index_kit"
+            USING
+                gin ((identifier || ' ' || name) gin_trgm_ops);COMMIT;
         """))
 
     print("DB initialization finished.")

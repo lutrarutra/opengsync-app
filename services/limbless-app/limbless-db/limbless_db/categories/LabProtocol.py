@@ -16,4 +16,4 @@ class LabProtocol(ExtendedEnum[LabProtocolEnum], enum_type=LabProtocolEnum):
     SMART_SEQ = LabProtocolEnum(3, "Smart-seq", "Smart-seq", "S")
     WGS = LabProtocolEnum(4, "Whole Genome Sequencing", "WGS", "W")
     TENX = LabProtocolEnum(5, "10X Genomics", "10x", "T")
-    EXOME = LabProtocolEnum(6, "Whole Exome Sequencing", "WES", "E")
+    WES = LabProtocolEnum(6, "Whole Exome Sequencing", "WES", "E")

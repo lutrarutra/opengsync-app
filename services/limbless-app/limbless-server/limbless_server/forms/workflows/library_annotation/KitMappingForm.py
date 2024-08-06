@@ -15,7 +15,7 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .CompleteSASForm import CompleteSASForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 
 class FeatureMappingSubForm(FlaskForm):
@@ -108,7 +108,7 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
             "feature_id": [],
         }
 
-        abc_libraries_df = library_table[library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id]
+        abc_libraries_df = library_table[library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id]
 
         def add_feature(
             library_name: str, feature_name: str,
@@ -287,12 +287,12 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
         self.add_table("kit_table", self.kit_table)
         self.update_data()
 
-        if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+        if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
             visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
+        if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()

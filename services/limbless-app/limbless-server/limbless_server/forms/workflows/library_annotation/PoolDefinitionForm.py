@@ -2,7 +2,7 @@ from typing import Optional, TYPE_CHECKING
 
 from flask import Response
 from wtforms import StringField, FloatField, FormField
-from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
+from wtforms.validators import Length, Optional as OptionalValidator
 
 from limbless_db import models
 

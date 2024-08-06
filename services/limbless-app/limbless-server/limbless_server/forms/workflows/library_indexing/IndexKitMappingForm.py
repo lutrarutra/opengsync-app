@@ -51,7 +51,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             if index_kit is None:
                 selected_kit = None
             elif index_kit_search_field.selected.data is None:
-                selected_kit = next(iter(db.query_index_kit(index_kit, 1)), None)
+                selected_kit = next(iter(db.query_index_kits(index_kit, 1)), None)
                 index_kit_search_field.selected.data = selected_kit.id if selected_kit else None
                 index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
             else:
