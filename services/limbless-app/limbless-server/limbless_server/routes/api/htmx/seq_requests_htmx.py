@@ -569,7 +569,7 @@ def overview(seq_request_id: int):
                 if link.library.id not in library_nodes.keys():
                     library_node = {
                         "node": idx,
-                        "name": f"{link.library.type.abbreviation} - {link.library.name}",
+                        "name": link.library.type.identifier,
                         "id": f"library-{link.library.id}"
                     }
                     nodes.append(library_node)

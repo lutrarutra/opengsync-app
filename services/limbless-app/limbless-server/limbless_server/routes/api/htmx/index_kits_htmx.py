@@ -187,5 +187,9 @@ def render_table(index_kit_id: int):
         columns.append(SpreadSheetColumn(string.ascii_uppercase[i], col, col, "text", width, var_type=str))
     
     return make_response(
-        render_template("components/itable.html", index_kit=index_kit, columns=columns, spreadsheet_data=df.replace(np.nan, "").values.tolist())
+        render_template(
+            "components/itable.html", index_kit=index_kit, columns=columns,
+            spreadsheet_data=df.replace(np.nan, "").values.tolist(),
+            table_id=f"index_kit_table-{index_kit_id}"
+        )
     )

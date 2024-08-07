@@ -4,7 +4,7 @@
 
 <div id="pool-mapping-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">1.5 Describe Library-Pools</h1>
+        <h1 class="modal-title fs-5">1.2 Describe Library-Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body">
@@ -28,36 +28,6 @@
                     url_for('pools_htmx.query', seq_request_id=seq_request.id),
                 )
             }}
-            <hr>
-            <h4>Select Common Index Kit(s)</h4>
-            <div class="help">
-                <ul>
-                    <li>In next step you will specify barcode indices used for each library.</li>
-                    <li>If you used a common index kit, one that is found in <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">Index Kits</a>, please select the kit here.</li>
-                    <li>If you used two different kits for Index 1 (i7) and Index 2 (i5), please specify both.</li>
-                    <li>If index kit is specified, specify the name of the barcode (adapter) <b>in next step</b>, e.g. 'SI-TT-A1'. Otherwise, specify the index sequence, e.g. 'GTAACATGCG'.</li>
-                    <li>If index kit is specified, the existense of barcode is checked in next step.</li>
-                    <li>If you used indices from two different kits, or used custom kit, specify the barcode sequences manually in the next step.</li>
-                    <li>If specifying barcode sequences manually, input all sequences in <b>reverse complement</b> orientation.</li>
-                    <li>We recommend to specify index kit in order to minimize the probability of mistakes and typos.</li>
-                </ul>
-            </div>
-            <div class="row">
-                {{
-                    search_select_field(
-                        pool_form.index_1_kit,
-                        url_for('barcodes_htmx.query_index_kits'),
-                        class="col-6"
-                    )
-                }}
-                {{
-                    search_select_field(
-                        pool_form.index_2_kit,
-                        url_for('barcodes_htmx.query_index_kits'),
-                        class="col-6"
-                    )
-                }}
-            </div>
             {{ pool_form.file_uuid(hidden=True, readonly=True) }}
             {{ pool_form.csrf_token() }}
         </div>

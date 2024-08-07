@@ -26,25 +26,29 @@ from .FRPAnnotationForm import FRPAnnotationForm
 from .LibraryMappingForm import LibraryMappingForm
 from .SampleAnnotationForm import SampleAnnotationForm
 
+
 raw_columns = {
-    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str),
+    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
     "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
     "library_type": SpreadSheetColumn("C", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
-    "seq_depth": SpreadSheetColumn("D", "seq_depth", "Sequencing Depth", "numeric", 150, float),
+    "seq_depth": SpreadSheetColumn("D", "seq_depth", "Sequencing Depth", "numeric", 150, float, clean_up_fnc=lambda x: tools.parse_float(x)),
 }
 
 pooled_columns = {
-    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str),
+    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
     "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
     "library_type": SpreadSheetColumn("C", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
-    "index_i7": SpreadSheetColumn("D", "index_i7", "Index i7 well/name", "text", 250, str),
-    "index_i5": SpreadSheetColumn("E", "index_i5", "Index i5 well/name", "text", 250, str),
+    "index_well": SpreadSheetColumn("D", "index_well", "Index Well", "text", 150, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+    "index_i7": SpreadSheetColumn("E", "index_i7", "Index i7 Name", "text", 250, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+    "index_i5": SpreadSheetColumn("F", "index_i5", "Index i5 Name", "text", 250, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
 }
 
-pooled_non_indexed_columns = {
-    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str),
+manual_index_pooled_columns = {
+    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
     "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
     "library_type": SpreadSheetColumn("C", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
+    "index_i7": SpreadSheetColumn("D", "index_i7", "Index i7 Sequence", "text", 250, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+    "index_i5": SpreadSheetColumn("E", "index_i5", "Index i5 Sequence", "text", 250, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
 }
 
 
@@ -67,7 +71,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
 
     _feature_mapping_raw = dict([(col.name, col) for col in raw_columns.values()])
     _feature_mapping_pooled = dict([(col.name, col) for col in pooled_columns.values()])
-    _feature_mapping_pooled_non_indexed = dict([(col.name, col) for col in pooled_non_indexed_columns.values()])
+    _feature_mapping_pooled_manual_index = dict([(col.name, col) for col in manual_index_pooled_columns.values()])
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, input_method: Optional[Literal["spreadsheet", "file"]] = None, uuid: Optional[str] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
@@ -86,13 +90,22 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
         if not os.path.exists(self.upload_path):
             os.makedirs(self.upload_path)
 
+    def prepare(self):
+        self._context["index_1_kit_id"] = self.metadata["index_1_kit_id"]
+        self._context["index_2_kit_id"] = self.metadata["index_2_kit_id"]
+
     def validate(self) -> bool:
         validated = super().validate()
 
         if self.metadata["workflow_type"] == "raw":
             columns = raw_columns
         elif self.metadata["workflow_type"] == "pooled":
-            columns = pooled_columns
+            if self.metadata["index_1_kit_id"] is None:
+                manual_specified_indices = True
+                columns = manual_index_pooled_columns
+            else:
+                manual_specified_indices = False
+                columns = pooled_columns
         else:
             logger.error("Invalid type.")
             raise ValueError("Invalid type.")
@@ -166,14 +179,6 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             elif self.input_method == "file":
                 self.file.errors = ("File is empty.",)
             return False
-        
-        for label, column in columns.items():
-            if column.var_type == str and column.source is None:
-                self.df[label] = self.df[label].apply(tools.make_alpha_numeric)
-            elif column.var_type == float:
-                self.df[label] = self.df[label].apply(tools.parse_float)
-            elif column.var_type == int:
-                self.df[label] = self.df[label].apply(tools.parse_int)
 
         self.file.errors = []
         self.spreadsheet_dummy.errors = []
@@ -196,6 +201,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             kit_2_df = None
             kit_1 = None
             kit_2 = None
+                
             if self.metadata["index_1_kit_id"] is not None:
                 if (kit_1 := db.get_index_kit(self.metadata["index_1_kit_id"])) is None:
                     logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_1_kit_id']} does not exist.")
@@ -214,9 +220,10 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                 if len(kit_2_df := db.get_index_kit_barcodes_df(self.metadata["index_2_kit_id"], per_adapter=False)) == 0:
                     logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
                     raise ValueError(f"Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
-            
-            assert kit_1_df is not None and kit_2_df is not None
-            assert kit_1 is not None and kit_2 is not None
+                
+        for label, column in columns.items():
+            if column.clean_up_fnc is not None:
+                self.df[label] = self.df[label].apply(column.clean_up_fnc)
 
         def base_filter(x: str) -> list[str]:
             return [c for c in x if c not in "ACGT"]
@@ -252,30 +259,59 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                         add_error(i + 1, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
 
             elif self.metadata["workflow_type"] == "pooled":
-                if pd.isna(row["index_i7"]):
-                    add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
+                if pd.notna(row["index_i7"]) and pd.notna(row["index_well"]):
+                    add_error(i + 1, "index_i7", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
+                    add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
+                    continue
+                
+                if pd.notna(row["index_well"]) and pd.notna(row["index_i5"]):
+                    add_error(i + 1, "index_i5", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
+                    add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
+                    continue
+            
+                if pd.isna(row["index_i7"]) and pd.isna(row["index_well"]):
+                    add_error(i + 1, "index_i7", "You must specify 'Index Well' or 'Index Name'", "missing_value")
+                    add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name'", "missing_value")
                     continue
 
-                if kit_1_df is not None:
-                    if len(index_i7_sequences := kit_1_df.loc[(kit_1_df["name"] == row["index_i7"]) & (kit_1_df["type"] == BarcodeType.INDEX_I7), "sequence"].tolist()) == 0:  # type: ignore
-                        add_error(i + 1, "index_i7", f"Index i7 '{row['index_i7']}' not found in specified index-kit.", "invalid_value")
-                        continue
-                    
-                    self.library_table.at[idx, "index_i7_sequences"] = ";".join(index_i7_sequences)
-                    self.library_table.at[idx, "index_i7_name"] = row["index_i7"]
+                if not manual_specified_indices:
+                    assert kit_1_df is not None and kit_2_df is not None
+                    assert kit_1 is not None and kit_2 is not None
 
-                    if kit_2.type == IndexType.DUAL_INDEX:
-                        if pd.isna(row["index_i5"]):
-                            self.df.at[idx, "index_i5"] = row["index_i7"]
-                            row["index_i5"] = row["index_i7"]
-                            
-                        if len(index_i5_sequences := kit_2_df.loc[(kit_2_df["name"] == row["index_i5"]) & (kit_2_df["type"] == BarcodeType.INDEX_I5), "sequence"].tolist()) == 0:  # type: ignore
-                            add_error(i + 1, "index_i5", f"Index i5 '{row['index_i5']}' not found in specified index-kit.", "invalid_value")
+                    if pd.isna(row["index_i7"]):
+                        if len(index_i7_sequences := kit_1_df.loc[(kit_1_df["well"] == row["index_well"]) & (kit_1_df["type"] == BarcodeType.INDEX_I7), "sequence"].tolist()) == 0:  # type: ignore
+                            add_error(i + 1, "index_well", f"Well '{row['index_well']}' not found in specified index-kit for i7.", "invalid_value")
                             continue
                         
-                        self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
-                        self.library_table.at[idx, "index_i5_name"] = row["index_i5"]
+                        self.library_table.at[idx, "index_i7_sequences"] = ";".join(index_i7_sequences)
+                        self.library_table.at[idx, "index_i7_name"] = row["index_well"]
+                        
+                        if kit_2.type == IndexType.DUAL_INDEX:
+                            if len(index_i5_sequences := kit_2_df.loc[(kit_2_df["well"] == row["index_well"]) & (kit_2_df["type"] == BarcodeType.INDEX_I5), "sequence"].tolist()) == 0:  # type: ignore
+                                add_error(i + 1, "index_well", f"Well '{row['index_well']}' not found in specified index-kit for i5.", "invalid_value")
+                                continue
+                            
+                            self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
+                            self.library_table.at[idx, "index_i5_name"] = row["index_well"]
+                    else:
+                        if len(index_i7_sequences := kit_1_df.loc[(kit_1_df["name"] == row["index_i7"]) & (kit_1_df["type"] == BarcodeType.INDEX_I7), "sequence"].tolist()) == 0:  # type: ignore
+                            add_error(i + 1, "index_i7", f"Index i7 '{row['index_i7']}' not found in specified index-kit.", "invalid_value")
+                            continue
+                        
+                        self.library_table.at[idx, "index_i7_sequences"] = ";".join(index_i7_sequences)
+                        self.library_table.at[idx, "index_i7_name"] = row["index_i7"]
 
+                        if kit_2.type == IndexType.DUAL_INDEX:
+                            if pd.isna(row["index_i5"]):
+                                self.df.at[idx, "index_i5"] = row["index_i7"]
+                                row["index_i5"] = row["index_i7"]
+                                
+                            if len(index_i5_sequences := kit_2_df.loc[(kit_2_df["name"] == row["index_i5"]) & (kit_2_df["type"] == BarcodeType.INDEX_I5), "sequence"].tolist()) == 0:  # type: ignore
+                                add_error(i + 1, "index_i5", f"Index i5 '{row['index_i5']}' not found in specified index-kit.", "invalid_value")
+                                continue
+                            
+                            self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
+                            self.library_table.at[idx, "index_i5_name"] = row["index_i5"]
                 else:
                     index_i7_sequences = row["index_i7"].split(";")
                     
@@ -305,8 +341,8 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
         if self.metadata["workflow_type"] == "raw":
             return list(SASInputForm._feature_mapping_raw.values())
         elif self.metadata["workflow_type"] == "pooled":
-            if self.metadata["index_1_kit_id"] is None and self.metadata["index_2_kit_id"] is None:
-                return list(SASInputForm._feature_mapping_pooled_non_indexed.values())
+            if self.metadata["index_1_kit_id"] is None:
+                return list(SASInputForm._feature_mapping_pooled_manual_index.values())
             return list(SASInputForm._feature_mapping_pooled.values())
         raise ValueError("Invalid type")
     
@@ -346,7 +382,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                 self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values.tolist()
                 if self._context["spreadsheet_data"] == []:
                     self._context["spreadsheet_data"] = [[None]]
-            
+            self.prepare()
             return self.make_response()
 
         self.__map_library_types()

@@ -6,7 +6,7 @@ import pandas as pd
 from flask import Blueprint, request, abort, send_file, current_app, Response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, db_session
+from limbless_db import models, db_session
 from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
@@ -116,7 +116,7 @@ def parse_assay_form(seq_request_id: int):
     return forms.SpecifyAssayForm(seq_request=seq_request, formdata=request.form).process_request()
         
 
-# 1. Select project
+# 1.1 Select project
 @library_annotation_workflow.route("<int:seq_request_id>/project_select/<string:workflow_type>", methods=["POST"])
 @db_session(db)
 @login_required
@@ -135,7 +135,7 @@ def select_project(seq_request_id: int, workflow_type: str):
     return forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, formdata=request.form).process_request(user=current_user)
     
 
-# 1.5 Pool Definition
+# 1.2 Pool Definition
 @library_annotation_workflow.route("<int:seq_request_id>/define_pool", methods=["POST", "GET"])
 @db_session(db)
 @login_required
@@ -149,6 +149,16 @@ def define_pool(seq_request_id: int):
         return forms.PoolDefinitionForm(uuid=uuid, seq_request=seq_request).make_response()
     
     return forms.PoolDefinitionForm(seq_request=seq_request, formdata=request.form).process_request(user=current_user)
+
+
+# 1.3 Index Kit Selection
+@library_annotation_workflow.route("<int:seq_request_id>/select_index_kits", methods=["POST"])
+@login_required
+def select_index_kits(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    return forms.IndexKitSelectForm(seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 2. Input sample annotation sheet

@@ -1,5 +1,6 @@
 {% from "components/legends.jinja2" import color_legend %}
 {% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/spinner.jinja2' import spinner %}
 
 <div id="sample-table-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
@@ -30,6 +31,24 @@
                     aria-controls="form-tab-file" aria-selected="true">
                     File</button>
                 </li>
+                {% if index_1_kit_id is not none %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab"
+                    id="form-tab-kit1-btn"
+                    data-bs-target="#form-tab-kit1" type="button" role="tab"
+                    aria-controls="form-tab-kit1" aria-selected="true">
+                    Kit {% if index_1_kit_id != index_2_kit_id %}i7{% endif %}</button>
+                </li>
+                {% endif %}
+                {% if index_2_kit_id is not none and index_1_kit_id != index_2_kit_id %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab"
+                    id="form-tab-kit2-btn"
+                    data-bs-target="#form-tab-kit2" type="button" role="tab"
+                    aria-controls="form-tab-kit2" aria-selected="true">
+                    Kit i5</button>
+                </li>
+                {% endif %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" data-bs-toggle="tab"
                     id="form-tab-example-btn"
@@ -68,7 +87,24 @@
                         </a>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="form-tab-example" role="tabpanel" tabindex="3">
+                
+                {% if index_1_kit_id is not none %}
+                <div class="tab-pane fade" id="form-tab-kit1" role="tabpanel" tabindex="3">
+                    <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_1_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                        {{ spinner() }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if index_2_kit_id is not none and index_1_kit_id != index_2_kit_id %}
+                <div class="tab-pane fade" id="form-tab-kit2" role="tabpanel" tabindex="4">
+                    <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_2_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                        {{ spinner() }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="tab-pane fade" id="form-tab-example" role="tabpanel" tabindex="5">
                     {% if sas_input_form.metadata["workflow_type"] == "raw" %}
                     {% include "components/examples/sas_raw.html" %}
                     {% elif sas_input_form.metadata["workflow_type"] == "pooled" %}
