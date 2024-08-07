@@ -9,7 +9,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-from limbless_db import models, DBSession, PAGE_LIMIT, db_session
+from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, SeqRequestStatus, UserRole, LibraryStatus, LibraryType
 from limbless_db.core import exceptions
 from .... import db, forms, logger
@@ -100,46 +100,43 @@ def get_form(form_type: Literal["create", "edit"]):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/export", methods=["GET"])
+@db_session(db)
 @login_required
 def export(seq_request_id: int):
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-            
-        samples, _ = session.get_samples(seq_request_id=seq_request_id, limit=None)
-        libraries, _ = session.get_libraries(seq_request_id=seq_request_id, limit=None)
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    file_name = secure_filename(f"{seq_request.name}_request.xlsx")
+
+    metadata_df = pd.DataFrame.from_records({
+        "Name": [seq_request.name],
+        "Description": [seq_request.description],
+        "Requestor": [seq_request.requestor.name],
+        "Requestor Email": [seq_request.requestor.email],
+        "Organization": [seq_request.organization_contact.name],
+        "Organization Address": [seq_request.organization_contact.address],
+    }).T
+
+    libraries_df = db.get_seq_request_libraries_df(seq_request_id)
+    features_df = db.get_seq_request_features_df(seq_request_id)
+
+    bytes_io = BytesIO()
+    # TODO: export features, CMOs, VISIUM metadata, etc...
+    with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:  # type: ignore
+        metadata_df.to_excel(writer, sheet_name="metadata", index=True)
+        libraries_df.to_excel(writer, sheet_name="libraries", index=False)
+        features_df.to_excel(writer, sheet_name="features", index=False)
+
+    bytes_io.seek(0)
+    mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         
-        if not current_user.is_insider():
-            if seq_request.requestor_id != current_user.id:
-                return abort(HTTPResponse.FORBIDDEN.id)
-
-        file_name = secure_filename(f"{seq_request.name}_request.xlsx")
-
-        metadata_df = pd.DataFrame.from_records({
-            "Name": [seq_request.name],
-            "Description": [seq_request.description],
-            "Requestor": [seq_request.requestor.name],
-            "Requestor Email": [seq_request.requestor.email],
-            "Organization": [seq_request.organization_contact.name],
-            "Organization Address": [seq_request.organization_contact.address],
-        }).T
-        libraries_df = db.get_seq_request_libraries_df(
-            seq_request_id
-        )
-
-        bytes_io = BytesIO()
-        # TODO: export features, CMOs, VISIUM metadata, etc...
-        with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:  # type: ignore
-            metadata_df.to_excel(writer, sheet_name="metadata", index=True)
-            libraries_df.to_excel(writer, sheet_name="libraries", index=False)
-
-        bytes_io.seek(0)
-        mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            
-        return Response(
-            bytes_io, mimetype=mimetype,
-            headers={"Content-disposition": f"attachment; filename={file_name}"}
-        )
+    return Response(
+        bytes_io, mimetype=mimetype,
+        headers={"Content-disposition": f"attachment; filename={file_name}"}
+    )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/export_libraries", methods=["GET"])
@@ -162,18 +159,18 @@ def export_libraries(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["POST"])
+@db_session(db)
 @login_required
 def edit(seq_request_id: int):
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
-        if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
-        return forms.models.SeqRequestForm(form_type="edit", formdata=request.form).process_request(
-            seq_request=seq_request, user_id=current_user.id
-        )
+    return forms.models.SeqRequestForm(form_type="edit", formdata=request.form).process_request(
+        seq_request=seq_request, user_id=current_user.id
+    )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/delete", methods=["DELETE"])
@@ -237,20 +234,20 @@ def unarchive(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["GET"])
+@db_session(db)
 @login_required
 def submit(seq_request_id: int):
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if seq_request.requestor_id != current_user.id:
-            if not current_user.is_insider():
-                return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if not seq_request.is_submittable():
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
-        
-        session.submit_seq_request(seq_request_id)
+    
+    if not seq_request.is_submittable():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    db.submit_seq_request(seq_request_id)
 
     flash(f"Submitted sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Submitted sequencing request '{seq_request.name}'")
@@ -372,6 +369,7 @@ def remove_auth_form(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/remove_library", methods=["DELETE"])
+@db_session(db)
 @login_required
 def remove_library(seq_request_id: int):
     if (library_id := request.args.get("library_id")) is None:
@@ -389,15 +387,14 @@ def remove_library(seq_request_id: int):
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    with DBSession(db) as session:
-        if (library := session.get_library(library_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if seq_request.requestor_id != current_user.id:
+        if not current_user.is_insider():
+            return abort(HTTPResponse.FORBIDDEN.id)
         
-        if seq_request.requestor_id != current_user.id:
-            if not current_user.is_insider():
-                return abort(HTTPResponse.FORBIDDEN.id)
-            
-        session.delete_library(library_id)
+    db.delete_library(library_id)
 
     flash(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'")
@@ -482,14 +479,14 @@ def add_share_email(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/remove_share_email/<string:email>", methods=["DELETE"])
+@db_session(db)
 @login_required
 def remove_share_email(seq_request_id: int, email: str):
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if len(seq_request.delivery_email_links) == 1:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if len(seq_request.delivery_email_links) == 1:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if seq_request.requestor_id != current_user.id:
         if not current_user.is_insider():
@@ -804,6 +801,7 @@ def get_pools(seq_request_id: int, page: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/get_comments", methods=["GET"])
+@db_session(db)
 @login_required
 def get_comments(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -813,21 +811,19 @@ def get_comments(seq_request_id: int):
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        comments = seq_request.comments
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
         render_template(
             "components/comment-list.html",
-            comments=comments, seq_request=seq_request
+            comments=seq_request.comments, seq_request=seq_request
         )
     )
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/get_files", methods=["GET"])
+@db_session(db)
 @login_required
 def get_files(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -837,16 +833,13 @@ def get_files(seq_request_id: int):
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    with DBSession(db) as session:
-        if (seq_request := session.get_seq_request(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        files = seq_request.files
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
         render_template(
             "components/file-list.html",
-            files=files, seq_request=seq_request, delete="seq_requests_htmx.delete_file",
+            files=seq_request.files, seq_request=seq_request, delete="seq_requests_htmx.delete_file",
             delete_context={"seq_request_id": seq_request_id}
         )
     )

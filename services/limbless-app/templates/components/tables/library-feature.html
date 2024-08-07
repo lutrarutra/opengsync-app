@@ -2,7 +2,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="library-feature-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 <th scope="col" class="col-1">ID</th>
@@ -20,7 +20,7 @@
             <tr>
                 <th scope="row">{{ feature.id }}</th>
                 <td>{{ feature.name }}</td>
-                <td>{{ feature.target_name if feature_target_name }}</td>
+                <td>{{ feature.target_name if feature.target_name }}</td>
                 <td>{{ feature.target_id if feature.target_id }}</td>
                 <td>{{ feature.sequence }}</td>
                 <td>{{ feature.pattern }}</td>
@@ -31,5 +31,5 @@
         </tbody>
     </table>
     {{ spinner("library-feature-table") }}
-    {{ pagination("library-feature-table", "features_htmx.get", n_pages, active_page, context={"library_id": library.id}) }}
+    {{ pagination("library-feature-table", "libraries_htmx.get_features", n_pages, active_page, context={"library_id": library.id}) }}
 </div>

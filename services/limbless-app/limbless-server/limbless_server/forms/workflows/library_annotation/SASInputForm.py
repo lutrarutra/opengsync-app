@@ -25,6 +25,7 @@ from .GenomeRefMappingForm import GenomeRefMappingForm
 from .FRPAnnotationForm import FRPAnnotationForm
 from .LibraryMappingForm import LibraryMappingForm
 from .SampleAnnotationForm import SampleAnnotationForm
+from .FeatureReferenceInputForm import FeatureReferenceInputForm
 
 
 raw_columns = {
@@ -226,7 +227,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                 self.df[label] = self.df[label].apply(column.clean_up_fnc)
 
         def base_filter(x: str) -> list[str]:
-            return [c for c in x if c not in "ACGT"]
+            return list(set([c for c in x if c not in "ACGT"]))
         
         duplicate_sample_libraries = self.library_table.duplicated(subset=["sample_name", "library_type"], keep=False)
 
@@ -259,22 +260,22 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                         add_error(i + 1, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
 
             elif self.metadata["workflow_type"] == "pooled":
-                if pd.notna(row["index_i7"]) and pd.notna(row["index_well"]):
-                    add_error(i + 1, "index_i7", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
-                    add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
-                    continue
-                
-                if pd.notna(row["index_well"]) and pd.notna(row["index_i5"]):
-                    add_error(i + 1, "index_i5", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
-                    add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
-                    continue
-            
-                if pd.isna(row["index_i7"]) and pd.isna(row["index_well"]):
-                    add_error(i + 1, "index_i7", "You must specify 'Index Well' or 'Index Name'", "missing_value")
-                    add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name'", "missing_value")
-                    continue
 
                 if not manual_specified_indices:
+                    if pd.notna(row["index_i7"]) and pd.notna(row["index_well"]):
+                        add_error(i + 1, "index_i7", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
+                        add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
+                        continue
+                    
+                    if pd.notna(row["index_well"]) and pd.notna(row["index_i5"]):
+                        add_error(i + 1, "index_i5", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
+                        add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name', not both", "invalid_value")
+                        continue
+                
+                    if pd.isna(row["index_i7"]) and pd.isna(row["index_well"]):
+                        add_error(i + 1, "index_i7", "You must specify 'Index Well' or 'Index Name'", "missing_value")
+                        add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name'", "missing_value")
+                        continue
                     assert kit_1_df is not None and kit_2_df is not None
                     assert kit_1 is not None and kit_2 is not None
 
@@ -313,6 +314,10 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                             self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
                             self.library_table.at[idx, "index_i5_name"] = row["index_i5"]
                 else:
+                    if pd.isna(row["index_i7"]):
+                        add_error(i + 1, "index_i7", "missing 'Index i7'", "missing_value")
+                        continue
+                    
                     index_i7_sequences = row["index_i7"].split(";")
                     
                     for index_i7_sequence in index_i7_sequences:
@@ -411,6 +416,10 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
             visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
+        
+        if (self.df["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
+            feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            return feature_reference_input_form.make_response()
         
         if LibraryType.TENX_SC_GEX_FLEX.id in self.df["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

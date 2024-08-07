@@ -46,7 +46,7 @@ class IndexKit(Base):
         return self.id
     
     def search_name(self) -> str:
-        return self.name
+        return self.identifier
     
     def search_description(self) -> str | None:
-        return self.type.name
+        return self.name

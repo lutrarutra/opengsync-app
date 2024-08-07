@@ -24,7 +24,7 @@ class IndexKitSelectForm(HTMXFlaskForm, TableDataForm):
     index_1_kit = FormField(OptionalSearchBar, label="Select Index Kit")
     index_2_kit = FormField(OptionalSearchBar, label="Select Index Kit for index 2 (i5) if different from index 1 (i7)")
 
-    custom_indices_used = BooleanField("I used a custom kit that is not in the list and will specify indices manually in forward orientation.", default=False)
+    custom_indices_used = BooleanField("I used a custom kit that is not in the list and will specify index sequences manually in forward orientation.", default=False)
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, uuid: Optional[str] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
@@ -40,6 +40,14 @@ class IndexKitSelectForm(HTMXFlaskForm, TableDataForm):
         
         if not self.index_1_kit.selected.data and not self.custom_indices_used.data:
             self.index_1_kit.selected.errors = ["Select kit or check the box below."]
+            return False
+        
+        if self.index_1_kit.selected.data and self.custom_indices_used.data:
+            self.custom_indices_used.errors = ["Select either a kit or check the box."]
+            return False
+        
+        if self.index_2_kit.selected.data and self.custom_indices_used.data:
+            self.custom_indices_used.errors = ["Select either a kit or check the box."]
             return False
 
         return True

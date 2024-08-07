@@ -172,5 +172,5 @@ class DBHandler():
         get_seq_requestor_df, get_seq_request_share_emails_df,
         get_library_features_df, get_library_cmos_df, get_experiment_seq_qualities_df,
         get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df,
-        get_experiment_barcodes_df, get_feature_kit_features_df
+        get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df
     )
