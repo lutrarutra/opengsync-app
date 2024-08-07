@@ -163,10 +163,7 @@ def get_seq_requests(
     return seq_requests, n_pages
 
 
-def submit_seq_request(
-    self, seq_request_id: int,
-    commit: bool = True
-) -> models.SeqRequest:
+def submit_seq_request(self, seq_request_id: int) -> models.SeqRequest:
     persist_session = self._session is not None
     if not self._session:
         self.open_session()
@@ -191,9 +188,8 @@ def submit_seq_request(
         pool.status_id = PoolStatus.SUBMITTED.id
         self._session.add(pool)
 
-    if commit:
-        self._session.commit()
-        self._session.refresh(seq_request)
+    self._session.commit()
+    self._session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()

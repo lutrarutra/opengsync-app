@@ -13,6 +13,10 @@ TIMEZONE: pytz.BaseTzInfo = pytz.timezone(__timezone)
 def localize(timestamp: dt.datetime) -> dt.datetime:
     return pytz.utc.localize(timestamp).astimezone(TIMEZONE)
 
+
+def to_utc(timestamp: dt.datetime) -> dt.datetime:
+    return TIMEZONE.localize(timestamp).astimezone(pytz.utc)
+
 from . import categories  # noqa
 from .core.DBHandler import DBHandler    # noqa
 from .core.DBSession import DBSession    # noqa

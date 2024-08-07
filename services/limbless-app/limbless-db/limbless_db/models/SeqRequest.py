@@ -33,7 +33,8 @@ class SeqRequest(Base):
     read_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     submission_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=SeqRequestStatus.DRAFT.id)
-    
+
+    timestamp_sample_submission_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
@@ -95,6 +96,12 @@ class SeqRequest(Base):
         return localize(self.timestamp_submitted_utc)
     
     @property
+    def timestamp_sample_submission(self) -> Optional[datetime]:
+        if self.timestamp_sample_submission_utc is None:
+            return None
+        return localize(self.timestamp_sample_submission_utc)
+    
+    @property
     def timestamp_finished(self) -> Optional[datetime]:
         if self.timestamp_finished_utc is None:
             return None
@@ -123,6 +130,11 @@ class SeqRequest(Base):
     
     def timestamp_finished_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         if (ts := self.timestamp_finished) is None:
+            return ""
+        return ts.strftime(fmt)
+    
+    def timestamp_sample_submission_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        if (ts := self.timestamp_sample_submission) is None:
             return ""
         return ts.strftime(fmt)
     

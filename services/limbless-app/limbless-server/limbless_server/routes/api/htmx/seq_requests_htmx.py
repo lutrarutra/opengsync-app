@@ -233,28 +233,26 @@ def unarchive(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["GET"])
+@seq_requests_htmx.route("<int:seq_request_id>/submit_request", methods=["GET", "POST"])
 @db_session(db)
 @login_required
-def submit(seq_request_id: int):
+def submit_request(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if not seq_request.is_submittable():
         return abort(HTTPResponse.FORBIDDEN.id)
-    
-    db.submit_seq_request(seq_request_id)
 
-    flash(f"Submitted sequencing request '{seq_request.name}'", "success")
-    logger.debug(f"Submitted sequencing request '{seq_request.name}'")
-
-    return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
-    )
+    if request.method == "GET":
+        form = forms.SubmitSeqRequestForm(seq_request=seq_request)
+        return form.make_response()
+    else:
+        logger.debug(request.form)
+        form = forms.SubmitSeqRequestForm(seq_request=seq_request, formdata=request.form)
+        return form.process_request()
 
 
 @seq_requests_htmx.route("create", methods=["POST"])

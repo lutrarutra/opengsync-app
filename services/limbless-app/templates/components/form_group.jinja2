@@ -146,3 +146,24 @@
 </div>
 {%- endmacro %}
 
+{% macro datepicker(field, class='') %}
+    <a {% if field.description %}{{ tooltip(field.description, "top") }}{% endif %}>
+        {{ field.label }}
+    </a>
+    <div>
+        {{ 
+            field(
+                class="form-control" + (" is-invalid" if (field.errors and not disabled) else ""), 
+                value=field.data if field.data else "", id=field.name
+            ) 
+        }}
+    </div>
+    <div class="invalid-feedback-container">
+        {% if not disabled %}
+        {% for error in field.errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        {% endif %}
+    </div>
+{% endmacro %}
+
