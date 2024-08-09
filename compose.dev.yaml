@@ -18,6 +18,7 @@ services:
             - compiled_css:/usr/src/app/static/style/compiled:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
             - ./cert:/usr/src/app/cert
+            - ./db/dev_init:/usr/src/app/init
         env_file: .env
         ports:
             - ${LIMBLESS_PORT}:${LIMBLESS_PORT}

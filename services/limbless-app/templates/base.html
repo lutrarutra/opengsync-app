@@ -46,6 +46,11 @@
 </head>
 
 <body>
+    <div style="position: absolute; bottom: 15px; left: 15px; z-index: 1100;">
+        <a href="{{ url_for('help_page') }}" target="_blank" type="button" style="z-index: 1100;">
+            <img src="{{ url_for('static', filename='images/help.svg') }}" width="26px" style="z-index: 1100;">
+        </a>
+    </div>
     {% if current_user.is_authenticated %}
         {% set role_name = current_user.role.name %}
     {% else %}
@@ -110,6 +115,11 @@
                     <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('feature_kits_page.feature_kits_page') }}">Features</a></li>
                 </ul>
             </div>
+            {% if current_user.is_authenticated and not current_user.is_insider() %}
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" id="help-page" href="{{ url_for('help_page') }}">Help</a>
+            </div>
+            {% endif %}
             {% if role_name == "Admin" %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'devices-page' else ''}}" id="devices-page" href="{{ url_for('devices_page.devices_page') }}">Devices</a>

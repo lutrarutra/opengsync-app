@@ -134,7 +134,7 @@
                 </div>
                 {% endfor %}
             </div>
-            <div hx-get="{{ url_for('experiments_htmx.get_pools', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('experiments_htmx.get_pools', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -310,7 +310,7 @@
                     <h2>Dilutions</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('experiments_htmx.get_pool_dilutions', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('experiments_htmx.get_pool_dilutions', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -357,7 +357,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="experiment-files-tab" role="tabpanel" tabindex="5">
-            <div hx-get="{{ url_for('experiments_htmx.get_files', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('experiments_htmx.get_files', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -372,7 +372,7 @@
                 </button>
             </div>
 
-            <div hx-get="{{ url_for('experiments_htmx.get_comments', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('experiments_htmx.get_comments', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>  

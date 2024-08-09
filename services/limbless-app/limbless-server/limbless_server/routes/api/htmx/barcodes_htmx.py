@@ -47,7 +47,7 @@ def query_index_kits():
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_index_kit(word)
+    results = db.query_index_kits(word)
 
     return make_response(
         render_template(

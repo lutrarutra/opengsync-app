@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Any, Type
+from typing import Optional, Literal, Any, Type, Callable
 
 from dataclasses import dataclass
 
@@ -12,3 +12,4 @@ class SpreadSheetColumn:
     width: float
     var_type: Type
     source: Optional[Any] = None
+    clean_up_fnc: Optional[Callable] = None

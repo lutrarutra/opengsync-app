@@ -27,9 +27,9 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
     _form_label = "frp_annotation_form"
 
     columns = {
-        "library_name": SpreadSheetColumn("A", "library_name", "Library Name", "text", 170, str),
-        "barcode_id": SpreadSheetColumn("B", "barcode_id", "Bardcode ID", "text", 170, str),
-        "sample_name": SpreadSheetColumn("C", "sample_name", "Sample Name", "text", 170, str),
+        "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        "barcode_id": SpreadSheetColumn("B", "barcode_id", "Bardcode ID", "text", 250, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        "demux_name": SpreadSheetColumn("C", "demux_name", "Demux Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
     }
     _mapping: dict[str, str] = dict([(col.name, col.label) for col in columns.values()])
     _required_columns: list[str] = [col.name for col in columns.values()]
@@ -157,10 +157,10 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
         self.file.errors = []
         self.spreadsheet_dummy.errors = []
 
-        self.flex_table["library_name"] = self.flex_table["library_name"].apply(lambda x: tools.make_alpha_numeric(x))
+        self.flex_table["sample_name"] = self.flex_table["sample_name"].apply(lambda x: tools.make_alpha_numeric(x))
 
-        duplicate_samples = self.flex_table.duplicated(subset=["library_name", "sample_name"], keep=False)
-        duplicate_barcode = self.flex_table.duplicated(subset=["library_name", "barcode_id"], keep=False)
+        duplicate_samples = self.flex_table.duplicated(subset=["sample_name", "demux_name"], keep=False)
+        duplicate_barcode = self.flex_table.duplicated(subset=["sample_name", "barcode_id"], keep=False)
 
         def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value"]):
             if self.input_type == "file":
@@ -169,24 +169,26 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
                 self.spreadsheet_style[f"{FRPAnnotationForm.columns[column].column}{row_num}"] = f"background-color: {self._context['colors'][color]};"
                 self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
 
+        flex_libraries = library_table[library_table['library_type_id'] == LibraryType.TENX_SC_GEX_FLEX.id]
+
         for i, (idx, row) in enumerate(self.flex_table.iterrows()):
-            if pd.isna(row["library_name"]):
-                add_error(i + 1, "library_name", "'Library Name' is missing.", "missing_value")
-            elif row["library_name"].removesuffix(f"_{LibraryType.TENX_FLEX.assay_type}") not in library_table["sample_name"].values:
-                add_error(i + 1, "library_name", f"Library is not found in the library table. Must be one of: {', '.join(library_table['sample_name'])}", "invalid_value")
-            elif (library_table[library_table["library_name"] == row["library_name"]]["library_type_id"] != LibraryType.TENX_FLEX.id).any():
-                add_error(i + 1, "library_name", "Library is not a Fixed RNA Profiling library.", "invalid_value")
+            if pd.isna(row["sample_name"]):
+                add_error(i + 1, "sample_name", "'Library Name' is missing.", "missing_value")
+            elif row["sample_name"] not in library_table["sample_name"].values:
+                add_error(i + 1, "sample_name", f"Unknown sample '{row['sample_name']}'. Must be one of: {', '.join(flex_libraries['sample_name'])}", "invalid_value")
+            elif not row["sample_name"] in flex_libraries["sample_name"].values:
+                add_error(i + 1, "sample_name", "Library is not a Fixed RNA Profiling library.", "invalid_value")
             elif duplicate_barcode.at[idx]:
                 add_error(i + 1, "barcode_id", "'Barcode ID' is not unique in the library.", "duplicate_value")
 
             if pd.isna(row["barcode_id"]):
                 add_error(i + 1, "barcode_id", "'Barcode ID' is missing.", "missing_value")
             
-            if pd.isna(row["sample_name"]):
-                add_error(i + 1, "sample_name", "'Sample Name' is missing.", "missing_value")
+            if pd.isna(row["demux_name"]):
+                add_error(i + 1, "demux_name", "'Sample Name' is missing.", "missing_value")
 
             elif duplicate_samples.at[idx]:
-                add_error(i + 1, "sample_name", "'Sample Name' is not unique in the library.", "duplicate_value")
+                add_error(i + 1, "demux_name", "'Sample Name' is not unique in the library.", "duplicate_value")
 
         if self.input_type == "file":
             validated = validated and len(self.file.errors) == 0

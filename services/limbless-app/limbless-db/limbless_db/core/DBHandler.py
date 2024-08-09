@@ -75,7 +75,7 @@ class DBHandler():
 
     from .model_handlers._index_kit_methods import (
         create_index_kit, get_index_kit, get_index_kits,
-        get_index_kit_by_name, query_index_kit
+        get_index_kit_by_name, query_index_kits
     )
 
     from .model_handlers._seq_request_methods import (
@@ -165,6 +165,10 @@ class DBHandler():
         create_seq_run, get_seq_run, get_seq_runs, update_seq_run, query_seq_runs
     )
 
+    from .model_handlers._event_methods import (
+        create_event, get_event, get_events, update_event, delete_event
+    )
+
     from .pd_handler import (
         get_experiment_libraries_df, get_experiment_pools_df,
         get_experiment_lanes_df, get_experiment_laned_pools_df,
@@ -172,5 +176,5 @@ class DBHandler():
         get_seq_requestor_df, get_seq_request_share_emails_df,
         get_library_features_df, get_library_cmos_df, get_experiment_seq_qualities_df,
         get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df,
-        get_experiment_barcodes_df
+        get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df
     )

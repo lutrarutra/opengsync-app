@@ -15,7 +15,7 @@ from .PoolDefinitionForm import PoolDefinitionForm
 
 
 class ProjectSelectForm(HTMXFlaskForm):
-    _template_path = "workflows/library_annotation/sas-1.html"
+    _template_path = "workflows/library_annotation/sas-1.1.html"
 
     existing_project = FormField(OptionalSearchBar, label="Select Existing Project")
     new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.name.type.length)])

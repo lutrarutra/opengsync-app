@@ -2,7 +2,6 @@ from .adapters_htmx import adapters_htmx   # noqa: F401
 from .auth_htmx import auth_htmx   # noqa: F401
 from .barcodes_htmx import barcodes_htmx   # noqa: F401
 from .experiments_htmx import experiments_htmx   # noqa: F401
-from .features_htmx import features_htmx   # noqa: F401
 from .feature_kits_htmx import feature_kits_htmx   # noqa: F401
 from .libraries_htmx import libraries_htmx   # noqa: F401
 from .pools_htmx import pools_htmx   # noqa: F401
@@ -17,3 +16,4 @@ from .lanes_htmx import lanes_htmx   # noqa: F401
 from .seq_runs_htmx import seq_runs_htmx   # noqa: F401
 from .files_htmx import files_htmx   # noqa: F401
 from .lab_preps_htmx import lab_preps_htmx   # noqa: F401
+from .events_htmx import events_htmx   # noqa: F401

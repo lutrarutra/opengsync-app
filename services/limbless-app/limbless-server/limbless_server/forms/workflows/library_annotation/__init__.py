@@ -1,8 +1,9 @@
+from .ProjectSelectForm import ProjectSelectForm  # noqa: F401
+from .PoolDefinitionForm import PoolDefinitionForm    # noqa: F401
+from .IndexKitSelectForm import IndexKitSelectForm    # noqa: F401
 from .SASInputForm import SASInputForm  # noqa: F401
 from .SpecifyAssayForm import SpecifyAssayForm  # noqa: F401
-from .ProjectSelectForm import ProjectSelectForm  # noqa: F401
 from .VisiumAnnotationForm import VisiumAnnotationForm  # noqa: F401
-from .PoolDefinitionForm import PoolDefinitionForm    # noqa: F401
 from .CMOReferenceInputForm import CMOReferenceInputForm    # noqa: F401
 from .KitMappingForm import KitMappingForm    # noqa: F401
 from .FeatureReferenceInputForm import FeatureReferenceInputForm  # noqa: F401

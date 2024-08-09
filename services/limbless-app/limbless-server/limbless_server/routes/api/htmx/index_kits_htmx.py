@@ -27,8 +27,8 @@ index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/i
 @db_session(db)
 @login_required
 def get(page: int):
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
+    sort_by = request.args.get("sort_by", "identifier")
+    sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
 
     if sort_by not in models.IndexKit.sortable_fields:
@@ -56,10 +56,47 @@ def get(page: int):
     )
 
 
-@index_kits_htmx.route("table_query", methods=["POST"])
+@index_kits_htmx.route("table_query", methods=["GET"])
 @login_required
 def table_query():
-    raise NotImplementedError()
+    if (word := request.args.get("name")) is not None:
+        field_name = "name"
+    elif (word := request.args.get("id")) is not None:
+        field_name = "id"
+    elif (word := request.args.get("identifier")) is not None:
+        field_name = "identifier"
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [IndexType.get(int(status)) for status in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+    
+    index_kits: list[models.IndexKit] = []
+    if field_name == "id":
+        try:
+            _id = int(word)
+            if (index_kit := db.get_index_kit(_id)) is not None:
+                if type_in is None or index_kit.type in type_in:
+                    index_kits.append(index_kit)
+
+        except ValueError:
+            pass
+    elif field_name in ["name", "identifier"]:
+        index_kits = db.query_index_kits(word, type_in=type_in)
+
+    return make_response(
+        render_template(
+            "components/tables/index_kit.html", index_kits=index_kits,
+            active_query_field=field_name, current_query=word, type_in=type_in
+        )
+    )
 
 
 @index_kits_htmx.route("<int:index_kit_id>/get_adapters", methods=["GET"], defaults={"page": 0})
@@ -150,5 +187,9 @@ def render_table(index_kit_id: int):
         columns.append(SpreadSheetColumn(string.ascii_uppercase[i], col, col, "text", width, var_type=str))
     
     return make_response(
-        render_template("components/itable.html", index_kit=index_kit, columns=columns, spreadsheet_data=df.replace(np.nan, "").values.tolist())
+        render_template(
+            "components/itable.html", index_kit=index_kit, columns=columns,
+            spreadsheet_data=df.replace(np.nan, "").values.tolist(),
+            table_id=f"index_kit_table-{index_kit_id}"
+        )
     )

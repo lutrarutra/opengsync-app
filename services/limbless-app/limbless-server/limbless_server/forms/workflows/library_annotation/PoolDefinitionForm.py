@@ -2,7 +2,7 @@ from typing import Optional, TYPE_CHECKING
 
 from flask import Response
 from wtforms import StringField, FloatField, FormField
-from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
+from wtforms.validators import Length, Optional as OptionalValidator
 
 from limbless_db import models
 
@@ -10,7 +10,7 @@ from .... import logger, db  # noqa F401
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
-from .SASInputForm import SASInputForm
+from .IndexKitSelectForm import IndexKitSelectForm
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -19,7 +19,7 @@ else:
 
 
 class PoolDefinitionForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_annotation/sas-1.5.html"
+    _template_path = "workflows/library_annotation/sas-1.2.html"
     _form_label = "pool_form"
 
     name = StringField("Pool Name", validators=[OptionalValidator(), Length(min=4, max=models.Pool.name.type.length)])
@@ -30,9 +30,6 @@ class PoolDefinitionForm(HTMXFlaskForm, TableDataForm):
 
     existing_pool = FormField(OptionalSearchBar, label="Select Existing Pool")
 
-    index_1_kit = FormField(OptionalSearchBar, label="Select Index Kit")
-    index_2_kit = FormField(OptionalSearchBar, label="Select Index Kit for index 2 (i5) if different from index 1 (i7)")
-
     def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, uuid: Optional[str] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         if uuid is None:
@@ -42,6 +39,9 @@ class PoolDefinitionForm(HTMXFlaskForm, TableDataForm):
         self._context["seq_request"] = seq_request
 
     def validate(self, user: models.User) -> bool:
+        if not super().validate():
+            return False
+        
         if self.name.data and self.existing_pool.selected.data:
             self.existing_pool.selected.errors = ["Define new pool or select an existing pool, not both."]
             self.name.errors = ["Define new pool or select an existing pool, not both."]
@@ -73,15 +73,13 @@ class PoolDefinitionForm(HTMXFlaskForm, TableDataForm):
     def process_request(self, user: models.User) -> Response:
         if not self.validate(user=user):
             return self.make_response()
-
-        sas_input_form = SASInputForm(seq_request=self.seq_request, uuid=self.uuid)
-        sas_input_form.metadata["pool_name"] = self.name.data
-        sas_input_form.metadata["pool_num_m_reads_requested"] = self.num_m_reads_requested.data
-        sas_input_form.metadata["pool_contact_name"] = self.contact_name.data
-        sas_input_form.metadata["pool_contact_email"] = self.contact_email.data
-        sas_input_form.metadata["pool_contact_phone"] = self.contact_phone.data
-        sas_input_form.metadata["index_1_kit_id"] = self.index_1_kit.selected.data
-        sas_input_form.metadata["index_2_kit_id"] = self.index_2_kit.selected.data if self.index_2_kit.selected.data else self.index_1_kit.selected.data
-        sas_input_form.metadata["existing_pool_id"] = self.existing_pool.selected.data
-        sas_input_form.update_data()
-        return sas_input_form.make_response()
+        
+        index_kit_select_form = IndexKitSelectForm(seq_request=self.seq_request, uuid=self.uuid)
+        index_kit_select_form.metadata["pool_name"] = self.name.data
+        index_kit_select_form.metadata["pool_num_m_reads_requested"] = self.num_m_reads_requested.data
+        index_kit_select_form.metadata["pool_contact_name"] = self.contact_name.data
+        index_kit_select_form.metadata["pool_contact_email"] = self.contact_email.data
+        index_kit_select_form.metadata["pool_contact_phone"] = self.contact_phone.data
+        index_kit_select_form.metadata["existing_pool_id"] = self.existing_pool.selected.data
+        index_kit_select_form.update_data()
+        return index_kit_select_form.make_response()

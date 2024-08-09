@@ -16,27 +16,38 @@
                 }}
                 {{
                     table_col(
+                        table_container_id='index_kit-table', column_name='Identifier', column_var='identifier',
+                        sort_url='index_kits_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        query_url='index_kits_htmx.table_query', current_query=current_query,
+                        active_query_field=active_query_field, query_type="text", col_size=1
+                    )
+                }}
+                {{
+                    table_col(
                         table_container_id='index_kit-table', column_name='Name', column_var='name',
                         sort_url='index_kits_htmx.get', sort_by=sort_by, sort_order=sort_order,
                         query_url='index_kits_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=7
+                        active_query_field=active_query_field, query_type="text", col_size=5
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='index_kit-table', column_name='Type', column_var='type_id',
-                        sort_url='index_kits_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=4,
+                        sort_url='index_kits_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
                         multiselect_choices=IndexType.as_list(), multiselect_selected=type_in
                     )
                 }}
+                <th scope="col" class="col-4">Protocols</th>
             </tr>
         </thead>
         <tbody>
             {% for index_kit in index_kits %}
             <tr onclick="redirect('{{ url_for('index_kits_page.index_kit_page', index_kit_id=index_kit.id) }}');">
                 <th scope="row">{{ index_kit.id }}</th>
+                <td>{{ index_kit.identifier }}</td>
                 <td>{{ index_kit.name }}</td>
                 <td>{{ index_kit.type.name }}</td>
+                <td>{{ index_kit.supported_protocols_str() }}</td>
             </tr>
             {% endfor %}
         </tbody>

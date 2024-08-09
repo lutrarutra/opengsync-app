@@ -95,8 +95,8 @@ def get_experiment_libraries_df(
     query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
     df = pd.read_sql(query, self._engine)
 
-    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
-    df["reference"] = df["reference_id"].map(categories.GenomeRef.get)
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
+    df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
 
     order = [
         "lane", "library_id", "library_name", "library_type", "reference", "pool_name",
@@ -159,7 +159,7 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
     )
 
     df = pd.read_sql(query, self._engine)
-    df["status"] = df["status_id"].map(categories.PoolStatus.get)
+    df["status"] = df["status_id"].map(categories.PoolStatus.get)  # type: ignore
 
     return df
 
@@ -224,7 +224,7 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
     return df
 
 
-def get_pool_libraries_df(self, pool_id: int, drop_empty_columns: bool = True) -> pd.DataFrame:
+def get_pool_libraries_df(self, pool_id: int) -> pd.DataFrame:
     columns = [
         models.Pool.id.label("pool_id"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
@@ -265,7 +265,7 @@ def get_seq_requestor_df(self, seq_request: int) -> pd.DataFrame:
     )
 
     df = pd.read_sql(query, self._engine)
-    df["role"] = df["role_id"].map(categories.UserRole.get)
+    df["role"] = df["role_id"].map(categories.UserRole.get)  # type: ignore
 
     return df
 
@@ -279,7 +279,7 @@ def get_seq_request_share_emails_df(self, seq_request: int) -> pd.DataFrame:
     )
 
     df = pd.read_sql(query, self._engine)
-    df["status"] = df["status_id"].map(categories.DeliveryStatus.get)
+    df["status"] = df["status_id"].map(categories.DeliveryStatus.get)  # type: ignore
 
     return df
 
@@ -302,7 +302,7 @@ def get_library_features_df(self, library_id: int) -> pd.DataFrame:
     ).distinct()
 
     df = pd.read_sql(query, self._engine)
-    df["feature_type"] = df["feature_type_id"].map(categories.FeatureType.get)
+    df["feature_type"] = df["feature_type_id"].map(categories.FeatureType.get)  # type: ignore
 
     return df
 
@@ -369,8 +369,8 @@ def get_seq_request_libraries_df(
             }
         )
 
-    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
-    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
+    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
 
     return df
 
@@ -409,8 +409,8 @@ def get_seq_request_samples_df(
 
     df = pd.read_sql(query, self._engine)
 
-    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)
-    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
+    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
 
     return df
 
@@ -451,9 +451,50 @@ def get_index_kit_barcodes_df(self, index_kit_id: int, per_adapter: bool = True)
     )
 
     df = pd.read_sql(query, self._engine)
-    df["type"] = df["type_id"].map(categories.BarcodeType.get)
+    df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
 
     if per_adapter:
         df = df.groupby(df.columns.difference(["sequence", "name", "type_id", "type"]).tolist(), as_index=False, dropna=False).agg({"sequence": list, "name": list, "type_id": list, "type": list}).rename(columns={"sequence": "sequences", "name": "names", "type_id": "type_ids", "type": "types"})
+
+    return df
+
+
+def get_feature_kit_features_df(self, feature_kit_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Feature.id.label("feature_id"), models.Feature.name.label("name"),
+        models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
+        models.Feature.type_id.label("type_id"),
+        models.Feature.target_name.label("target_name"), models.Feature.target_id.label("target_id"),
+    ).where(
+        models.Feature.feature_kit_id == feature_kit_id
+    )
+
+    df = pd.read_sql(query, self._engine)
+    df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
+
+    return df
+
+
+def get_seq_request_features_df(self, seq_request_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Library.id.label("library_id"), models.Library.name.label("library_name"),
+        models.Library.sample_name.label("sample_name"),
+        models.Feature.id.label("feature_id"), models.Feature.name.label("feature_name"),
+        models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
+        models.Feature.type_id.label("type_id"), models.Feature.target_name.label("target_name"), models.Feature.target_id.label("target_id"),
+    )
+
+    query = query.where(
+        models.Library.seq_request_id == seq_request_id
+    ).join(
+        models.LibraryFeatureLink,
+        models.LibraryFeatureLink.library_id == models.Library.id
+    ).join(
+        models.Feature,
+        models.Feature.id == models.LibraryFeatureLink.feature_id
+    )
+
+    df = pd.read_sql(query, self._engine)
+    df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
 
     return df

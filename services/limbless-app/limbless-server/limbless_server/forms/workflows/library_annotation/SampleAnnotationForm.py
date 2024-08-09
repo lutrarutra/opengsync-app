@@ -62,9 +62,9 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
         library_table["is_cmo_sample"] = False
         library_table["is_flex_sample"] = False
         for sample_name, _df in library_table.groupby("sample_name"):
-            if LibraryType.MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
+            if LibraryType.TENX_MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
                 library_table.loc[library_table["sample_name"] == sample_name, "is_cmo_sample"] = True
-            if LibraryType.TENX_FLEX.id in _df["library_type_id"].unique():
+            if LibraryType.TENX_SC_GEX_FLEX.id in _df["library_type_id"].unique():
                 library_table.loc[library_table["sample_name"] == sample_name, "is_flex_sample"] = True
 
         self.update_table("library_table", library_table, False)
@@ -129,15 +129,14 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
                     logger.error(f"{self.uuid}: flex reference table not found.")
                     raise Exception("flex reference should not be None.")
                 
-                for (sample_name, library_name, barcode_id), _ in flex_table.groupby(["sample_name", "library_name", "barcode_id"], dropna=False):
-                    sample_pool = library_table[library_table["sample_name"] == library_name].iloc[0]["sample_name"]
+                for (flex_sample_name, flex_demux_name, flex_barcode_id), _ in flex_table[flex_table["sample_name"] == sample_name].groupby(["sample_name", "demux_name", "barcode_id"], dropna=False):
                     add_sample(
-                        sample_name=sample_name,
-                        sample_pool=sample_pool,
+                        sample_name=flex_demux_name,
+                        sample_pool=flex_sample_name,
                         is_flex_sample=True,
                         is_cmo_sample=False,
                         library_types=library_types,
-                        flex_barcode=barcode_id,
+                        flex_barcode=flex_barcode_id,
                         sample_id=sample_id if pd.notna(sample_id) else None,
                     )
             else:

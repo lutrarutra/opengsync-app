@@ -1,0 +1,62 @@
+{% from "components/form_group.jinja2" import form_group, checkbox_input %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+
+<div id="pool-mapping-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">1.3 Select Index Kit</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body">
+        <div class="tab-body" id="select_index_kits-form">
+            <h4>Select Common Index Kit(s)</h4>
+            <div class="help">
+                <ul>
+                    <li>In next step you will specify barcode indices used for each library.</li>
+                    <li>If you used a common index kit, one that is found in <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">Index Kits</a>, please select the kit here.</li>
+                    <li>If you used two different kits for Index 1 (i7) and Index 2 (i5), please specify both.</li>
+                    <li>If index kit is specified, specify the index well, e.g. 'A3', or the name of the barcode (adapter), e.g. 'SI-TT-A1', in next step.</li>
+                    <li>If index kit is specified, the existense of barcode is checked in next step.</li>
+                    <li>If you used indices from two different kits, or used custom kit, specify the barcode sequences manually in the next step.</li>
+                    <li>If specifying barcode sequences manually, input all sequences in <b>forward orientation</b>.</li>
+                    <li>We recommend to specify index kit in order to minimize the probability of mistakes and typos.</li>
+                </ul>
+            </div>
+            <div class="row">
+                {{
+                    search_select_field(
+                        index_kit_select_form.index_1_kit,
+                        url_for('barcodes_htmx.query_index_kits'),
+                        class="col-6"
+                    )
+                }}
+                {{
+                    search_select_field(
+                        index_kit_select_form.index_2_kit,
+                        url_for('barcodes_htmx.query_index_kits'),
+                        class="col-6"
+                    )
+                }}
+            </div>
+            {{ checkbox_input(index_kit_select_form.custom_indices_used) }}
+            {{ index_kit_select_form.file_uuid(hidden=True, readonly=True) }}
+            {{ index_kit_select_form.csrf_token() }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ index_kit_select_form.file_uuid.data }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-primary"
+                hx-target="#pool-mapping-container" hx-swap="outerHTML"
+                hx-include="#select_index_kits-form" id="submit-select_index_kits-form-btn"
+                hx-post="{{ url_for('library_annotation_workflow.select_index_kits', seq_request_id=seq_request.id) }}">
+                Next
+            </button>
+        </div>
+    </div>
+    <script>
+        init_tooltips();
+    </script>
+</div>

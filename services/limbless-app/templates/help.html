@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set active_page = "help-page" %}
+{% block content %}
+<div class="container">
+    <h1>About</h1>
+    <p>
+        This program is designed to store and facilitate the transfer of information between customers and our team. It
+        is not intended for designing or validating experimental setups. Users must ensure that their experimental
+        setups are valid. If you are uncertain about your setup, please contact us at
+        <a href="mailto:bsf@cemm.at">bsf@cemm.at</a>.
+        Each sequencing request is subject to review and approval by the BSF team. For non-standard experimental setups,
+        such as using a custom genome reference, please contact us to ensure we can accommodate your request.
+    </p>
+
+    <hr>
+    <h1>Data Structure Definitions</h1>
+    <dir style="display: flex; width: 100%; justify-content: center;">
+        <img src="{{ url_for('static', filename='images/data-structure.svg') }}" width="80%">
+    </dir>
+    <br>
+
+    <h3>Sequencing Request</h3>
+    <p>
+        Customers can submit a sequencing request to the BSF team. The request defines samples, libraries, and pools
+        that the customer wants to sequence. Users can submit two types of requests: <b>raw samples</b>
+        <span class="desc">library preparation + sequencing</span> and <b>ready-to-sequence pooled libraries</b>
+        <span class="desc">only sequencing</span>. Results from each request will be shared with a single entity,
+        whether
+        it
+        is a research lab or an individual and their optional collaborators. If you are submitting a request on behalf
+        of multiple entities, e.g. two non-related projects from different groups, please
+        submit separate requests for each entity. Results from different requests, including previous ones
+        <span class="desc">e.g. re-sequencing</span>, can be
+        grouped together for analysis by associating the samples with the same project. This is achieved by selecting
+        an existing project and defining sample with a same 'sample_name' from existing project during sample/library
+        annotation.
+    </p>
+
+    <h3>Project</h3>
+    <p>
+        Project is a collection of samples. Samples from same project are analysed and shared together. Project can
+        include samples from different sequencing requests.
+    </p>
+
+    <h3>Sample</h3>
+    <p>
+        Sample <span class="desc">biosample/specimen</span> is a biological material that is prepared into a library and
+        sequenced. Samples can contain metadata information such as tissue, sex, genotype etc. Each sample can be
+        prepared into one or more libraries.
+    </p>
+
+    <h3>Library</h3>
+    <p>
+        Library is a sample that has been prepared for sequencing. Libraries are pooled before sequencing. Each library
+        has a type that is defined by the library preparation workflow. Each library is associated to a single
+        sequencing
+        request. Sequenced bases, fastq-files, are shared with recipients indicated in request's 'share'-tab. Library
+        can only be pooled and sequenced once. If you need to re-sequence a sample, new library will be
+        created from that sample. Samples can be multiplexed in a same library, e.g. using 10X sample multiplexing
+        hash-tag-oligos (HTOs).
+    </p>
+
+    <h3>Pool</h3>
+    <p>
+        Pool is a collection of libraries that are sequenced together. A pool can be sequenced on multiple lanes of a
+        flowcell.
+    </p>
+</div>
+
+{% endblock content %}

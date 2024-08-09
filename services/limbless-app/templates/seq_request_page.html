@@ -13,7 +13,7 @@
             <h1>{{ seq_request.name }}</h1>
         </div>
         <div>
-            {% if seq_request.status.name == "Draft" %}
+            {% if seq_request.status == SeqRequestStatus.DRAFT %}
             <span
             {% if not seq_request.is_submittable() %}
                 {% if not seq_request.is_authorized() %}
@@ -22,17 +22,11 @@
                     {{ tooltip('You must add at least one library to submit the request.', category='success') }}
                 {% endif %}
             {% endif %}>
-                <button hx-get="{{ url_for('seq_requests_htmx.submit', seq_request_id=seq_request.id) }}" class="btn btn-success"
-                    _="on htmx:confirm(issueRequest)
-                    halt the event
-                    call Swal.fire({
-                        title: 'Submit request \'{{ seq_request.name }}\'',
-                        showDenyButton: true,
-                        icon: 'warning',
-                        text: 'You can no longer edit the sequencing request after it is submitted. Do you want to proceed?',
-                        confirmButtonText: 'Yes',
-                        denyButtonText: 'No'
-                    }) if result.isConfirmed issueRequest()"
+                <button hx-get="{{ url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id) }}" class="btn btn-success"
+                    data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                    hx-get="{{ url_for('ba_report_workflow.begin') }}"
+                    hx-target="#xl-modal-content"
+                    hx-swap="innerHTML" hx-trigger="click"
                     {% if not seq_request.is_submittable() %}disabled{% endif %}>
                     Submit Request
                 </button>
@@ -201,7 +195,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -385,7 +379,7 @@
                     <h2>Samples</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_samples', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_samples', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -395,7 +389,7 @@
                     <h2>Pools</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_pools', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_pools', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -546,7 +540,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="6">
-            <div hx-get="{{ url_for('seq_requests_htmx.get_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -561,7 +555,7 @@
                 </button>
             </div>
 
-            <div hx-get="{{ url_for('seq_requests_htmx.get_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>  

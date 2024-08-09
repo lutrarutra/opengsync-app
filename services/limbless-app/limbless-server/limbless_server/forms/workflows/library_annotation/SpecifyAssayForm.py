@@ -109,17 +109,17 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
 
         selected_library_types = [t.abbreviation for t in AssayType.get(self.assay_type.data).library_types]
         if self.optional_assays.antibody_capture.data:
-            selected_library_types.append(LibraryType.ANTIBODY_CAPTURE.abbreviation)
+            selected_library_types.append(LibraryType.TENX_ANTIBODY_CAPTURE.abbreviation)
         if self.optional_assays.vdj_b.data:
-            selected_library_types.append(LibraryType.VDJ_B.abbreviation)
+            selected_library_types.append(LibraryType.TENX_VDJ_B.abbreviation)
         if self.optional_assays.vdj_t.data:
-            selected_library_types.append(LibraryType.VDJ_T.abbreviation)
+            selected_library_types.append(LibraryType.TENX_VDJ_T.abbreviation)
         if self.optional_assays.vdj_t_gd.data:
-            selected_library_types.append(LibraryType.VDJ_T_GD.abbreviation)
+            selected_library_types.append(LibraryType.TENX_VDJ_T_GD.abbreviation)
         if self.optional_assays.crispr_screening.data:
-            selected_library_types.append(LibraryType.CRISPR_SCREENING.abbreviation)
+            selected_library_types.append(LibraryType.TENX_CRISPR_SCREENING.abbreviation)
         if self.additional_services.multiplexing.data:
-            selected_library_types.append(LibraryType.MULTIPLEXING_CAPTURE.abbreviation)
+            selected_library_types.append(LibraryType.TENX_MULTIPLEXING_CAPTURE.abbreviation)
 
         for i, (_, row) in enumerate(self.df.iterrows()):
             if pd.isna(row["sample_name"]):
@@ -185,7 +185,7 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
                 library_table_data["sample_name"].append(row["sample_name"])
                 library_table_data["sample_id"].append(row["sample_id"])
                 
-                library_name = f"{row['sample_name']}_{library_type.assay_type}"
+                library_name = f"{row['sample_name']}_{library_type.identifier}"
 
                 library_table_data["library_name"].append(library_name)
                 library_table_data["genome"].append(row["genome"])
@@ -198,60 +198,60 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
                 library_table_data["sample_name"].append(row["sample_name"])
                 library_table_data["sample_id"].append(row["sample_id"])
 
-                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.ANTIBODY_CAPTURE.assay_type}")
+                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.TENX_ANTIBODY_CAPTURE.identifier}")
                 
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("Antibody Capture")
-                library_table_data["library_type_id"].append(LibraryType.ANTIBODY_CAPTURE.id)
+                library_table_data["library_type_id"].append(LibraryType.TENX_ANTIBODY_CAPTURE.id)
 
         if self.optional_assays.vdj_b.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
                 library_table_data["sample_id"].append(row["sample_id"])
 
-                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.VDJ_B.assay_type}")
+                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.TENX_VDJ_B.identifier}")
 
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("VDJ-B")
-                library_table_data["library_type_id"].append(LibraryType.VDJ_B.id)
+                library_table_data["library_type_id"].append(LibraryType.TENX_VDJ_B.id)
 
         if self.optional_assays.vdj_t.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
                 library_table_data["sample_id"].append(row["sample_id"])
 
-                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.VDJ_T.assay_type}")
+                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.TENX_VDJ_T.identifier}")
 
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("VDJ-T")
-                library_table_data["library_type_id"].append(LibraryType.VDJ_T.id)
+                library_table_data["library_type_id"].append(LibraryType.TENX_VDJ_T.id)
 
         if self.optional_assays.vdj_t_gd.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
                 library_table_data["sample_id"].append(row["sample_id"])
 
-                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.VDJ_T_GD.assay_type}")
+                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.TENX_VDJ_T_GD.identifier}")
 
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("VDJ-T-GD")
-                library_table_data["library_type_id"].append(LibraryType.VDJ_T_GD.id)
+                library_table_data["library_type_id"].append(LibraryType.TENX_VDJ_T_GD.id)
 
         if self.optional_assays.crispr_screening.data:
             for i, row in self.df.iterrows():
                 library_table_data["sample_name"].append(row["sample_name"])
                 library_table_data["sample_id"].append(row["sample_id"])
 
-                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.CRISPR_SCREENING.assay_type}")
+                library_table_data["library_name"].append(f"{row['sample_name']}_{LibraryType.TENX_CRISPR_SCREENING.identifier}")
 
                 library_table_data["genome"].append(row["genome"])
                 library_table_data["genome_id"].append(row["genome_id"])
                 library_table_data["library_type"].append("CRISPR Screening")
-                library_table_data["library_type_id"].append(LibraryType.CRISPR_SCREENING.id)
+                library_table_data["library_type_id"].append(LibraryType.TENX_CRISPR_SCREENING.id)
 
         library_table = pd.DataFrame(library_table_data)
         library_table["seq_depth"] = None
@@ -266,20 +266,20 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             })
             self.add_table("comment_table", comment_table)
 
-        if library_table["library_type_id"].isin([LibraryType.MULTIPLEXING_CAPTURE.id]).any():
+        if library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
             cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
         
-        if (library_table["library_type_id"] == LibraryType.ANTIBODY_CAPTURE.id).any():
+        if (library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
             feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return feature_reference_input_form.make_response()
         
-        if (library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+        if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
             visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values:
+        if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()

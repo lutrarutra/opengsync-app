@@ -24,3 +24,4 @@ from .AttributeType import AttributeType, AttributeTypeEnum  # noqa: F401
 from .IndexType import IndexType, IndexTypeEnum  # noqa: F401
 from .SubmissionType import SubmissionType, SubmissionTypeEnum  # noqa: F401
 from .LabProtocol import LabProtocol, LabProtocolEnum  # noqa: F401
+from .EventType import EventType, EventTypeEnum  # noqa: F401

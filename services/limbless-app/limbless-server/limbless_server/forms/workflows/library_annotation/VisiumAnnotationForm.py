@@ -68,7 +68,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
 
     def get_template(self) -> pd.DataFrame:
         library_table: pd.DataFrame = self.tables["library_table"]
-        df = library_table[library_table["library_type_id"] == LibraryType.SPATIAL_TRANSCRIPTOMIC.id][["library_name"]]
+        df = library_table[library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])][["library_name"]]
         df = df.rename(columns={"library_name": "Library Name"})
 
         for col in VisiumAnnotationForm.columns.values():
@@ -188,7 +188,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
                     self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Library Name' is a duplicate.")
                     self.spreadsheet_style[f"{VisiumAnnotationForm.columns['library_name'].column}{i + 1}"] = f"background-color: {VisiumAnnotationForm.colors['duplicate_value']};"
             else:
-                if (library_table[library_table["library_name"] == row["library_name"]]["library_type_id"] != LibraryType.SPATIAL_TRANSCRIPTOMIC.id).any():
+                if (library_table[library_table["library_name"] == row["library_name"]]["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
                     if self.input_type == "file":
                         self.file.errors.append(f"Row {i + 1}: 'Library Name' is not a Spatial Transcriptomic library.")
                     else:
@@ -254,7 +254,7 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         self.add_table("comment_table", comment_table)
         self.update_data()
 
-        if LibraryType.TENX_FLEX.id in library_table["library_type_id"].values and "pool" in library_table.columns:
+        if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()

@@ -64,7 +64,7 @@
                     </a>
                 </div>
             </div>
-            <div hx-get="{{ url_for('projects_htmx.get_samples', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('projects_htmx.get_samples', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

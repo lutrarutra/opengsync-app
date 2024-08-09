@@ -9,7 +9,7 @@
         <div>
         </div>
     </div>
-    <div hx-get="{{ url_for('libraries_htmx.get') }}" hx-trigger="load" hx-swap="outerHMTL">
+    <div hx-get="{{ url_for('libraries_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

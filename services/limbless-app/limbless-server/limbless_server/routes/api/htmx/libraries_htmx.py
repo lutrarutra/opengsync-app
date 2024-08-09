@@ -133,7 +133,7 @@ def get_visium_annotation(library_id: int):
         if not current_user.is_insider() and library.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
         
-        if library.type != LibraryType.SPATIAL_TRANSCRIPTOMIC:
+        if library.type in [LibraryType.TENX_VISIUM, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM_HD]:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
         visium_annotation = library.visium_annotation

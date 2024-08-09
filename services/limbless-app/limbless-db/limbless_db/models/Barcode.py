@@ -36,3 +36,7 @@ class Barcode(Base):
     def __repr__(self) -> str:
         return str(self)
     
+    @staticmethod
+    def reverse_complement(seq: str) -> str:
+        complement = {"A": "T", "T": "A", "C": "G", "G": "C"}
+        return "".join(complement.get(base, base) for base in reversed(seq))

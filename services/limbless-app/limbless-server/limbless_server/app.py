@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from uuid import uuid4
 from typing import TYPE_CHECKING
 
@@ -7,7 +8,7 @@ import pandas as pd
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
-from limbless_db import categories, models, DBSession, exceptions
+from limbless_db import categories, models, exceptions, db_session
 
 from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db
 from .routes import api, pages
@@ -65,34 +66,36 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         @app.route("/test")
         def test():
             return render_template("test.html", SeqRequestStatus=categories.SeqRequestStatus)
+        
+    @app.route("/help")
+    def help_page():
+        return render_template("help.html")
 
     @app.route("/index_page")
     def _index_page():
         return redirect(url_for("index_page"))
 
     @app.route("/")
+    @db_session(db)
     def index_page():
-        with DBSession(db) as session:
-            if not current_user.is_authenticated:
-                return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))
-                
-            if current_user.is_insider():
-                show_drafts = False
-                _user_id = None
-                recent_experiments, _ = session.get_experiments(sort_by="id", descending=True)
-            else:
-                show_drafts = True
-                _user_id = current_user.id
-                recent_experiments = None
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))
+            
+        if current_user.is_insider():
+            show_drafts = False
+            _user_id = None
+            recent_experiments, _ = db.get_experiments(sort_by="id", descending=True)
+        else:
+            show_drafts = True
+            _user_id = current_user.id
+            recent_experiments = None
 
-            recent_seq_requests, _ = session.get_seq_requests(user_id=_user_id, sort_by="timestamp_submitted_utc", descending=True, show_drafts=show_drafts)
+        recent_seq_requests, _ = db.get_seq_requests(user_id=_user_id, sort_by="timestamp_submitted_utc", descending=True, show_drafts=show_drafts)
 
-            return render_template(
-                "index.html",
-                recent_seq_requests=recent_seq_requests,
-                recent_experiments=recent_experiments,
-            )
-    
+        return render_template(
+            "index.html", recent_seq_requests=recent_seq_requests, recent_experiments=recent_experiments,
+        )
+
     @app.route("/pdf_file/<int:file_id>")
     @login_required
     def pdf_file(file_id: int):
@@ -200,6 +203,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             SubmissionType=categories.SubmissionType,
             AttributeType=categories.AttributeType,
             IndexType=categories.IndexType,
+            EventType=categories.EventType,
             isna=pd.isna,
         )
     
@@ -222,7 +226,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.sequencers_htmx)
     app.register_blueprint(api.htmx.users_htmx)
     app.register_blueprint(api.htmx.libraries_htmx)
-    app.register_blueprint(api.htmx.features_htmx)
     app.register_blueprint(api.htmx.feature_kits_htmx)
     app.register_blueprint(api.htmx.index_kits_htmx)
     app.register_blueprint(api.htmx.plates_htmx)
@@ -230,6 +233,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.seq_runs_htmx)
     app.register_blueprint(api.htmx.files_htmx)
     app.register_blueprint(api.htmx.lab_preps_htmx)
+    app.register_blueprint(api.htmx.events_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.seq_run_api)
