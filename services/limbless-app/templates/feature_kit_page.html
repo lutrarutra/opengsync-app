@@ -11,7 +11,7 @@
             <a type="button" class="btn btn-primary" href="{{ url_for('feature_kits_page.export_features', feature_kit_id=feature_kit.id) }}">Export</a>
         </div>
     </div>
-    <div hx-get="{{ url_for('feature_kits_htmx.get_features', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+    <div hx-get="{{ url_for('feature_kits_htmx.get_features', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from .File import File
     from .Comment import Comment
     from .Sample import Sample
+    from .Event import Event
 
 
 class SeqRequest(Base):
@@ -34,7 +35,6 @@ class SeqRequest(Base):
     submission_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=SeqRequestStatus.DRAFT.id)
 
-    timestamp_sample_submission_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
@@ -58,6 +58,9 @@ class SeqRequest(Base):
 
     seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True, default=None)
     seq_auth_form_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[seq_auth_form_file_id], cascade="save-update, merge, delete")
+
+    sample_submission_event_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("event.id"), nullable=True)
+    sample_submission_event: Mapped[Optional["Event"]] = relationship("Event", lazy="select", foreign_keys=[sample_submission_event_id], back_populates="seq_request", cascade="save-update, merge, delete")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
@@ -96,12 +99,6 @@ class SeqRequest(Base):
         return localize(self.timestamp_submitted_utc)
     
     @property
-    def timestamp_sample_submission(self) -> Optional[datetime]:
-        if self.timestamp_sample_submission_utc is None:
-            return None
-        return localize(self.timestamp_sample_submission_utc)
-    
-    @property
     def timestamp_finished(self) -> Optional[datetime]:
         if self.timestamp_finished_utc is None:
             return None
@@ -130,11 +127,6 @@ class SeqRequest(Base):
     
     def timestamp_finished_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         if (ts := self.timestamp_finished) is None:
-            return ""
-        return ts.strftime(fmt)
-    
-    def timestamp_sample_submission_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
-        if (ts := self.timestamp_sample_submission) is None:
             return ""
         return ts.strftime(fmt)
     

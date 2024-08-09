@@ -31,12 +31,12 @@
 <div class="container">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="barcodes-tab" role="tabpanel" tabindex="0">
-            <div hx-get="{{ url_for('index_kits_htmx.get_adapters', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('index_kits_htmx.get_adapters', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="table-tab" role="tabpanel" tabindex="0">
-            <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

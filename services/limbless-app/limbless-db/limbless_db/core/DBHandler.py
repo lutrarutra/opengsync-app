@@ -165,6 +165,10 @@ class DBHandler():
         create_seq_run, get_seq_run, get_seq_runs, update_seq_run, query_seq_runs
     )
 
+    from .model_handlers._event_methods import (
+        create_event, get_event, get_events, update_event, delete_event
+    )
+
     from .pd_handler import (
         get_experiment_libraries_df, get_experiment_pools_df,
         get_experiment_lanes_df, get_experiment_laned_pools_df,

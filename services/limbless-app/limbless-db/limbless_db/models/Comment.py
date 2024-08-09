@@ -16,9 +16,9 @@ class Comment(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     text: Mapped[str] = mapped_column(sa.String(2048), nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
-    author_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True)
 
+    author_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     author: Mapped["User"] = relationship("User", lazy="joined")
 
     @property

@@ -186,19 +186,19 @@
             </div>
         </div>
         <div class="tab-pane fade" id="library-samples-tab" role="tabpanel" tabindex="3">
-            <div hx-get="{{ url_for('libraries_htmx.get_samples', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('libraries_htmx.get_samples', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         {% if library.type in [LibraryType.TENX_VISIUM_HD, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM] %}
         <div class="tab-pane fade" id="library-visium-tab" role="tabpanel" tabindex="4">
-            <div hx-get="{{ url_for('libraries_htmx.get_visium_annotation', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('libraries_htmx.get_visium_annotation', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         {% elif library.type == LibraryType.TENX_ANTIBODY_CAPTURE %}
         <div class="tab-pane fade" id="library-abc-tab" role="tabpanel" tabindex="5">
-            <div hx-get="{{ url_for('libraries_htmx.get_features', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('libraries_htmx.get_features', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -222,7 +222,7 @@
         </div>
         {% endif %}
         <div class="tab-pane fade" id="reads-tab" role="tabpanel" tabindex="7">
-            <div hx-get="{{ url_for('libraries_htmx.reads_tab', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('libraries_htmx.reads_tab', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

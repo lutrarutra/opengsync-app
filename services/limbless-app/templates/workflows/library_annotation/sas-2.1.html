@@ -90,7 +90,7 @@
                 
                 {% if index_1_kit_id is not none %}
                 <div class="tab-pane fade" id="form-tab-kit1" role="tabpanel" tabindex="3">
-                    <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_1_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                    <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_1_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                         {{ spinner() }}
                     </div>
                 </div>
@@ -98,7 +98,7 @@
 
                 {% if index_2_kit_id is not none and index_1_kit_id != index_2_kit_id %}
                 <div class="tab-pane fade" id="form-tab-kit2" role="tabpanel" tabindex="4">
-                    <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_2_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+                    <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_2_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                         {{ spinner() }}
                     </div>
                 </div>

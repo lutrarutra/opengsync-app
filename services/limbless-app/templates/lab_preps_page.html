@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <div hx-get="{{ url_for('lab_preps_htmx.get') }}" hx-trigger="load" hx-swap="outerHMTL">
+    <div hx-get="{{ url_for('lab_preps_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 

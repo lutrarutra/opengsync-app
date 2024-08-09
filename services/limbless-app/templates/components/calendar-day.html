@@ -1,0 +1,26 @@
+<div class="modal-content calendar-day-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">{{ date.strftime("%A, %B %d, %Y") }}</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <ul class="event-list" style="overflow-y: auto; height: 300px;">
+        {% for event in events %}
+            <li>
+                <div>
+                    <h5>{{ event.timestamp_str("%H:%M") }} - {{ event.type.name }}</h5>
+                </div>
+                <div>
+                    {% if event.type == EventType.SAMPLE_SUBMISSION %}
+                    <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=event.seq_request.id) }}">{{ event.seq_request.name }}</a>
+                    {% endif %}
+                    {% if event.note %}
+                    <p>{{ event.note }}</p>
+                    {% endif %}
+                </div>
+            </li>
+            <hr>
+        {% endfor %}
+        </ul>
+    </div>
+</div>

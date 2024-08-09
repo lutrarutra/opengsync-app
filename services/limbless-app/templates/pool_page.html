@@ -91,7 +91,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('pools_htmx.get_libraries', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('pools_htmx.get_libraries', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -107,7 +107,7 @@
         {% if current_user.is_insider() %}
         <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="2">
             {% if pool.plate_id %}
-            <div hx-get="{{ url_for('plates_htmx.plate_tab', plate_id=pool.plate_id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('plates_htmx.plate_tab', plate_id=pool.plate_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
             {% endif %}
@@ -130,7 +130,7 @@
                     <h2>Dilutions</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('pools_htmx.get_dilutions', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('pools_htmx.get_dilutions', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

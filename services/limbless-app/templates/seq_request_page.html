@@ -195,7 +195,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -379,7 +379,7 @@
                     <h2>Samples</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_samples', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_samples', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -389,7 +389,7 @@
                     <h2>Pools</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_pools', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_pools', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -406,9 +406,6 @@
                     {{ metadata_group("Sequencing Type (SE/PE)", seq_request.read_type.name, class="col-3") }}
                     {{ metadata_group("Read Length", seq_request.read_length, class="col-3") }}
                     {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-3") }}
-                </div>
-                <div class="row">
-                    {{ metadata_group("Sample Submission Time", seq_request.timestamp_sample_submission_str(), class="col-3") }}
                 </div>
 
                 <div class="row">
@@ -543,7 +540,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="6">
-            <div hx-get="{{ url_for('seq_requests_htmx.get_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -558,7 +555,7 @@
                 </button>
             </div>
 
-            <div hx-get="{{ url_for('seq_requests_htmx.get_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHMTL">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>  

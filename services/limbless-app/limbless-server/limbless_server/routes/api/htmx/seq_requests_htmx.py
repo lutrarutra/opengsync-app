@@ -186,8 +186,6 @@ def delete(seq_request_id: int):
     db.delete_seq_request(seq_request_id)
 
     flash(f"Deleted sequencing request '{seq_request.name}'", "success")
-    logger.debug(f"Deleted sequencing request '{seq_request.name}'")
-
     return make_response(
         redirect=url_for("seq_requests_page.seq_requests_page"),
     )
@@ -250,9 +248,8 @@ def submit_request(seq_request_id: int):
         form = forms.SubmitSeqRequestForm(seq_request=seq_request)
         return form.make_response()
     else:
-        logger.debug(request.form)
         form = forms.SubmitSeqRequestForm(seq_request=seq_request, formdata=request.form)
-        return form.process_request()
+        return form.process_request(user=current_user)
 
 
 @seq_requests_htmx.route("create", methods=["POST"])

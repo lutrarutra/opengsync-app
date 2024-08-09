@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    <div hx-get="{{ url_for('seq_requests_htmx.get', sort_by='id') }}" hx-trigger="load" hx-swap="outerHMTL">
+    <div hx-get="{{ url_for('seq_requests_htmx.get', sort_by='id') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from uuid import uuid4
 from typing import TYPE_CHECKING
 
@@ -202,6 +203,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             SubmissionType=categories.SubmissionType,
             AttributeType=categories.AttributeType,
             IndexType=categories.IndexType,
+            EventType=categories.EventType,
             isna=pd.isna,
         )
     
@@ -231,6 +233,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.seq_runs_htmx)
     app.register_blueprint(api.htmx.files_htmx)
     app.register_blueprint(api.htmx.lab_preps_htmx)
+    app.register_blueprint(api.htmx.events_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.seq_run_api)
