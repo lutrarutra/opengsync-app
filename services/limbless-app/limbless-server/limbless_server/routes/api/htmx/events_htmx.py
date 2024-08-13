@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT, db_session
+from limbless_db import models, db_session
 from limbless_db.categories import HTTPResponse
-from .... import db, forms, logger  # noqa
+from .... import db, forms, logger, cache  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -19,6 +19,7 @@ events_htmx = Blueprint("events_htmx", __name__, url_prefix="/api/hmtx/events/")
 
 @events_htmx.route("/render_calendar_month/<int:year>/<int:month>", methods=["GET"])
 @events_htmx.route("/render_calendar_month", methods=["GET"], defaults={"year": datetime.now().year, "month": datetime.now().month})
+@cache.cached(timeout=60)
 @login_required
 def render_calendar_month(year: int, month: int):
     try:

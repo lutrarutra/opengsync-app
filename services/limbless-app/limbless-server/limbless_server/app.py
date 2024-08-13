@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from uuid import uuid4
 from typing import TYPE_CHECKING
 
@@ -7,10 +6,11 @@ import pandas as pd
 
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
+from flask_caching import Cache
 
 from limbless_db import categories, models, exceptions, db_session
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache
 from .routes import api, pages
 
 if TYPE_CHECKING:
@@ -30,6 +30,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
     app.config["MEDIA_FOLDER"] = os.path.join("media")
     app.config["UPLOADS_FOLDER"] = os.path.join("uploads")
+    cache.init_app(app, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": 'redis://redis-cache:6379'})
 
     for file_type in categories.FileType.as_list():
         if file_type.dir is None:

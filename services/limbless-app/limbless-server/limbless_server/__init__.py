@@ -8,6 +8,7 @@ from flask_htmx import HTMX
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_mail import Mail
+from flask_caching import Cache
 from itsdangerous import URLSafeTimedSerializer
 
 from limbless_db import DBHandler
@@ -63,6 +64,8 @@ db_host = os.environ["POSTGRES_HOST"]
 db_port = os.environ["POSTGRES_PORT"]
 db_name = os.environ["POSTGRES_DB"]
 TIMEZONE = pytz.timezone(os.environ['TIMEZONE'])
+
 db = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
+cache = Cache()
 
 DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
