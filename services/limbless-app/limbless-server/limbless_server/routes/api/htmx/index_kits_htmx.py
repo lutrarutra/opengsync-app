@@ -11,7 +11,7 @@ from flask_login import login_required
 
 from limbless_db import models, db_session, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, IndexType, BarcodeType
-from .... import db, logger  # noqa F401
+from .... import db, logger, cache  # noqa F401
 from ....tools import SpreadSheetColumn
 
 if TYPE_CHECKING:
@@ -26,6 +26,7 @@ index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/i
 @index_kits_htmx.route("get/<int:page>", methods=["GET"])
 @db_session(db)
 @login_required
+@cache.cached(timeout=300, query_string=True)
 def get(page: int):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
@@ -58,6 +59,7 @@ def get(page: int):
 
 @index_kits_htmx.route("table_query", methods=["GET"])
 @login_required
+@cache.cached(timeout=300)
 def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -126,6 +128,7 @@ def get_adapters(index_kit_id: int, page: int):
 @index_kits_htmx.route("<int:index_kit_id>/render_table", methods=["GET"])
 @db_session(db)
 @login_required
+@cache.cached(timeout=300)
 def render_table(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

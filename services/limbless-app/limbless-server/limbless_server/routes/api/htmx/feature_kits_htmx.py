@@ -6,7 +6,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse
-from .... import db, logger  # noqa: F401
+from .... import db, logger, cache  # noqa: F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -19,6 +19,7 @@ feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/api/hm
 @feature_kits_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @feature_kits_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
+@cache.cached(timeout=300, query_string=True)
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -102,6 +103,7 @@ def table_query():
 @feature_kits_htmx.route("<int:feature_kit_id>/get_features", methods=["GET"], defaults={"page": 0})
 @feature_kits_htmx.route("<int:feature_kit_id>/get_features/<int:page>", methods=["GET"])
 @login_required
+@cache.cached(timeout=300, query_string=True)
 def get_features(feature_kit_id: int, page: int):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
