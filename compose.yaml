@@ -54,9 +54,27 @@ services:
             sass-compiler:
                 condition: service_completed_successfully
                 restart: false
-
+            redis-cache:
+                condition: service_healthy
+                restart: true
         healthcheck:
             test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+
+    redis-cache:
+        container_name: redis-cache-dev
+        image: redis:6.2-alpine
+        expose:
+            - 6379
+        ports:
+            - 6379:6379
+        restart: always
+        volumes:
+            - ./cache:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
             interval: 10s
             timeout: 10s
             retries: 5

@@ -85,3 +85,16 @@
         
     }
 }
+
+@media screen and (max-width: 768px) {
+    .dash {
+        flex-direction: column;
+        .dash-left {
+            width: 100%;
+        }
+        .dash-right {
+            width: 100%;
+        }
+    }
+    
+}

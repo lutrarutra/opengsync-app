@@ -3,6 +3,7 @@
 pipeline.yml
 data/
 logs/
+cache/
 db/
 uploads/
 media/
