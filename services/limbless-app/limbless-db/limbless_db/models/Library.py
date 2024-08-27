@@ -28,9 +28,9 @@ class Library(Base):
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
-    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
-    genome_ref_id: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
+    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    genome_ref_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
 
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 

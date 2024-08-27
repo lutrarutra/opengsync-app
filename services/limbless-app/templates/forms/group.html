@@ -1,0 +1,7 @@
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+
+<div id="group-form">
+    {{ group_form.csrf_token() }}
+    {{ form_group(group_form.name) }}
+    {{ select_input(group_form.group_type) }}
+</div>

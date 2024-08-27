@@ -28,9 +28,15 @@
                 {% include project_form._template_path %}
             </div>
             <div class="modal-footer" id="popup-footer">
-                <button id="submit-project-btn" class="btn btn-primary"
-                hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('projects_htmx.create') }}">Submit</button>
+                <div class="text-nowrap text-muted footer-id">
+                </div>
+                <div class="footer-info">
+                </div>
+                <div class="footer-controls">
+                    <button id="submit-project-btn" class="btn btn-primary"
+                    hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
+                    hx-post="{{ url_for('projects_htmx.create') }}">Submit</button>
+                </div>
             </div>
           </div>
         </div>

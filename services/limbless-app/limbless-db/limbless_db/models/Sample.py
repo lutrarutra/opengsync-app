@@ -22,7 +22,7 @@ class Sample(Base):
     
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)

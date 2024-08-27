@@ -236,6 +236,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.files_htmx)
     app.register_blueprint(api.htmx.lab_preps_htmx)
     app.register_blueprint(api.htmx.events_htmx)
+    app.register_blueprint(api.htmx.groups_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.seq_run_api)
@@ -269,5 +270,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(pages.feature_kits_page_bp)
     app.register_blueprint(pages.seq_runs_page_bp)
     app.register_blueprint(pages.lab_preps_page_bp)
+    app.register_blueprint(pages.groups_page_bp)
 
     return app

@@ -7,7 +7,7 @@ from limbless_db import models
 
 from .. import exceptions
 from ... import PAGE_LIMIT
-from ...categories import UserRole, UserRoleEnum
+from ...categories import UserRole, UserRoleEnum, AffiliationTypeEnum
 
 
 def create_user(
@@ -18,8 +18,7 @@ def create_user(
     role: UserRoleEnum,
     commit: bool = True
 ) -> models.User:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if self._session.query(models.User).where(
@@ -46,8 +45,7 @@ def create_user(
 
 
 def get_user(self, user_id: int) -> Optional[models.User]:
-    persist_session = self._session is not None
-    if self._session is None:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.User, user_id)
@@ -59,8 +57,7 @@ def get_user(self, user_id: int) -> Optional[models.User]:
 
 
 def get_user_by_email(self, email: str) -> models.User:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     user = self._session.query(models.User).where(
@@ -74,10 +71,10 @@ def get_user_by_email(self, email: str) -> models.User:
 def get_users(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     role_in: Optional[list[UserRoleEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False
+    sort_by: Optional[str] = None, descending: bool = False,
+    group_id: Optional[int] = None
 ) -> tuple[list[models.User], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.User)
@@ -86,6 +83,14 @@ def get_users(
         role_ids = [role.id for role in role_in]
         query = query.where(
             models.User.role_id.in_(role_ids)
+        )
+
+    if group_id is not None:
+        query = query.join(
+            models.UserAffiliation,
+            models.UserAffiliation.user_id == models.User.id
+        ).where(
+            models.UserAffiliation.group_id == group_id
         )
         
     if sort_by is not None:
@@ -110,8 +115,7 @@ def get_users(
 
 
 def get_num_users(self) -> int:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.query(models.User).count()
@@ -124,8 +128,7 @@ def get_num_users(self) -> int:
 def update_user(
     self, user: models.User
 ) -> models.User:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(user)
@@ -138,8 +141,7 @@ def update_user(
 
 
 def delete_user(self, user_id: int) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (user := self._session.get(models.User, user_id)) is None:
@@ -156,8 +158,7 @@ def query_users(
     self, word: str, role_in: Optional[list[UserRoleEnum]] = None,
     only_insiders: bool = False, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.User]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.User)
@@ -190,8 +191,7 @@ def query_users(
 def query_users_by_email(
     self, word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.User]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.User)
@@ -214,3 +214,40 @@ def query_users_by_email(
         self.close_session()
 
     return users
+
+
+def get_user_affiliations(
+    self, user_id: int, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None
+) -> tuple[list[models.UserAffiliation], int]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self._session.query(models.UserAffiliation).where(
+        models.UserAffiliation.user_id == user_id
+    )
+
+    if affiliation_type is not None:
+        query = query.where(
+            models.UserAffiliation.affiliation_type_id == affiliation_type.id
+        )
+
+    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+
+    if sort_by is not None:
+        attr = getattr(models.UserAffiliation, sort_by)
+        if descending:
+            attr = attr.desc()
+        query = query.order_by(attr)
+
+    if limit is not None:
+        query = query.limit(limit)
+    if offset is not None:
+        query = query.offset(offset)
+
+    res = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return res, n_pages

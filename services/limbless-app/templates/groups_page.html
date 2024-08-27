@@ -1,0 +1,48 @@
+
+{% extends "base.html" %}
+{% set active_page = "groups-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div>
+            <h1>Groups</h1>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
+                New Group
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div hx-get="{{ url_for('groups_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+
+<div class="modal fade" id="form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h1 class="modal-title fs-5" >Create New Group</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            {% include group_form._template_path %}
+        </div>
+        <div class="modal-footer" id="popup-footer">
+            <div class="text-nowrap text-muted footer-id">
+            </div>
+            <div class="footer-info">
+            </div>
+            <div class="footer-controls">
+                <button id="submit-group-btn" class="btn btn-success"
+                hx-include="#group-form" hx-target="#group-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('groups_htmx.create') }}">Submit</button>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

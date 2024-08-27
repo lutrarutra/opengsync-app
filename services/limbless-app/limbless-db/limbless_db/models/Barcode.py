@@ -19,7 +19,7 @@ class Barcode(Base):
     name: Mapped[str] = mapped_column(sa.String(16), nullable=False, index=True)
     well: Mapped[Optional[str]] = mapped_column(sa.String(4), nullable=True)
 
-    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     adapter_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("adapter.id"), nullable=False)
 

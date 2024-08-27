@@ -13,8 +13,7 @@ def create_index_kit(
     supported_protocols: list[LabProtocolEnum],
     type: IndexTypeEnum,
 ) -> models.IndexKit:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if self._session.query(models.IndexKit).where(models.IndexKit.name == name).first():
@@ -36,8 +35,7 @@ def create_index_kit(
 
 
 def get_index_kit(self, id: int) -> Optional[models.IndexKit]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.IndexKit, id)
@@ -49,8 +47,7 @@ def get_index_kit(self, id: int) -> Optional[models.IndexKit]:
 
 
 def get_index_kit_by_name(self, name: str) -> Optional[models.IndexKit]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.query(models.IndexKit).where(models.IndexKit.name == name).first()
@@ -65,8 +62,7 @@ def get_index_kits(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.IndexKit], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.IndexKit)
@@ -100,8 +96,7 @@ def query_index_kits(
     self, word: str, limit: Optional[int] = PAGE_LIMIT,
     type_in: Optional[list[IndexTypeEnum]] = None,
 ) -> list[models.IndexKit]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = sa.select(models.IndexKit)

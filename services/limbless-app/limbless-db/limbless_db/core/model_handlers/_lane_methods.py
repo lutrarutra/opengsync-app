@@ -9,8 +9,7 @@ def create_lane(
     self, number: int, experiment_id: int
 ) -> models.Lane:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if self._session.get(models.Experiment, experiment_id) is None:
@@ -38,8 +37,7 @@ def create_lane(
 
 
 def get_lane(self, lane_id: int) -> Optional[models.Lane]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.Lane, lane_id)
@@ -50,8 +48,7 @@ def get_lane(self, lane_id: int) -> Optional[models.Lane]:
 
 
 def get_experiment_lane(self, experiment_id: int, lane_num: int) -> Optional[models.Lane]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.query(models.Lane).where(
@@ -70,8 +67,7 @@ def get_lanes(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Lane], int]:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Lane)
@@ -104,8 +100,7 @@ def get_lanes(
 
 
 def update_lane(self, lane: models.Lane,) -> models.Lane:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(lane)

@@ -12,8 +12,7 @@ def create_contact(
     commit: bool = True
 ) -> models.Contact:
 
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     contact = models.Contact(
@@ -44,8 +43,7 @@ def update_contact(
     commit: bool = True
 ) -> models.Contact:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (contact := self._session.get(models.Contact, contact_id)) is None:

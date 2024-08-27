@@ -21,8 +21,7 @@ def create_pool(
     status: PoolStatusEnum = PoolStatus.DRAFT,
     contact_phone: Optional[str] = None
 ) -> models.Pool:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (user := self._session.get(models.User, owner_id)) is None:
@@ -60,8 +59,7 @@ def create_pool(
 
 
 def get_pool(self, pool_id: int) -> Optional[models.Pool]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     pool = self._session.get(models.Pool, pool_id)
@@ -84,8 +82,7 @@ def get_pools(
     status_in: Optional[list[PoolStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Pool], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Pool)
@@ -153,8 +150,7 @@ def get_pools(
 
 
 def delete_pool(self, pool_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (pool := self._session.get(models.Pool, pool_id)) is None:
@@ -170,8 +166,7 @@ def delete_pool(self, pool_id: int):
 
 
 def update_pool(self, pool: models.Pool,) -> models.Pool:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(pool)
@@ -190,8 +185,7 @@ def dilute_pool(
     volume_ul: Optional[float] = None,
     experiment_id: Optional[int] = None
 ) -> models.Pool:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (pool := self._session.get(models.Pool, pool_id)) is None:
@@ -241,8 +235,7 @@ def query_pools(
     status_in: Optional[list[PoolStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Pool]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = sa.select(models.Pool)
@@ -283,8 +276,7 @@ def query_pools(
 def get_pool_dilution(
     self, pool_id: int, identifier: str,
 ) -> Optional[models.PoolDilution]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     dilution = self._session.query(models.PoolDilution).where(
@@ -304,8 +296,7 @@ def get_pool_dilutions(
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.PoolDilution], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if pool_id is not None and experiment_id is not None:

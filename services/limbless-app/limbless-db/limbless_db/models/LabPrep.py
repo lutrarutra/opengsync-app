@@ -22,8 +22,8 @@ class LabPrep(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(32), nullable=False)
 
-    protocol_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    protocol_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
 
     creator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     creator: Mapped["User"] = relationship("User", back_populates="preps", lazy="joined")

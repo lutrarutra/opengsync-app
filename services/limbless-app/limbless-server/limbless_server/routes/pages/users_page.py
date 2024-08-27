@@ -69,7 +69,13 @@ def user_page(user_id: Optional[int]):
                 (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
                 (f"User {user_id}", ""),
             ]
-
+        elif page == "group":
+            path_list = [
+                ("Groups", url_for("groups_page.groups_page")),
+                (f"Group {id}", url_for("groups_page.group_page", group_id=id)),
+                (f"User {user_id}", ""),
+            ]
+            
     projects, _ = db.get_projects(user_id=user_id, limit=None)
     seq_requests, _ = db.get_seq_requests(user_id=user_id, limit=None)
     return render_template(

@@ -17,3 +17,4 @@ from .seq_runs_htmx import seq_runs_htmx   # noqa: F401
 from .files_htmx import files_htmx   # noqa: F401
 from .lab_preps_htmx import lab_preps_htmx   # noqa: F401
 from .events_htmx import events_htmx   # noqa: F401
+from .groups_htmx import groups_htmx   # noqa: F401

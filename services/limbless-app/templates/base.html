@@ -130,6 +130,11 @@
                 <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" id="seq_run-page" href="{{ url_for('seq_runs_page.seq_runs_page') }}">Runs</a>
             </div>
             {% endif %}
+            {% if current_user.is_authenticated %}
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" id="groups-page" href="{{ url_for('groups_page.groups_page') }}">Groups</a>
+            </div>
+            {% endif %}
         </div>
         <div class="nav-right">
             {% if current_user.is_authenticated %}

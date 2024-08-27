@@ -5,14 +5,48 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 
-from limbless_db.categories import DeliveryStatus, DeliveryStatusEnum
+from limbless_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum, AccessType, AccessTypeEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
     from .SeqRequest import SeqRequest
     from .Plate import Plate
+    from .Group import Group
+    from .User import User
 
+
+class SeqRequestGroupLinks(Base):
+    __tablename__ = "seq_request_group_link"
+
+    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True)
+    group_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), primary_key=True)
+
+    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", lazy="select")
+    group: Mapped["Group"] = relationship("Group", lazy="select")
+
+    access_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+
+    @property
+    def access_type(self) -> AccessTypeEnum:
+        return AccessType.get(self.access_type_id)
+
+
+class UserAffiliation(Base):
+    __tablename__ = "user_affiliation"
+
+    user_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), primary_key=True)
+    group_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), primary_key=True)
+    
+    user: Mapped["User"] = relationship("User", back_populates="affiliations", lazy="select")
+    group: Mapped["Group"] = relationship("Group", back_populates="user_links", lazy="select")
+
+    affiliation_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+
+    @property
+    def affiliation_type(self) -> AffiliationTypeEnum:
+        return AffiliationType.get(self.affiliation_type_id)
+    
 
 class LibraryLabPrepLink(Base):
     __tablename__ = "library_lab_prep_link"
@@ -127,7 +161,7 @@ class SeqRequestDeliveryEmailLink(Base):
     seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True, nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), primary_key=True, nullable=False, index=True)
     
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=DeliveryStatus.PENDING.id)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=DeliveryStatus.PENDING.id)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="delivery_email_links")
 
     @property

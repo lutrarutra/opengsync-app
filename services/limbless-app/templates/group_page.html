@@ -1,0 +1,28 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
+{% extends "base.html" %}
+{% set active_page = "groups-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div>
+            <h1>{{ group.name }} <span {{ tooltip(group.type.name, position="right") }}>{{ group.type.icon }}</span></h1>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
+                Edit Group
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div hx-get="{{ url_for('groups_htmx.get_users', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+
+<script>
+    init_tooltips();
+</script>
+{% endblock %}

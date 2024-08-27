@@ -9,8 +9,7 @@ from .. import exceptions
 def create_lab_prep(
     self, name: str, creator_id: int, protocol: LabProtocolEnum,
 ) -> models.LabPrep:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (creator := self._session.get(models.User, creator_id)) is None:
@@ -34,8 +33,7 @@ def create_lab_prep(
 def get_lab_prep(
     self, lab_prep_id: int
 ) -> Optional[models.LabPrep]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     lab_prep = self._session.get(models.LabPrep, lab_prep_id)
@@ -52,8 +50,7 @@ def get_lab_preps(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.LabPrep], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.LabPrep)
@@ -81,8 +78,7 @@ def get_lab_preps(
 
 
 def get_next_protocol_identifier(self, protocol: LabProtocolEnum) -> str:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if not protocol.identifier:
@@ -103,8 +99,7 @@ def get_next_protocol_identifier(self, protocol: LabProtocolEnum) -> str:
 def update_lab_prep(
     self, lab_prep: models.LabPrep
 ) -> models.LabPrep:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(lab_prep)
@@ -119,8 +114,7 @@ def update_lab_prep(
 def add_library_to_prep(
     self, lab_prep_id: int, library_id: int
 ) -> models.LabPrep:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (lab_prep := self._session.get(models.LabPrep, lab_prep_id)) is None:
@@ -145,8 +139,7 @@ def add_library_to_prep(
 def remove_library_from_prep(
     self, lab_prep_id: int, library_id: int
 ) -> models.LabPrep:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (lab_prep := self._session.get(models.LabPrep, lab_prep_id)) is None:

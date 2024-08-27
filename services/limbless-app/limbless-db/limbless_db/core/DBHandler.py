@@ -71,6 +71,7 @@ class DBHandler():
         delete_user, update_user,
         get_user_by_email, get_num_users,
         query_users, query_users_by_email,
+        get_user_affiliations
     )
 
     from .model_handlers._index_kit_methods import (
@@ -167,6 +168,12 @@ class DBHandler():
 
     from .model_handlers._event_methods import (
         create_event, get_event, get_events, update_event, delete_event
+    )
+
+    from .model_handlers._group_methods import (
+        create_group, get_group, get_groups, update_group,
+        query_groups, add_user_to_group, remove_user_from_group,
+        get_group_affiliations
     )
 
     from .pd_handler import (

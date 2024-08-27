@@ -14,8 +14,7 @@ def create_file(
     uuid: Optional[str] = None, commit: bool = True
 ) -> models.File:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (_ := self._session.get(models.User, uploader_id)) is None:
@@ -48,8 +47,7 @@ def create_file(
 
 
 def get_file(self, file_id: int) -> Optional[models.File]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.File, file_id)
@@ -60,8 +58,7 @@ def get_file(self, file_id: int) -> Optional[models.File]:
 
 
 def get_files(self, uploader_id: Optional[int] = None) -> list[models.File]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.File)
@@ -76,8 +73,7 @@ def get_files(self, uploader_id: Optional[int] = None) -> list[models.File]:
 
 
 def file_permissions_check(self, user_id: int, file_id: int) -> bool:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (_ := self._session.get(models.User, user_id)) is None:

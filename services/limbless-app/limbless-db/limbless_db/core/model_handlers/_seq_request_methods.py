@@ -28,8 +28,7 @@ def create_seq_request(
     billing_code: Optional[str] = None,
 ) -> models.SeqRequest:
 
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (requestor := self._session.get(models.User, requestor_id)) is None:
@@ -95,8 +94,7 @@ def create_seq_request(
 
 
 def get_seq_request(self, seq_request_id: int) -> Optional[models.SeqRequest]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_request = self._session.get(models.SeqRequest, seq_request_id)
@@ -115,8 +113,7 @@ def get_seq_requests(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.SeqRequest], int]:
 
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.SeqRequest)
@@ -164,8 +161,7 @@ def get_seq_requests(
 
 
 def submit_seq_request(self, seq_request_id: int) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_request: models.SeqRequest
@@ -201,8 +197,7 @@ def update_seq_request(
     self, seq_request: models.SeqRequest,
     commit: bool = True
 ) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(seq_request)
@@ -250,8 +245,7 @@ def query_seq_requests(
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.SeqRequest]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.SeqRequest)
@@ -284,8 +278,7 @@ def query_seq_requests(
 def add_file_to_seq_request(
     self, seq_request_id: int, file_id: int
 ) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
@@ -312,8 +305,7 @@ def add_file_to_seq_request(
 
 
 def remove_comment_from_seq_request(self, seq_request_id: int, comment_id: int, commit: bool = True) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
@@ -334,8 +326,7 @@ def remove_comment_from_seq_request(self, seq_request_id: int, comment_id: int, 
 
 
 def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit: bool = True) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
@@ -364,8 +355,7 @@ def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit
 
 
 def add_seq_request_share_email(self, seq_request_id: int, email: str) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_request: models.SeqRequest
@@ -393,8 +383,7 @@ def add_seq_request_share_email(self, seq_request_id: int, email: str) -> models
 
 
 def remove_seq_request_share_email(self, seq_request_id: int, email: str) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_request: models.SeqRequest
@@ -419,8 +408,7 @@ def remove_seq_request_share_email(self, seq_request_id: int, email: str) -> mod
 
 
 def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:

@@ -29,11 +29,11 @@ class SeqRequest(Base):
     special_requirements: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
     billing_code: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
     
-    data_delivery_mode_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    data_delivery_mode_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    submission_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=SeqRequestStatus.DRAFT.id)
     read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    read_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    submission_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=SeqRequestStatus.DRAFT.id)
 
     timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
