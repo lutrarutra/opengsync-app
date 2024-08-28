@@ -1,12 +1,19 @@
-from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import login_required, current_user
+from typing import TYPE_CHECKING
 
-from limbless_db import db_session
-from limbless_db.categories import HTTPResponse
-from ... import db, forms
+from flask import Blueprint, render_template, abort, url_for, request
+from flask_login import login_required
+
+from limbless_db import db_session, models
+from limbless_db.categories import HTTPResponse, UserRole, AffiliationType
+
+from ... import db, forms, logger
+
+if TYPE_CHECKING:
+    current_user: models.User = None  # type: ignore
+else:
+    from flask_login import current_user
 
 groups_page_bp = Blueprint("groups_page", __name__)
-
 
 @groups_page_bp.route("/groups")
 @login_required
@@ -34,5 +41,17 @@ def group_page(group_id: int):
                 (f"User {id}", url_for("users_page.user_page", user_id=id)),
                 (f"Group {group.id}", ""),
             ]
-        
-    return render_template("group_page.html", group=group, path_list=path_list)
+
+    affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=group_id)
+
+    can_edit = current_user.role == UserRole.ADMIN or (affiliation is not None and affiliation.affiliation_type == AffiliationType.OWNER)
+    can_add_users = current_user.is_insider() or (affiliation is not None and affiliation.affiliation_type in (AffiliationType.OWNER, AffiliationType.MANAGER))
+    
+    if can_edit:
+        group_form = forms.models.GroupForm(group=group)
+    else:
+        group_form = None
+
+    logger.debug(affiliation)
+
+    return render_template("group_page.html", group=group, path_list=path_list, group_form=group_form, can_edit=can_edit, can_add_users=can_add_users)

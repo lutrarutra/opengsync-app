@@ -13,5 +13,6 @@ class AffiliationTypeEnum(DBEnum):
 
 
 class AffiliationType(ExtendedEnum[AffiliationTypeEnum], enum_type=AffiliationTypeEnum):
-    MANAGER = AffiliationTypeEnum(1, "Manager", "🤓")
-    MEMBER = AffiliationTypeEnum(2, "Member", "👨🏾‍💻")
+    OWNER = AffiliationTypeEnum(1, "Owner", "👑")
+    MANAGER = AffiliationTypeEnum(2, "Manager", "🤓")
+    MEMBER = AffiliationTypeEnum(3, "Member", "👨🏾‍💻")

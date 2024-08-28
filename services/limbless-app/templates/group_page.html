@@ -9,9 +9,16 @@
             <h1>{{ group.name }} <span {{ tooltip(group.type.name, position="right") }}>{{ group.type.icon }}</span></h1>
         </div>
         <div>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
+            {% if can_add_users %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal">
+                Add Member
+            </button>
+            {% endif %}
+            {% if can_edit %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#group-form-popup">
                 Edit Group
             </button>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -21,6 +28,33 @@
         {{ spinner() }}
     </div>
 </div>
+
+{% if can_edit %}
+<div class="modal fade" id="group-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h1 class="modal-title fs-5" >Edit Group</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            {% include group_form._template_path %}
+        </div>
+        <div class="modal-footer" id="popup-footer">
+            <div class="text-nowrap text-muted footer-id">
+            </div>
+            <div class="footer-info">
+            </div>
+            <div class="footer-controls">
+                <button id="submit-group-btn" class="btn btn-success"
+                hx-include="#group-form" hx-target="#group-form" hx-swap="outerHTML"
+                hx-post="{{ url_for('groups_htmx.edit', group_id=group.id) }}">Submit</button>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <script>
     init_tooltips();

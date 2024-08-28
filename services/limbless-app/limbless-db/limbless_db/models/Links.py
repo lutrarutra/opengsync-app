@@ -47,6 +47,9 @@ class UserAffiliation(Base):
     def affiliation_type(self) -> AffiliationTypeEnum:
         return AffiliationType.get(self.affiliation_type_id)
     
+    def __str__(self) -> str:
+        return f"UserAffiliation(user_id: {self.user_id}, group_id: {self.group_id}, affiliation_type: {self.affiliation_type})"
+    
 
 class LibraryLabPrepLink(Base):
     __tablename__ = "library_lab_prep_link"

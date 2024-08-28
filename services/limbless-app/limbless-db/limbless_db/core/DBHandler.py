@@ -173,7 +173,7 @@ class DBHandler():
     from .model_handlers._group_methods import (
         create_group, get_group, get_groups, update_group,
         query_groups, add_user_to_group, remove_user_from_group,
-        get_group_affiliations
+        get_group_user_affiliation, get_group_affiliations
     )
 
     from .pd_handler import (

@@ -27,7 +27,7 @@ def create_group(
     )
     group.user_links = [models.UserAffiliation(
         user_id=user_id,
-        affiliation_type_id=AffiliationType.MANAGER.id
+        affiliation_type_id=AffiliationType.OWNER.id
     )]
 
     self._session.add(group)
@@ -96,6 +96,21 @@ def get_groups(
         self.close_session()
 
     return res, n_pages
+
+
+def get_group_user_affiliation(self, user_id: int, group_id: int) -> Optional[models.UserAffiliation]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    res = self._session.query(models.UserAffiliation).where(
+        models.UserAffiliation.user_id == user_id,
+        models.UserAffiliation.group_id == group_id
+    ).first()
+
+    if not persist_session:
+        self.close_session()
+
+    return res
 
 
 def get_group_affiliations(
