@@ -1,4 +1,5 @@
 {% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
+{% from 'components/search_select.jinja2' import search_select_field %}
 
 <div class="modal-content" id="seq_request-form-container">
     <div class="modal-header">
@@ -50,7 +51,15 @@
                 <div id="request-info-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
                     <div class="accordion-body">
                         {{ sub_form.csrf_token() }}
-                        {{ form_group(sub_form.request_name) }}
+                        <div class="row">
+                            {{ form_group(sub_form.request_name, class="col-6") }}
+                            {{ 
+                                search_select_field(
+                                    sub_form.group, class="col-6",
+                                    query_url=url_for('groups_htmx.query', user_id=current_user.id),
+                                ) 
+                            }}
+                        </div>
                         {{ form_group(sub_form.request_description) }}
                     </div>
                 </div>

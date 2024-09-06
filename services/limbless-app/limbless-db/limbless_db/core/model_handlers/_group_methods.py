@@ -122,7 +122,7 @@ def get_group_affiliations(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (group := self._session.get(models.Group, group_id)) is None:
+    if (_ := self._session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
     query = self._session.query(models.UserAffiliation).where(
@@ -175,7 +175,7 @@ def add_user_to_group(self, user_id: int, group_id: int, affiliation_type: Affil
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (user := self._session.get(models.User, user_id)) is None:
+    if (_ := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} not found")
     
     if (group := self._session.get(models.Group, group_id)) is None:
@@ -207,19 +207,20 @@ def remove_user_from_group(self, user_id: int, group_id: int) -> models.Group:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (user := self._session.get(models.User, user_id)) is None:
+    if (_ := self._session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} not found")
     
     if (group := self._session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
-    if (link := self._session.query(models.UserAffiliation).where(
+    if (affiliation := self._session.query(models.UserAffiliation).where(
         models.UserAffiliation.user_id == user_id,
         models.UserAffiliation.group_id == group_id
     ).first()) is None:
         raise exceptions.ElementDoesNotExist(f"User {user_id} is not in group {group_id}")
 
-    group.user_links.remove(link)
+    group.user_links.remove(affiliation)
+    self._session.delete(affiliation)
 
     self._session.add(group)
     self._session.commit()
@@ -232,7 +233,7 @@ def remove_user_from_group(self, user_id: int, group_id: int) -> models.Group:
 
 
 def query_groups(
-    self, name: str, user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
+    self, name: str, user_id: Optional[int] = None, type: Optional[GroupTypeEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     type_in: Optional[list[GroupTypeEnum]] = None,
 ) -> list[models.Group]:

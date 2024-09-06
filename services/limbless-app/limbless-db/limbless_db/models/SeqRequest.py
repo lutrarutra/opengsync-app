@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .Comment import Comment
     from .Sample import Sample
     from .Event import Event
+    from .Group import Group
 
 
 class SeqRequest(Base):
@@ -46,6 +47,9 @@ class SeqRequest(Base):
 
     requestor_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined", foreign_keys=[requestor_id])
+
+    group_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), nullable=True)
+    group: Mapped[Optional["Group"]] = relationship("Group", lazy="select", foreign_keys=[group_id], cascade="save-update, merge, delete")
 
     bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=True)
     bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge, delete")

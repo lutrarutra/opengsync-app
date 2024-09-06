@@ -10,7 +10,9 @@
         </div>
         <div>
             {% if can_add_users %}
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                hx-get="{{ url_for('groups_htmx.add_user', group_id=group.id) }}"
+                hx-swap="innerHTML" hx-target="#xl-modal-content">
                 Add Member
             </button>
             {% endif %}
@@ -21,11 +23,48 @@
             {% endif %}
         </div>
     </div>
+
+    <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#group-members-tab" type="button" role="tab"
+            aria-controls="group-members-tab" aria-selected="true">Members</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#group-requests-tab"
+                type="button" role="tab" aria-controls="group-requests-tab" aria-selected="false">
+                Requests
+            </button>
+        </li>
+    </ul>
 </div>
 
 <div class="container">
-    <div hx-get="{{ url_for('groups_htmx.get_users', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
-        {{ spinner() }}
+    <div class="tab-content pt-1">
+        <div class="tab-pane fade show active" id="group-members-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Members {% if can_add_users %}<img {{ tooltip('Right click on a user\'s name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('groups_htmx.get_users', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="group-requests-tab" role="tabpanel" tabindex="1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Requests</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('groups_htmx.get_seq_requests', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
     </div>
 </div>
 

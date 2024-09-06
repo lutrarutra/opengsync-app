@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 
-from limbless_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum, AccessType, AccessTypeEnum
+from limbless_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -14,22 +14,6 @@ if TYPE_CHECKING:
     from .Plate import Plate
     from .Group import Group
     from .User import User
-
-
-class SeqRequestGroupLinks(Base):
-    __tablename__ = "seq_request_group_link"
-
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True)
-    group_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), primary_key=True)
-
-    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", lazy="select")
-    group: Mapped["Group"] = relationship("Group", lazy="select")
-
-    access_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-
-    @property
-    def access_type(self) -> AccessTypeEnum:
-        return AccessType.get(self.access_type_id)
 
 
 class UserAffiliation(Base):

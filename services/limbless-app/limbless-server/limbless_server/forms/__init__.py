@@ -6,5 +6,6 @@ from .ProcessRequestForm import ProcessRequestForm  # noqa
 from .SeqRequestShareEmailForm import SeqRequestShareEmailForm  # noqa
 from .SelectSamplesForm import SelectSamplesForm  # noqa
 from .SubmitSeqRequestForm import SubmitSeqRequestForm  # noqa
+from .AddUserToGroupForm import AddUserToGroupForm  # noqa
 
 from . import models, comment, file, workflows  # noqa

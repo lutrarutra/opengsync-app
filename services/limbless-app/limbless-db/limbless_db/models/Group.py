@@ -24,3 +24,9 @@ class Group(Base):
     
     def __repr__(self) -> str:
         return self.__str__()
+    
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.name

@@ -72,7 +72,7 @@ def get_users(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     role_in: Optional[list[UserRoleEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    group_id: Optional[int] = None
+    group_id: Optional[int] = None, exclude_group_id: Optional[int] = None,
 ) -> tuple[list[models.User], int]:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -91,6 +91,14 @@ def get_users(
             models.UserAffiliation.user_id == models.User.id
         ).where(
             models.UserAffiliation.group_id == group_id
+        )
+
+    if exclude_group_id is not None:
+        query = query.join(
+            models.UserAffiliation,
+            models.UserAffiliation.user_id == models.User.id
+        ).where(
+            models.UserAffiliation.group_id != exclude_group_id
         )
         
     if sort_by is not None:

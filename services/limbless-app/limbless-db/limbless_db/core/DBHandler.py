@@ -85,7 +85,7 @@ class DBHandler():
         query_seq_requests, submit_seq_request,
         add_file_to_seq_request, remove_file_from_seq_request,
         remove_comment_from_seq_request, add_seq_request_share_email, remove_seq_request_share_email,
-        process_seq_request
+        process_seq_request, get_user_seq_request_access_type
     )
 
     from .model_handlers._contact_methods import (

@@ -21,7 +21,7 @@ class GroupForm(HTMXFlaskForm):
     def __init__(self, formdata: Optional[dict[str, Any]] = None, group: Optional[models.Group] = None):
         super().__init__(formdata=formdata)
         self.group = group
-        if group is not None:
+        if group is not None and formdata is None:
             self.__fill_form(group)
 
     def __fill_form(self, group: models.Group):

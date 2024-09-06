@@ -14,5 +14,6 @@ class AccessTypeEnum(DBEnum):
 
 class AccessType(ExtendedEnum[AccessTypeEnum], enum_type=AccessTypeEnum):
     ADMIN = AccessTypeEnum(1, "Admin", "🤓")
-    VIEW = AccessTypeEnum(2, "View", "👀")
-    EDIT = AccessTypeEnum(3, "Edit", "📝")
+    OWNER = AccessTypeEnum(2, "Owner", "👑")
+    VIEW = AccessTypeEnum(3, "View", "👀")
+    EDIT = AccessTypeEnum(4, "Edit", "📝")
