@@ -50,20 +50,21 @@ class DBHandler():
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
         delete_sample, update_sample, query_samples,
-        set_sample_attribute, get_sample_attribute, get_sample_attributes
+        set_sample_attribute, get_sample_attribute, get_sample_attributes,
+        get_user_sample_access_type
     )
 
     from .model_handlers._pool_methods import (
         create_pool, get_pool, get_pools,
         delete_pool, update_pool, query_pools, dilute_pool,
-        get_pool_dilution, get_pool_dilutions
+        get_pool_dilution, get_pool_dilutions, get_user_pool_access_type
     )
 
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
         pool_library, set_library_seq_quality, add_library_index,
-        remove_library_indices
+        remove_library_indices, get_user_library_access_type
     )
 
     from .model_handlers._user_methods import (

@@ -115,6 +115,11 @@
                     <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('feature_kits_page.feature_kits_page') }}">Features</a></li>
                 </ul>
             </div>
+            {% if current_user.is_authenticated %}
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" id="groups-page" href="{{ url_for('groups_page.groups_page') }}">Groups</a>
+            </div>
+            {% endif %}
             {% if current_user.is_authenticated and not current_user.is_insider() %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" id="help-page" href="{{ url_for('help_page') }}">Help</a>
@@ -128,11 +133,6 @@
             {% if current_user.is_authenticated and current_user.is_insider() %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" id="seq_run-page" href="{{ url_for('seq_runs_page.seq_runs_page') }}">Runs</a>
-            </div>
-            {% endif %}
-            {% if current_user.is_authenticated %}
-            <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" id="groups-page" href="{{ url_for('groups_page.groups_page') }}">Groups</a>
             </div>
             {% endif %}
         </div>

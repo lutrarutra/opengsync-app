@@ -89,7 +89,7 @@
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="library-main-tab" role="tabpanel" tabindex="0">
             <div class="row">
-                {% if library.pool_id %}
+                {% if library.seq_request_id %}
                 {{ 
                     metadata_group_link(
                         "Request", library.seq_request.name,
@@ -98,7 +98,7 @@
                     )
                 }}
                 {% else %}
-                {{ metadata_group("Pool", "", class="col-6") }}
+                {{ metadata_group("Request", "", class="col-6") }}
                 {% endif %}
                 {% if library.pool_id %}
                 {{ 

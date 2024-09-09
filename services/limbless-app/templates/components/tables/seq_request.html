@@ -34,6 +34,12 @@
                 }}
                 {{
                     table_col(
+                        table_container_id='seq_request-table', column_name='Group', column_var='group_id',
+                        sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
                         table_container_id='seq_request-table', column_name='Requestor', column_var='requestor_id',
                         sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
@@ -42,13 +48,6 @@
                 {{
                     table_col(
                         table_container_id='seq_request-table', column_name='Submitted', column_var='timestamp_submitted_utc',
-                        sort_url='seq_requests_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
@@ -62,8 +61,8 @@
                 <td>{{ seq_request.name }}</td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
                 <td {{ tooltip("email: " + seq_request.requestor.email) }}>{{ seq_request.requestor.name }} {{ seq_request.requestor.owner_id }}<span class="desc">{{ "me" if current_user.id == seq_request.requestor.owner_id }}</span></td>
+                <td>{% if seq_request.group %}{{ seq_request.group.name }} <span {{ tooltip(seq_request.group.type.name) }}>{{ seq_request.group.type.icon }}</span>{% endif %}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
-                <td>{{ seq_request.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>

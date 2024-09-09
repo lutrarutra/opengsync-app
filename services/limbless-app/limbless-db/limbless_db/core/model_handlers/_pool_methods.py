@@ -4,7 +4,7 @@ from typing import Optional
 
 import sqlalchemy as sa
 
-from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum
+from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 
@@ -339,3 +339,43 @@ def get_pool_dilutions(
         self.close_session()
 
     return dilutions, n_pages
+
+
+def get_user_pool_access_type(
+    self, pool_id: int, user_id: int
+) -> Optional[AccessTypeEnum]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    pool: models.Pool
+    if (pool := self._session.get(models.Pool, pool_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+    
+    access_type: Optional[AccessTypeEnum] = None
+
+    if pool.owner_id == user_id:
+        access_type = AccessType.OWNER
+    else:
+        if pool.seq_request is not None and pool.seq_request.group_id is not None:
+            if self._session.query(models.UserAffiliation).where(
+                models.UserAffiliation.user_id == user_id,
+                models.UserAffiliation.group_id == pool.seq_request.group_id
+            ).first() is not None:
+                access_type = AccessType.EDIT
+        else:
+            for library in pool.libraries:
+                if library.owner_id == user_id:
+                    access_type = AccessType.EDIT
+                    break
+                elif library.seq_request.group_id is not None:
+                    if self._session.query(models.UserAffiliation).where(
+                        models.UserAffiliation.user_id == user_id,
+                        models.UserAffiliation.group_id == library.seq_request.group_id
+                    ).first() is not None:
+                        access_type = AccessType.EDIT
+                        break
+                
+    if not persist_session:
+        self.close_session()
+
+    return access_type

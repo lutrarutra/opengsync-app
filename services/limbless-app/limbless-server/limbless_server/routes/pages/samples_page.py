@@ -30,7 +30,9 @@ def sample_page(sample_id):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and sample.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     is_editable = sample.is_editable()
     sample_form = forms.models.SampleForm(sample=sample)

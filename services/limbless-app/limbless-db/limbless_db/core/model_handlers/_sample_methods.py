@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql import and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SampleStatus, SampleStatusEnum, AttributeTypeEnum
+from ...categories import SampleStatus, SampleStatusEnum, AttributeTypeEnum, AccessType, AccessTypeEnum
 from .. import exceptions
 
 
@@ -300,3 +300,33 @@ def get_sample_attributes(
     if not persist_session:
         self.close_session()
     return attributes
+
+
+def get_user_sample_access_type(
+    self, sample_id: int, user_id: int,
+) -> Optional[AccessTypeEnum]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    sample: models.Sample
+    if (sample := self._session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+    
+    access_type: Optional[AccessTypeEnum] = None
+
+    if sample.owner_id == user_id:
+        access_type = AccessType.OWNER
+    elif sample.library_links:
+        for link in sample.library_links:
+            if link.library.owner_id == user_id:
+                access_type = AccessType.EDIT
+                break
+            elif link.library.seq_request.group_id is not None:
+                if self.get_group_user_affiliation(user_id, link.library.seq_request.group_id) is not None:
+                    access_type = AccessType.EDIT
+                    break
+    
+    if not persist_session:
+        self.close_session()
+
+    return access_type

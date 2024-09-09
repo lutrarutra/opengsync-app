@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus, AccessType, AccessTypeEnum
 from .. import exceptions
 
 
@@ -470,3 +470,29 @@ def remove_library_indices(self, library_id: int) -> models.Library:
         self.close_session()
 
     return library
+
+
+def get_user_library_access_type(
+    self, library_id: int, user_id: int
+) -> Optional[AccessTypeEnum]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    access_type: Optional[AccessTypeEnum] = None
+
+    if library.owner_id == user_id:
+        access_type = AccessType.OWNER
+    elif library.seq_request.group_id is not None:
+        if self._session.query(models.UserAffiliation).where(
+            models.UserAffiliation.user_id == user_id,
+            models.UserAffiliation.group_id == library.seq_request.group_id
+        ).first() is not None:
+            access_type = AccessType.EDIT
+
+    if not persist_session:
+        self.close_session()
+
+    return access_type

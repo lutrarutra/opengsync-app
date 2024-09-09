@@ -10,6 +10,10 @@ class GroupTypeEnum(DBEnum):
     @property
     def select_name(self) -> str:
         return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.name} {self.icon}"
 
 
 class GroupType(ExtendedEnum[GroupTypeEnum], enum_type=GroupTypeEnum):

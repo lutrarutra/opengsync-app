@@ -489,8 +489,7 @@ def get_user_seq_request_access_type(
     
     if seq_request.requestor_id == user_id:
         access_type = AccessType.OWNER
-    
-    if seq_request.group_id is not None:
+    elif seq_request.group_id is not None:
         if self._session.query(models.UserAffiliation).where(
             models.UserAffiliation.user_id == user_id,
             models.UserAffiliation.group_id == seq_request.group_id
