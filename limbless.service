@@ -4,7 +4,7 @@ After=docker.service
 
 [Service]
 Restart=always
-WorkingDirectory=/home/agynter/limbless-app-prod
+WorkingDirectory=~/limbless-app-prod
 ExecStart=/usr/bin/docker compose --env-file=.env -f compose.yaml -p limbless-prod up --build
 ExecStop=/usr/bin/docker compose -f compose.yaml -p limbless-prod down
 
