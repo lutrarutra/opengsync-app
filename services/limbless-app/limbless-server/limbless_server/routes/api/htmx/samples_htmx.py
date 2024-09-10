@@ -65,6 +65,11 @@ def delete(sample_id: int):
     
     if not sample.is_editable():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if not current_user.is_insider() and sample.owner_id != current_user.id:
+        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     db.delete_sample(sample_id)
 
@@ -79,13 +84,15 @@ def delete(sample_id: int):
 
 
 @samples_htmx.route("<int:sample_id>/edit", methods=["POST"])
+@db_session(db)
 @login_required
 def edit(sample_id):
-    with DBSession(db) as session:
-        if (sample := session.get_sample(sample_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+    if (sample := db.get_sample(sample_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
-        if not sample.is_editable() and not current_user.is_insider():
+    if not current_user.is_insider() and sample.owner_id != current_user.id:
+        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.models.SampleForm(request.form).process_request(
@@ -220,8 +227,10 @@ def get_libraries(sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if sample.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and sample.owner_id != current_user.id:
+        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     libraries, n_pages = db.get_libraries(
         sample_id=sample_id
@@ -240,6 +249,7 @@ def get_libraries(sample_id: int):
 @db_session(db)
 @login_required
 def get_plate(sample_id: int):
+    raise NotImplementedError()
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

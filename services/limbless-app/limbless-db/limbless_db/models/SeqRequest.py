@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .Comment import Comment
     from .Sample import Sample
     from .Event import Event
+    from .Group import Group
 
 
 class SeqRequest(Base):
@@ -29,11 +30,11 @@ class SeqRequest(Base):
     special_requirements: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
     billing_code: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
     
-    data_delivery_mode_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    data_delivery_mode_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    submission_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=SeqRequestStatus.DRAFT.id)
     read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    read_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    submission_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=SeqRequestStatus.DRAFT.id)
 
     timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
@@ -46,6 +47,9 @@ class SeqRequest(Base):
 
     requestor_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined", foreign_keys=[requestor_id])
+
+    group_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), nullable=True)
+    group: Mapped[Optional["Group"]] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge, delete")
 
     bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=True)
     bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge, delete")

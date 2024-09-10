@@ -18,8 +18,7 @@ def create_feature(
     target_id: Optional[str] = None,
     commit: bool = True
 ) -> models.Feature:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if feature_kit_id is not None:
@@ -54,8 +53,7 @@ def create_feature(
 
 
 def get_feature(self, feature_id: int) -> Optional[models.Feature]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.Feature, feature_id)
@@ -72,8 +70,7 @@ def get_features(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None
 ) -> tuple[list[models.Feature], int]:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Feature)
@@ -117,8 +114,7 @@ def get_features(
 def delete_feature(
     self, feature_id: int, commit: bool = True
 ) -> models.Feature:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     feature = self._session.get(models.Feature, feature_id)
@@ -136,8 +132,7 @@ def delete_feature(
 def update_feature(
     self, feature: models.Feature, commit: bool = True
 ) -> models.Feature:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(feature)
@@ -154,8 +149,7 @@ def update_feature(
 def get_feature_from_kit_by_feature_name(
     self, feature_name: str, feature_kit_id: int
 ) -> models.Feature:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     feature = self._session.query(models.Feature).where(

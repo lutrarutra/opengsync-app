@@ -11,8 +11,7 @@ from .. import exceptions
 def create_barcode(
     self, name: str, sequence: str, well: str | None, type: BarcodeTypeEnum, adapter_id: int
 ) -> models.Barcode:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (adapter := self._session.get(models.Adapter, adapter_id)) is None:
@@ -40,8 +39,7 @@ def create_barcode(
 def get_barcode(
     self, barcode_id: int
 ) -> Optional[models.Barcode]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     barcode = self._session.get(models.Barcode, barcode_id)
@@ -59,8 +57,7 @@ def get_barcodes(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Barcode], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Barcode)
@@ -97,8 +94,7 @@ def get_barcodes(
 def get_barcode_from_kit(
     self, index_kit_id: int, name: str, type: BarcodeTypeEnum
 ) -> Optional[models.Barcode]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     barcode = self._session.query(models.Barcode).where(

@@ -17,7 +17,7 @@ class FeatureKit(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True, unique=True)
 
-    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     features: Mapped[list["Feature"]] = relationship("Feature", back_populates="feature_kit", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name"]

@@ -211,8 +211,10 @@ def get_samples(library_id: int, page: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and library.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and not library.owner_id != current_user.id:
+        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -239,8 +241,10 @@ def reads_tab(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and library.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and not library.owner_id != current_user.id:
+        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     return make_response(render_template("components/library-reads.html", library=library))
 

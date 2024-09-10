@@ -9,8 +9,10 @@ from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
 from limbless_db.categories import ReadType, DataDeliveryMode, SubmissionType
+
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
+from ..SearchBar import OptionalSearchBar
 
 
 class SeqRequestDisclaimerForm(FlaskForm):
@@ -36,6 +38,9 @@ class BasicInfoSubForm(FlaskForm):
         "Request Name", validators=[DataRequired(), Length(min=6, max=models.SeqRequest.name.type.length)],
         description="Descriptive title of the samples and experiment."
     )
+    
+    group = FormField(OptionalSearchBar, label="Group", description="Group to which the request belongs.")
+
     request_description = TextAreaField(
         "Description", validators=[Length(max=models.SeqRequest.description.type.length)],
         description="""
@@ -289,6 +294,8 @@ class SeqRequestForm(HTMXFlaskForm):
         self.disclaimer_form.disclaimer.data = True
         
         self.basic_info_form.request_name.data = seq_request.name
+        self.basic_info_form.group.selected.data = seq_request.group_id
+        self.basic_info_form.group.search_bar.data = seq_request.group.name if seq_request.group is not None else None
         self.basic_info_form.request_description.data = seq_request.description
         
         self.technical_info_form.read_length.data = seq_request.read_length
@@ -322,6 +329,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
     def __edit_existing_request(self, seq_request: models.SeqRequest) -> Response:
         seq_request.name = self.basic_info_form.request_name.data   # type: ignore
+        seq_request.group_id = self.basic_info_form.group.selected.data
         seq_request.description = self.basic_info_form.request_description.data
 
         seq_request.read_type_id = ReadType.get(self.technical_info_form.read_type.data).id
@@ -398,6 +406,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         seq_request = db.create_seq_request(
             name=self.basic_info_form.request_name.data,  # type: ignore
+            group_id=self.basic_info_form.group.selected.data,
             description=self.basic_info_form.request_description.data,
     
             data_delivery_mode=DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data),

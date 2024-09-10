@@ -17,7 +17,7 @@ class IndexKit(Base):
     identifier: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True, unique=True)
     name: Mapped[str] = mapped_column(sa.String(256), nullable=False, index=True, unique=False)
 
-    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     supported_protocol_ids: Mapped[list[int]] = mapped_column(sa.ARRAY(sa.Integer), nullable=False)
     
     barcodes: Mapped[list["Barcode"]] = relationship("Barcode", back_populates="index_kit", lazy="select")

@@ -15,7 +15,7 @@ class File(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     extension: Mapped[str] = mapped_column(sa.String(16), nullable=False)
-    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     uuid: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     size_bytes: Mapped[int] = mapped_column(sa.BigInteger, nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())

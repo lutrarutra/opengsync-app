@@ -6,13 +6,14 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType, SubmissionTypeEnum
+from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType, SubmissionTypeEnum, AccessType, AccessTypeEnum
 from .. import exceptions
 
 
 def create_seq_request(
     self, name: str,
     description: Optional[str],
+    group_id: int,
     requestor_id: int,
     billing_contact_id: int,
     data_delivery_mode: DataDeliveryModeEnum,
@@ -28,12 +29,14 @@ def create_seq_request(
     billing_code: Optional[str] = None,
 ) -> models.SeqRequest:
 
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (requestor := self._session.get(models.User, requestor_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{requestor_id}', not found.")
+    
+    if self._session.get(models.Group, group_id) is None:
+        raise exceptions.ElementDoesNotExist(f"Group with id '{group_id}', not found.")
 
     if self._session.get(models.Contact, billing_contact_id) is None:
         raise exceptions.ElementDoesNotExist(f"Contact with id '{billing_contact_id}', not found.")
@@ -52,6 +55,7 @@ def create_seq_request(
         
     seq_request = models.SeqRequest(
         name=name.strip(),
+        group_id=group_id,
         description=description.strip() if description else None,
         requestor_id=requestor_id,
         read_length=read_length,
@@ -95,8 +99,7 @@ def create_seq_request(
 
 
 def get_seq_request(self, seq_request_id: int) -> Optional[models.SeqRequest]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_request = self._session.get(models.SeqRequest, seq_request_id)
@@ -112,11 +115,11 @@ def get_seq_requests(
     show_drafts: bool = True,
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None,
+    group_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.SeqRequest], int]:
 
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.SeqRequest)
@@ -138,6 +141,11 @@ def get_seq_requests(
                 models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
                 models.SeqRequest.requestor_id == user_id
             )
+        )
+
+    if group_id is not None:
+        query = query.where(
+            models.SeqRequest.group_id == group_id
         )
 
     if sort_by is not None:
@@ -164,8 +172,7 @@ def get_seq_requests(
 
 
 def submit_seq_request(self, seq_request_id: int) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_request: models.SeqRequest
@@ -201,8 +208,7 @@ def update_seq_request(
     self, seq_request: models.SeqRequest,
     commit: bool = True
 ) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(seq_request)
@@ -250,8 +256,7 @@ def query_seq_requests(
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.SeqRequest]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.SeqRequest)
@@ -284,8 +289,7 @@ def query_seq_requests(
 def add_file_to_seq_request(
     self, seq_request_id: int, file_id: int
 ) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
@@ -312,8 +316,7 @@ def add_file_to_seq_request(
 
 
 def remove_comment_from_seq_request(self, seq_request_id: int, comment_id: int, commit: bool = True) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
@@ -334,8 +337,7 @@ def remove_comment_from_seq_request(self, seq_request_id: int, comment_id: int, 
 
 
 def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit: bool = True) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
@@ -364,8 +366,7 @@ def remove_file_from_seq_request(self, seq_request_id: int, file_id: int, commit
 
 
 def add_seq_request_share_email(self, seq_request_id: int, email: str) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_request: models.SeqRequest
@@ -393,8 +394,7 @@ def add_seq_request_share_email(self, seq_request_id: int, email: str) -> models
 
 
 def remove_seq_request_share_email(self, seq_request_id: int, email: str) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_request: models.SeqRequest
@@ -419,8 +419,7 @@ def remove_seq_request_share_email(self, seq_request_id: int, email: str) -> mod
 
 
 def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum) -> models.SeqRequest:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
@@ -475,3 +474,29 @@ def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum)
         self.close_session()
 
     return seq_request
+
+
+def get_user_seq_request_access_type(
+    self, seq_request_id: int, user_id: int
+) -> Optional[AccessTypeEnum]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    access_type: Optional[AccessTypeEnum] = None
+
+    if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+    
+    if seq_request.requestor_id == user_id:
+        access_type = AccessType.OWNER
+    elif seq_request.group_id is not None:
+        if self._session.query(models.UserAffiliation).where(
+            models.UserAffiliation.user_id == user_id,
+            models.UserAffiliation.group_id == seq_request.group_id
+        ).first() is not None:
+            access_type = AccessType.EDIT
+
+    if not persist_session:
+        self.close_session()
+
+    return access_type

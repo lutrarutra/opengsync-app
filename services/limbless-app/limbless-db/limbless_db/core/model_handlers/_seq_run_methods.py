@@ -21,8 +21,7 @@ def create_seq_run(
     reads_m: Optional[float] = None, reads_m_pf: Optional[float] = None, yield_g: Optional[float] = None
 ) -> SeqRun:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     seq_run = SeqRun(
@@ -65,8 +64,7 @@ def create_seq_run(
 
 
 def get_seq_run(self, id: Optional[int] = None, experiment_name: Optional[str] = None) -> Optional[SeqRun]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if id is not None and experiment_name is None:
@@ -92,8 +90,7 @@ def get_seq_runs(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[SeqRun], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(SeqRun)
@@ -123,8 +120,7 @@ def get_seq_runs(
 def update_seq_run(
     self, seq_run: SeqRun,
 ) -> SeqRun:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(seq_run)
@@ -138,8 +134,7 @@ def update_seq_run(
 
 
 def query_seq_runs(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[SeqRun]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(SeqRun)

@@ -8,8 +8,7 @@ from .. import exceptions
 def create_comment(
     self, text: str, author_id: int, file_id: Optional[int] = None, commit: bool = True
 ) -> models.Comment:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     comment = models.Comment(
@@ -30,8 +29,7 @@ def create_comment(
 
 
 def get_comment(self, comment_id: int) -> Optional[models.Comment]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.Comment, comment_id)
@@ -42,8 +40,7 @@ def get_comment(self, comment_id: int) -> Optional[models.Comment]:
 
 
 def get_comments(self, author_id: Optional[int] = None, file_id: Optional[int] = None) -> list[models.Comment]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Comment)
@@ -61,8 +58,7 @@ def get_comments(self, author_id: Optional[int] = None, file_id: Optional[int] =
 
 
 def delete_comment(self, comment_id: int) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (comment := self._session.get(models.Comment, comment_id)) is None:
@@ -76,8 +72,7 @@ def delete_comment(self, comment_id: int) -> None:
 
 
 def add_experiment_comment(self, experiment_id: int, comment_id: int, commit: bool = True):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
@@ -97,8 +92,7 @@ def add_experiment_comment(self, experiment_id: int, comment_id: int, commit: bo
 
 
 def add_seq_request_comment(self, seq_request_id: int, comment_id: int, commit: bool = True):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
@@ -118,8 +112,7 @@ def add_seq_request_comment(self, seq_request_id: int, comment_id: int, commit: 
 
 
 def remove_experiment_comment(self, experiment_id: int, comment_id: int, commit: bool = True):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
@@ -139,8 +132,7 @@ def remove_experiment_comment(self, experiment_id: int, comment_id: int, commit:
 
 
 def remove_seq_request_comment(self, seq_request_id: int, comment_id: int, commit: bool = True):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:

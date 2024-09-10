@@ -396,7 +396,14 @@
         <div class="tab-pane fade" id="request-metadata-tab" role="tabpanel" tabindex="4">
             <div class="display-form">
                 <h4>Request Info</h4>
-                {{ metadata_group("Request Name", seq_request.name) }}
+                <div class="row">
+                    {{ metadata_group("Request Name", seq_request.name, class="col-6") }}
+                    {% if seq_request.group %}
+                    {{ metadata_group_link("Group", seq_request.group.name, url_for("groups_page.group_page", group_id=seq_request.group.id, from="seq_request@" + seq_request.id | string), class="col-6") }}
+                    {% else %}
+                    {{ metadata_group("Group", "", class="col-6") }}
+                    {% endif %}
+                </div>
                 {{ metadata_group_textarea("Description", seq_request.description if seq_request.description) }}
 
                 <br>

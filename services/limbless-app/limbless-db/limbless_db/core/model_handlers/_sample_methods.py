@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql import and_
 
 from ... import models, PAGE_LIMIT
-from ...categories import SampleStatus, SampleStatusEnum, AttributeTypeEnum
+from ...categories import SampleStatus, SampleStatusEnum, AttributeTypeEnum, AccessType, AccessTypeEnum
 from .. import exceptions
 
 
@@ -13,8 +13,7 @@ def create_sample(
     self, name: str, owner_id: int, project_id: int,
     status: SampleStatusEnum = SampleStatus.DRAFT
 ) -> models.Sample:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (project := self._session.get(models.Project, project_id)) is None:
@@ -43,8 +42,7 @@ def create_sample(
 
 
 def get_sample(self, sample_id: int) -> Optional[models.Sample]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     sample = self._session.get(models.Sample, sample_id)
@@ -66,8 +64,7 @@ def get_samples(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Sample], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Sample)
@@ -145,8 +142,7 @@ def get_samples(
 
 
 def update_sample(self, sample: models.Sample) -> models.Sample:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(sample)
@@ -159,8 +155,7 @@ def update_sample(self, sample: models.Sample) -> models.Sample:
 
 
 def delete_sample(self, sample_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (sample := self._session.get(models.Sample, sample_id)) is None:
@@ -184,8 +179,7 @@ def query_samples(
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Sample]:
 
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Sample)
@@ -240,8 +234,7 @@ def query_samples(
 def set_sample_attribute(
     self, sample_id: int, value: str, type: AttributeTypeEnum, name: Optional[str]
 ) -> models.Sample:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if name is None:
@@ -277,8 +270,7 @@ def set_sample_attribute(
 def get_sample_attribute(
     self, sample_id: int, name: str
 ) -> Optional[models.SampleAttribute]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     name = name.lower()
@@ -298,8 +290,7 @@ def get_sample_attribute(
 def get_sample_attributes(
     self, sample_id: int
 ) -> list[models.SampleAttribute]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     attributes = self._session.query(models.SampleAttribute).where(
@@ -309,3 +300,33 @@ def get_sample_attributes(
     if not persist_session:
         self.close_session()
     return attributes
+
+
+def get_user_sample_access_type(
+    self, sample_id: int, user_id: int,
+) -> Optional[AccessTypeEnum]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    sample: models.Sample
+    if (sample := self._session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+    
+    access_type: Optional[AccessTypeEnum] = None
+
+    if sample.owner_id == user_id:
+        access_type = AccessType.OWNER
+    elif sample.library_links:
+        for link in sample.library_links:
+            if link.library.owner_id == user_id:
+                access_type = AccessType.EDIT
+                break
+            elif link.library.seq_request.group_id is not None:
+                if self.get_group_user_affiliation(user_id, link.library.seq_request.group_id) is not None:
+                    access_type = AccessType.EDIT
+                    break
+    
+    if not persist_session:
+        self.close_session()
+
+    return access_type

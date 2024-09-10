@@ -16,8 +16,7 @@ def link_sample_library(
     commit: bool = True
 ) -> models.SampleLibraryLink:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (sample := self._session.get(models.Sample, sample_id)) is None:
@@ -63,8 +62,7 @@ def get_sample_library_links(
     offset: Optional[int] = None,
 ) -> tuple[Optional[models.SampleLibraryLink], int]:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.SampleLibraryLink)
@@ -101,8 +99,7 @@ def is_sample_in_seq_request(
     self, sample_id: int, seq_request_id: int
 ) -> bool:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Sample)
@@ -126,8 +123,7 @@ def is_sample_in_seq_request(
 
 
 def link_feature_library(self, feature_id: int, library_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (feature := self._session.get(models.Feature, feature_id)) is None:
@@ -152,8 +148,7 @@ def link_feature_library(self, feature_id: int, library_id: int):
 
 
 def unlink_feature_library(self, feature_id: int, library_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (feature := self._session.get(models.Feature, feature_id)) is None:
@@ -181,8 +176,7 @@ def add_pool_to_lane(
     self, experiment_id: int, pool_id: int, lane_num: int
 ) -> models.Lane:
 
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     lane: models.Lane
@@ -213,8 +207,7 @@ def add_pool_to_lane(
 
 
 def remove_pool_from_lane(self, experiment_id: int, pool_id: int, lane_num: int) -> models.Lane:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     lane: models.Lane
@@ -244,8 +237,7 @@ def remove_pool_from_lane(self, experiment_id: int, pool_id: int, lane_num: int)
 
 
 def link_pool_experiment(self, experiment_id: int, pool_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     experiment: models.Experiment
@@ -275,8 +267,7 @@ def link_pool_experiment(self, experiment_id: int, pool_id: int):
 
 
 def unlink_pool_experiment(self, experiment_id: int, pool_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     experiment: models.Experiment

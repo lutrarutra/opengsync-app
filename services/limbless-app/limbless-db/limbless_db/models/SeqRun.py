@@ -13,12 +13,12 @@ class SeqRun(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     
     experiment_name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     instrument_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     run_folder: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     flowcell_id: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    read_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     rta_version: Mapped[str] = mapped_column(sa.String(8), nullable=False)
     recipe_version: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
     side: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)

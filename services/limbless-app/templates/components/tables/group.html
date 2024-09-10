@@ -1,0 +1,41 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="group-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='group-table', column_name='ID', column_var='id',
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-table', column_name='Name', column_var='name',
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=6
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-table', column_name='Type', column_var='type_id',
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=5,
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr onclick="redirect('{{ url_for('groups_page.group_page', group_id=group.id) }}');">
+                <th scope="row">{{ group.id }}</th>
+                <td>{{ group.name }}</td>
+                <td>{{ group.type.name }} {{ group.type.icon }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("group-table-spinner") }}
+    {{ pagination("group-table", "groups_htmx.get", n_pages, active_page) }}
+</div>

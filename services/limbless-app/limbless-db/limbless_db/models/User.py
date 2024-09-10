@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from itsdangerous import SignatureExpired, BadSignature, URLSafeTimedSerializer
 
 from .Base import Base
+from .Links import UserAffiliation
 from ..categories import UserRole, UserRoleEnum
 
 
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from .Library import Library
     from .File import File
     from .LabPrep import LabPrep
+    from .Group import Group
 
 
 class UserMixin():
@@ -70,16 +72,17 @@ class User(Base, UserMixin):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     first_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    last_name: Mapped[str] = mapped_column(sa.String(64), nullable=False,)
+    last_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), nullable=False, unique=True, index=True)
     password: Mapped[str] = mapped_column(sa.String(128), nullable=False)
-    role_id: Mapped[int] = mapped_column(nullable=False)
+    role_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     num_projects: Mapped[int] = mapped_column(nullable=False, default=0)
     num_pools: Mapped[int] = mapped_column(nullable=False, default=0)
     num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
     num_seq_requests: Mapped[int] = mapped_column(nullable=False, default=0)
 
+    affiliations: Mapped[list[UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")
     requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="requestor", lazy="select")
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="owner", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="owner", lazy="select")

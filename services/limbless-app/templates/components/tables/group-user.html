@@ -1,0 +1,93 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="group-user-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='group-user-table', column_name='ID', column_var='id',
+                        sort_url='groups_htmx.get_users', context={"group_id": group.id}, sort_by=sort_by, sort_order=sort_order
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-user-table', column_name='Name', column_var='name',
+                        sort_url='groups_htmx.get_users', context={"group_id": group.id}, sort_by=sort_by, sort_order=sort_order, col_size=4,
+                    )
+                }}
+                
+                {{
+                    table_col(
+                        table_container_id='group-user-table', column_name='Email', column_var='email',
+                        sort_url='groups_htmx.get_users', context={"group_id": group.id}, sort_by=sort_by, sort_order=sort_order, col_size=4
+                    )
+                
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-user-table', column_name='Affiliation Type', column_var='affiliation_type_id',
+                        sort_url='groups_htmx.get_users', context={"group_id": group.id}, sort_by=sort_by, sort_order=sort_order, col_size=3,
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for affiliation in affiliations %}
+            <tr onclick="redirect('{{ url_for('users_page.user_page', user_id=affiliation.user.id, from='group@' + group.id | string) }}');">
+                <th scope="row">{{ affiliation.user.id }}</th>
+                <td class="user-cell" id="user-cell-{{ affiliation.user.id }}">{{ affiliation.user.name }}{% if affiliation.user_id == current_user.id %} <span class="desc">me</span>{% endif %}</td>
+                <td>{{ affiliation.user.email }}</td>
+                <td>{{ affiliation.affiliation_type.name }} {{ affiliation.affiliation_type.icon }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("group-user-table-spinner") }}
+    {{ pagination("group-user-table", "groups_htmx.get_users", n_pages, active_page, context={"group_id": group.id}) }}
+    <script>
+        init_tooltips();
+        {% if can_add_users %}
+        var selected_user_id = null;
+
+        function remove_user() {
+            Swal.fire({
+                title: `Remove user (id='${selected_user_id}') from '{{ group.name }}' ?`,
+                showDenyButton: true,
+                text: 'Are you sure?',
+                confirmButtonText: 'Yes',
+                icon: 'question',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                    "DELETE", "{{ url_for('groups_htmx.remove_user', group_id=group.id) }}?user_id=" + selected_user_id,
+                    null, {
+                        target: "#group-user-table",
+                        swapStyle: "outerHTML"
+                    });
+                }
+            });
+        }
+
+        $(document).off("contextmenu", ".user-cell").on("contextmenu", ".user-cell", function(e) {
+            e.preventDefault();
+            const x = e.pageX;
+            const y = e.pageY;
+            selected_user_id = e.target.id.split("-")[2];
+            $("#copy-edit-menu").css({
+                display: "block",
+                left: x + 8, top: y + 8
+            }).empty().append([
+                `<li><a class='dropdown-item' onclick='remove_user()'>Remove User</a></li>`,
+            ]);
+
+            $("#right-click-bg").css({
+                display: "block"
+            });
+        });
+        {% endif %}
+    </script>
+</div>

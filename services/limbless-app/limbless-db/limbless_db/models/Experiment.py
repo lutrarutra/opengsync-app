@@ -34,8 +34,8 @@ class Experiment(Base):
     i2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
     num_lanes: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    workflow_id: Mapped[int] = mapped_column(sa.Integer)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    workflow_id: Mapped[int] = mapped_column(sa.SmallInteger)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
 
     operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped["User"] = relationship("User", lazy="joined")

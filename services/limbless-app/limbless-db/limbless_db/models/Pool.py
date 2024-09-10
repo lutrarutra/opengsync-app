@@ -26,8 +26,8 @@ class Pool(Base):
     __tablename__ = "pool"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
-    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     

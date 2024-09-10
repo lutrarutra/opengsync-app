@@ -6,7 +6,6 @@ import pandas as pd
 
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
-from flask_caching import Cache
 
 from limbless_db import categories, models, exceptions, db_session
 
@@ -69,6 +68,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             return render_template("test.html", SeqRequestStatus=categories.SeqRequestStatus)
         
     @app.route("/help")
+    @cache.cached(timeout=1500)
     def help_page():
         return render_template("help.html")
 
@@ -99,9 +99,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
 
     @app.route("/pdf_file/<int:file_id>")
     @login_required
+    @cache.cached(timeout=60)
     def pdf_file(file_id: int):
-        import time
-        time.sleep(1)
         if (file := db.get_file(file_id)) is None:
             return abort(categories.HTTPResponse.NOT_FOUND.id)
         
@@ -127,6 +126,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     
     @app.route("/img_file/<int:file_id>")
     @login_required
+    @cache.cached(timeout=60)
     def img_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
             return abort(categories.HTTPResponse.NOT_FOUND.id)
@@ -153,6 +153,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     
     @app.route("/download_file/<int:file_id>")
     @login_required
+    @cache.cached(timeout=60)
     def download_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
             return abort(categories.HTTPResponse.NOT_FOUND.id)
@@ -235,6 +236,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.files_htmx)
     app.register_blueprint(api.htmx.lab_preps_htmx)
     app.register_blueprint(api.htmx.events_htmx)
+    app.register_blueprint(api.htmx.groups_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.seq_run_api)
@@ -268,5 +270,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(pages.feature_kits_page_bp)
     app.register_blueprint(pages.seq_runs_page_bp)
     app.register_blueprint(pages.lab_preps_page_bp)
+    app.register_blueprint(pages.groups_page_bp)
 
     return app

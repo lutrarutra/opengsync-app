@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required
 
 from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, AffiliationType
 from ... import forms, db, logger  # noqa
 
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
@@ -29,7 +29,9 @@ def seq_request_page(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
         ("Requests", url_for("seq_requests_page.seq_requests_page")),
@@ -59,6 +61,12 @@ def seq_request_page(seq_request_id: int):
             path_list = [
                 ("Pools", url_for("pools_page.pools_page")),
                 (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
+                (f"Request {seq_request_id}", ""),
+            ]
+        elif page == "group":
+            path_list = [
+                ("Groups", url_for("groups_page.groups_page")),
+                (f"Group {id}", url_for("groups_page.group_page", group_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
 

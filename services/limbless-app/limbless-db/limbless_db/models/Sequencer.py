@@ -13,7 +13,7 @@ class Sequencer(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
 
     name: Mapped[str] = mapped_column(sa.String(32), nullable=False, unique=True, index=True)
-    model_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    model_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     ip: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, unique=False)
 
     @property

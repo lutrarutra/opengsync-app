@@ -12,8 +12,7 @@ def create_adapter(
     well: Optional[str] = None,
 ) -> models.Adapter:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if well is not None:
@@ -38,8 +37,7 @@ def create_adapter(
 
 
 def get_adapter(self, id: int) -> Optional[models.Adapter]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.Adapter, id)
@@ -57,8 +55,7 @@ def get_adapters(
 
 ) -> tuple[list[models.Adapter], int]:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Adapter)

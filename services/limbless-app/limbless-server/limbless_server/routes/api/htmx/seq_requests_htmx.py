@@ -87,8 +87,10 @@ def get_form(form_type: Literal["create", "edit"]):
         if (seq_request := db.get_seq_request(seq_request_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
+        if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+            affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+            if affiliation is None:
+                return abort(HTTPResponse.FORBIDDEN.id)
         
         return forms.models.SeqRequestForm(form_type=form_type, seq_request=seq_request).make_response()
     
@@ -107,7 +109,9 @@ def export(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     file_name = secure_filename(f"{seq_request.name}_request.xlsx")
 
@@ -146,7 +150,9 @@ def export_libraries(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
         
     file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
 
@@ -166,7 +172,9 @@ def edit(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.models.SeqRequestForm(form_type="edit", formdata=request.form).process_request(
         seq_request=seq_request, user_id=current_user.id
@@ -179,8 +187,9 @@ def delete(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider():
-        if seq_request.requestor_id != current_user.id:
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
     db.delete_seq_request(seq_request_id)
@@ -197,8 +206,9 @@ def archive(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider():
-        if seq_request.requestor_id != current_user.id:
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
     seq_request.status_id = SeqRequestStatus.ARCHIVED.id
@@ -239,7 +249,9 @@ def submit_request(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     if not seq_request.is_submittable():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -264,8 +276,9 @@ def upload_auth_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
     if seq_request.seq_auth_form_file_id is not None:
@@ -282,8 +295,10 @@ def add_comment(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.comment.SeqRequestCommentForm(formdata=request.form, seq_request_id=seq_request_id).process_request(
         seq_request=seq_request, user=current_user
@@ -296,8 +311,10 @@ def upload_file(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not (seq_request.requestor_id == current_user.id or current_user.is_insider()):
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.file.SeqRequestAttachmentForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
         seq_request=seq_request, user=current_user
@@ -310,8 +327,10 @@ def delete_file(seq_request_id: int, file_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not (seq_request.requestor_id == current_user.id or current_user.is_insider()):
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     if (file := db.get_file(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -335,8 +354,9 @@ def remove_auth_form(seq_request_id: int):
     if seq_request.seq_auth_form_file_id is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
     if seq_request.status != SeqRequestStatus.DRAFT:
@@ -373,8 +393,9 @@ def remove_library(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.status != SeqRequestStatus.DRAFT:
-        if not current_user.is_insider():
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
     try:
@@ -450,8 +471,10 @@ def process_request(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.ProcessRequestForm(formdata=request.form).process_request(
         seq_request=seq_request, user=current_user
@@ -464,8 +487,9 @@ def add_share_email(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.SeqRequestShareEmailForm(formdata=request.form).process_request(
@@ -483,8 +507,9 @@ def remove_share_email(seq_request_id: int, email: str):
     if len(seq_request.delivery_email_links) == 1:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
     try:
@@ -505,8 +530,9 @@ def overview(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
     LINK_WIDTH_UNIT = 1
@@ -636,7 +662,9 @@ def get_libraries(seq_request_id: int, page: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -692,7 +720,9 @@ def query_libraries(seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -749,7 +779,9 @@ def get_samples(seq_request_id: int, page: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -775,7 +807,9 @@ def get_pools(seq_request_id: int, page: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -802,8 +836,9 @@ def get_comments(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -824,8 +859,9 @@ def get_files(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:

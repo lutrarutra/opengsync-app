@@ -12,8 +12,7 @@ def create_event(
     user_id: int, note: Optional[str] = None,
 ) -> models.Event:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (_ := self._session.get(models.User, user_id)) is None:
@@ -37,8 +36,7 @@ def create_event(
 
 
 def get_event(self, event_id: int) -> Optional[models.Event]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     event = self._session.get(models.Event, event_id)
@@ -56,8 +54,7 @@ def get_events(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Event], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     query = self._session.query(models.Event)
@@ -93,8 +90,7 @@ def get_events(
 
 
 def update_event(self, event: models.Event) -> models.Event:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     self._session.add(event)
@@ -107,8 +103,7 @@ def update_event(self, event: models.Event) -> models.Event:
 
 
 def delete_event(self, event_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     if (event := self._session.get(models.Event, event_id)) is None:

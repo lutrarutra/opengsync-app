@@ -19,8 +19,8 @@ events_htmx = Blueprint("events_htmx", __name__, url_prefix="/api/hmtx/events/")
 
 @events_htmx.route("/render_calendar_month/<int:year>/<int:month>", methods=["GET"])
 @events_htmx.route("/render_calendar_month", methods=["GET"], defaults={"year": datetime.now().year, "month": datetime.now().month})
-@cache.cached(timeout=60)
 @login_required
+@cache.cached(timeout=60, query_string=True)
 def render_calendar_month(year: int, month: int):
     try:
         start_date = datetime(year, month, 1)

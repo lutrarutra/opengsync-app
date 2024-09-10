@@ -14,8 +14,7 @@ def create_sequencer(
     ip: Optional[str] = None
 ) -> models.Sequencer:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if self._session.query(models.Sequencer).where(
@@ -40,8 +39,7 @@ def create_sequencer(
 
 
 def get_sequencer(self, sequencer_id: int) -> Optional[models.Sequencer]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     sequencer = self._session.get(models.Sequencer, sequencer_id)
@@ -56,8 +54,7 @@ def get_sequencers(
     self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None
 ) -> tuple[list[models.Sequencer], int]:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Sequencer)
@@ -79,8 +76,7 @@ def get_sequencers(
 
 
 def get_num_sequencers(self) -> int:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     count = self._session.query(models.Sequencer).count()
@@ -92,8 +88,7 @@ def get_num_sequencers(self) -> int:
 
 
 def update_sequencer(self, sequencer: models.Sequencer) -> models.Sequencer:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     self._session.add(sequencer)
@@ -109,8 +104,7 @@ def update_sequencer(self, sequencer: models.Sequencer) -> models.Sequencer:
 def get_sequencer_by_name(
     self, name: str
 ) -> models.Sequencer:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     sequencer = self._session.query(models.Sequencer).where(
@@ -127,8 +121,7 @@ def delete_sequencer(
     self, sequencer_id: int,
     commit: bool = True
 ):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     sequencer = self._session.get(models.Sequencer, sequencer_id)
@@ -152,8 +145,7 @@ def query_sequencers(
     self, word: str, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Sequencer]:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Sequencer).order_by(

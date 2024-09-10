@@ -10,8 +10,7 @@ from .. import exceptions
 def create_plate(
     self, name: str, num_cols: int, num_rows: int, owner_id: int,
 ) -> models.Plate:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (owner := self.get_user(owner_id)) is None:
@@ -31,8 +30,7 @@ def create_plate(
 
 
 def get_plate(self, plate_id: int) -> Optional[models.Plate]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     plate = self._session.get(models.Plate, plate_id)
@@ -48,8 +46,7 @@ def get_plates(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Plate], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Plate)
@@ -77,8 +74,7 @@ def get_plates(
 
 
 def delete_plate(self, plate_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     if (plate := self.get_plate(plate_id)) is None:
@@ -97,8 +93,7 @@ def delete_plate(self, plate_id: int):
 def add_sample_to_plate(
     self, plate_id: int, sample_id: int, well_idx: int
 ) -> models.Plate:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     plate: models.Plate
@@ -128,8 +123,7 @@ def add_sample_to_plate(
 def add_library_to_plate(
     self, plate_id: int, library_id: int, well_idx: int
 ) -> models.Plate:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     plate: models.Plate
@@ -157,8 +151,7 @@ def add_library_to_plate(
 
 
 def clear_plate(self, plate_id: int) -> models.Plate:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     if (plate := self.get_plate(plate_id)) is None:
@@ -178,8 +171,7 @@ def clear_plate(self, plate_id: int) -> models.Plate:
 
 
 def get_plate_sample(self, plate_id: int, well_idx: int) -> Optional[models.Sample | models.Library]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     link: Optional[models.SamplePlateLink]

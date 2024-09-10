@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus, AccessType, AccessTypeEnum
 from .. import exceptions
 
 
@@ -23,8 +23,7 @@ def create_library(
     seq_depth_requested: Optional[float] = None,
     commit: bool = True
 ) -> models.Library:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if self._session.get(models.User, owner_id) is None:
@@ -80,8 +79,7 @@ def create_library(
 
 
 def get_library(self, library_id: int) -> Optional[models.Library]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     library = self._session.get(models.Library, library_id)
@@ -102,8 +100,7 @@ def get_libraries(
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Library], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Library)
@@ -198,8 +195,7 @@ def get_libraries(
 
 
 def delete_library(self, library_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     library: models.Library
@@ -237,8 +233,7 @@ def delete_library(self, library_id: int):
 
 
 def update_library(self, library: models.Library) -> models.Library:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     self._session.add(library)
@@ -261,8 +256,7 @@ def query_libraries(
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Library]:
 
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Library)
@@ -345,8 +339,7 @@ def query_libraries(
 
 
 def pool_library(self, library_id: int, pool_id: int) -> models.Library:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     library: models.Library
@@ -387,8 +380,7 @@ def set_library_seq_quality(
     mean_quality_pf_i2: Optional[float], q30_perc_i2: Optional[float],
 ) -> models.SeqQuality:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if library_id is not None:
@@ -437,8 +429,7 @@ def set_library_seq_quality(
 def add_library_index(
     self, library_id: int, name_i7: Optional[str], sequence_i7: Optional[str], name_i5: Optional[str], sequence_i5: Optional[str]
 ) -> models.Library:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (library := self._session.get(models.Library, library_id)) is None:
@@ -463,8 +454,7 @@ def add_library_index(
 
 
 def remove_library_indices(self, library_id: int) -> models.Library:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (library := self._session.get(models.Library, library_id)) is None:
@@ -480,3 +470,29 @@ def remove_library_indices(self, library_id: int) -> models.Library:
         self.close_session()
 
     return library
+
+
+def get_user_library_access_type(
+    self, library_id: int, user_id: int
+) -> Optional[AccessTypeEnum]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (library := self._session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    access_type: Optional[AccessTypeEnum] = None
+
+    if library.owner_id == user_id:
+        access_type = AccessType.OWNER
+    elif library.seq_request.group_id is not None:
+        if self._session.query(models.UserAffiliation).where(
+            models.UserAffiliation.user_id == user_id,
+            models.UserAffiliation.group_id == library.seq_request.group_id
+        ).first() is not None:
+            access_type = AccessType.EDIT
+
+    if not persist_session:
+        self.close_session()
+
+    return access_type

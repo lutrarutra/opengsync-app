@@ -6,8 +6,7 @@ from ... import models
 def create_visium_annotation(
     self, area: str, image: str, slide: str, commit: bool = True
 ) -> models.VisiumAnnotation:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     visium_annotation = models.VisiumAnnotation(
@@ -28,8 +27,7 @@ def create_visium_annotation(
 
 
 def get_visium_annotation(self, visium_annotation_id: int) -> Optional[models.VisiumAnnotation]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     visium_annotation = self._session.get(models.VisiumAnnotation, visium_annotation_id)

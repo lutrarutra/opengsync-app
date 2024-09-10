@@ -13,8 +13,7 @@ def create_experiment(
     sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
     r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None
 ) -> models.Experiment:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if self._session.get(models.Sequencer, sequencer_id) is None:
@@ -56,8 +55,7 @@ def create_experiment(
 
 
 def get_experiment(self, id: Optional[int] = None, name: Optional[str] = None) -> Optional[models.Experiment]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if id is not None and name is None:
@@ -82,8 +80,7 @@ def get_experiments(
     workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False
 ) -> tuple[list[models.Experiment], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Experiment)
@@ -120,8 +117,7 @@ def get_experiments(
 
 
 def get_num_experiments(self) -> int:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.query(models.Experiment).count()
@@ -131,8 +127,7 @@ def get_num_experiments(self) -> int:
 
 
 def delete_experiment(self, experiment_id: int):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
     
     if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
@@ -146,8 +141,7 @@ def delete_experiment(self, experiment_id: int):
 
 
 def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     prev_workflow = ExperimentWorkFlow.get(self._session.query(models.Experiment.workflow_id).where(
@@ -203,8 +197,7 @@ def query_experiments(
     workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Experiment]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Experiment)
@@ -231,8 +224,7 @@ def add_file_to_experiment(
     self, experiment_id: int, file_id: int,
     commit: bool = True
 ) -> models.ExperimentFileLink:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (_ := self._session.get(models.Experiment, experiment_id)) is None:
@@ -258,8 +250,7 @@ def add_file_to_experiment(
 
 
 def remove_comment_from_experiment(self, experiment_id: int, comment_id: int, commit: bool = True) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
@@ -280,8 +271,7 @@ def remove_comment_from_experiment(self, experiment_id: int, comment_id: int, co
 
 
 def remove_file_from_experiment(self, experiment_id: int, file_id: int, commit: bool = True) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (experiment := self._session.get(models.Experiment, experiment_id)) is None:

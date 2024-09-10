@@ -22,7 +22,7 @@ class Feature(Base):
     target_name: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, index=True)
     target_id: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, index=True)
 
-    type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     feature_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("feature_kit.id"), nullable=True)
     feature_kit: Mapped[Optional["FeatureKit"]] = relationship("FeatureKit", back_populates="features", lazy="select")

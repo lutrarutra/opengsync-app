@@ -8,8 +8,7 @@ from .. import exceptions
 
 
 def create_project(self, name: str, description: str, owner_id: int) -> models.Project:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (owner := self._session.get(models.User, owner_id)) is None:
@@ -34,8 +33,7 @@ def create_project(self, name: str, description: str, owner_id: int) -> models.P
 
 
 def get_project(self, project_id: int) -> Optional[models.Project]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.Project, project_id)
@@ -50,8 +48,7 @@ def get_projects(
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None
 ) -> tuple[list[models.Project], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Project)
@@ -83,8 +80,7 @@ def get_projects(
 
 
 def get_num_projects(self, user_id: Optional[int] = None) -> int:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Project)
@@ -104,8 +100,7 @@ def delete_project(
     self, project_id: int,
     commit: bool = True
 ) -> None:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if (project := self._session.get(models.Project, project_id)) is None:
@@ -126,8 +121,7 @@ def update_project(
     description: Optional[str] = None,
     commit: bool = True
 ) -> models.Project:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     project = self._session.get(models.Project, project_id)
@@ -151,8 +145,7 @@ def update_project(
 def project_contains_sample_with_name(
     self, project_id: int, sample_name: str
 ) -> bool:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     project = self._session.get(models.Project, project_id)
@@ -175,8 +168,7 @@ def query_projects(
     user_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Project]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.Project)

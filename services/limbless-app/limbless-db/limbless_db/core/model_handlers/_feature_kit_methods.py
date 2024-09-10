@@ -12,8 +12,7 @@ def create_feature_kit(
     self, name: str,
     type: FeatureTypeEnum,
 ) -> models.FeatureKit:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     if self._session.query(models.FeatureKit).where(models.FeatureKit.name == name).first():
@@ -33,8 +32,7 @@ def create_feature_kit(
 
 
 def get_feature_kit(self, id: int) -> Optional[models.FeatureKit]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.get(models.FeatureKit, id)
@@ -46,8 +44,7 @@ def get_feature_kit(self, id: int) -> Optional[models.FeatureKit]:
 
 
 def get_feature_kit_by_name(self, name: str) -> models.FeatureKit:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     res = self._session.query(models.FeatureKit).where(models.FeatureKit.name == name).first()
@@ -61,8 +58,7 @@ def get_feature_kits(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.FeatureKit], int]:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.FeatureKit)
@@ -93,8 +89,7 @@ def update_feature_kit(
     self, feature_kit: models.FeatureKit,
     commit: bool = True,
 ) -> models.FeatureKit:
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     self._session.add(feature_kit)
@@ -112,8 +107,7 @@ def delete_feature_kit(
     self, feature_kit_id: int,
     commit: bool = True
 ):
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     feature_kit = self._session.get(models.FeatureKit, feature_kit_id)
@@ -133,8 +127,7 @@ def query_feature_kits(
     self, word: str, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.FeatureKit]:
     
-    persist_session = self._session is not None
-    if not self._session:
+    if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self._session.query(models.FeatureKit)
