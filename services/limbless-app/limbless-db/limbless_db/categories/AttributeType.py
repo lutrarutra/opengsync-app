@@ -18,3 +18,12 @@ class AttributeType(ExtendedEnum[AttributeTypeEnum], enum_type=AttributeTypeEnum
     AGE = AttributeTypeEnum(5, "Age", "age")
     TISSUE = AttributeTypeEnum(6, "Tissue", "tissue")
     DISEASE = AttributeTypeEnum(7, "Disease", "disease")
+
+    @classmethod
+    def get_attribute_by_label(cls, label: str) -> AttributeTypeEnum:
+        label = label.lower().strip().replace(" ", "_")
+        for attribute in cls.as_list():
+            if attribute.label == label:
+                return attribute
+            
+        return cls.CUSTOM

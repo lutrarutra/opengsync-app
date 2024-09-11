@@ -51,7 +51,7 @@ class DBHandler():
         create_sample, get_sample, get_samples,
         delete_sample, update_sample, query_samples,
         set_sample_attribute, get_sample_attribute, get_sample_attributes,
-        get_user_sample_access_type
+        get_user_sample_access_type, delete_sample_attribute
     )
 
     from .model_handlers._pool_methods import (
@@ -184,5 +184,6 @@ class DBHandler():
         get_seq_requestor_df, get_seq_request_share_emails_df,
         get_library_features_df, get_library_cmos_df, get_experiment_seq_qualities_df,
         get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df,
-        get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df
+        get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df,
+        get_sample_attributes_df, get_project_sample_attributes_df
     )

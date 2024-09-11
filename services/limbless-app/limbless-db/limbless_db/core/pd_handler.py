@@ -498,3 +498,45 @@ def get_seq_request_features_df(self, seq_request_id: int) -> pd.DataFrame:
     df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
 
     return df
+
+
+def get_sample_attributes_df(self, sample_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Sample.id, models.Sample.name,
+        models.SampleAttribute.name.label("attribute_name"), models.SampleAttribute.value.label("attribute_value"),
+        models.SampleAttribute.type_id.label("type_id"),
+    )
+
+    query = query.where(
+        models.Sample.id == sample_id
+    ).join(
+        models.SampleAttribute,
+        models.SampleAttribute.sample_id == models.Sample.id
+    )
+
+    df = pd.read_sql(query, self._engine)
+    df["type"] = df["type_id"].map(categories.AttributeType.get)  # type: ignore
+    return df
+
+
+def get_project_sample_attributes_df(self, project_id: int, pivot: bool = True) -> pd.DataFrame:
+    query = sa.select(
+        models.Sample.id, models.Sample.name,
+        models.SampleAttribute.name.label("attribute_name"), models.SampleAttribute.value.label("attribute_value"),
+        models.SampleAttribute.type_id.label("type_id"),
+    )
+
+    query = query.where(
+        models.Sample.project_id == project_id
+    ).join(
+        models.SampleAttribute,
+        models.SampleAttribute.sample_id == models.Sample.id
+    )
+
+    df = pd.read_sql(query, self._engine)
+    if not pivot:
+        df["type"] = df["type_id"].map(categories.AttributeType.get)  # type: ignore
+    else:
+        df = df.pivot(index=["id", "name"], columns="attribute_name", values="attribute_value").reset_index()
+        df.columns.name = None
+    return df

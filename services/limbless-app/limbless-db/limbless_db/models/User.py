@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from .Library import Library
     from .File import File
     from .LabPrep import LabPrep
-    from .Group import Group
 
 
 class UserMixin():

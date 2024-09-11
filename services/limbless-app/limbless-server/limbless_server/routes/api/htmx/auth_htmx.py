@@ -60,7 +60,7 @@ def reset_password_email(user_id: int):
     if current_user.role != UserRole.ADMIN and current_user.id != user_id:
         return abort(HTTPResponse.FORBIDDEN.id)
         
-    token = current_user.generate_reset_token(serializer=serializer)
+    token = user.generate_reset_token(serializer=serializer)
     url = url_for("auth_page.reset_password_page", token=token, _external=True)
 
     msg = Message(

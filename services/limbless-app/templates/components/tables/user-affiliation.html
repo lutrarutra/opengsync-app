@@ -1,0 +1,44 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="user-affiliation-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='user-affiliation-table', column_name='ID', column_var='group_id',
+                        sort_url='users_htmx.get_affiliations', context={"user_id": user.id}, sort_by=sort_by, sort_order=sort_order
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='user-affiliation-table', column_name='Group', column_var='group_id',
+                        sort_url='users_htmx.get_affiliations', context={"user_id": user.id}, sort_by=sort_by, sort_order=sort_order, col_size=4,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='user-affiliation-table', column_name='Affiliation Type', column_var='affiliation_type_id',
+                        sort_url='users_htmx.get_affiliations', context={"user_id": user.id}, sort_by=sort_by, sort_order=sort_order, col_size=3,
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for affiliation in affiliations %}
+            <tr onclick="redirect('{{ url_for('groups_page.group_page', group_id=affiliation.group_id, from='user@' + user.id | string) }}');">
+                <th scope="row">{{ affiliation.group_id }}</th>
+                <td>{{ affiliation.group.name }}</td>
+                <td>{{ affiliation.affiliation_type.name }} {{ affiliation.affiliation_type.icon }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("user-affiliation-table-spinner") }}
+    {{ pagination("user-affiliation-table", "users_htmx.get_affiliations", n_pages, active_page, context={"user_id": user.id}) }}
+    <script>
+        init_tooltips();
+    </script>
+</div>

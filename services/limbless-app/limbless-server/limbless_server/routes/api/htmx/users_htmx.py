@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT
+from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, UserRole, SeqRequestStatus
 from .... import db, logger  # noqa F401
 
@@ -129,6 +129,7 @@ def table_query():
 
 @users_htmx.route("<int:user_id>/get_projects", methods=["GET"], defaults={"page": 0})
 @users_htmx.route("<int:user_id>/get_projects/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get_projects(user_id: int, page: int):
     if (user := db.get_user(user_id)) is None:
@@ -142,8 +143,7 @@ def get_projects(user_id: int, page: int):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
     
-    with DBSession(db) as session:
-        projects, n_pages = session.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
+    projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
     
     return make_response(
         render_template(
@@ -236,5 +236,34 @@ def query_seq_requests(user_id: int):
             current_query=word, active_query_field=field_name,
             seq_requests=seq_requests, status_in=status_in,
             user=user
+        )
+    )
+
+
+@users_htmx.route("<int:user_id>/get_affiliations", methods=["GET"], defaults={"page": 0})
+@users_htmx.route("<int:user_id>/get_affiliations/<int:page>", methods=["GET"])
+@db_session(db)
+@login_required
+def get_affiliations(user_id: int, page: int):
+    if (user := db.get_user(user_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if user.id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "group_id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    affiliations, n_pages = db.get_user_affiliations(
+        offset=offset, user_id=user_id, sort_by=sort_by, descending=descending
+    )
+    
+    return make_response(
+        render_template(
+            "components/tables/user-affiliation.html",
+            user=user, affiliations=affiliations,
+            active_page=page, n_pages=n_pages
         )
     )
