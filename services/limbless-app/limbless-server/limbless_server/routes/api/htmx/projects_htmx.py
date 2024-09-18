@@ -1,4 +1,7 @@
 from typing import Optional, TYPE_CHECKING
+import string
+
+import numpy as np
 
 from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
@@ -6,7 +9,9 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, DBHandler, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, UserRole
+
 from .... import db, forms
+from ....tools import SpreadSheetColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None   # type: ignore
@@ -256,3 +261,55 @@ def query_samples(project_id: int, field_name: str):
             samples=samples, field_name=field_name, project=project
         )
     )
+
+
+@projects_htmx.route("<int:project_id>/get_sample_attributes", methods=["GET"])
+@login_required
+def get_sample_attributes(project_id: int):
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    if project.owner_id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    df = db.get_project_sample_attributes_df(project_id=project_id)
+
+    columns = []
+    for i, col in enumerate(df.columns):
+        if "id" == col:
+            width = 50
+        elif "name" == col:
+            width = 300
+        else:
+            width = 150
+        columns.append(SpreadSheetColumn(
+            string.ascii_uppercase[i], col, col.replace("_", " ").title(), "text", width, var_type=str
+        ))
+
+    return make_response(
+        render_template(
+            "components/itable.html",
+            spreadsheet_data=df.replace({np.nan: ""}).values.tolist(),
+            columns=columns,
+            table_id="sample-attribute-table"
+        )
+    )
+
+
+@projects_htmx.route("<int:project_id>/edit_sample_attributes", methods=["GET", "POST"])
+@login_required
+def edit_sample_attributes(project_id: int):
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    if project.owner_id != current_user.id and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if request.method == "GET":
+        form = forms.SampleAttributeTableForm(project)
+        form.prepare()
+        return form.make_response()
+    elif request.method == "POST":
+        return forms.SampleAttributeTableForm(project=project, formdata=request.form).process_request()
+    
+    return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
