@@ -11,7 +11,8 @@ def get_experiment_libraries_df(
     self, experiment_id: int,
     include_sample: bool = False, include_index_kit: bool = False,
     include_visium: bool = False, include_seq_request: bool = False,
-    collapse_lanes: bool = False, drop_empty_columns: bool = True,
+    collapse_lanes: bool = False, include_indices: bool = True,
+    drop_empty_columns: bool = True, collapse_indicies: bool = True
 ) -> pd.DataFrame:
         
     columns = [
@@ -21,6 +22,13 @@ def get_experiment_libraries_df(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("reference_id"), models.Library.sample_name.label("sample_name"),
     ]
+
+    if include_indices:
+        columns.extend([
+            models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
+            models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+        ])
+
     if include_seq_request:
         columns.extend([
             models.SeqRequest.id.label("request_id"), models.SeqRequest.name.label("request_name"),
@@ -59,6 +67,12 @@ def get_experiment_libraries_df(
         models.Library,
         models.Library.pool_id == models.Pool.id
     )
+
+    if include_indices:
+        query = query.join(
+            models.LibraryIndex,
+            models.LibraryIndex.library_id == models.Library.id,
+        )
 
     if include_sample:
         query = query.join(
@@ -105,6 +119,14 @@ def get_experiment_libraries_df(
     order += [c for c in df.columns if c not in order]
 
     df = df[order]
+
+    if include_indices and collapse_indicies:
+        df = df.groupby(df.columns.difference(["sequence_i7", "sequence_i5", "name_i7", "name_i5"]).tolist(), as_index=False).agg({"sequence_i7": list, "sequence_i5": list, "name_i7": list, "name_i5": list}).copy().rename(
+            columns={
+                "sequence_i7": "sequences_i7", "sequence_i5": "sequences_i5",
+                "name_i7": "names_i7", "name_i5": "names_i5"
+            }
+        )
     
     if drop_empty_columns:
         df = df.dropna(axis="columns", how="all")

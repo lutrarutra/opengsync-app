@@ -102,13 +102,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         
         self.spreadsheet_dummy.errors = []
         column_order = self.spreadsheet_df.columns.tolist()
-
-        logger.debug(self.spreadsheet_df)
-        logger.debug(self.df)
-
-        logger.debug(self.spreadsheet_df["id"].values)
-        logger.debug(self.df["id"].values)
-
+        
         def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value"]):
             self._context["spreadsheet_style"][f"{string.ascii_uppercase[column_order.index(column)]}{row_num}"] = f"background-color: {SampleAttributeTableForm.colors[color]};"
             self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
