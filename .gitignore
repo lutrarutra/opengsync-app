@@ -23,6 +23,7 @@ licensed/
 .~lock.*
 poetry.lock
 _init_db.ipynb
+rclone.conf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

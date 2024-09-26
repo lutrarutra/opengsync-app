@@ -1,4 +1,39 @@
 services:
+    rf-scanner:
+        container_name: rf-scanner-dev
+        build:
+            context: ./services
+            dockerfile: rf-scanner/Dockerfile
+        volumes:
+            - ./illumina_run_folder:/illumina_run_folder:ro
+        restart: always
+        depends_on:
+            rclone:
+                condition: service_healthy
+                restart: true
+        command: python runner.py /illumina_run_folder ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${HPC_HOST} ${POSTGRES_DB} ${POSTGRES_PORT}
+        env_file: .env
+
+    rclone:
+        image: rclone/rclone:latest
+        container_name: rclone-dev
+        volumes:
+            - ./rclone:/config/rclone:rw
+            - ~/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
+            - ./illumina_run_folder:/data:shared
+        command: "mount cemm_cluster:${ILLUMINA_RUN_FOLDER} /data --allow-non-empty --allow-other --dir-cache-time 5s --poll-interval 10s --vfs-cache-mode full --read-only --cache-dir=/data/cache/0"
+        devices:
+            - "/dev/fuse:/dev/fuse:rwm"
+        cap_add:
+            - SYS_ADMIN
+        security_opt:
+            - apparmor:unconfined
+        healthcheck:
+            test: ["CMD", "rclone", "--version"]
+            interval: 10s
+            timeout: 10s
+            retries: 1
+
     limbless-app:
         container_name: limbless-app-dev
         build:
