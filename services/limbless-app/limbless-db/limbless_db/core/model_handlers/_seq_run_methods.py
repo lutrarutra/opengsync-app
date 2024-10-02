@@ -12,8 +12,8 @@ from ...categories import ReadTypeEnum, RunStatusEnum
 def create_seq_run(
     self, experiment_name: str, status: RunStatusEnum, instrument_name: str,
     run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
-    rta_version: str, recipe_version: Optional[str], side: Optional[str], flowcell_mode: Optional[str],
     r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
+    rta_version: str, recipe_version: Optional[str] = None, side: Optional[str] = None, flowcell_mode: Optional[str] = None,
     cluster_count_m: Optional[float] = None, cluster_count_m_pf: Optional[float] = None,
     error_rate: Optional[float] = None, first_cycle_intensity: Optional[float] = None,
     percent_aligned: Optional[float] = None, percent_q30: Optional[float] = None,

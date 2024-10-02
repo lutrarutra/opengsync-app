@@ -93,7 +93,7 @@ class Experiment(Base):
         return ts.strftime(fmt)
     
     def __str__(self) -> str:
-        return f"Experiment(id={self.id}, num_lanes={self.num_lanes})"
+        return f"Experiment(id={self.id}, name={self.name}, num_lanes={self.num_lanes})"
     
     def __repr__(self) -> str:
         return str(self)

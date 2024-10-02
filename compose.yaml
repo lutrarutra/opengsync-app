@@ -81,7 +81,7 @@ services:
 
     sass-compiler:
         container_name: sass-compiler
-        image: apluslms/develop-sass
+        build: ./services/sass-compiler
         volumes:
             - ./services/limbless-app/static/style/sass:/usr/src/static/style/sass:ro
             - compiled_css:/usr/src/app/static/style/compiled

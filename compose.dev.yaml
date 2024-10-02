@@ -1,4 +1,34 @@
 services:
+    rf-scanner:
+        container_name: rf-scanner-dev
+        build:
+            context: ./services
+            dockerfile: rf-scanner/Dockerfile
+            args:
+                RUN_FOLDER_SCAN_INTERVAL_MINS: ${RUN_FOLDER_SCAN_INTERVAL_MINS}
+        env_file: .env
+        devices:
+            - "/dev/fuse:/dev/fuse:rwm"
+        cap_add:
+            - SYS_ADMIN
+        security_opt:
+            - apparmor:unconfined
+        volumes:
+            - ./services/rf-scanner/src:/usr/src/app/src:ro
+            - ./rclone:/root/.config/rclone:rw
+            - .ssh/:/.ssh:ro
+            - ./logs/rf-scanner:/var/log
+        depends_on:
+            postgres:
+                condition: service_healthy
+                restart: true
+        restart: always
+        healthcheck:
+            test: ["CMD-SHELL", "mountpoint -q /illumina_run_folder || exit 1"]
+            interval: 10s
+            timeout: 10s
+            retries: 3
+
     limbless-app:
         container_name: limbless-app-dev
         build:
@@ -59,7 +89,7 @@ services:
 
     sass-compiler:
         container_name: sass-compiler-dev
-        image: apluslms/develop-sass
+        build: ./services/sass-compiler
         volumes:
             - ./services/limbless-app/static/style/sass:/usr/src/app/static/style/sass:ro
             - compiled_css:/usr/src/app/static/style/compiled
