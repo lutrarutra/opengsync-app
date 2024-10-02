@@ -4,35 +4,30 @@ services:
         build:
             context: ./services
             dockerfile: rf-scanner/Dockerfile
-        volumes:
-            - ./illumina_run_folder:/illumina_run_folder:ro
-        restart: always
-        depends_on:
-            rclone:
-                condition: service_healthy
-                restart: true
-        command: python runner.py /illumina_run_folder ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${HPC_HOST} ${POSTGRES_DB} ${POSTGRES_PORT}
+            args:
+                RUN_FOLDER_SCAN_INTERVAL_MINS: ${RUN_FOLDER_SCAN_INTERVAL_MINS}
         env_file: .env
-
-    rclone:
-        image: rclone/rclone:latest
-        container_name: rclone-dev
-        volumes:
-            - ./rclone:/config/rclone:rw
-            - ~/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
-            - ./illumina_run_folder:/data:shared
-        command: "mount cemm_cluster:${ILLUMINA_RUN_FOLDER} /data --allow-non-empty --allow-other --dir-cache-time 5s --poll-interval 10s --vfs-cache-mode full --read-only --cache-dir=/data/cache/0"
         devices:
             - "/dev/fuse:/dev/fuse:rwm"
         cap_add:
             - SYS_ADMIN
         security_opt:
             - apparmor:unconfined
+        volumes:
+            - ./services/rf-scanner/src:/usr/src/app/src:ro
+            - ./rclone:/root/.config/rclone:rw
+            - .ssh/:/.ssh:ro
+            - ./logs/rf-scanner:/var/log
+        depends_on:
+            postgres:
+                condition: service_healthy
+                restart: true
+        restart: always
         healthcheck:
-            test: ["CMD", "rclone", "--version"]
+            test: ["CMD-SHELL", "mountpoint -q /illumina_run_folder || exit 1"]
             interval: 10s
             timeout: 10s
-            retries: 1
+            retries: 3
 
     limbless-app:
         container_name: limbless-app-dev
@@ -94,7 +89,7 @@ services:
 
     sass-compiler:
         container_name: sass-compiler-dev
-        image: apluslms/develop-sass
+        build: ./services/sass-compiler
         volumes:
             - ./services/limbless-app/static/style/sass:/usr/src/app/static/style/sass:ro
             - compiled_css:/usr/src/app/static/style/compiled

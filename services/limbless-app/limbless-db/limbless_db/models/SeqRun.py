@@ -19,8 +19,8 @@ class SeqRun(Base):
     run_folder: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     flowcell_id: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    rta_version: Mapped[str] = mapped_column(sa.String(8), nullable=False)
-    recipe_version: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
+    rta_version: Mapped[str] = mapped_column(sa.String(32), nullable=False)
+    recipe_version: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
     side: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
     flowcell_mode: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
 
