@@ -11,7 +11,15 @@ services:
             - ./data:/usr/src/app/data:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
             - ./cert:/usr/src/app/cert
+            - ./rclone:/root/.config/rclone:rw
+            - .ssh/:/.ssh:ro
         env_file: .env
+        devices:
+            - "/dev/fuse:/dev/fuse:rwm"
+        cap_add:
+            - SYS_ADMIN
+        security_opt:
+            - apparmor:unconfined
         expose:
             - ${LIMBLESS_PORT}
         depends_on:
@@ -29,7 +37,7 @@ services:
             interval: 10s
             timeout: 10s
             retries: 5
-            
+
     rf-scanner:
         container_name: rf-scanner
         build:

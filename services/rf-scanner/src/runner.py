@@ -8,8 +8,9 @@ import pandas as pd
 import interop
 from xml.dom.minidom import parse
 
-from limbless_db.categories import RunStatus, ExperimentStatus, ReadType
+from limbless_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus
 from limbless_db.core import DBHandler
+from limbless_db import DBSession
 
 
 def get_dom_value(dom, tag_name: str) -> str | None:
@@ -123,22 +124,26 @@ def parse_metrics(run_folder: str) -> dict:
 
 def process_run_folder(illumina_run_folder: str, db: DBHandler):
     print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} Processing run folder: {illumina_run_folder}")
-    active_runs, _ = db.get_seq_runs(
-        status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
-        limit=None
-    )
+    
+    with DBSession(db) as session:
+        active_runs, _ = db.get_seq_runs(
+            status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
+            limit=None
+        )
 
-    active_runs = dict([(run.experiment_name, run) for run in active_runs])
+        active_runs = dict([(run.experiment_name, run) for run in active_runs])
 
-    for run in active_runs.values():
-        if not os.path.exists(os.path.join(illumina_run_folder, run.run_folder)):
-            run.status_id = RunStatus.ARCHIVED.id
-            run = db.update_seq_run(run)
-            active_runs[run.experiment_name] = run
-            print(f"Archived: {run.experiment_name} ({run.run_folder})")
-            if (experiment := db.get_experiment(name=run.experiment_name)) is not None:
-                experiment.status_id = ExperimentStatus.ARCHIVED.id
-                experiment = db.update_experiment(experiment)
+        for run in active_runs.values():
+            if not os.path.exists(os.path.join(illumina_run_folder, run.run_folder)):
+                run.status_id = RunStatus.ARCHIVED.id
+                if run.experiment is not None:
+                    run.experiment.status_id = ExperimentStatus.ARCHIVED.id
+                    for pool in run.experiment.pools:
+                        for library in pool.libraries:
+                            library.status_id = LibraryStatus.SEQUENCED.id
+                run = session.update_seq_run(run)
+                active_runs[run.experiment_name] = run
+                print(f"Archived: {run.experiment_name} ({run.run_folder})")
     
     for run_parameters_path in glob.glob(os.path.join(illumina_run_folder, "*", "RunParameters.xml")):
         run_folder = os.path.dirname(run_parameters_path)
@@ -154,12 +159,23 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
         experiment_name = parsed_data["experiment_name"]
         print(f"Processing: {experiment_name} ({run_name}): ", end="")
 
-        metrics = parse_metrics(run_folder)
-
         if (run := active_runs.get(experiment_name)) is not None:
             if run.status == status:
                 print("Up to date!")
                 continue
+            
+            if run.status == RunStatus.FINISHED:
+                if run.experiment is not None:
+                    run.experiment.status_id = ExperimentStatus.FINISHED.id
+                    for pool in run.experiment.pools:
+                        for library in pool.libraries:
+                            library.status_id = LibraryStatus.SEQUENCED.id
+            
+            # This should not happen
+            if run.status == RunStatus.ARCHIVED:
+                continue
+            
+            metrics = parse_metrics(run_folder)
             
             run.status_id = status.id
             run.instrument_name = parsed_data["instrument"]
@@ -186,6 +202,8 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             active_runs[experiment_name] = run
             print("Updated!")
         else:
+            metrics = parse_metrics(run_folder)
+            
             run = db.create_seq_run(
                 experiment_name=experiment_name,
                 status=status,

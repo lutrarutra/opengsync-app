@@ -2,15 +2,13 @@
 Web app for NGS sample/library/project tracking
 
 # Containers
-1. `limbless-app` - Flask web server
+1. `limbless-app` - Flask web server @ `https://localhost:80`
 1. `limbless-db` - PostgreSQL database
-1. `rf-scanenr` - Illumina run folder scanner
-1. `ofelia` - `Scheduled temporary file cleaner`
-    - Production only
-1. `nginx` - Reverse proxy for static files
-    - Production only
-1. `pgadmin` - PostgreSQL admin interface
-1. `yacht` - Web interface for managing docker containers
+1. `rf-scanenr` - Illumina run folder scanner 
+1. `ofelia` - Scheduled temporary file cleaner (only prod)
+1. `nginx` - Reverse proxy for static files (only prod)
+1. `pgadmin` - PostgreSQL admin interface @ `https://localhost:5050`
+1. `yacht` - Web interface for managing docker containers @ `https://localhost:8000`
 1. `sass-compiler` - Compiles scss to css
 1. `redis` - Cache for Flask app
 
@@ -56,6 +54,12 @@ Web app for NGS sample/library/project tracking
 - `chmod +x prod.sh`
 - `./prod.sh` 
 
+## After first boot
+- Change yacht login and password
+    - `http://localhost:${YACHT_PORT}`
+    - default username: `admin@yacht.local`
+    - default password: `pass`
+
 
 # Setup for Development
 
@@ -84,7 +88,7 @@ sudo chown -R 5050:5050 db/dev_pgadmin
 - password: `$(PGADMIN_PASSWORD)`
 
 ## pgAdmin Server Setup
-- host: `postgres` & port: `5432` (prod) `5433` (dev) or
+- host: `postgres` & port: `$(POSTGRES_PORT)` or
 - Find the IP address of the container:
     1. `docker ps`
     2. `docker inspect limbless-postgres-db | grep IPAddress`

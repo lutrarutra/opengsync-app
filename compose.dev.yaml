@@ -1,4 +1,54 @@
 services:
+    limbless-app:
+        container_name: limbless-app-dev
+        build:
+            context: ./services/limbless-app
+            dockerfile: Dockerfile.dev
+        command: "python3 /usr/src/app/debug.py --host=${LIMBLESS_HOST} --port=${LIMBLESS_PORT}"
+        volumes:
+            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
+            - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db
+            - ./uploads:/usr/src/app/uploads
+            - ./media:/usr/src/app/media
+            - ./logs/limbless:/usr/src/app/logs
+            - ./data:/usr/src/app/data:ro
+            - ./services/limbless-app/static/images:/usr/src/app/static/images:ro
+            - ./services/limbless-app/static/js:/usr/src/app/static/js:ro
+            - ./services/limbless-app/static/resources:/usr/src/app/static/resources:ro
+            - compiled_css:/usr/src/app/static/style/compiled:ro
+            - ./services/limbless-app/templates:/usr/src/app/templates:ro
+            - ./cert:/usr/src/app/cert
+            - ./db/dev_init:/usr/src/app/init
+            - ./rclone:/root/.config/rclone:rw
+            - .ssh/:/.ssh:ro
+        env_file: .env
+        ports:
+            - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
+        expose:
+            - ${LIMBLESS_PORT}
+        devices:
+            - "/dev/fuse:/dev/fuse:rwm"
+        cap_add:
+            - SYS_ADMIN
+        security_opt:
+            - apparmor:unconfined
+        restart: always
+        depends_on:
+            postgres:
+                condition: service_healthy
+                restart: true
+            sass-compiler:
+                condition: service_started
+                restart: true
+            redis-cache:
+                condition: service_healthy
+                restart: true
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+
     rf-scanner:
         container_name: rf-scanner-dev
         build:
@@ -28,48 +78,6 @@ services:
             interval: 10s
             timeout: 10s
             retries: 3
-
-    limbless-app:
-        container_name: limbless-app-dev
-        build:
-            context: ./services/limbless-app
-            dockerfile: Dockerfile.dev
-        command: "python3 /usr/src/app/debug.py --host=${LIMBLESS_HOST} --port=${LIMBLESS_PORT}"
-        volumes:
-            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
-            - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db
-            - ./uploads:/usr/src/app/uploads
-            - ./media:/usr/src/app/media
-            - ./logs/limbless:/usr/src/app/logs
-            - ./data:/usr/src/app/data:ro
-            - ./services/limbless-app/static/images:/usr/src/app/static/images:ro
-            - ./services/limbless-app/static/js:/usr/src/app/static/js:ro
-            - ./services/limbless-app/static/resources:/usr/src/app/static/resources:ro
-            - compiled_css:/usr/src/app/static/style/compiled:ro
-            - ./services/limbless-app/templates:/usr/src/app/templates:ro
-            - ./cert:/usr/src/app/cert
-            - ./db/dev_init:/usr/src/app/init
-        env_file: .env
-        ports:
-            - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
-        expose:
-            - ${LIMBLESS_PORT}
-        restart: always
-        depends_on:
-            postgres:
-                condition: service_healthy
-                restart: true
-            sass-compiler:
-                condition: service_started
-                restart: true
-            redis-cache:
-                condition: service_healthy
-                restart: true
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
-            interval: 10s
-            timeout: 10s
-            retries: 5
 
     redis-cache:
         container_name: redis-cache-dev
