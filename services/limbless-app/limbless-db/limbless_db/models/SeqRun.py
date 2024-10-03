@@ -1,11 +1,14 @@
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 
 from ..categories import RunStatus, RunStatusEnum, ReadType, ReadTypeEnum
+
+if TYPE_CHECKING:
+    from .Experiment import Experiment
 
 
 class SeqRun(Base):
@@ -40,6 +43,8 @@ class SeqRun(Base):
     reads_m: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
     reads_m_pf: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
     yield_g: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
+
+    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="joined", primaryjoin="SeqRun.experiment_name == Experiment.name", foreign_keys=experiment_name)
 
     sortable_fields: ClassVar[list[str]] = ["id", "experiment_name", "status_id", "read_type_id"]
 

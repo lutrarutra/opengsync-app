@@ -21,7 +21,6 @@ class LibraryStatus(ExtendedEnum[LibraryStatusEnum], enum_type=LibraryStatusEnum
     STORED = LibraryStatusEnum(4, "Stored", "📦", "Library is received and stored")
     POOLED = LibraryStatusEnum(5, "Pooled", "🧪", "Library is prepared and pooled and ready for sequencing")
     SEQUENCED = LibraryStatusEnum(6, "Sequenced", "🧬", "Sequencing is finished")
-    SHARED = LibraryStatusEnum(7, "Shared", "📬", "Data from the library is shared")
     FAILED = LibraryStatusEnum(10, "Failed", "❌", "Sequencing of the library could not be completed")
     REJECTED = LibraryStatusEnum(11, "Rejected", "⛔", "Library was not accepted to be sequenced by staff")
     ARCHIVED = LibraryStatusEnum(12, "Archived", "🗃️", "Library is sequenced and the data is archived")

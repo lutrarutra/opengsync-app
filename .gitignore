@@ -17,7 +17,6 @@ rclone/
 !templates/rclone
 
 .snakemake/
-**/style/compiled/
 .VSCodeCounter/
 .~lock.*
 poetry.lock

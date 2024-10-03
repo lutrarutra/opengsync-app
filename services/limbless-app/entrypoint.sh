@@ -7,6 +7,11 @@ if [ $? -eq 1 ] && [ "$LIMBLESS_TESTING" == 0 ]; then
     python3 init_db.py --create_users
 fi
 
+mkdir -p /usr/src/app/data/sequences_10x
+echo "Mounting: ${TENX_SEQUENCES_FOLDER} -> /usr/src/app/data/sequences_10x"
+rclone mount cemm_cluster:${TENX_SEQUENCES_FOLDER} /usr/src/app/data/sequences_10x --dir-cache-time 5s \
+    --poll-interval 10s --vfs-cache-mode full --read-only --cache-dir=/data/cache/0 --allow-non-empty --allow-other --daemon --log-file=/usr/src/app/logs/rclone.log
+
 echo "$@"
 
 if [ $? -eq 0 ]; then
