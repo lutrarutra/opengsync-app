@@ -1,35 +1,34 @@
-.hintrc
-.DS_Store
-pipeline.yml
 data/
 logs/
 cache/
 db/
 uploads/
 media/
-.vscode/
-.env
-.prod.env
-.test.env
-.tmp/
-.dev.env
 cert/
+backup/
+.vscode/
+*.env
+!templates/template.env
+.tmp/
 .ssh/
 test*.ipynb
-.snakemake/
-containers/images/
 licensed/
+rclone/
+!templates/rclone
+
+.snakemake/
 **/style/compiled/
 .VSCodeCounter/
 .~lock.*
 poetry.lock
 _init_db.ipynb
-rclone.conf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+.hintrc
+.DS_Store
 
 # C extensions
 *.so

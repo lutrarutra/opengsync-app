@@ -29,7 +29,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
     app.config["MEDIA_FOLDER"] = os.path.join("media")
     app.config["UPLOADS_FOLDER"] = os.path.join("uploads")
-    cache.init_app(app, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": 'redis://redis-cache:6379'})
+    if (REDIS_PORT := os.getenv("REDIS_PORT")) is None:
+        raise ValueError("REDIS_PORT env-variable not set")
+    cache.init_app(app, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
 
     for file_type in categories.FileType.as_list():
         if file_type.dir is None:

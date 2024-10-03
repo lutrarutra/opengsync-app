@@ -74,18 +74,17 @@ services:
     redis-cache:
         container_name: redis-cache-dev
         image: redis:6.2-alpine
-        expose:
-            - 6379
         ports:
-            - 6379:6379
+            - ${REDIS_PORT}:${REDIS_PORT}
         restart: always
         volumes:
             - ./cache:/data
         healthcheck:
-            test: ["CMD", "redis-cli", "ping"]
+            test: ["CMD", "redis-cli", "-p", "${REDIS_PORT}", "ping"]
             interval: 10s
             timeout: 10s
             retries: 5
+        command: --port ${REDIS_PORT}
 
     sass-compiler:
         container_name: sass-compiler-dev
@@ -115,6 +114,7 @@ services:
         restart: always
         volumes:
             - ./db/dev_postgres:/var/lib/postgresql/data
+            - ./backup/dev_postgres:/var/lib/postgresql/backup
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s
@@ -137,5 +137,16 @@ services:
                 condition: service_healthy
                 restart: true
 
+    yacht:
+        container_name: yacht-dev
+        image: selfhostedpro/yacht:latest
+        ports:
+            - ${YACHT_PORT}:8000
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - yacht:/config
+        restart: always
+
 volumes:
     compiled_css:
+    yacht:

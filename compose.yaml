@@ -1,6 +1,37 @@
 services:
+    limbless-app:
+        container_name: limbless-app
+        build: ./services/limbless-app
+        command: gunicorn -w 4 --bind ${LIMBLESS_HOST}:${LIMBLESS_PORT} 'wsgi:create_app(static_folder="/usr/src/app/static", template_folder="/usr/src/app/templates")'
+        volumes:
+            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
+            - ./uploads:/usr/src/app/uploads
+            - ./media:/usr/src/app/media
+            - ./logs/limbless:/usr/src/app/logs
+            - ./data:/usr/src/app/data:ro
+            - ./services/limbless-app/templates:/usr/src/app/templates:ro
+            - ./cert:/usr/src/app/cert
+        env_file: .env
+        expose:
+            - ${LIMBLESS_PORT}
+        depends_on:
+            postgres:
+                condition: service_healthy
+                restart: true
+            sass-compiler:
+                condition: service_completed_successfully
+                restart: false
+            redis-cache:
+                condition: service_healthy
+                restart: true
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+            
     rf-scanner:
-        container_name: rf-scanner-prod
+        container_name: rf-scanner
         build:
             context: ./services
             dockerfile: rf-scanner/Dockerfile
@@ -60,52 +91,20 @@ services:
             LIMBLESS_PORT: ${LIMBLESS_PORT}
         command: /bin/bash -c "envsubst < /etc/nginx/conf.d/conf.template | sed -e 's/§/$/g' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
-    limbless-app:
-        container_name: limbless-app
-        build: ./services/limbless-app
-        command: gunicorn -w 4 --bind ${LIMBLESS_HOST}:${LIMBLESS_PORT} 'wsgi:create_app(static_folder="/usr/src/app/static", template_folder="/usr/src/app/templates")'
-        volumes:
-            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
-            - ./uploads:/usr/src/app/uploads
-            - ./media:/usr/src/app/media
-            - ./logs/limbless:/usr/src/app/logs
-            - ./data:/usr/src/app/data:ro
-            - ./services/limbless-app/templates:/usr/src/app/templates:ro
-            - ./cert:/usr/src/app/cert
-        env_file: .env
-        expose:
-            - ${LIMBLESS_PORT}
-        depends_on:
-            postgres:
-                condition: service_healthy
-                restart: true
-            sass-compiler:
-                condition: service_completed_successfully
-                restart: false
-            redis-cache:
-                condition: service_healthy
-                restart: true
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
-            interval: 10s
-            timeout: 10s
-            retries: 5
-
     redis-cache:
-        container_name: redis-cache-prod
+        container_name: redis-cache
         image: redis:6.2-alpine
-        expose:
-            - 6379
         ports:
-            - 6379:6379
+            - ${REDIS_PORT}:${REDIS_PORT}
         restart: always
         volumes:
             - ./cache:/data
         healthcheck:
-            test: ["CMD", "redis-cli", "ping"]
+            test: ["CMD", "redis-cli", "-p", "${REDIS_PORT}", "ping"]
             interval: 10s
             timeout: 10s
             retries: 5
+        command: --port ${REDIS_PORT}
 
     sass-compiler:
         container_name: sass-compiler
@@ -152,5 +151,16 @@ services:
                 condition: service_healthy
                 restart: true
 
+    yacht:
+        container_name: yacht
+        image: selfhostedpro/yacht:latest
+        ports:
+            - ${YACHT_PORT}:8000
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - yacht:/config
+        restart: always
+
 volumes:
     compiled_css:
+    yacht:
