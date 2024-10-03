@@ -4,6 +4,7 @@ import argparse
 import glob
 import datetime
 
+import pandas as pd
 import interop
 from xml.dom.minidom import parse
 
@@ -12,7 +13,11 @@ from limbless_db.core import DBHandler
 
 
 def get_dom_value(dom, tag_name: str) -> str | None:
-    if (fc := dom.getElementsByTagName(tag_name)[0].firstChild) is None:
+    if len(matches := dom.getElementsByTagName(tag_name)) == 0:
+        return None
+    if len(matches) > 1:
+        raise ValueError(f"Multiple matches for tag: {tag_name}")
+    if (fc := matches[0].firstChild) is None:
         return None
     return fc.nodeValue
 
@@ -72,6 +77,50 @@ def parse_run_folder(run_folder: str) -> dict:
     }
 
 
+def parse_metrics(run_folder: str) -> dict:
+    try:
+        metrics = interop.read(run_folder)
+        metrics_df = pd.DataFrame(interop.summary(metrics))
+        cluster_count_m = float(metrics_df["Cluster Count"].values[0] / 1_000_000)
+        cluster_count_m_pf = float(metrics_df["Cluster Count Pf"].values[0] / 1_000_000)
+        error_rate = float(metrics_df["Error Rate"].values[0]) if "Error Rate" in metrics_df.columns else None
+        first_cycle_intensity = float(metrics_df["First Cycle Intensity"].values[0])
+        percent_aligned = float(metrics_df["% Aligned"].values[0])
+        percent_q30 = float(metrics_df["% >= Q30"].values[0])
+        percent_occupied = float(metrics_df["% Occupied"].values[0])
+        projected_yield = float(metrics_df["Projected Yield G"].values[0])
+        reads_m = float(metrics_df["Reads"].values[0] / 1_000_000)
+        reads_m_pf = float(metrics_df["Reads Pf"].values[0] / 1_000_000)
+        yield_g = float(metrics_df["Yield G"].values[0])
+    except Exception:
+        print("Could not parse metrics...")
+        cluster_count_m = None
+        cluster_count_m_pf = None
+        error_rate = None
+        first_cycle_intensity = None
+        percent_aligned = None
+        percent_q30 = None
+        percent_occupied = None
+        projected_yield = None
+        reads_m = None
+        reads_m_pf = None
+        yield_g = None
+
+    return {
+        "cluster_count_m": cluster_count_m,
+        "cluster_count_m_pf": cluster_count_m_pf,
+        "error_rate": error_rate,
+        "first_cycle_intensity": first_cycle_intensity,
+        "percent_aligned": percent_aligned,
+        "percent_q30": percent_q30,
+        "percent_occupied": percent_occupied,
+        "projected_yield": projected_yield,
+        "reads_m": reads_m,
+        "reads_m_pf": reads_m_pf,
+        "yield_g": yield_g
+    }
+
+
 def process_run_folder(illumina_run_folder: str, db: DBHandler):
     print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} Processing run folder: {illumina_run_folder}")
     active_runs, _ = db.get_seq_runs(
@@ -105,6 +154,8 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
         experiment_name = parsed_data["experiment_name"]
         print(f"Processing: {experiment_name} ({run_name}): ", end="")
 
+        metrics = parse_metrics(run_folder)
+
         if (run := active_runs.get(experiment_name)) is not None:
             if run.status == status:
                 print("Up to date!")
@@ -119,6 +170,17 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             run.r2_cycles = parsed_data["r2_cycles"]
             run.i1_cycles = parsed_data["i1_cycles"]
             run.i2_cycles = parsed_data["i2_cycles"]
+            run.cluster_count_m = metrics["cluster_count_m"]
+            run.cluster_count_m_pf = metrics["cluster_count_m_pf"]
+            run.error_rate = metrics["error_rate"]
+            run.first_cycle_intensity = metrics["first_cycle_intensity"]
+            run.percent_aligned = metrics["percent_aligned"]
+            run.percent_q30 = metrics["percent_q30"]
+            run.percent_occupied = metrics["percent_occupied"]
+            run.projected_yield = metrics["projected_yield"]
+            run.reads_m = metrics["reads_m"]
+            run.reads_m_pf = metrics["reads_m_pf"]
+            run.yield_g = metrics["yield_g"]
 
             run = db.update_seq_run(run)
             active_runs[experiment_name] = run
@@ -136,6 +198,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 r2_cycles=parsed_data.get("r2_cycles"),
                 i1_cycles=parsed_data.get("i1_cycles"),
                 i2_cycles=parsed_data.get("i2_cycles"),
+                **metrics
             )
             active_runs[experiment_name] = run
             print("Added!")

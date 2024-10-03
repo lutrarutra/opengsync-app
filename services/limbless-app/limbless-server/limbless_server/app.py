@@ -239,7 +239,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.groups_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
-    app.register_blueprint(api.seq_run_api)
 
     app.register_blueprint(api.workflows.library_pooling_workflow)
     app.register_blueprint(api.workflows.library_annotation_workflow)
