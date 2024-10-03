@@ -8,7 +8,7 @@ import pandas as pd
 import interop
 from xml.dom.minidom import parse
 
-from limbless_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus
+from limbless_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
 from limbless_db.core import DBHandler
 from limbless_db import DBSession
 
@@ -139,6 +139,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 if run.experiment is not None:
                     run.experiment.status_id = ExperimentStatus.ARCHIVED.id
                     for pool in run.experiment.pools:
+                        pool.status_id = PoolStatus.SEQUENCED.id
                         for library in pool.libraries:
                             library.status_id = LibraryStatus.SEQUENCED.id
                 run = session.update_seq_run(run)
@@ -168,6 +169,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 if run.experiment is not None:
                     run.experiment.status_id = ExperimentStatus.FINISHED.id
                     for pool in run.experiment.pools:
+                        pool.status_id = PoolStatus.SEQUENCED.id
                         for library in pool.libraries:
                             library.status_id = LibraryStatus.SEQUENCED.id
             
