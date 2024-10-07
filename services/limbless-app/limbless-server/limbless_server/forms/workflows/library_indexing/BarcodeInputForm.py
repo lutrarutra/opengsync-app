@@ -177,6 +177,8 @@ class BarcodeInputForm(HTMXFlaskForm):
             "pool": [],
             "sequence_i7": [],
             "sequence_i5": [],
+            "name_i7": [],
+            "name_i5": [],
         }
         for idx, row in self.df.iterrows():
             seq_i7s = row["sequence_i7"].split(";") if pd.notna(row["sequence_i7"]) else []

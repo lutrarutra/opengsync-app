@@ -31,5 +31,5 @@ from .Links import (  # noqa: F401
     ExperimentFileLink, SeqRequestFileLink,
     ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
     SeqRequestDeliveryEmailLink, ExperimentPoolLink, SamplePlateLink,
-    LibraryLabPrepLink, UserAffiliation
+    UserAffiliation
 )

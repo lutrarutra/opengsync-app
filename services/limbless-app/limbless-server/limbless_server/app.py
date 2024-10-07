@@ -208,6 +208,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             AttributeType=categories.AttributeType,
             IndexType=categories.IndexType,
             EventType=categories.EventType,
+            PrepStatus=categories.PrepStatus,
             isna=pd.isna,
         )
     

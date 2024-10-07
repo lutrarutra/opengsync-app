@@ -84,17 +84,33 @@ class SeqRequest(Base):
     def status(self) -> SeqRequestStatusEnum:
         return SeqRequestStatus.get(self.status_id)
     
+    @status.setter
+    def status(self, value: SeqRequestStatusEnum):
+        self.status_id = value.id
+    
     @property
     def submission_type(self) -> SubmissionTypeEnum:
         return SubmissionType.get(self.submission_type_id)
+    
+    @submission_type.setter
+    def submission_type(self, value: SubmissionTypeEnum):
+        self.submission_type_id = value.id
     
     @property
     def data_delivery_mode(self) -> DataDeliveryModeEnum:
         return DataDeliveryMode.get(self.data_delivery_mode_id)
     
+    @data_delivery_mode.setter
+    def data_delivery_mode(self, value: DataDeliveryModeEnum):
+        self.data_delivery_mode_id = value.id
+    
     @property
     def read_type(self) -> ReadTypeEnum:
         return ReadType.get(self.read_type_id)
+    
+    @read_type.setter
+    def read_type(self, value: ReadTypeEnum):
+        self.read_type_id = value.id
     
     @property
     def timestamp_submitted(self) -> Optional[datetime]:

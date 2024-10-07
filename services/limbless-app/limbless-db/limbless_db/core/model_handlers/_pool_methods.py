@@ -118,9 +118,7 @@ def get_pools(
         )
 
     if status is not None:
-        query = query.where(
-            models.Pool.status_id == status.id
-        )
+        query = query.where(models.Pool.status_id == status.id)
 
     if status_in is not None:
         query = query.where(

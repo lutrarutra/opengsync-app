@@ -70,8 +70,8 @@ class PoolForm(HTMXFlaskForm):
                 raise ValueError(f"Pool {pool_id} not found")
                 
             pool.name = self.name.data  # type: ignore
-            pool.status_id = PoolStatus.get(self.status.data).id
-            pool.type_id = PoolType.get(self.pool_type.data).id
+            pool.status = PoolStatus.get(self.status.data)
+            pool.type = PoolType.get(self.pool_type.data)
             pool.num_m_reads_requested = self.num_m_reads_requested.data
             pool.contact.name = self.contact_name.data  # type: ignore
             pool.contact.email = self.contact_email.data  # type: ignore

@@ -23,7 +23,7 @@ def create_event(
         timestamp_utc=timestamp_utc,
         type_id=type.id,
         note=note,
-        user_id=user_id,
+        creator_id=user_id,
     )
     
     self._session.add(event)

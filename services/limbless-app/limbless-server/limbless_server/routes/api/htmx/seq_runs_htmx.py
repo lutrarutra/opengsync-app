@@ -5,9 +5,9 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT
+from limbless_db import models, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, RunStatus
-from .... import db, logger, forms  # noqa F401
+from .... import db, logger, cache  # noqa F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -20,6 +20,7 @@ seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_r
 @seq_runs_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @seq_runs_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
+@cache.cached(timeout=60, query_string=True)
 def get(page: int):
     sort_by = request.args.get("sort_by", "experiment_name")
     sort_order = request.args.get("sort_order", "desc")

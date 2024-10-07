@@ -93,14 +93,14 @@ class ExperimentForm(HTMXFlaskForm):
         status = ExperimentStatus.get(self.status.data)
 
         experiment.name = self.name.data  # type: ignore
-        experiment.workflow_id = workflow.id
+        experiment.workflow = workflow
         experiment.sequencer_id = self.sequencer.selected.data
         experiment.r1_cycles = self.r1_cycles.data  # type: ignore
         experiment.r2_cycles = self.r2_cycles.data
         experiment.i1_cycles = self.i1_cycles.data  # type: ignore
         experiment.i2_cycles = self.i2_cycles.data
         experiment.operator_id = self.operator.selected.data
-        experiment.status_id = status.id
+        experiment.status = status
 
         experiment = db.update_experiment(experiment)
 

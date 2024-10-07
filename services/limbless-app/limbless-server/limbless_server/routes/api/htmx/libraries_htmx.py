@@ -314,7 +314,8 @@ def browse(workflow: str, page: int):
         seq_request_id=seq_request_id, experiment_id=experiment_id,
         type_in=type_in, status_in=status_in,
         pool_id=pool_id if workflow != "library_pooling" else None,
-        pooled=False if workflow == "library_pooling" else None
+        pooled=False if workflow == "library_pooling" else None,
+        in_lab_prep=False if workflow == "library_prep" else None
     )
     context["workflow"] = workflow
 

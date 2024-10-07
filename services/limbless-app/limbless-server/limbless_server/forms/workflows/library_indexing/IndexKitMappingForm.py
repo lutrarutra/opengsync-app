@@ -120,6 +120,8 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             "pool": [],
             "sequence_i7": [],
             "sequence_i5": [],
+            "name_i7": [],
+            "name_i5": [],
         }
 
         library_table["kit_defined"] = library_table["kit_i7_id"].notna() | library_table["kit_i5_id"].notna()
@@ -132,24 +134,30 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
             if pd.notna(row["name_i7"]):
                 barcodes_i7 = i7_seqs[i7_seqs["name"] == row["name_i7"]]["sequence"].values
+                names_i7 = i7_seqs[i7_seqs["name"] == row["name_i7"]]["name"].values
             elif pd.notna(row["index_well"]):
                 barcodes_i7 = i7_seqs[i7_seqs["well"] == row["index_well"]]["sequence"].values
+                names_i7 = i7_seqs[i7_seqs["well"] == row["index_well"]]["name"].values
             else:
                 raise ValueError()
             
             if pd.notna(row["name_i5"]):
                 barcodes_i5 = i5_seqs[i5_seqs["name"] == row["name_i5"]]["sequence"].values
+                names_i5 = i5_seqs[i5_seqs["name"] == row["name_i5"]]["name"].values
             elif pd.notna(row["index_well"]):
                 barcodes_i5 = i5_seqs[i5_seqs["well"] == row["index_well"]]["sequence"].values
+                names_i5 = i5_seqs[i5_seqs["well"] == row["index_well"]]["name"].values
             else:
                 raise ValueError()
             
-            for i in range(len(barcodes_i7)):
+            for i in range(max(len(barcodes_i7), len(barcodes_i5))):
                 barcode_table_data["library_id"].append(row["library_id"])
                 barcode_table_data["library_name"].append(row["library_name"])
                 barcode_table_data["pool"].append(row["pool"])
-                barcode_table_data["sequence_i7"].append(barcodes_i7[i])
+                barcode_table_data["sequence_i7"].append(barcodes_i7[i] if len(barcodes_i7) > i else None)
                 barcode_table_data["sequence_i5"].append(barcodes_i5[i] if len(barcodes_i5) > i else None)
+                barcode_table_data["name_i7"].append(names_i7[i] if len(names_i7) > i else None)
+                barcode_table_data["name_i5"].append(names_i5[i] if len(names_i5) > i else None)
 
         for idx, row in library_table[~library_table["kit_defined"]].iterrows():
             seq_i7s = row["sequence_i7"].split(";") if pd.notna(row["sequence_i7"]) else []
@@ -161,6 +169,8 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 barcode_table_data["pool"].append(row["pool"])
                 barcode_table_data["sequence_i7"].append(seq_i7s[i] if len(seq_i7s) > i else None)
                 barcode_table_data["sequence_i5"].append(seq_i5s[i] if len(seq_i5s) > i else None)
+                barcode_table_data["name_i7"].append(row["name_i7"])
+                barcode_table_data["name_i5"].append(row["name_i5"])
 
         self.barcode_table = pd.DataFrame(barcode_table_data)
  

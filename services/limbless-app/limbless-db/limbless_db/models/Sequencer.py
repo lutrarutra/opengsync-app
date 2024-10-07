@@ -20,6 +20,10 @@ class Sequencer(Base):
     def model(self) -> SequencerModelEnum:
         return SequencerModel.get(self.model_id)
     
+    @model.setter
+    def model(self, value: SequencerModelEnum):
+        self.model_id = value.id
+    
     def search_name(self) -> str:
         return self.name
     

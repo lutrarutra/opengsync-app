@@ -135,13 +135,13 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
 
         for run in active_runs.values():
             if not os.path.exists(os.path.join(illumina_run_folder, run.run_folder)):
-                run.status_id = RunStatus.ARCHIVED.id
+                run.status = RunStatus.ARCHIVED
                 if run.experiment is not None:
-                    run.experiment.status_id = ExperimentStatus.ARCHIVED.id
+                    run.experiment.status = ExperimentStatus.ARCHIVED
                     for pool in run.experiment.pools:
-                        pool.status_id = PoolStatus.SEQUENCED.id
+                        pool.status = PoolStatus.SEQUENCED
                         for library in pool.libraries:
-                            library.status_id = LibraryStatus.SEQUENCED.id
+                            library.status = LibraryStatus.SEQUENCED
                 run = session.update_seq_run(run)
                 active_runs[run.experiment_name] = run
                 print(f"Archived: {run.experiment_name} ({run.run_folder})")
@@ -167,11 +167,11 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             
             if run.status == RunStatus.FINISHED:
                 if run.experiment is not None:
-                    run.experiment.status_id = ExperimentStatus.FINISHED.id
+                    run.experiment.status = ExperimentStatus.FINISHED
                     for pool in run.experiment.pools:
-                        pool.status_id = PoolStatus.SEQUENCED.id
+                        pool.status = PoolStatus.SEQUENCED
                         for library in pool.libraries:
-                            library.status_id = LibraryStatus.SEQUENCED.id
+                            library.status = LibraryStatus.SEQUENCED
             
             # This should not happen
             if run.status == RunStatus.ARCHIVED:
@@ -179,11 +179,11 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             
             metrics = parse_metrics(run_folder)
             
-            run.status_id = status.id
+            run.status = status
             run.instrument_name = parsed_data["instrument"]
             run.flowcell_id = parsed_data["flowcell_id"]
             run.rta_version = parsed_data["rta_version"]
-            run.read_type_id = parsed_data["read_type"].id
+            run.read_type = parsed_data["read_type"]
             run.r1_cycles = parsed_data["r1_cycles"]
             run.r2_cycles = parsed_data["r2_cycles"]
             run.i1_cycles = parsed_data["i1_cycles"]

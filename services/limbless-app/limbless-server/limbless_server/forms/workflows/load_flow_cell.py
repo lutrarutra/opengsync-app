@@ -89,7 +89,7 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
             lane = db.update_lane(lane)
 
         if loaded:
-            experiment.status_id = ExperimentStatus.LOADED.id
+            experiment.status = ExperimentStatus.LOADED
             experiment = db.update_experiment(experiment)
 
         flash("Saved!", "success")
@@ -173,7 +173,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
             all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
 
         if all_lanes_loaded:
-            experiment.status_id = ExperimentStatus.LOADED.id
+            experiment.status = ExperimentStatus.LOADED
             experiment = db.update_experiment(experiment)
 
         flash("Saved!", "success")

@@ -48,9 +48,9 @@ def create_library(
             raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
         pool.num_libraries += 1
         self._session.add(pool)
-        library_status_id = LibraryStatus.POOLED.id
+        library_status = LibraryStatus.POOLED
     else:
-        library_status_id = LibraryStatus.DRAFT.id
+        library_status = LibraryStatus.DRAFT
 
     library = models.Library(
         name=name.strip(),
@@ -61,7 +61,7 @@ def create_library(
         owner_id=owner_id,
         index_kit_id=index_kit_id,
         pool_id=pool_id,
-        status_id=library_status_id,
+        status_id=library_status.id,
         visium_annotation_id=visium_annotation_id,
         seq_depth_requested=seq_depth_requested
     )
@@ -94,6 +94,7 @@ def get_libraries(
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     pool_id: Optional[int] = None, lab_prep_id: Optional[int] = None,
+    in_lab_prep: Optional[bool] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
@@ -155,12 +156,13 @@ def get_libraries(
         )
 
     if lab_prep_id is not None:
-        query = query.join(
-            models.LibraryLabPrepLink,
-            models.LibraryLabPrepLink.library_id == models.Library.id
-        ).where(
-            models.LibraryLabPrepLink.lab_prep_id == lab_prep_id
-        )
+        query = query.where(models.Library.lab_prep_id == lab_prep_id)
+
+    if in_lab_prep is not None:
+        if in_lab_prep:
+            query = query.where(models.Library.lab_prep_id != None) # noqa
+        else:
+            query = query.where(models.Library.lab_prep_id == None) # noqa
 
     if type_in is not None:
         query = query.where(
@@ -355,9 +357,9 @@ def pool_library(self, library_id: int, pool_id: int) -> models.Library:
         
     library.pool_id = pool_id
     if library.is_indexed():
-        library.status_id = LibraryStatus.POOLED.id
+        library.status = LibraryStatus.POOLED
     else:
-        library.status_id = LibraryStatus.PREPARING.id
+        library.status = LibraryStatus.PREPARING
     self._session.add(library)
 
     pool.num_libraries += 1
@@ -384,11 +386,13 @@ def set_library_seq_quality(
         self.open_session()
 
     if library_id is not None:
+        library: models.Library
         if (library := self._session.get(models.Library, library_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
         
-        library.status_id = LibraryStatus.SEQUENCED.id
-        library.pool.status_id = PoolStatus.SEQUENCED.id
+        library.status = LibraryStatus.SEQUENCED
+        if library.pool is not None:
+            library.pool.status = PoolStatus.SEQUENCED
         self._session.add(library)
         
     if (quality := self._session.query(models.SeqQuality).where(

@@ -75,7 +75,7 @@ class SequencerForm(HTMXFlaskForm):
     def __update_existing_sequencer(self, sequencer: models.Sequencer) -> Response:
         sequencer.name = self.name.data  # type: ignore
         sequencer.ip = self.ip_address.data
-        sequencer.model_id = SequencerModel.get(self.model.data).id
+        sequencer.model = SequencerModel.get(self.model.data)
         sequencer = db.update_sequencer(sequencer)
 
         flash("Sequencer updated.", "success")

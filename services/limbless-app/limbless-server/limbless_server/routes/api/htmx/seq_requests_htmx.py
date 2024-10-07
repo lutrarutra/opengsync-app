@@ -211,7 +211,7 @@ def archive(seq_request_id: int):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    seq_request.status_id = SeqRequestStatus.ARCHIVED.id
+    seq_request.status = SeqRequestStatus.ARCHIVED
     seq_request = db.update_seq_request(seq_request)
     flash(f"Archived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Archived sequencing request '{seq_request.name}'")
@@ -229,7 +229,7 @@ def unarchive(seq_request_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    seq_request.status_id = SeqRequestStatus.DRAFT.id
+    seq_request.status = SeqRequestStatus.DRAFT
     seq_request.timestamp_submitted_utc = None
     seq_request = db.update_seq_request(seq_request)
 

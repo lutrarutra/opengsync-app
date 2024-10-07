@@ -29,6 +29,13 @@
                 }}
                 {{
                     table_col(
+                        table_container_id='lab_prep-table', column_name='Status', column_var='status_id',
+                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
                         table_container_id='lab_prep-table', column_name='Owner', column_var='creator_id',
                         sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
                         col_size=2,
@@ -42,6 +49,7 @@
                 <th scope="row">{{ lab_prep.id }}</th>
                 <td>{{ lab_prep.name }}</td>
                 <td>{{ lab_prep.protocol }}</td>
+                <td>{{ lab_prep.status.name }} {{ lab_prep.status.icon }}</td>
                 <td>{{ lab_prep.creator.name }}</td>
             </tr>
             {% endfor %}

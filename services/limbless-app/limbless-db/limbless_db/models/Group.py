@@ -19,6 +19,10 @@ class Group(Base):
     def type(self) -> GroupTypeEnum:
         return GroupType.get(self.type_id)
     
+    @type.setter
+    def type(self, value: GroupTypeEnum):
+        self.type_id = value.id
+    
     def __str__(self) -> str:
         return f"Group(id: {self.id}, name: {self.name}, type: {self.type})"
     

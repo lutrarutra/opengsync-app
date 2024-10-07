@@ -11,7 +11,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, LabProtocol
+from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus
 
 from .... import db, forms, logger  # noqa
 
@@ -98,6 +98,29 @@ def edit(lab_prep_id: int):
     
     form = forms.models.LabPrepForm(formdata=request.form, form_type="edit", lab_prep=lab_prep)
     return form.process_request(current_user)
+
+
+@lab_preps_htmx.route("<int:lab_prep_id>/complete", methods=["POST"])
+@db_session(db)
+@login_required
+def complete(lab_prep_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    for pool in lab_prep.pools:
+        pool.status = PoolStatus.STORED
+        
+    for library in lab_prep.libraries:
+        library.status = LibraryStatus.STORED
+
+    lab_prep.status = PrepStatus.COMPLETED
+    lab_prep = db.update_lab_prep(lab_prep)
+
+    flash("Lab prep completed!", "success")
+    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
 
 
 @lab_preps_htmx.route("<int:lab_prep_id>/remove_library", methods=["DELETE"])

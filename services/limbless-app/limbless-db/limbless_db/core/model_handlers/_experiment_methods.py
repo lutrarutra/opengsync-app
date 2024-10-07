@@ -154,7 +154,7 @@ def update_experiment(self, experiment: models.Experiment) -> models.Experiment:
 
     if experiment.workflow != prev_workflow:
         workflow = experiment.workflow
-        experiment.workflow_id = workflow.id
+        experiment.workflow = workflow
         experiment.num_lanes = workflow.flow_cell_type.num_lanes
 
         if prev_workflow.flow_cell_type.num_lanes > workflow.flow_cell_type.num_lanes:

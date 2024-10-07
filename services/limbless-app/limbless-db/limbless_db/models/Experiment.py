@@ -57,13 +57,25 @@ class Experiment(Base):
     def status(self) -> ExperimentStatusEnum:
         return ExperimentStatus.get(self.status_id)
     
+    @status.setter
+    def status(self, value: ExperimentStatusEnum):
+        self.status_id = value.id
+    
     @property
     def flowcell_type(self) -> FlowCellTypeEnum:
         return self.workflow.flow_cell_type
     
+    @flowcell_type.setter
+    def flowcell_type(self, value: FlowCellTypeEnum):
+        self.workflow_id = value.id
+    
     @property
     def workflow(self) -> ExperimentWorkFlowEnum:
         return ExperimentWorkFlow.get(self.workflow_id)
+    
+    @workflow.setter
+    def workflow(self, value: ExperimentWorkFlowEnum):
+        self.workflow_id = value.id
     
     @property
     def timestamp_created(self) -> datetime:

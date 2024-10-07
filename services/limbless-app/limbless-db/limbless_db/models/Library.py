@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .File import File
     from .Links import SamplePlateLink
     from .LibraryIndex import LibraryIndex
+    from .LabPrep import LabPrep
 
 
 class Library(Base):
@@ -52,44 +53,53 @@ class Library(Base):
     pool: Mapped[Optional["Pool"]] = relationship(
         "Pool", back_populates="libraries", lazy="joined", cascade="save-update, merge"
     )
-
-    plate_links: Mapped[list["SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
-
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="joined")
+    
+    seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=False)
+    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")
+    
+    visium_annotation_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("visiumannotation.id"), nullable=True, default=None)
+    visium_annotation: Mapped[Optional["VisiumAnnotation"]] = relationship("VisiumAnnotation", lazy="select", cascade="all, delete")
+    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+    lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="libraries", lazy="select")
 
     sample_links: Mapped[list[SampleLibraryLink]] = relationship(
         SampleLibraryLink, back_populates="library", lazy="select",
         cascade="save-update, merge, delete"
     )
-
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
-
-    seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=False)
-    seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")
-
+    plate_links: Mapped[list["SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete")
-
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="delete")
-
-    visium_annotation_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("visiumannotation.id"), nullable=True, default=None)
-    visium_annotation: Mapped[Optional["VisiumAnnotation"]] = relationship("VisiumAnnotation", lazy="select", cascade="all, delete")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter"]
     
     @property
     def status(self) -> LibraryStatusEnum:
         return LibraryStatus.get(self.status_id)
+    
+    @status.setter
+    def status(self, value: LibraryStatusEnum):
+        self.status_id = value.id
 
     @property
     def type(self) -> LibraryTypeEnum:
         return LibraryType.get(self.type_id)
+    
+    @type.setter
+    def type(self, value: LibraryTypeEnum):
+        self.type_id = value.id
     
     @property
     def genome_ref(self) -> Optional[GenomeRefEnum]:
         if self.genome_ref_id is None:
             return None
         return GenomeRef.get(self.genome_ref_id)
+    
+    @genome_ref.setter
+    def genome_ref(self, value: GenomeRefEnum):
+        self.genome_ref_id = value.id
     
     @property
     def qubit_concentration_str(self) -> str:

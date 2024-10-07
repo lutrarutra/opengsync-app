@@ -71,9 +71,17 @@ class Pool(Base):
     def status(self) -> PoolStatusEnum:
         return PoolStatus.get(self.status_id)
     
+    @status.setter
+    def status(self, value: PoolStatusEnum):
+        self.status_id = value.id
+    
     @property
     def type(self) -> PoolTypeEnum:
         return PoolType.get(self.type_id)
+    
+    @type.setter
+    def type(self, value: PoolTypeEnum):
+        self.type_id = value.id
     
     @property
     def molarity(self) -> Optional[float]:
