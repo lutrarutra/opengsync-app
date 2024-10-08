@@ -6,7 +6,7 @@ from flask_login import login_required
 
 from limbless_db import DBSession, PAGE_LIMIT, exceptions, models
 from limbless_db.categories import HTTPResponse, UserRole
-from .... import db, forms
+from .... import db, forms, cache
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/hmtx/sequencers/")
 
@@ -19,6 +19,7 @@ else:
 @sequencers_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @sequencers_htmx.route("get/<int:page>", methods=["GET"])
 @login_required
+@cache.cached(timeout=60, query_string=True)
 def get(page: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)

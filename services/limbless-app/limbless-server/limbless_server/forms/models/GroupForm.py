@@ -56,7 +56,7 @@ class GroupForm(HTMXFlaskForm):
     
     def __update_existing_group(self, group: models.Group) -> Response:
         group.name = self.name.data  # type: ignore
-        group.type_id = GroupType.get(self.group_type.data).id
+        group.type = GroupType.get(self.group_type.data)
 
         group = db.update_group(group)
 

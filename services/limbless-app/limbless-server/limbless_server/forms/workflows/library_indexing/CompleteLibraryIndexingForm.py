@@ -90,6 +90,8 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
                     sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
                     sequence_i5=seq_i5s[j] if len(seq_i5s) > j and pd.notna(seq_i5s[j]) else None,
                 )
+            library_table.at[idx, "name_i7"] = row["name_i7"] if pd.notna(row["name_i7"]) else None
+            library_table.at[idx, "name_i5"] = row["name_i5"] if pd.notna(row["name_i5"]) else None
 
             library.pool_id = None
             library = db.update_library(library)
@@ -104,20 +106,25 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
                 col = get_column_letter(col_i + 1)
                 column_name = active_sheet[f"{col}1"].value
                 column_mapping[column_name] = col
+
+            logger.debug(column_mapping)
             
             for i, (idx, row) in enumerate(library_table.iterrows()):
                 df = barcode_table[barcode_table["library_id"] == row["library_id"]]
                 sequence_i7 = ";".join([s for s in df["sequence_i7"].values if pd.notna(s)])
                 sequence_i5 = ";".join([s for s in df["sequence_i5"].values if pd.notna(s)])
+                name_i7 = ";".join([s for s in df["name_i7"].values if pd.notna(s)])
+                name_i5 = ";".join([s for s in df["name_i5"].values if pd.notna(s)])
                 active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = sequence_i7
                 active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = sequence_i5
+                active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = name_i7
+                active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = name_i5
                 active_sheet[f"{column_mapping['pool']}{i + 2}"].value = row["pool"]
-                active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = row["name_i7"]
-                active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = row["name_i5"]
                 active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = row["kit_i7"]
                 active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = row["kit_i5"]
                 active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = row["index_well"]
 
+            logger.debug(f"Overwriting existing file: {os.path.join(current_app.config['MEDIA_FOLDER'], lab_prep.prep_file.path)}")
             wb.save(os.path.join(current_app.config["MEDIA_FOLDER"], lab_prep.prep_file.path))
 
         flash("Library Indexing completed!", "success")

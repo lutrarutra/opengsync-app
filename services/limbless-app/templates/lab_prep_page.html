@@ -10,9 +10,18 @@
 <div class="page-header-container">
     <div class="page-header">
         <div>
-            <h1>{{ lab_prep.name }} <span class="desc">{{ lab_prep.protocol.name }}</span></h1>
+            <h1>{{ lab_prep.name }} <span class="desc">{{ lab_prep.protocol.name }} - {{ lab_prep.status.name }} {{ lab_prep.status.icon }}</span></h1>
         </div>
         <div>
+            {% if lab_prep.status == PrepStatus.PREPARING %}
+            <span {% if can_be_completed == false %}{{ tooltip("You must complete 'Index Libraries'-workflow first!", category="success") }}{% endif %}>
+                <button class="btn btn-success"
+                    hx-post="{{ url_for('lab_preps_htmx.complete', lab_prep_id=lab_prep.id) }}"
+                    {% if can_be_completed == false %}disabled{% endif %}>
+                    Complete Prep
+                </button>
+            </span>
+            {% endif %}
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Template

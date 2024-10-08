@@ -44,10 +44,10 @@ class LibraryForm(HTMXFlaskForm):
         library: models.Library = context["library"]
 
         library.name = self.name.data   # type: ignore
-        library.type_id = LibraryType.get(int(self.library_type.data)).id
+        library.type = LibraryType.get(int(self.library_type.data))
+        library.genome_ref = GenomeRef.get(self.genome.data)
         # library.index_1_sequence = self.index_1.data.strip() if self.index_1.data and self.index_1.data.strip() else None
         # library.index_2_sequence = self.index_2.data.strip() if self.index_2.data and self.index_2.data.strip() else None
-        library.genome_ref_id = GenomeRef.get(self.genome.data).id
 
         library = db.update_library(library)
         

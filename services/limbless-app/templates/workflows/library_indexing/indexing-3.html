@@ -16,7 +16,9 @@
                     <th scope="col" class="col-2">Library</th>
                     <th scope="col" class="col-2">Pool</th>
                     <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
-                    <th scope="col" class="col-1">Index i7</th>
+                    <th scope="col" class="col-1">Name i7</th>
+                    <th scope="col" class="col-1">Sequence i7</th>
+                    <th scope="col" class="col-1">Name i5</th>
                     <th scope="col" class="col-1">Sequence i5</th>
                 </tr>
             </thead>
@@ -38,7 +40,9 @@
                     {% else %}
                     class="cemm-green"
                     {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
+                    <td>{{ row["name_i7"] if row["name_i5"] }}</td>
                     <td class="index-cell-1">{{ row["sequence_i7"] if row["sequence_i7"] }}</td>
+                    <td>{{ row["name_i5"] if row["name_i5"] }}</td>
                     <td class="index-cell-2">{{ row["sequence_i5"] if row["sequence_i5"] }}</td>
                 </tr>
                 {% endfor %}

@@ -22,3 +22,4 @@ class GenomeRef(ExtendedEnum[GenomeRefEnum], enum_type=GenomeRefEnum):
     YEAST = GenomeRefEnum(3, "Yeast", "R64", "Saccharomyces cerevisiae", 4932)
     ECOLI = GenomeRefEnum(4, "E. Coli", "ASM584v2", "Escherichia coli", 562)
     PIG = GenomeRefEnum(5, "Pig", "susScr11", "Sus scrofa", 9823)
+    COVID = GenomeRefEnum(6, "Covid", "SARS-CoV-2", None, 2697049)

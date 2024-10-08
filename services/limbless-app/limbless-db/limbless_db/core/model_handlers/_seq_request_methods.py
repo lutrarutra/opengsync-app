@@ -13,8 +13,8 @@ from .. import exceptions
 def create_seq_request(
     self, name: str,
     description: Optional[str],
-    group_id: int,
     requestor_id: int,
+    group_id: Optional[int],
     billing_contact_id: int,
     data_delivery_mode: DataDeliveryModeEnum,
     read_type: ReadTypeEnum,
@@ -35,8 +35,9 @@ def create_seq_request(
     if (requestor := self._session.get(models.User, requestor_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{requestor_id}', not found.")
     
-    if self._session.get(models.Group, group_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Group with id '{group_id}', not found.")
+    if group_id is not None:
+        if self._session.get(models.Group, group_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Group with id '{group_id}', not found.")
 
     if self._session.get(models.Contact, billing_contact_id) is None:
         raise exceptions.ElementDoesNotExist(f"Contact with id '{billing_contact_id}', not found.")
@@ -179,20 +180,20 @@ def submit_seq_request(self, seq_request_id: int) -> models.SeqRequest:
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
-    seq_request.status_id = SeqRequestStatus.SUBMITTED.id
+    seq_request.status = SeqRequestStatus.SUBMITTED
     seq_request.timestamp_submitted_utc = datetime.now()
     for library in seq_request.libraries:
         if library.status == LibraryStatus.DRAFT:
-            library.status_id = LibraryStatus.SUBMITTED.id
+            library.status = LibraryStatus.SUBMITTED
             self._session.add(library)
 
     for sample in seq_request.samples:
         if sample.status == SampleStatus.DRAFT:
-            sample.status_id = SampleStatus.SUBMITTED.id
+            sample.status = SampleStatus.SUBMITTED
             self._session.add(sample)
 
     for pool in seq_request.pools:
-        pool.status_id = PoolStatus.SUBMITTED.id
+        pool.status = PoolStatus.SUBMITTED
         self._session.add(pool)
 
     self._session.commit()
@@ -425,7 +426,7 @@ def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum)
     if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
 
-    seq_request.status_id = status.id
+    seq_request.status = status
     
     if status == SeqRequestStatus.ACCEPTED:
         sample_status = SampleStatus.ACCEPTED
@@ -443,7 +444,7 @@ def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum)
         raise TypeError(f"Cannot process request to '{status}'.")
     
     for sample in seq_request.samples:
-        sample.status_id = sample_status.id
+        sample.status = sample_status
         if sample_status != SampleStatus.ACCEPTED:
             continue
         
@@ -453,18 +454,19 @@ def process_seq_request(self, seq_request_id: int, status: SeqRequestStatusEnum)
                 is_prepared = False
                 break
         if is_prepared:
-            sample.status_id = SampleStatus.PREPARED.id
+            sample.status = SampleStatus.PREPARED
 
     for library in seq_request.libraries:
-        library.status_id = library_status.id
+        library.status = library_status
         if library_status != LibraryStatus.ACCEPTED:
             continue
         
         if library.pool_id is not None:
-            library.status_id = LibraryStatus.POOLED.id
+            library.status = LibraryStatus.POOLED
 
+    pool: models.Pool
     for pool in seq_request.pools:
-        pool.status_id = pool_status.id
+        pool.status = pool_status
 
     self._session.add(seq_request)
     self._session.commit()

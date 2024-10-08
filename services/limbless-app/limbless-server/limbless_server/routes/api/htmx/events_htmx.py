@@ -22,6 +22,8 @@ events_htmx = Blueprint("events_htmx", __name__, url_prefix="/api/hmtx/events/")
 @login_required
 @cache.cached(timeout=60, query_string=True)
 def render_calendar_month(year: int, month: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
     try:
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month + 1, 1) if start_date.month < 12 else datetime(year + 1, 1, 1)
@@ -62,6 +64,8 @@ def render_calendar_month(year: int, month: int):
 @db_session(db)
 @login_required
 def render_calendar_day(year: int, month: int, day: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
     try:
         start_date = datetime(year, month, day)
         end_date = datetime(year, month, day) + timedelta(days=1)

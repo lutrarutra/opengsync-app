@@ -123,7 +123,7 @@ def add_library_to_prep(
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
     
-    library.status_id = LibraryStatus.PREPARING.id
+    library.status = LibraryStatus.PREPARING
     lab_prep.libraries.append(library)
 
     self._session.add(lab_prep)
@@ -147,6 +147,9 @@ def remove_library_from_prep(
     
     if (library := self._session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
+    
+    if library.status == LibraryStatus.PREPARING:
+        library.status = LibraryStatus.ACCEPTED
     
     lab_prep.libraries.remove(library)
 

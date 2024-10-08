@@ -465,7 +465,7 @@ def get_experiment_seq_qualities_df(self, experiment_id: int) -> pd.DataFrame:
 
 def get_index_kit_barcodes_df(self, index_kit_id: int, per_adapter: bool = True) -> pd.DataFrame:
     query = sa.select(
-        models.Barcode.sequence.label("sequence"), models.Barcode.well.label("well"),
+        models.Barcode.id, models.Barcode.sequence.label("sequence"), models.Barcode.well.label("well"),
         models.Barcode.name.label("name"), models.Barcode.adapter_id.label("adapter_id"),
         models.Barcode.type_id.label("type_id"),
     ).where(
@@ -476,7 +476,13 @@ def get_index_kit_barcodes_df(self, index_kit_id: int, per_adapter: bool = True)
     df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
 
     if per_adapter:
-        df = df.groupby(df.columns.difference(["sequence", "name", "type_id", "type"]).tolist(), as_index=False, dropna=False).agg({"sequence": list, "name": list, "type_id": list, "type": list}).rename(columns={"sequence": "sequences", "name": "names", "type_id": "type_ids", "type": "types"})
+        df = df.groupby(
+            df.columns.difference(["id", "sequence", "name", "type_id", "type"]).tolist(), as_index=False, dropna=False
+        ).agg(
+            {"id": list, "sequence": list, "name": list, "type_id": list, "type": list}
+        ).rename(
+            columns={"id": "ids", "sequence": "sequences", "name": "names", "type_id": "type_ids", "type": "types"}
+        )
 
     return df
 

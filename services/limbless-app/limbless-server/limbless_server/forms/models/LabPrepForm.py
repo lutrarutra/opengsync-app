@@ -56,7 +56,7 @@ class LabPrepForm(HTMXFlaskForm):
             raise ValueError("lab_prep must be provided if form_type is 'edit'.")
         
         self.lab_prep.name = self.name.data  # type: ignore
-        self.lab_prep.protocol_id = LabProtocol.get(self.protocol.data).id
+        self.lab_prep.protocol = LabProtocol.get(self.protocol.data)
 
         flash("Changes saved!", "success")
         return db.update_lab_prep(self.lab_prep)

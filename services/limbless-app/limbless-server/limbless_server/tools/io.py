@@ -32,7 +32,7 @@ def write_file(path: str, content: str, overwrite: bool = False, chunk_size: int
             return False
 
         if overwrite:
-            logger.debug(f"Overwriting exising file: {path}")
+            logger.debug(f"Overwriting existing file: {path}")
         else:
             logger.debug(f"Skipping, file already exists: {path}")
             return False

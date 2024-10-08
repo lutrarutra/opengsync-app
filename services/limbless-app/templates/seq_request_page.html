@@ -24,7 +24,6 @@
             {% endif %}>
                 <button hx-get="{{ url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id) }}" class="btn btn-success"
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                    hx-get="{{ url_for('ba_report_workflow.begin') }}"
                     hx-target="#xl-modal-content"
                     hx-swap="innerHTML" hx-trigger="click"
                     {% if not seq_request.is_submittable() %}disabled{% endif %}>

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, request, abort, Response, current_app, url_for, flash
+from flask import Blueprint, request, abort, Response, url_for, flash
 from flask_login import login_required
 from flask_htmx import make_response
 

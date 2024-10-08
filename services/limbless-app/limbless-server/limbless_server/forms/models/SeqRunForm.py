@@ -111,25 +111,25 @@ class SeqRunForm(HTMXFlaskForm):
 
         if (experiment := db.get_experiment(name=seq_run.experiment_name)) is not None:
             if seq_run.status == RunStatus.FINISHED:
-                experiment.status_id = ExperimentStatus.FINISHED.id
+                experiment.status = ExperimentStatus.FINISHED
                 db.update_experiment(experiment)
             elif seq_run.status == RunStatus.FAILED:
-                experiment.status_id = ExperimentStatus.FAILED.id
+                experiment.status = ExperimentStatus.FAILED
                 db.update_experiment(experiment)
             elif seq_run.status == RunStatus.RUNNING:
-                experiment.status_id = ExperimentStatus.SEQUENCING.id
+                experiment.status = ExperimentStatus.SEQUENCING
                 db.update_experiment(experiment)
             elif seq_run.status == RunStatus.ARCHIVED:
-                experiment.status_id = ExperimentStatus.ARCHIVED.id
+                experiment.status = ExperimentStatus.ARCHIVED
                 db.update_experiment(experiment)
 
         return seq_run
     
     def update_seq_run(self, seq_run: models.SeqRun) -> models.SeqRun:
-        seq_run.status_id = int(self.status.data)
+        seq_run.status = RunStatus.get(self.status.data)
         seq_run.run_folder = self.run_folder.data  # type: ignore
         seq_run.flowcell_id = self.flowcell_id.data  # type: ignore
-        seq_run.read_type_id = int(self.read_type.data)  # type: ignore
+        seq_run.read_type = ReadType.get(self.read_type.data)
         seq_run.rta_version = self.rta_version.data  # type: ignore
         seq_run.recipe_version = self.recipe_version.data  # type: ignore
         seq_run.instrument_name = self.instrument_name.data  # type: ignore

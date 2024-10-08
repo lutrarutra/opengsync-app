@@ -129,14 +129,14 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                         break
                     
                 if sample_prepared:
-                    sample.status_id = SampleStatus.PREPARED.id
+                    sample.status = SampleStatus.PREPARED
                 else:
-                    sample.status_id = SampleStatus.STORED.id
+                    sample.status = SampleStatus.STORED
 
                 sample.timestamp_stored_utc = datetime.now()
 
                 for library_link in sample.library_links:
-                    library_link.library.status_id = LibraryStatus.PREPARING.id
+                    library_link.library.status = LibraryStatus.PREPARING
                 
                 sample = session.update_sample(sample)
 
@@ -146,9 +146,9 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                     raise ValueError(f"{self.uuid}: Library {row['id']} not found")
                 
                 if library.is_pooled():
-                    library.status_id = LibraryStatus.POOLED.id
+                    library.status = LibraryStatus.POOLED
                 else:
-                    library.status_id = LibraryStatus.STORED.id
+                    library.status = LibraryStatus.STORED
                 
                 library.timestamp_stored_utc = datetime.now()
                 library = session.update_library(library)
@@ -158,7 +158,7 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                     logger.error(f"{self.uuid}: Pool {row['id']} not found")
                     raise ValueError(f"{self.uuid}: Pool {row['id']} not found")
                 
-                pool.status_id = PoolStatus.STORED.id
+                pool.status = PoolStatus.STORED
                 pool.timestamp_stored_utc = datetime.now()
                 pool = session.update_pool(pool)
 

@@ -25,7 +25,14 @@
                     table_col(
                         table_container_id="lab_prep-library-table", column_name="Type", column_var="type_id",
                         sort_url="lab_preps_htmx.get_libraries", context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-library-table', column_name='Pool', column_var='pool_id',
+                        sort_url='lab_preps_htmx.get_libraries', context={"lab_prep_id": lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
@@ -49,6 +56,7 @@
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
+                <td>{{ library.pool.name if library.pool_id }}</td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
                 <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.sequences_i7_str() }}</td>
                 <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.sequences_i5_str() }}</td>

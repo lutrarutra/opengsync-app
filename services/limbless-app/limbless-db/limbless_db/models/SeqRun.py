@@ -52,10 +52,18 @@ class SeqRun(Base):
     def status(self) -> RunStatusEnum:
         return RunStatus.get(self.status_id)
     
+    @status.setter
+    def status(self, value: RunStatusEnum):
+        self.status_id = value.id
+    
     @property
     def read_type(self) -> ReadTypeEnum:
         return ReadType.get(self.read_type_id)
     
+    @read_type.setter
+    def read_type(self, value: ReadTypeEnum):
+        self.read_type_id = value.id
+
     @property
     def cycles_str(self) -> str:
         res = f"{self.r1_cycles}"

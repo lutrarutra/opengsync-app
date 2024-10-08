@@ -332,13 +332,13 @@ class SeqRequestForm(HTMXFlaskForm):
         seq_request.group_id = self.basic_info_form.group.selected.data
         seq_request.description = self.basic_info_form.request_description.data
 
-        seq_request.read_type_id = ReadType.get(self.technical_info_form.read_type.data).id
+        seq_request.read_type = ReadType.get(self.technical_info_form.read_type.data)
         seq_request.read_length = self.technical_info_form.read_length.data
-        seq_request.submission_type_id = SubmissionType.get(self.technical_info_form.submission_type.data).id
+        seq_request.submission_type = SubmissionType.get(self.technical_info_form.submission_type.data)
         seq_request.special_requirements = self.technical_info_form.special_requirements.data
         seq_request.num_lanes = self.technical_info_form.num_lanes.data
 
-        seq_request.data_delivery_mode_id = DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data).id
+        seq_request.data_delivery_mode = DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data)
 
         seq_request.contact_person.name = self.contact_form.contact_person_name.data  # type: ignore
         seq_request.contact_person.email = self.contact_form.contact_person_email.data

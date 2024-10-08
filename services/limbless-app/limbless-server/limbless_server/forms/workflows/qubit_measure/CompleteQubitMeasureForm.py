@@ -119,7 +119,7 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
                 if pool.qubit_concentration is not None:
                     for library in pool.libraries:
                         if library.is_pooled():
-                            library.status_id = LibraryStatus.POOLED.id
+                            library.status = LibraryStatus.POOLED
                             for sample_link in library.sample_links:
                                 sample_is_prepped = True
                                 for library_link in sample_link.sample.library_links:
@@ -127,10 +127,10 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
                                         sample_is_prepped = False
                                         break
                                 if sample_is_prepped:
-                                    sample_link.sample.status_id = SampleStatus.PREPARED.id
+                                    sample_link.sample.status = SampleStatus.PREPARED
 
                 if pool.status == PoolStatus.ACCEPTED:
-                    pool.status_id = PoolStatus.STORED.id
+                    pool.status = PoolStatus.STORED
 
                 pool = session.update_pool(pool)
 

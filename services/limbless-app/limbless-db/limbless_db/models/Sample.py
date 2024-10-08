@@ -63,6 +63,10 @@ class Sample(Base):
     def status(self) -> SampleStatusEnum:
         return SampleStatus.get(self.status_id)
     
+    @status.setter
+    def status(self, value: SampleStatusEnum):
+        self.status_id = value.id
+    
     @property
     def timestamp_stored_str(self) -> str:
         return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""

@@ -135,12 +135,12 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
                         break
                     
                 if sample_prepared:
-                    sample.status_id = SampleStatus.PREPARED.id
+                    sample.status = SampleStatus.PREPARED
                 else:
-                    sample.status_id = SampleStatus.STORED.id
+                    sample.status = SampleStatus.STORED
 
                 for library_link in sample.library_links:
-                    library_link.library.status_id = LibraryStatus.PREPARING.id
+                    library_link.library.status = LibraryStatus.PREPARING
                 
                 sample = session.update_sample(sample)
 
@@ -150,14 +150,14 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
                     raise ValueError(f"{self.uuid}: Library {row['id']} not found")
                 
                 if library.is_pooled():
-                    library.status_id = LibraryStatus.POOLED.id
+                    library.status = LibraryStatus.POOLED
                 else:
-                    library.status_id = LibraryStatus.STORED.id
+                    library.status = LibraryStatus.STORED
                 library = session.update_library(library)
 
         if self.pool is not None:
-            self.pool.plate_id = self.plate.id
-            self.pool.status_id = PoolStatus.STORED.id
+            self.pool.plate = self.plate
+            self.pool.status = PoolStatus.STORED
             self.pool = db.update_pool(self.pool)
 
         flash("Samples added to plate", "success")
