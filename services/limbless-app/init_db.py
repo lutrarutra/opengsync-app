@@ -6,9 +6,8 @@ import pandas as pd
 
 import sqlalchemy as sqla
 
-from limbless_db import DBHandler, models, categories
+from limbless_db import DBHandler, models
 from limbless_db.models.Base import Base
-from limbless_server import bcrypt
 
 load_dotenv()
 
@@ -26,9 +25,6 @@ if (db_port := os.environ.get("POSTGRES_PORT")) is None:
 
 if (db_host := os.environ.get("POSTGRES_HOST")) is None:
     raise ValueError("POSTGRES_HOST environment variable is not set.")
-
-if (TIMEZONE := os.environ.get("TIMEZONE")) is None:
-    raise ValueError("TIMEZONE environment variable is not set.")
 
 
 def titlecase_with_acronyms(val: str) -> str:
@@ -53,7 +49,7 @@ label_search_columns: dict[str, list[str]] = {
 }
 
 
-def init_db(create_users: bool):
+def init_db():
     db_handler = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
 
     # Tables
@@ -62,6 +58,8 @@ def init_db(create_users: bool):
     SELECT * FROM pg_catalog.pg_tables;
     """
     df = pd.read_sql(q, db_handler._engine)
+
+    os.makedirs("init", exist_ok=True)
 
     with open(os.path.join("init", "tables.txt"), "w") as f:
         for table in Base.metadata.tables.items():
@@ -95,47 +93,6 @@ def init_db(create_users: bool):
         print("pg_trgm extension is installed.")
 
     pd.read_sql(q, db_handler._engine)
-
-    # Users
-    if create_users:
-        print("Creating users.")
-        email = "admin@email.com"
-        if not db_handler.get_user_by_email(email):
-            db_handler.create_user(
-                email=email,
-                first_name="CeMM",
-                last_name="Admin",
-                hashed_password=bcrypt.generate_password_hash("password").decode("utf-8"),
-                role=categories.UserRole.ADMIN,
-            )
-        email = "client@email.com"
-        if not db_handler.get_user_by_email(email):
-            db_handler.create_user(
-                email=email,
-                first_name="CeMM",
-                last_name="Client",
-                hashed_password=bcrypt.generate_password_hash("password").decode("utf-8"),
-                role=categories.UserRole.CLIENT,
-            )
-        email = "bio@email.com"
-        if not db_handler.get_user_by_email(email):
-            db_handler.create_user(
-                email=email,
-                first_name="CeMM",
-                last_name="Bioinformatician",
-                hashed_password=bcrypt.generate_password_hash("password").decode("utf-8"),
-                role=categories.UserRole.BIOINFORMATICIAN,
-            )
-
-        email = "tech@email.com"
-        if not db_handler.get_user_by_email(email):
-            db_handler.create_user(
-                email=email,
-                first_name="CeMM",
-                last_name="Technician",
-                hashed_password=bcrypt.generate_password_hash("password").decode("utf-8"),
-                role=categories.UserRole.TECHNICIAN,
-            )
 
     # Postgres full text search
     for table, columns in label_search_columns.items():
@@ -174,9 +131,8 @@ def init_db(create_users: bool):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--create_users", action="store_true")
     args = parser.parse_args()
 
-    init_db(args.create_users)
+    init_db()
     
 exit(0)

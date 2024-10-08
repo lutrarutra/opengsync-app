@@ -4,7 +4,7 @@ psql postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRE
 
 if [ $? -eq 1 ] && [ "$LIMBLESS_TESTING" == 0 ]; then
     echo "Database does not exist. Creating database..."
-    python3 init_db.py --create_users
+    python3 init_db.py
 fi
 
 export TENX_MNT_POINT="/usr/src/app/mnt/sequences_10x"
