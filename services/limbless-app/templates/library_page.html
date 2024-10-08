@@ -94,22 +94,33 @@
                     metadata_group_link(
                         "Request", library.seq_request.name,
                         url_for("seq_requests_page.seq_request_page", seq_request_id=library.seq_request_id, from="library@" + library.id | string),
-                        class="col-6"
+                        class="col-4"
                     )
                 }}
                 {% else %}
-                {{ metadata_group("Request", "", class="col-6") }}
+                {{ metadata_group("Request", "", class="col-4") }}
+                {% endif %}
+                {% if library.lab_prep_id %}
+                {{ 
+                    metadata_group_link(
+                        "Prep", library.lab_prep.name,
+                        url_for("lab_preps_page.lab_prep_page", lab_prep_id=library.lab_prep_id, from="library@" + library.id | string),
+                        class="col-4"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Prep", "", class="col-4") }}
                 {% endif %}
                 {% if library.pool_id %}
                 {{ 
                     metadata_group_link(
                         "Pool", library.pool.name,
                         url_for("pools_page.pool_page", pool_id=library.pool.id, from="library@" + library.id | string),
-                        class="col-6"
+                        class="col-4"
                     )
                 }}
                 {% else %}
-                {{ metadata_group("Pool", "", class="col-6") }}
+                {{ metadata_group("Pool", "", class="col-4") }}
                 {% endif %}
             </div>
             <h4>Barcodes</h4>
