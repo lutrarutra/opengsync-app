@@ -477,11 +477,21 @@ def select_all(workflow: str):
             context["pool"] = pool
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
+        
+    if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
+        try:
+            lab_prep_id = int(lab_prep_id)
+            if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["lab_prep"] = lab_prep
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
 
     libraries, _ = db.get_libraries(
         seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
         pool_id=pool_id if workflow != "library_pooling" else None,
-        pooled=False if workflow == "library_pooling" else None
+        pooled=False if workflow == "library_pooling" else None,
+        lab_prep_id=lab_prep_id if workflow == "library_prep" else None
     )
 
     form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)
