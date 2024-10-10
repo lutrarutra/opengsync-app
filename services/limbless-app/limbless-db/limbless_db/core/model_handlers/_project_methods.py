@@ -1,17 +1,19 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
-def create_project(self, name: str, description: str, owner_id: int) -> models.Project:
+def create_project(self: "DBHandler", name: str, description: str, owner_id: int) -> models.Project:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (owner := self._session.get(models.User, owner_id)) is None:
+    if (owner := self.session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
 
     project = models.Project(
@@ -20,11 +22,11 @@ def create_project(self, name: str, description: str, owner_id: int) -> models.P
         owner_id=owner_id
     )
 
-    self._session.add(project)
+    self.session.add(project)
     owner.num_projects += 1
 
-    self._session.commit()
-    self._session.refresh(project)
+    self.session.commit()
+    self.session.refresh(project)
 
     if not persist_session:
         self.close_session()
@@ -32,11 +34,11 @@ def create_project(self, name: str, description: str, owner_id: int) -> models.P
     return project
 
 
-def get_project(self, project_id: int) -> Optional[models.Project]:
+def get_project(self: "DBHandler", project_id: int) -> Optional[models.Project]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.get(models.Project, project_id)
+    res = self.session.get(models.Project, project_id)
     
     if not persist_session:
         self.close_session()
@@ -44,14 +46,14 @@ def get_project(self, project_id: int) -> Optional[models.Project]:
 
 
 def get_projects(
-    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None
 ) -> tuple[list[models.Project], int]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Project)
+    query = self.session.query(models.Project)
 
     if user_id is not None:
         query = query.where(
@@ -79,11 +81,11 @@ def get_projects(
     return projects, n_pages
 
 
-def get_num_projects(self, user_id: Optional[int] = None) -> int:
+def get_num_projects(self: "DBHandler", user_id: Optional[int] = None) -> int:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Project)
+    query = self.session.query(models.Project)
     if user_id is not None:
         query = query.where(
             models.Project.owner_id == user_id
@@ -97,26 +99,26 @@ def get_num_projects(self, user_id: Optional[int] = None) -> int:
 
 
 def delete_project(
-    self, project_id: int,
+    self: "DBHandler", project_id: int,
     commit: bool = True
 ) -> None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (project := self._session.get(models.Project, project_id)) is None:
+    if (project := self.session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
     project.owner.num_projects -= 1
-    self._session.delete(project)
+    self.session.delete(project)
     if commit:
-        self._session.commit()
+        self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
 def update_project(
-    self, project_id: int,
+    self: "DBHandler", project_id: int,
     name: Optional[str] = None,
     description: Optional[str] = None,
     commit: bool = True
@@ -124,7 +126,7 @@ def update_project(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    project = self._session.get(models.Project, project_id)
+    project = self.session.get(models.Project, project_id)
     if not project:
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
@@ -134,8 +136,8 @@ def update_project(
         project.description = description
 
     if commit:
-        self._session.commit()
-        self._session.refresh(project)
+        self.session.commit()
+        self.session.refresh(project)
 
     if not persist_session:
         self.close_session()
@@ -143,16 +145,16 @@ def update_project(
 
 
 def project_contains_sample_with_name(
-    self, project_id: int, sample_name: str
+    self: "DBHandler", project_id: int, sample_name: str
 ) -> bool:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    project = self._session.get(models.Project, project_id)
+    project = self.session.get(models.Project, project_id)
     if not project:
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
-    res = self._session.query(models.Sample).where(
+    res = self.session.query(models.Sample).where(
         models.Sample.name == sample_name
     ).where(
         models.Sample.project_id == project_id
@@ -164,14 +166,14 @@ def project_contains_sample_with_name(
 
 
 def query_projects(
-    self, word: str,
+    self: "DBHandler", word: str,
     user_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Project]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Project)
+    query = self.session.query(models.Project)
 
     if user_id is not None:
         query = query.where(

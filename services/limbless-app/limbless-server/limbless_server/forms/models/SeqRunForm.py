@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 
 from limbless_db import models
 from limbless_db.categories import RunStatus, ReadType, ExperimentStatus
-from ... import db, logger
+from ... import db, logger  # noqa
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -167,6 +167,3 @@ class SeqRunForm(HTMXFlaskForm):
         seq_run = self.update_seq_run(seq_run)
         flash(f"SeqRun {seq_run.id} edited successfully", "success")
         return make_response(redirect=url_for(""))
-
-
-

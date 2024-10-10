@@ -1,22 +1,24 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ...categories import IndexTypeEnum, LabProtocolEnum
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
 def create_index_kit(
-    self, identifier: str, name: str,
+    self: "DBHandler", identifier: str, name: str,
     supported_protocols: list[LabProtocolEnum],
     type: IndexTypeEnum,
 ) -> models.IndexKit:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if self._session.query(models.IndexKit).where(models.IndexKit.name == name).first():
+    if self.session.query(models.IndexKit).where(models.IndexKit.name == name).first():
         raise exceptions.NotUniqueValue(f"index_kit with name '{name}', already exists.")
 
     seq_kit = models.IndexKit(
@@ -25,20 +27,20 @@ def create_index_kit(
         type_id=type.id,
         supported_protocol_ids=[p.id for p in supported_protocols]
     )
-    self._session.add(seq_kit)
-    self._session.commit()
-    self._session.refresh(seq_kit)
+    self.session.add(seq_kit)
+    self.session.commit()
+    self.session.refresh(seq_kit)
 
     if not persist_session:
         self.close_session()
     return seq_kit
 
 
-def get_index_kit(self, id: int) -> Optional[models.IndexKit]:
+def get_index_kit(self: "DBHandler", id: int) -> Optional[models.IndexKit]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.get(models.IndexKit, id)
+    res = self.session.get(models.IndexKit, id)
 
     if not persist_session:
         self.close_session()
@@ -46,11 +48,11 @@ def get_index_kit(self, id: int) -> Optional[models.IndexKit]:
     return res
 
 
-def get_index_kit_by_name(self, name: str) -> Optional[models.IndexKit]:
+def get_index_kit_by_name(self: "DBHandler", name: str) -> Optional[models.IndexKit]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.query(models.IndexKit).where(models.IndexKit.name == name).first()
+    res = self.session.query(models.IndexKit).where(models.IndexKit.name == name).first()
 
     if not persist_session:
         self.close_session()
@@ -58,14 +60,14 @@ def get_index_kit_by_name(self, name: str) -> Optional[models.IndexKit]:
 
 
 def get_index_kits(
-    self, type_in: Optional[list[IndexTypeEnum]] = None,
+    self: "DBHandler", type_in: Optional[list[IndexTypeEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.IndexKit], int]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.IndexKit)
+    query = self.session.query(models.IndexKit)
 
     if type_in is not None:
         query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
@@ -93,13 +95,13 @@ def get_index_kits(
 
 
 def query_index_kits(
-    self, word: str, limit: Optional[int] = PAGE_LIMIT,
+    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT,
     type_in: Optional[list[IndexTypeEnum]] = None,
 ) -> list[models.IndexKit]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = sa.select(models.IndexKit)
+    query = self.session.query(models.IndexKit)
 
     if type_in is not None:
         query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
@@ -111,7 +113,7 @@ def query_index_kits(
     if limit is not None:
         query = query.limit(limit)
 
-    res = self._session.scalars(query).all()
+    res = query.all()
 
     if not persist_session:
         self.close_session()

@@ -1,25 +1,28 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
+from sqlalchemy.orm import Query
 from sqlalchemy.sql import and_
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from ...categories import SampleStatus, SampleStatusEnum, AttributeType, AttributeTypeEnum, AccessType, AccessTypeEnum
 from .. import exceptions
 
 
 def create_sample(
-    self, name: str, owner_id: int, project_id: int,
+    self: "DBHandler", name: str, owner_id: int, project_id: int,
     status: SampleStatusEnum = SampleStatus.DRAFT
 ) -> models.Sample:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (project := self._session.get(models.Project, project_id)) is None:
+    if (project := self.session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id '{project_id}', not found.")
 
-    if (user := self._session.get(models.User, owner_id)) is None:
+    if (user := self.session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{owner_id}', not found.")
 
     sample = models.Sample(
@@ -29,23 +32,23 @@ def create_sample(
         status_id=status.id
     )
 
-    self._session.add(sample)
+    self.session.add(sample)
     project.num_samples += 1
     user.num_samples += 1
     
-    self._session.commit()
-    self._session.refresh(sample)
+    self.session.commit()
+    self.session.refresh(sample)
 
     if not persist_session:
         self.close_session()
     return sample
 
 
-def get_sample(self, sample_id: int) -> Optional[models.Sample]:
+def get_sample(self: "DBHandler", sample_id: int) -> Optional[models.Sample]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    sample = self._session.get(models.Sample, sample_id)
+    sample = self.session.get(models.Sample, sample_id)
 
     if not persist_session:
         self.close_session()
@@ -53,22 +56,15 @@ def get_sample(self, sample_id: int) -> Optional[models.Sample]:
     return sample
 
 
-def get_samples(
-    self, user_id: Optional[int] = None,
+def where(
+    query: Query, user_id: Optional[int] = None,
     project_id: Optional[int] = None,
     library_id: Optional[int] = None,
     pool_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     status: Optional[SampleStatusEnum] = None,
-    status_in: Optional[list[SampleStatusEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-) -> tuple[list[models.Sample], int]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self._session.query(models.Sample)
-
+    status_in: Optional[list[SampleStatusEnum]] = None
+) -> Query:
     if seq_request_id is not None:
         query = query.join(
             models.SampleLibraryLink,
@@ -119,6 +115,28 @@ def get_samples(
             models.Sample.status_id.in_([s.id for s in status_in])
         )
 
+    return query
+
+
+def get_samples(
+    self: "DBHandler", user_id: Optional[int] = None,
+    project_id: Optional[int] = None,
+    library_id: Optional[int] = None,
+    pool_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
+    status: Optional[SampleStatusEnum] = None,
+    status_in: Optional[list[SampleStatusEnum]] = None,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False,
+) -> tuple[list[models.Sample], int]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.Sample)
+    query = where(
+        query, user_id=user_id, project_id=project_id, library_id=library_id,
+        pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in
+    )
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
 
     if sort_by is not None:
@@ -141,80 +159,55 @@ def get_samples(
     return samples, n_pages
 
 
-def update_sample(self, sample: models.Sample) -> models.Sample:
+def update_sample(self: "DBHandler", sample: models.Sample) -> models.Sample:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    self._session.add(sample)
-    self._session.commit()
-    self._session.refresh(sample)
+    self.session.add(sample)
+    self.session.commit()
+    self.session.refresh(sample)
 
     if not persist_session:
         self.close_session()
     return sample
 
 
-def delete_sample(self, sample_id: int):
+def delete_sample(self: "DBHandler", sample_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
+    if (sample := self.session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
     sample.owner.num_samples -= 1
     sample.project.num_samples -= 1
-    self._session.delete(sample)
-    self._session.commit()
+    self.session.delete(sample)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
 def query_samples(
-    self, word: str,
+    self: "DBHandler", word: str,
     user_id: Optional[int] = None,
     project_id: Optional[int] = None,
+    library_id: Optional[int] = None,
     pool_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
+    status: Optional[SampleStatusEnum] = None,
+    status_in: Optional[list[SampleStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.Sample]:
 
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Sample)
-    
-    if user_id is not None:
-        query = query.where(
-            models.Sample.owner_id == user_id
-        )
-
-    if project_id is not None:
-        query = query.where(
-            models.Sample.project_id == project_id
-        )
-
-    if seq_request_id is not None:
-        query = query.join(
-            models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id
-        ).join(
-            models.Library,
-            models.Library.id == models.SampleLibraryLink.library_id
-        ).where(
-            models.Library.seq_request_id == seq_request_id
-        )
-
-    if pool_id is not None:
-        query = query.join(
-            models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id
-        ).join(
-            models.Library,
-            models.Library.id == models.SampleLibraryLink.library_id
-        ).where(
-            models.Library.pool_id == pool_id
-        )
+    query = self.session.query(models.Sample)
+    query = where(
+        query, user_id=user_id, project_id=project_id, library_id=library_id,
+        pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in
+    )
 
     query = query.order_by(
         sa.func.similarity(models.Sample.name, word).desc()
@@ -232,7 +225,7 @@ def query_samples(
 
 
 def set_sample_attribute(
-    self, sample_id: int, value: str, type: AttributeTypeEnum, name: Optional[str]
+    self: "DBHandler", sample_id: int, value: str, type: AttributeTypeEnum, name: Optional[str]
 ) -> models.Sample:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -244,10 +237,10 @@ def set_sample_attribute(
     else:
         name = type.label
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
+    if (sample := self.session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
     
-    if (attribute := self._session.query(models.SampleAttribute).where(
+    if (attribute := self.session.query(models.SampleAttribute).where(
         and_(models.SampleAttribute.sample_id == sample_id, models.SampleAttribute.name == name)
     ).first()) is not None:
         attribute.value = value
@@ -260,9 +253,9 @@ def set_sample_attribute(
 
     sample.attributes.append(attribute)
 
-    self._session.add(sample)
-    self._session.commit()
-    self._session.refresh(sample)
+    self.session.add(sample)
+    self.session.commit()
+    self.session.refresh(sample)
 
     if not persist_session:
         self.close_session()
@@ -270,14 +263,14 @@ def set_sample_attribute(
 
 
 def get_sample_attribute(
-    self, sample_id: int, name: str
+    self: "DBHandler", sample_id: int, name: str
 ) -> Optional[models.SampleAttribute]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     name = name.lower().strip().replace(" ", "_")
 
-    attribute = self._session.query(models.SampleAttribute).where(
+    attribute = self.session.query(models.SampleAttribute).where(
         and_(
             models.SampleAttribute.sample_id == sample_id,
             models.SampleAttribute.name == name
@@ -290,12 +283,12 @@ def get_sample_attribute(
 
 
 def get_sample_attributes(
-    self, sample_id: int
+    self: "DBHandler", sample_id: int
 ) -> list[models.SampleAttribute]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    attributes = self._session.query(models.SampleAttribute).where(
+    attributes = self.session.query(models.SampleAttribute).where(
         models.SampleAttribute.sample_id == sample_id
     ).all()
 
@@ -305,28 +298,28 @@ def get_sample_attributes(
 
 
 def delete_sample_attribute(
-    self, sample_id: int, name: str
+    self: "DBHandler", sample_id: int, name: str
 ) -> models.Sample:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     name = name.lower().strip().replace(" ", "_")
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
+    if (sample := self.session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
     
-    if (attribute := self._session.query(models.SampleAttribute).where(
+    if (attribute := self.session.query(models.SampleAttribute).where(
         and_(
             models.SampleAttribute.sample_id == sample_id,
             models.SampleAttribute.name == name
         )
     ).first()) is not None:
         sample.attributes.remove(attribute)
-        self._session.delete(attribute)
+        self.session.delete(attribute)
 
-    self._session.add(sample)
-    self._session.commit()
-    self._session.refresh(sample)
+    self.session.add(sample)
+    self.session.commit()
+    self.session.refresh(sample)
 
     if not persist_session:
         self.close_session()
@@ -334,13 +327,12 @@ def delete_sample_attribute(
 
 
 def get_user_sample_access_type(
-    self, sample_id: int, user_id: int,
+    self: "DBHandler", sample_id: int, user_id: int,
 ) -> Optional[AccessTypeEnum]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    sample: models.Sample
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
+    if (sample := self.session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
     
     access_type: Optional[AccessTypeEnum] = None

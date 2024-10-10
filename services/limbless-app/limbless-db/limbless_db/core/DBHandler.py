@@ -18,6 +18,12 @@ class DBHandler():
             raise Exception(f"Could not connect to DB '{self._url}':\n{e}")
         self._session: Optional[orm.Session] = None
 
+    @property
+    def session(self) -> orm.Session:
+        if self._session is None:
+            raise Exception("Session is not open.")
+        return self._session  # type: ignore
+
     def timestamp(self) -> datetime:
         return datetime.now()
 
@@ -29,8 +35,8 @@ class DBHandler():
             self._session = orm.Session(self._engine, expire_on_commit=False, autoflush=autoflush)
 
     def close_session(self) -> None:
-        if self._session is not None:
-            self._session.close()
+        if self.session is not None:
+            self.session.close()
             self._session = None
 
     from .model_handlers._project_methods import (
@@ -130,7 +136,7 @@ class DBHandler():
 
     from .model_handlers._lab_prep_methods import (
         create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_identifier,
-        update_lab_prep, add_library_to_prep, remove_library_from_prep
+        update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps
     )
 
     from .model_handlers._link_methods import (

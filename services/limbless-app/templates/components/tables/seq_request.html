@@ -36,13 +36,14 @@
                     table_col(
                         table_container_id='seq_request-table', column_name='Group', column_var='group_id',
                         sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=3,
+                        query_url='seq_requests_htmx.table_query', current_query=current_query, active_query_field=active_query_field
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-table', column_name='Requestor', column_var='requestor_id',
-                        sort_url='seq_requests_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        query_url='seq_requests_htmx.table_query', current_query=current_query, active_query_field=active_query_field
                     )
                 }}
                 {{
