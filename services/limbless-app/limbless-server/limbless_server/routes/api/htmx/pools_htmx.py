@@ -298,7 +298,7 @@ def query_libraries(pool_id: int):
 
     libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(word, pool_id=pool_id)
+        libraries = db.query_libraries(name=word, pool_id=pool_id)
     elif field_name == "id":
         try:
             _id = int(word)

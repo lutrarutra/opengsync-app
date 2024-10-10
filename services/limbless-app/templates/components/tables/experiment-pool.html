@@ -4,16 +4,14 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 
 <div id="experiment-pool-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='ID', column_var='id',
                         sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='experiments_htmx.query_pools', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number"
+                        sort_by=sort_by, sort_order=sort_order, query_type="number"
                     )
                 }}
                 <th scope="col" class="col-2">Lanes</th>
@@ -21,9 +19,7 @@
                     table_col(
                         table_container_id='experiment-pool-table', column_name='Pool Name', column_var='name',
                         sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='experiments_htmx.query_pools', current_query=current_query,
-                        active_query_field=active_query_field, col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
                 {{
@@ -56,7 +52,7 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr class="url-row" dest="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
+            <tr>
                 <th scope="row">{{ pool.id }}</th>
                 <td>
                     {% if experiment.workflow.combined_lanes %}
@@ -87,9 +83,9 @@
                     </span>
                     {% endif %}
                 </td>
-                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">{{ pool.name }}</td>
+                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}"><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">{{ pool.name }}</a></td>
                 <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
-                <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
                 <td class="avg_fragment_size-col">
                     <div class="quantity-container">

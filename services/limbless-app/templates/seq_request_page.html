@@ -57,7 +57,7 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li>
-                        <span {% if seq_request.status.name != "Draft" and not current_user.is_insider() %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
+                        <span {% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
                             <button class="dropdown-item"
                             {% if seq_request.is_editable() or current_user.is_insider() %}
                             data-bs-toggle="modal" data-bs-target="#xl-modal" 
@@ -68,7 +68,7 @@
                         </span>
                     </li>
                     <li>
-                        <span {% if seq_request.status.name != "Draft" %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
+                        <span {% if seq_request.status != SeqRequestStatus.DRAFT %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
                             <button class="dropdown-item"
                             hx-delete="{{ url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id) }}"
                             _="on htmx:confirm(issueRequest)
@@ -81,7 +81,7 @@
                                 denyButtonText: 'No'
                             })
                             if result.isConfirmed issueRequest()"
-                            {% if seq_request.status.name != "Draft" %}disabled{% endif %}>Delete</button>
+                            {% if seq_request.status != SeqRequestStatus.DRAFT %}disabled{% endif %}>Delete</button>
                         </span>
                     </li>
                     <li>
@@ -97,9 +97,9 @@
                             denyButtonText: 'No'
                     })
                         if result.isConfirmed issueRequest()"
-                        {% if seq_request.status.name == "Draft" or seq_request.status.name == "Archived" %}disabled{% endif %}>Archive</button>
+                        {% if seq_request.status == SeqRequestStatus.DRAFT or seq_request.status == SeqRequestStatus.ARCHIVED %}disabled{% endif %}>Archive</button>
                     </li>
-                    {% if current_user.is_insider() and seq_request.status.name == "Archived" %}
+                    {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ARCHIVED %}
                     <li>
                         <button class="dropdown-item"
                         hx-post="{{ url_for('seq_requests_htmx.unarchive', seq_request_id=seq_request.id) }}"
@@ -206,9 +206,9 @@
             </div>
             <div class="workflow-container">
                 {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES or current_user.is_insider() %}
-                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES and current_user.is_insider() %}muted{% endif %}"
+                <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES and current_user.is_insider() %}muted{% endif %}"
                     style="width: 250px;"
-                    {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='tech') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
@@ -229,9 +229,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES and current_user.is_insider() %}muted{% endif %}"
+                <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES and current_user.is_insider() %}muted{% endif %}"
                     style="width: 250px;"
-                    {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='raw') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
@@ -254,9 +254,9 @@
                 </div>
                 {% endif %}
                 {% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES or current_user.is_insider() %}
-                <div class="flip-card card{% if seq_request.status.name != 'Draft' and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.POOLED_LIBRARIES and current_user.is_insider() %}muted{% endif %}"
+                <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.POOLED_LIBRARIES and current_user.is_insider() %}muted{% endif %}"
                     style="width: 250px;"
-                    {% if seq_request.status.name == 'Draft' or current_user.is_insider() %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='pooled') }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
@@ -505,7 +505,7 @@
                 </div>
                 <div>
                     {% if seq_request.is_authorized() %}
-                    {% if seq_request.status.name == "Draft" or current_user.is_insider() %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     <a type="button" class="btn btn-danger" hx-delete="{{ url_for('seq_requests_htmx.remove_auth_form', seq_request_id=seq_request.id) }}"
                     _="on htmx:confirm(issueRequest)
                     halt the event
@@ -526,7 +526,7 @@
                     </a>
                 </div>
             </div>
-            {% if not seq_request.is_authorized() and seq_request.status.name == "Draft" %}
+            {% if not seq_request.is_authorized() and seq_request.status == SeqRequestStatus.DRAFT %}
             {% include "forms/seq_request/seq_auth.html" %}
             {% else %}
             <div class="d-flex justify-content-between align-items-center pt-3 pb-1">

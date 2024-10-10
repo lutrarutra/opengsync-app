@@ -47,7 +47,7 @@ services:
                 restart: true
         healthcheck:
             test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
-            interval: 10s
+            interval: 60s
             timeout: 10s
             retries: 5
 

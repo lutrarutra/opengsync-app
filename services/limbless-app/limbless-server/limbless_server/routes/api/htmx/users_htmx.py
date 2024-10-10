@@ -86,8 +86,8 @@ def query():
 @users_htmx.route("table_query", methods=["GET"])
 @login_required
 def table_query():
-    if (word := request.args.get("name")) is not None:
-        field_name = "name"
+    if (word := request.args.get("last_name")) is not None:
+        field_name = "last_name"
     elif (word := request.args.get("email")) is not None:
         field_name = "email"
     elif (word := request.args.get("id")) is not None:
@@ -105,24 +105,24 @@ def table_query():
         if len(role_in) == 0:
             role_in = None
 
-    seq_requests: list[models.User] = []
-    if field_name == "name":
-        seq_requests = db.query_users(word, role_in=role_in)
+    users: list[models.User] = []
+    if field_name == "last_name":
+        users = db.query_users(word, role_in=role_in)
     elif field_name == "email":
-        seq_requests = db.query_users_by_email(word, role_in=role_in)
+        users = db.query_users_by_email(word, role_in=role_in)
     elif field_name == "id":
         try:
             _id = int(word)
             if (user := db.get_user(_id)) is not None:
-                seq_requests.append(user)
+                users.append(user)
         except ValueError:
             pass
 
     return make_response(
         render_template(
-            "components/tables/seq_request.html",
+            "components/tables/user.html",
             current_query=word, active_query_field=field_name,
-            seq_requests=seq_requests, role_in=role_in
+            users=users, role_in=role_in
         )
     )
 

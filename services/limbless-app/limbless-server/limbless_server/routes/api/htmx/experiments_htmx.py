@@ -8,7 +8,7 @@ from flask import Blueprint, url_for, render_template, flash, abort, request, cu
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT
+from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow
 
 from .... import db, forms, logger
@@ -23,6 +23,7 @@ experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/hmtx
 
 @experiments_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @experiments_htmx.route("get/<int:page>")
+@db_session(db)
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
@@ -50,11 +51,10 @@ def get(page: int):
         if len(workflow_in) == 0:
             workflow_in = None
 
-    with DBSession(db) as session:
-        experiments, n_pages = session.get_experiments(
-            offset=offset, sort_by=sort_by, descending=descending,
-            status_in=status_in, workflow_in=workflow_in
-        )
+    experiments, n_pages = db.get_experiments(
+        offset=offset, sort_by=sort_by, descending=descending,
+        status_in=status_in, workflow_in=workflow_in
+    )
 
     return make_response(
         render_template(
@@ -69,6 +69,7 @@ def get(page: int):
 
 
 @experiments_htmx.route("get_form/<string:form_type>", methods=["GET"])
+@db_session(db)
 @login_required
 def get_form(form_type: Literal["create", "edit"]):
     if not current_user.is_insider():
@@ -86,12 +87,11 @@ def get_form(form_type: Literal["create", "edit"]):
         if form_type != "edit":
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        with DBSession(db) as session:
-            if (experiment := session.get_experiment(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            
-            return forms.models.ExperimentForm(form_type=form_type, experiment=experiment).make_response()
-    
+        if (experiment := db.get_experiment(experiment_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        return forms.models.ExperimentForm(form_type=form_type, experiment=experiment).make_response()
+
     # seq_request_id must be provided if form_type is "edit"
     if form_type == "edit":
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -109,18 +109,18 @@ def create():
 
 
 @experiments_htmx.route("<int:experiment_id>/edit", methods=["POST"])
+@db_session(db)
 @login_required
 def edit(experiment_id: int):
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
-        return forms.models.ExperimentForm(formdata=request.form, form_type="edit").process_request(
-            experiment=experiment
-        )
+    return forms.models.ExperimentForm(formdata=request.form, form_type="edit").process_request(
+        experiment=experiment
+    )
 
 
 @experiments_htmx.route("delete/<int:experiment_id>", methods=["DELETE"])
@@ -362,30 +362,30 @@ def add_comment(experiment_id: int):
 
 
 @experiments_htmx.route("<int:experiment_id>/remove_pool", methods=["DELETE"])
+@db_session(db)
 @login_required
 def remove_pool(experiment_id: int):
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if (pool_id := request.args.get("pool_id")) is None:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        try:
-            pool_id = int(pool_id)
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        if (_ := session.get_pool(pool_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if (pool_id := request.args.get("pool_id")) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    try:
+        pool_id = int(pool_id)
+    except ValueError:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (_ := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
-        session.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
+    db.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
 
-        logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
-        flash("Removed pool from experiment.", "success")
+    logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
+    flash("Removed pool from experiment.", "success")
 
     return make_response(
         redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
@@ -502,6 +502,7 @@ def overview(experiment_id: int):
 
 @experiments_htmx.route("<int:experiment_id>/get_pools/<int:page>", methods=["GET"])
 @experiments_htmx.route("<int:experiment_id>/get_pools", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get_pools(experiment_id: int, page: int):
     if not current_user.is_insider():
@@ -516,21 +517,20 @@ def get_pools(experiment_id: int, page: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     experiment_lanes: dict[int, list[int]] = {}
-    
-    with DBSession(db) as session:
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        pools, _ = session.get_pools(
-            offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
-            limit=None
-        )
 
-        for lane in experiment.lanes:
-            experiment_lanes[lane.number] = []
-            
-            for pool in lane.pools:
-                experiment_lanes[lane.number].append(pool.id)
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    pools, _ = db.get_pools(
+        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
+        limit=None
+    )
+
+    for lane in experiment.lanes:
+        experiment_lanes[lane.number] = []
+        
+        for pool in lane.pools:
+            experiment_lanes[lane.number].append(pool.id)
 
     return make_response(
         render_template(
@@ -542,65 +542,94 @@ def get_pools(experiment_id: int, page: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/query_pools", methods=["GET"])
+@experiments_htmx.route("<int:experiment_id>/get_libraries/<int:page>", methods=["GET"])
+@experiments_htmx.route("<int:experiment_id>/get_libraries", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
-def query_pools(experiment_id: int):
+def get_libraries(experiment_id: int, page: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    if sort_by not in models.Library.sortable_fields:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    libraries, n_pages = db.get_libraries(
+        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/experiment-library.html",
+            libraries=libraries, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            experiment=experiment
+        )
+    )
+
+
+@experiments_htmx.route("<int:experiment_id>/query_libraries", methods=["GET"])
+@db_session(db)
+@login_required
+def query_libraries(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if (word := request.args.get("word")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    with DBSession(db) as session:
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        pools = session.query_pools(experiment_id=experiment_id, name=word, limit=None)
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    libraries = db.query_libraries(experiment_id=experiment_id, name=word)
 
     return make_response(
         render_template(
-            "components/tables/experiment-pool.html",
-            pools=pools, experiment=experiment
+            "components/tables/experiment-library.html",
+            libraries=libraries, experiment=experiment
         )
     )
 
 
 @experiments_htmx.route("<int:experiment_id>/get_comments", methods=["GET"])
+@db_session(db)
 @login_required
 def get_comments(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    with DBSession(db) as session:
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        comments = experiment.comments
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
         render_template(
             "components/comment-list.html",
-            comments=comments, experiment=experiment,
+            comments=experiment.comments, experiment=experiment,
         )
     )
 
 
 @experiments_htmx.route("<int:experiment_id>/get_files", methods=["GET"])
+@db_session(db)
 @login_required
 def get_files(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    with DBSession(db) as session:
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        files = experiment.files
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
         render_template(
             "components/file-list.html",
-            files=files, experiment=experiment, delete="experiments_htmx.delete_file",
+            files=experiment.files, experiment=experiment, delete="experiments_htmx.delete_file",
             delete_context={"experiment_id": experiment_id}
         )
     )

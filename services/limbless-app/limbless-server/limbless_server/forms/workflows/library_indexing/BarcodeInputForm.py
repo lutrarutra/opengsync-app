@@ -112,6 +112,8 @@ class BarcodeInputForm(HTMXFlaskForm):
         self.df.columns = list(BarcodeInputForm.columns.keys())
         self.df = self.df.replace(r'^\s*$', None, regex=True)
         self.df = self.df.dropna(how="all")
+        self.df.loc[self.df["kit_i7"].notna(), "kit_i7"] = self.df.loc[self.df["kit_i7"].notna(), "kit_i7"].astype(str)
+        self.df.loc[self.df["kit_i5"].notna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].notna(), "kit_i5"].astype(str)
 
         if len(self.df) == 0:
             self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet.",)

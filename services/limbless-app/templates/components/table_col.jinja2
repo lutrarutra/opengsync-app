@@ -45,6 +45,7 @@ sort-order="{{ sort_order }}">
     </a>
     {% endif %}
 </th>
+
 {% if query_url %}
 <th scopy='col' class='col-{{ col_size}} temp-query-input' id='{{ table_container_id }}:{{ column_var }}-query'
     {% if not (current_query and column_var == active_query_field) %}
@@ -61,6 +62,7 @@ sort-order="{{ sort_order }}">
     });
 </script>
 {% endif %}
+
 {% if multiselect_choices %}
 <th scopy='col' class='col-{{ col_size}} temp-query-input' id='{{ table_container_id }}:{{ column_var }}-filter'
     {% if not multiselect_selected %}style="display: none;"{% endif %}>

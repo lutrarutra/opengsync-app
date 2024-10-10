@@ -41,6 +41,8 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             return self.make_response()
         
         barcode_table = self.tables["barcode_table"]
+        barcode_table.loc[barcode_table["name_i7"].notna(), "name_i7"] = barcode_table.loc[barcode_table["name_i7"].notna(), "name_i7"].astype(str)
+        barcode_table.loc[barcode_table["name_i5"].notna(), "name_i5"] = barcode_table.loc[barcode_table["name_i5"].notna(), "name_i5"].astype(str)
         library_table = self.tables["library_table"]
         
         if (lab_prep_id := self.metadata.get("lab_prep_id")) is None:
@@ -81,17 +83,19 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
 
             seq_i7s = df["sequence_i7"].values
             seq_i5s = df["sequence_i5"].values
+            name_i7s = df["name_i7"].values
+            name_i5s = df["name_i5"].values
 
             for j in range(max(len(seq_i7s), len(seq_i5s))):
                 library = db.add_library_index(
                     library_id=library.id,
-                    name_i7=row["name_i7"] if pd.notna(row["name_i7"]) else None,
-                    name_i5=row["name_i5"] if pd.notna(row["name_i5"]) else None,
+                    name_i7=name_i7s[j] if len(name_i7s) > j and pd.notna(name_i7s[j]) else None,
+                    name_i5=name_i5s[j] if len(name_i5s) > j and pd.notna(name_i5s[j]) else None,
                     sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
                     sequence_i5=seq_i5s[j] if len(seq_i5s) > j and pd.notna(seq_i5s[j]) else None,
                 )
-            library_table.at[idx, "name_i7"] = row["name_i7"] if pd.notna(row["name_i7"]) else None
-            library_table.at[idx, "name_i5"] = row["name_i5"] if pd.notna(row["name_i5"]) else None
+            # library_table.at[idx, "name_i7"] = row["name_i7"] if pd.notna(row["name_i7"]) else None
+            # library_table.at[idx, "name_i5"] = row["name_i5"] if pd.notna(row["name_i5"]) else None
 
             library.pool_id = None
             library = db.update_library(library)
@@ -106,8 +110,6 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
                 col = get_column_letter(col_i + 1)
                 column_name = active_sheet[f"{col}1"].value
                 column_mapping[column_name] = col
-
-            logger.debug(column_mapping)
             
             for i, (idx, row) in enumerate(library_table.iterrows()):
                 df = barcode_table[barcode_table["library_id"] == row["library_id"]]

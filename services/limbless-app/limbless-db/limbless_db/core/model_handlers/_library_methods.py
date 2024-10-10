@@ -248,7 +248,7 @@ def update_library(self, library: models.Library) -> models.Library:
 
 
 def query_libraries(
-    self, word: str,
+    self, name: Optional[str] = None, owner: Optional[str] = None,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
@@ -325,9 +325,20 @@ def query_libraries(
             models.ExperimentPoolLink.experiment_id == experiment_id
         )
 
-    query = query.order_by(
-        sa.func.similarity(models.Library.name, word).desc()
-    )
+    if name is not None:
+        query = query.order_by(
+            sa.func.similarity(models.Library.name, name).desc()
+        )
+    elif owner is not None:
+        query = query.join(
+            models.User,
+            models.User.id == models.Library.owner_id
+        )
+        query = query.order_by(
+            sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, owner).desc()
+        )
+    else:
+        raise ValueError("At least one of 'name' or 'owner' must be provided")
 
     if limit is not None:
         query = query.limit(limit)

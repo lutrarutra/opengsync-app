@@ -67,7 +67,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     if app.debug:
         @app.route("/test")
         def test():
-            return render_template("test.html", SeqRequestStatus=categories.SeqRequestStatus)
+            return render_template("test.html")
         
     @app.route("/help")
     @cache.cached(timeout=1500)

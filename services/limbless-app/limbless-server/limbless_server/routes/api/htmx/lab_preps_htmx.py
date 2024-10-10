@@ -133,6 +133,9 @@ def remove_library(lab_prep_id: int):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if lab_prep.status != PrepStatus.PREPARING:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
     if (library_id := request.args.get("library_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
