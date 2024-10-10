@@ -3,7 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="pool-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -47,11 +47,11 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr onclick="redirect('{{ url_for('pools_page.pool_page', pool_id=pool.id) }}');">
+            <tr>
                 <th scope="row">{{ pool.id }}</th>
-                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">{{ pool.name }}</td>
+                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}"><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id) }}">{{ pool.name }}</a></td>
                 <td>{{ pool.status.display_name }} {{ pool.status.icon }}</td>
-                <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=pool.owner_id) }}">{{ pool.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
             </tr>
             {% endfor %}

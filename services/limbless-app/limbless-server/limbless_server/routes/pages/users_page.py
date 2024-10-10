@@ -75,6 +75,18 @@ def user_page(user_id: Optional[int]):
                 (f"Group {id}", url_for("groups_page.group_page", group_id=id)),
                 (f"User {user_id}", ""),
             ]
+        elif page == "lab_prep":
+            path_list = [
+                ("Lab Preps", url_for("lab_preps_page.lab_preps_page")),
+                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep_page", lab_prep_id=id)),
+                (f"User {user_id}", ""),
+            ]
+        elif page == "experiment":
+            path_list = [
+                ("Experiments", url_for("experiments_page.experiments_page")),
+                (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
+                (f"User {user_id}", ""),
+            ]
             
     projects, _ = db.get_projects(user_id=user_id, limit=None)
     seq_requests, _ = db.get_seq_requests(user_id=user_id, limit=None)

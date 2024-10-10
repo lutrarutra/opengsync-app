@@ -35,6 +35,8 @@
     <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script src="https://unpkg.com/hyperscript.org@0.9.11"></script>
+
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
 
     <script>
@@ -81,10 +83,10 @@
             </div>
             {% if current_user.is_authenticated and current_user.is_insider() %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" id="experiments-page" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>
+                <a class="nav-link {{'active' if active_page == 'lab_preps-page' else ''}}" id="lab_preps-page" href="{{ url_for('lab_preps_page.lab_preps_page') }}">Preps</a>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'lab_preps-page' else ''}}" id="lab_preps-page" href="{{ url_for('lab_preps_page.lab_preps_page') }}">Preps</a>
+                <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" id="experiments-page" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>
             </div>
             <div class="nav-item-dropdown">
                 <p>

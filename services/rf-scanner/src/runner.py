@@ -205,6 +205,12 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             print("Updated!")
         else:
             metrics = parse_metrics(run_folder)
+
+            # If for some reason the run is Archived while still in the data is still in the run folder
+            if (seq_run := db.get_seq_run(experiment_name=experiment_name)) is not None:
+                seq_run.status = status
+                seq_run = db.update_seq_run(seq_run)
+                continue
             
             run = db.create_seq_run(
                 experiment_name=experiment_name,

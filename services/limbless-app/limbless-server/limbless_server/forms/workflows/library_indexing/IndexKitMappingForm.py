@@ -2,7 +2,6 @@ from typing import Optional
 from flask import Response
 
 import pandas as pd
-import numpy as np
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField
@@ -51,7 +50,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             if index_kit is None:
                 selected_kit = None
             elif index_kit_search_field.selected.data is None:
-                selected_kit = next(iter(db.query_index_kits(index_kit, 1)), None)
+                selected_kit = next(iter(db.query_index_kits(str(index_kit), 1)), None)
                 index_kit_search_field.selected.data = selected_kit.id if selected_kit else None
                 index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
             else:
@@ -63,6 +62,9 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             return False
         
         library_table = self.tables["library_table"]
+        library_table.loc[library_table["kit_i7"].notna(), "kit_i7"] = library_table.loc[library_table["kit_i7"].notna(), "kit_i7"].astype(str)
+        library_table.loc[library_table["kit_i5"].notna(), "kit_i5"] = library_table.loc[library_table["kit_i5"].notna(), "kit_i5"].astype(str)
+
         library_table["kit_i7_id"] = None
         library_table["kit_i5_id"] = None
 

@@ -50,7 +50,7 @@
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="toggle_sample({{ sample.id }});" id="sample-row-{{ sample.id }}"
+            <tr id="sample-row-{{ sample.id }}"
             class="sample-row">
                 <th scope="row">{{ sample.id }}</th>
                 <td>{{ sample.name }}</td>
@@ -81,6 +81,51 @@
         $(document).ready(function() {
             init_tooltips();
             update_samples();
+
+            let is_mouse_down = false;
+            let start_row = null;
+            let dragging = false;
+            let hovered_sample = null;
+
+            $(".sample-row").mousedown(function(e) {
+                e.preventDefault();
+                is_mouse_down = true;
+                start_row = $(this);
+                toggle_sample($(this).attr("id").split("-")[2]);
+                hovered_sample = $(this).attr("id").split("-")[2];
+            });
+
+            $(".sample-row").mousemove(function(e) {
+                if (is_mouse_down) {
+                    dragging = true;
+                    if (hovered_sample != $(this).attr("id").split("-")[2]) {
+                        hovered_sample = $(this).attr("id").split("-")[2];
+                        toggle_sample($(this).attr("id").split("-")[2]);
+                    }
+                }
+            });
+
+            $(".sample-row").mouseup(function(e) {
+                is_mouse_down = false;
+                if (dragging) {
+                    dragging = false;
+                    start_row = null;
+                }
+            });
+
+            $(document).keydown(function(e) {
+                if (e.metaKey && e.key === "a") {
+                    e.preventDefault();
+                    $(".sample-row").each(function() {
+                        if ($(this).is(":visible")) {
+                            if (!$(this).hasClass("selected")) {
+                                add_sample($(this).attr("id").split("-")[2]);
+                            }
+                        }
+                    });
+                    $("#selected-samples-tab-btn").text(`Selected Samples (${num_selected_samples})`);
+                }
+            });
         });
     </script>
 </div>

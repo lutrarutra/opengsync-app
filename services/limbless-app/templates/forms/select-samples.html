@@ -300,26 +300,38 @@
 
         init_tooltips();
 
+        function add_sample(sample_id) {
+            sample_id = parseInt(sample_id);
+            selected_samples.push(sample_id);
+            $(`#sample-row-${sample_id}`).addClass("selected");
+
+            const cloned = $(`#sample-row-${sample_id}`).clone();
+            cloned.attr("id", `selected-sample-row-${sample_id}`);
+            $("#selected-samples-table-container").append(cloned);
+            num_selected_samples += 1;
+        }
+
+        function remove_sample(sample_id) {
+            sample_id = parseInt(sample_id);
+            selected_samples = selected_samples.filter(function(value, index, arr) {
+                return value != sample_id;
+            });
+
+            $(`#sample-row-${sample_id}`).removeClass("selected");
+            $(`#selected-sample-row-${sample_id}`).remove();
+            num_selected_samples -= 1;
+        }
+
         function toggle_sample(sample_id) {
+            sample_id = parseInt(sample_id);
             if (selected_samples.includes(sample_id)) {
-                selected_samples = selected_samples.filter(function(value, index, arr) {
-                    return value != sample_id;
-                });
-
-                $(`#sample-row-${sample_id}`).removeClass("selected");
-                $(`#selected-sample-row-${sample_id}`).remove();
-                num_selected_samples -= 1;
+                remove_sample(sample_id);
             } else {
-                selected_samples.push(sample_id);
-                $(`#sample-row-${sample_id}`).addClass("selected");
-
-                const cloned = $(`#sample-row-${sample_id}`).clone();
-                cloned.attr("id", `selected-sample-row-${sample_id}`);
-                $("#selected-samples-table-container").append(cloned);
-                num_selected_samples += 1;
+                add_sample(sample_id);
             }
             $("#selected-samples-tab-btn").text(`Selected Samples (${num_selected_samples})`);
         }
+        
         function update_samples() {
             $(".sample-row").each(function() {
                 const sample_id = parseInt($(this).attr("id").split("-").pop());
@@ -329,23 +341,33 @@
             });
         }
 
+        function remove_library(library_id) {
+            library_id = parseInt(library_id);
+            selected_libraries = selected_libraries.filter(function(value, index, arr) {
+                return value != library_id;
+            });
+
+            $(`#library-row-${library_id}`).removeClass("selected");
+            $(`#selected-library-row-${library_id}`).remove();
+            num_selected_libraries -= 1;
+        }
+
+        function add_library(library_id) {
+            library_id = parseInt(library_id);
+            selected_libraries.push(library_id);
+            $(`#library-row-${library_id}`).addClass("selected");
+            const cloned = $(`#library-row-${library_id}`).clone();
+            cloned.attr("id", `selected-library-row-${library_id}`);
+            $("#selected-libraries-table-container").append(cloned);
+            num_selected_libraries += 1;
+        }
+
         function toggle_library(library_id) {
+            library_id = parseInt(library_id);
             if (selected_libraries.includes(library_id)) {
-                selected_libraries = selected_libraries.filter(function(value, index, arr) {
-                    return value != library_id;
-                });
-
-                $(`#library-row-${library_id}`).removeClass("selected");
-                $(`#selected-library-row-${library_id}`).remove();
-                num_selected_libraries -= 1;
+                remove_library(library_id);
             } else {
-                selected_libraries.push(library_id);
-                $(`#library-row-${library_id}`).addClass("selected");
-
-                const cloned = $(`#library-row-${library_id}`).clone();
-                cloned.attr("id", `selected-library-row-${library_id}`);
-                $("#selected-libraries-table-container").append(cloned);
-                num_selected_libraries += 1;
+                add_library(library_id);
             }
             $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
         }

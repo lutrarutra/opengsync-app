@@ -60,6 +60,12 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#libraries-tab"
+                type="button" role="tab" aria-controls="libraries-tab" aria-selected="false">
+                Libraries
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="dilutions-tab-btn" data-bs-toggle="tab" data-bs-target="#dilutions-tab"
                 type="button" role="tab" aria-controls="dilutions-tab" aria-selected="false">
                 Dilutions
@@ -304,7 +310,17 @@
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="dilutions-tab" role="tabpanel" tabindex="2">
+        <div class="tab-pane fade" id="libraries-tab" role="tabpanel" tabindex="2">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h2>Libraries <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('experiments_htmx.get_libraries', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="dilutions-tab" role="tabpanel" tabindex="3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Dilutions</h2>
@@ -314,7 +330,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="3">
+        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="4">
             <div class="row">
                 {{
                     metadata_group_link(
@@ -350,18 +366,18 @@
                 {{ metadata_group("R2 Cycles", experiment.r2_cycles, class="col") }}
             </div>
         </div>
-        <div class="tab-pane fade" id="experiment-overview-tab" role="tabpanel" tabindex="4">
+        <div class="tab-pane fade" id="experiment-overview-tab" role="tabpanel" tabindex="5">
             <div hx-get="{{ url_for('experiments_htmx.overview', experiment_id=experiment.id) }}"
                 hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="experiment-files-tab" role="tabpanel" tabindex="5">
+        <div class="tab-pane fade" id="experiment-files-tab" role="tabpanel" tabindex="6">
             <div hx-get="{{ url_for('experiments_htmx.get_files', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="experiment-comments-tab" role="tabpanel" tabindex="6">
+        <div class="tab-pane fade" id="experiment-comments-tab" role="tabpanel" tabindex="7">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Comments</h2>
@@ -377,7 +393,7 @@
             </div>
         </div>  
         {% if experiment.seq_run %}
-        <div class="tab-pane fade" id="experiment-seq_run-tab" role="tabpanel" tabindex="7">
+        <div class="tab-pane fade" id="experiment-seq_run-tab" role="tabpanel" tabindex="8">
             <div class="row">
                 {{
                     metadata_group_link(
@@ -404,7 +420,7 @@
             </div>
         </div>  
         {% endif %}
-        <div class="tab-pane fade" id="experiment-num_reads-tab" role="tabpanel" tabindex="8">
+        <div class="tab-pane fade" id="experiment-num_reads-tab" role="tabpanel" tabindex="9">
             {% include "components/plots/experiment_library_reads.html" %}
         </div>
     </div>

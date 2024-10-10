@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="pool-library-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -39,23 +39,41 @@
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
-                <th scope="col" class="col-2">Index i7</th>
-                <th scope="col" class="col-2">Index i5</th>
+                <th scope="col" class="col-4">
+                    Index
+                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
+                            <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
+                        </svg>
+                    </a>
+                </th>
             </tr>
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr onclick="redirect(`{{ url_for('libraries_page.library_page', library_id=library.id, from='pool@' + pool.id | string) }}`);">
+            <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}">{{ library.name }}</td>
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}"><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='pool@' + pool.id | string) }}">{{ library.name }}</a></td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
-                <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                <td class="barcode-cell" id="library-{{library.id}}-index-cell-1">{{ library.sequences_i7_str() }}</td>
-                <td class="barcode-cell" id="library-{{library.id}}-index-cell-2">{{ library.sequences_i5_str() }}</td>
+                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='pool@' + pool.id | string) }}">{{ library.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                <td class="barcode-cell">
+                    {% for index in library.indices %}
+                    {% if index.name_i7 %}
+                        {% if index.name_i7 == index.name_i5 %}
+                        <span class="badge index-badges" >{{ index.name_i7 }}</span>
+                        {% else %}
+                        <span class="badge index-badges">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
+                        {% endif %}
+                    {% else %}
+                    <span class="badge index-badges">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
+                    {% endif %}
+                    <span class="badge index-badges" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
+                    {% endfor %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -64,16 +82,16 @@
     {{ pagination("pool-library-table", "pools_htmx.get_libraries", n_pages, active_page, context={"pool_id": pool.id}) }}
     <script>
         init_tooltips();
-        var selected_library_id = null;
-        var selected_index_element_id = null;
-
-        function copy_sequence_to_clipboard() {
-            const library_id = selected_index_element_id.split("-")[1];
-            const index_id = selected_index_element_id.split("-")[4];
-            const content = $("#library-" + library_id + "-index-cell-" + index_id).text().trim();
-            copy_to_clipboard(content);
+        init_tooltips();
+        function toggle_index_display() {
+            $(".index-badges").each(function() {
+                if ($(this).is(":hidden")) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
         }
-
 
         function remove_library() {
             Swal.fire({
@@ -109,22 +127,5 @@
                 display: "block"
             });
         })
-
-        $(document).off("contextmenu", ".barcode-cell").on("contextmenu", ".barcode-cell", function(e) {
-            e.preventDefault();
-            const x = e.pageX;
-            const y = e.pageY;
-            selected_index_element_id = e.target.id;
-            $("#copy-edit-menu").css({
-                display: "block",
-                left: x + 8, top: y + 8
-            }).empty().append([
-                `<li><a class="dropdown-item" onclick="copy_sequence_to_clipboard()">Copy Sequence</a></li>`,
-            ]);
-
-            $("#right-click-bg").css({
-                display: "block"
-            });
-        });
     </script>
 </div>

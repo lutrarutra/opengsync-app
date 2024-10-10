@@ -746,7 +746,7 @@ def query_libraries(seq_request_id: int):
 
     libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(word, seq_request_id=seq_request_id, status_in=status_in, type_in=type_in)
+        libraries = db.query_libraries(name=word, seq_request_id=seq_request_id, status_in=status_in, type_in=type_in)
     elif field_name == "id":
         try:
             _id = int(word)

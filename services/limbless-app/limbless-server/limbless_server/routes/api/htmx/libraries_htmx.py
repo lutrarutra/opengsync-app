@@ -7,6 +7,7 @@ from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus
+
 from .... import db, forms, logger  # noqa
 
 if TYPE_CHECKING:
@@ -85,9 +86,9 @@ def query():
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     if not current_user.is_insider():
-        results = db.query_libraries(word, current_user.id)
+        results = db.query_libraries(name=word, user_id=current_user.id)
     else:
-        results = db.query_libraries(word)
+        results = db.query_libraries(name=word)
 
     return make_response(
         render_template(
@@ -153,6 +154,8 @@ def table_query():
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
+    elif (word := request.args.get("owner_id")) is not None:
+        field_name = "owner_id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -180,7 +183,7 @@ def table_query():
 
     libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(word, user_id=user_id, status_in=status_in, type_in=type_in)
+        libraries = db.query_libraries(name=word, user_id=user_id, status_in=status_in, type_in=type_in)
     elif field_name == "id":
         try:
             _id = int(word)
@@ -194,6 +197,8 @@ def table_query():
                     libraries = []
         except ValueError:
             pass
+    elif field_name == "owner_id":
+        libraries = db.query_libraries(owner=word, user_id=user_id, status_in=status_in, type_in=type_in)
 
     return make_response(
         render_template(
@@ -339,6 +344,8 @@ def browse_query(workflow: str):
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
+    elif (word := request.args.get("owner_id")) is not None:
+        field_name = "owner_id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -394,7 +401,7 @@ def browse_query(workflow: str):
     libraries: list[models.Library] = []
     if field_name == "name":
         libraries = db.query_libraries(
-            word, status_in=status_in, type_in=type_in, experiment_id=experiment_id, seq_request_id=seq_request_id,
+            name=word, status_in=status_in, type_in=type_in, experiment_id=experiment_id, seq_request_id=seq_request_id,
             pool_id=pool_id if workflow != "library_pooling" else None,
             pooled=False if workflow == "library_pooling" else None
         )
@@ -412,6 +419,12 @@ def browse_query(workflow: str):
                     libraries = []
         except ValueError:
             pass
+    elif field_name == "owner_id":
+        libraries = db.query_libraries(
+            owner=word, status_in=status_in, type_in=type_in, experiment_id=experiment_id, seq_request_id=seq_request_id,
+            pool_id=pool_id if workflow != "library_pooling" else None,
+            pooled=False if workflow == "library_pooling" else None
+        )
 
     context["workflow"] = workflow
     return make_response(
@@ -491,7 +504,7 @@ def select_all(workflow: str):
         seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
         pool_id=pool_id if workflow != "library_pooling" else None,
         pooled=False if workflow == "library_pooling" else None,
-        lab_prep_id=lab_prep_id if workflow == "library_prep" else None
+        in_lab_prep=False if workflow == "library_prep" else None,
     )
 
     form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)

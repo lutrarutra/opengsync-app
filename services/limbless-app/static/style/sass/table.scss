@@ -56,6 +56,13 @@ table input.table-query-input{
                 overflow: hidden;
                 height: 42px;
             }
+            td a {
+                color: $cemm-blue-darker;
+                text-decoration: none;
+            }
+            td .badge {
+                background-color: $cemm-blue;
+            }
         }
         .comma:not(:first-child):before {
             content: ", ";
