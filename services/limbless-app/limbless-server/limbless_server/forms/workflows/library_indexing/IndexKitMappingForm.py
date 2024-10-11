@@ -7,6 +7,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
+from limbless_db import models
 from limbless_db.categories import BarcodeType
 
 from .... import db, logger
@@ -65,56 +66,57 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         library_table.loc[library_table["kit_i7"].notna(), "kit_i7"] = library_table.loc[library_table["kit_i7"].notna(), "kit_i7"].astype(str)
         library_table.loc[library_table["kit_i5"].notna(), "kit_i5"] = library_table.loc[library_table["kit_i5"].notna(), "kit_i5"].astype(str)
 
+        library_table["kit_i7_name"] = None
+        library_table["kit_i5_name"] = None
         library_table["kit_i7_id"] = None
         library_table["kit_i5_id"] = None
 
-        kits: dict[int, pd.DataFrame] = {}
+        kits: dict[int, tuple[models.IndexKit, pd.DataFrame]] = {}
 
         for i, entry in enumerate(self.input_fields):
             index_kit_search_field: SearchBar = entry.index_kit  # type: ignore
             if (kit_id := index_kit_search_field.selected.data) is None:
                 logger.error(f"Index kit not found for {entry.raw_label.data}")
                 raise ValueError()
+            
+            if (kit := db.get_index_kit(kit_id)) is None:
+                index_kit_search_field.selected.errors = (f"Index kit {kit_id} not found",)
+                return False
 
-            if len(kit := db.get_index_kit_barcodes_df(kit_id, per_adapter=False)) == 0:
+            if len(kit_df := db.get_index_kit_barcodes_df(kit_id, per_adapter=False)) == 0:
                 logger.error(f"Index kit {kit_id} does not exist")
                 raise ValueError()
             
-            kits[kit_id] = kit
-            
+            kits[kit_id] = (kit, kit_df)
             library_table.loc[library_table["kit_i7"] == entry.raw_label.data, "kit_i7_id"] = kit_id
             library_table.loc[library_table["kit_i5"] == entry.raw_label.data, "kit_i5_id"] = kit_id
+            library_table.loc[library_table["kit_i7_id"] == kit_id, "kit_i7_name"] = kit.identifier
+            library_table.loc[library_table["kit_i5_id"] == kit_id, "kit_i5_name"] = kit.identifier
 
             for _, row in library_table[library_table["kit_i7_id"] == kit_id].iterrows():
                 if pd.notna(row["name_i7"]):
-                    if row["name_i7"] not in kit["name"].values:
+                    if row["name_i7"] not in kit_df["name"].values:
                         index_kit_search_field.selected.errors = (f"Index {row['name_i7']} not found in index kit {kit_id}",)
                         return False
                 
                 elif pd.notna(row["index_well"]):
-                    if row["index_well"] not in kit["well"].values:
+                    if row["index_well"] not in kit_df["well"].values:
                         index_kit_search_field.selected.errors = (f"Well {row['index_well']} not found in index kit {kit_id}",)
                         return False
                     
             for _, row in library_table[library_table["kit_i5_id"] == kit_id].iterrows():
                 if pd.notna(row["name_i5"]):
-                    if row["name_i5"] not in kit["name"].values:
+                    if row["name_i5"] not in kit_df["name"].values:
                         index_kit_search_field.selected.errors = (f"Index {row['name_i5']} not found in index kit {kit_id}",)
                         return False
                 
                 elif pd.notna(row["index_well"]):
-                    if row["index_well"] not in kit["well"].values:
+                    if row["index_well"] not in kit_df["well"].values:
                         index_kit_search_field.selected.errors = (f"Well {row['index_well']} not found in index kit {kit_id}",)
                         return False
 
         index_kits = list(set(library_table["kit_i7_id"].unique().tolist() + library_table["kit_i5_id"].unique().tolist()))
         index_kits = [kit for kit in index_kits if pd.notna(kit)]
-
-        for kit_id in index_kits:
-            if len(kit := db.get_index_kit_barcodes_df(kit_id, per_adapter=False)) == 0:
-                logger.error(f"Index kit {kit_id} does not exist")
-                return False
-            kits[kit_id] = kit
 
         barcode_table_data = {
             "library_id": [],
@@ -122,6 +124,8 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             "pool": [],
             "sequence_i7": [],
             "sequence_i5": [],
+            "kit_i7": [],
+            "kit_i5": [],
             "name_i7": [],
             "name_i5": [],
         }
@@ -129,10 +133,11 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         library_table["kit_defined"] = library_table["kit_i7_id"].notna() | library_table["kit_i5_id"].notna()
 
         for idx, row in library_table[library_table["kit_defined"]].iterrows():
-            kit = kits[row["kit_i7_id"]]
+            kit_i7, kit_i7_df = kits[row["kit_i7_id"]]
+            kit_i5, kit_i5_df = kits[row["kit_i5_id"]]
 
-            i7_seqs = kit.loc[kit["type_id"] == BarcodeType.INDEX_I7.id]
-            i5_seqs = kit.loc[kit["type_id"] == BarcodeType.INDEX_I5.id]
+            i7_seqs = kit_i7_df.loc[kit_i7_df["type_id"] == BarcodeType.INDEX_I7.id]
+            i5_seqs = kit_i5_df.loc[kit_i5_df["type_id"] == BarcodeType.INDEX_I5.id]
 
             if pd.notna(row["name_i7"]):
                 barcodes_i7 = i7_seqs[i7_seqs["name"] == row["name_i7"]]["sequence"].values
@@ -158,6 +163,8 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 barcode_table_data["pool"].append(row["pool"])
                 barcode_table_data["sequence_i7"].append(barcodes_i7[i] if len(barcodes_i7) > i else None)
                 barcode_table_data["sequence_i5"].append(barcodes_i5[i] if len(barcodes_i5) > i else None)
+                barcode_table_data["kit_i7"].append(row["kit_i7_name"])
+                barcode_table_data["kit_i5"].append(row["kit_i5_name"])
                 barcode_table_data["name_i7"].append(names_i7[i] if len(names_i7) > i else None)
                 barcode_table_data["name_i5"].append(names_i5[i] if len(names_i5) > i else None)
 
@@ -173,15 +180,18 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
                 barcode_table_data["sequence_i5"].append(seq_i5s[i] if len(seq_i5s) > i else None)
                 barcode_table_data["name_i7"].append(row["name_i7"])
                 barcode_table_data["name_i5"].append(row["name_i5"])
+                barcode_table_data["kit_i7"].append(None)
+                barcode_table_data["kit_i5"].append(None)
 
         self.barcode_table = pd.DataFrame(barcode_table_data)
+
+        library_table["kit_i7"] = library_table["kit_i7_name"]
+        library_table["kit_i5"] = library_table["kit_i5_name"]
+        self.update_table("library_table", library_table)
  
         return True
         
     def process_request(self) -> Response:
-        if not self.validate():
-            return self.make_response()
-        
         if not self.validate():
             return self.make_response()
 

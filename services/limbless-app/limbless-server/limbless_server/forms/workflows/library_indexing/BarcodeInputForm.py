@@ -32,14 +32,14 @@ class BarcodeInputForm(HTMXFlaskForm):
     columns = {
         "library_id": SpreadSheetColumn("A", "library_id", "ID", "numeric", 50, int),
         "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 250, str),
-        "index_well": SpreadSheetColumn("C", "index_well", "Index Well", "text", 100, str),
-        "pool": SpreadSheetColumn("D", "pool", "Pool", "text", 100, str),
+        "index_well": SpreadSheetColumn("C", "index_well", "Index Well", "text", 70, str),
+        "pool": SpreadSheetColumn("D", "pool", "Pool", "text", 70, str),
         "kit_i7": SpreadSheetColumn("E", "kit", "i7 Kit", "text", 200, str),
-        "name_i7": SpreadSheetColumn("F", "name_i7", "i7 Name", "text", 200, str),
-        "sequence_i7": SpreadSheetColumn("G", "sequence_i7", "i7 Sequence", "text", 200, str),
+        "name_i7": SpreadSheetColumn("F", "name_i7", "i7 Name", "text", 150, str),
+        "sequence_i7": SpreadSheetColumn("G", "sequence_i7", "i7 Sequence", "text", 180, str),
         "kit_i5": SpreadSheetColumn("H", "kit", "i5 Kit", "text", 200, str),
-        "name_i5": SpreadSheetColumn("I", "name_i5", "i5 Name", "text", 200, str),
-        "sequence_i5": SpreadSheetColumn("J", "sequence_i5", "i5 Sequence", "text", 200, str),
+        "name_i5": SpreadSheetColumn("I", "name_i5", "i5 Name", "text", 150, str),
+        "sequence_i5": SpreadSheetColumn("J", "sequence_i5", "i5 Sequence", "text", 180, str),
     }
     
     _mapping: dict[str, str] = dict([(col.name, col.label) for col in columns.values()])
@@ -114,6 +114,7 @@ class BarcodeInputForm(HTMXFlaskForm):
         self.df = self.df.dropna(how="all")
         self.df.loc[self.df["kit_i7"].notna(), "kit_i7"] = self.df.loc[self.df["kit_i7"].notna(), "kit_i7"].astype(str)
         self.df.loc[self.df["kit_i5"].notna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].notna(), "kit_i5"].astype(str)
+        self.df["library_id"] = self.df["library_id"].astype(int)
 
         if len(self.df) == 0:
             self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet.",)

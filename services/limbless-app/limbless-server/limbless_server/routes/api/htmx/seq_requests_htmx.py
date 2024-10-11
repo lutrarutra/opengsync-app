@@ -115,16 +115,29 @@ def export(seq_request_id: int):
 
     file_name = secure_filename(f"{seq_request.name}_request.xlsx")
 
-    metadata_df = pd.DataFrame.from_records({
+    metadata = {
         "Name": [seq_request.name],
         "Description": [seq_request.description],
         "Requestor": [seq_request.requestor.name],
         "Requestor Email": [seq_request.requestor.email],
+        "Submission Type": [seq_request.submission_type.name],
         "Organization": [seq_request.organization_contact.name],
         "Organization Address": [seq_request.organization_contact.address],
-    }).T
+        "Contact Person": [seq_request.contact_person.name],
+        "Contact Person Email": [seq_request.contact_person.email],
+        "Contact Person Phone": [seq_request.contact_person.phone],
+    }
 
-    libraries_df = db.get_seq_request_libraries_df(seq_request_id)
+    if seq_request.group is not None:
+        metadata["Group"] = [seq_request.group.name]
+        metadata["Group ID"] = [seq_request.group.id]
+    
+    if seq_request.billing_code is not None:
+        metadata["Billing Code"] = [seq_request.billing_code]
+        
+    metadata_df = pd.DataFrame.from_records(metadata).T
+
+    libraries_df = db.get_seq_request_libraries_df(seq_request_id, include_indices=True)
     features_df = db.get_seq_request_features_df(seq_request_id)
 
     bytes_io = BytesIO()
@@ -135,10 +148,9 @@ def export(seq_request_id: int):
         features_df.to_excel(writer, sheet_name="features", index=False)
 
     bytes_io.seek(0)
-    mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         
     return Response(
-        bytes_io, mimetype=mimetype,
+        bytes_io, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-disposition": f"attachment; filename={file_name}"}
     )
 
@@ -156,7 +168,7 @@ def export_libraries(seq_request_id: int):
         
     file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
 
-    libraries_df = db.get_seq_request_libraries_df(seq_request_id=seq_request_id)
+    libraries_df = db.get_seq_request_libraries_df(seq_request_id=seq_request_id, include_indices=True)
 
     return Response(
         libraries_df.to_csv(sep="\t", index=False), mimetype="text/csv",

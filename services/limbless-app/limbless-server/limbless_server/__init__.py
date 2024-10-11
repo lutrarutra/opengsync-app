@@ -69,3 +69,4 @@ db = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, d
 cache = Cache()
 
 DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
+    

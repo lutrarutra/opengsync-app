@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 import pandas as pd
 
-import sqlalchemy as sqla
+import salchemy as sa
 
 from limbless_db import DBHandler, models
 from limbless_db.models.Base import Base
@@ -88,7 +88,7 @@ def init_db():
         print("Installing pg_trgm extension.")
 
         with db_handler._engine.connect() as conn:
-            conn.execute(sqla.text('CREATE EXTENSION pg_trgm;COMMIT;'))
+            conn.execute(sa.text('CREATE EXTENSION pg_trgm;COMMIT;'))
     else:
         print("pg_trgm extension is installed.")
 
@@ -98,7 +98,7 @@ def init_db():
     for table, columns in label_search_columns.items():
         for column in columns:
             with db_handler._engine.connect() as conn:
-                conn.execute(sqla.text(f"""
+                conn.execute(sa.text(f"""
                     CREATE INDEX IF NOT EXISTS
                         trgm_{table}_{column}_idx
                     ON
@@ -108,7 +108,7 @@ def init_db():
                 """))
     
     with db_handler._engine.connect() as conn:
-        conn.execute(sqla.text("""
+        conn.execute(sa.text("""
             CREATE INDEX IF NOT EXISTS
                 trgm_user_full_name_idx
             ON
@@ -117,7 +117,7 @@ def init_db():
                 gin ((first_name || ' ' || last_name) gin_trgm_ops);COMMIT;
         """))
 
-        conn.execute(sqla.text("""
+        conn.execute(sa.text("""
             CREATE INDEX IF NOT EXISTS
                 trgm_index_kit_identifier_name_idx
             ON

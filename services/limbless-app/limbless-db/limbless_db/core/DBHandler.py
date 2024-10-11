@@ -35,7 +35,7 @@ class DBHandler():
             self._session = orm.Session(self._engine, expire_on_commit=False, autoflush=autoflush)
 
     def close_session(self) -> None:
-        if self.session is not None:
+        if self._session is not None:
             self.session.close()
             self._session = None
 

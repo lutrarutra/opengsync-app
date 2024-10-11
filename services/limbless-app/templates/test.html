@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% set active_page = "samples-page" %}
+{% block content %}
+
+<div class="modal fade show" id="xl-modal" aria-hidden="false" tabindex="-1" data-bs-keyboard="false" data-bs-backdrop="static" style="display: block;">
+    <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">
+        <div class="modal-content" id="seq_request-form-container">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" >Title</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="spreadhseet-grid-container" style="display: flex; background-color: red; border: 2px solid black; height: 100%;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        let height = $("#spreadsheet-grid").parent().height();
+        console.log(height);
+        var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
+            data: [
+                {% for i in range(500) %}
+                ["{{i}}", "", "{{i}}"],
+                {% endfor %}
+            ],
+            columns: [
+                { type: "text", title: "title", width: 200 },
+                { type: "text", title: "title", width: 200 },
+                { type: "text", title: "title", width: 200 },
+            ],
+            tableOverflow:true,
+            minSpareRows: 10,
+            tableHeight:`300px`,
+        });
+
+    });
+</script>
+
+{% endblock content %}

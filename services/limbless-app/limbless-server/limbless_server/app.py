@@ -77,9 +77,11 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @app.route("/index_page")
     def _index_page():
         return redirect(url_for("index_page"))
-
+    
     @app.route("/")
     @db_session(db)
+    @login_required
+    @cache.cached(timeout=60, query_string=True)
     def index_page():
         if not current_user.is_authenticated:
             return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))

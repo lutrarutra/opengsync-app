@@ -12,7 +12,6 @@ from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibrarySta
 if TYPE_CHECKING:
     from .Pool import Pool
     from .User import User
-    from .IndexKit import IndexKit
     from .Feature import Feature
     from .VisiumAnnotation import VisiumAnnotation
     from .SeqQuality import SeqQuality
@@ -45,9 +44,6 @@ class Library(Base):
 
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
-
-    index_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=True)
-    index_kit: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="select")
 
     pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True)
     pool: Mapped[Optional["Pool"]] = relationship(
