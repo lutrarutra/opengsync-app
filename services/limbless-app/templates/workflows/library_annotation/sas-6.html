@@ -71,14 +71,14 @@
                     </div>
                 </div>
                 <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
+                    <div class="invalid-feedback-container">
+                        {% if not disabled %}
+                        {% for error in form.spreadsheet_dummy.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
                     <div id="spreadsheet-grid" class="spreadsheet-grid">
-                        <div class="invalid-feedback-container">
-                            {% if not disabled %}
-                            {% for error in form.spreadsheet_dummy.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                            {% endif %}
-                        </div>
                     </div>
                 </div>
                 <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">

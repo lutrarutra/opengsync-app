@@ -440,13 +440,23 @@ def set_library_seq_quality(
 
 
 def add_library_index(
-    self: "DBHandler", library_id: int, name_i7: Optional[str], sequence_i7: Optional[str], name_i5: Optional[str], sequence_i5: Optional[str]
+    self: "DBHandler", library_id: int,
+    index_kit_i7_id: Optional[int], name_i7: Optional[str], sequence_i7: Optional[str],
+    index_kit_i5_id: Optional[int], name_i5: Optional[str], sequence_i5: Optional[str],
 ) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    if index_kit_i7_id is not None:
+        if self.session.get(models.IndexKit, index_kit_i7_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_i7_id} does not exist")
+        
+    if index_kit_i5_id is not None:
+        if self.session.get(models.IndexKit, index_kit_i5_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_i5_id} does not exist")
 
     library.indices.append(models.LibraryIndex(
         library_id=library_id,
@@ -454,6 +464,8 @@ def add_library_index(
         sequence_i7=sequence_i7,
         name_i5=name_i5,
         sequence_i5=sequence_i5,
+        index_kit_i7_id=index_kit_i7_id,
+        index_kit_i5_id=index_kit_i5_id
     ))
 
     self.session.add(library)

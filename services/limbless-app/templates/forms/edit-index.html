@@ -6,20 +6,6 @@
     {{ index_form.csrf_token }}
     {{ metadata_group("Sample", sample.name if sample) }}
     {{ index_form.sample(readonly=True, id="library-sample-edit") }}
-    {% if not library.is_raw_library() %}
-    {{
-        search_select_field(
-            index_form.adapter,
-            url_for('barcodes_htmx.query_adapters', index_kit_id=library.index_kit_id),
-            selected=selected_adapter.name if selected_adapter is defined,
-            results=available_adapters, include_data_element=False,
-            custom_id="edit-adapter"
-        )
-    }}
-    <input id="edit-adapter" name="adapter" hx-target="#edit-index-form" hx-swap="outerHTML" hx-include="#index-form"
-        hx-trigger="change" hx-post="{{ url_for('barcodes_htmx.select_barcodes', library_id=library.id) }}"
-        value="{{ selected_adapter.id if selected_adapter is defined }}" type="number" readonly=true>
-    {% endif %}
 
 
     <div class="barcodes-container">

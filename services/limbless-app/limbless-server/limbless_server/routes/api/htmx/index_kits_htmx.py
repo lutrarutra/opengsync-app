@@ -60,7 +60,7 @@ def get(page: int):
 
 @index_kits_htmx.route("table_query", methods=["GET"])
 @login_required
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -105,6 +105,7 @@ def table_query():
 @index_kits_htmx.route("<int:index_kit_id>/get_adapters", methods=["GET"], defaults={"page": 0})
 @index_kits_htmx.route("<int:index_kit_id>/get_adapters/<int:page>", methods=["GET"])
 @login_required
+@cache.cached(timeout=300, query_string=True)
 def get_adapters(index_kit_id: int, page: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -129,7 +130,7 @@ def get_adapters(index_kit_id: int, page: int):
 @index_kits_htmx.route("<int:index_kit_id>/render_table", methods=["GET"])
 @db_session(db)
 @login_required
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def render_table(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

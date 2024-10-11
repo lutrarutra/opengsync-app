@@ -8,14 +8,14 @@
     </div>
     <div class="modal-body">
         {{ sample_attribute_table_form.csrf_token() }}
+        <div class="invalid-feedback-container">
+            {% if not disabled %}
+            {% for error in sample_attribute_table_form.spreadsheet_dummy.errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+            {% endif %}
+        </div>
         <div id="spreadsheet-grid" class="spreadsheet-grid">
-            <div class="invalid-feedback-container">
-                {% if not disabled %}
-                {% for error in sample_attribute_table_form.spreadsheet_dummy.errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
-                {% endif %}
-            </div>
         </div>
     </div>
     <div class="modal-footer">

@@ -91,13 +91,6 @@ def get_experiment_libraries_df(
             models.User,
             models.User.id == models.SeqRequest.requestor_id,
         )
-
-    if include_index_kit:
-        query = query.join(
-            models.IndexKit,
-            models.IndexKit.id == models.Library.index_kit_id,
-            isouter=True
-        )
     
     if include_visium:
         query = query.join(

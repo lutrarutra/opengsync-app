@@ -86,9 +86,12 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             name_i7s = df["name_i7"].values
             name_i5s = df["name_i5"].values
 
+            kit_i7_id = row["kit_i7_id"] if pd.notna(row["kit_i7_id"]) else None
+            kit_i5_id = row["kit_i5_id"] if pd.notna(row["kit_i5_id"]) else None
+
             for j in range(max(len(seq_i7s), len(seq_i5s))):
                 library = db.add_library_index(
-                    library_id=library.id,
+                    library_id=library.id, index_kit_i7_id=kit_i7_id, index_kit_i5_id=kit_i5_id,
                     name_i7=name_i7s[j] if len(name_i7s) > j and pd.notna(name_i7s[j]) else None,
                     name_i5=name_i5s[j] if len(name_i5s) > j and pd.notna(name_i5s[j]) else None,
                     sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
