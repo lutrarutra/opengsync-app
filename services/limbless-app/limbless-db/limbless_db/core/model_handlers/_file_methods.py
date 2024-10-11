@@ -1,23 +1,25 @@
 from uuid import uuid4
-from typing import Optional
-from werkzeug.utils import secure_filename
+from typing import Optional, TYPE_CHECKING
 
+from werkzeug.utils import secure_filename
 from sqlalchemy.sql.operators import and_
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ...categories import FileTypeEnum
 from ... import models
 from .. import exceptions
 
 
 def create_file(
-    self, name: str, type: FileTypeEnum, uploader_id: int, extension: str, size_bytes: int,
+    self: "DBHandler", name: str, type: FileTypeEnum, uploader_id: int, extension: str, size_bytes: int,
     uuid: Optional[str] = None, commit: bool = True
 ) -> models.File:
     
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (_ := self._session.get(models.User, uploader_id)) is None:
+    if (_ := self.session.get(models.User, uploader_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{uploader_id}', not found.")
     
     if uuid is None:
@@ -34,11 +36,11 @@ def create_file(
         size_bytes=size_bytes
     )
 
-    self._session.add(file)
+    self.session.add(file)
 
     if commit:
-        self._session.commit()
-        self._session.refresh(file)
+        self.session.commit()
+        self.session.refresh(file)
 
     if not persist_session:
         self.close_session()
@@ -46,24 +48,24 @@ def create_file(
     return file
 
 
-def get_file(self, file_id: int) -> Optional[models.File]:
+def get_file(self: "DBHandler", file_id: int) -> Optional[models.File]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.get(models.File, file_id)
+    res = self.session.get(models.File, file_id)
 
     if not persist_session:
         self.close_session()
     return res
 
 
-def get_files(self, uploader_id: Optional[int] = None) -> list[models.File]:
+def get_files(self: "DBHandler", uploader_id: Optional[int] = None) -> list[models.File]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.File)
+    query = self.session.query(models.File)
     if uploader_id:
-        query = query.filter(models.File.uploader_id == uploader_id)
+        query = query.where(models.File.uploader_id == uploader_id)
 
     res = query.all()
 
@@ -72,17 +74,17 @@ def get_files(self, uploader_id: Optional[int] = None) -> list[models.File]:
     return res
 
 
-def file_permissions_check(self, user_id: int, file_id: int) -> bool:
+def file_permissions_check(self: "DBHandler", user_id: int, file_id: int) -> bool:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (_ := self._session.get(models.User, user_id)) is None:
+    if (_ := self.session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{user_id}', not found.")
     
-    if (_ := self._session.get(models.File, file_id)) is None:
+    if (_ := self.session.get(models.File, file_id)) is None:
         raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
     
-    res = self._session.query(models.File.id).filter(
+    res = self.session.query(models.File.id).filter(
         models.File.id == file_id
     ).join(
         models.SeqRequest,

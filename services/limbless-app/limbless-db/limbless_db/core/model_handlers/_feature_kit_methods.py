@@ -1,41 +1,43 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 from ...categories import FeatureTypeEnum
 
 
 def create_feature_kit(
-    self, name: str,
+    self: "DBHandler", name: str,
     type: FeatureTypeEnum,
 ) -> models.FeatureKit:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if self._session.query(models.FeatureKit).where(models.FeatureKit.name == name).first():
+    if self.session.query(models.FeatureKit).where(models.FeatureKit.name == name).first():
         raise exceptions.NotUniqueValue(f"Feature kit with name '{name}', already exists.")
 
     feature_kit = models.FeatureKit(
         name=name.strip(),
         type_id=type.id,
     )
-    self._session.add(feature_kit)
-    self._session.commit()
-    self._session.refresh(feature_kit)
+    self.session.add(feature_kit)
+    self.session.commit()
+    self.session.refresh(feature_kit)
 
     if not persist_session:
         self.close_session()
     return feature_kit
 
 
-def get_feature_kit(self, id: int) -> Optional[models.FeatureKit]:
+def get_feature_kit(self: "DBHandler", id: int) -> Optional[models.FeatureKit]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.get(models.FeatureKit, id)
+    res = self.session.get(models.FeatureKit, id)
 
     if not persist_session:
         self.close_session()
@@ -43,25 +45,26 @@ def get_feature_kit(self, id: int) -> Optional[models.FeatureKit]:
     return res
 
 
-def get_feature_kit_by_name(self, name: str) -> models.FeatureKit:
+def get_feature_kit_by_name(self: "DBHandler", name: str) -> Optional[models.FeatureKit]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.query(models.FeatureKit).where(models.FeatureKit.name == name).first()
+    res = self.session.query(models.FeatureKit).where(models.FeatureKit.name == name).first()
     if not persist_session:
         self.close_session()
+
     return res
 
 
 def get_feature_kits(
-    self,
+    self: "DBHandler",
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.FeatureKit], int]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.FeatureKit)
+    query = self.session.query(models.FeatureKit)
 
     if sort_by is not None:
         sort_attr = getattr(models.FeatureKit, sort_by)
@@ -86,16 +89,16 @@ def get_feature_kits(
 
 
 def update_feature_kit(
-    self, feature_kit: models.FeatureKit,
+    self: "DBHandler", feature_kit: models.FeatureKit,
     commit: bool = True,
 ) -> models.FeatureKit:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    self._session.add(feature_kit)
+    self.session.add(feature_kit)
     if commit:
-        self._session.commit()
-        self._session.refresh(feature_kit)
+        self.session.commit()
+        self.session.refresh(feature_kit)
 
     if not persist_session:
         self.close_session()
@@ -103,34 +106,30 @@ def update_feature_kit(
     return feature_kit
 
 
-def delete_feature_kit(
-    self, feature_kit_id: int,
-    commit: bool = True
-):
+def delete_feature_kit(self: "DBHandler", feature_kit_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    feature_kit = self._session.get(models.FeatureKit, feature_kit_id)
+    if (feature_kit := self.session.get(models.FeatureKit, feature_kit_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Feature kit with id '{feature_kit_id}', not found.")
     
     for feature in feature_kit.features:
-        self._session.delete(feature)
+        self.session.delete(feature)
 
-    self._session.delete(feature_kit)
-    if commit:
-        self._session.commit()
+    self.session.delete(feature_kit)
 
     if not persist_session:
         self.close_session()
 
 
 def query_feature_kits(
-    self, word: str, limit: Optional[int] = PAGE_LIMIT
+    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.FeatureKit]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.FeatureKit)
+    query = self.session.query(models.FeatureKit)
 
     query = query.order_by(
         sa.func.similarity(models.FeatureKit.name, word).desc(),

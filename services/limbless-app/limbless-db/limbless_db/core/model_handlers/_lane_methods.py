@@ -1,21 +1,22 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
 def create_lane(
-    self, number: int, experiment_id: int
+    self: "DBHandler", number: int, experiment_id: int
 ) -> models.Lane:
-    
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if self._session.get(models.Experiment, experiment_id) is None:
+    if self.session.get(models.Experiment, experiment_id) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     
-    if self._session.query(models.Lane).where(
+    if self.session.query(models.Lane).where(
         models.Lane.number == number,
         models.Lane.experiment_id == experiment_id,
     ).first():
@@ -26,9 +27,9 @@ def create_lane(
         experiment_id=experiment_id,
     )
 
-    self._session.add(lane)
-    self._session.commit()
-    self._session.refresh(lane)
+    self.session.add(lane)
+    self.session.commit()
+    self.session.refresh(lane)
 
     if not persist_session:
         self.close_session()
@@ -36,22 +37,22 @@ def create_lane(
     return lane
 
 
-def get_lane(self, lane_id: int) -> Optional[models.Lane]:
+def get_lane(self: "DBHandler", lane_id: int) -> Optional[models.Lane]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.get(models.Lane, lane_id)
+    res = self.session.get(models.Lane, lane_id)
 
     if not persist_session:
         self.close_session()
     return res
 
 
-def get_experiment_lane(self, experiment_id: int, lane_num: int) -> Optional[models.Lane]:
+def get_experiment_lane(self: "DBHandler", experiment_id: int, lane_num: int) -> Optional[models.Lane]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.query(models.Lane).where(
+    res = self.session.query(models.Lane).where(
         models.Lane.experiment_id == experiment_id,
         models.Lane.number == lane_num,
     ).first()
@@ -62,7 +63,7 @@ def get_experiment_lane(self, experiment_id: int, lane_num: int) -> Optional[mod
 
 
 def get_lanes(
-    self, experiment_id: Optional[int] = None,
+    self: "DBHandler", experiment_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Lane], int]:
@@ -70,7 +71,7 @@ def get_lanes(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Lane)
+    query = self.session.query(models.Lane)
 
     if experiment_id is not None:
         query = query.filter(models.Lane.experiment_id == experiment_id)
@@ -99,13 +100,13 @@ def get_lanes(
     return lanes, n_pages
 
 
-def update_lane(self, lane: models.Lane,) -> models.Lane:
+def update_lane(self: "DBHandler", lane: models.Lane,) -> models.Lane:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    self._session.add(lane)
-    self._session.commit()
-    self._session.refresh(lane)
+    self.session.add(lane)
+    self.session.commit()
+    self.session.refresh(lane)
 
     if not persist_session:
         self.close_session()

@@ -1,13 +1,15 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from ...categories import FeatureTypeEnum
 from .. import exceptions
 
 
 def create_feature(
-    self,
+    self: "DBHandler",
     name: str,
     sequence: str,
     pattern: str,
@@ -22,10 +24,10 @@ def create_feature(
         self.open_session()
 
     if feature_kit_id is not None:
-        if (_ := self._session.get(models.FeatureKit, feature_kit_id)) is None:
+        if (_ := self.session.get(models.FeatureKit, feature_kit_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Feature kit with id {feature_kit_id} does not exist")
         
-        if self._session.query(models.Feature).where(
+        if self.session.query(models.Feature).where(
             models.Feature.name == name,
             models.Feature.feature_kit_id == feature_kit_id
         ).first():
@@ -41,22 +43,22 @@ def create_feature(
         target_id=target_id.strip() if target_id else None,
         feature_kit_id=feature_kit_id
     )
-    self._session.add(feature)
+    self.session.add(feature)
 
     if commit:
-        self._session.commit()
-        self._session.refresh(feature)
+        self.session.commit()
+        self.session.refresh(feature)
 
     if not persist_session:
         self.close_session()
     return feature
 
 
-def get_feature(self, feature_id: int) -> Optional[models.Feature]:
+def get_feature(self: "DBHandler", feature_id: int) -> Optional[models.Feature]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.get(models.Feature, feature_id)
+    res = self.session.get(models.Feature, feature_id)
 
     if not persist_session:
         self.close_session()
@@ -64,7 +66,7 @@ def get_feature(self, feature_id: int) -> Optional[models.Feature]:
 
 
 def get_features(
-    self, feature_kit_id: Optional[int] = None,
+    self: "DBHandler", feature_kit_id: Optional[int] = None,
     library_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None
@@ -73,7 +75,7 @@ def get_features(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Feature)
+    query = self.session.query(models.Feature)
 
     if feature_kit_id is not None:
         query = query.where(
@@ -112,33 +114,31 @@ def get_features(
 
 
 def delete_feature(
-    self, feature_id: int, commit: bool = True
-) -> models.Feature:
+    self: "DBHandler", feature_id: int, commit: bool = True
+):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    feature = self._session.get(models.Feature, feature_id)
-    self._session.delete(feature)
+    feature = self.session.get(models.Feature, feature_id)
+    self.session.delete(feature)
 
     if commit:
-        self._session.commit()
+        self.session.commit()
 
     if not persist_session:
         self.close_session()
 
-    return feature
-
 
 def update_feature(
-    self, feature: models.Feature, commit: bool = True
+    self: "DBHandler", feature: models.Feature, commit: bool = True
 ) -> models.Feature:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    self._session.add(feature)
+    self.session.add(feature)
     if commit:
-        self._session.commit()
-        self._session.refresh(feature)
+        self.session.commit()
+        self.session.refresh(feature)
 
     if not persist_session:
         self.close_session()
@@ -147,12 +147,12 @@ def update_feature(
 
     
 def get_feature_from_kit_by_feature_name(
-    self, feature_name: str, feature_kit_id: int
-) -> models.Feature:
+    self: "DBHandler", feature_name: str, feature_kit_id: int
+) -> Optional[models.Feature]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    feature = self._session.query(models.Feature).where(
+    feature = self.session.query(models.Feature).where(
         models.Feature.name == feature_name,
         models.Feature.feature_kit_id == feature_kit_id
     ).first()

@@ -1,16 +1,18 @@
 import math
 import string
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 
 
 def create_pool(
-    self, name: str,
+    self: "DBHandler", name: str,
     owner_id: int,
     contact_name: str,
     contact_email: str,
@@ -24,11 +26,11 @@ def create_pool(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (user := self._session.get(models.User, owner_id)) is None:
+    if (user := self.session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
     
     if seq_request_id is not None:
-        if self._session.get(models.SeqRequest, seq_request_id) is None:
+        if self.session.get(models.SeqRequest, seq_request_id) is None:
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
 
     pool = models.Pool(
@@ -48,9 +50,9 @@ def create_pool(
     )
     user.num_pools += 1
 
-    self._session.add(pool)
-    self._session.commit()
-    self._session.refresh(pool)
+    self.session.add(pool)
+    self.session.commit()
+    self.session.refresh(pool)
 
     if not persist_session:
         self.close_session()
@@ -58,11 +60,11 @@ def create_pool(
     return pool
 
 
-def get_pool(self, pool_id: int) -> Optional[models.Pool]:
+def get_pool(self: "DBHandler", pool_id: int) -> Optional[models.Pool]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    pool = self._session.get(models.Pool, pool_id)
+    pool = self.session.get(models.Pool, pool_id)
     
     if not persist_session:
         self.close_session()
@@ -71,7 +73,7 @@ def get_pool(self, pool_id: int) -> Optional[models.Pool]:
 
 
 def get_pools(
-    self,
+    self: "DBHandler",
     user_id: Optional[int] = None,
     library_id: Optional[int] = None,
     experiment_id: Optional[int] = None,
@@ -85,7 +87,7 @@ def get_pools(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Pool)
+    query = self.session.query(models.Pool)
     if user_id is not None:
         query = query.where(
             models.Pool.owner_id == user_id
@@ -147,29 +149,29 @@ def get_pools(
     return pools, n_pages
 
 
-def delete_pool(self, pool_id: int):
+def delete_pool(self: "DBHandler", pool_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     pool.owner.num_pools -= 1
 
-    self._session.delete(pool)
-    self._session.commit()
+    self.session.delete(pool)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
-def update_pool(self, pool: models.Pool,) -> models.Pool:
+def update_pool(self: "DBHandler", pool: models.Pool,) -> models.Pool:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    self._session.add(pool)
-    self._session.commit()
-    self._session.refresh(pool)
+    self.session.add(pool)
+    self.session.commit()
+    self.session.refresh(pool)
 
     if not persist_session:
         self.close_session()
@@ -178,7 +180,7 @@ def update_pool(self, pool: models.Pool,) -> models.Pool:
 
 
 def dilute_pool(
-    self, pool_id: int, qubit_concentration: float,
+    self: "DBHandler", pool_id: int, qubit_concentration: float,
     operator_id: int,
     volume_ul: Optional[float] = None,
     experiment_id: Optional[int] = None
@@ -186,11 +188,11 @@ def dilute_pool(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     if experiment_id is not None:
-        if self._session.get(models.Experiment, experiment_id) is None:
+        if self.session.get(models.Experiment, experiment_id) is None:
             raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
         
     n = len(pool.dilutions)
@@ -214,12 +216,11 @@ def dilute_pool(
         experiment_id=experiment_id,
     )
 
-    pool.diluted_qubit_concentration = qubit_concentration
     pool.dilutions.append(dilution)
 
-    self._session.add(dilution)
-    self._session.commit()
-    self._session.refresh(pool)
+    self.session.add(dilution)
+    self.session.commit()
+    self.session.refresh(pool)
 
     if not persist_session:
         self.close_session()
@@ -228,7 +229,7 @@ def dilute_pool(
 
 
 def query_pools(
-    self, name: str, experiment_id: Optional[int] = None,
+    self: "DBHandler", name: str, experiment_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     status_in: Optional[list[PoolStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT
@@ -236,7 +237,7 @@ def query_pools(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = sa.select(models.Pool)
+    query = self.session.query(models.Pool)
 
     if experiment_id is not None:
         query = query.join(
@@ -263,7 +264,7 @@ def query_pools(
     if limit is not None:
         query = query.limit(limit)
 
-    pools = self._session.scalars(query).all()
+    pools = query.all()
 
     if not persist_session:
         self.close_session()
@@ -272,12 +273,12 @@ def query_pools(
 
 
 def get_pool_dilution(
-    self, pool_id: int, identifier: str,
+    self: "DBHandler", pool_id: int, identifier: str,
 ) -> Optional[models.PoolDilution]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    dilution = self._session.query(models.PoolDilution).where(
+    dilution = self.session.query(models.PoolDilution).where(
         models.PoolDilution.pool_id == pool_id,
         models.PoolDilution.identifier == identifier
     ).first()
@@ -289,7 +290,7 @@ def get_pool_dilution(
 
 
 def get_pool_dilutions(
-    self, pool_id: Optional[int] = None,
+    self: "DBHandler", pool_id: Optional[int] = None,
     experiment_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
@@ -300,7 +301,7 @@ def get_pool_dilutions(
     if pool_id is not None and experiment_id is not None:
         raise Exception("Cannot filter by both pool_id and experiment_id")
 
-    query = self._session.query(models.PoolDilution)
+    query = self.session.query(models.PoolDilution)
     if pool_id is not None:
         query = query.where(
             models.PoolDilution.pool_id == pool_id
@@ -340,13 +341,12 @@ def get_pool_dilutions(
 
 
 def get_user_pool_access_type(
-    self, pool_id: int, user_id: int
+    self: "DBHandler", pool_id: int, user_id: int
 ) -> Optional[AccessTypeEnum]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    pool: models.Pool
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
     access_type: Optional[AccessTypeEnum] = None
@@ -355,7 +355,7 @@ def get_user_pool_access_type(
         access_type = AccessType.OWNER
     else:
         if pool.seq_request is not None and pool.seq_request.group_id is not None:
-            if self._session.query(models.UserAffiliation).where(
+            if self.session.query(models.UserAffiliation).where(
                 models.UserAffiliation.user_id == user_id,
                 models.UserAffiliation.group_id == pool.seq_request.group_id
             ).first() is not None:
@@ -366,7 +366,7 @@ def get_user_pool_access_type(
                     access_type = AccessType.EDIT
                     break
                 elif library.seq_request.group_id is not None:
-                    if self._session.query(models.UserAffiliation).where(
+                    if self.session.query(models.UserAffiliation).where(
                         models.UserAffiliation.user_id == user_id,
                         models.UserAffiliation.group_id == library.seq_request.group_id
                     ).first() is not None:

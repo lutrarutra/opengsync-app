@@ -1,14 +1,16 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy.sql.operators import and_
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
 def create_plate(
-    self, name: str, num_cols: int, num_rows: int, owner_id: int,
+    self: "DBHandler", name: str, num_cols: int, num_rows: int, owner_id: int,
 ) -> models.Plate:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -20,8 +22,8 @@ def create_plate(
         name=name, num_cols=num_cols, num_rows=num_rows, owner=owner
     )
 
-    self._session.add(plate)
-    self._session.commit()
+    self.session.add(plate)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
@@ -29,11 +31,11 @@ def create_plate(
     return plate
 
 
-def get_plate(self, plate_id: int) -> Optional[models.Plate]:
+def get_plate(self: "DBHandler", plate_id: int) -> Optional[models.Plate]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    plate = self._session.get(models.Plate, plate_id)
+    plate = self.session.get(models.Plate, plate_id)
 
     if not persist_session:
         self.close_session()
@@ -42,14 +44,14 @@ def get_plate(self, plate_id: int) -> Optional[models.Plate]:
 
 
 def get_plates(
-    self,
+    self: "DBHandler",
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.Plate], int]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Plate)
+    query = self.session.query(models.Plate)
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
 
@@ -73,46 +75,45 @@ def get_plates(
     return plates, n_pages
 
 
-def delete_plate(self, plate_id: int):
+def delete_plate(self: "DBHandler", plate_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
     
     if (plate := self.get_plate(plate_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
-    for library_link in plate.library_links:
-        self._session.delete(library_link)
+    for sample_link in plate.sample_links:
+        self.session.delete(sample_link)
 
-    self._session.delete(plate)
-    self._session.commit()
+    self.session.delete(plate)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
 def add_sample_to_plate(
-    self, plate_id: int, sample_id: int, well_idx: int
+    self: "DBHandler", plate_id: int, sample_id: int, well_idx: int
 ) -> models.Plate:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    plate: models.Plate
     if (plate := self.get_plate(plate_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
     if (_ := self.get_sample(sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
-    if self._session.query(models.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
+    if self.session.query(models.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
         raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
     
     plate.sample_links.append(models.SamplePlateLink(
         plate_id=plate_id, well_idx=well_idx, sample_id=sample_id
     ))
 
-    self._session.add(plate)
-    self._session.commit()
-    self._session.refresh(plate)
+    self.session.add(plate)
+    self.session.commit()
+    self.session.refresh(plate)
 
     if not persist_session:
         self.close_session()
@@ -121,28 +122,27 @@ def add_sample_to_plate(
 
 
 def add_library_to_plate(
-    self, plate_id: int, library_id: int, well_idx: int
+    self: "DBHandler", plate_id: int, library_id: int, well_idx: int
 ) -> models.Plate:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    plate: models.Plate
     if (plate := self.get_plate(plate_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
     if (_ := self.get_library(library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if self._session.query(models.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
+    if self.session.query(models.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
         raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
     
     plate.sample_links.append(models.SamplePlateLink(
         plate_id=plate_id, well_idx=well_idx, library_id=library_id
     ))
 
-    self._session.add(plate)
-    self._session.commit()
-    self._session.refresh(plate)
+    self.session.add(plate)
+    self.session.commit()
+    self.session.refresh(plate)
 
     if not persist_session:
         self.close_session()
@@ -150,7 +150,7 @@ def add_library_to_plate(
     return plate
 
 
-def clear_plate(self, plate_id: int) -> models.Plate:
+def clear_plate(self: "DBHandler", plate_id: int) -> models.Plate:
     if not (persist_session := self._session is not None):
         self.open_session()
     
@@ -158,11 +158,11 @@ def clear_plate(self, plate_id: int) -> models.Plate:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
     for link in plate.sample_links:
-        self._session.delete(link)
+        self.session.delete(link)
     
-    self._session.add(plate)
-    self._session.commit()
-    self._session.refresh(plate)
+    self.session.add(plate)
+    self.session.commit()
+    self.session.refresh(plate)
 
     if not persist_session:
         self.close_session()
@@ -170,12 +170,12 @@ def clear_plate(self, plate_id: int) -> models.Plate:
     return plate
 
 
-def get_plate_sample(self, plate_id: int, well_idx: int) -> Optional[models.Sample | models.Library]:
+def get_plate_sample(self: "DBHandler", plate_id: int, well_idx: int) -> Optional[models.Sample | models.Library]:
     if not (persist_session := self._session is not None):
         self.open_session()
     
     link: Optional[models.SamplePlateLink]
-    link = self._session.query(models.SamplePlateLink).where(
+    link = self.session.query(models.SamplePlateLink).where(
         and_(
             models.SamplePlateLink.plate_id == plate_id,
             models.SamplePlateLink.well_idx == well_idx

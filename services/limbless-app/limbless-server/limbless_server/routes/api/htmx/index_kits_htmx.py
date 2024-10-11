@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user
 
+
 index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/index_kits/")
 
 

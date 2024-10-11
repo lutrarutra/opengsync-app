@@ -1,11 +1,13 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models
 from .. import exceptions
 
 
 def create_contact(
-    self, name: str,
+    self: "DBHandler", name: str,
     email: Optional[str] = None,
     phone: Optional[str] = None,
     address: Optional[str] = None,
@@ -22,10 +24,10 @@ def create_contact(
         address=address.strip() if address else None
     )
 
-    self._session.add(contact)
+    self.session.add(contact)
     if commit:
-        self._session.commit()
-        self._session.refresh(contact)
+        self.session.commit()
+        self.session.refresh(contact)
 
     if not persist_session:
         self.close_session()
@@ -34,7 +36,7 @@ def create_contact(
 
 
 def update_contact(
-    self,
+    self: "DBHandler",
     contact_id: int,
     name: Optional[str] = None,
     email: Optional[str] = None,
@@ -46,7 +48,7 @@ def update_contact(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (contact := self._session.get(models.Contact, contact_id)) is None:
+    if (contact := self.session.get(models.Contact, contact_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Contact with ID {contact_id} does not exist")
     
     if name is not None:
@@ -62,8 +64,8 @@ def update_contact(
         contact.address = address
 
     if commit:
-        self._session.commit()
-        self._session.refresh(contact)
+        self.session.commit()
+        self.session.refresh(contact)
 
     if not persist_session:
         self.close_session()

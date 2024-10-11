@@ -1,16 +1,17 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 
-
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ...models import SeqRun
 from ... import PAGE_LIMIT
 from ...categories import ReadTypeEnum, RunStatusEnum
 
 
 def create_seq_run(
-    self, experiment_name: str, status: RunStatusEnum, instrument_name: str,
+    self: "DBHandler", experiment_name: str, status: RunStatusEnum, instrument_name: str,
     run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
     r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
     rta_version: Optional[str] = None, recipe_version: Optional[str] = None, side: Optional[str] = None, flowcell_mode: Optional[str] = None,
@@ -52,10 +53,10 @@ def create_seq_run(
         yield_g=yield_g
     )
 
-    self._session.add(seq_run)
+    self.session.add(seq_run)
 
-    self._session.commit()
-    self._session.refresh(seq_run)
+    self.session.commit()
+    self.session.refresh(seq_run)
 
     if not persist_session:
         self.close_session()
@@ -63,15 +64,15 @@ def create_seq_run(
     return seq_run
 
 
-def get_seq_run(self, id: Optional[int] = None, experiment_name: Optional[str] = None) -> Optional[SeqRun]:
+def get_seq_run(self: "DBHandler", id: Optional[int] = None, experiment_name: Optional[str] = None) -> Optional[SeqRun]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if id is not None and experiment_name is None:
-        seq_run = self._session.get(SeqRun, id)
+        seq_run = self.session.get(SeqRun, id)
 
     elif experiment_name is not None and id is None:
-        seq_run = self._session.query(SeqRun).where(
+        seq_run = self.session.query(SeqRun).where(
             SeqRun.experiment_name == experiment_name
         ).first()
     else:
@@ -84,7 +85,7 @@ def get_seq_run(self, id: Optional[int] = None, experiment_name: Optional[str] =
 
 
 def get_seq_runs(
-    self,
+    self: "DBHandler",
     status: Optional[RunStatusEnum] = None,
     status_in: Optional[list[RunStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
@@ -93,7 +94,7 @@ def get_seq_runs(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(SeqRun)
+    query = self.session.query(SeqRun)
 
     if status is not None:
         query = query.where(SeqRun.status_id == status.id)
@@ -118,14 +119,14 @@ def get_seq_runs(
 
 
 def update_seq_run(
-    self, seq_run: SeqRun,
+    self: "DBHandler", seq_run: SeqRun,
 ) -> SeqRun:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    self._session.add(seq_run)
-    self._session.commit()
-    self._session.refresh(seq_run)
+    self.session.add(seq_run)
+    self.session.commit()
+    self.session.refresh(seq_run)
 
     if not persist_session:
         self.close_session()
@@ -133,11 +134,11 @@ def update_seq_run(
     return seq_run
 
 
-def query_seq_runs(self, word: str, limit: Optional[int] = PAGE_LIMIT) -> list[SeqRun]:
+def query_seq_runs(self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT) -> list[SeqRun]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(SeqRun)
+    query = self.session.query(SeqRun)
     
     query = query.order_by(
         sa.func.similarity(SeqRun.experiment_name, word).desc()

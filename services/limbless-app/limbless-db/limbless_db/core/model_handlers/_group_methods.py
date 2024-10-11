@@ -1,22 +1,25 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
+from sqlalchemy.orm import Query
 
 from limbless_db import models
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from .. import exceptions
 from ... import PAGE_LIMIT
 from ...categories import AffiliationType, AffiliationTypeEnum, GroupTypeEnum
 
 
 def create_group(
-    self, name: str, user_id: int, type: GroupTypeEnum
+    self: "DBHandler", name: str, user_id: int, type: GroupTypeEnum
 ) -> models.Group:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if self._session.query(models.Group).where(
+    if self.session.query(models.Group).where(
         models.Group.name == name
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"Group with name {name} already exists")
@@ -30,10 +33,10 @@ def create_group(
         affiliation_type_id=AffiliationType.OWNER.id
     )]
 
-    self._session.add(group)
+    self.session.add(group)
 
-    self._session.commit()
-    self._session.refresh(group)
+    self.session.commit()
+    self.session.refresh(group)
 
     if not persist_session:
         self.close_session()
@@ -41,11 +44,11 @@ def create_group(
     return group
 
 
-def get_group(self, group_id: int) -> Optional[models.Group]:
+def get_group(self: "DBHandler", group_id: int) -> Optional[models.Group]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.get(models.Group, group_id)
+    res = self.session.get(models.Group, group_id)
 
     if not persist_session:
         self.close_session()
@@ -53,18 +56,10 @@ def get_group(self, group_id: int) -> Optional[models.Group]:
     return res
 
 
-def get_groups(
-    self,
-    user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-    type_in: Optional[list[GroupTypeEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[models.Group], int]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self._session.query(models.Group)
-
+def where(
+    query: Query, user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
+    type_in: Optional[list[GroupTypeEnum]] = None
+) -> Query:
     if type is not None:
         query = query.where(models.Group.type_id == type.id)
     if user_id is not None:
@@ -74,8 +69,26 @@ def get_groups(
         ).where(
             models.UserAffiliation.user_id == user_id
         )
-    elif type_in is not None:
+    if type_in is not None:
         query = query.where(models.Group.type_id.in_([t.id for t in type_in]))
+
+    return query
+
+
+def get_groups(
+    self: "DBHandler",
+    user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    type_in: Optional[list[GroupTypeEnum]] = None,
+    sort_by: Optional[str] = None, descending: bool = False
+) -> tuple[list[models.Group], int]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.Group)
+    query = where(
+        query, user_id=user_id, type=type, type_in=type_in
+    )
 
     n_pages = math.ceil(query.count() / limit) if limit is not None else 1
 
@@ -98,11 +111,41 @@ def get_groups(
     return res, n_pages
 
 
-def get_group_user_affiliation(self, user_id: int, group_id: int) -> Optional[models.UserAffiliation]:
+def query_groups(
+    self: "DBHandler", name: str, user_id: Optional[int] = None, type: Optional[GroupTypeEnum] = None,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    type_in: Optional[list[GroupTypeEnum]] = None,
+) -> list[models.Group]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.query(models.UserAffiliation).where(
+    query = self.session.query(models.Group)
+    query = where(
+        query, user_id=user_id, type=type, type_in=type_in
+    )
+
+    query = query.order_by(
+        sa.func.similarity(models.Group.name, name).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+    if offset is not None:
+        query = query.offset(offset)
+
+    groups = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return groups
+
+
+def get_group_user_affiliation(self: "DBHandler", user_id: int, group_id: int) -> Optional[models.UserAffiliation]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    res = self.session.query(models.UserAffiliation).where(
         models.UserAffiliation.user_id == user_id,
         models.UserAffiliation.group_id == group_id
     ).first()
@@ -114,7 +157,7 @@ def get_group_user_affiliation(self, user_id: int, group_id: int) -> Optional[mo
 
 
 def get_group_affiliations(
-    self, group_id: int, type: Optional[GroupTypeEnum] = None,
+    self: "DBHandler", group_id: int, type: Optional[GroupTypeEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     type_in: Optional[list[GroupTypeEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False
@@ -122,10 +165,10 @@ def get_group_affiliations(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (_ := self._session.get(models.Group, group_id)) is None:
+    if (_ := self.session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
-    query = self._session.query(models.UserAffiliation).where(
+    query = self.session.query(models.UserAffiliation).where(
         models.UserAffiliation.group_id == group_id
     )
 
@@ -157,13 +200,13 @@ def get_group_affiliations(
     return affiliations, n_pages
 
 
-def update_group(self, group: models.Group) -> models.Group:
+def update_group(self: "DBHandler", group: models.Group) -> models.Group:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    self._session.add(group)
-    self._session.commit()
-    self._session.refresh(group)
+    self.session.add(group)
+    self.session.commit()
+    self.session.refresh(group)
 
     if not persist_session:
         self.close_session()
@@ -171,17 +214,17 @@ def update_group(self, group: models.Group) -> models.Group:
     return group
 
 
-def add_user_to_group(self, user_id: int, group_id: int, affiliation_type: AffiliationTypeEnum) -> models.Group:
+def add_user_to_group(self: "DBHandler", user_id: int, group_id: int, affiliation_type: AffiliationTypeEnum) -> models.Group:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (_ := self._session.get(models.User, user_id)) is None:
+    if (_ := self.session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} not found")
     
-    if (group := self._session.get(models.Group, group_id)) is None:
+    if (group := self.session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
-    if self._session.query(models.UserAffiliation).where(
+    if self.session.query(models.UserAffiliation).where(
         models.UserAffiliation.user_id == user_id,
         models.UserAffiliation.group_id == group_id
     ).first() is not None:
@@ -193,9 +236,9 @@ def add_user_to_group(self, user_id: int, group_id: int, affiliation_type: Affil
         affiliation_type_id=affiliation_type.id
     ))
 
-    self._session.add(group)
-    self._session.commit()
-    self._session.refresh(group)
+    self.session.add(group)
+    self.session.commit()
+    self.session.refresh(group)
 
     if not persist_session:
         self.close_session()
@@ -203,66 +246,30 @@ def add_user_to_group(self, user_id: int, group_id: int, affiliation_type: Affil
     return group
 
 
-def remove_user_from_group(self, user_id: int, group_id: int) -> models.Group:
+def remove_user_from_group(self: "DBHandler", user_id: int, group_id: int) -> models.Group:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (_ := self._session.get(models.User, user_id)) is None:
+    if (_ := self.session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} not found")
     
-    if (group := self._session.get(models.Group, group_id)) is None:
+    if (group := self.session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
-    if (affiliation := self._session.query(models.UserAffiliation).where(
+    if (affiliation := self.session.query(models.UserAffiliation).where(
         models.UserAffiliation.user_id == user_id,
         models.UserAffiliation.group_id == group_id
     ).first()) is None:
         raise exceptions.ElementDoesNotExist(f"User {user_id} is not in group {group_id}")
 
     group.user_links.remove(affiliation)
-    self._session.delete(affiliation)
+    self.session.delete(affiliation)
 
-    self._session.add(group)
-    self._session.commit()
-    self._session.refresh(group)
+    self.session.add(group)
+    self.session.commit()
+    self.session.refresh(group)
 
     if not persist_session:
         self.close_session()
 
     return group
-
-
-def query_groups(
-    self, name: str, user_id: Optional[int] = None, type: Optional[GroupTypeEnum] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-    type_in: Optional[list[GroupTypeEnum]] = None,
-) -> list[models.Group]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self._session.query(models.Group)
-
-    if type is not None:
-        query = query.where(models.Group.type_id == type.id)
-    if user_id is not None:
-        query = query.join(models.UserAffiliation).where(
-            models.UserAffiliation.user_id == user_id
-        )
-    elif type_in is not None:
-        query = query.where(models.Group.type_id.in_([t.id for t in type_in]))
-
-    query = query.order_by(
-        sa.func.similarity(models.Group.name, name).desc()
-    )
-
-    if limit is not None:
-        query = query.limit(limit)
-    if offset is not None:
-        query = query.offset(offset)
-
-    groups = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return groups

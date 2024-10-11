@@ -1,17 +1,19 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 
 from limbless_db import models
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from .. import exceptions
 from ... import PAGE_LIMIT
 from ...categories import UserRole, UserRoleEnum, AffiliationTypeEnum
 
 
 def create_user(
-    self, email: str,
+    self: "DBHandler", email: str,
     first_name: str,
     last_name: str,
     hashed_password: str,
@@ -21,7 +23,7 @@ def create_user(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if self._session.query(models.User).where(
+    if self.session.query(models.User).where(
         models.User.email == email
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"User with email {email} already exists")
@@ -34,21 +36,21 @@ def create_user(
         role_id=role.id,
     )
 
-    self._session.add(user)
+    self.session.add(user)
     if commit:
-        self._session.commit()
-        self._session.refresh(user)
+        self.session.commit()
+        self.session.refresh(user)
 
     if not persist_session:
         self.close_session()
     return user
 
 
-def get_user(self, user_id: int) -> Optional[models.User]:
+def get_user(self: "DBHandler", user_id: int) -> Optional[models.User]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.get(models.User, user_id)
+    res = self.session.get(models.User, user_id)
 
     if not persist_session:
         self.close_session()
@@ -56,20 +58,21 @@ def get_user(self, user_id: int) -> Optional[models.User]:
     return res
 
 
-def get_user_by_email(self, email: str) -> models.User:
+def get_user_by_email(self: "DBHandler", email: str) -> Optional[models.User]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    user = self._session.query(models.User).where(
+    user = self.session.query(models.User).where(
         models.User.email == email
     ).first()
+
     if not persist_session:
         self.close_session()
     return user
 
 
 def get_users(
-    self, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     role_in: Optional[list[UserRoleEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     group_id: Optional[int] = None, exclude_group_id: Optional[int] = None,
@@ -77,7 +80,7 @@ def get_users(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.User)
+    query = self.session.query(models.User)
 
     if role_in is not None:
         role_ids = [role.id for role in role_in]
@@ -122,11 +125,11 @@ def get_users(
     return users, n_pages
 
 
-def get_num_users(self) -> int:
+def get_num_users(self: "DBHandler") -> int:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self._session.query(models.User).count()
+    res = self.session.query(models.User).count()
     
     if not persist_session:
         self.close_session()
@@ -134,42 +137,42 @@ def get_num_users(self) -> int:
 
 
 def update_user(
-    self, user: models.User
+    self: "DBHandler", user: models.User
 ) -> models.User:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    self._session.add(user)
-    self._session.commit()
-    self._session.refresh(user)
+    self.session.add(user)
+    self.session.commit()
+    self.session.refresh(user)
 
     if not persist_session:
         self.close_session()
     return user
 
 
-def delete_user(self, user_id: int) -> None:
+def delete_user(self: "DBHandler", user_id: int) -> None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (user := self._session.get(models.User, user_id)) is None:
+    if (user := self.session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
-    self._session.delete(user)
-    self._session.commit()
+    self.session.delete(user)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
 def query_users(
-    self, word: str, role_in: Optional[list[UserRoleEnum]] = None,
+    self: "DBHandler", word: str, role_in: Optional[list[UserRoleEnum]] = None,
     only_insiders: bool = False, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.User]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.User)
+    query = self.session.query(models.User)
 
     if only_insiders:
         query = query.where(
@@ -197,12 +200,12 @@ def query_users(
 
 
 def query_users_by_email(
-    self, word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: Optional[int] = PAGE_LIMIT
+    self: "DBHandler", word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: Optional[int] = PAGE_LIMIT
 ) -> list[models.User]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.User)
+    query = self.session.query(models.User)
 
     if role_in is not None:
         query = query.where(
@@ -225,13 +228,13 @@ def query_users_by_email(
 
 
 def get_user_affiliations(
-    self, user_id: int, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler", user_id: int, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None
 ) -> tuple[list[models.UserAffiliation], int]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.UserAffiliation).where(
+    query = self.session.query(models.UserAffiliation).where(
         models.UserAffiliation.user_id == user_id
     )
 

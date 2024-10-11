@@ -1,5 +1,6 @@
 import os
 import io
+import json
 from typing import TYPE_CHECKING, Literal
 
 import openpyxl
@@ -36,11 +37,88 @@ def get(page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    lab_preps, n_pages = db.get_lab_preps(offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending)
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [PrepStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    if (protocol_in := request.args.get("protocol_id_in")) is not None:
+        protocol_in = json.loads(protocol_in)
+        try:
+            protocol_in = [LabProtocol.get(int(protocol_)) for protocol_ in protocol_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(protocol_in) == 0:
+            protocol_in = None
+
+    lab_preps, n_pages = db.get_lab_preps(
+        status_in=status_in, protocol_in=protocol_in,
+        offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending
+    )
     
     return render_template(
         "components/tables/lab_prep.html", lab_preps=lab_preps, n_pages=n_pages, active_page=page,
-        sort_by=sort_by, sort_order=sort_order
+        sort_by=sort_by, sort_order=sort_order, status_in=status_in, protocol_in=protocol_in,
+    )
+
+
+@lab_preps_htmx.route("table_query", methods=["GET"])
+@login_required
+def table_query():
+    if (word := request.args.get("name")) is not None:
+        field_name = "name"
+    elif (word := request.args.get("id")) is not None:
+        field_name = "id"
+    elif (word := request.args.get("creator_id")) is not None:
+        field_name = "creator_id"
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [PrepStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    if (protocol_in := request.args.get("protocol_id_in")) is not None:
+        protocol_in = json.loads(protocol_in)
+        try:
+            protocol_in = [LabProtocol.get(int(protocol_)) for protocol_ in protocol_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(protocol_in) == 0:
+            protocol_in = None
+
+    lab_preps: list[models.LabPrep] = []
+    if field_name == "name":
+        lab_preps = db.query_lab_preps(name=word, protocol_in=protocol_in, status_in=status_in)
+    elif field_name == "id":
+        try:
+            _id = int(word)
+            if (lab_prep := db.get_lab_prep(_id)) is not None:
+                lab_preps.append(lab_prep)
+        except ValueError:
+            pass
+    elif field_name == "creator_id":
+        lab_preps = db.query_lab_preps(creator=word, protocol_in=protocol_in, status_in=status_in)
+
+    return make_response(
+        render_template(
+            "components/tables/lab_prep.html",
+            current_query=word, active_query_field=field_name,
+            lab_preps=lab_preps, protocol_in=protocol_in, status_in=status_in
+        )
     )
 
 

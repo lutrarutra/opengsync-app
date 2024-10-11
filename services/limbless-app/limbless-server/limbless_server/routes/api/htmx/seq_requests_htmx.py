@@ -427,6 +427,10 @@ def table_query():
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
+    elif (word := request.args.get("requestor_id")) is not None:
+        field_name = "requestor_id"
+    elif (word := request.args.get("group_id")) is not None:
+        field_name = "group_id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -444,7 +448,7 @@ def table_query():
 
     seq_requests: list[models.SeqRequest] = []
     if field_name == "name":
-        seq_requests = db.query_seq_requests(word, user_id=user_id, status_in=status_in)
+        seq_requests = db.query_seq_requests(name=word, user_id=user_id, status_in=status_in)
     elif field_name == "id":
         try:
             _id = int(word)
@@ -455,6 +459,10 @@ def table_query():
                     seq_requests = []
         except ValueError:
             pass
+    elif field_name == "requestor_id":
+        seq_requests = db.query_seq_requests(requestor=word, user_id=user_id, status_in=status_in)
+    elif field_name == "group_id":
+        seq_requests = db.query_seq_requests(group=word, user_id=user_id, status_in=status_in)
 
     return make_response(
         render_template(

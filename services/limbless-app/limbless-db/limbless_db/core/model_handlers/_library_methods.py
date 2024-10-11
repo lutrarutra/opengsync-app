@@ -1,16 +1,18 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus, AccessType, AccessTypeEnum
 from .. import exceptions
 
 
 def create_library(
-    self,
+    self: "DBHandler",
     name: str,
     sample_name: str,
     library_type: LibraryTypeEnum,
@@ -26,28 +28,28 @@ def create_library(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if self._session.get(models.User, owner_id) is None:
+    if self.session.get(models.User, owner_id) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
     
     if index_kit_id is not None:
-        if (_ := self._session.get(models.IndexKit, index_kit_id)) is None:
+        if (_ := self.session.get(models.IndexKit, index_kit_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_id} does not exist")
     
     if seq_request_id is not None:
-        if (seq_request := self._session.get(models.SeqRequest, seq_request_id)) is None:
+        if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Seq request with id {seq_request_id} does not exist")
         seq_request.num_libraries += 1
-        self._session.add(seq_request)
+        self.session.add(seq_request)
 
     if visium_annotation_id is not None:
-        if (_ := self._session.get(models.VisiumAnnotation, visium_annotation_id)) is None:
+        if (_ := self.session.get(models.VisiumAnnotation, visium_annotation_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Visium annotation with id {visium_annotation_id} does not exist")
         
     if pool_id is not None:
-        if (pool := self._session.get(models.Pool, pool_id)) is None:
+        if (pool := self.session.get(models.Pool, pool_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
         pool.num_libraries += 1
-        self._session.add(pool)
+        self.session.add(pool)
         library_status = LibraryStatus.POOLED
     else:
         library_status = LibraryStatus.DRAFT
@@ -66,11 +68,11 @@ def create_library(
         seq_depth_requested=seq_depth_requested
     )
 
-    self._session.add(library)
+    self.session.add(library)
 
     if commit:
-        self._session.commit()
-        self._session.refresh(library)
+        self.session.commit()
+        self.session.refresh(library)
 
     if not persist_session:
         self.close_session()
@@ -78,11 +80,11 @@ def create_library(
     return library
 
 
-def get_library(self, library_id: int) -> Optional[models.Library]:
+def get_library(self: "DBHandler", library_id: int) -> Optional[models.Library]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    library = self._session.get(models.Library, library_id)
+    library = self.session.get(models.Library, library_id)
     
     if not persist_session:
         self.close_session()
@@ -90,7 +92,7 @@ def get_library(self, library_id: int) -> Optional[models.Library]:
 
 
 def get_libraries(
-    self,
+    self: "DBHandler",
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     pool_id: Optional[int] = None, lab_prep_id: Optional[int] = None,
@@ -104,7 +106,7 @@ def get_libraries(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Library)
+    query = self.session.query(models.Library)
     if user_id is not None:
         query = query.where(
             models.Library.owner_id == user_id
@@ -196,12 +198,11 @@ def get_libraries(
     return libraries, n_pages
 
 
-def delete_library(self, library_id: int):
+def delete_library(self: "DBHandler", library_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    library: models.Library
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
     for link in library.sample_links:
@@ -210,7 +211,7 @@ def delete_library(self, library_id: int):
         if link.sample.num_libraries == 0:
             self.delete_sample(link.sample_id)
 
-    if library.pool is not None:
+    if library.pool_id is not None and library.pool is not None:
         library.pool.num_libraries -= 1
         if library.pool.num_libraries == 0:
             self.delete_pool(library.pool_id)
@@ -218,29 +219,29 @@ def delete_library(self, library_id: int):
     orphan_features = set()
     for feature in library.features:
         if feature.feature_kit_id is None:
-            if self._session.query(models.LibraryFeatureLink).where(
+            if self.session.query(models.LibraryFeatureLink).where(
                 models.LibraryFeatureLink.feature_id == feature.id
             ).count() == 1:
                 orphan_features.add(feature)
 
     library.seq_request.num_libraries -= 1
-    self._session.delete(library)
-    self._session.commit()
+    self.session.delete(library)
+    self.session.commit()
 
     for feature in orphan_features:
-        self._session.delete(feature)
+        self.session.delete(feature)
 
     if not persist_session:
         self.close_session()
 
 
-def update_library(self, library: models.Library) -> models.Library:
+def update_library(self: "DBHandler", library: models.Library) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
     
-    self._session.add(library)
-    self._session.commit()
-    self._session.refresh(library)
+    self.session.add(library)
+    self.session.commit()
+    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()
@@ -248,7 +249,7 @@ def update_library(self, library: models.Library) -> models.Library:
 
 
 def query_libraries(
-    self, name: Optional[str] = None, owner: Optional[str] = None,
+    self: "DBHandler", name: Optional[str] = None, owner: Optional[str] = None,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
@@ -261,10 +262,10 @@ def query_libraries(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Library)
+    query = self.session.query(models.Library)
 
     if user_id is not None:
-        if self._session.get(models.User, user_id) is None:
+        if self.session.get(models.User, user_id) is None:
             raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
         query = query.where(
             models.Library.owner_id == user_id
@@ -351,19 +352,17 @@ def query_libraries(
     return libraries
 
 
-def pool_library(self, library_id: int, pool_id: int) -> models.Library:
+def pool_library(self: "DBHandler", library_id: int, pool_id: int) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    library: models.Library
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
     if library.pool_id is not None:
         raise exceptions.LinkAlreadyExists(f"Library with id {library_id} is already pooled")
 
-    pool: models.Pool
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
         
     library.pool_id = pool_id
@@ -371,12 +370,12 @@ def pool_library(self, library_id: int, pool_id: int) -> models.Library:
         library.status = LibraryStatus.POOLED
     else:
         library.status = LibraryStatus.PREPARING
-    self._session.add(library)
+    self.session.add(library)
 
     pool.num_libraries += 1
-    self._session.add(pool)
+    self.session.add(pool)
 
-    self._session.commit()
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
@@ -385,7 +384,7 @@ def pool_library(self, library_id: int, pool_id: int) -> models.Library:
 
 
 def set_library_seq_quality(
-    self, library_id: Optional[int], experiment_id: int, lane: int,
+    self: "DBHandler", library_id: Optional[int], experiment_id: int, lane: int,
     num_lane_reads: int, num_library_reads: int,
     mean_quality_pf_r1: float, q30_perc_r1: float,
     mean_quality_pf_i1: float, q30_perc_i1: float,
@@ -397,16 +396,15 @@ def set_library_seq_quality(
         self.open_session()
 
     if library_id is not None:
-        library: models.Library
-        if (library := self._session.get(models.Library, library_id)) is None:
+        if (library := self.session.get(models.Library, library_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
         
         library.status = LibraryStatus.SEQUENCED
         if library.pool is not None:
             library.pool.status = PoolStatus.SEQUENCED
-        self._session.add(library)
+        self.session.add(library)
         
-    if (quality := self._session.query(models.SeqQuality).where(
+    if (quality := self.session.query(models.SeqQuality).where(
         models.SeqQuality.library_id == library_id,
         models.SeqQuality.experiment_id == experiment_id,
         models.SeqQuality.lane == lane,
@@ -431,9 +429,9 @@ def set_library_seq_quality(
             mean_quality_pf_i2=mean_quality_pf_i2, q30_perc_i2=q30_perc_i2,
         )
 
-    self._session.add(quality)
-    self._session.commit()
-    self._session.refresh(quality)
+    self.session.add(quality)
+    self.session.commit()
+    self.session.refresh(quality)
 
     if not persist_session:
         self.close_session()
@@ -442,12 +440,12 @@ def set_library_seq_quality(
 
 
 def add_library_index(
-    self, library_id: int, name_i7: Optional[str], sequence_i7: Optional[str], name_i5: Optional[str], sequence_i5: Optional[str]
+    self: "DBHandler", library_id: int, name_i7: Optional[str], sequence_i7: Optional[str], name_i5: Optional[str], sequence_i5: Optional[str]
 ) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
     library.indices.append(models.LibraryIndex(
@@ -458,9 +456,9 @@ def add_library_index(
         sequence_i5=sequence_i5,
     ))
 
-    self._session.add(library)
-    self._session.commit()
-    self._session.refresh(library)
+    self.session.add(library)
+    self.session.commit()
+    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()
@@ -468,18 +466,18 @@ def add_library_index(
     return library
 
 
-def remove_library_indices(self, library_id: int) -> models.Library:
+def remove_library_indices(self: "DBHandler", library_id: int) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
     for index in library.indices:
-        self._session.delete(index)
+        self.session.delete(index)
 
-    self._session.commit()
-    self._session.refresh(library)
+    self.session.commit()
+    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()
@@ -488,12 +486,12 @@ def remove_library_indices(self, library_id: int) -> models.Library:
 
 
 def get_user_library_access_type(
-    self, library_id: int, user_id: int
+    self: "DBHandler", library_id: int, user_id: int
 ) -> Optional[AccessTypeEnum]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
     access_type: Optional[AccessTypeEnum] = None
@@ -501,7 +499,7 @@ def get_user_library_access_type(
     if library.owner_id == user_id:
         access_type = AccessType.OWNER
     elif library.seq_request.group_id is not None:
-        if self._session.query(models.UserAffiliation).where(
+        if self.session.query(models.UserAffiliation).where(
             models.UserAffiliation.user_id == user_id,
             models.UserAffiliation.group_id == library.seq_request.group_id
         ).first() is not None:

@@ -1,21 +1,23 @@
 from datetime import datetime
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from ...categories import EventTypeEnum
 from .. import exceptions
 
 
 def create_event(
-    self, title: str, timestamp_utc: datetime, type: EventTypeEnum,
+    self: "DBHandler", title: str, timestamp_utc: datetime, type: EventTypeEnum,
     user_id: int, note: Optional[str] = None,
 ) -> models.Event:
     
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (_ := self._session.get(models.User, user_id)) is None:
+    if (_ := self.session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
     
     event = models.Event(
@@ -26,20 +28,20 @@ def create_event(
         creator_id=user_id,
     )
     
-    self._session.add(event)
-    self._session.commit()
-    self._session.refresh(event)
+    self.session.add(event)
+    self.session.commit()
+    self.session.refresh(event)
     
     if not persist_session:
         self.close_session()
     return event
 
 
-def get_event(self, event_id: int) -> Optional[models.Event]:
+def get_event(self: "DBHandler", event_id: int) -> Optional[models.Event]:
     if not (persist_session := self._session is not None):
         self.open_session()
     
-    event = self._session.get(models.Event, event_id)
+    event = self.session.get(models.Event, event_id)
     
     if not persist_session:
         self.close_session()
@@ -47,7 +49,7 @@ def get_event(self, event_id: int) -> Optional[models.Event]:
 
 
 def get_events(
-    self, type: Optional[EventTypeEnum] = None,
+    self: "DBHandler", type: Optional[EventTypeEnum] = None,
     type_in: Optional[list[EventTypeEnum]] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
@@ -57,7 +59,7 @@ def get_events(
     if not (persist_session := self._session is not None):
         self.open_session()
     
-    query = self._session.query(models.Event)
+    query = self.session.query(models.Event)
 
     if type is not None:
         query = query.where(models.Event.type_id == type.id)
@@ -89,28 +91,28 @@ def get_events(
     return events, n_pages
 
 
-def update_event(self, event: models.Event) -> models.Event:
+def update_event(self: "DBHandler", event: models.Event) -> models.Event:
     if not (persist_session := self._session is not None):
         self.open_session()
     
-    self._session.add(event)
-    self._session.commit()
-    self._session.refresh(event)
+    self.session.add(event)
+    self.session.commit()
+    self.session.refresh(event)
     
     if not persist_session:
         self.close_session()
     return event
 
 
-def delete_event(self, event_id: int):
+def delete_event(self: "DBHandler", event_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
     
-    if (event := self._session.get(models.Event, event_id)) is None:
+    if (event := self.session.get(models.Event, event_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Event with id {event_id} does not exist")
     
-    self._session.delete(event)
-    self._session.commit()
+    self.session.delete(event)
+    self.session.commit()
     
     if not persist_session:
         self.close_session()

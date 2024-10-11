@@ -1,14 +1,16 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import and_
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
 def link_sample_library(
-    self, sample_id: int, library_id: int,
+    self: "DBHandler", sample_id: int, library_id: int,
     cmo_sequence: Optional[str] = None,
     cmo_pattern: Optional[str] = None,
     cmo_read: Optional[str] = None,
@@ -19,13 +21,13 @@ def link_sample_library(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (sample := self._session.get(models.Sample, sample_id)) is None:
+    if (sample := self.session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
         
-    if self._session.query(models.SampleLibraryLink).where(
+    if self.session.query(models.SampleLibraryLink).where(
         models.SampleLibraryLink.sample_id == sample_id,
         models.SampleLibraryLink.library_id == library_id,
     ).first():
@@ -39,13 +41,13 @@ def link_sample_library(
         flex_barcode=flex_barcode,
     )
 
-    self._session.add(sample_library_link)
+    self.session.add(sample_library_link)
     sample.num_libraries += 1
     library.num_samples += 1
 
     if commit:
-        self._session.commit()
-        self._session.refresh(sample_library_link)
+        self.session.commit()
+        self.session.refresh(sample_library_link)
 
     if not persist_session:
         self.close_session()
@@ -54,18 +56,18 @@ def link_sample_library(
 
 
 def get_sample_library_links(
-    self,
+    self: "DBHandler",
     sample_id: Optional[int] = None,
     library_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
     offset: Optional[int] = None,
-) -> tuple[Optional[models.SampleLibraryLink], int]:
+) -> tuple[list[models.SampleLibraryLink], int]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.SampleLibraryLink)
+    query = self.session.query(models.SampleLibraryLink)
     if sample_id is not None:
         query = query.where(models.SampleLibraryLink.sample_id == sample_id)
 
@@ -96,13 +98,13 @@ def get_sample_library_links(
 
 
 def is_sample_in_seq_request(
-    self, sample_id: int, seq_request_id: int
+    self: "DBHandler", sample_id: int, seq_request_id: int
 ) -> bool:
     
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Sample)
+    query = self.session.query(models.Sample)
 
     query = query.join(
         models.SampleLibraryLink,
@@ -122,17 +124,17 @@ def is_sample_in_seq_request(
     return res
 
 
-def link_feature_library(self, feature_id: int, library_id: int):
+def link_feature_library(self: "DBHandler", feature_id: int, library_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (feature := self._session.get(models.Feature, feature_id)) is None:
+    if (feature := self.session.get(models.Feature, feature_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Feature with id {feature_id} does not exist")
     
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if self._session.query(models.LibraryFeatureLink).where(
+    if self.session.query(models.LibraryFeatureLink).where(
         models.LibraryFeatureLink.feature_id == feature_id,
         models.LibraryFeatureLink.library_id == library_id,
     ).first():
@@ -140,24 +142,24 @@ def link_feature_library(self, feature_id: int, library_id: int):
     
     library.features.append(feature)
     library.num_features += 1
-    self._session.add(library)
-    self._session.commit()
+    self.session.add(library)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
-def unlink_feature_library(self, feature_id: int, library_id: int):
+def unlink_feature_library(self: "DBHandler", feature_id: int, library_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (feature := self._session.get(models.Feature, feature_id)) is None:
+    if (feature := self.session.get(models.Feature, feature_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Feature with id {feature_id} does not exist")
     
-    if (library := self._session.get(models.Library, library_id)) is None:
+    if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if (_ := self._session.query(models.LibraryFeatureLink).where(
+    if (_ := self.session.query(models.LibraryFeatureLink).where(
         models.LibraryFeatureLink.feature_id == feature_id,
         models.LibraryFeatureLink.library_id == library_id,
     ).first()) is None:
@@ -165,30 +167,29 @@ def unlink_feature_library(self, feature_id: int, library_id: int):
     
     library.features.remove(feature)
     library.num_features -= 1
-    self._session.add(library)
-    self._session.commit()
+    self.session.add(library)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
 def add_pool_to_lane(
-    self, experiment_id: int, pool_id: int, lane_num: int
+    self: "DBHandler", experiment_id: int, pool_id: int, lane_num: int
 ) -> models.Lane:
 
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    lane: models.Lane
-    if (lane := self._session.query(models.Lane).where(
+    if (lane := self.session.query(models.Lane).where(
         models.Lane.experiment_id == experiment_id,
         models.Lane.number == lane_num,
     ).first()) is None:
         raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment_id}")
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
-    if self._session.query(models.LanePoolLink).where(
+    if self.session.query(models.LanePoolLink).where(
         models.LanePoolLink.pool_id == pool_id,
         models.LanePoolLink.lane_id == lane.id,
     ).first():
@@ -196,9 +197,9 @@ def add_pool_to_lane(
     
     lane.pools.append(pool)
     
-    self._session.add(lane)
-    self._session.commit()
-    self._session.refresh(lane)
+    self.session.add(lane)
+    self.session.commit()
+    self.session.refresh(lane)
 
     if not persist_session:
         self.close_session()
@@ -206,29 +207,28 @@ def add_pool_to_lane(
     return lane
 
 
-def remove_pool_from_lane(self, experiment_id: int, pool_id: int, lane_num: int) -> models.Lane:
+def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, lane_num: int) -> models.Lane:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    lane: models.Lane
-    if (lane := self._session.query(models.Lane).where(
+    if (lane := self.session.query(models.Lane).where(
         models.Lane.experiment_id == experiment_id,
         models.Lane.number == lane_num,
     ).first()) is None:
         raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment_id}")
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
-    if self._session.query(models.LanePoolLink).where(
+    if self.session.query(models.LanePoolLink).where(
         models.LanePoolLink.pool_id == pool_id,
         models.LanePoolLink.lane_id == lane.id,
     ).first() is None:
         raise exceptions.LinkDoesNotExist(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are not linked.")
     
     lane.pools.remove(pool)
-    self._session.add(lane)
-    self._session.commit()
-    self._session.refresh(lane)
+    self.session.add(lane)
+    self.session.commit()
+    self.session.refresh(lane)
 
     if not persist_session:
         self.close_session()
@@ -236,16 +236,15 @@ def remove_pool_from_lane(self, experiment_id: int, pool_id: int, lane_num: int)
     return lane
 
 
-def link_pool_experiment(self, experiment_id: int, pool_id: int):
+def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    experiment: models.Experiment
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
+    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if self._session.query(models.ExperimentPoolLink).where(
+    if self.session.query(models.ExperimentPoolLink).where(
         and_(
             models.ExperimentPoolLink.experiment_id == experiment_id,
             models.ExperimentPoolLink.pool_id == pool_id
@@ -259,24 +258,23 @@ def link_pool_experiment(self, experiment_id: int, pool_id: int):
         for lane in experiment.lanes:
             self.add_pool_to_lane(experiment_id=experiment_id, pool_id=pool_id, lane_num=lane.number)
 
-    self._session.add(experiment)
-    self._session.commit()
+    self.session.add(experiment)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
-def unlink_pool_experiment(self, experiment_id: int, pool_id: int):
+def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    experiment: models.Experiment
-    if (experiment := self._session.get(models.Experiment, experiment_id)) is None:
+    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    pool: models.Pool
-    if (pool := self._session.get(models.Pool, pool_id)) is None:
+
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if self._session.query(models.ExperimentPoolLink).where(
+    if self.session.query(models.ExperimentPoolLink).where(
         and_(
             models.ExperimentPoolLink.experiment_id == experiment_id,
             models.ExperimentPoolLink.pool_id == pool_id
@@ -285,16 +283,16 @@ def unlink_pool_experiment(self, experiment_id: int, pool_id: int):
         raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
     
     for lane in experiment.lanes:
-        if (link := self._session.query(models.LanePoolLink).where(
+        if (link := self.session.query(models.LanePoolLink).where(
             models.LanePoolLink.pool_id == pool_id,
             models.LanePoolLink.lane_id == lane.id,
         ).first()) is not None:
-            self._session.delete(link)
-            self._session.commit()
+            self.session.delete(link)
+            self.session.commit()
 
     experiment.pools.remove(pool)
-    self._session.add(experiment)
-    self._session.commit()
+    self.session.add(experiment)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()

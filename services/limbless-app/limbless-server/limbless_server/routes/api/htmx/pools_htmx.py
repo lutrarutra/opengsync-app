@@ -1,11 +1,8 @@
-import os
 import json
 from typing import TYPE_CHECKING, Literal
 
-import numpy as np
-import pandas as pd
 
-from flask import Blueprint, render_template, request, abort, flash, url_for, current_app
+from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
 from flask_login import login_required
 
@@ -76,9 +73,6 @@ def delete(pool_id: int):
     
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if pool.type.identifier != "":
-        return abort(HTTPResponse.BAD_REQUEST.id)
     
     db.delete_pool(pool.id)
     flash("Pool deleted", "success")
@@ -480,28 +474,5 @@ def browse_query(workflow: str):
             "components/tables/select-pools.html",
             context=context, pools=pools, status_in=status_in,
             workflow=workflow
-        )
-    )
-
-
-@pools_htmx.route("<int:pool_id>/get_prep_table", methods=["GET"])
-@db_session(db)
-@login_required
-def get_prep_table(pool_id: int):
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    if (pool := db.get_pool(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if pool.prep_file is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    table = pd.read_csv(os.path.join(current_app.config["MEDIA_FOLDER"], pool.prep_file.path), sep="\t").replace(np.nan, "").to_html(classes="table")
-    
-    return make_response(
-        render_template(
-            "components/library_prep_table.html", prep_file=pool.prep_file,
-            pool=pool, table=table
         )
     )

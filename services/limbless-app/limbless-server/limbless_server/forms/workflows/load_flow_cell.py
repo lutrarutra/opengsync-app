@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-from typing import Any, Mapping
 import pandas as pd
 
 from flask import Response, flash, url_for

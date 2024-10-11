@@ -1,20 +1,22 @@
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from ...categories import BarcodeTypeEnum
 from .. import exceptions
 
 
 def create_barcode(
-    self, name: str, sequence: str, well: str | None, type: BarcodeTypeEnum, adapter_id: int
+    self: "DBHandler", name: str, sequence: str, well: str | None, type: BarcodeTypeEnum, adapter_id: int
 ) -> models.Barcode:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (adapter := self._session.get(models.Adapter, adapter_id)) is None:
+    if (adapter := self.session.get(models.Adapter, adapter_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Adapter with id '{adapter_id}', not found.")
     
     barcode = models.Barcode(
@@ -26,9 +28,9 @@ def create_barcode(
         index_kit_id=adapter.index_kit_id
     )
 
-    self._session.add(barcode)
-    self._session.commit()
-    self._session.refresh(barcode)
+    self.session.add(barcode)
+    self.session.commit()
+    self.session.refresh(barcode)
 
     if not persist_session:
         self.close_session()
@@ -37,12 +39,12 @@ def create_barcode(
 
 
 def get_barcode(
-    self, barcode_id: int
+    self: "DBHandler", barcode_id: int
 ) -> Optional[models.Barcode]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    barcode = self._session.get(models.Barcode, barcode_id)
+    barcode = self.session.get(models.Barcode, barcode_id)
 
     if not persist_session:
         self.close_session()
@@ -51,7 +53,7 @@ def get_barcode(
 
 
 def get_barcodes(
-    self, index_kit_id: Optional[int] = None,
+    self: "DBHandler", index_kit_id: Optional[int] = None,
     adapter_id: Optional[int] = None,
     type: Optional[BarcodeTypeEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
@@ -60,7 +62,7 @@ def get_barcodes(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self._session.query(models.Barcode)
+    query = self.session.query(models.Barcode)
 
     if index_kit_id is not None:
         query = query.filter(models.Barcode.index_kit_id == index_kit_id)
@@ -92,12 +94,12 @@ def get_barcodes(
 
 
 def get_barcode_from_kit(
-    self, index_kit_id: int, name: str, type: BarcodeTypeEnum
+    self: "DBHandler", index_kit_id: int, name: str, type: BarcodeTypeEnum
 ) -> Optional[models.Barcode]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    barcode = self._session.query(models.Barcode).where(
+    barcode = self.session.query(models.Barcode).where(
         models.Barcode.index_kit_id == index_kit_id,
         models.Barcode.name == name,
         models.Barcode.type_id == type.id

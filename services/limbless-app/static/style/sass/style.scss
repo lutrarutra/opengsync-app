@@ -181,6 +181,7 @@ body {
             justify-content: space-between;
             height: 50px;
             h1, h2 {
+                white-space: nowrap;
                 margin: 0;
                 padding: 0;
             }
