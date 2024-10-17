@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 import pandas as pd
 
-import salchemy as sa
+import sqlalchemy as sa
 
 from limbless_db import DBHandler, models
 from limbless_db.models.Base import Base

@@ -3,7 +3,6 @@ import shutil
 from typing import Optional
 
 import pandas as pd
-import numpy as np
 
 from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
@@ -171,7 +170,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         with DBSession(db) as session:
             predefined_attrs = [f"_attr_{attr.label}" for attr in AttributeType.as_list()]
             custom_sample_attributes = [attr for attr in sample_table.columns if attr.startswith("_attr_") and attr not in predefined_attrs]
-            logger.debug(custom_sample_attributes)
+
             for idx, row in sample_table.iterrows():
                 if pd.notna(row["sample_id"]):
                     if (sample := session.get_sample(row["sample_id"])) is None:
@@ -192,7 +191,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         sample = session.set_sample_attribute(
                             sample_id=sample.id,
                             type=attr,
-                            value=row[attr_label],
+                            value=str(row[attr_label]),
                             name=None
                         )
 
@@ -201,7 +200,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                         sample = session.set_sample_attribute(
                             sample_id=sample.id,
                             type=AttributeType.CUSTOM,
-                            value=row[attr_label],
+                            value=str(row[attr_label]),
                             name=attr_label.removeprefix("_attr_")
                         )
 
@@ -254,12 +253,27 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                     index_i5_seqs = row["index_i5_sequences"].split(";") if pd.notna(row["index_i5_sequences"]) else None
 
                     for i in range(len(index_i7_seqs)):
-                        index_i7_seq = index_i7_seqs[i]
+                        index_i7_seq = index_i7_seqs[i] if index_i7_seqs is not None and len(index_i7_seqs) > i else None
                         index_i5_seq = index_i5_seqs[i] if index_i5_seqs is not None and len(index_i5_seqs) > i else None
+                        
+                        if (index_kit_i7_id := self.metadata.get("index_1_kit_id")) is not None:
+                            try:
+                                index_kit_i7_id = int(index_kit_i7_id)
+                            except ValueError:
+                                index_kit_i7_id = None
+
+                        if (index_kit_i5_id := self.metadata.get("index_2_kit_id")) is not None:
+                            try:
+                                index_kit_i5_id = int(index_kit_i5_id)
+                            except ValueError:
+                                index_kit_i5_id = None
+
                         library = session.add_library_index(
                             library_id=library.id,
                             sequence_i7=index_i7_seq,
                             sequence_i5=index_i5_seq if pd.notna(index_i5_seq) else None,
+                            index_kit_i7_id=index_kit_i7_id,
+                            index_kit_i5_id=index_kit_i5_id,
                             name_i7=row["index_i7_name"] if pd.notna(row["index_i7_name"]) else None,
                             name_i5=row["index_i5_name"] if pd.notna(row["index_i5_name"]) else None,
                         )

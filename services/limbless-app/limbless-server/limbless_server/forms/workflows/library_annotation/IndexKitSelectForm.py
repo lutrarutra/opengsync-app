@@ -56,7 +56,6 @@ class IndexKitSelectForm(HTMXFlaskForm, TableDataForm):
         if not self.validate():
             return self.make_response()
 
-        logger.debug(self.index_1_kit.selected.data)
         sas_input_form = SASInputForm(seq_request=self.seq_request, uuid=self.uuid)
         sas_input_form.metadata["index_1_kit_id"] = self.index_1_kit.selected.data
         sas_input_form.metadata["index_2_kit_id"] = self.index_2_kit.selected.data if self.index_2_kit.selected.data else self.index_1_kit.selected.data
