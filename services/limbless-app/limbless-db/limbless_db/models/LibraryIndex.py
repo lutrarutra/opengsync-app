@@ -15,10 +15,10 @@ class LibraryIndex(Base):
     library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"))
 
     index_kit_i7_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=True)
-    index_kit_i7: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="joined", foreign_keys=[index_kit_i7_id])
+    index_kit_i7: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="select", foreign_keys=[index_kit_i7_id])
 
     index_kit_i5_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=True)
-    index_kit_i5: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="joined", foreign_keys=[index_kit_i5_id])
+    index_kit_i5: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="select", foreign_keys=[index_kit_i5_id])
 
     name_i7: Mapped[Optional[str]] = mapped_column(sa.String(16), nullable=True)
     name_i5: Mapped[Optional[str]] = mapped_column(sa.String(16), nullable=True)

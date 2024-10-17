@@ -19,7 +19,6 @@ def create_library(
     owner_id: int,
     seq_request_id: int,
     genome_ref: Optional[GenomeRefEnum] = None,
-    index_kit_id: Optional[int] = None,
     pool_id: Optional[int] = None,
     visium_annotation_id: Optional[int] = None,
     seq_depth_requested: Optional[float] = None,
@@ -30,10 +29,6 @@ def create_library(
 
     if self.session.get(models.User, owner_id) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
-    
-    if index_kit_id is not None:
-        if (_ := self.session.get(models.IndexKit, index_kit_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_id} does not exist")
     
     if seq_request_id is not None:
         if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
@@ -61,7 +56,6 @@ def create_library(
         genome_ref_id=genome_ref.id if genome_ref is not None else None,
         type_id=library_type.id,
         owner_id=owner_id,
-        index_kit_id=index_kit_id,
         pool_id=pool_id,
         status_id=library_status.id,
         visium_annotation_id=visium_annotation_id,

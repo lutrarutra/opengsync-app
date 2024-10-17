@@ -129,6 +129,8 @@ class BarcodeInputForm(HTMXFlaskForm):
             self.spreadsheet_style[f"{BarcodeInputForm.columns[column].column}{row_num}"] = f"background-color: {BarcodeInputForm.colors[color]};"
             self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
 
+        self.df.loc[self.df["index_well"].notna(), "index_well"] = self.df.loc[self.df["index_well"].notna(), "index_well"].str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+
         kit_defined = self.df["kit_i7"].notna() & (self.df["index_well"].notna() | self.df["name_i7"].notna())
         manual_defined = self.df["sequence_i7"].notna()
 

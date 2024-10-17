@@ -233,6 +233,8 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
 
         seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
 
+        self.df.loc[self.df["index_well"].notna(), "index_well"] = self.df.loc[self.df["index_well"].notna(), "index_well"].str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+
         for i, (idx, row) in enumerate(self.df.iterrows()):
             if pd.isna(row["sample_name"]):
                 add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
@@ -276,6 +278,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                         add_error(i + 1, "index_i7", "You must specify 'Index Well' or 'Index Name'", "missing_value")
                         add_error(i + 1, "index_well", "You must specify 'Index Well' or 'Index Name'", "missing_value")
                         continue
+                    
                     assert kit_1_df is not None and kit_2_df is not None
                     assert kit_1 is not None and kit_2 is not None
 
@@ -285,7 +288,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                             continue
                         
                         self.library_table.at[idx, "index_i7_sequences"] = ";".join(index_i7_sequences)
-                        self.library_table.at[idx, "index_i7_name"] = row["index_well"]
+                        self.library_table.at[idx, "index_i7_name"] = kit_1_df.loc[(kit_1_df["well"] == row["index_well"]) & (kit_1_df["type"] == BarcodeType.INDEX_I7)].iloc[0]["name"]
                         
                         if kit_2.type == IndexType.DUAL_INDEX:
                             if len(index_i5_sequences := kit_2_df.loc[(kit_2_df["well"] == row["index_well"]) & (kit_2_df["type"] == BarcodeType.INDEX_I5), "sequence"].tolist()) == 0:  # type: ignore
@@ -293,7 +296,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                                 continue
                             
                             self.library_table.at[idx, "index_i5_sequences"] = ";".join(index_i5_sequences)
-                            self.library_table.at[idx, "index_i5_name"] = row["index_well"]
+                            self.library_table.at[idx, "index_i5_name"] = kit_2_df.loc[(kit_2_df["well"] == row["index_well"]) & (kit_2_df["type"] == BarcodeType.INDEX_I5)].iloc[0]["name"]
                     else:
                         if len(index_i7_sequences := kit_1_df.loc[(kit_1_df["name"] == row["index_i7"]) & (kit_1_df["type"] == BarcodeType.INDEX_I7), "sequence"].tolist()) == 0:  # type: ignore
                             add_error(i + 1, "index_i7", f"Index i7 '{row['index_i7']}' not found in specified index-kit.", "invalid_value")

@@ -274,6 +274,8 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     
     if lab_prep.protocol == LabProtocol.RNA_SEQ:
         filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "RNA.xlsx")
+    if lab_prep.protocol == LabProtocol.WGS:
+        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "WGS.xlsx")
     else:
         filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "template.xlsx")
 
@@ -292,7 +294,7 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     active_sheet = template["prep_table"]
     column_mapping: dict[str, str] = {}
     
-    for col_i in range(1, active_sheet.max_column):
+    for col_i in range(0, active_sheet.max_column):
         col = get_column_letter(col_i + 1)
         column_name = active_sheet[f"{col}1"].value
         column_mapping[column_name] = col
@@ -303,6 +305,7 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
             else:
                 cell.fill = openpyxl_styles.PatternFill(start_color="ffffff", end_color="ffffff", fill_type="solid")
 
+    logger.debug(len(active_sheet[column_mapping["plate_well"]]))
     for row_idx, cell in enumerate(active_sheet[column_mapping["plate_well"]][1:]):
         cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
 
@@ -336,7 +339,7 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
         
     return Response(
         bytes_io, mimetype=mimetype,
-        headers={"Content-disposition": f"attachment; filename={lab_prep.name}_RNA_{direction}.xlsx"}
+        headers={"Content-disposition": f"attachment; filename={lab_prep.name}_{lab_prep.protocol.abbreviation}_{direction}.xlsx"}
     )
 
 
