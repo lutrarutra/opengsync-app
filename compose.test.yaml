@@ -31,13 +31,10 @@ services:
             POSTGRES_DB: test_db
             PGPORT: 5434
             TZ: "Europe/Vienna"
-        volumes:
-            - ./.tmp/postgres:/var/lib/postgresql/data
         expose:
             - 5434
         ports:
             - 5434:5434
-        restart: always
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "test_db", "-U", "admin"]
             interval: 10s
