@@ -1,24 +1,21 @@
-version: "3.8"
-
 services:
-    limbless-app-test:
-        container_name: limbless-app-test
+    limbless-pytest:
+        container_name: limbless-pytest
         build:
-            context: ./services/limbless-app
-            dockerfile: Dockerfile.dev
+            context: ./services
+            dockerfile: pytest/Dockerfile
         command: "pytest tests/ -s"
         volumes:
-            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
-            - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db
-            - ./services/limbless-app/tests:/usr/src/app/tests
-            - ./services/limbless-app/static/style:/usr/src/app/static/style
-            - ./services/limbless-app/templates:/usr/src/app/templates:ro
-            - ./cert:/usr/src/app/cert
-        env_file: .test.env
-        ports:
-            - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
-        expose:
-            - ${LIMBLESS_PORT}
+            - ./services/pytest/tests:/usr/src/app/tests:ro
+            - ./services/limbless-app/static/resources/templates/library_prep/:/usr/src/app/prep_tables:ro
+        environment:
+            POSTGRES_USER: admin
+            POSTGRES_PASSWORD: password
+            POSTGRES_DB: test_db
+            POSTGRES_PORT: 5434
+            POSTGRES_HOST: postgres
+            TIMEZONE: "Europe/Vienna"
+            TZ: "Europe/Vienna"
         depends_on:
             postgres:
                 condition: service_healthy
@@ -29,19 +26,20 @@ services:
         image: postgres:16rc1-alpine3.17
         command: "-c logging_collector=on"
         environment:
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
-            PGPORT: ${POSTGRES_PORT}
+            POSTGRES_USER: admin
+            POSTGRES_PASSWORD: password
+            POSTGRES_DB: test_db
+            PGPORT: 5434
+            TZ: "Europe/Vienna"
         volumes:
             - ./.tmp/postgres:/var/lib/postgresql/data
         expose:
-            - ${POSTGRES_PORT}
+            - 5434
         ports:
-            - ${POSTGRES_PORT}:${POSTGRES_PORT}
+            - 5434:5434
         restart: always
         healthcheck:
-            test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
+            test: ["CMD", "pg_isready", "-d", "test_db", "-U", "admin"]
             interval: 10s
             timeout: 10s
             retries: 5

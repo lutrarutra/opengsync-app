@@ -249,9 +249,8 @@ def update_seq_request(
 
 
 def delete_seq_request(self: "DBHandler", seq_request_id: int) -> None:
-    persist_session = self.session is not None
-    if not self.session:
-        self.open_session(autoflush=False)
+    if not (persist_session := self._session is not None):
+        self.open_session()
 
     if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")

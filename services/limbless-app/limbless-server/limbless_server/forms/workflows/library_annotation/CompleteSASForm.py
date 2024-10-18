@@ -260,12 +260,14 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                             try:
                                 index_kit_i7_id = int(index_kit_i7_id)
                             except ValueError:
+                                logger.error(f"{self.uuid}: Could not parse index_1_kit_id")
                                 index_kit_i7_id = None
 
                         if (index_kit_i5_id := self.metadata.get("index_2_kit_id")) is not None:
                             try:
                                 index_kit_i5_id = int(index_kit_i5_id)
                             except ValueError:
+                                logger.error(f"{self.uuid}: Could not parse index_2_kit_id")
                                 index_kit_i5_id = None
 
                         library = session.add_library_index(

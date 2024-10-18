@@ -305,7 +305,6 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
             else:
                 cell.fill = openpyxl_styles.PatternFill(start_color="ffffff", end_color="ffffff", fill_type="solid")
 
-    logger.debug(len(active_sheet[column_mapping["plate_well"]]))
     for row_idx, cell in enumerate(active_sheet[column_mapping["plate_well"]][1:]):
         cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
 

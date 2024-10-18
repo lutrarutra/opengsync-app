@@ -7,3 +7,4 @@ psycopg2==2.9.9
 SQLAlchemy==2.0.28
 pytz==2023.3.post1
 tzlocal==5.2
+Werkzeug==3.0.3

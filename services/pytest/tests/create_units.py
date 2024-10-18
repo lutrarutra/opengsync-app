@@ -1,9 +1,9 @@
 import uuid
 
-from limbless_db import DBHandler, DBSession, models
+from limbless_db import DBHandler, models
 from limbless_db.categories import (
-    LibraryType, DataDeliveryMode, UserRole, FeatureType, FlowCellType, ExperimentWorkFlow, ExperimentWorkFlowEnum, SequencerModel,
-    ReadType, ExperimentStatus, PoolType
+    LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
+    ReadType, ExperimentStatus, PoolType, SubmissionType
 )
 
 
@@ -47,16 +47,17 @@ def create_seq_request(db: DBHandler, user: models.User) -> models.SeqRequest:
         organization_contact_id=organization.id,
         contact_person_id=contact.id,
         billing_contact_id=contact.id,
+        group_id=None,
+        submission_type=SubmissionType.POOLED_LIBRARIES,
     )
 
 
-def create_sample(db: DBHandler, user: models.User, project: models.Project, seq_request: models.SeqRequest) -> models.Sample:
+def create_sample(db: DBHandler, user: models.User, project: models.Project) -> models.Sample:
     _uuid = str(uuid.uuid1())
     return db.create_sample(
         name=_uuid,
         owner_id=user.id,
         project_id=project.id,
-        seq_request_id=seq_request.id,
     )
 
 
@@ -64,9 +65,10 @@ def create_library(db: DBHandler, user: models.User, seq_request: models.SeqRequ
     _uuid = str(uuid.uuid1())
     return db.create_library(
         name=_uuid,
+        sample_name=_uuid,
         owner_id=user.id,
         seq_request_id=seq_request.id,
-        library_type=LibraryType.BULK_RNA_SEQ,
+        library_type=LibraryType.POLY_A_RNA_SEQ,
     )
 
 
