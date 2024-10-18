@@ -94,3 +94,14 @@ sudo chown -R 5050:5050 db/dev_pgadmin
     2. `docker inspect limbless-postgres-db | grep IPAddress`
 - username: `$(POSTGRES_USER)`
 - password: `$(POSTGRES_PASSWORD)`
+
+
+# Unit Tests
+- `chmod +x test.sh`
+- `./test.sh --build`
+
+## Tests
+- SQL Database models, links
+- Common library prep table requirements
+
+

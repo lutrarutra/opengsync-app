@@ -29,7 +29,8 @@ def test_user_links(db: DBHandler):
     project = create_project(db, user)
 
     with DBSession(db) as session:
-        user: models.User = session.get_user(user.id)
+        user = session.get_user(user.id)
+        assert user is not None
 
         assert len(user.projects) == 1
         assert user.projects[0].id == project.id
@@ -39,6 +40,8 @@ def test_user_links(db: DBHandler):
     with DBSession(db) as session:
         user = session.get_user(user.id)
         project = session.get_project(project.id)
+        assert user is not None
+        assert project is not None
 
         assert len(user.samples) == 1
         assert user.samples[0].id == sample.id
@@ -50,6 +53,7 @@ def test_user_links(db: DBHandler):
         
     with DBSession(db) as session:
         user = session.get_user(user.id)
+        assert user is not None
 
         assert len(user.requests) == 1
         assert user.requests[0].id == seq_request.id
@@ -59,6 +63,8 @@ def test_user_links(db: DBHandler):
     with DBSession(db) as session:
         user = session.get_user(user.id)
         seq_request = session.get_seq_request(seq_request.id)
+        assert user is not None
+        assert seq_request is not None
 
         assert len(user.libraries) == 1
         assert user.libraries[0].id == library.id
@@ -71,6 +77,8 @@ def test_user_links(db: DBHandler):
     with DBSession(db) as session:
         sample = session.get_sample(sample.id)
         library = session.get_library(library.id)
+        assert sample is not None
+        assert library is not None
 
         assert sample.num_libraries == 1
         assert len(sample.library_links) == 1
@@ -83,10 +91,12 @@ def test_user_links(db: DBHandler):
 
     with DBSession(db) as session:
         user = session.get_user(user.id)
+        assert user is not None
         assert user.num_pools == 1
         assert len(user.pools) == 1
 
         seq_request = session.get_seq_request(seq_request.id)
+        assert seq_request is not None
         assert len(seq_request.pools) == 1
         assert seq_request.pools[0].id == pool.id
 
@@ -96,6 +106,9 @@ def test_user_links(db: DBHandler):
         library = session.get_library(library.id)
         pool = session.get_pool(pool.id)
         seq_request = session.get_seq_request(seq_request.id)
+        assert library is not None
+        assert pool is not None
+        assert seq_request is not None
 
         assert pool.num_libraries == 1
         assert len(pool.libraries) == 1
@@ -113,12 +126,17 @@ def test_user_links(db: DBHandler):
 
     with DBSession(db) as session:
         seq_request = session.get_seq_request(seq_request.id)
+        assert seq_request is not None
         assert seq_request.num_libraries == 0
         assert len(seq_request.libraries) == 0
+        
         project = session.get_project(project.id)
+        assert project is not None
         assert project.num_samples == 0
         assert len(project.samples) == 0
+        
         user = session.get_user(user.id)
+        assert user is not None
         assert user.num_seq_requests == 1
         assert len(user.requests) == 1
         assert user.num_projects == 1
@@ -134,6 +152,7 @@ def test_user_links(db: DBHandler):
 
     with DBSession(db) as session:
         user = session.get_user(user.id)
+        assert user is not None
         assert user.num_seq_requests == 0
         assert len(user.requests) == 0
 
@@ -154,13 +173,16 @@ def test_library_links(db: DBHandler):
     
     with DBSession(db) as session:
         user = session.get_user(user.id)
+        assert user is not None
         assert len(user.libraries) == NUM_LIBRARIES
 
         seq_request = session.get_seq_request(seq_request.id)
+        assert seq_request is not None
         assert len(seq_request.libraries) == NUM_LIBRARIES
         assert seq_request.num_libraries == NUM_LIBRARIES
 
         sample = session.get_sample(sample.id)
+        assert sample is not None
         assert len(sample.library_links) == NUM_LIBRARIES
         assert sample.num_libraries == NUM_LIBRARIES
 
@@ -168,13 +190,16 @@ def test_library_links(db: DBHandler):
 
     with DBSession(db) as session:
         user = session.get_user(user.id)
+        assert user is not None
         assert len(user.libraries) == NUM_LIBRARIES - 1
 
         seq_request = session.get_seq_request(seq_request.id)
+        assert seq_request is not None
         assert len(seq_request.libraries) == NUM_LIBRARIES - 1
         assert seq_request.num_libraries == NUM_LIBRARIES - 1
 
         sample = session.get_sample(sample.id)
+        assert sample is not None
         assert len(sample.library_links) == NUM_LIBRARIES - 1
         assert sample.num_libraries == NUM_LIBRARIES - 1
 
@@ -186,10 +211,12 @@ def test_library_links(db: DBHandler):
 
     with DBSession(db) as session:
         user = session.get_user(user.id)
+        assert user is not None
         assert len(user.libraries) == 0
         assert len(user.requests) == 0
 
         project = session.get_project(project.id)
+        assert project is not None
         assert len(project.samples) == 0
         assert project.num_samples == 0
 
@@ -208,17 +235,21 @@ def test_cmos_links(db: DBHandler):
 
     with DBSession(db) as session:
         user = session.get_user(user.id)
+        assert user is not None
         assert len(user.samples) == NUM_SAMPLES
         assert user.num_samples == NUM_SAMPLES
 
         project = session.get_project(project.id)
+        assert project is not None
         assert len(project.samples) == NUM_SAMPLES
 
         seq_request = session.get_seq_request(seq_request.id)
+        assert seq_request is not None
         assert len(seq_request.libraries) == 1
         assert seq_request.num_libraries == 1
 
         library = session.get_library(library.id)
+        assert library is not None
         assert len(library.sample_links) == NUM_SAMPLES
         assert library.num_samples == NUM_SAMPLES
 
@@ -226,13 +257,16 @@ def test_cmos_links(db: DBHandler):
 
     with DBSession(db) as session:
         user = session.get_user(user.id)
+        assert user is not None
         assert len(user.samples) == 0
         assert user.num_samples == 0
 
         project = session.get_project(project.id)
+        assert project is not None
         assert len(project.samples) == 0
 
         seq_request = session.get_seq_request(seq_request.id)
+        assert seq_request is not None
         assert len(seq_request.libraries) == 0
         assert seq_request.num_libraries == 0
 
@@ -296,10 +330,12 @@ def test_experiment_lanes(db: DBHandler):
 
     with DBSession(db) as session:
         seq_request = session.get_seq_request(seq_request.id)
+        assert seq_request is not None
         assert len(seq_request.pools) == NUM_POOLS
         
         for pool in pools:
             pool = db.get_pool(pool.id)
+            assert pool is not None
             assert pool.num_libraries == len(pool.libraries)
 
     experiment = create_experiment(db, user, ExperimentWorkFlow.NOVASEQ_S4_XP)
@@ -312,6 +348,7 @@ def test_experiment_lanes(db: DBHandler):
 
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         assert len(experiment.lanes) == experiment.num_lanes
         assert experiment.num_lanes == experiment.flowcell_type.num_lanes
         assert experiment.num_lanes == ExperimentWorkFlow.NOVASEQ_S4_XP.flow_cell_type.num_lanes
@@ -322,9 +359,11 @@ def test_experiment_lanes(db: DBHandler):
 
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         assert len(experiment.pools) == NUM_POOLS + 1
 
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         for _lane in experiment.lanes:
             if _lane.number == 1:
                 assert _lane.id == lane.id
@@ -337,9 +376,11 @@ def test_experiment_lanes(db: DBHandler):
 
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         assert len(experiment.pools) == NUM_POOLS + 1
 
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         for lane in experiment.lanes:
             assert len(lane.pools) == 0
 
@@ -349,6 +390,7 @@ def test_experiment_lanes(db: DBHandler):
     with DBSession(db) as session:
         counter = 0
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         for lane in experiment.lanes:
             counter += len(lane.pools)
 
@@ -362,6 +404,7 @@ def test_experiment_lanes(db: DBHandler):
 
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         assert experiment.workflow == ExperimentWorkFlow.NOVASEQ_S2_XP
         assert experiment.num_lanes == ExperimentWorkFlow.NOVASEQ_S2_XP.flow_cell_type.num_lanes
         assert experiment.num_lanes == len(experiment.lanes)
@@ -373,6 +416,7 @@ def test_experiment_lanes(db: DBHandler):
 
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         assert experiment.workflow == ExperimentWorkFlow.NOVASEQ_S4_XP
         assert experiment.num_lanes == ExperimentWorkFlow.NOVASEQ_S4_XP.flow_cell_type.num_lanes
         assert experiment.num_lanes == len(experiment.lanes)
@@ -383,6 +427,7 @@ def test_experiment_lanes(db: DBHandler):
     assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_S4_STD.flow_cell_type.num_lanes
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         assert experiment.workflow == ExperimentWorkFlow.NOVASEQ_S4_STD
         assert experiment.num_lanes == ExperimentWorkFlow.NOVASEQ_S4_STD.flow_cell_type.num_lanes
 
@@ -396,6 +441,7 @@ def test_experiment_lanes(db: DBHandler):
     assert len(db.get_lanes(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_S1_STD.flow_cell_type.num_lanes
     with DBSession(db) as session:
         experiment = session.get_experiment(experiment.id)
+        assert experiment is not None
         assert experiment.workflow == ExperimentWorkFlow.NOVASEQ_S1_STD
         assert experiment.num_lanes == ExperimentWorkFlow.NOVASEQ_S1_STD.flow_cell_type.num_lanes
 
@@ -409,4 +455,5 @@ def test_experiment_lanes(db: DBHandler):
     with DBSession(db) as session:
         for pool in pools:
             pool = session.get_pool(pool.id)
+            assert pool is not None
             assert len(pool.lanes) == 0
