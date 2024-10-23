@@ -96,9 +96,15 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         for _, pool_reads_form in enumerate(self.sample_sub_forms):
             pool_idx = df["pool_id"] == pool_reads_form.pool_id.data
             df.loc[pool_idx, "num_m_reads_requested"] = pool_reads_form.m_reads.data
-            df.loc[pool_idx, "dilution"] = pool_reads_form.dilution.data
+            df.loc[pool_idx, "dilution"] = pool_reads_form.dilution.data if pool_reads_form.dilution.data else "Orig."  # FIXME: ?
 
-        for (pool_id, identifier), _df in df.groupby(["pool_id", "dilution"]):
+        for (pool_id, identifier, num_m_reads_requested), _df in df.groupby(["pool_id", "dilution", "num_m_reads_requested"], dropna=False):
+            if (pool := db.get_pool(pool_id)) is None:
+                logger.error(f"lane_pools_workflow: Pool with id {pool_id} does not exist")
+                raise ValueError(f"Pool with id {pool_id} does not exist")
+            # TODO: add to non-unified
+            pool.num_m_reads_requested = num_m_reads_requested
+            pool = db.update_pool(pool)
             if identifier == "Orig.":
                 continue
             if (dilution := db.get_pool_dilution(int(pool_id), identifier)) is None:
@@ -157,8 +163,6 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         )
 
         db.add_file_to_experiment(experiment.id, db_file.id)
-
-        logger.debug(f"File '{db_file.path}' uploaded by user '{user.id}'.")
         flash("Laning Completed!", "success")
 
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))

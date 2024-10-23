@@ -232,7 +232,8 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
         duplicate_sample_libraries = self.library_table.duplicated(subset=["sample_name", "library_type"], keep=False)
 
         seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
-
+        if "index_well" not in self.df.columns:
+            self.df["index_well"] = None
         self.df.loc[self.df["index_well"].notna(), "index_well"] = self.df.loc[self.df["index_well"].notna(), "index_well"].str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         for i, (idx, row) in enumerate(self.df.iterrows()):
