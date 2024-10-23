@@ -69,7 +69,6 @@ class TableDataForm():
                 else:
                     tables[label.strip()] = pd.read_csv(
                         io.StringIO(content), delimiter="\t", index_col=None, header=0,
-                        comment="#"
                     )
 
         self.__metadata = metadata

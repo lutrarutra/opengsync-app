@@ -106,7 +106,6 @@ class LanePoolingForm(HTMXFlaskForm):
             df.loc[pool_idx & lane_idx, "num_m_reads_requested"] = pool_reads_form.m_reads.data
             df.loc[pool_idx & lane_idx, "dilution"] = pool_reads_form.dilution.data
 
-        logger.debug(df[["pool_id", "dilution"]])
         for (pool_id, lane, identifier), _df in df.groupby(["pool_id", "lane", "dilution"], dropna=False):
             if identifier == "Orig.":
                 continue
@@ -176,8 +175,6 @@ class LanePoolingForm(HTMXFlaskForm):
         )
 
         db.add_file_to_experiment(experiment.id, db_file.id)
-
-        logger.debug(f"File '{db_file.path}' uploaded by user '{user.id}'.")
         flash("Laning Completed!", "success")
 
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))

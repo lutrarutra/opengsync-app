@@ -168,6 +168,11 @@ class BarcodeInputForm(HTMXFlaskForm):
         if self.df["pool"].isna().all():
             self.df["pool"] = "1"
 
+        self.df["kit_i7_name"] = None
+        self.df["kit_i5_name"] = None
+        self.df["kit_i7_id"] = None
+        self.df["kit_i5_id"] = None
+
         if self.df["kit_i7"].notna().any():
             index_kit_mapping_form = IndexKitMappingForm()
             index_kit_mapping_form.metadata["lab_prep_id"] = self.lab_prep.id
@@ -188,6 +193,8 @@ class BarcodeInputForm(HTMXFlaskForm):
         for idx, row in self.df.iterrows():
             seq_i7s = row["sequence_i7"].split(";") if pd.notna(row["sequence_i7"]) else []
             seq_i5s = row["sequence_i5"].split(";") if pd.notna(row["sequence_i5"]) else []
+            name_i7s = row["name_i7"].split(";") if pd.notna(row["name_i7"]) else []
+            name_i5s = row["name_i5"].split(";") if pd.notna(row["name_i5"]) else []
 
             for i in range(max(len(seq_i7s), len(seq_i5s))):
                 barcode_table_data["library_id"].append(row["library_id"])
@@ -195,6 +202,8 @@ class BarcodeInputForm(HTMXFlaskForm):
                 barcode_table_data["pool"].append(row["pool"])
                 barcode_table_data["sequence_i7"].append(seq_i7s[i] if len(seq_i7s) > i else None)
                 barcode_table_data["sequence_i5"].append(seq_i5s[i] if len(seq_i5s) > i else None)
+                barcode_table_data["name_i7"].append(name_i7s[i] if len(name_i7s) > i else None)
+                barcode_table_data["name_i5"].append(name_i5s[i] if len(name_i5s) > i else None)
         
         barcode_table = pd.DataFrame(barcode_table_data)
 

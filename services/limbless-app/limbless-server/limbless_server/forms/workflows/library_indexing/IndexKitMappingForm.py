@@ -66,11 +66,6 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
         library_table.loc[library_table["kit_i7"].notna(), "kit_i7"] = library_table.loc[library_table["kit_i7"].notna(), "kit_i7"].astype(str)
         library_table.loc[library_table["kit_i5"].notna(), "kit_i5"] = library_table.loc[library_table["kit_i5"].notna(), "kit_i5"].astype(str)
 
-        library_table["kit_i7_name"] = None
-        library_table["kit_i5_name"] = None
-        library_table["kit_i7_id"] = None
-        library_table["kit_i5_id"] = None
-
         kits: dict[int, tuple[models.IndexKit, pd.DataFrame]] = {}
 
         for i, entry in enumerate(self.input_fields):
@@ -130,7 +125,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             "name_i5": [],
         }
 
-        library_table["kit_defined"] = library_table["kit_i7_id"].notna() | library_table["kit_i5_id"].notna()
+        library_table["kit_defined"] = library_table["kit_i7"].notna() | library_table["kit_i5"].notna()
 
         for idx, row in library_table[library_table["kit_defined"]].iterrows():
             kit_i7, kit_i7_df = kits[row["kit_i7_id"]]

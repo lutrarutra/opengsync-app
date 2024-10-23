@@ -99,7 +99,7 @@ services:
             - ./uploads:/usr/src/app/uploads:ro
         depends_on:
             limbless-app:
-                condition: service_healthy
+                condition: service_started
                 restart: true
         environment:
             TZ: ${TIMEZONE}
