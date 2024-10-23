@@ -50,6 +50,14 @@ Web app for NGS sample/library/project tracking
 #### Restart service (e.g. update)
 - `sudo systemctl restart limbless`
 
+### Update
+- `prod-update.sh`
+    1. Creates temporary testing environment
+    1. Runs unit tests
+    1. If tests pass, pulls from git
+    1. Rebuilds containers
+    1. Restarts service (systemctl)
+
 ### 2. Or run production server
 - `chmod +x prod.sh`
 - `./prod.sh` 
