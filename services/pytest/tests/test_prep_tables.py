@@ -49,3 +49,7 @@ def test_rna_table():
 
 def test_wgs_table():
     wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, "WGS.xlsx"))
+
+
+def test_qseq_table():
+    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, "QSEQ.xlsx"))

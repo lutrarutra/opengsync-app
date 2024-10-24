@@ -274,8 +274,10 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     
     if lab_prep.protocol == LabProtocol.RNA_SEQ:
         filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "RNA.xlsx")
-    if lab_prep.protocol == LabProtocol.WGS:
+    elif lab_prep.protocol == LabProtocol.WGS:
         filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "WGS.xlsx")
+    elif lab_prep.protocol == LabProtocol.QUANT_SEQ:
+        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "QSEQ.xlsx")
     else:
         filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "template.xlsx")
 
