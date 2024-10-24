@@ -7,7 +7,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus
+from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus, PoolType
 
 from .... import db, forms, logger  # noqa
 
@@ -40,17 +40,26 @@ def get(page: int):
     
         if len(status_in) == 0:
             status_in = None
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [PoolType.get(int(type)) for type in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+
+        if len(type_in) == 0:
+            type_in = None
 
     pools, n_pages = db.get_pools(
         sort_by=sort_by, descending=descending,
-        offset=offset, status_in=status_in
+        offset=offset, status_in=status_in, type_in=type_in
     )
 
     return make_response(
         render_template(
             "components/tables/pool.html", pools=pools, n_pages=n_pages,
             sort_by=sort_by, sort_order=sort_order,
-            active_page=page, status_in=status_in
+            active_page=page, status_in=status_in, type_in=type_in
         )
     )
 

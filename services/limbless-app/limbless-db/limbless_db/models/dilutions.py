@@ -60,7 +60,7 @@ class PoolDilution(Base):
     
     @property
     def timestamp(self) -> datetime:
-        return localize(self.timestamp_utc)
+        return self.timestamp_utc
 
     def timestamp_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         return self.timestamp.strftime(fmt)

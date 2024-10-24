@@ -1,116 +1,109 @@
 {% from "components/legends.jinja2" import color_legend %}
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/spinner.jinja2' import spinner %}
+{% from "components/spreadsheet.jinja2" import spreadsheet %}
 
 <div id="sample-table-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
         <h1 class="modal-title fs-5">2. Specify {% if sas_input_form.metadata["workflow_type"] == "pooled" %} Pooled {% endif %} Libraries</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body">
-            <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
-                    id="form-tab-help-btn"
-                    data-bs-target="#form-tab-help" type="button" role="tab"
-                    aria-controls="form-tab-help" aria-selected="false">
-                    Help</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
-                    id="form-tab-spreadsheet-btn"
-                    data-bs-target="#form-tab-spreadsheet" type="button" role="tab"
-                    aria-controls="form-tab-spreadsheet" aria-selected="true">
-                    Sheet</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
-                    id="form-tab-file-btn"
-                    data-bs-target="#form-tab-file" type="button" role="tab"
-                    aria-controls="form-tab-file" aria-selected="true">
-                    File</button>
-                </li>
-                {% if index_1_kit_id is not none %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab"
-                    id="form-tab-kit1-btn"
-                    data-bs-target="#form-tab-kit1" type="button" role="tab"
-                    aria-controls="form-tab-kit1" aria-selected="true">
-                    Kit {% if index_1_kit_id != index_2_kit_id %}i7{% endif %}</button>
-                </li>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                id="form-tab-help-btn"
+                data-bs-target="#form-tab-help" type="button" role="tab"
+                aria-controls="form-tab-help" aria-selected="false">
+                Help</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                id="form-tab-spreadsheet-btn"
+                data-bs-target="#form-tab-spreadsheet" type="button" role="tab"
+                aria-controls="form-tab-spreadsheet" aria-selected="true">
+                Sheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
+                id="form-tab-file-btn"
+                data-bs-target="#form-tab-file" type="button" role="tab"
+                aria-controls="form-tab-file" aria-selected="true">
+                File</button>
+            </li>
+            {% if index_1_kit_id is not none %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="form-tab-kit1-btn"
+                data-bs-target="#form-tab-kit1" type="button" role="tab"
+                aria-controls="form-tab-kit1" aria-selected="true">
+                Kit {% if index_1_kit_id != index_2_kit_id %}i7{% endif %}</button>
+            </li>
+            {% endif %}
+            {% if index_2_kit_id is not none and index_1_kit_id != index_2_kit_id %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="form-tab-kit2-btn"
+                data-bs-target="#form-tab-kit2" type="button" role="tab"
+                aria-controls="form-tab-kit2" aria-selected="true">
+                Kit i5</button>
+            </li>
+            {% endif %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="form-tab-example-btn"
+                data-bs-target="#form-tab-example" type="button" role="tab"
+                aria-controls="form-tab-example" aria-selected="true">
+                Example</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="form-tab-help" role="tabpanel" tabindex="0">
+                {% if sas_input_form.metadata["workflow_type"] == "raw" %}
+                {% include "workflows/library_annotation/raw_instructions.html" %}
+                {% elif sas_input_form.metadata["workflow_type"] == "pooled" %}
+                {% include "workflows/library_annotation/pooled_instructions.html" %}
                 {% endif %}
-                {% if index_2_kit_id is not none and index_1_kit_id != index_2_kit_id %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab"
-                    id="form-tab-kit2-btn"
-                    data-bs-target="#form-tab-kit2" type="button" role="tab"
-                    aria-controls="form-tab-kit2" aria-selected="true">
-                    Kit i5</button>
-                </li>
-                {% endif %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab"
-                    id="form-tab-example-btn"
-                    data-bs-target="#form-tab-example" type="button" role="tab"
-                    aria-controls="form-tab-example" aria-selected="true">
-                    Example</button>
-                </li>
-            </ul>
-            <div class="tab-content">
-                <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="form-tab-help" role="tabpanel" tabindex="0">
-                    {% if sas_input_form.metadata["workflow_type"] == "raw" %}
-                    {% include "workflows/library_annotation/raw_instructions.html" %}
-                    {% elif sas_input_form.metadata["workflow_type"] == "pooled" %}
-                    {% include "workflows/library_annotation/pooled_instructions.html" %}
-                    {% endif %}
-                </div>
-                <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="form-tab-spreadsheet" role="tabpanel" tabindex="1">
-                    <div id="grid" class="spreadsheet-grid">
-                        <div class="invalid-feedback-container">
-                            {% for error in sas_input_form.spreadsheet_dummy.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
+            </div>
+            <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="form-tab-spreadsheet" role="tabpanel" tabindex="1">
+                {{ spreadsheet(id="grid", errors=sas_input_form.spreadsheet_dummy.errors) }}
+            </div>
+            <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="form-tab-file" role="tabpanel" tabindex="2">
+                <div id="sample-table-input-form">
+                    {{ sas_input_form.csrf_token() }}
+                    {{ sas_input_form.file_uuid(hidden=True, readonly=True) }}
+                    <div class="row">
+                        {{ form_group(sas_input_form.separator, class="col-2") }}
+                        {{ form_group(sas_input_form.file, class="col-10") }}
                     </div>
+                    <a href="{{ url_for('library_annotation_workflow.download_template', file=sas_input_form.metadata['workflow_type']) }}">
+                        Download Template
+                    </a>
                 </div>
-                <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="form-tab-file" role="tabpanel" tabindex="2">
-                    <div id="sample-table-input-form">
-                        {{ sas_input_form.csrf_token() }}
-                        {{ sas_input_form.file_uuid(hidden=True, readonly=True) }}
-                        <div class="row">
-                            {{ form_group(sas_input_form.separator, class="col-2") }}
-                            {{ form_group(sas_input_form.file, class="col-10") }}
-                        </div>
-                        <a href="{{ url_for('library_annotation_workflow.download_template', file=sas_input_form.metadata['workflow_type']) }}">
-                            Download Template
-                        </a>
-                    </div>
+            </div>
+            
+            {% if index_1_kit_id is defined and index_1_kit_id != none %}
+            <div class="tab-pane fade" id="form-tab-kit1" role="tabpanel" tabindex="3">
+                <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_1_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
                 </div>
-                
-                {% if index_1_kit_id is defined %}
-                <div class="tab-pane fade" id="form-tab-kit1" role="tabpanel" tabindex="3">
-                    <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_1_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                        {{ spinner() }}
-                    </div>
-                </div>
-                {% endif %}
+            </div>
+            {% endif %}
 
-                {% if index_2_kit_id is defined and index_1_kit_id != index_2_kit_id %}
-                <div class="tab-pane fade" id="form-tab-kit2" role="tabpanel" tabindex="4">
-                    <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_2_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                        {{ spinner() }}
-                    </div>
+            {% if index_2_kit_id is defined and index_2_kit_id != none and index_1_kit_id != index_2_kit_id %}
+            <div class="tab-pane fade" id="form-tab-kit2" role="tabpanel" tabindex="4">
+                <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_2_kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
                 </div>
-                {% endif %}
+            </div>
+            {% endif %}
 
-                <div class="tab-pane fade" id="form-tab-example" role="tabpanel" tabindex="5">
-                    {% if sas_input_form.metadata["workflow_type"] == "raw" %}
-                    {% include "components/examples/sas_raw.html" %}
-                    {% elif sas_input_form.metadata["workflow_type"] == "pooled" %}
-                    {% include "components/examples/sas_pooled.html" %}
-                    {% endif %}
-                </div>
+            <div class="tab-pane fade" id="form-tab-example" role="tabpanel" tabindex="5">
+                {% if sas_input_form.metadata["workflow_type"] == "raw" %}
+                {% include "components/examples/sas_raw.html" %}
+                {% elif sas_input_form.metadata["workflow_type"] == "pooled" %}
+                {% include "components/examples/sas_pooled.html" %}
+                {% endif %}
             </div>
         </div>
     </div>

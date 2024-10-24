@@ -35,7 +35,7 @@ class SeqRequestDisclaimerForm(FlaskForm):
 
 class BasicInfoSubForm(FlaskForm):
     request_name = StringField(
-        "Request Name", validators=[DataRequired(), Length(min=6, max=models.SeqRequest.name.type.length)],
+        "Request Name", validators=[DataRequired(), Length(min=5, max=models.SeqRequest.name.type.length)],
         description="Descriptive title of the samples and experiment."
     )
     

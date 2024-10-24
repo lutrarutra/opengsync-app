@@ -7,88 +7,86 @@
         <h1 class="modal-title fs-5" >10. Fixed RNA Profiling Annotation</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body">
-            <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#help-tab" type="button" role="tab"
-                    aria-controls="help-tab" aria-selected="false">
-                    Help</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
-                    id="spreadsheet-tab-btn"
-                    data-bs-target="#spreadsheet-tab" type="button" role="tab"
-                    aria-controls="spreadsheet-tab" aria-selected="true">
-                    Spreadsheet</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
-                    id="file-tab-btn"
-                    data-bs-target="#file-tab" type="button" role="tab"
-                    aria-controls="file-tab" aria-selected="true">
-                    File</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                    data-bs-target="#fixed-1-example-tab" type="button" role="tab"
-                    aria-controls="fixed-1-example-tab" aria-selected="true">
-                    Example 1.</button>
-                </li>
-            </ul>
-            <div class="tab-content" id="frp-reference-form" enctype="multipart/form-data">
-                {{ frp_annotation_form.csrf_token() }}
-                {{ frp_annotation_form.file_uuid(hidden=True, readonly=True) }}
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
+                id="file-tab-btn"
+                data-bs-target="#file-tab" type="button" role="tab"
+                aria-controls="file-tab" aria-selected="true">
+                File</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#fixed-1-example-tab" type="button" role="tab"
+                aria-controls="fixed-1-example-tab" aria-selected="true">
+                Example 1.</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="frp-reference-form" enctype="multipart/form-data">
+            {{ frp_annotation_form.csrf_token() }}
+            {{ frp_annotation_form.file_uuid(hidden=True, readonly=True) }}
 
-                <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
-                    <div class="input-help">
-                        <h5>How to?</h5>
-                        <ul>
-                            <li>Fill in the required columns and submit as a file or live spreadsheet.</li>
-                        </ul>
-                        <h5>Columns: </h5>
-                        <ul>
-                            <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
-                            <li>Barcode ID<span class="desc">e.g. 'BC001'</span></li>
-                            <li>Sample Name <span class="desc">name of the demultiplexed sample</span></li>
-                        </ul>
+            <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+                <div class="input-help">
+                    <h5>How to?</h5>
+                    <ul>
+                        <li>Fill in the required columns and submit as a file or live spreadsheet.</li>
+                    </ul>
+                    <h5>Columns: </h5>
+                    <ul>
+                        <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
+                        <li>Barcode ID<span class="desc">e.g. 'BC001'</span></li>
+                        <li>Sample Name <span class="desc">name of the demultiplexed sample</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
+                <div id="spreadsheet-grid" class="spreadsheet-grid">
+                    <div class="invalid-feedback-container">
+                        {% if not disabled %}
+                        {% for error in frp_annotation_form.spreadsheet_dummy.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
-                <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
-                    <div id="spreadsheet-grid" class="spreadsheet-grid">
-                        <div class="invalid-feedback-container">
-                            {% if not disabled %}
-                            {% for error in frp_annotation_form.spreadsheet_dummy.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                            {% endif %}
-                        </div>
-                    </div>
+            </div>
+            <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
+                <div class="input-help">
+                    <h5>How to?</h5>
+                    <ol>
+                        <li><a href="{{ url_for('library_annotation_workflow.download_frp_template', uuid=frp_annotation_form.file_uuid.data) }}">Download template</a></li>
+                        <li>Fill in the template</li>
+                        <li>Submit the file below</li>
+                    </ol>
+                    <h5>Columns:</h5>
+                    <ul>
+                        <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
+                        <li>Barcode ID<span class="desc">e.g. 'BC001'</span></li>
+                        <li>Sample Name <span class="desc">name of the demultiplexed sample</span></li>
+                    </ul>
                 </div>
-                <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
-                    <div class="input-help">
-                        <h5>How to?</h5>
-                        <ol>
-                            <li><a href="{{ url_for('library_annotation_workflow.download_frp_template', uuid=frp_annotation_form.file_uuid.data) }}">Download template</a></li>
-                            <li>Fill in the template</li>
-                            <li>Submit the file below</li>
-                        </ol>
-                        <h5>Columns:</h5>
-                        <ul>
-                            <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
-                            <li>Barcode ID<span class="desc">e.g. 'BC001'</span></li>
-                            <li>Sample Name <span class="desc">name of the demultiplexed sample</span></li>
-                        </ul>
-                    </div>
-                    <div class="row">
-                        {{ form_group(frp_annotation_form.separator, class="col-2") }}
-                        {{ form_group(frp_annotation_form.file, class="col-10") }}
-                    </div>
+                <div class="row">
+                    {{ form_group(frp_annotation_form.separator, class="col-2") }}
+                    {{ form_group(frp_annotation_form.file, class="col-10") }}
                 </div>
-                <div class="tab-pane fade" id="fixed-1-example-tab" role="tabpanel" tabindex="3">
-                    {% include "components/examples/fixed_rna_profiling.html" %}
-                </div>
+            </div>
+            <div class="tab-pane fade" id="fixed-1-example-tab" role="tabpanel" tabindex="3">
+                {% include "components/examples/fixed_rna_profiling.html" %}
             </div>
         </div>
     </div>

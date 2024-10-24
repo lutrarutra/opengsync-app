@@ -60,9 +60,6 @@ table input.table-query-input{
                 color: $cemm-blue-darker;
                 text-decoration: none;
             }
-            td .badge {
-                background-color: $cemm-blue;
-            }
         }
         .comma:not(:first-child):before {
             content: ", ";
@@ -152,6 +149,10 @@ table input.table-query-input{
 .table tbody {
     td, th {
         vertical-align: middle;
+    }
+
+    td .badge {
+        background-color: $cemm-blue;
     }
 
     td .quantity-container {

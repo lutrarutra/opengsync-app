@@ -1,6 +1,7 @@
 .modal-content {
     display: flex;
     flex-direction: column;
+    overflow-y: hidden;
     height: 100%;
 
     .modal-header {
@@ -8,48 +9,30 @@
     }
 
     .modal-body {
-        width: 100%;
+        overflow-y: auto;
         flex: 1;
         padding: 5px 15px 5px 15px;
-        overflow-y: hidden;
-        overflow-x: hidden;
     }
 
-    .tab-body {
-        overflow-y: hidden;
-        overflow-x: hidden;
+    .modal-body.tab-body {
+        display: flex;
+        flex-direction: column;
         height: 100%;
-        width: 100%;
-        
-        .nav-tabls {
+
+        .nav-tabs {
             height: 42px;
+            position: sticky;
+            margin-bottom: 5px;
         }
         .tab-content {
-            padding-top: 10px;
-            height: calc(100% - 45px);
-            width: 100%;
+            flex: 1;
             overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
             .tab-pane {
                 height: 100%;
-                overflow-y: hidden;
-                
-                .fs-spreadsheet-grid {
-                    position: absolute;
-                    padding: 10px 0 50px 0;
-                    display: flex;
-                    flex-direction: column;
-
-                    .invalid-feedback-container {
-                        display: flex;
-                        flex-direction: column;
-                        min-height: 70px;
-                        max-height: 70px;
-                        overflow-y: auto;
-                        padding: 0;
-                        width: 100%;
-                        overflow-x: auto;
-                    }
-                }
+                flex: 1;
+                overflow-y: auto;
             }
         }
     }
@@ -85,15 +68,12 @@
     }
 }
 
-
-
 .modal-lg, .modal-fullscreen-lg-down {
     .modal-content {
         width: 100%;
     }
     .modal-body {
         min-height: 500px;
-        overflow-y: auto;
 
         .tab-content {
             height: 100%;
@@ -116,7 +96,6 @@
         .modal-body {
             min-height: 70vh;
             max-height: calc(100vh - 180px);
-            overflow-y: auto;
 
             .tab-content {
                 height: 100%;

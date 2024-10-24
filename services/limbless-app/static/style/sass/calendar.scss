@@ -17,6 +17,7 @@
 
     .calendar {
         width: 100%;
+        height: 100%;
         display: flex;
         flex-direction: column;
         gap: 5px;
@@ -24,8 +25,9 @@
         padding-bottom: 10px;
 
         .week {
+            flex: 1 1 0px;
             width: 100%;
-            height: 100px;
+            overflow-y: hidden;
             display: flex;
             gap: 5px;
         }
@@ -35,6 +37,37 @@
             height: 100%;
             border: solid 1px #dee2e6;
             border-radius: 3px;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+            overflow-y: hidden;
+
+            .day-number {
+                margin: 0;
+                padding: 0;
+            }
+
+
+            ::-webkit-scrollbar {
+                width: 5px;
+                position: static;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 5px;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #ccc;
+                border-radius: 5px;
+            }
+            ul {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                overflow-y: auto;
+            }
         }
         .day.monthnot {
             background-color: #e9ecef;

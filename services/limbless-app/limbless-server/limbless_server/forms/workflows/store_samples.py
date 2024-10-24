@@ -7,7 +7,7 @@ from flask_htmx import make_response
 from wtforms.validators import Optional as OptionalValidator, Length
 from wtforms import StringField, SelectField
 
-from limbless_db import models, DBSession
+from limbless_db import models, DBSession, to_utc
 from limbless_db.categories import SampleStatus, LibraryStatus, PoolStatus
 
 from ... import db, logger
@@ -133,7 +133,7 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                 else:
                     sample.status = SampleStatus.STORED
 
-                sample.timestamp_stored_utc = datetime.now()
+                sample.timestamp_stored_utc = to_utc(datetime.now())
 
                 for library_link in sample.library_links:
                     library_link.library.status = LibraryStatus.PREPARING
@@ -150,7 +150,7 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                 else:
                     library.status = LibraryStatus.STORED
                 
-                library.timestamp_stored_utc = datetime.now()
+                library.timestamp_stored_utc = to_utc(datetime.now())
                 library = session.update_library(library)
 
             for i, row in pool_table.iterrows():
@@ -159,7 +159,7 @@ class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
                     raise ValueError(f"{self.uuid}: Pool {row['id']} not found")
                 
                 pool.status = PoolStatus.STORED
-                pool.timestamp_stored_utc = datetime.now()
+                pool.timestamp_stored_utc = to_utc(datetime.now())
                 pool = session.update_pool(pool)
 
         flash("Samples stored!", "success")

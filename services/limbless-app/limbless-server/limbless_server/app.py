@@ -1,13 +1,14 @@
 import os
 from uuid import uuid4
 from typing import TYPE_CHECKING
+from datetime import datetime
 
 import pandas as pd
 
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
-from limbless_db import categories, models, exceptions, db_session
+from limbless_db import categories, models, exceptions, db_session, TIMEZONE, localize, to_utc
 
 from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache
 from .routes import api, pages
@@ -41,6 +42,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             os.makedirs(path)
 
     logger.info(f"Debug mode: {app.debug}")
+    logger.info(f"TIMEZONE: {TIMEZONE}")
+    logger.info(f"Time: {datetime.now().strftime('%H:%M')} {localize(datetime.now(), 'UTC').strftime('%H:%M')} {to_utc(datetime.now()).strftime('%H:%M')}")
 
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAIL_SERVER"] = "smtp-relay.sendinblue.com"
@@ -212,7 +215,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             EventType=categories.EventType,
             PrepStatus=categories.PrepStatus,
             LabProtocol=categories.LabProtocol,
+            PoolType=categories.PoolType,
             isna=pd.isna,
+            notna=pd.notna,
         )
     
     @app.before_request

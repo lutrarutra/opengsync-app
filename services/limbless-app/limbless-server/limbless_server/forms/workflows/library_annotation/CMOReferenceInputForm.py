@@ -154,102 +154,92 @@ class CMOReferenceInputForm(HTMXFlaskForm, TableDataForm):
         self.cmo_table["sequence"] = self.cmo_table["sequence"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
         self.cmo_table["pattern"] = self.cmo_table["pattern"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
         self.cmo_table["read"] = self.cmo_table["read"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
-        kit_feature = pd.notna(self.cmo_table["kit"])
-        custom_feature = pd.notna(self.cmo_table["feature"]) & pd.notna(self.cmo_table["sequence"]) & pd.notna(self.cmo_table["pattern"]) & pd.notna(self.cmo_table["read"])
-        invalid_feature = pd.notna(self.cmo_table["kit"]) & (pd.notna(self.cmo_table["sequence"]) | pd.notna(self.cmo_table["pattern"]) | pd.notna(self.cmo_table["read"]))
+        kit_feature = pd.notna(self.cmo_table["kit"]) & pd.notna(self.cmo_table["feature"])
+        custom_feature = pd.notna(self.cmo_table["sequence"]) & pd.notna(self.cmo_table["pattern"]) & pd.notna(self.cmo_table["read"])
+        invalid_feature = (pd.notna(self.cmo_table["kit"]) | pd.notna(self.cmo_table["feature"])) & (pd.notna(self.cmo_table["sequence"]) | pd.notna(self.cmo_table["pattern"]) | pd.notna(self.cmo_table["read"]))
+
+        errors = []
+        
+        def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value", "invalid_input"]):
+            msg = f"Row {row_num}: {message}"
+            if msg not in errors:
+                errors.append(msg)
+            if self.input_type == "spreadsheet":
+                self.spreadsheet_style[f"{CMOReferenceInputForm.columns[column].column}{row_num}"] = f"background-color: {CMOReferenceInputForm.colors[color]};"
+                self.spreadsheet_dummy.errors = errors
+            else:
+                self.file.errors = errors
 
         for i, (idx, row) in enumerate(self.cmo_table.iterrows()):
+            # sample name not defined
             if pd.isna(row["sample_name"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Sample Name' must be specified.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Sample Name' must be specified.")
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['sample_name'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
+                add_error(i + 1, "sample_name", "'Sample Name' must be specified.", "missing_value")
+
+            # sample name not found in library table
             elif row["sample_name"] not in library_table["sample_name"].values:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Sample Name' must be found in 'Sample Name'-column of sample annotation sheet.")
-                else:
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['sample_name'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Sample Name' must be found in 'Sample Name'-column of sample annotation sheet.")
+                add_error(i + 1, "sample_name", f"'Sample Name' must be one of: [{', '.join(set(library_table['sample_name'].values.tolist()))}]", "invalid_value")
 
+            # Demux name not defined
             if pd.isna(row["demux_name"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Demux Name' must be specified.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Demux Name' must be specified.")
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['demux_name'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
+                add_error(i + 1, "demux_name", "'Demux Name' must be specified.", "missing_value")
 
-            if invalid_feature.at[idx]:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-                else:
-                    for col in CMOReferenceInputForm.columns.values():
-                        if col.label in ["demux_name", "sample_name"]:
-                            continue
-                        if pd.notna(row[col.label]):
-                            self.spreadsheet_style[f"{col.column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_input']};"
-                    self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-            elif (not custom_feature.at[idx] and not kit_feature.at[idx]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-                else:
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['kit'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['feature'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['sequence'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['pattern'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
+            # Not defined custom nor kit feature
+            if (not custom_feature.at[idx] and not kit_feature.at[idx]):
+                add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                add_error(i + 1, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+
+            # Defined both custom and kit feature
             elif custom_feature.at[idx] and kit_feature.at[idx]:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i+1} must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.")
-                else:
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['kit'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['feature'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['sequence'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['pattern'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_style[f"{CMOReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.")
-            elif custom_feature.at[idx]:
-                idx_sample_name = self.cmo_table["sample_name"] == row["sample_name"]
-                idx_sequence = self.cmo_table["sequence"] == row["sequence"]
-                idx_pattern = self.cmo_table["pattern"] == row["pattern"]
-                idx_read = self.cmo_table["read"] == row["read"]
+                add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                add_error(i + 1, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
 
-                idx = idx_sequence & idx_pattern & idx_read
-                if pd.notna(row["sample_name"]):
-                    idx = idx & idx_sample_name
-
-                if self.cmo_table[idx].shape[0] > 1:
-                    if self.input_type == "file":
-                        self.file.errors.append(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same sample.")
-                    else:
-                        self.spreadsheet_style[f"{CMOReferenceInputForm.columns['sequence'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['duplicate_value']};"
-                        self.spreadsheet_style[f"{CMOReferenceInputForm.columns['pattern'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['duplicate_value']};"
-                        self.spreadsheet_style[f"{CMOReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['duplicate_value']};"
-                        self.spreadsheet_dummy.errors.append(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same sample.")
-
-            elif kit_feature.at[idx]:
-                idx_sample_name = self.cmo_table["sample_name"] == row["sample_name"]
-                idx_kit = self.cmo_table["kit"] == row["kit"]
-                idx_feature = self.cmo_table["feature"] == row["feature"]
-                idx = True
-                if pd.notna(row["sample_name"]):
-                    idx = idx & idx_sample_name
+            elif invalid_feature.at[idx]:
                 if pd.notna(row["kit"]):
-                    idx = idx & idx_kit
+                    add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
                 if pd.notna(row["feature"]):
-                    idx = idx & idx_feature
+                    add_error(i + 1, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                if pd.notna(row["sequence"]):
+                    add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                if pd.notna(row["pattern"]):
+                    add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                if pd.notna(row["read"]):
+                    add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+
+            # Duplicate custom feature in sample
+            # elif custom_feature.at[idx]:
+            #     idx_sample_name = self.cmo_table["sample_name"] == row["sample_name"]
+            #     idx_sequence = self.cmo_table["sequence"] == row["sequence"]
+            #     idx_pattern = self.cmo_table["pattern"] == row["pattern"]
+            #     idx_read = self.cmo_table["read"] == row["read"]
+
+            #     idx = idx_sequence & idx_pattern & idx_read
+            #     if pd.notna(row["sample_name"]):
+            #         idx = idx & idx_sample_name
+
+            #     if self.cmo_table[idx].shape[0] > 1:
+            #         add_error(i + 1, "sequence", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same sample.", "duplicate_value")
+
+            # Duplicate kit feature in sample
+            # elif kit_feature.at[idx]:
+            #     idx_sample_name = self.cmo_table["sample_name"] == row["sample_name"]
+            #     idx_kit = self.cmo_table["kit"] == row["kit"]
+            #     idx_feature = self.cmo_table["feature"] == row["feature"]
+            #     idx = True
+            #     if pd.notna(row["sample_name"]):
+            #         idx = idx & idx_sample_name
+            #     if pd.notna(row["kit"]):
+            #         idx = idx & idx_kit
+            #     if pd.notna(row["feature"]):
+            #         idx = idx & idx_feature
                 
-                if self.cmo_table[idx].shape[0] > 1:
-                    if self.input_type == "file":
-                        self.file.errors.append(f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same sample.")
-                    else:
-                        self.spreadsheet_style[f"{CMOReferenceInputForm.columns['kit'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['duplicate_value']};"
-                        if pd.notna(row["sample_name"]):
-                            self.spreadsheet_style[f"{CMOReferenceInputForm.columns['sample_name'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['duplicate_value']};"
-                        if pd.notna(row["feature"]):
-                            self.spreadsheet_style[f"{CMOReferenceInputForm.columns['feature'].column}{i+1}"] = f"background-color: {CMOReferenceInputForm.colors['duplicate_value']};"
-                        self.spreadsheet_dummy.errors.append(f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same sample.")
+            #     if self.cmo_table[idx].shape[0] > 1:
+            #         add_error(i + 1, "kit", f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same sample.", "duplicate_value")
 
         if self.input_type == "file":
             validated = validated and len(self.file.errors) == 0

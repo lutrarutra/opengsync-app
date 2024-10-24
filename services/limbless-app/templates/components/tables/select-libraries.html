@@ -138,7 +138,7 @@
             });
 
             $(document).keydown(function(e) {
-                if (e.metaKey && e.key === "a") {
+                if (e.ctrlKey && e.key === "a") {
                     e.preventDefault();
                     $(".library-row").each(function() {
                         if ($(this).is(":visible")) {
