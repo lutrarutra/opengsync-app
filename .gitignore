@@ -15,6 +15,7 @@ test*.ipynb
 licensed/
 rclone/
 !templates/rclone
+~*.xlsx
 
 .snakemake/
 .VSCodeCounter/
