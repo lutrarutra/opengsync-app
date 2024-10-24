@@ -153,12 +153,8 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
 
         self.feature_table["library_name"] = self.feature_table["library_name"].apply(lambda x: tools.make_alpha_numeric(x))
         self.feature_table["sequence"] = self.feature_table["sequence"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
-        self.feature_table["pattern"] = self.feature_table["pattern"].apply(lambda x: x.strip())
+        self.feature_table["pattern"] = self.feature_table["pattern"].apply(lambda x: x.strip() if pd.notna(x) else None)
         self.feature_table["read"] = self.feature_table["read"].apply(lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with=None))
-        self.feature_table["kit_feature"] = pd.notna(self.feature_table["kit"])
-        self.feature_table["custom_feature"] = pd.notna(self.feature_table["feature"]) & pd.notna(self.feature_table["sequence"]) & pd.notna(self.feature_table["pattern"]) & pd.notna(self.feature_table["read"])
-        self.feature_table["invalid_feature"] = pd.notna(self.feature_table["kit"]) & (pd.notna(self.feature_table["sequence"]) | pd.notna(self.feature_table["pattern"]) | pd.notna(self.feature_table["read"]))
-        self.feature_table["duplicated"] = self.feature_table.duplicated(keep=False)
             
         # If ABC library is not mentioned in the feature table, i.e. no features assigned to it
         mentioned_abc_libraries = abc_libraries["library_name"].isin(self.feature_table["library_name"])
@@ -168,56 +164,63 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
                 self.file.errors.append(f"No features assigned to libraries: {unmentioned}")
             else:
                 self.spreadsheet_dummy.errors.append(f"No features assigned to libraries: {unmentioned}")
-
             return False
+        
+        kit_feature = pd.notna(self.feature_table["kit"])
+        custom_feature = pd.notna(self.feature_table["feature"]) & pd.notna(self.feature_table["sequence"]) & pd.notna(self.feature_table["pattern"]) & pd.notna(self.feature_table["read"])
+        invalid_feature = pd.notna(self.feature_table["kit"]) & (pd.notna(self.feature_table["sequence"]) | pd.notna(self.feature_table["pattern"]) | pd.notna(self.feature_table["read"]))
+        duplicated = self.feature_table.duplicated(keep=False)
+        errors = []
+        
+        def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value", "invalid_input"]):
+            msg = f"Row {row_num}: {message}"
+            if msg not in errors:
+                errors.append(msg)
+            if self.input_type == "spreadsheet":
+                self.spreadsheet_style[f"{FeatureReferenceInputForm.columns[column].column}{row_num}"] = f"background-color: {FeatureReferenceInputForm.colors[color]};"
+                self.spreadsheet_dummy.errors = errors
+            else:
+                self.file.errors = errors
 
-        for i, (_, row) in enumerate(self.feature_table.iterrows()):
-            if row["duplicated"]:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i+1} is a duplicate.")
-                else:
-                    for col in FeatureReferenceInputForm.columns.values():
-                        self.spreadsheet_style[f"{col.column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['duplicate_value']};"
-                    self.spreadsheet_dummy.errors.append(f"Row {i+1} is a duplicate.")
+        for i, (idx, row) in enumerate(self.feature_table.iterrows()):
+            if duplicated.at[idx]:
+                add_error(i + 1, "library_name", "duplicate feature definition", "duplicate_value")
+                add_error(i + 1, "kit", "duplicate feature definition", "duplicate_value")
+                add_error(i + 1, "feature", "duplicate feature definition", "duplicate_value")
+                add_error(i + 1, "sequence", "duplicate feature definition", "duplicate_value")
+                add_error(i + 1, "pattern", "duplicate feature definition", "duplicate_value")
+                add_error(i + 1, "read", "duplicate feature definition", "duplicate_value")
 
             if pd.notna(row["library_name"]) and row["library_name"] not in abc_libraries["library_name"].values:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i+1} has an invalid 'Library Name'.")
-                else:
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['library_name'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_dummy.errors.append(f"Library Name specified in Row {i+1} is not found in annotation sheet (must be of type Antibody Capture).")
+                add_error(i + 1, "library_name", f"'Library Name' must be one of: [{', '.join(set(abc_libraries['library_name'].values.tolist()))}]", "invalid_value")
 
-            if row["invalid_feature"]:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-                else:
-                    for col in FeatureReferenceInputForm.columns.values():
-                        if col.label == "library_name":
-                            continue
-                        if pd.notna(row[col.label]):
-                            self.spreadsheet_style[f"{col.column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['invalid_input']};"
-                    self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-            elif (not row["custom_feature"] and not row["kit_feature"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-                else:
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['kit'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['feature'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['sequence'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['pattern'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['missing_value']};"
-                    self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.")
-            elif row["custom_feature"] and row["kit_feature"]:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i+1} must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.")
-                else:
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['kit'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['feature'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['sequence'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['pattern'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['invalid_value']};"
-                    self.spreadsheet_dummy.errors.append(f"Row {i+1} must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.")
-            elif row["custom_feature"]:
+            # Defined both kit and custom
+            if invalid_feature.at[idx]:
+                if pd.notna(row["kit"]):
+                    add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
+                if pd.notna(row["sequence"]):
+                    add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
+                if pd.notna(row["pattern"]):
+                    add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
+                if pd.notna(row["read"]):
+                    add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
+            # Not defined custom nor kit feature
+            elif (not custom_feature.at[idx] and not kit_feature.at[idx]):
+                add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                add_error(i + 1, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+
+            # Defined both custom and kit feature
+            elif custom_feature.at[idx] and kit_feature.at[idx]:
+                add_error(i + 1, "kit", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                add_error(i + 1, "feature", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                add_error(i + 1, "sequence", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                add_error(i + 1, "pattern", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                add_error(i + 1, "read", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+
+            elif custom_feature.at[idx]:
                 idx_library_name = self.feature_table["library_name"] == row["library_name"]
                 idx_sequence = self.feature_table["sequence"] == row["sequence"]
                 idx_pattern = self.feature_table["pattern"] == row["pattern"]
@@ -228,13 +231,10 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
                     idx = idx & idx_library_name
 
                 if self.feature_table[idx].shape[0] > 1:
-                    if self.input_type == "file":
-                        self.file.errors.append(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.")
-                    else:
-                        self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['sequence'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['duplicate_value']};"
-                        self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['pattern'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['duplicate_value']};"
-                        self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['read'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['duplicate_value']};"
-                        self.spreadsheet_dummy.errors.append(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.")
+                    add_error(i + 1, "sequence", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
+                    add_error(i + 1, "pattern", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
+                    add_error(i + 1, "read", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
+
             elif row["kit_feature"]:
                 idx_library_name = self.feature_table["library_name"] == row["library_name"]
                 idx_kit = self.feature_table["kit"] == row["kit"]
@@ -248,15 +248,7 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
                     idx = idx & idx_feature
                 
                 if self.feature_table[idx].shape[0] > 1:
-                    if self.input_type == "file":
-                        self.file.errors.append(f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same library.")
-                    else:
-                        self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['kit'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['duplicate_value']};"
-                        if pd.notna(row["library_name"]):
-                            self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['library_name'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['duplicate_value']};"
-                        if pd.notna(row["feature"]):
-                            self.spreadsheet_style[f"{FeatureReferenceInputForm.columns['feature'].column}{i+1}"] = f"background-color: {FeatureReferenceInputForm.colors['duplicate_value']};"
-                        self.spreadsheet_dummy.errors.append(f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same library.")
+                    add_error(i + 1, "feature", f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same library.", "duplicate_value")
 
         if self.input_type == "file":
             validated = validated and len(self.file.errors) == 0

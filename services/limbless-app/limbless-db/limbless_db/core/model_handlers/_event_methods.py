@@ -19,7 +19,7 @@ def create_event(
 
     if (_ := self.session.get(models.User, user_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-    
+
     event = models.Event(
         title=title.strip(),
         timestamp_utc=timestamp_utc,

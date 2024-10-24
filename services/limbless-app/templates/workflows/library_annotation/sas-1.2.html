@@ -7,30 +7,28 @@
         <h1 class="modal-title fs-5">1.2 Describe Library-Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body" id="pool-definition-form">
-            <h4>Define new Pool</h4>
-            {{ pool_form.csrf_token() }}
-            <div class="row">
-                {{ form_group(pool_form.name, class="col-6") }}
-                {{ form_group(pool_form.num_m_reads_requested, class="col-6") }}
-            </div>
-            <div class="row">
-                {{ form_group(pool_form.contact_name, class="col-4") }}
-                {{ form_group(pool_form.contact_email, class="col-4") }}
-                {{ form_group(pool_form.contact_phone, class="col-4") }}
-            </div>
-            <h5 class="text-muted">or</h5>
-            <h4>Existing Pool</h4>
-            {{
-                search_select_field(
-                    pool_form.existing_pool,
-                    url_for('pools_htmx.query', seq_request_id=seq_request.id),
-                )
-            }}
-            {{ pool_form.file_uuid(hidden=True, readonly=True) }}
-            {{ pool_form.csrf_token() }}
+    <div class="modal-body tab-body" id="pool-definition-form">
+        <h4>Define new Pool</h4>
+        {{ pool_form.csrf_token() }}
+        <div class="row">
+            {{ form_group(pool_form.name, class="col-6") }}
+            {{ form_group(pool_form.num_m_reads_requested, class="col-6") }}
         </div>
+        <div class="row">
+            {{ form_group(pool_form.contact_name, class="col-4") }}
+            {{ form_group(pool_form.contact_email, class="col-4") }}
+            {{ form_group(pool_form.contact_phone, class="col-4") }}
+        </div>
+        <h5 class="text-muted">or</h5>
+        <h4>Existing Pool</h4>
+        {{
+            search_select_field(
+                pool_form.existing_pool,
+                url_for('pools_htmx.query', seq_request_id=seq_request.id),
+            )
+        }}
+        {{ pool_form.file_uuid(hidden=True, readonly=True) }}
+        {{ pool_form.csrf_token() }}
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">

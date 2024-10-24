@@ -6,62 +6,60 @@
         <h1 class="modal-title fs-5">1. Check Barcode Conflicts</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
     </div> 
-    <div class="modal-body">
-        <div id="barcode-check-form" class="tab-body">
-            {{ check_barcode_clashes_form.csrf_token() }}
-            <ul class="nav nav-tabs" role="tablist">
-                {% for lane, _df in df.groupby("lane") %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if lane == 1 %}active{% endif %} {% if _df['error'].notna().any() %}cemm-red{% elif _df['warning'].notna().any() %}cemm-yellow{% else %}cemm-green{% endif %}" data-bs-toggle="tab"
-                    id="spreadsheet-tab-btn"
-                    data-bs-target="#lane-{{lane}}-tab" type="button" role="tab"
-                    aria-controls="lane-{{lane}}-tab" aria-selected="true">Lane {{lane}}
-                    </button>
-                </li>
-                {% endfor %}
-            </ul>
-            <div class="tab-content">
-                {% for lane, _df in df.groupby("lane") %}
-                <div class="tab-pane fade{% if lane == 1 %} show active{% endif %}" id="lane-{{lane}}-tab" role="tabpanel" tabindex="{{lane}}">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-1">Library ID</th>
-                                <th scope="col" class="col-3">Name</th>
-                                <th scope="col" class="col-2">Pool</th>
-                                <th scope="col" class="col-2"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
-                                <th scope="col" class="col-2">Index i7</th>
-                                <th scope="col" class="col-2">Index i5</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in _df.iterrows() %}
-                            {% if row["error"] %}
-                            <tr {{ tooltip(row["error"], category="error") }}>
-                            {% elif row["warning"] %}
-                            <tr {{ tooltip(row["warning"], category="warning") }}>
+    <div class="modal-body tab-body" id="barcode-check-form">
+        {{ check_barcode_clashes_form.csrf_token() }}
+        <ul class="nav nav-tabs" role="tablist">
+            {% for lane, _df in df.groupby("lane") %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if lane == 1 %}active{% endif %} {% if _df['error'].notna().any() %}cemm-red{% elif _df['warning'].notna().any() %}cemm-yellow{% else %}cemm-green{% endif %}" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#lane-{{lane}}-tab" type="button" role="tab"
+                aria-controls="lane-{{lane}}-tab" aria-selected="true">Lane {{lane}}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content">
+            {% for lane, _df in df.groupby("lane") %}
+            <div class="tab-pane fade{% if lane == 1 %} show active{% endif %}" id="lane-{{lane}}-tab" role="tabpanel" tabindex="{{lane}}">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">Library ID</th>
+                            <th scope="col" class="col-3">Name</th>
+                            <th scope="col" class="col-2">Pool</th>
+                            <th scope="col" class="col-2"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
+                            <th scope="col" class="col-2">Index i7</th>
+                            <th scope="col" class="col-2">Index i5</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for _, row in _df.iterrows() %}
+                        {% if row["error"] %}
+                        <tr {{ tooltip(row["error"], category="error") }}>
+                        {% elif row["warning"] %}
+                        <tr {{ tooltip(row["warning"], category="warning") }}>
+                        {% else %}
+                        <tr>
+                        {% endif %}
+                            <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] }}</td>
+                            <td>{{ row["library_name"] }}</td>
+                            <td>{{ row["pool_name"] }}</td>
+                            <td {% if row["min_hamming_bases"] < 1 %}
+                            class="cemm-red"
+                            {% elif row["min_hamming_bases"] < 2 %}
+                            class="cemm-yellow"
                             {% else %}
-                            <tr>
-                            {% endif %}
-                                <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] }}</td>
-                                <td>{{ row["library_name"] }}</td>
-                                <td>{{ row["pool_name"] }}</td>
-                                <td {% if row["min_hamming_bases"] < 1 %}
-                                class="cemm-red"
-                                {% elif row["min_hamming_bases"] < 2 %}
-                                class="cemm-yellow"
-                                {% else %}
-                                class="cemm-green"
-                                {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
-                                <td class="index-cell-1">{{ row["sequence_i7"] if not isna(row["sequence_i7"]) }}</td>
-                                <td class="index-cell-2">{{ row["sequence_i5"] if not isna(row["sequence_i5"]) }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% endfor %}
+                            class="cemm-green"
+                            {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
+                            <td class="index-cell-1">{{ row["sequence_i7"] if not isna(row["sequence_i7"]) }}</td>
+                            <td class="index-cell-2">{{ row["sequence_i5"] if not isna(row["sequence_i5"]) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            {% endfor %}
         </div>
     </div>
     <div class="modal-footer">

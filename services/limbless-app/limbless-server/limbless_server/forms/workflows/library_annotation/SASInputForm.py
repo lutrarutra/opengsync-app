@@ -224,23 +224,24 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
                 
         for label, column in columns.items():
             if column.clean_up_fnc is not None:
-                self.df[label] = self.df[label].apply(column.clean_up_fnc)
+                self.library_table[label] = self.library_table[label].apply(column.clean_up_fnc)
 
         def base_filter(x: str) -> list[str]:
             return list(set([c for c in x if c not in "ACGT"]))
         
-        duplicate_sample_libraries = self.library_table.duplicated(subset=["sample_name", "library_type"], keep=False)
+        duplicate_sample_libraries = self.library_table.duplicated(subset=["sample_name", "library_type"])
 
         seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
-        if "index_well" not in self.df.columns:
-            self.df["index_well"] = None
-        self.df.loc[self.df["index_well"].notna(), "index_well"] = self.df.loc[self.df["index_well"].notna(), "index_well"].str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+        if "index_well" not in self.library_table.columns:
+            self.library_table["index_well"] = None
+        self.library_table.loc[self.library_table["index_well"].notna(), "index_well"] = self.library_table.loc[self.library_table["index_well"].notna(), "index_well"].str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
-        for i, (idx, row) in enumerate(self.df.iterrows()):
+        for i, (idx, row) in enumerate(self.library_table.iterrows()):
             if pd.isna(row["sample_name"]):
                 add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
+                continue
 
-            if duplicate_sample_libraries[i]:
+            if duplicate_sample_libraries.at[idx]:
                 add_error(i + 1, "sample_name", "Duplicate 'Sample Name' and 'Library Type'", "duplicate_value")
 
             if ((seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.name) == row["library_type"])).any():
@@ -308,7 +309,7 @@ class SASInputForm(HTMXFlaskForm, TableDataForm):
 
                         if kit_2.type == IndexType.DUAL_INDEX:
                             if pd.isna(row["index_i5"]):
-                                self.df.at[idx, "index_i5"] = row["index_i7"]
+                                self.library_table.at[idx, "index_i5"] = row["index_i7"]
                                 row["index_i5"] = row["index_i7"]
                                 
                             if len(index_i5_sequences := kit_2_df.loc[(kit_2_df["name"] == row["index_i5"]) & (kit_2_df["type"] == BarcodeType.INDEX_I5), "sequence"].tolist()) == 0:  # type: ignore

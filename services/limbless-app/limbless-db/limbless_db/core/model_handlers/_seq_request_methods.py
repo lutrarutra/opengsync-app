@@ -8,6 +8,8 @@ from sqlalchemy.sql.operators import or_
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
+
+from ... import to_utc
 from ... import models, PAGE_LIMIT
 from ...categories import SeqRequestStatus, FileType, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType, SubmissionTypeEnum, AccessType, AccessTypeEnum
 from .. import exceptions
@@ -201,7 +203,7 @@ def submit_seq_request(self: "DBHandler", seq_request_id: int) -> models.SeqRequ
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
     seq_request.status = SeqRequestStatus.SUBMITTED
-    seq_request.timestamp_submitted_utc = datetime.now()
+    seq_request.timestamp_submitted_utc = to_utc(datetime.now())
     for library in seq_request.libraries:
         if library.status == LibraryStatus.DRAFT:
             library.status = LibraryStatus.SUBMITTED
@@ -460,6 +462,11 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
 
     seq_request.status = status
+
+    if seq_request.status in [SeqRequestStatus.DRAFT, SeqRequestStatus.REJECTED]:
+        seq_request.timestamp_submitted_utc = None
+        self.session.delete(seq_request.sample_submission_event)
+        seq_request.sample_submission_event = None
     
     if status == SeqRequestStatus.ACCEPTED:
         sample_status = SampleStatus.ACCEPTED

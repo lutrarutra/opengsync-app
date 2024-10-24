@@ -1,6 +1,7 @@
 
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/legends.jinja2" import color_legend %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar, experiment_status_bar with context %}
 
 {% extends "base.html" %}
@@ -55,6 +56,9 @@
             <div class="dash-top">
                 <div class="dash-component-header">
                     <h4>Calendar</h4>
+                    <div style="width: 100%;" class="d-flex justify-content-center">
+                        {{ color_legend(EventType.to_color_legend()) }}
+                    </div>
                 </div>
                 <div hx-get="{{ url_for('events_htmx.render_calendar_month') }}" hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}

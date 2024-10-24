@@ -6,86 +6,84 @@
         <h1 class="modal-title fs-5" >Select Libraries</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body">
-            <ul class="nav nav-tabs" id="auth-tab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="available-tab-btn" data-bs-toggle="tab" data-bs-target="#available-tab"
-                        type="button" role="tab" aria-controls="available-tab" aria-selected="true">
-                        Available
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-tab"
-                        type="button" role="tab" aria-controls="selected-tab" aria-selected="false">
-                        Selected ({{ selected_libraries | length }})
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="pooled-tab-btn" data-bs-toggle="tab" data-bs-target="#pooled-tab"
-                        type="button" role="tab" aria-controls="pooled-tab" aria-selected="false">
-                        Pooled ({{ libraries | length }})
-                    </button>
-                </li>
-            </ul>
-            <div class="tab-content">
-                <div class="invalid-feedback-container">
-                    {% for error in library_pooling_form.selected_library_ids.errors %}
-                        <p>{{ error }}</p>
-                    {% endfor %}
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="available-tab-btn" data-bs-toggle="tab" data-bs-target="#available-tab"
+                    type="button" role="tab" aria-controls="available-tab" aria-selected="true">
+                    Available
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="selected-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-tab"
+                    type="button" role="tab" aria-controls="selected-tab" aria-selected="false">
+                    Selected ({{ selected_libraries | length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pooled-tab-btn" data-bs-toggle="tab" data-bs-target="#pooled-tab"
+                    type="button" role="tab" aria-controls="pooled-tab" aria-selected="false">
+                    Pooled ({{ libraries | length }})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="invalid-feedback-container">
+                {% for error in library_pooling_form.selected_library_ids.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            <div class="tab-pane fade show active" id="available-tab" role="tabpanel" tabindex="0">
+                <div class="library_pooling-form"
+                {% if seq_request_id %}
+                hx-get="{{ url_for('library_pooling_workflow.get_libraries', seq_request_id=seq_request_id) }}"
+                {% else %}
+                hx-get="{{ url_for('library_pooling_workflow.get_libraries') }}"
+                {% endif %} hx-trigger="intersect once">
                 </div>
-                <div class="tab-pane fade show active" id="available-tab" role="tabpanel" tabindex="0">
-                    <div class="library_pooling-form"
-                    {% if seq_request_id %}
-                    hx-get="{{ url_for('library_pooling_workflow.get_libraries', seq_request_id=seq_request_id) }}"
-                    {% else %}
-                    hx-get="{{ url_for('library_pooling_workflow.get_libraries') }}"
-                    {% endif %} hx-trigger="intersect once">
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="selected-tab" role="tabpanel" tabindex="1">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th scope="col">ID</th>
-                                <th scope="col">Name</th>
-                                <th scope="col">Type</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Owner</th>
-                            </tr>
-                        </thead>
-                        <tbody id="selected-table-container">
-                        </tbody>
-                    </table>
-                </div>
-                <div class="tab-pane fade" id="pooled-tab" role="tabpanel" tabindex="1">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th scope="col">ID</th>
-                                <th scope="col">Name</th>
-                                <th scope="col">Type</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Owner</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pooled-table-container">
-                            {% for library in libraries %}
-                            <tr onclick="toggle_library({{ library.id }});" id="current-library-row-{{ library.id }}" class="library-row current">
-                                <th scope="row">{{ library.id }}</th>
-                                <td>{{ library.name }}</td>
-                                <td>
-                                    <span {{ tooltip(library.type.name) }}>
-                                        {{ library.type.abbreviation }}
-                                    </span>
-                                </td>
-                                <td>{{ library.status.name }} {{ library.status.icon }}</td>
-                                <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            </div>
+            <div class="tab-pane fade" id="selected-tab" role="tabpanel" tabindex="1">
+                <table class="table table-hover table-cursor">
+                    <thead>
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Owner</th>
+                        </tr>
+                    </thead>
+                    <tbody id="selected-table-container">
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="pooled-tab" role="tabpanel" tabindex="1">
+                <table class="table table-hover table-cursor">
+                    <thead>
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Owner</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pooled-table-container">
+                        {% for library in libraries %}
+                        <tr onclick="toggle_library({{ library.id }});" id="current-library-row-{{ library.id }}" class="library-row current">
+                            <th scope="row">{{ library.id }}</th>
+                            <td>{{ library.name }}</td>
+                            <td>
+                                <span {{ tooltip(library.type.name) }}>
+                                    {{ library.type.abbreviation }}
+                                </span>
+                            </td>
+                            <td>{{ library.status.name }} {{ library.status.icon }}</td>
+                            <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

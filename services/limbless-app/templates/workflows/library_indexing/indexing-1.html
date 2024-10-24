@@ -2,6 +2,7 @@
 {% from "components/table_input.jinja2" import table_input %}
 {% from "components/legends.jinja2" import color_legend %}
 {% from "components/search_select.jinja2" import search_select_field %}
+{% from "components/spreadsheet.jinja2" import spreadsheet %}
 
 <div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
@@ -30,7 +31,7 @@
                 Example 1.</button>
             </li>
         </ul>
-        <div class="tab-content" id="library_pooling-form" enctype="multipart/form-data">
+        <div class="tab-content" id="library_pooling-form">
             {{ library_indexing_form.csrf_token() }}
             <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
                 <div class="input-help">
@@ -44,16 +45,7 @@
                 </div>
             </div>
             <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="2">
-                <div id="spreadsheet-grid" class="spreadsheet-grid fs-spreadsheet-grid">
-                    <div class="invalid-feedback-container">
-                        <p>Errors:</p>
-                        {% if not disabled %}
-                        {% for error in library_indexing_form.spreadsheet_dummy.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                        {% endif %}
-                    </div>
-                </div>
+                {{ spreadsheet() }}
             </div>
             <div class="tab-pane fade" id="index-1-example-tab" role="tabpanel" tabindex="4">
                 {% include "components/examples/pool-indexing-1.html" %}
@@ -111,8 +103,9 @@
                 allowDeleteRow: false,
                 allowDeleteColumn: false,
                 allowInsertColumn: false,
-                tableOverflow:true,
-                tableHeight:`calc(100% - 70px)`,
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
                 style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
             });
 

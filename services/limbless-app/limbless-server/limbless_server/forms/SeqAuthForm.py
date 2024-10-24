@@ -23,7 +23,7 @@ class SeqAuthForm(HTMXFlaskForm):
             return False
         
         # Max size 3
-        MAX_MBYTES = 3
+        MAX_MBYTES = 5
         max_bytes = MAX_MBYTES * 1024 * 1024
         self.size_bytes = len(self.file.data.read())
         self.file.data.seek(0)

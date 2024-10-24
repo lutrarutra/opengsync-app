@@ -10,8 +10,10 @@ if (__timezone := os.environ.get("TIMEZONE")) is None:
 TIMEZONE: pytz.BaseTzInfo = pytz.timezone(__timezone)
 
 
-def localize(timestamp: dt.datetime) -> dt.datetime:
-    return pytz.utc.localize(timestamp).astimezone(TIMEZONE)
+def localize(timestamp: dt.datetime, timezone: pytz.BaseTzInfo | str = TIMEZONE) -> dt.datetime:
+    if isinstance(timezone, str):
+        timezone = pytz.timezone(timezone)
+    return timestamp.astimezone(timezone)
 
 
 def to_utc(timestamp: dt.datetime) -> dt.datetime:

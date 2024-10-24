@@ -7,101 +7,99 @@
         <h1 class="modal-title fs-5" >6. CMO Reference Input Form</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body">
-            <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#help-tab" type="button" role="tab"
-                    aria-controls="help-tab" aria-selected="false">
-                    Help</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
-                    id="spreadsheet-tab-btn"
-                    data-bs-target="#spreadsheet-tab" type="button" role="tab"
-                    aria-controls="spreadsheet-tab" aria-selected="true">
-                    Spreadsheet</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
-                    id="file-tab-btn"
-                    data-bs-target="#file-tab" type="button" role="tab"
-                    aria-controls="file-tab" aria-selected="true">
-                    File</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                    data-bs-target="#cmo-1-example-tab" type="button" role="tab"
-                    aria-controls="cmo-1-example-tab" aria-selected="true">
-                    Example 1.</button>
-                </li>
-            </ul>
-            <div class="tab-content" id="cmo-reference-form" enctype="multipart/form-data">
-                {{ form.csrf_token() }}
-                {{ form.file_uuid(hidden=True, readonly=True) }}
-                <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
-                    <div class="input-help">
-                        <h5>How to?</h5>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'file' %} active{% endif %}" data-bs-toggle="tab"
+                id="file-tab-btn"
+                data-bs-target="#file-tab" type="button" role="tab"
+                aria-controls="file-tab" aria-selected="true">
+                File</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#cmo-1-example-tab" type="button" role="tab"
+                aria-controls="cmo-1-example-tab" aria-selected="true">
+                Example 1.</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="cmo-reference-form" enctype="multipart/form-data">
+            {{ form.csrf_token() }}
+            {{ form.file_uuid(hidden=True, readonly=True) }}
+            <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+                <div class="input-help">
+                    <h5>How to?</h5>
+                    <ol>
+                        <li><a href="{{ url_for('library_annotation_workflow.download_template', file='cmo') }}">Download template</a></li>
+                        <li>Fill in the template</li>
+                        <li>Submit the file below</li>
+                    </ol>
+
+                    <h5>Modify Columns</h5>
+                    <ul>
+                        <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
+                        <li>Sample Name <span class="desc">The sample from annotation sheet that this CMO belongs to, must mach one and only one value from 'Sample Name'-column from sample annotation sheet</span></li>
+                        <li>Feature <span class="desc">Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+                        <li>Kit <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
+                        <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
+                        <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
+                        <li>Read <span class="desc">e.g. 'R2'</span></li>
+                    </ul>
+
+                    <h5>Important</h5>
+                    <ul>
+                        <li>Two ways to specify CMOs:</li>
                         <ol>
-                            <li><a href="{{ url_for('library_annotation_workflow.download_template', file='cmo') }}">Download template</a></li>
-                            <li>Fill in the template</li>
-                            <li>Submit the file below</li>
+                            <li>If using predefined kit from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a>: specify columns <b>Demux Name, Sample Name, Feature, Kit</b></li>
+                            <li>If using custom kit: specify columns <b>Demux Name, Sample Name, Sequence, Pattern, Read</b></li>
                         </ol>
-
-                        <h5>Modify Columns</h5>
-                        <ul>
-                            <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
-                            <li>Sample Name <span class="desc">The sample from annotation sheet that this CMO belongs to, must mach one and only one value from 'Sample Name'-column from sample annotation sheet</span></li>
-                            <li>Feature <span class="desc">Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
-                            <li>Kit <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
-                            <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
-                            <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
-                            <li>Read <span class="desc">e.g. 'R2'</span></li>
-                        </ul>
-
-                        <h5>Important</h5>
-                        <ul>
-                            <li>Two ways to specify CMOs:</li>
-                            <ol>
-                                <li>If using predefined kit from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a>: specify columns <b>Demux Name, Sample Name, Feature, Kit</b></li>
-                                <li>If using custom kit: specify columns <b>Demux Name, Sample Name, Sequence, Pattern, Read</b></li>
-                            </ol>
-                        </ul>
-                    </div>
+                    </ul>
                 </div>
-                <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
-                    <div class="invalid-feedback-container">
-                        {% if not disabled %}
-                        {% for error in form.spreadsheet_dummy.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                        {% endif %}
-                    </div>
-                    <div id="spreadsheet-grid" class="spreadsheet-grid">
-                    </div>
+            </div>
+            <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
+                <div class="invalid-feedback-container">
+                    {% if not disabled %}
+                    {% for error in form.spreadsheet_dummy.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                    {% endif %}
                 </div>
-                <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
-                    <div class="input-help">
-                        <h5>Columns:</h5>
-                        <ul>
-                            <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
-                            <li>Sample Name <span class="desc">The sample from annotation sheet that this CMO belongs to, must mach one and only one value from 'Sample Name'-column from sample annotation sheet</span></li>
-                            <li>Feature <span class="desc">Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
-                            <li>Kit <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
-                            <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
-                            <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
-                            <li>Read <span class="desc">e.g. 'R2'</span></li>
-                        </ul>
-                    </div>
-                    <div class="row">
-                        {{ form_group(form.separator, class="col-2") }}
-                        {{ form_group(form.file, class="col-10") }}
-                    </div>
+                <div id="spreadsheet-grid" class="spreadsheet-grid">
                 </div>
-                <div class="tab-pane fade" id="cmo-1-example-tab" role="tabpanel" tabindex="3">
-                    {% include "components/examples/cmo.html" %}
+            </div>
+            <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="2">
+                <div class="input-help">
+                    <h5>Columns:</h5>
+                    <ul>
+                        <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
+                        <li>Sample Name <span class="desc">The sample from annotation sheet that this CMO belongs to, must mach one and only one value from 'Sample Name'-column from sample annotation sheet</span></li>
+                        <li>Feature <span class="desc">Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+                        <li>Kit <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
+                        <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
+                        <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
+                        <li>Read <span class="desc">e.g. 'R2'</span></li>
+                    </ul>
                 </div>
+                <div class="row">
+                    {{ form_group(form.separator, class="col-2") }}
+                    {{ form_group(form.file, class="col-10") }}
+                </div>
+            </div>
+            <div class="tab-pane fade" id="cmo-1-example-tab" role="tabpanel" tabindex="3">
+                {% include "components/examples/cmo.html" %}
             </div>
         </div>
     </div>
@@ -117,10 +115,10 @@
                 hx-include="#cmo-reference-form" hx-target="#cmo-reference-form-container" hx-swap="outerHTML"
                 hx-encoding="multipart/form-data" {% if active_tab != "file" %}style="display: none;"{% endif %}
                 hx-post="{{ url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id, input_type='file') }}">
-                File
+                Submit
             </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
-                Spreadsheet
+                Submit
             </button>
         </div>
     </div>

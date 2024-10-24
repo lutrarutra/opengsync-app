@@ -1,6 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group, checkbox_input %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/legends.jinja2" import color_legend %}
+{% from "components/spreadsheet.jinja2" import spreadsheet %}
 
 <div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
@@ -81,13 +82,7 @@
                         {{ form_group(select_assay_form.additional_info) }}
                     </div>
                     <div style="width: 50%; height: 100%;">
-                        <div id="grid" class="spreadsheet-grid" style="overflow-y: hidden; display: flex; flex-direction:column-reverse; justify-content: flex-end;">
-                            <div class="invalid-feedback-container" style="min-height: 70px; max-height: 70px;">
-                                {% for error in select_assay_form.spreadsheet_dummy.errors %}
-                                    <p>{{ error }}</p>
-                                {% endfor %}
-                            </div>
-                        </div>
+                        {{ spreadsheet(id="grid", errors=select_assay_form.spreadsheet_dummy.errors) }}
                     </div>
                 </div>
             </div>

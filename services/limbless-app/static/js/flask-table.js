@@ -117,3 +117,13 @@ function table_query(url, table_container_id, field_name, word) {
         values: state
     })
 }
+
+function toggle_index_display() {
+    $(".index-badges").each(function() {
+        if ($(this).is(":hidden")) {
+            $(this).show();
+        } else {
+            $(this).hide();
+        }
+    });
+}

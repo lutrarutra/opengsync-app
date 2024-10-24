@@ -5,246 +5,270 @@
         <h1 class="modal-title fs-5" >12. Complete Submission</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body">
-            <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" data-bs-toggle="tab"
-                    data-bs-target="#overview-tab" type="button" role="tab"
-                    aria-controls="overview-tab" aria-selected="true">
-                    Overview</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab"
-                    data-bs-target="#library-tab" type="button" role="tab"
-                    aria-controls="library-tab" aria-selected="false">
-                    Libraries ({{ library_table.shape[0] if library_table is not none else "0" }})</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab"
-                    data-bs-target="#sample-tab" type="button" role="tab"
-                    aria-controls="sample-tab" aria-selected="false">
-                    Samples ({{ sample_table.shape[0] if sample_table is not none else "0" }})</button>
-                </li>
-                <li class="nav-item" role="presentation"
-                {% if feature_table is none %}{{ tooltip("No antibody feature libraries detected.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if feature_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#feature-tab" type="button" role="tab"
-                    aria-controls="feature-tab" aria-selected="true">
-                    Features ({{ feature_table.shape[0] if feature_table is not none else "0" }})</button>
-                </li>
-                <li class="nav-item" role="presentation"
-                {% if cmo_table is none %}{{ tooltip("No cell multiplexing libraries detected.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if cmo_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#cmo-tab" type="button" role="tab"
-                    aria-controls="cmo-tab" aria-selected="true">
-                    CMOs ({{ cmo_table.shape[0] if cmo_table is not none else "0" }})</button>
-                </li>
-                <li class="nav-item" role="presentation"
-                {% if visium_table is none %}{{ tooltip("No visium libraries detected.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if visium_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#visium-tab" type="button" role="tab"
-                    aria-controls="visium-tab" aria-selected="true">
-                    Visium ({{ visium_table.shape[0] if visium_table is not none else "0" }})</button>
-                </li>
-                <li class="nav-item" role="presentation"
-                {% if flex_table is none %}{{ tooltip("No flex libraries detected.", category="warning") }}{% endif %}>
-                    <button class="nav-link {% if flex_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#flex-tab" type="button" role="tab"
-                    aria-controls="flex-tab" aria-selected="true">
-                    Flex ({{ flex_table.shape[0] if flex_table is not none else "0" }})</button>
-                </li>
-            </ul>
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="overview-tab" role="tabpanel" tabindex="0">
-                    <div class="flow-graph-container" id="submission-overview-graph" style="padding: 10px 10px 10px 10px;"></div>
-                </div>
-                <div class="tab-pane fade" id="library-tab" role="tabpanel" tabindex="1">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-1">Library Name</th>
-                                <th scope="col" class="col-1">Library Type</th>
-                                {% if "pool" in library_table %}
-                                <th scope="col" class="col-2">Pool</th>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#overview-tab" type="button" role="tab"
+                aria-controls="overview-tab" aria-selected="true">
+                Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#library-tab" type="button" role="tab"
+                aria-controls="library-tab" aria-selected="false">
+                Libraries ({{ library_table.shape[0] if library_table is not none else "0" }})</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#sample-tab" type="button" role="tab"
+                aria-controls="sample-tab" aria-selected="false">
+                Samples ({{ sample_table.shape[0] if sample_table is not none else "0" }})</button>
+            </li>
+            <li class="nav-item" role="presentation"
+            {% if feature_table is none %}{{ tooltip("No antibody feature libraries detected.", category="warning") }}{% endif %}>
+                <button class="nav-link {% if feature_table is none %}disabled{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#feature-tab" type="button" role="tab"
+                aria-controls="feature-tab" aria-selected="true">
+                Features ({{ feature_table.shape[0] if feature_table is not none else "0" }})</button>
+            </li>
+            <li class="nav-item" role="presentation"
+            {% if cmo_table is none %}{{ tooltip("No cell multiplexing libraries detected.", category="warning") }}{% endif %}>
+                <button class="nav-link {% if cmo_table is none %}disabled{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#cmo-tab" type="button" role="tab"
+                aria-controls="cmo-tab" aria-selected="true">
+                CMOs ({{ cmo_table.shape[0] if cmo_table is not none else "0" }})</button>
+            </li>
+            <li class="nav-item" role="presentation"
+            {% if visium_table is none %}{{ tooltip("No visium libraries detected.", category="warning") }}{% endif %}>
+                <button class="nav-link {% if visium_table is none %}disabled{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#visium-tab" type="button" role="tab"
+                aria-controls="visium-tab" aria-selected="true">
+                Visium ({{ visium_table.shape[0] if visium_table is not none else "0" }})</button>
+            </li>
+            <li class="nav-item" role="presentation"
+            {% if flex_table is none %}{{ tooltip("No flex libraries detected.", category="warning") }}{% endif %}>
+                <button class="nav-link {% if flex_table is none %}disabled{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#flex-tab" type="button" role="tab"
+                aria-controls="flex-tab" aria-selected="true">
+                Flex ({{ flex_table.shape[0] if flex_table is not none else "0" }})</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="overview-tab" role="tabpanel" tabindex="0">
+                <div class="flow-graph-container" id="submission-overview-graph" style="padding: 10px 10px 10px 10px;"></div>
+            </div>
+            <div class="tab-pane fade" id="library-tab" role="tabpanel" tabindex="1">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">Library Name</th>
+                            <th scope="col" class="col-1">Library Type</th>
+                            {% if "pool" in library_table %}
+                            <th scope="col" class="col-2">Pool</th>
+                            {% endif %}
+                            {% if "index_i7_sequences" in library_table %}
+                            <th scope="col" class="col-6">
+                                Barcode
+                                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
+                                        <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
+                                    </svg>
+                                </a>
+                            </th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for _, row in library_table.iterrows() %}
+                        <tr>
+                            <th scope="row">{{ row["library_name"] }}</th>
+                            <td>{{ row["library_type"] }}</td>
+                            {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
+                            {% if "index_i7_sequences" in library_table %}
+                            <td class="barcode-cell">
+                                {% set seq_i7s = row["index_i7_sequences"].split(";") %}
+                                {% set seq_i5s = row["index_i5_sequences"].split(";") %}
+                                {% for i in range(seq_i7s | length) %}
+                                {% set sequence_i7 = seq_i7s[i] %}
+                                {% if i < seq_i5s | length %}
+                                {% set sequence_i5 = seq_i5s[i] %}
+                                {% else %}
+                                {% set sequence_i5 = null %}
                                 {% endif %}
-                                {% if "index_i7_sequences" in library_table %}
-                                <th scope="col" class="col-3">Barcode i7</th>
+                                {% if notna(row["index_i7_name"]) %}
+                                    {% if row["index_i7_name"] == row["index_i5_name"] or isna(row["index_i5_name"]) %}
+                                    <span class="badge index-badges" >{{ row["index_i7_name"] }}</span>
+                                    {% else %}
+                                    <span class="badge index-badges" >{{ row["index_i7_name"] }}+{{ row["index_i5_name"] }}</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="badge index-badges">{{ sequence_i7 }}{% if sequence_i5 %}+{{ sequence_i5 }}{% endif %}</span>
                                 {% endif %}
-                                {% if "index_i5_sequences" in library_table %}
-                                <th scope="col" class="col-3">Barcode i5</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in library_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["library_name"] }}</th>
-                                <td>{{ row["library_type"] }}</td>
-                                {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
-                                {% if "index_i7_sequences" in library_table %}<td>{{ ", ".join(row["index_i7_sequences"].split(";") if not isna(row["index_i7_sequences"]) else "") }}</td>{% endif %}
-                                {% if "index_i5_sequences" in library_table %}<td>{{ ", ".join(row["index_i5_sequences"].split(";") if not isna(row["index_i5_sequences"]) else "") }}</td>{% endif %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="tab-pane fade" id="sample-tab" role="tabpanel" tabindex="2">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-2">Sample Name</th>
-                                <th scope="col" class="col-2">Libraries</th>
-                                {% for col in sample_table.columns %}
-                                {% if "_attr_" in col %}
-                                <th scope="col" class="col-1">{{ col.removeprefix("_attr_").replace("_", " ").title() }}</th>
-                                {% endif %}
+                                <span class="badge index-badges" style="display: none;">{{ sequence_i7 }}{% if sequence_i5 %}+{{ sequence_i5 }}{% endif %}</span>
                                 {% endfor %}
-                                {% if cmo_table is not none %}
-                                <th scope="col" class="col-1">Sequence <span class="desc">HTO</span></th>
-                                <th scope="col" class="col-1">Pattern <span class="desc">HTO</span></th>
-                                <th scope="col" class="col-1">Read <span class="desc">HTO</span></th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in sample_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["sample_name"] }}</th>
-                                <td>
-                                    <ul class="h-list">
-                                        {% for library_type in row["library_types"].split(";") %}
-                                        <li>{{ library_type }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </td>
-                                {% for col in sample_table.columns %}
-                                {% if "_attr_" in col %}
-                                <td>{{ row[col] }}</td>
-                                {% endif %}
-                                {% endfor %}
-                                {% if cmo_table is not none %}
-                                <td>{{ row["sequence"] if row["sequence"] }}</td>
-                                <td>{{ row["pattern"] if row["pattern"] }}</td>
-                                <td>{{ row["read"] if row["read"] }}</td>
-                                {% endif %}
-                            </tr>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="sample-tab" role="tabpanel" tabindex="2">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-2">Sample Name</th>
+                            <th scope="col" class="col-2">Libraries</th>
+                            {% for col in sample_table.columns %}
+                            {% if "_attr_" in col %}
+                            <th scope="col" class="col-1">{{ col.removeprefix("_attr_").replace("_", " ").title() }}</th>
+                            {% endif %}
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="3">
-                    {% if feature_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-2">Feature</th>
-                                <th scope="col" class="col-1">Kit</th>
-                                <th scope="col" class="col-1">Sequence</th>
-                                <th scope="col" class="col-1">Pattern</th>
-                                <th scope="col" class="col-1">Read</th>
-                                <th scope="col" class="col-6">Libraries</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for (feature, kit, sequence, pattern, read), df in feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) %}
-                            <tr>
-                                <th scope="row">{{ feature }}</th>
-                                <td>{{ kit if kit == kit }}</td>
-                                <td>{{ sequence }}</td>
-                                <td>{{ pattern }}</td>
-                                <td>{{ read }}</td>
-                                <td>
-                                    <ul class="h-list">
-                                        {% for _, row in df.iterrows() %}
-                                        <li>
-                                            {{ row["library_name"] }}
-                                        </li>
-                                        {% endfor %}
-                                    </ul>
-                                </td>
-                            </tr>
+                            {% if cmo_table is not none %}
+                            <th scope="col" class="col-1">Sequence <span class="desc">HTO</span></th>
+                            <th scope="col" class="col-1">Pattern <span class="desc">HTO</span></th>
+                            <th scope="col" class="col-1">Read <span class="desc">HTO</span></th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for _, row in sample_table.iterrows() %}
+                        <tr>
+                            <th scope="row">{{ row["sample_name"] }}</th>
+                            <td>
+                                <ul class="h-list">
+                                    {% for library_type in row["library_types"].split(";") %}
+                                    <li>{{ library_type }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            {% for col in sample_table.columns %}
+                            {% if "_attr_" in col %}
+                            <td>{{ row[col] }}</td>
+                            {% endif %}
                             {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
-                <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="4">
-                    {% if cmo_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-3">Demux Name</th>
-                                <th scope="col" class="col-2">Sample</th>
-                                <th scope="col" class="col-2">Kit</th>
-                                <th scope="col" class="col-2">Feature</th>
-                                <th scope="col" class="col-1">Sequence</th>
-                                <th scope="col" class="col-1">Pattern</th>
-                                <th scope="col" class="col-1">Read</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in cmo_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["demux_name"] }}</th>
-                                <td>{{ row["sample_name"] }}</td>
-                                <td>{{ row["kit"] if row["kit"] == row["kit"] }}</td>
-                                <td>{{ row["feature"] }}</td>
-                                <td>{{ row["sequence"] }}</td>
-                                <td>{{ row["pattern"] }}</td>
-                                <td>{{ row["read"] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
-                <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="5">
-                    {% if visium_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-3">Library Name</th>
-                                <th scope="col" class="col-2">Image</th>
-                                <th scope="col" class="col-2">Slide</th>
-                                <th scope="col" class="col-2">Area</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in visium_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["library_name"] }}</th>
-                                <td>{{ row["image"] }}</td>
-                                <td>{{ row["slide"] }}</td>
-                                <td>{{ row["area"] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
-                <div class="tab-pane fade" id="flex-tab" role="tabpanel" tabindex="6">
-                    {% if flex_table is not none %}
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-3">Library Name</th>
-                                <th scope="col" class="col-2">Barcode ID</th>
-                                <th scope="col" class="col-2">Sample Name</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in flex_table.iterrows() %}
-                            <tr>
-                                <th scope="row">{{ row["library_name"] }}</th>
-                                <td>{{ row["barcode_id"] }}</td>
-                                <td>{{ row["sample_name"] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endif %}
-                </div>
+                            {% if cmo_table is not none %}
+                            <td>{{ row["cmo_sequence"] if row["sequence"] }}</td>
+                            <td>{{ row["cmo_pattern"] if row["pattern"] }}</td>
+                            <td>{{ row["cmo_read"] if row["read"] }}</td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="3">
+                {% if feature_table is not none %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-2">Feature</th>
+                            <th scope="col" class="col-1">Kit</th>
+                            <th scope="col" class="col-1">Sequence</th>
+                            <th scope="col" class="col-1">Pattern</th>
+                            <th scope="col" class="col-1">Read</th>
+                            <th scope="col" class="col-6">Libraries</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for (feature, kit, sequence, pattern, read), df in feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) %}
+                        <tr>
+                            <th scope="row">{{ feature }}</th>
+                            <td>{{ kit if kit == kit }}</td>
+                            <td>{{ sequence }}</td>
+                            <td>{{ pattern }}</td>
+                            <td>{{ read }}</td>
+                            <td>
+                                <ul class="h-list">
+                                    {% for _, row in df.iterrows() %}
+                                    <li>
+                                        {{ row["library_name"] }}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="4">
+                {% if cmo_table is not none %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-3">Demux Name</th>
+                            <th scope="col" class="col-2">Sample</th>
+                            <th scope="col" class="col-2">Kit</th>
+                            <th scope="col" class="col-2">Feature</th>
+                            <th scope="col" class="col-1">Sequence</th>
+                            <th scope="col" class="col-1">Pattern</th>
+                            <th scope="col" class="col-1">Read</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for _, row in cmo_table.iterrows() %}
+                        <tr>
+                            <th scope="row">{{ row["demux_name"] }}</th>
+                            <td>{{ row["sample_name"] }}</td>
+                            <td>{{ row["kit"] if row["kit"] }}</td>
+                            <td>{{ row["feature"] if row["feature"] }}</td>
+                            <td>{{ row["sequence"] }}</td>
+                            <td>{{ row["pattern"] }}</td>
+                            <td>{{ row["read"] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="5">
+                {% if visium_table is not none %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-3">Library Name</th>
+                            <th scope="col" class="col-2">Image</th>
+                            <th scope="col" class="col-2">Slide</th>
+                            <th scope="col" class="col-2">Area</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for _, row in visium_table.iterrows() %}
+                        <tr>
+                            <th scope="row">{{ row["library_name"] }}</th>
+                            <td>{{ row["image"] }}</td>
+                            <td>{{ row["slide"] }}</td>
+                            <td>{{ row["area"] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="flex-tab" role="tabpanel" tabindex="6">
+                {% if flex_table is not none %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-5">Sample Name</th>
+                            <th scope="col" class="col-5">Demux Name</th>
+                            <th scope="col" class="col-2">Barcode ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for _, row in flex_table.iterrows() %}
+                        <tr>
+                            <th scope="row">{{ row["sample_name"] }}</th>
+                            <td>{{ row["demux_name"] }}</td>
+                            <td>{{ row["barcode_id"] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
             </div>
         </div>
     </div>

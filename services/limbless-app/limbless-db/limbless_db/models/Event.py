@@ -4,8 +4,8 @@ from typing import Optional, TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..categories import EventType, EventTypeEnum
 from .. import localize
+from ..categories import EventType, EventTypeEnum
 from .Base import Base
 
 if TYPE_CHECKING:

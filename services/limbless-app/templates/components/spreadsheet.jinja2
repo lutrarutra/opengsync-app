@@ -1,0 +1,13 @@
+{% macro spreadsheet(id="spreadsheet-grid", errors=none, height=none) -%}
+<div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
+    <div class="invalid-feedback-container">
+        {% if errors %}
+        <p>Errors:</p>
+        {% for error in errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        {% endif %}
+    </div>
+    <div id="{{ id }}" class="spreadsheet-grid"></div>
+</div>
+{%- endmacro %}

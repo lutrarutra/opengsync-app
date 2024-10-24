@@ -18,7 +18,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     CUSTOM = LibraryTypeEnum(0, "Custom", "Custom", "Custom", "Custom")
 
     # 10X Base Technologies
-    TENX_SC_GEX_FLEX = LibraryTypeEnum(1, "10X Single Cell Gene Expression Flex", "10X Flex", "10XFRP", "Gene Expression")
+    TENX_SC_GEX_FLEX = LibraryTypeEnum(1, "10X Single Cell Gene Expression Flex", "10X Flex", "10XFLEXFRP", "Gene Expression")
     TENX_SC_ATAC = LibraryTypeEnum(2, "10X Single Cell ATAC", "10X ATAC", "10XATAC", "Chromatin Accessibility")
     TENX_SC_GEX_3PRIME = LibraryTypeEnum(3, "10X Single Cell Gene Expression 3'", "10X 3' GEX", "10XGEX3P", "Gene Expression")
     TENX_SC_GEX_5PRIME = LibraryTypeEnum(4, "10X Single Cell Immune Profiling 5'", "10X 5' GEX", "10XGEX5P", "Gene Expression")

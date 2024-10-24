@@ -82,6 +82,7 @@ def get_pools(
     sort_by: Optional[str] = None, descending: bool = False,
     status: Optional[PoolStatusEnum] = None,
     status_in: Optional[list[PoolStatusEnum]] = None,
+    type_in: Optional[list[PoolTypeEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
 ) -> tuple[list[models.Pool], int]:
     if not (persist_session := self._session is not None):
@@ -125,6 +126,11 @@ def get_pools(
     if status_in is not None:
         query = query.where(
             models.Pool.status_id.in_([s.id for s in status_in])
+        )
+
+    if type_in is not None:
+        query = query.where(
+            models.Pool.type_id.in_([t.id for t in type_in])
         )
 
     if sort_by is not None:

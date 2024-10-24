@@ -86,15 +86,6 @@
     {{ pagination("lab_prep-library-table", "lab_preps_htmx.get_libraries", n_pages, active_page, context={"lab_prep_id": lab_prep.id}) }}
     <script>
         init_tooltips();
-        function toggle_index_display() {
-            $(".index-badges").each(function() {
-                if ($(this).is(":hidden")) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        }
 
         {% if lab_prep.status == PrepStatus.PREPARING %}
         var selected_library_id = null;

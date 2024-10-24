@@ -12,7 +12,7 @@
                         sort_url='pools_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='pools_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number"
+                        active_query_field=active_query_field, query_type="number", col_size=1
                     )
                 }}
                 {{
@@ -21,7 +21,7 @@
                         sort_url='pools_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='pools_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, col_size=2
+                        active_query_field=active_query_field, col_size=4
                     )
                 }}
                 {{
@@ -33,14 +33,21 @@
                 }}
                 {{
                     table_col(
+                        table_container_id='pool-table', column_name='Type', column_var='type_id',
+                        sort_url='pools_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        multiselect_choices=PoolType.as_list(), multiselect_selected=type_in
+                    )
+                }}
+                {{
+                    table_col(
                         table_container_id='pool-table', column_name='Owner', column_var='owner_id',
-                        sort_url='pools_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='pools_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='pools_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='pools_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
             </tr>
@@ -51,6 +58,7 @@
                 <th scope="row">{{ pool.id }}</th>
                 <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}"><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id) }}">{{ pool.name }}</a></td>
                 <td>{{ pool.status.display_name }} {{ pool.status.icon }}</td>
+                <td>{{ pool.type.display_name }}</td>
                 <td><a href="{{ url_for('users_page.user_page', user_id=pool.owner_id) }}">{{ pool.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
             </tr>

@@ -6,61 +6,59 @@
         <h1 class="modal-title fs-5" >11. Sample Annotation</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body">
-            <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
-                    data-bs-target="#help-tab" type="button" role="tab"
-                    aria-controls="help-tab" aria-selected="false">
-                    Help</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
-                    id="spreadsheet-tab-btn"
-                    data-bs-target="#spreadsheet-tab" type="button" role="tab"
-                    aria-controls="spreadsheet-tab" aria-selected="true">
-                    Spreadsheet</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                    data-bs-target="#visium-1-example-tab" type="button" role="tab"
-                    aria-controls="visium-1-example-tab" aria-selected="true">
-                    Example 1.</button>
-                </li>
-            </ul>
-            <div class="tab-content" id="sample_annotation_form">
-                {{ sample_annotation_form.csrf_token() }}
-                {{ sample_annotation_form.file_uuid(hidden=True, readonly=True) }}
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#visium-1-example-tab" type="button" role="tab"
+                aria-controls="visium-1-example-tab" aria-selected="true">
+                Example 1.</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="sample_annotation_form">
+            {{ sample_annotation_form.csrf_token() }}
+            {{ sample_annotation_form.file_uuid(hidden=True, readonly=True) }}
 
-                <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
-                    <div class="input-help">
-                        <h5>How to?</h5>
-                        <ul>
-                            <li>Fill in the required columns in the spreadsheet.</li>
-                        </ul>
-                        <h5>Columns: </h5>
-                        <ul>
-                        </ul>
+            <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+                <div class="input-help">
+                    <h5>How to?</h5>
+                    <ul>
+                        <li>Fill in the required columns in the spreadsheet.</li>
+                    </ul>
+                    <h5>Columns: </h5>
+                    <ul>
+                    </ul>
+                </div>
+            </div>
+            <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
+                <p>
+                    You can add new column to the spreadsheet by right-clicking on the column header. You can change the name of the attribute by right clicking on the column header and selecting "Rename this column".
+                </p>
+                <div id="spreadsheet-grid" class="spreadsheet-grid">
+                    <div class="invalid-feedback-container">
+                        {% if not disabled %}
+                        {% for error in sample_annotation_form.spreadsheet_dummy.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
-                <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
-                    <p>
-                        You can add new column to the spreadsheet by right-clicking on the column header. You can change the name of the attribute by right clicking on the column header and selecting "Rename this column".
-                    </p>
-                    <div id="spreadsheet-grid" class="spreadsheet-grid">
-                        <div class="invalid-feedback-container">
-                            {% if not disabled %}
-                            {% for error in sample_annotation_form.spreadsheet_dummy.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="3">
-                    {% include "components/examples/sample_annotation.html" %}
-                </div>
+            </div>
+            <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="3">
+                {% include "components/examples/sample_annotation.html" %}
             </div>
         </div>
     </div>

@@ -8,269 +8,267 @@
         <h1 class="modal-title fs-5">{{ workflow.replace("_", " ").title() }} <span class="desc">Select Samples</span></h1>
         <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
-    <div class="modal-body">
-        <div class="tab-body">
-            <ul class="nav nav-tabs" id="auth-tab" role="tablist">
-                {% if select_samples %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#available-samples-tab"
-                        type="button" role="tab" aria-controls="available-samples-tab" aria-selected="true">
-                        Samples
-                    </button>
-                </li>
-                {% endif %}
-                {% if select_libraries %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if not select_samples %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-libraries-tab"
-                        type="button" role="tab" aria-controls="available-libraries-tab" aria-selected="true">
-                        Libraries
-                    </button>
-                </li>
-                {% endif %}
-                {% if select_pools %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if not select_samples and not select_libraries %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
-                        type="button" role="tab" aria-controls="available-pools-tab" aria-selected="true">
-                        Pools
-                    </button>
-                </li>
-                {% endif %}
-                {% if select_lanes %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if not select_samples and not select_libraries and not select_pools %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-lanes-tab"
-                        type="button" role="tab" aria-controls="available-lanes-tab" aria-selected="true">
-                        Lanes
-                    </button>
-                </li>
-                {% endif %}
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+            {% if select_samples %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#available-samples-tab"
+                    type="button" role="tab" aria-controls="available-samples-tab" aria-selected="true">
+                    Samples
+                </button>
+            </li>
+            {% endif %}
+            {% if select_libraries %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not select_samples %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-libraries-tab"
+                    type="button" role="tab" aria-controls="available-libraries-tab" aria-selected="true">
+                    Libraries
+                </button>
+            </li>
+            {% endif %}
+            {% if select_pools %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not select_samples and not select_libraries %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-pools-tab"
+                    type="button" role="tab" aria-controls="available-pools-tab" aria-selected="true">
+                    Pools
+                </button>
+            </li>
+            {% endif %}
+            {% if select_lanes %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not select_samples and not select_libraries and not select_pools %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#available-lanes-tab"
+                    type="button" role="tab" aria-controls="available-lanes-tab" aria-selected="true">
+                    Lanes
+                </button>
+            </li>
+            {% endif %}
 
-                {% if select_samples %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-samples-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-samples-tab"
-                        type="button" role="tab" aria-controls="selected-samples-tab" aria-selected="false">
-                        Selected Samples ({{ selected_samples | length }})
-                    </button>
-                </li>
-                {% endif %}
-                {% if select_libraries %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
-                        type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
-                        Selected Libraries ({{ selected_libraries | length }})
-                    </button>
-                </li>
-                {% endif %}
-                {% if select_pools %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
-                        type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
-                        Selected Pools ({{ selected_pools | length }})
-                    </button>
-                </li>
-                {% endif %}
-                {% if select_lanes %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="selected-lanes-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-lanes-tab"
-                        type="button" role="tab" aria-controls="selected-lanes-tab" aria-selected="false">
-                        Selected Lanes ({{ selected_lanes | length }})
-                    </button>
-                </li>
-                {% endif %}
-            </ul>
-            <div class="tab-content ba">
-                <div class="invalid-feedback-container">
-                    {% for error in select_samples_form.error_dummy.errors %}
-                        <p>{{ error }}</p>
-                    {% endfor %}
-                </div>
-
-                {% if select_samples %}
-                <div class="tab-pane fade show active" id="available-samples-tab" role="tabpanel" tabindex="0">
-                    {% if select_all_samples %}
-                    <button type="button" class="btn btn-primary" id="select-all-samples-btn">
-                        Select All Samples
-                    </button>
-                    {% endif %}
-                    <div hx-trigger="intersect once" hx-get="{{ url_for('samples_htmx.browse', **sample_url_context) }}">
-                        {{ spinner() }}
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if select_libraries %}
-                <div class="tab-pane fade {% if not select_samples %}show active{% endif %}" id="available-libraries-tab" role="tabpanel" tabindex="1">
-                    {% if select_all_libraries %}
-                    <button type="button" class="btn btn-primary" id="select-all-libraries-btn">
-                        Select All Libraries
-                    </button>
-                    {% endif %}
-                    <div hx-get="{{ url_for('libraries_htmx.browse', **library_url_context) }}" hx-trigger="intersect once">
-                        {{ spinner() }}
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if select_pools %}
-                <div class="tab-pane fade {% if not select_samples and not select_libraries %}show active{% endif %}" id="available-pools-tab" role="tabpanel" tabindex="2">
-                    <div hx-get="{{ url_for('pools_htmx.browse', **pool_url_context) }}" hx-trigger="intersect once">
-                        {{ spinner() }}
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if select_lanes %}
-                <div class="tab-pane fade" id="available-lanes-tab" role="tabpanel" tabindex="3">
-                    <div hx-get="{{ url_for('lanes_htmx.browse', **lane_url_context) }}" hx-trigger="intersect once">
-                        {{ spinner() }}
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if select_samples %}
-                <div class="tab-pane fade" id="selected-samples-tab" role="tabpanel" tabindex="3">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-1">ID</th>
-                                <th scope="col" class="col-4">Name</th>
-                                <th scope="col" class="col-3">Status</th>
-                                <th scope="col" class="col-3">Owner</th>
-                                {% if workflow == "qubit_measure" %}
-                                <th scope="col" class="col-2">Qubit Conc.</th>
-                                {% elif workflow == "ba_report" %}
-                                <th scope="col" class="col-2">Avg. Fragment Size</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody id="selected-samples-table-container">
-                            {% for sample in selected_samples %}
-                            <tr onclick="toggle_sample({{sample.id}});" id="selected-sample-row-{{ sample.id }}" class="sample-row selected">
-                                <th scope="row">{{ sample.id }}</th>
-                                <td>{{ sample.name }}</td>
-                                <td>{{ sample.status.name }} {{ sample.status.icon }}</td>
-                                <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
-                                {% if workflow == "qubit_measure" %}
-                                <td>
-                                    <div class="quantity-container">
-                                        <div class="value">{{ sample.qubit_concentration if sample.original_qubit_concentration }}</div>
-                                        <div class="unit">ng/μL</div>
-                                    </div>
-                                </td>
-                                {% elif workflow == "ba_report" %}
-                                <td>
-                                    <div class="quantity-container">
-                                        <div class="value">{{ sample.avg_fragment_size if sample.avg_fragment_size }}</div>
-                                        <div class="unit">bp</div>
-                                    </div>
-                                </td>
-                                {% endif %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
-
-                {% if select_libraries %}
-                <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="4">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-1">ID</th>
-                                <th scope="col" class="col-3">Name</th>
-                                <th scope="col" class="col-2">Type</th>
-                                <th scope="col" class="col-2">Status</th>
-                                <th scope="col" class="col-2">Owner</th>
-                                {% if workflow == "qubit_measure" %}
-                                <th class="col-2" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
-                                {% elif workflow == "ba_report" %}
-                                <th class="col-2" scope="col">Avg. Fragment Size</th>
-                                {% elif workflow == "library_pooling" %}
-                                <th class="col-2" scope="col">Pool</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody id="selected-libraries-table-container">
-                        {% for library in selected_libraries %}
-                            <tr onclick="toggle_library({{ library.id }});" id="selected-library-row-{{ library.id }}"
-                            class="library-row {% if library.pool_id is not none %}pooled{% endif %} selected">
-                                <th scope="row">{{ library.id }}</th>
-                                <td>{{ library.name }}</td>
-                                <td>
-                                    <span {{ tooltip(library.type.name) }}>
-                                        {{ library.type.abbreviation }}
-                                    </span>
-                                </td>
-                                <td>{{ library.status.name }} {{ library.status.icon }}</td>
-                                <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                                {% if workflow == "qubit_measure" %}
-                                <td>
-                                    <div class="quantity-container">
-                                        <div class="value">{{ library.qubit_concentration_str }}</div>
-                                        <div class="unit">ng/μL</div>
-                                    </div>
-                                </td>
-                                {% elif workflow == "ba_report" %}
-                                <td>
-                                    <div class="quantity-container">
-                                        <div class="value">{{ library.avg_fragment_size if library.avg_fragment_size }}</div>
-                                        <div class="unit">bp</div>
-                                    </div>
-                                </td>
-                                {% elif workflow == "library_pooling" %}
-                                <td>{{ library.pool.name }}</td>
-                                {% endif %}
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
-
-                {% if select_pools %}
-                <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="5">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-1">ID</th>
-                                <th scope="col" class="col-4">Name</th>
-                                <th scope="col" class="col-2">Status</th>
-                                <th scope="col" class="col-3">Owner</th>
-                                {% if workflow == "qubit_measure" %}
-                                <th class="col-3" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
-                                {% elif workflow == "ba_report" %}
-                                <th class="col-3" scope="col">Avg. Fragment Size</th>
-                                {% elif workflow == "select_experiment_pools" %}
-                                <th class="col-3" scope="col"># Reads Requested</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody id="selected-pools-table-container">
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
-
-                {% if select_lanes %}
-                <div class="tab-pane fade" id="selected-lanes-tab" role="tabpanel" tabindex="6">
-                    <table class="table table-hover table-cursor">
-                        <thead>
-                            <tr>
-                                <th class="col-2" scope="col">Experiment</th>
-                                <th class="col-2" scope="col">Lane</th>
-                                {% if workflow == "qubit_measure" %}
-                                <th class="col-2" scope="col">Qubit Conc.</th>
-                                {% elif workflow == "ba_report" %}
-                                <th class="col-2" scope="col">Avg. Fragment Size</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody id="selected-lanes-table-container">
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
+            {% if select_samples %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="selected-samples-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-samples-tab"
+                    type="button" role="tab" aria-controls="selected-samples-tab" aria-selected="false">
+                    Selected Samples ({{ selected_samples | length }})
+                </button>
+            </li>
+            {% endif %}
+            {% if select_libraries %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
+                    type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
+                    Selected Libraries ({{ selected_libraries | length }})
+                </button>
+            </li>
+            {% endif %}
+            {% if select_pools %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
+                    type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
+                    Selected Pools ({{ selected_pools | length }})
+                </button>
+            </li>
+            {% endif %}
+            {% if select_lanes %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="selected-lanes-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-lanes-tab"
+                    type="button" role="tab" aria-controls="selected-lanes-tab" aria-selected="false">
+                    Selected Lanes ({{ selected_lanes | length }})
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+        <div class="tab-content ba">
+            <div class="invalid-feedback-container">
+                {% for error in select_samples_form.error_dummy.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
             </div>
+
+            {% if select_samples %}
+            <div class="tab-pane fade show active" id="available-samples-tab" role="tabpanel" tabindex="0">
+                {% if select_all_samples %}
+                <button type="button" class="btn btn-primary" id="select-all-samples-btn">
+                    Select All Samples
+                </button>
+                {% endif %}
+                <div hx-trigger="intersect once" hx-get="{{ url_for('samples_htmx.browse', **sample_url_context) }}">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if select_libraries %}
+            <div class="tab-pane fade {% if not select_samples %}show active{% endif %}" id="available-libraries-tab" role="tabpanel" tabindex="1">
+                {% if select_all_libraries %}
+                <button type="button" class="btn btn-primary" id="select-all-libraries-btn">
+                    Select All Libraries
+                </button>
+                {% endif %}
+                <div hx-get="{{ url_for('libraries_htmx.browse', **library_url_context) }}" hx-trigger="intersect once">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if select_pools %}
+            <div class="tab-pane fade {% if not select_samples and not select_libraries %}show active{% endif %}" id="available-pools-tab" role="tabpanel" tabindex="2">
+                <div hx-get="{{ url_for('pools_htmx.browse', **pool_url_context) }}" hx-trigger="intersect once">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if select_lanes %}
+            <div class="tab-pane fade" id="available-lanes-tab" role="tabpanel" tabindex="3">
+                <div hx-get="{{ url_for('lanes_htmx.browse', **lane_url_context) }}" hx-trigger="intersect once">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if select_samples %}
+            <div class="tab-pane fade" id="selected-samples-tab" role="tabpanel" tabindex="3">
+                <table class="table table-hover table-cursor">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-4">Name</th>
+                            <th scope="col" class="col-3">Status</th>
+                            <th scope="col" class="col-3">Owner</th>
+                            {% if workflow == "qubit_measure" %}
+                            <th scope="col" class="col-2">Qubit Conc.</th>
+                            {% elif workflow == "ba_report" %}
+                            <th scope="col" class="col-2">Avg. Fragment Size</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody id="selected-samples-table-container">
+                        {% for sample in selected_samples %}
+                        <tr onclick="toggle_sample({{sample.id}});" id="selected-sample-row-{{ sample.id }}" class="sample-row selected">
+                            <th scope="row">{{ sample.id }}</th>
+                            <td>{{ sample.name }}</td>
+                            <td>{{ sample.status.name }} {{ sample.status.icon }}</td>
+                            <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
+                            {% if workflow == "qubit_measure" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ sample.qubit_concentration if sample.original_qubit_concentration }}</div>
+                                    <div class="unit">ng/μL</div>
+                                </div>
+                            </td>
+                            {% elif workflow == "ba_report" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ sample.avg_fragment_size if sample.avg_fragment_size }}</div>
+                                    <div class="unit">bp</div>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if select_libraries %}
+            <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="4">
+                <table class="table table-hover table-cursor">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-3">Name</th>
+                            <th scope="col" class="col-2">Type</th>
+                            <th scope="col" class="col-2">Status</th>
+                            <th scope="col" class="col-2">Owner</th>
+                            {% if workflow == "qubit_measure" %}
+                            <th class="col-2" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
+                            {% elif workflow == "ba_report" %}
+                            <th class="col-2" scope="col">Avg. Fragment Size</th>
+                            {% elif workflow == "library_pooling" %}
+                            <th class="col-2" scope="col">Pool</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody id="selected-libraries-table-container">
+                    {% for library in selected_libraries %}
+                        <tr onclick="toggle_library({{ library.id }});" id="selected-library-row-{{ library.id }}"
+                        class="library-row {% if library.pool_id is not none %}pooled{% endif %} selected">
+                            <th scope="row">{{ library.id }}</th>
+                            <td>{{ library.name }}</td>
+                            <td>
+                                <span {{ tooltip(library.type.name) }}>
+                                    {{ library.type.abbreviation }}
+                                </span>
+                            </td>
+                            <td>{{ library.status.name }} {{ library.status.icon }}</td>
+                            <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                            {% if workflow == "qubit_measure" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ library.qubit_concentration_str }}</div>
+                                    <div class="unit">ng/μL</div>
+                                </div>
+                            </td>
+                            {% elif workflow == "ba_report" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ library.avg_fragment_size if library.avg_fragment_size }}</div>
+                                    <div class="unit">bp</div>
+                                </div>
+                            </td>
+                            {% elif workflow == "library_pooling" %}
+                            <td>{{ library.pool.name }}</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if select_pools %}
+            <div class="tab-pane fade" id="selected-pools-tab" role="tabpanel" tabindex="5">
+                <table class="table table-hover table-cursor">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-4">Name</th>
+                            <th scope="col" class="col-2">Status</th>
+                            <th scope="col" class="col-3">Owner</th>
+                            {% if workflow == "qubit_measure" %}
+                            <th class="col-3" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
+                            {% elif workflow == "ba_report" %}
+                            <th class="col-3" scope="col">Avg. Fragment Size</th>
+                            {% elif workflow == "select_experiment_pools" %}
+                            <th class="col-3" scope="col"># Reads Requested</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody id="selected-pools-table-container">
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if select_lanes %}
+            <div class="tab-pane fade" id="selected-lanes-tab" role="tabpanel" tabindex="6">
+                <table class="table table-hover table-cursor">
+                    <thead>
+                        <tr>
+                            <th class="col-2" scope="col">Experiment</th>
+                            <th class="col-2" scope="col">Lane</th>
+                            {% if workflow == "qubit_measure" %}
+                            <th class="col-2" scope="col">Qubit Conc.</th>
+                            {% elif workflow == "ba_report" %}
+                            <th class="col-2" scope="col">Avg. Fragment Size</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody id="selected-lanes-table-container">
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
         </div>
     </div>
     <div class="modal-footer">
@@ -290,8 +288,6 @@
         var selected_libraries = {{ selected_libraries_ids | tojson if selected_libraries_ids else [] }};
         var selected_pools = {{ selected_pools_ids | tojson if selected_pools_ids else [] }};
         var selected_lanes = {{ selected_lanes_ids | tojson if selected_lanes_ids else [] }};
-
-        console.log(selected_samples);
 
         var num_selected_samples = selected_samples.length;
         var num_selected_libraries = selected_libraries.length;

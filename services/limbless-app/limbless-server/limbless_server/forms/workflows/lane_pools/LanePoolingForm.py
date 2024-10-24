@@ -1,6 +1,8 @@
 import os
 import uuid
 
+import pandas as pd
+
 from flask import Response, current_app, flash, url_for
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
@@ -104,9 +106,14 @@ class LanePoolingForm(HTMXFlaskForm):
             pool_idx = df["pool_id"] == pool_reads_form.pool_id.data
             lane_idx = df["lane"] == pool_reads_form.lane.data
             df.loc[pool_idx & lane_idx, "num_m_reads_requested"] = pool_reads_form.m_reads.data
-            df.loc[pool_idx & lane_idx, "dilution"] = pool_reads_form.dilution.data
+            df.loc[pool_idx & lane_idx, "dilution"] = pool_reads_form.dilution.data if pool_reads_form.dilution.data else "Orig."
 
-        for (pool_id, lane, identifier), _df in df.groupby(["pool_id", "lane", "dilution"], dropna=False):
+        for (pool_id, lane, identifier, num_m_reads_requested), _df in df.groupby(["pool_id", "lane", "dilution", "num_m_reads_requested"], dropna=False):
+            if (pool := db.get_pool(int(pool_id))) is None:
+                logger.error(f"lane_pools_workflow: Pool with id {pool_id} does not exist")
+                raise ValueError(f"Pool with id {pool_id} does not exist")
+            pool.num_m_reads_requested = float(num_m_reads_requested) if pd.notna(num_m_reads_requested) else None
+            pool = db.update_pool(pool)
             if identifier == "Orig.":
                 continue
             if (dilution := db.get_pool_dilution(int(pool_id), identifier)) is None:

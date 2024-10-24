@@ -6,7 +6,7 @@ import pandas as pd
 from flask import Response, current_app, url_for, flash
 from flask_htmx import make_response
 
-from limbless_db import models
+from limbless_db import models, to_utc
 from limbless_db.categories import FileType
 
 from .... import logger, db  # noqa F401
@@ -93,7 +93,7 @@ class LibraryPrepForm(PrepTableForm):
             size_bytes = os.path.getsize(path)
             self.lab_prep.prep_file.uuid = hash
             self.lab_prep.prep_file.size_bytes = size_bytes
-            self.lab_prep.prep_file.timestamp_utc = db.timestamp()
+            self.lab_prep.prep_file.timestamp_utc = to_utc(db.timestamp())
         else:
             db_file = db.create_file(
                 name=f"{self.lab_prep.name}_prep",
