@@ -1,6 +1,5 @@
 
 {% from "components/spinner.jinja2" import spinner %}
-{% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/legends.jinja2" import color_legend %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar, experiment_status_bar with context %}
 
@@ -16,11 +15,11 @@
                 </div>
                 <div class="banner-container">
                 {% for seq_request in recent_seq_requests %}
-                    <div class="p-2 seq_request-banner">
+                    <div class="p-2 element-banner">
                         <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
                             <div class="row banner-title">
-                                <div class="title col-4">{{ seq_request.name }} <span class="id-desc">{{ seq_request.id }}</span></div>
-                                <div class="description col-4" {{ tooltip(seq_request.requestor.email) }}> {{ seq_request.requestor.name }}</div>
+                                <div class="title col-4">{{ seq_request.name }} Lorem ipsum dolor sit amet consectetur, adipisicing elit. Animi quis et nihil unde placeat esse labore error at odio eos, tempora hic fuga aliquid ullam vel incidunt? Temporibus, laudantium animi?<span class="id-desc">{{ seq_request.id }}</span></div>
+                                <div class="description col-4"> {{ seq_request.requestor.name }}</div>
                                 <div class="submitted-time col-4">{{ seq_request.timestamp_submitted_str() }} </div>
                             </div>
                             {{ seq_request_status_bar(seq_request) }}
@@ -36,7 +35,7 @@
                 </div>
                 <div class="banner-container">
                 {% for experiment in recent_experiments %}
-                    <div class="p-2 seq_request-banner">
+                    <div class="p-2 element-banner">
                         <a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
                             <div class="row banner-title">
                                 <div class="title col-4">{{ experiment.name }} <span class="id-desc">{{ experiment.id }}</span></div>
