@@ -76,7 +76,7 @@ body {
     flex-direction: column;
     gap: 10px;
 
-    .seq_request-banner {
+    .element-banner {
         border: 1px solid #ccc;
         border-radius: 5px;
 
@@ -88,6 +88,11 @@ body {
         .banner-title {
             padding-left: 5px;
             padding-right: 5px;
+            .title {
+                white-space: nowrap;
+                overflow-x: hidden;
+            }
+
             div {
                 text-align: center;
                 vertical-align: middle;
@@ -103,7 +108,7 @@ body {
         }
     }
 
-    .seq_request-banner:hover {
+    .element-banner:hover {
         background-color: $gray-300;
     }
 }
