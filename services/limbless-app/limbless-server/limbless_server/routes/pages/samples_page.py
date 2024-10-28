@@ -22,7 +22,7 @@ def samples_page():
     return render_template("samples_page.html")
 
 
-@samples_page_bp.route("/samples/<sample_id>")
+@samples_page_bp.route("/samples/<int:sample_id>")
 @db_session(db)
 @login_required
 def sample_page(sample_id):

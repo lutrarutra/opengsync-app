@@ -515,3 +515,45 @@ def get_user_library_access_type(
         self.close_session()
 
     return access_type
+
+
+def clone_library(self: "DBHandler", library_id: int, seq_request_id: int, indexed: bool) -> models.Library:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (library := self.session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    cloned_library = self.create_library(
+        name=library.name, sample_name=library.sample_name,
+        library_type=library.type, seq_request_id=seq_request_id,
+        owner_id=library.owner_id, genome_ref=library.genome_ref,
+        visium_annotation_id=library.visium_annotation_id,
+    )
+
+    for sample_link in library.sample_links:
+        self.link_sample_library(
+            sample_id=sample_link.sample_id,
+            library_id=cloned_library.id,
+            cmo_sequence=sample_link.cmo_sequence,
+            cmo_read=sample_link.cmo_read,
+            cmo_pattern=sample_link.cmo_pattern,
+            flex_barcode=sample_link.flex_barcode
+        )
+
+    if indexed:
+        for index in library.indices:
+            self.add_library_index(
+                library_id=cloned_library.id,
+                index_kit_i7_id=index.index_kit_i7_id,
+                name_i7=index.name_i7,
+                sequence_i7=index.sequence_i7,
+                index_kit_i5_id=index.index_kit_i5_id,
+                name_i5=index.name_i5,
+                sequence_i5=index.sequence_i5,
+            )
+
+    if not persist_session:
+        self.close_session()
+
+    return cloned_library

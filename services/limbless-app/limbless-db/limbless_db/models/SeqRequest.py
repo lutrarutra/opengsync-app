@@ -43,22 +43,22 @@ class SeqRequest(Base):
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     organization_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
-    organization_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[organization_contact_id], cascade="save-update, merge, delete")
+    organization_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[organization_contact_id], cascade="save-update, merge")
 
     requestor_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined", foreign_keys=[requestor_id])
 
     group_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), nullable=True)
-    group: Mapped[Optional["Group"]] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge, delete")
+    group: Mapped[Optional["Group"]] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
 
     bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=True)
-    bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge, delete")
+    bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge")
     
     contact_person_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
-    contact_person: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[contact_person_id], cascade="save-update, merge, delete")
+    contact_person: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[contact_person_id], cascade="save-update, merge")
 
     billing_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
-    billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge, delete")
+    billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge")
 
     seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True, default=None)
     seq_auth_form_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[seq_auth_form_file_id], cascade="save-update, merge, delete")

@@ -1,6 +1,6 @@
 import math
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Literal
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
@@ -30,7 +30,6 @@ def create_seq_request(
     read_length: Optional[int] = None,
     num_lanes: Optional[int] = None,
     special_requirements: Optional[str] = None,
-    
     billing_code: Optional[str] = None,
 ) -> models.SeqRequest:
 
@@ -541,3 +540,58 @@ def get_user_seq_request_access_type(
         self.close_session()
 
     return access_type
+
+
+def clone_seq_request(self: "DBHandler", seq_request_id: int, method: Literal["pooled", "indexed", "raw"]) -> models.SeqRequest:
+    if method not in {"pooled", "indexed", "raw"}:
+        raise ValueError(f"Method should be one of: {', '.join(['pooled', 'indexed', 'raw'])}")
+    
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+
+    cloned_request = self.create_seq_request(
+        name=f"RE: {seq_request.name}"[:models.SeqRequest.name.type.length],
+        requestor_id=seq_request.requestor_id,
+        group_id=seq_request.group_id,
+        description=seq_request.description,
+        billing_contact_id=seq_request.billing_contact_id,
+        data_delivery_mode=seq_request.data_delivery_mode,
+        read_type=seq_request.read_type,
+        submission_type=seq_request.submission_type,
+        contact_person_id=seq_request.contact_person_id,
+        organization_contact_id=seq_request.organization_contact_id,
+        bioinformatician_contact_id=seq_request.bioinformatician_contact_id,
+        read_length=seq_request.read_length,
+        num_lanes=seq_request.num_lanes,
+        special_requirements=seq_request.special_requirements,
+        billing_code=seq_request.billing_code,
+    )
+
+    if method == "pooled":
+        pools: dict[int, models.Pool] = {}
+
+        for library in seq_request.libraries:
+            cloned_library = self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True)
+            if library.pool_id is not None:
+                if library.pool_id not in pools.keys():
+                    pools[library.pool_id] = self.clone_pool(library.pool_id, seq_request_id=seq_request.id)
+                self.pool_library(library_id=cloned_library.id, pool_id=pools[library.pool_id].id)
+
+    elif method == "indexed":
+        for library in seq_request.libraries:
+            self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True)
+    elif method == "raw":
+        for library in seq_request.libraries:
+            self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=False)
+
+    self.session.add(cloned_request)
+    self.session.commit()
+    self.session.refresh(cloned_request)
+
+    if not persist_session:
+        self.close_session()
+
+    return cloned_request

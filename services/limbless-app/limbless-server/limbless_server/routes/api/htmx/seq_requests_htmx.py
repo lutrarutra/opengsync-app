@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
 else:
     from flask_login import current_user
+from flask import url_for
+from flask import flash
 
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hmtx/seq_requests/")
@@ -889,3 +891,22 @@ def get_files(seq_request_id: int):
             delete_context={"seq_request_id": seq_request_id}
         )
     )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/clone/<string:method>", methods=["POST"])
+@db_session(db)
+@login_required
+def clone(seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if method not in {"pooled", "indexed", "raw"}:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    cloned_request = db.clone_seq_request(seq_request_id=seq_request.id, method=method)
+
+    flash("Request cloned", "success")
+    return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=cloned_request.id))

@@ -18,7 +18,7 @@
                     <div class="p-2 element-banner">
                         <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
                             <div class="row banner-title">
-                                <div class="title col-4">{{ seq_request.name }} Lorem ipsum dolor sit amet consectetur, adipisicing elit. Animi quis et nihil unde placeat esse labore error at odio eos, tempora hic fuga aliquid ullam vel incidunt? Temporibus, laudantium animi?<span class="id-desc">{{ seq_request.id }}</span></div>
+                                <div class="title col-4">{{ seq_request.name }} <span class="id-desc">{{ seq_request.id }}</span></div>
                                 <div class="description col-4"> {{ seq_request.requestor.name }}</div>
                                 <div class="submitted-time col-4">{{ seq_request.timestamp_submitted_str() }} </div>
                             </div>

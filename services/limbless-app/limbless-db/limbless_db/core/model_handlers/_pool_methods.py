@@ -6,7 +6,7 @@ import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
-from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum
+from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum, PoolType
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 
@@ -383,3 +383,28 @@ def get_user_pool_access_type(
         self.close_session()
 
     return access_type
+
+
+def clone_pool(self: "DBHandler", pool_id: int, seq_request_id: Optional[int] = None) -> models.Pool:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (pool := self.session.get(models.Pool, pool_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+
+    cloned_pool = self.create_pool(
+        name=f"re: {pool.name}"[:models.Pool.name.type.length],
+        owner_id=pool.owner_id,
+        seq_request_id=seq_request_id,
+        num_m_reads_requested=pool.num_m_reads_requested,
+        lab_prep_id=pool.lab_prep_id,
+        contact_email=pool.contact.email if pool.contact.email is not None else "unknown",
+        contact_name=pool.contact.name,
+        contact_phone=pool.contact.phone,
+        pool_type=pool.type
+    )
+
+    if not persist_session:
+        self.close_session()
+
+    return cloned_pool

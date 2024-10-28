@@ -114,7 +114,7 @@ def select() -> Response:
     _, library_table, _, _ = form.get_tables()
 
     for _, row in library_table.iterrows():
-        if (library := db.get_library(row["id"])) is None:
+        if (library := db.get_library(int(row["id"]))) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
         db.pool_library(library_id=library.id, pool_id=pool.id)
