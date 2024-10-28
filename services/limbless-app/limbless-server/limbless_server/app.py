@@ -215,6 +215,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             PrepStatus=categories.PrepStatus,
             LabProtocol=categories.LabProtocol,
             PoolType=categories.PoolType,
+            KitType=categories.KitType,
             isna=pd.isna,
             notna=pd.notna,
         )
@@ -247,6 +248,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.lab_preps_htmx)
     app.register_blueprint(api.htmx.events_htmx)
     app.register_blueprint(api.htmx.groups_htmx)
+    app.register_blueprint(api.htmx.kits_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
 
@@ -272,11 +274,10 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(pages.auth_page_bp)
     app.register_blueprint(pages.users_page_bp)
     app.register_blueprint(pages.seq_requests_page_bp)
-    app.register_blueprint(pages.index_kits_page_bp)
+    app.register_blueprint(pages.kits_page_bp)
     app.register_blueprint(pages.errors_bp)
     app.register_blueprint(pages.devices_page_bp)
     app.register_blueprint(pages.pools_page_bp)
-    app.register_blueprint(pages.feature_kits_page_bp)
     app.register_blueprint(pages.seq_runs_page_bp)
     app.register_blueprint(pages.lab_preps_page_bp)
     app.register_blueprint(pages.groups_page_bp)

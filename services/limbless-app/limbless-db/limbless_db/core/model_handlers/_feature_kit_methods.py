@@ -5,9 +5,10 @@ import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
+
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import FeatureTypeEnum
+from ...categories import FeatureTypeEnum, KitType
 
 
 def create_feature_kit(
@@ -23,6 +24,7 @@ def create_feature_kit(
     feature_kit = models.FeatureKit(
         name=name.strip(),
         type_id=type.id,
+        kit_type_id=KitType.FEATURE_KIT.id,
     )
     self.session.add(feature_kit)
     self.session.commit()

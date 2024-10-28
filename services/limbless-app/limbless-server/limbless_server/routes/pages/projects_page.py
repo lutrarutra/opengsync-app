@@ -14,7 +14,7 @@ def projects_page():
     return render_template("projects_page.html", project_form=project_form)
 
 
-@projects_page_bp.route("/projects/<project_id>")
+@projects_page_bp.route("/projects/<int:project_id>")
 @login_required
 def project_page(project_id):
     if (project := db.get_project(project_id)) is None:

@@ -6,10 +6,9 @@ from .auth_page import auth_page_bp  # noqa: F401
 from .users_page import users_page_bp  # noqa: F401
 from .error_pages import errors_bp  # noqa: F401
 from .seq_requests_page import seq_requests_page_bp  # noqa: F401
-from .index_kits_page import index_kits_page_bp  # noqa: F401
 from .devices_page import devices_page_bp  # noqa: F401
 from .pools_page import pools_page_bp  # noqa: F401
-from .feature_kits_page import feature_kits_page_bp  # noqa: F401
 from .seq_runs_page import seq_runs_page_bp  # noqa: F401
 from .lab_preps_page import lab_preps_page_bp  # noqa: F401
 from .groups_page import groups_page_bp  # noqa: F401
+from .kits_page import kits_page_bp  # noqa: F401

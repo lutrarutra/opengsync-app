@@ -60,7 +60,6 @@ def get(page: int):
 
 @index_kits_htmx.route("table_query", methods=["GET"])
 @login_required
-@cache.cached(timeout=300, query_string=True)
 def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"

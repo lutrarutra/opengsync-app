@@ -44,8 +44,6 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        logger.debug(self.sample_submission_time.data)
-        logger.debug(to_utc(self.sample_submission_time.data))
         if self.sample_submission_time.data is not None:
             if self.seq_request.sample_submission_event is None:
                 self.seq_request.sample_submission_event = db.create_event(

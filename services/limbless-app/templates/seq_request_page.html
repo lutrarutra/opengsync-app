@@ -75,6 +75,7 @@
                             halt the event
                             call Swal.fire({
                                 title: 'Delete request \'{{ seq_request.name }}\'',
+                                icon: 'warning',
                                 showDenyButton: true,
                                 text: 'Proceed?',
                                 confirmButtonText: 'Yes',
@@ -91,6 +92,7 @@
                         halt the event
                         call Swal.fire({
                             title: 'Archive request \'{{ seq_request.name }}\'',
+                            icon: 'question',
                             showDenyButton: true,
                             text: 'You will not be able to use this request anymore. Do you want to proceed?',
                             confirmButtonText: 'Yes',
@@ -113,6 +115,50 @@
                             denyButtonText: 'No'
                         })
                         if result.isConfirmed issueRequest()">Unarchive</button>
+                    </li>
+                    {% endif %}
+                    {% if current_user.is_insider() %}
+                    <li>
+                        <button class="dropdown-item" hx-post="{{ url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='pooled') }}"
+                        _="on htmx:confirm(issueRequest)
+                        halt the event
+                        call Swal.fire({
+                            title: 'Clone request \'{{ seq_request.name }}\'',
+                            icon: 'question',
+                            showDenyButton: true,
+                            text: 'This will make copy of the request with all libraries and pools in it. Do you want to proceed?',
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'No'
+                        })
+                        if result.isConfirmed issueRequest()">Clone (Pooled)</button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" hx-post="{{ url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='indexed') }}"
+                        _="on htmx:confirm(issueRequest)
+                        halt the event
+                        call Swal.fire({
+                            title: 'Clone request \'{{ seq_request.name }}\'',
+                            icon: 'question',
+                            showDenyButton: true,
+                            text: 'This will make copy of the request with all libraries in it. Do you want to proceed?',
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'No'
+                        })
+                        if result.isConfirmed issueRequest()">Clone (Indexed)</button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" hx-post="{{ url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='raw') }}"
+                        _="on htmx:confirm(issueRequest)
+                        halt the event
+                        call Swal.fire({
+                            title: 'Clone request \'{{ seq_request.name }}\'',
+                            icon: 'question',
+                            showDenyButton: true,
+                            text: 'This will make copy of the request with unindexed libraries in it. Do you want to proceed?',
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'No'
+                        })
+                        if result.isConfirmed issueRequest()">Clone (Raw)</button>
                     </li>
                     {% endif %}
                 </ul>

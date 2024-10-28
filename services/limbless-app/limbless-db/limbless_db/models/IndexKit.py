@@ -3,20 +3,18 @@ from typing import TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..categories import IndexType, IndexTypeEnum, LabProtocol, LabProtocolEnum
-from .Base import Base
+from .Kit import Kit
+from ..categories import IndexType, IndexTypeEnum, LabProtocol, LabProtocolEnum, KitType
+
 
 if TYPE_CHECKING:
     from .Barcode import Barcode
     from .Adapter import Adapter
 
 
-class IndexKit(Base):
+class IndexKit(Kit):
     __tablename__ = "index_kit"
-    id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    identifier: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True, unique=True)
-    name: Mapped[str] = mapped_column(sa.String(256), nullable=False, index=True, unique=False)
-
+    id: Mapped[int] = mapped_column(sa.ForeignKey("kit.id"), primary_key=True)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     supported_protocol_ids: Mapped[list[int]] = mapped_column(sa.ARRAY(sa.Integer), nullable=False)
     
@@ -25,9 +23,17 @@ class IndexKit(Base):
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "type_id"]
 
+    __mapper_args__ = {
+        "polymorphic_identity": KitType.INDEX_KIT.id,
+    }
+
     @property
     def type(self) -> IndexTypeEnum:
         return IndexType.get(self.type_id)
+    
+    @type.setter
+    def type(self, value: IndexTypeEnum):
+        self.type_id = value.id
     
     @property
     def supported_protocols(self) -> list[LabProtocolEnum]:

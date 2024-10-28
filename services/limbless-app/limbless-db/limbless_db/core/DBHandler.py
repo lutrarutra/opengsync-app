@@ -63,14 +63,15 @@ class DBHandler():
     from .model_handlers._pool_methods import (
         create_pool, get_pool, get_pools,
         delete_pool, update_pool, query_pools, dilute_pool,
-        get_pool_dilution, get_pool_dilutions, get_user_pool_access_type
+        get_pool_dilution, get_pool_dilutions, get_user_pool_access_type,
+        clone_pool
     )
 
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
         pool_library, set_library_seq_quality, add_library_index,
-        remove_library_indices, get_user_library_access_type
+        remove_library_indices, get_user_library_access_type, clone_library
     )
 
     from .model_handlers._user_methods import (
@@ -92,7 +93,7 @@ class DBHandler():
         query_seq_requests, submit_seq_request,
         add_file_to_seq_request, remove_file_from_seq_request,
         remove_comment_from_seq_request, add_seq_request_share_email, remove_seq_request_share_email,
-        process_seq_request, get_user_seq_request_access_type
+        process_seq_request, get_user_seq_request_access_type, clone_seq_request
     )
 
     from .model_handlers._contact_methods import (
@@ -137,6 +138,10 @@ class DBHandler():
     from .model_handlers._lab_prep_methods import (
         create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_identifier,
         update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps
+    )
+
+    from .model_handlers._kit_methods import (
+        create_kit, get_kit, get_kits
     )
 
     from .model_handlers._link_methods import (

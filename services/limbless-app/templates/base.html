@@ -113,8 +113,11 @@
                     </svg>
                 </p>
                 <ul>
-                    <li><a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" id="barcodes-page" href="{{ url_for('index_kits_page.index_kits_page') }}">Barcodes</a></li>
-                    <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('feature_kits_page.feature_kits_page') }}">Features</a></li>
+                    {% if current_user.is_authenticated and current_user.is_insider() %}
+                    <li><a class="nav-link {{'active' if active_page == 'kits-page' else ''}}" id="kits-page" href="{{ url_for('kits_page.kits_page') }}">Kits</a></li>
+                    {% endif %}
+                    <li><a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" id="barcodes-page" href="{{ url_for('kits_page.index_kits_page') }}">Barcodes</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('kits_page.feature_kits_page') }}">Features</a></li>
                 </ul>
             </div>
             {% if current_user.is_authenticated %}
