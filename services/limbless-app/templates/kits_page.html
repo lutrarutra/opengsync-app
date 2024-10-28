@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% set active_page = "kits-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div>
+            <h1>Kits</h1>
+        </div>
+        <div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div hx-get="{{ url_for('kits_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+{% endblock content %}

@@ -32,7 +32,7 @@
 
     <h5>Optional Columns (can be left blank)</h5>
     <ul>
-        <li><b>Index Kit</b> <span class="desc">Name of the barcode kit from <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page</span></li>
+        <li><b>Index Kit</b> <span class="desc">Name of the barcode kit from <a href="{{ url_for('kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page</span></li>
         <li><b>Adapter</b> <span class="desc">Index adapter, e.g. 'SI-TT-A1'</span></li>
         <li><b>Index 1</b> <span class="desc">Index 1 (i7 for 10x) sequence, e.g. 'GTAACATGCG'</span></li>
         <li><b>Index 2</b> <span class="desc">Index 2 (i5 for 10x) sequence, e.g. 'AGTGTTACCT'</span></li>
@@ -46,7 +46,7 @@
         <li><b>'Sample Name'</b>-column denotes a biological sample/specimen that was prepared into one or more libraries.</li>
         <li>Multiple rows can have same value in <b>'Sample Name'</b>-column if multiple libraries are created from a single biological sample/specimen.</li>
         <li>White-spaces in <b>'Sample Name' & 'Library Name'</b>-columns will be replaced with '_' automatically. Also non-alphanumeric characters (except '_', '-', '.') will be filtered.</li>
-        <li>If you are using a common library kit, one found in <a href="{{ url_for('index_kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page, specify only <b>Adapter</b>-column (without <b>Index 1/2/3/4</b>-columns.)</li>
+        <li>If you are using a common library kit, one found in <a href="{{ url_for('kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page, specify only <b>Adapter</b>-column (without <b>Index 1/2/3/4</b>-columns.)</li>
         <li>If a single library has different adapters for its indices, you can specify different adapters using <b>'Adapter 1/2/3/4'</b>-columns.</li>
         <li>If a common index kit is specified with <b>'Adapter'</b> and <b>'Index 1/2/3/4</b>-columns, this app will warn if there are errors in barcode sequences, e.g. typos or reused indices.</li>
         <li>In edge cases, please contact us at <a href="mailto:bsf@cemm.at">bsf@cemm.at</a></li>

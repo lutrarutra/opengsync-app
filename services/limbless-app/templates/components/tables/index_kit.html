@@ -42,7 +42,7 @@
         </thead>
         <tbody>
             {% for index_kit in index_kits %}
-            <tr onclick="redirect('{{ url_for('index_kits_page.index_kit_page', index_kit_id=index_kit.id) }}');">
+            <tr onclick="redirect('{{ url_for('kits_page.index_kit_page', index_kit_id=index_kit.id) }}');">
                 <th scope="row">{{ index_kit.id }}</th>
                 <td>{{ index_kit.identifier }}</td>
                 <td>{{ index_kit.name }}</td>

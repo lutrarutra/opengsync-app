@@ -1,0 +1,62 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="kit-table" class="table-container">
+    <table class="table table-hover table-cursor">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='kit-table', column_name='ID', column_var='id',
+                        sort_url='kits_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        query_url='kits_htmx.table_query', current_query=current_query,
+                        active_query_field=active_query_field, query_type="number", col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='kit-table', column_name='Identifier', column_var='identifier',
+                        sort_url='kits_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        query_url='kits_htmx.table_query', current_query=current_query,
+                        active_query_field=active_query_field, query_type="text", col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='kit-table', column_name='Name', column_var='name',
+                        sort_url='kits_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        query_url='kits_htmx.table_query', current_query=current_query,
+                        active_query_field=active_query_field, query_type="text", col_size=5
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='kit-table', column_name='Type', column_var='kit_type_id',
+                        sort_url='kits_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        multiselect_choices=IndexType.as_list(), multiselect_selected=type_in
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for kit in kits %}
+            <tr 
+            {% if kit.kit_type == KitType.INDEX_KIT %}
+            onclick="redirect('{{ url_for('kits_page.index_kit_page', index_kit_id=kit.id) }}');"
+            {% elif kit.kit_type == KitType.FEATURE_KIT %}
+            onclick="redirect('{{ url_for('kits_page.feature_kit_page', feature_kit_id=kit.id) }}');"
+            {% else %}
+            onclick="redirect('{{ url_for('kits_page.kit_page', kit_id=kit.id) }}');"
+            {% endif %}>
+                <th scope="row">{{ kit.id }}</th>
+                <td>{{ kit.identifier }}</td>
+                <td>{{ kit.name }}</td>
+                <td>{{ kit.kit_type.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("kit-table-spinner") }}
+    {{ pagination("kit-table", "kits_htmx.get", n_pages, active_page) }}
+</div>

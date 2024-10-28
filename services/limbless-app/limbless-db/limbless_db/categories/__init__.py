@@ -29,3 +29,4 @@ from .AffiliationType import AffiliationType, AffiliationTypeEnum  # noqa: F401
 from .AccessType import AccessType, AccessTypeEnum  # noqa: F401
 from .GroupType import GroupType, GroupTypeEnum  # noqa: F401
 from .PrepStatus import PrepStatus, PrepStatusEnum  # noqa: F401
+from .KitType import KitType, KitTypeEnum  # noqa: F401

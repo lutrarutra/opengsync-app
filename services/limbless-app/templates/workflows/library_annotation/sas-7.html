@@ -63,15 +63,15 @@
                 <div class="input-help">
                     <h5>How to?</h5>
                     <ol>
-                        <li>If using <b>the same</b> predefined <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">feature-kit</a> <b>for all Antibody Capture Libraries</b>, select kit from the search bar.</li>
-                        <li>If using <b>all features</b> from a predefined <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">feature-kit</a>: specify columns <b>Library Name, Kit</b></li>
-                        <li>If using <b>specific feature</b> from a predefined <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">feature-kit</a>: specify columns <b>Library Name, Kit, Feature</b></li>
+                        <li>If using <b>the same</b> predefined <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">feature-kit</a> <b>for all Antibody Capture Libraries</b>, select kit from the search bar.</li>
+                        <li>If using <b>all features</b> from a predefined <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">feature-kit</a>: specify columns <b>Library Name, Kit</b></li>
+                        <li>If using <b>specific feature</b> from a predefined <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">feature-kit</a>: specify columns <b>Library Name, Kit, Feature</b></li>
                         <li>If using custom kit: specify columns <b>Library Name, Feature, Sequence, Pattern, Read</b></li>
                     </ol>
                     <h5>Modify Columns</h5>
                     <ul>
                         <li><b>Library Name</b> <span class="desc">Optional: if not specified, feature/kit is part of all antibody feature libraries, else must mach one and only one value from 'Library Name'-column from sample annotation sheet</span></li>
-                        <li><b>Kit</b> <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+                        <li><b>Kit</b> <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
                         <li><b>Feature</b> <span class="desc">Name of the feature</span></li>
                         <li><b>Sequence</b> <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG', do not specify if using predefined kit</span></li>
                         <li><b>Pattern</b> <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)', do not specify if using predefined kit</span></li>
@@ -102,7 +102,7 @@
                     <h5>Columns:</h5>
                     <ul>
                         <li><b>Library Name</b> <span class="desc">Optional: if not specified, feature is part of all antibody feature libraries, else must mach one and only one value from 'Library Name'-column from sample annotation sheet</span></li>
-                        <li><b>Kit</b> <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+                        <li><b>Kit</b> <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
                         <li><b>Feature</b> <span class="desc">Name of the feature</span></li>
                         <li><b>Sequence</b> <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG', do not specify if using predefined kit</span></li>
                         <li><b>Pattern</b> <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)', do not specify if using predefined kit</span></li>

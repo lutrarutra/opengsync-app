@@ -18,8 +18,6 @@ if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
 else:
     from flask_login import current_user
-from flask import url_for
-from flask import flash
 
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hmtx/seq_requests/")

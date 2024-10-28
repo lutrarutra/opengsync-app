@@ -140,6 +140,10 @@ class DBHandler():
         update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps
     )
 
+    from .model_handlers._kit_methods import (
+        create_kit, get_kit, get_kits
+    )
+
     from .model_handlers._link_methods import (
         get_sample_library_links,
 

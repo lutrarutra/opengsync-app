@@ -464,8 +464,9 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
 
     if seq_request.status in [SeqRequestStatus.DRAFT, SeqRequestStatus.REJECTED]:
         seq_request.timestamp_submitted_utc = None
-        self.session.delete(seq_request.sample_submission_event)
-        seq_request.sample_submission_event = None
+        if seq_request.sample_submission_event_id is not None:
+            self.session.delete(seq_request.sample_submission_event)
+            seq_request.sample_submission_event = None
     
     if status == SeqRequestStatus.ACCEPTED:
         sample_status = SampleStatus.ACCEPTED
@@ -494,7 +495,8 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
                 break
         if is_prepared:
             sample.status = SampleStatus.PREPARED
-
+    
+    is_prepared = status == SeqRequestStatus.ACCEPTED
     for library in seq_request.libraries:
         library.status = library_status
         if library_status != LibraryStatus.ACCEPTED:
@@ -502,6 +504,11 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
         
         if library.pool_id is not None:
             library.status = LibraryStatus.POOLED
+
+        is_prepared = is_prepared and library.status == LibraryStatus.POOLED
+    
+    if status == SeqRequestStatus.ACCEPTED:
+        seq_request.status = SeqRequestStatus.PREPARED if is_prepared else SeqRequestStatus.ACCEPTED
 
     for pool in seq_request.pools:
         pool.status = pool_status

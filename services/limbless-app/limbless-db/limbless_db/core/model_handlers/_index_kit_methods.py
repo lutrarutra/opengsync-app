@@ -5,7 +5,8 @@ import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
-from ...categories import IndexTypeEnum, LabProtocolEnum
+
+from ...categories import IndexTypeEnum, LabProtocolEnum, KitType
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
@@ -25,6 +26,7 @@ def create_index_kit(
         identifier=identifier.strip(),
         name=name.strip(),
         type_id=type.id,
+        kit_type_id=KitType.INDEX_KIT.id,
         supported_protocol_ids=[p.id for p in supported_protocols]
     )
     self.session.add(seq_kit)

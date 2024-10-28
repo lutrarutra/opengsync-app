@@ -9,7 +9,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models
-from limbless_db.categories import PoolType
+from limbless_db.categories import PoolType, SeqRequestStatus
 
 from .... import logger, db, tools
 from ...TableDataForm import TableDataForm
@@ -72,6 +72,7 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
                 lab_prep_id=lab_prep.id
             )
 
+        request_ids = []
         for i, (idx, row) in enumerate(library_table.iterrows()):
             if (library := db.get_library(row["library_id"])) is None:
                 logger.error(f"{self.uuid}: Library {row['library_id']} not found")
@@ -103,6 +104,8 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             library.pool_id = None
             library = db.update_library(library)
             library = db.pool_library(library_id=library.id, pool_id=pools[row["pool"]].id)
+            if library.seq_request_id not in request_ids:
+                request_ids.append(library.seq_request_id)
         
         if lab_prep.prep_file is not None:
             wb = openpyxl.load_workbook(os.path.join(current_app.config["MEDIA_FOLDER"], lab_prep.prep_file.path))
@@ -132,5 +135,18 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             logger.debug(f"Overwriting existing file: {os.path.join(current_app.config['MEDIA_FOLDER'], lab_prep.prep_file.path)}")
             wb.save(os.path.join(current_app.config["MEDIA_FOLDER"], lab_prep.prep_file.path))
 
+        for request_id in request_ids:
+            if (seq_request := db.get_seq_request(request_id)) is None:
+                logger.error(f"{self.uuid}: SeqRequest {request_id} not found")
+                raise ValueError(f"{self.uuid}: SeqRequest {request_id} not found")
+            
+            prepared = True
+            for library in seq_request.libraries:
+                prepared = prepared and library.is_pooled()
+
+            if prepared and seq_request.status == SeqRequestStatus.ACCEPTED:
+                seq_request.status = SeqRequestStatus.PREPARED
+                seq_request = db.update_seq_request(seq_request)
+                    
         flash("Library Indexing completed!", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep.id))

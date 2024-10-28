@@ -39,10 +39,9 @@ label_search_columns: dict[str, list[str]] = {
     str(models.Pool.__tablename__): ["name"],
     str(models.Experiment.__tablename__): ["name"],
     str(models.SeqRun.__tablename__): ["experiment_name"],
-    str(models.IndexKit.__tablename__): ["name"],
+    str(models.Kit.__tablename__): ["name", "identifier"],
     str(models.User.__tablename__): ["email", "last_name", "first_name"],
     str(models.Group.__tablename__): ["name"],
-    str(models.FeatureKit.__tablename__): ["name"],
     str(models.Feature.__tablename__): ["name", "target_name", "target_id"],
     str(models.SeqRun.__tablename__): ["experiment_name"],
     str(models.Plate.__tablename__): ["name"],
@@ -119,9 +118,9 @@ def init_db():
 
         conn.execute(sa.text("""
             CREATE INDEX IF NOT EXISTS
-                trgm_index_kit_identifier_name_idx
+                trgm_kit_identifier_name_idx
             ON
-                "index_kit"
+                "kit"
             USING
                 gin ((identifier || ' ' || name) gin_trgm_ops);COMMIT;
         """))
