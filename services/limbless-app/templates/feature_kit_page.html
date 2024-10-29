@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 {% set active_page = "feature_kits-page" %}
-
 {% block content %}
-<div class="container">
+
+<div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>{{ feature_kit.name }}</h1>
         </div>
-        <div>
+        <div class="page-controls">
             <a type="button" class="btn btn-primary" href="{{ url_for('kits_page.export_features', feature_kit_id=feature_kit.id) }}">Export</a>
         </div>
     </div>
+</div>
+<div class="page-content">
     <div hx-get="{{ url_for('feature_kits_htmx.get_features', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
         {{ spinner() }}
     </div>

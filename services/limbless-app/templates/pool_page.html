@@ -6,10 +6,10 @@
 {% block content %}
 <div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>{{ pool.name }} <span class="desc">{{ pool.status.name }} {{ pool.status.icon }}</span></h1>
         </div>
-        <div>
+        <div class="page-controls">
             <span {% if not is_editable %}
             {{ tooltip("You can no longer edit pool after it is submitted.") }}
             {% endif %}>
@@ -78,10 +78,9 @@
             BA Report</button>
         </li>
     </ul>
-    
 </div>
 
-<div class="container">
+<div class="page-content">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="library-tab" role="tabpanel" tabindex="0">
             <div class="d-flex justify-content-between">

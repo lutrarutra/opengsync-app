@@ -23,6 +23,8 @@ table input.table-query-input{
 }
 
 .table-container {
+    width: 100%;
+
     .pagination {
         display: flex;
         align-items: center;
@@ -31,6 +33,15 @@ table input.table-query-input{
     }
 
     table {
+        width: 100%;
+
+        thead, tbody {
+            width: 100%;
+            tr {
+                width: 100%;
+            }
+        }
+
         .table-select-buttons {
             display: flex;
             align-items: flex-start;
@@ -43,18 +54,38 @@ table input.table-query-input{
         .table-btn.disabled {
             cursor: not-allowed;
         }
-        width: 100%;
         * {
             margin: 0 !important;
         }
 
         tr {
+            th {
+                .search-btn {
+                    background-color: transparent;
+                    border-radius: 5px;
+                    border: none;
+                }
+                .search-btn:hover {
+                    background-color: $gray-300;
+                }
+                .sort-btn {
+                    background-color: transparent;
+                    border-radius: 5px;
+                    border: none;
+                }
+                .sort-btn:hover {
+                    background-color: $gray-300;
+                }
+            }
             td, th {
                 padding-top: 8px !important;
                 padding-bottom: 8px !important;
                 white-space: nowrap;
                 overflow: hidden;
                 height: 42px;
+                border: 1px solid $gray-200;
+                max-width: 200px;
+                min-width: 100px;
             }
             td a {
                 color: $cemm-blue-darker;
@@ -120,22 +151,6 @@ table input.table-query-input{
 
             th {
                 cursor: default;
-                .search-btn {
-                    background-color: transparent;
-                    border-radius: 5px;
-                    border: none;
-                }
-                .search-btn:hover {
-                    background-color: $gray-300;
-                }
-                .sort-btn {
-                    background-color: transparent;
-                    border-radius: 5px;
-                    border: none;
-                }
-                .sort-btn:hover {
-                    background-color: $gray-300;
-                }
             }
         }
     }

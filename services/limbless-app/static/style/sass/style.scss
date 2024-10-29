@@ -145,50 +145,60 @@ body {
     width: 100vw;
     height: 100%;
     overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-y: hidden;
 
     #left-margin, #right-margin {
         position: sticky;
         top: 0;
         padding: 5px;
-        width: 150px;
+        width: 120px;
         margin: 0;
         background-color: $gray-200;
     }
 
     #middle-container {
-        width: 100%;
+        margin: 0;
+        width: calc(100vw - 240px);
         height: 100%;
+        padding: 0 10px 0 10px;
         background-color: $gray-100;
         
-        .container {
-            min-width: 100%;
-            overflow-y: auto;
-
-            .page-content {
-                height: 100%;
-            }
+        .page-content {
+            width: 100%;
+            overflow: hidden;
+            margin: 0;
         }
 
         .status_bar {
             padding-bottom: 5px;
         }
         .page-header-container {
-            padding: 0 10px 0 10px;
             position: sticky;
             background-color: $gray-100;
             top: 0;
             z-index: 10;
         }
         .page-header {
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: space-between;
             height: 50px;
-            h1, h2 {
-                white-space: nowrap;
-                margin: 0;
-                padding: 0;
+            .page-title {
+                overflow-x: hidden;
+                padding-right: 15px;
+                h1, h2 {
+                    white-space: nowrap;
+                    margin: 0;
+                    padding: 0;
+                    overflow-x: hidden;
+                }
+            }
+            .page-controls {
+                flex-shrink: 0;
+                button {
+                    min-width: 60px;
+                }
             }
             div {
                 display: flex;

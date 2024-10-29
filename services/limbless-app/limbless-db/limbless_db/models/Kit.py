@@ -12,7 +12,7 @@ from .Base import Base
 class Kit(Base):
     __tablename__ = "kit"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String(256), nullable=False, index=True, unique=False)
+    name: Mapped[str] = mapped_column(sa.String(256), nullable=False, index=True, unique=True)
     identifier: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True, unique=True)
 
     kit_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)

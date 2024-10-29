@@ -84,7 +84,8 @@ class DBHandler():
 
     from .model_handlers._index_kit_methods import (
         create_index_kit, get_index_kit, get_index_kits,
-        get_index_kit_by_name, query_index_kits
+        get_index_kit_by_name, query_index_kits, update_index_kit,
+        delete_index_kit, remove_all_barcodes_from_kit
     )
 
     from .model_handlers._seq_request_methods import (

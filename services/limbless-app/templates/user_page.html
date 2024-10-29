@@ -2,12 +2,12 @@
 {% extends "base.html" %}
 {% set active_page = "users-page" %}
 {% block content %}
-<div class="container">
+<div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>{{ user.role.icon }} {{ user.email }} <span class="desc">{{ user.role.name }}</span></h1>
         </div>
-        <div>
+        <div class="page-controls">
             {% if current_user.id == user.id or current_user.role == UserRole.ADMIN %}
             <button id="reset-btn" class="btn btn-warning"
             hx-get="{{ url_for('auth_htmx.reset_password_email', user_id=user.id) }}"
@@ -30,7 +30,7 @@
             _="on htmx:confirm(issueRequest)
                 halt the event
                 call Swal.fire({
-                    title: 'Logout',
+                    title: 'Sign Out',
                     showDenyButton: true,
                     icon: 'question',
                     text: 'Proceed?',
@@ -38,61 +38,61 @@
                     denyButtonText: 'No'
                 })
                 if result.isConfirmed issueRequest()">
-                Logout
+                Sign Out
             </button>
             {% endif %}
         </div>
     </div>
     
-    <div>
-        <ul class="nav nav-tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab"
-                data-bs-target="#user-data-tab" type="button" role="tab"
-                aria-controls="user-data-tab" aria-selected="true">
-                User Data</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#user-projects-tab" type="button" role="tab"
-                aria-controls="user-projects-tab" aria-selected="false">
-                Projects</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#user-requests-tab" type="button" role="tab"
-                aria-controls="user-requests-tab" aria-selected="false">
-                Requests</button>
-            </li>
-            <li class="nav-item" role="presentation"></li>
-                <button class="nav-link" data-bs-toggle="tab"
-                data-bs-target="#user-groups-tab" type="button" role="tab"
-                aria-controls="user-groups-tab" aria-selected="false">
-                Groups</button>
-            </li>
-        </ul>
-        <div class="tab-content pt-3">
-            <div class="tab-pane fade show active" id="user-data-tab" role="tabpanel" tabindex="0">
-                <div class="row">
-                    {{ metadata_group("First Name", user.first_name, class="col") }}
-                    {{ metadata_group("Last Name", user.last_name, class="col") }}
-                </div>
-                {{ metadata_group_email_link("Email", user.email) }}
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#user-data-tab" type="button" role="tab"
+            aria-controls="user-data-tab" aria-selected="true">
+            User Data</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#user-projects-tab" type="button" role="tab"
+            aria-controls="user-projects-tab" aria-selected="false">
+            Projects</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#user-requests-tab" type="button" role="tab"
+            aria-controls="user-requests-tab" aria-selected="false">
+            Requests</button>
+        </li>
+        <li class="nav-item" role="presentation"></li>
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#user-groups-tab" type="button" role="tab"
+            aria-controls="user-groups-tab" aria-selected="false">
+            Groups</button>
+        </li>
+    </ul>
+</div>
+<div class="page-content">
+    <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="user-data-tab" role="tabpanel" tabindex="0">
+            <div class="row">
+                {{ metadata_group("First Name", user.first_name, class="col") }}
+                {{ metadata_group("Last Name", user.last_name, class="col") }}
             </div>
-            <div class="tab-pane fade" id="user-projects-tab" role="tabpanel" tabindex="1">
-                <div hx-get="{{ url_for('users_htmx.get_projects', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                    {{ spinner() }}
-                </div>
+            {{ metadata_group_email_link("Email", user.email) }}
+        </div>
+        <div class="tab-pane fade" id="user-projects-tab" role="tabpanel" tabindex="1">
+            <div hx-get="{{ url_for('users_htmx.get_projects', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
             </div>
-            <div class="tab-pane fade" id="user-requests-tab" role="tabpanel" tabindex="2">
-                <div hx-get="{{ url_for('users_htmx.get_seq_requests', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                    {{ spinner() }}
-                </div>
+        </div>
+        <div class="tab-pane fade" id="user-requests-tab" role="tabpanel" tabindex="2">
+            <div hx-get="{{ url_for('users_htmx.get_seq_requests', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
             </div>
-            <div class="tab-pane fade" id="user-groups-tab" role="tabpanel" tabindex="3">
-                <div hx-get="{{ url_for('users_htmx.get_affiliations', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                    {{ spinner() }}
-                </div>
+        </div>
+        <div class="tab-pane fade" id="user-groups-tab" role="tabpanel" tabindex="3">
+            <div hx-get="{{ url_for('users_htmx.get_affiliations', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
             </div>
         </div>
     </div>

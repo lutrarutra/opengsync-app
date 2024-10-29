@@ -1,8 +1,16 @@
 {% extends "base.html" %}
 {% set active_page = "" %}
 {% block content %}
-<div class="container">
-    <h1>Register</h1>
+<div class="page-header-container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Register</h1>
+        </div>
+        <div class="page-controls">
+        </div>
+    </div>
+</div>
+<div class="page-content">
     {% include "forms/complete_register.html" %}
 </div>
 {% endblock content %}

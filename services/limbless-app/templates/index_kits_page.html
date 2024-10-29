@@ -1,37 +1,34 @@
+{% from "components/spinner.jinja2" import spinner %}
+
 {% extends "base.html" %}
 {% set active_page = "barcodes-page" %}
 {% block content %}
-<div class="container">
+<div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>Index Kits</h1>
         </div>
-        <div>
-            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#index_kit-form-popup">
+        <div class="page-controls">
+            {% if current_user.is_insider() %}
+            <button type="button" class="btn btn-primary"  data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                hx-get="{{ url_for('index_kits_htmx.get_form', form_type='create') }}"
+                hx-target="#xl-modal-content" data-bs-toggle="modal"
+                hx-swap="innerHTML">
                 New Index Kit
             </button>
+            {% endif %}
         </div>
     </div>
+</div>
 
+<div class="page-content">
     <div hx-get="{{ url_for('index_kits_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 
-    <div class="modal fade" id="index_kit-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5" >New Project</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-            </div>
-            <div class="modal-footer" id="popup-footer">
-                <button id="submit-project-btn" class="btn btn-primary"
-                hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('projects_htmx.create') }}">Submit</button>
-            </div>
-          </div>
+    <div class="modal fade" id="xl-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">
+            {{ spinner() }}
         </div>
     </div>
 </div>

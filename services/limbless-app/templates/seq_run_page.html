@@ -4,12 +4,12 @@
 {% extends "base.html" %}
 {% set active_page = "seq_run-page" %}
 {% block content %}
-<div class="container">
+<div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>{{ seq_run.experiment_name }} <span class="desc">{{ seq_run.status.name }} {{ seq_run.status.icon }}</span></h1>
         </div>
-        <div>
+        <div class="page-controls">
         </div>
     </div>
     <ul class="nav nav-tabs" id="auth-tab" role="tablist">
@@ -28,8 +28,8 @@
     </ul>
 </div>
 
-<div class="container">
-    <div class="page-content tab-content pt-1">
+<div class="page-content">
+    <div class="tab-content pt-1">
         <div class="tab-pane fade show active" id="metadata-tab" role="tabpanel" tabindex="0">
             <div class="row">
                 {% if experiment %}

@@ -1,11 +1,16 @@
 @media screen and (max-width: 992px) {
     #left-margin, #right-margin {
         display: none;
+        width: 0;
     }
 
-    #middle-container {
-        width: 100%;
+    #main {
+        width: 100vw;
+        #middle-container {
+            width: 100vw !important;
+        }
     }
+
 }
 
 @media screen and (max-width: 768px) {

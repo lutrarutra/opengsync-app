@@ -94,6 +94,9 @@ class User(Base, UserMixin):
 
     def is_insider(self) -> bool:
         return self.role.is_insider()
+    
+    def is_admin(self) -> bool:
+        return self.role == UserRole.ADMIN
 
     def generate_reset_token(self, serializer: URLSafeTimedSerializer) -> str:
         return str(serializer.dumps({"id": self.id, "email": self.email, "hash": self.password}))

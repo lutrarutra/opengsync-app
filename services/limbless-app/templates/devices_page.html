@@ -1,18 +1,20 @@
 {% extends "base.html" %}
 {% set active_page = "devices-page" %}
 {% block content %}
-<div class="container">
+<div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>Sequencers</h1>
         </div>
-        <div>
+        <div class="page-controls">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sequencer-form-popup">
                 New Sequencer
             </button>
         </div>
     </div>
+</div>
 
+<div class="page-content">
     <div hx-get="{{ url_for('sequencers_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>

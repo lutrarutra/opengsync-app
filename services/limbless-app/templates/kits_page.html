@@ -3,15 +3,15 @@
 {% block content %}
 <div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>Kits</h1>
         </div>
-        <div>
+        <div class="page-controls">
         </div>
     </div>
 </div>
 
-<div class="container">
+<div class="page-content">
     <div hx-get="{{ url_for('kits_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>

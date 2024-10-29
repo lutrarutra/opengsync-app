@@ -61,9 +61,47 @@ def get_index_kit_by_name(self: "DBHandler", name: str) -> Optional[models.Index
     return res
 
 
+def delete_index_kit(self: "DBHandler", id: int):
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (index_kit := self.session.get(models.IndexKit, id)) is not None:
+        self.session.delete(index_kit)
+        self.session.commit()
+
+    if not persist_session:
+        self.close_session()
+
+
+def remove_all_barcodes_from_kit(
+    self: "DBHandler", index_kit_id: int
+) -> models.IndexKit:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (index_kit := self.session.get(models.IndexKit, index_kit_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"IndexKit with id '{index_kit_id}' not found.")
+    
+    for adapter in index_kit.adapters:
+        for barcode in adapter.barcodes_i7:
+            self.session.delete(barcode)
+            
+        for barcode in adapter.barcodes_i5:
+            self.session.delete(barcode)
+
+        self.session.delete(adapter)
+
+    self.session.commit()
+    self.session.refresh(index_kit)
+
+    if not persist_session:
+        self.close_session()
+    return index_kit
+
+
 def get_index_kits(
     self: "DBHandler", type_in: Optional[list[IndexTypeEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
 ) -> tuple[list[models.IndexKit], int]:
     if not (persist_session := self._session is not None):
@@ -82,11 +120,11 @@ def get_index_kits(
             attr = attr.desc()
         query = query.order_by(attr)
 
-    if limit is not None:
-        query = query.limit(limit)
-
     if offset is not None:
         query = query.offset(offset)
+
+    if limit is not None:
+        query = query.limit(limit)
 
     res = query.all()
 
@@ -120,3 +158,18 @@ def query_index_kits(
     if not persist_session:
         self.close_session()
     return res
+
+
+def update_index_kit(
+    self: "DBHandler", index_kit: models.IndexKit
+) -> models.IndexKit:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    self.session.add(index_kit)
+    self.session.commit()
+    self.session.refresh(index_kit)
+
+    if not persist_session:
+        self.close_session()
+    return index_kit
