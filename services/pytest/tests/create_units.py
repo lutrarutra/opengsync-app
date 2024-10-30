@@ -1,9 +1,10 @@
 import uuid
+from typing import Optional
 
 from limbless_db import DBHandler, models
 from limbless_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
-    ReadType, ExperimentStatus, PoolType, SubmissionType
+    ReadType, ExperimentStatus, PoolType, SubmissionType, FileType
 )
 
 
@@ -113,4 +114,23 @@ def create_experiment(db: DBHandler, user: models.User, workflow: ExperimentWork
         operator_id=user.id,
         r2_cycles=1,
         i2_cycles=1,
+    )
+
+
+def create_file(
+    db: DBHandler, seq_request: Optional[models.SeqRequest] = None,
+    experiment: Optional[models.Experiment] = None, lab_prep: Optional[models.LabPrep] = None
+) -> models.File:
+    _uuid = str(uuid.uuid1())
+
+    return db.create_file(
+        name=_uuid,
+        type=FileType.CUSTOM,
+        extension=".txt",
+        uploader_id=1,
+        size_bytes=1,
+        uuid=_uuid,
+        seq_request_id=seq_request.id if seq_request else None,
+        experiment_id=experiment.id if experiment else None,
+        lab_prep_id=lab_prep.id if lab_prep else None,
     )

@@ -6,10 +6,10 @@
 {% block content %}
 <div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>Project: {{ project.name }}</h1>
         </div>
-        <div>
+        <div class="page-controls">
             <button type="button"  class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#project-form-popup">
                 Edit Project
@@ -57,7 +57,7 @@
     </ul>
 </div>
 
-<div class="container">
+<div class="page-content">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="project-samples-tab" role="tabpanel" tabindex="0">
             <div class="d-flex justify-content-between">

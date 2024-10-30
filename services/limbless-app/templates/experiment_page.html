@@ -6,12 +6,13 @@
 {% block content %}
 <div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>{{ experiment.name }} <span class="desc">{{ experiment.workflow.name }}</span></h1>
         </div>
-        <div>
-            <button type="button" class="btn btn-primary tab-btn" data-bs-target="#file-form-popup"
-                data-bs-toggle="modal">
+        <div class="page-controls">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+            hx-get="{{ url_for('experiments_htmx.file_form', experiment_id=experiment.id) }}">
                 Attach File
             </button>
             <button type="button" class="btn btn-primary"
@@ -120,8 +121,8 @@
     </ul>
 </div>
 
-<div class="container">
-    <div class="page-content tab-content pt-1">
+<div class="page-content">
+    <div class="tab-content pt-1">
         <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
             <div class="d-flex justify-content-between">
                 <div>
@@ -382,9 +383,10 @@
                 <div>
                     <h2>Comments</h2>
                 </div>
-                <button type="button" class="btn btn-primary" data-bs-target="#comment-form-popup"
-                    data-bs-toggle="modal">
-                    New Comment
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                hx-get="{{ url_for('experiments_htmx.comment_form', experiment_id=experiment.id) }}">
+                    Comment
                 </button>
             </div>
 
@@ -422,18 +424,6 @@
         {% endif %}
         <div class="tab-pane fade" id="experiment-num_reads-tab" role="tabpanel" tabindex="9">
             {% include "components/plots/experiment_library_reads.html" %}
-        </div>
-    </div>
-
-    <div class="modal fade" id="file-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-            {% include file_input_form._template_path %}
-        </div>
-    </div>
-
-    <div class="modal fade" id="comment-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
-            {% include comment_form._template_path %}
         </div>
     </div>
 </div>

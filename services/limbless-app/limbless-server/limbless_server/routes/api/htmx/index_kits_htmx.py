@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING
 import pandas as pd
 import numpy as np
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, url_for, flash
 from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, db_session, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, IndexType, BarcodeType
-from .... import db, logger, cache  # noqa F401
+
+from .... import db, logger, cache, forms  # noqa F401
 from ....tools import SpreadSheetColumn
 
 if TYPE_CHECKING:
@@ -197,3 +198,90 @@ def render_table(index_kit_id: int):
             table_id=f"index_kit_table-{index_kit_id}"
         )
     )
+
+
+@index_kits_htmx.route("get_form/<string:form_type>", methods=["GET"])
+@db_session(db)
+@login_required
+def get_form(form_type: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if form_type == "edit":
+        if (index_kit_id := request.args.get("index_kit_id")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        try:
+            index_kit_id = int(index_kit_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if (index_kit := db.get_index_kit(index_kit_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+    elif form_type == "create":
+        index_kit = None
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    return forms.models.IndexKitForm(
+        form_type=form_type,
+        index_kit=index_kit
+    ).make_response()
+
+
+@index_kits_htmx.route("create", methods=["POST"])
+@db_session(db)
+@login_required
+def create():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    form = forms.models.IndexKitForm(form_type="create", formdata=request.form)
+    return form.process_request()
+
+
+@index_kits_htmx.route("edit/<int:index_kit_id>", methods=["POST"])
+@db_session(db)
+@login_required
+def edit(index_kit_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if (index_kit := db.get_index_kit(index_kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    form = forms.models.IndexKitForm(form_type="edit", formdata=request.form, index_kit=index_kit)
+    return form.process_request()
+
+
+@index_kits_htmx.route("delete/<int:index_kit_id>", methods=["DELETE"])
+@db_session(db)
+@login_required
+def delete(index_kit_id: int):
+    if not current_user.is_admin():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (_ := db.get_index_kit(index_kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    db.delete_index_kit(id=index_kit_id)
+    flash("Index kit deleted successfully.", "success")
+    return make_response(redirect=url_for("kits_page.index_kits_page"))
+
+
+@index_kits_htmx.route("<int:index_kit_id>/edit_barcodes", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def edit_barcodes(index_kit_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (index_kit := db.get_index_kit(index_kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        return forms.EditKitBarcodesForm(index_kit=index_kit).make_response()
+    elif request.method == "POST":
+        form = forms.EditKitBarcodesForm(
+            index_kit=index_kit,
+            formdata=request.form
+        )
+        return form.process_request()
+    
+    return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)

@@ -7,7 +7,7 @@ from flask import Response, current_app, url_for, flash
 from flask_htmx import make_response
 
 from limbless_db import models, to_utc
-from limbless_db.categories import FileType
+from limbless_db.categories import FileType, LibraryStatus
 
 from .... import logger, db  # noqa F401
 from .PrepTableForm import PrepTableForm
@@ -43,7 +43,6 @@ class LibraryPrepForm(PrepTableForm):
         libraries = dict([(library.id, library.name) for library in self.lab_prep.libraries])
 
         for i, (idx, row) in enumerate(prep_table.iterrows()):
-            
             if pd.notna(row["library_id"]) and pd.isna(row["library_name"]):
                 self.file.errors = (f"Library name missing in row {i + 2}",)
                 return False
@@ -58,6 +57,13 @@ class LibraryPrepForm(PrepTableForm):
             if libraries[row["library_id"]] != row["library_name"]:
                 self.file.errors = (f"Library ID and name mismatch in row {i + 2}",)
                 return False
+            
+            if row["lib_conc_ng_ul"] is not None:
+                try:
+                    float(row["lib_conc_ng_ul"])
+                except ValueError:
+                    self.file.errors = (f"Invalid library concentration in row {i + 2}",)
+                    return False
                     
         return True
 
@@ -84,9 +90,25 @@ class LibraryPrepForm(PrepTableForm):
         for _, row in prep_table.iterrows():
             if pd.isna(row["library_id"]):
                 continue
+            
+            if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
+                if (library := db.get_library(row["library_id"])) is None:
+                    logger.error(f"Library {row['library_id']} not found")
+                    raise ValueError(f"Library {row['library_id']} not found")
+                
+                library.status = LibraryStatus.FAILED
+                library = db.update_library(library)
+                continue
+            
+            if pd.notna(row["lib_conc_ng_ul"]):
+                if (library := db.get_library(row["library_id"])) is None:
+                    logger.error(f"Library {row['library_id']} not found")
+                    raise ValueError(f"Library {row['library_id']} not found")
+                
+                library.qubit_concentration = float(row["lib_conc_ng_ul"])
+                library = db.update_library(library)
 
             well_idx = plate.get_well_idx(row["plate_well"].strip())
-
             db.add_library_to_plate(plate_id=plate.id, library_id=row["library_id"], well_idx=well_idx)
 
         if self.lab_prep.prep_file is not None:
@@ -95,16 +117,15 @@ class LibraryPrepForm(PrepTableForm):
             self.lab_prep.prep_file.size_bytes = size_bytes
             self.lab_prep.prep_file.timestamp_utc = to_utc(db.timestamp())
         else:
-            db_file = db.create_file(
+            db.create_file(
                 name=f"{self.lab_prep.name}_prep",
                 type=FileType.LIBRARY_PREP_FILE,
                 extension=".xlsx",
                 uploader_id=user.id,
                 size_bytes=size_bytes,
-                uuid=hash
+                uuid=hash,
+                lab_prep_id=self.lab_prep.id
             )
-
-            self.lab_prep.prep_file_id = db_file.id
 
         self.lab_prep = db.update_lab_prep(self.lab_prep)
 

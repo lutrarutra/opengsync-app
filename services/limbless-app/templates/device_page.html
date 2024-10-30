@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% set active_page = "devices-page" %}
 {% block content %}
-<div class="container">
+<div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>{{ sequencer.name }} <span class="desc">{{ sequencer.model.name }}</span></h1>
         </div>
-        <div>
+        <div class="page-controls">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sequencer-form-popup">
                 Edit
             </button>
@@ -26,7 +26,9 @@
             </button>
         </div>
     </div>
+</div>
 
+<div class="page-content">
     <div class="modal fade" id="sequencer-form-popup" aria-hidden="true" tabindex="-1">
         <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
             <div class="modal-content">

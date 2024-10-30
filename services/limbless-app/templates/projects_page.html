@@ -1,18 +1,20 @@
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
 {% block content %}
-<div class="container">
+<div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>Projects</h1>
         </div>
-        <div>
+        <div class="page-controls">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
                 New Project
             </button>
         </div>
     </div>
+</div>
 
+<div class="page-content">
     <div hx-get="{{ url_for('projects_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>

@@ -12,22 +12,20 @@ class ExperimentCommentForm(CommentForm):
     _template_path = "components/popups/comment-form.html"
     _template_label = "comment_form"
 
-    def __init__(self, experiment_id: int, formdata: Optional[dict] = None):
+    def __init__(self, experiment: models.Experiment, formdata: Optional[dict] = None):
         CommentForm.__init__(self, formdata=formdata)
-        self._post_url = url_for("experiments_htmx.add_comment", experiment_id=experiment_id)
+        self.experiment = experiment
+        self._post_url = url_for("experiments_htmx.comment_form", experiment_id=experiment.id)
 
-    def process_request(self, **context) -> Response:
+    def process_request(self, user: models.User) -> Response:
         if not self.validate():
-            return self.make_response(**context)
+            return self.make_response()
         
-        user: models.User = context["user"]
-        experiment: models.Experiment = context["experiment"]
-        
-        comment = db.create_comment(
+        db.create_comment(
             text=self.comment.data,  # type: ignore
             author_id=user.id,
+            experiment_id=self.experiment.id
         )
 
-        db.add_experiment_comment(comment_id=comment.id, experiment_id=experiment.id)
         flash("Comment added successfully.", "success")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))

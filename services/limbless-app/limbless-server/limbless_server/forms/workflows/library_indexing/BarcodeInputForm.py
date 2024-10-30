@@ -11,6 +11,7 @@ from wtforms.validators import Optional as OptionalValidator
 from flask_wtf import FlaskForm
 
 from limbless_db import models
+from limbless_db.categories import LibraryStatus
 
 from .... import logger, tools  # noqa F401
 from ....tools import SpreadSheetColumn
@@ -68,14 +69,17 @@ class BarcodeInputForm(HTMXFlaskForm):
         self.spreadsheet_style = dict()
 
     def get_template(self) -> pd.DataFrame:
-        if self.lab_prep.prep_file_id is not None:
+        if self.lab_prep.prep_file is not None:
             prep_table = pd.read_excel(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), "prep_table")  # type: ignore
             prep_table = prep_table.dropna(subset=["library_id", "library_name"])
+            prep_table = prep_table[prep_table["pool"].str.lower().str.strip() != "x"]
             return prep_table[BarcodeInputForm.columns.keys()].copy()
         
         library_data = dict([(key, []) for key in BarcodeInputForm.columns.keys()])
 
         for library in self.lab_prep.libraries:
+            if library.status == LibraryStatus.FAILED:
+                continue
             library_data["library_id"].append(library.id)
             library_data["library_name"].append(library.name)
             library_data["index_well"].append(None)

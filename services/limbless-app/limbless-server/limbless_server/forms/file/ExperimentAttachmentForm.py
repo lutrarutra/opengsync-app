@@ -4,6 +4,7 @@ from typing import Optional
 
 from flask import Response, flash, url_for, current_app
 from flask_htmx import make_response
+from wtforms import SelectField
 
 from limbless_db import models
 from limbless_db.categories import FileType
@@ -12,9 +13,12 @@ from ... import db, logger
 
 
 class ExperimentAttachmentForm(FileInputForm):
-    def __init__(self, experiment_id: int, formdata: Optional[dict] = None, max_size_mbytes: int = 5):
+    file_type = SelectField("File Type", choices=[(ft.id, ft.display_name) for ft in [FileType.POST_SEQUENCING_QC_REPORT, FileType.BIOANALYZER_REPORT, FileType.LANE_POOLING_TABLE, FileType.CUSTOM]], coerce=int, description="Select the type of file you are uploading.")
+    
+    def __init__(self, experiment: models.Experiment, formdata: Optional[dict] = None, max_size_mbytes: int = 5):
         FileInputForm.__init__(self, formdata=formdata, max_size_mbytes=max_size_mbytes)
-        self._post_url = url_for("experiments_htmx.upload_file", experiment_id=experiment_id)
+        self.experiment = experiment
+        self._post_url = url_for("experiments_htmx.file_form", experiment_id=experiment.id)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -26,12 +30,9 @@ class ExperimentAttachmentForm(FileInputForm):
             
         return True
 
-    def process_request(self, **context) -> Response:
+    def process_request(self, user: models.User) -> Response:
         if not self.validate():
-            return self.make_response(**context)
-        
-        user: models.User = context["user"]
-        experiment: models.Experiment = context["experiment"]
+            return self.make_response()
 
         file_type = FileType.get(self.file_type.data)
 
@@ -48,20 +49,19 @@ class ExperimentAttachmentForm(FileInputForm):
             extension=extension,
             uploader_id=user.id,
             size_bytes=size_bytes,
-            uuid=_uuid
+            uuid=_uuid,
+            experiment_id=self.experiment.id
         )
 
         if self.comment.data and self.comment.data.strip() != "":
-            comment = db.create_comment(
+            _ = db.create_comment(
                 text=self.comment.data,
                 author_id=user.id,
-                file_id=db_file.id
+                file_id=db_file.id,
+                experiment_id=self.experiment.id
             )
-            db.add_experiment_comment(experiment.id, comment.id)
-
-        db.add_file_to_experiment(experiment.id, db_file.id)
 
         flash("File uploaded successfully.", "success")
         logger.info(f"File '{db_file.uuid}' uploaded by user '{user.id}'.")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))
         

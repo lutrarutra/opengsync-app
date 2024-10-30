@@ -7,7 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from limbless_db import models
 
 from .Base import Base
-from .. import localize
 
 if TYPE_CHECKING:
     from .Pool import Pool

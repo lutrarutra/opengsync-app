@@ -7,7 +7,7 @@ from limbless_db.categories import ExperimentWorkFlow
 
 from .create_units import (
     create_user, create_project, create_contact, create_seq_request, create_sample, create_library, create_pool,
-    create_feature, create_experiment
+    create_feature, create_experiment, create_file
 )  # noqa
 
 
@@ -457,3 +457,17 @@ def test_experiment_lanes(db: DBHandler):
             pool = session.get_pool(pool.id)
             assert pool is not None
             assert len(pool.lanes) == 0
+
+
+def test_files(db: DBHandler):
+    seq_request = create_seq_request(db, create_user(db))
+    NUM_FILES = len(db.get_files())
+    file = create_file(db, seq_request=seq_request)
+    assert len(db.get_files()) == NUM_FILES + 1
+    create_file(db, seq_request=seq_request)
+    create_file(db, seq_request=seq_request)
+    assert len(db.get_files()) == NUM_FILES + 3
+    db.delete_file(file.id)
+    assert len(db.get_files()) == NUM_FILES + 2
+    db.delete_seq_request(seq_request.id)
+    assert len(db.get_files()) == NUM_FILES

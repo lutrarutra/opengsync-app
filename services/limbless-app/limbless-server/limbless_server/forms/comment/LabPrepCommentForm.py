@@ -8,11 +8,14 @@ from ... import db
 from .CommentForm import CommentForm
 
 
-class SeqRequestCommentForm(CommentForm):
-    def __init__(self, seq_request: models.SeqRequest, formdata: Optional[dict] = None):
+class LabPrepCommentForm(CommentForm):
+    _template_path = "components/popups/comment-form.html"
+    _template_label = "comment_form"
+
+    def __init__(self, lab_prep: models.LabPrep, formdata: Optional[dict] = None):
         CommentForm.__init__(self, formdata=formdata)
-        self.seq_request = seq_request
-        self._post_url = url_for("seq_requests_htmx.comment_form", seq_request_id=seq_request.id)
+        self.lab_prep = lab_prep
+        self._post_url = url_for("lab_preps_htmx.comment_form", lab_prep_id=lab_prep.id)
 
     def process_request(self, user: models.User) -> Response:
         if not self.validate():
@@ -21,8 +24,8 @@ class SeqRequestCommentForm(CommentForm):
         db.create_comment(
             text=self.comment.data,  # type: ignore
             author_id=user.id,
-            seq_request_id=self.seq_request.id
+            lab_prep_id=self.lab_prep.id
         )
 
         flash("Comment added successfully.", "success")
-        return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))
+        return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=self.lab_prep.id))

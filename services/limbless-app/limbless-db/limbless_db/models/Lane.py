@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from .Links import LanePoolLink
+from . import links
 
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ class Lane(Base):
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
-    pools: Mapped[list["Pool"]] = relationship("Pool", secondary=LanePoolLink.__tablename__, back_populates="lanes", lazy="select")
+    pools: Mapped[list["Pool"]] = relationship("Pool", secondary=links.LanePoolLink.__tablename__, back_populates="lanes", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "number", "experiment_id", "phi_x"]
 

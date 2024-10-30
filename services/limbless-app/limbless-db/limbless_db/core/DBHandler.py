@@ -49,8 +49,7 @@ class DBHandler():
     from .model_handlers._experiment_methods import (
         create_experiment, get_experiment, get_experiments,
         update_experiment, delete_experiment,
-        get_num_experiments, add_file_to_experiment, remove_file_from_experiment,
-        remove_comment_from_experiment, query_experiments
+        get_num_experiments, query_experiments
     )
 
     from .model_handlers._sample_methods import (
@@ -84,15 +83,15 @@ class DBHandler():
 
     from .model_handlers._index_kit_methods import (
         create_index_kit, get_index_kit, get_index_kits,
-        get_index_kit_by_name, query_index_kits
+        get_index_kit_by_name, query_index_kits, update_index_kit,
+        delete_index_kit, remove_all_barcodes_from_kit
     )
 
     from .model_handlers._seq_request_methods import (
         create_seq_request, get_seq_request,
         get_seq_requests, delete_seq_request, update_seq_request,
         query_seq_requests, submit_seq_request,
-        add_file_to_seq_request, remove_file_from_seq_request,
-        remove_comment_from_seq_request, add_seq_request_share_email, remove_seq_request_share_email,
+        add_seq_request_share_email, remove_seq_request_share_email,
         process_seq_request, get_user_seq_request_access_type, clone_seq_request
     )
 
@@ -137,7 +136,7 @@ class DBHandler():
 
     from .model_handlers._lab_prep_methods import (
         create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_identifier,
-        update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps
+        update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps,
     )
 
     from .model_handlers._kit_methods import (
@@ -161,7 +160,7 @@ class DBHandler():
     )
 
     from .model_handlers._file_methods import (
-        create_file, get_file, get_files, file_permissions_check
+        create_file, get_file, get_files, file_permissions_check, delete_file
     )
 
     from .model_handlers._visium_annotation_methods import (
@@ -170,8 +169,6 @@ class DBHandler():
 
     from .model_handlers._comment_methods import (
         create_comment, delete_comment, get_comments, get_comment,
-        add_experiment_comment, remove_experiment_comment,
-        add_seq_request_comment, remove_seq_request_comment
     )
 
     from .model_handlers._seq_run_methods import (

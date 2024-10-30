@@ -49,7 +49,7 @@ def get_experiment_libraries_df(
     if include_sample:
         columns.extend([
             models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-            models.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.SampleLibraryLink.cmo_read.label("cmo_read"),
+            models.links.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.links.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.links.SampleLibraryLink.cmo_read.label("cmo_read"),
         ])
 
     query = sa.select(*columns).where(
@@ -58,11 +58,11 @@ def get_experiment_libraries_df(
         models.Lane,
         models.Lane.experiment_id == models.Experiment.id
     ).join(
-        models.LanePoolLink,
-        models.LanePoolLink.lane_id == models.Lane.id
+        models.links.LanePoolLink,
+        models.links.LanePoolLink.lane_id == models.Lane.id
     ).join(
         models.Pool,
-        models.Pool.id == models.LanePoolLink.pool_id
+        models.Pool.id == models.links.LanePoolLink.pool_id
     ).join(
         models.Library,
         models.Library.pool_id == models.Pool.id
@@ -76,11 +76,11 @@ def get_experiment_libraries_df(
 
     if include_sample:
         query = query.join(
-            models.SampleLibraryLink,
-            models.SampleLibraryLink.library_id == models.Library.id,
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.library_id == models.Library.id,
         ).join(
             models.Sample,
-            models.Sample.id == models.SampleLibraryLink.sample_id,
+            models.Sample.id == models.links.SampleLibraryLink.sample_id,
         )
 
     if include_seq_request:
@@ -142,11 +142,11 @@ def get_experiment_barcodes_df(self, experiment_id: int) -> pd.DataFrame:
     ).where(
         models.Lane.experiment_id == experiment_id
     ).join(
-        models.LanePoolLink,
-        models.LanePoolLink.lane_id == models.Lane.id
+        models.links.LanePoolLink,
+        models.links.LanePoolLink.lane_id == models.Lane.id
     ).join(
         models.Pool,
-        models.Pool.id == models.LanePoolLink.pool_id
+        models.Pool.id == models.links.LanePoolLink.pool_id
     ).join(
         models.Library,
         models.Library.pool_id == models.Pool.id
@@ -167,10 +167,10 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
         models.Pool.avg_fragment_size,
     ).join(
-        models.ExperimentPoolLink,
-        models.ExperimentPoolLink.pool_id == models.Pool.id,
+        models.links.ExperimentPoolLink,
+        models.links.ExperimentPoolLink.pool_id == models.Pool.id,
     ).where(
-        models.ExperimentPoolLink.experiment_id == experiment_id
+        models.links.ExperimentPoolLink.experiment_id == experiment_id
     )
 
     df = pd.read_sql(query, self._engine)
@@ -181,21 +181,21 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
 
 def get_plate_df(self, plate_id: int) -> pd.DataFrame:
     query = sa.select(
-        models.Plate.id, models.Plate.name, models.SamplePlateLink.well_idx,
-        models.SamplePlateLink.sample_id, models.SamplePlateLink.library_id,
+        models.Plate.id, models.Plate.name, models.links.SamplePlateLink.well_idx,
+        models.links.SamplePlateLink.sample_id, models.links.SamplePlateLink.library_id,
         models.Sample.name.label("sample_name"), models.Library.name.label("library_name"),
     ).where(
         models.Plate.id == plate_id
     ).join(
-        models.SamplePlateLink,
-        models.SamplePlateLink.plate_id == models.Plate.id
+        models.links.SamplePlateLink,
+        models.links.SamplePlateLink.plate_id == models.Plate.id
     ).join(
         models.Sample,
-        models.Sample.id == models.SamplePlateLink.sample_id,
+        models.Sample.id == models.links.SamplePlateLink.sample_id,
         isouter=True
     ).join(
         models.Library,
-        models.Library.id == models.SamplePlateLink.library_id,
+        models.Library.id == models.links.SamplePlateLink.library_id,
         isouter=True
     )
 
@@ -227,11 +227,11 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
     ).where(
         models.Lane.experiment_id == experiment_id
     ).join(
-        models.LanePoolLink,
-        models.LanePoolLink.lane_id == models.Lane.id
+        models.links.LanePoolLink,
+        models.links.LanePoolLink.lane_id == models.Lane.id
     ).join(
         models.Pool,
-        models.Pool.id == models.LanePoolLink.pool_id
+        models.Pool.id == models.links.LanePoolLink.pool_id
     )
 
     df = pd.read_sql(query, self._engine)
@@ -287,10 +287,10 @@ def get_seq_requestor_df(self, seq_request: int) -> pd.DataFrame:
 
 def get_seq_request_share_emails_df(self, seq_request: int) -> pd.DataFrame:
     query = sa.select(
-        models.SeqRequestDeliveryEmailLink.email.label("email"),
-        models.SeqRequestDeliveryEmailLink.status_id.label("status_id"),
+        models.links.SeqRequestDeliveryEmailLink.email.label("email"),
+        models.links.SeqRequestDeliveryEmailLink.status_id.label("status_id"),
     ).where(
-        models.SeqRequestDeliveryEmailLink.seq_request_id == seq_request
+        models.links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request
     )
 
     df = pd.read_sql(query, self._engine)
@@ -310,10 +310,10 @@ def get_library_features_df(self, library_id: int) -> pd.DataFrame:
         models.FeatureKit.id == models.Feature.feature_kit_id,
         isouter=True
     ).join(
-        models.LibraryFeatureLink,
-        models.LibraryFeatureLink.feature_id == models.Feature.id
+        models.links.LibraryFeatureLink,
+        models.links.LibraryFeatureLink.feature_id == models.Feature.id
     ).where(
-        models.LibraryFeatureLink.library_id == library_id
+        models.links.LibraryFeatureLink.library_id == library_id
     ).distinct()
 
     df = pd.read_sql(query, self._engine)
@@ -325,12 +325,12 @@ def get_library_features_df(self, library_id: int) -> pd.DataFrame:
 def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.SampleLibraryLink.cmo_read.label("cmo_read"),
+        models.links.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.links.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.links.SampleLibraryLink.cmo_read.label("cmo_read"),
     ).join(
-        models.SampleLibraryLink,
-        models.SampleLibraryLink.sample_id == models.Sample.id
+        models.links.SampleLibraryLink,
+        models.links.SampleLibraryLink.sample_id == models.Sample.id
     ).where(
-        models.SampleLibraryLink.library_id == library_id
+        models.links.SampleLibraryLink.library_id == library_id
     )
 
     df = pd.read_sql(query, self._engine)
@@ -397,7 +397,7 @@ def get_seq_request_samples_df(
     columns = [
         models.SeqRequest.id.label("seq_request_id"),
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.SampleLibraryLink.cmo_read.label("cmo_read"),
+        models.links.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.links.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.links.SampleLibraryLink.cmo_read.label("cmo_read"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
@@ -413,11 +413,11 @@ def get_seq_request_samples_df(
         models.Pool.id == models.Library.pool_id,
         isouter=True
     ).join(
-        models.SampleLibraryLink,
-        models.SampleLibraryLink.library_id == models.Library.id,
+        models.links.SampleLibraryLink,
+        models.links.SampleLibraryLink.library_id == models.Library.id,
     ).join(
         models.Sample,
-        models.Sample.id == models.SampleLibraryLink.sample_id,
+        models.Sample.id == models.links.SampleLibraryLink.sample_id,
     )
 
     query = query.order_by(models.Library.id)
@@ -508,11 +508,11 @@ def get_seq_request_features_df(self, seq_request_id: int) -> pd.DataFrame:
     query = query.where(
         models.Library.seq_request_id == seq_request_id
     ).join(
-        models.LibraryFeatureLink,
-        models.LibraryFeatureLink.library_id == models.Library.id
+        models.links.LibraryFeatureLink,
+        models.links.LibraryFeatureLink.library_id == models.Library.id
     ).join(
         models.Feature,
-        models.Feature.id == models.LibraryFeatureLink.feature_id
+        models.Feature.id == models.links.LibraryFeatureLink.feature_id
     )
 
     df = pd.read_sql(query, self._engine)

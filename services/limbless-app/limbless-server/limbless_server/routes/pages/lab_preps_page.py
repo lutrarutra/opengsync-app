@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from limbless_db import db_session
 from limbless_db.categories import HTTPResponse
 
-from ... import db, logger  # noqa
+from ... import db, logger, forms  # noqa
 
 lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
 
@@ -28,7 +28,7 @@ def lab_prep_page(lab_prep_id: int):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    can_be_completed = True
+    can_be_completed = len(lab_prep.libraries) > 0
     for library in lab_prep.libraries:
         if library.pool_id is None:
             can_be_completed = False
@@ -47,4 +47,6 @@ def lab_prep_page(lab_prep_id: int):
                 (f"Prep {lab_prep.id}", ""),
             ]
 
-    return render_template("lab_prep_page.html", lab_prep=lab_prep, can_be_completed=can_be_completed, path_list=path_list)
+    return render_template(
+        "lab_prep_page.html", lab_prep=lab_prep, can_be_completed=can_be_completed, path_list=path_list,
+    )

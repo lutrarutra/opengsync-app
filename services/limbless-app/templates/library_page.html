@@ -10,10 +10,10 @@
 
 <div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>Library: {{ library.name }} <span class="desc">{{ library.type.abbreviation }}</span></h1>
         </div>
-        <div>
+        <div class="page-controls">
             <span {% if not library.is_editable() and not current_user.is_insider() %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
                 <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup"
                 {% if not library.is_editable() and not current_user.is_insider() %}disabled{% endif %}>
@@ -85,7 +85,7 @@
     </ul>
 </div>
 
-<div class="container">
+<div class="page-content">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="library-main-tab" role="tabpanel" tabindex="0">
             <div class="row">

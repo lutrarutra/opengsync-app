@@ -8,21 +8,50 @@ from .. import exceptions
 
 
 def create_comment(
-    self: "DBHandler", text: str, author_id: int, file_id: Optional[int] = None, commit: bool = True
+    self: "DBHandler", text: str, author_id: int, file_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
+    experiment_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None
 ) -> models.Comment:
     if not (persist_session := self._session is not None):
         self.open_session()
+
+    if seq_request_id is not None:
+        if experiment_id is not None:
+            raise Exception("Cannot have both seq_request_id and experiment_id.")
+        if lab_prep_id is not None:
+            raise Exception("Cannot have both seq_request_id and lab_prep_id.")
+        if self.session.get(models.SeqRequest, seq_request_id) is None:
+            raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+        
+    elif experiment_id is not None:
+        if lab_prep_id is not None:
+            raise Exception("Cannot have both experiment_id and lab_prep_id.")
+        if self.session.get(models.Experiment, experiment_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
+        
+    elif lab_prep_id is not None:
+        if self.session.get(models.LabPrep, lab_prep_id) is None:
+            raise exceptions.ElementDoesNotExist(f"LabPrep with id '{lab_prep_id}', not found.")
+        
+    if file_id is not None:
+        if self.session.get(models.File, file_id) is None:
+            raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
+        
+    if self.session.get(models.User, author_id) is None:
+        raise exceptions.ElementDoesNotExist(f"User with id '{author_id}', not found.")
 
     comment = models.Comment(
         text=text.strip()[:models.Comment.text.type.length],
         author_id=author_id,
         file_id=file_id,
+        experiment_id=experiment_id,
+        seq_request_id=seq_request_id,
+        lab_prep_id=lab_prep_id
     )
     self.session.add(comment)
-
-    if commit:
-        self.session.commit()
-        self.session.refresh(comment)
+    self.session.commit()
+    self.session.refresh(comment)
 
     if not persist_session:
         self.close_session()
@@ -41,16 +70,29 @@ def get_comment(self: "DBHandler", comment_id: int) -> Optional[models.Comment]:
     return res
 
 
-def get_comments(self: "DBHandler", author_id: Optional[int] = None, file_id: Optional[int] = None) -> list[models.Comment]:
+def get_comments(
+    self: "DBHandler",
+    author_id: Optional[int] = None,
+    file_id: Optional[int] = None,
+    experiment_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None
+) -> list[models.Comment]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self.session.query(models.Comment)
 
     if author_id is not None:
-        query = query.filter(models.Comment.author_id == author_id)
+        query = query.where(models.Comment.author_id == author_id)
     if file_id is not None:
-        query = query.filter(models.Comment.file_id == file_id)
+        query = query.where(models.Comment.file_id == file_id)
+    if experiment_id is not None:
+        query = query.where(models.Comment.experiment_id == experiment_id)
+    if seq_request_id is not None:
+        query = query.where(models.Comment.seq_request_id == seq_request_id)
+    if lab_prep_id is not None:
+        query = query.where(models.Comment.lab_prep_id == lab_prep_id)
 
     res = query.all()
 
@@ -68,82 +110,6 @@ def delete_comment(self: "DBHandler", comment_id: int) -> None:
 
     self.session.delete(comment)
     self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-
-
-def add_experiment_comment(self: "DBHandler", experiment_id: int, comment_id: int, commit: bool = True):
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
-    
-    if (comment := self.session.get(models.Comment, comment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Comment with id '{comment_id}', not found.")
-    
-    experiment.comments.append(comment)
-    self.session.add(experiment)
-    if commit:
-        self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-
-
-def add_seq_request_comment(self: "DBHandler", seq_request_id: int, comment_id: int, commit: bool = True):
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
-    
-    if (comment := self.session.get(models.Comment, comment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Comment with id '{comment_id}', not found.")
-    
-    seq_request.comments.append(comment)
-    self.session.add(seq_request)
-    if commit:
-        self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-
-
-def remove_experiment_comment(self: "DBHandler", experiment_id: int, comment_id: int, commit: bool = True):
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
-    
-    if (comment := self.session.get(models.Comment, comment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Comment with id '{comment_id}', not found.")
-    
-    experiment.comments.remove(comment)
-    self.session.add(experiment)
-    if commit:
-        self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-
-
-def remove_seq_request_comment(self: "DBHandler", seq_request_id: int, comment_id: int, commit: bool = True):
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
-    
-    if (comment := self.session.get(models.Comment, comment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Comment with id '{comment_id}', not found.")
-    
-    seq_request.comments.remove(comment)
-    self.session.add(seq_request)
-    if commit:
-        self.session.commit()
 
     if not persist_session:
         self.close_session()

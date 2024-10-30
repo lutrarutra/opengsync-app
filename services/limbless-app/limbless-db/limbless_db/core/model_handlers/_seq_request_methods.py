@@ -79,7 +79,7 @@ def create_seq_request(
 
     requestor.num_seq_requests += 1
 
-    seq_request.delivery_email_links.append(models.SeqRequestDeliveryEmailLink(
+    seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
         email=requestor.email,
         status_id=DeliveryStatus.PENDING.id,
     ))
@@ -89,7 +89,7 @@ def create_seq_request(
     self.session.refresh(seq_request)
 
     if bioinformatician_contact is not None:
-        seq_request.delivery_email_links.append(models.SeqRequestDeliveryEmailLink(
+        seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
             email=bioinformatician_contact.email,
             status_id=DeliveryStatus.PENDING.id,
         ))
@@ -323,85 +323,6 @@ def query_seq_requests(
     return seq_requests
 
 
-def add_file_to_seq_request(
-    self: "DBHandler", seq_request_id: int, file_id: int
-) -> models.SeqRequest:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
-
-    if (file := self.session.get(models.File, file_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
-    
-    if file.type == FileType.SEQ_AUTH_FORM:
-        if seq_request.seq_auth_form_file_id is not None:
-            raise exceptions.LinkAlreadyExists("SeqRequest already has a Seq Auth Form file linked.")
-        seq_request.seq_auth_form_file_id = file_id
-        self.session.add(seq_request)
-
-    seq_request.files.append(file)
-
-    self.session.commit()
-    self.session.refresh(seq_request)
-
-    if not persist_session:
-        self.close_session()
-
-    return seq_request
-
-
-def remove_comment_from_seq_request(self: "DBHandler", seq_request_id: int, comment_id: int, commit: bool = True) -> None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
-
-    if (comment := self.session.get(models.Comment, comment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Comment with id '{comment_id}', not found.")
-    
-    seq_request.comments.remove(comment)
-    self.session.add(seq_request)
-
-    if commit:
-        self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-    return None
-
-
-def remove_file_from_seq_request(self: "DBHandler", seq_request_id: int, file_id: int, commit: bool = True) -> None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
-
-    if (file := self.session.get(models.File, file_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
-    
-    seq_request.files.remove(file)
-    
-    comments = self.session.query(models.Comment).where(
-        models.Comment.file_id == file_id
-    ).all()
-
-    for comment in comments:
-        self.remove_comment_from_seq_request(seq_request_id, comment.id, commit=False)
-
-    self.session.add(seq_request)
-
-    if commit:
-        self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-    return None
-
-
 def add_seq_request_share_email(self: "DBHandler", seq_request_id: int, email: str) -> models.SeqRequest:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -409,13 +330,13 @@ def add_seq_request_share_email(self: "DBHandler", seq_request_id: int, email: s
     if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
     
-    if self.session.query(models.SeqRequestDeliveryEmailLink).where(
-        models.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id,
-        models.SeqRequestDeliveryEmailLink.email == email
+    if self.session.query(models.links.SeqRequestDeliveryEmailLink).where(
+        models.links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id,
+        models.links.SeqRequestDeliveryEmailLink.email == email
     ).first() is not None:
         raise exceptions.LinkAlreadyExists(f"SeqRequest with id '{seq_request_id}' already has a share link with email '{email}'.")
 
-    seq_request.delivery_email_links.append(models.SeqRequestDeliveryEmailLink(
+    seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
         email=email, status_id=DeliveryStatus.PENDING.id
     ))
 
@@ -436,9 +357,9 @@ def remove_seq_request_share_email(self: "DBHandler", seq_request_id: int, email
     if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
     
-    if (delivery_link := self.session.query(models.SeqRequestDeliveryEmailLink).where(
-        models.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id,
-        models.SeqRequestDeliveryEmailLink.email == email
+    if (delivery_link := self.session.query(models.links.SeqRequestDeliveryEmailLink).where(
+        models.links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id,
+        models.links.SeqRequestDeliveryEmailLink.email == email
     ).first()) is None:
         raise exceptions.ElementDoesNotExist(f"Share link with '{email}', not found.")
 
@@ -537,9 +458,9 @@ def get_user_seq_request_access_type(
     if seq_request.requestor_id == user_id:
         access_type = AccessType.OWNER
     elif seq_request.group_id is not None:
-        if self.session.query(models.UserAffiliation).where(
-            models.UserAffiliation.user_id == user_id,
-            models.UserAffiliation.group_id == seq_request.group_id
+        if self.session.query(models.links.UserAffiliation).where(
+            models.links.UserAffiliation.user_id == user_id,
+            models.links.UserAffiliation.group_id == seq_request.group_id
         ).first() is not None:
             access_type = AccessType.EDIT
 

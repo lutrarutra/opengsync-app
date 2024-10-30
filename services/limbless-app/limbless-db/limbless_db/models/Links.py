@@ -86,42 +86,6 @@ class LanePoolLink(Base):
 
     def __str__(self) -> str:
         return f"LanePoolLink(lane_id: {self.lane_id}, pool_id: {self.pool_id})"
-    
-
-class ExperimentFileLink(Base):
-    __tablename__ = "experiment_file_link"
-    file_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), primary_key=True)
-    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), primary_key=True)
-
-    def __str__(self) -> str:
-        return f"ExperimentFileLink(file_id: {self.file_id}, experiment_id: {self.experiment_id})"
-
-
-class SeqRequestFileLink(Base):
-    __tablename__ = "seq_request_file_link"
-    file_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), primary_key=True)
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True)
-
-    def __str__(self) -> str:
-        return f"SeqRequestFileLink(file_id: {self.file_id}, seq_request_id: {self.seq_request_id})"
-
-
-class ExperimentCommentLink(Base):
-    __tablename__ = "experiment_comment_link"
-    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), primary_key=True)
-    comment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("comment.id"), primary_key=True)
-
-    def __str__(self) -> str:
-        return f"ExperimentCommentLink(experiment_id: {self.experiment_id}, comment_id: {self.comment_id})"
-
-
-class SeqRequestCommentLink(Base):
-    __tablename__ = "seq_request_comment_link"
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True)
-    comment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("comment.id"), primary_key=True)
-
-    def __str__(self) -> str:
-        return f"SeqRequestCommentLink(seq_request_id: {self.seq_request_id}, comment_id: {self.comment_id})"
 
 
 class LibraryFeatureLink(Base):

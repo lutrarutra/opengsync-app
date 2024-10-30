@@ -105,10 +105,10 @@ def get_pools(
 
     if experiment_id is not None:
         query = query.join(
-            models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.Pool.id,
+            models.links.ExperimentPoolLink,
+            models.links.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+            models.links.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     if seq_request_id is not None:
@@ -248,10 +248,10 @@ def query_pools(
 
     if experiment_id is not None:
         query = query.join(
-            models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.Pool.id,
+            models.links.ExperimentPoolLink,
+            models.links.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+            models.links.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     if seq_request_id is not None:
@@ -319,10 +319,10 @@ def get_pool_dilutions(
             models.Pool,
             models.Pool.id == models.PoolDilution.pool_id
         ).join(
-            models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.Pool.id
+            models.links.ExperimentPoolLink,
+            models.links.ExperimentPoolLink.pool_id == models.Pool.id
         ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+            models.links.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     if sort_by is not None:
@@ -362,9 +362,9 @@ def get_user_pool_access_type(
         access_type = AccessType.OWNER
     else:
         if pool.seq_request is not None and pool.seq_request.group_id is not None:
-            if self.session.query(models.UserAffiliation).where(
-                models.UserAffiliation.user_id == user_id,
-                models.UserAffiliation.group_id == pool.seq_request.group_id
+            if self.session.query(models.links.UserAffiliation).where(
+                models.links.UserAffiliation.user_id == user_id,
+                models.links.UserAffiliation.group_id == pool.seq_request.group_id
             ).first() is not None:
                 access_type = AccessType.EDIT
         else:
@@ -373,9 +373,9 @@ def get_user_pool_access_type(
                     access_type = AccessType.EDIT
                     break
                 elif library.seq_request.group_id is not None:
-                    if self.session.query(models.UserAffiliation).where(
-                        models.UserAffiliation.user_id == user_id,
-                        models.UserAffiliation.group_id == library.seq_request.group_id
+                    if self.session.query(models.links.UserAffiliation).where(
+                        models.links.UserAffiliation.user_id == user_id,
+                        models.links.UserAffiliation.group_id == library.seq_request.group_id
                     ).first() is not None:
                         access_type = AccessType.EDIT
                         break

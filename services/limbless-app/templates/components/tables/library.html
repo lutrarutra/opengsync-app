@@ -65,9 +65,7 @@
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
-                <td>
-                    {{ library.status.icon }} {{ library.status.name }}
-                </td>
+                <td>{{ library.status.icon }} {{ library.status.name }}</td>
                 <td><a href="{{ url_for('users_page.user_page', user_id=library.owner_id) }}">{{ library.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
                 <td class="barcode-cell">
                     {% for index in library.indices %}

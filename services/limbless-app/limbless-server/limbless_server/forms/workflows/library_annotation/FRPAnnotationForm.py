@@ -27,7 +27,7 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
     _form_label = "frp_annotation_form"
 
     columns = {
-        "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        "sample_name": SpreadSheetColumn("A", "sample_name", "Library Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         "barcode_id": SpreadSheetColumn("B", "barcode_id", "Bardcode ID", "text", 250, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
         "demux_name": SpreadSheetColumn("C", "demux_name", "Demux Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
     }

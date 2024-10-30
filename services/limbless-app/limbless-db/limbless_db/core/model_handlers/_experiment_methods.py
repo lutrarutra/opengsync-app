@@ -174,7 +174,6 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
             for lane_num in range(workflow.flow_cell_type.num_lanes - prev_workflow.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
                 if lane_num in [lane.number for lane in experiment.lanes]:
                     raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
-                print("Creating lane", lane_num, flush=True)
                 lane = models.Lane(number=lane_num, experiment_id=experiment.id)
                 self.session.add(lane)
 
@@ -223,82 +222,3 @@ def query_experiments(
         self.close_session()
 
     return experiments
-
-
-def add_file_to_experiment(
-    self: "DBHandler", experiment_id: int, file_id: int,
-    commit: bool = True
-) -> models.ExperimentFileLink:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (_ := self.session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
-
-    if (_ := self.session.get(models.File, file_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
-    
-    file_link = models.ExperimentFileLink(
-        experiment_id=experiment_id,
-        file_id=file_id
-    )
-    self.session.add(file_link)
-
-    if commit:
-        self.session.commit()
-        self.session.refresh(file_link)
-
-    if not persist_session:
-        self.close_session()
-
-    return file_link
-
-
-def remove_comment_from_experiment(self: "DBHandler", experiment_id: int, comment_id: int, commit: bool = True) -> None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
-
-    if (comment := self.session.get(models.Comment, comment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Comment with id '{comment_id}', not found.")
-    
-    experiment.comments.remove(comment)
-    self.session.add(experiment)
-
-    if commit:
-        self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-    return None
-
-
-def remove_file_from_experiment(self: "DBHandler", experiment_id: int, file_id: int, commit: bool = True) -> None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
-
-    if (file := self.session.get(models.File, file_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
-    
-    experiment.files.remove(file)
-
-    comments = self.session.query(models.Comment).where(
-        models.Comment.file_id == file_id
-    ).all()
-
-    for comment in comments:
-        self.remove_comment_from_experiment(experiment_id, comment.id, commit=False)
-
-    self.session.add(experiment)
-
-    if commit:
-        self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-    return None

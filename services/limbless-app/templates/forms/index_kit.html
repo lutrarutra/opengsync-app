@@ -1,0 +1,34 @@
+{% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+
+<div class="modal-content" id="index_kit-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if index_kit_form.form_type == "create" %}Create{% elif index_kit_form.form_type == "edit" %}Edit{% endif %} Sequencing Request</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body" id="index_kit-form">
+        {{ index_kit_form.csrf_token() }}
+        <div class="row">
+            {{ form_group(index_kit_form.name, class="col-6") }}
+            {{ form_group(index_kit_form.identifier, class="col-3") }}
+            {{ select_input(index_kit_form.index_type_id, class="col-3") }}
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if index_kit_form.form_type == "edit" %}
+            <button class="btn btn-success" hx-include="#index_kit-form" hx-target="#index_kit-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('index_kits_htmx.edit', index_kit_id=index_kit.id) }}">Submit</button>
+            {% elif index_kit_form.form_type == "create" %}
+            <button class="btn btn-success" hx-include="#index_kit-form" hx-target="#index_kit-form-container"
+                hx-swap="outerHTML" hx-post="{{ url_for('index_kits_htmx.create') }}">Create</button>
+            {% endif %}
+        </div>
+    </div>
+</div>

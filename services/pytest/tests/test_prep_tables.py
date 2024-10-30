@@ -1,5 +1,4 @@
 import os
-import pytest
 
 import pandas as pd
 import openpyxl
@@ -17,6 +16,7 @@ common_columns = [
     "kit_i5",
     "name_i5",
     "sequence_i5",
+    "lib_conc_ng_ul",
 ]
 
 prep_table_template_dir = "prep_tables"

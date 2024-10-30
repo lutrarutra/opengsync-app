@@ -84,10 +84,10 @@ def get_features(
 
     if library_id is not None:
         query = query.join(
-            models.LibraryFeatureLink,
-            models.LibraryFeatureLink.feature_id == models.Feature.id
+            models.links.LibraryFeatureLink,
+            models.links.LibraryFeatureLink.feature_id == models.Feature.id
         ).where(
-            models.LibraryFeatureLink.library_id == library_id
+            models.links.LibraryFeatureLink.library_id == library_id
         )
 
     n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1

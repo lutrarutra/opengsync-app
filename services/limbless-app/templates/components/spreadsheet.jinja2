@@ -11,3 +11,50 @@
     <div id="{{ id }}" class="spreadsheet-grid"></div>
 </div>
 {%- endmacro %}
+
+{% macro complete_spreadsheet(element, columns, style, post_url=none, csrf_token=none, submit_btn_id=none, target_id=none, id="spreadsheet-grid", height=none) -%}
+<div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
+    <div class="invalid-feedback-container">
+        {% if element.errors %}
+        <p>Errors:</p>
+        {% for error in element.errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        {% endif %}
+    </div>
+    <div id="{{ id }}" class="spreadsheet-grid"></div>
+</div>
+<script>
+    var spread_sheet = jspreadsheet(document.getElementById("{{ id }}"), {
+        data: {{ element.data if element.data else "[[null]]" }},
+        columns: [
+            {% for col in columns %}
+            {%- if col.type == "text" or col.type == "numeric" -%}
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+            {%- elif col["type"] == "dropdown" -%}
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+            {%- endif -%}
+            {% endfor %}
+        ],
+        minSpareRows: 10,
+        allowInsertColumn: false,
+        style: {{ style | tojson if style else "{}" }},
+    });
+
+    {% if post_url %}
+    $("#{{ submit_btn_id }}").on("click", function() {
+        var data = spread_sheet.getData();
+
+        htmx.ajax("POST", "{{ post_url }}", {
+            "target": "#{{ target_id }}",
+            "swap": "outerHTML",
+            "values": {
+                "spreadsheet": JSON.stringify(data),
+                "csrf_token": "{{ csrf_token }}",
+            },
+        });
+    });
+    {% endif %}
+    
+</script>
+{%- endmacro %}

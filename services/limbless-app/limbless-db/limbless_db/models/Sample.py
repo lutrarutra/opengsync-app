@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..categories import SampleStatus, SampleStatusEnum
-from .Links import SampleLibraryLink
+from . import links
 from .Base import Base
 
 if TYPE_CHECKING:
@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
     from .File import File
     from .SampleAttribute import SampleAttribute
-    from .Links import SamplePlateLink
 
 
 class Sample(Base):
@@ -35,7 +34,7 @@ class Sample(Base):
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
     
-    plate_links: Mapped[list["SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="sample", lazy="select")
+    plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="sample", lazy="select")
 
     seq_requests: Mapped[list["SeqRequest"]] = relationship(
         "SeqRequest", back_populates="samples", lazy="select",
@@ -47,8 +46,8 @@ class Sample(Base):
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="joined")
 
-    library_links: Mapped[list["SampleLibraryLink"]] = relationship(
-        SampleLibraryLink, back_populates="sample", lazy="select",
+    library_links: Mapped[list["links.SampleLibraryLink"]] = relationship(
+        links.SampleLibraryLink, back_populates="sample", lazy="select",
         cascade="save-update, merge, delete"
     )
 

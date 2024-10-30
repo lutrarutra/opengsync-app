@@ -9,3 +9,4 @@ from .SeqRunForm import SeqRunForm   # noqa
 from .PlateForm import PlateForm # noqa
 from .LabPrepForm import LabPrepForm # noqa
 from .GroupForm import GroupForm # noqa
+from .IndexKitForm import IndexKitForm # noqa

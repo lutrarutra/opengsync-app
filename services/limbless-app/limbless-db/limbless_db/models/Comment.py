@@ -9,6 +9,7 @@ from .Base import Base
 
 if TYPE_CHECKING:
     from .User import User
+    from .File import File
 
 
 class Comment(Base):
@@ -16,10 +17,16 @@ class Comment(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     text: Mapped[str] = mapped_column(sa.String(2048), nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
+    
     file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True)
+    file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[file_id])
 
     author_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     author: Mapped["User"] = relationship("User", lazy="joined")
+
+    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), nullable=True)
+    experiment_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=True)
+    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("lab_prep.id"), nullable=True)
 
     @property
     def timestamp(self) -> datetime:

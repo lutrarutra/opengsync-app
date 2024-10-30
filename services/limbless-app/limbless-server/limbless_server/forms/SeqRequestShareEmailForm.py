@@ -14,7 +14,7 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
     _template_path = "components/popups/seq_request_share_email_form.html"
     _form_label = "seq_request_share_email_form"
 
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.SeqRequestDeliveryEmailLink.email.type.length)])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.links.SeqRequestDeliveryEmailLink.email.type.length)])
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None):
         super().__init__(formdata=formdata)
@@ -28,7 +28,9 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
             return False
         
         with DBSession(db) as session:
-            seq_request = session.get_seq_request(seq_request_id)
+            if (seq_request := session.get_seq_request(seq_request_id)) is None:
+                logger.error(f"SeqRequest with id '{seq_request_id}' not found.")
+                raise ValueError(f"SeqRequest with id '{seq_request_id}' not found.")
 
             email = self.email.data.strip()
             

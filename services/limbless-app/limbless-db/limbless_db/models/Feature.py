@@ -5,7 +5,6 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-
 from ..categories import FeatureType, FeatureTypeEnum
 
 if TYPE_CHECKING:

@@ -35,16 +35,24 @@ def create_kit(
     return kit
 
 
-def get_kit(self: "DBHandler", id: int) -> Optional[models.Kit]:
+def get_kit(self: "DBHandler", id: Optional[int] = None, identifier: Optional[str] = None, name: Optional[str] = None) -> Optional[models.Kit]:
+    if id is None and identifier is None and name is None:
+        raise ValueError("Either id or identifier must be provided.")
+
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self.session.get(models.Kit, id)
+    if id is not None:
+        kit = self.session.get(models.Kit, id)
+    elif identifier is not None:
+        kit = self.session.query(models.Kit).where(models.Kit.identifier == identifier).first()
+    else:
+        kit = self.session.query(models.Kit).where(models.Kit.name == name).first()
 
     if not persist_session:
         self.close_session()
 
-    return res
+    return kit
 
 
 def get_kits(

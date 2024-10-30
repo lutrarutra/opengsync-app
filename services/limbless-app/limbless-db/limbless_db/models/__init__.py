@@ -26,11 +26,4 @@ from .LabPrep import LabPrep  # noqa: F401
 from .Event import Event  # noqa: F401
 from .Group import Group  # noqa: F401
 from .Kit import Kit  # noqa: F401
-
-from .Links import (  # noqa: F401
-    LanePoolLink, SampleLibraryLink,
-    ExperimentFileLink, SeqRequestFileLink,
-    ExperimentCommentLink, SeqRequestCommentLink, LibraryFeatureLink,
-    SeqRequestDeliveryEmailLink, ExperimentPoolLink, SamplePlateLink,
-    UserAffiliation
-)
+from . import links  # noqa: F401

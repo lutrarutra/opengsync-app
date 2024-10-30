@@ -6,8 +6,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum, SubmissionType, SubmissionTypeEnum
-from .Links import SeqRequestFileLink, SeqRequestCommentLink, SeqRequestDeliveryEmailLink
+from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum, SubmissionType, SubmissionTypeEnum, FileType
+from . import links
 
 if TYPE_CHECKING:
     from .User import User
@@ -60,17 +60,19 @@ class SeqRequest(Base):
     billing_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
     billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge")
 
-    seq_auth_form_file_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("file.id"), nullable=True, default=None)
-    seq_auth_form_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[seq_auth_form_file_id], cascade="save-update, merge, delete")
+    seq_auth_form_file: Mapped[Optional["File"]] = relationship(
+        "File", lazy="joined", viewonly=True,
+        primaryjoin=f"and_(SeqRequest.id == File.seq_request_id, File.type_id == {FileType.SEQ_AUTH_FORM.id})",
+    )
 
     sample_submission_event_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("event.id"), nullable=True)
     sample_submission_event: Mapped[Optional["Event"]] = relationship("Event", lazy="select", foreign_keys=[sample_submission_event_id], back_populates="seq_request", cascade="save-update, merge, delete")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
-    files: Mapped[list["File"]] = relationship(secondary=SeqRequestFileLink.__tablename__, lazy="select")
-    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=SeqRequestCommentLink.__tablename__, lazy="select", cascade="save-update,delete", order_by="Comment.timestamp_utc.desc()")
-    delivery_email_links: Mapped[list[SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete", back_populates="seq_request")
+    files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
+    comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
+    delivery_email_links: Mapped[list[links.SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete,merge", back_populates="seq_request")
     samples: Mapped[list["Sample"]] = relationship(
         "Sample",
         secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id).join(Library, Library.id == SampleLibraryLink.library_id)",
@@ -135,7 +137,7 @@ class SeqRequest(Base):
         return self.status == SeqRequestStatus.DRAFT
     
     def is_authorized(self) -> bool:
-        return self.seq_auth_form_file_id is not None
+        return self.seq_auth_form_file is not None
     
     def is_submittable(self) -> bool:
         return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()

@@ -9,19 +9,35 @@
 {% block content %}
 <div class="page-header-container">
     <div class="page-header">
-        <div>
+        <div class="page-title">
             <h1>{{ lab_prep.name }} <span class="desc">{{ lab_prep.protocol.name }} - {{ lab_prep.status.name }} {{ lab_prep.status.icon }}</span></h1>
         </div>
-        <div>
+        <div class="page-controls">
             {% if lab_prep.status == PrepStatus.PREPARING %}
-            <span {% if can_be_completed == false %}{{ tooltip("You must complete 'Index Libraries'-workflow first!", category="success") }}{% endif %}>
+            <span {% if can_be_completed == false %}{{ tooltip("You must add libraries and complete 'Index Libraries'-workflow first!", category="success") }}{% endif %}>
                 <button class="btn btn-success"
                     hx-post="{{ url_for('lab_preps_htmx.complete', lab_prep_id=lab_prep.id) }}"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Complete Library Prep?',
+                        showDenyButton: true,
+                        text: 'Are you sure?',
+                        icon: 'question',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()"
                     {% if can_be_completed == false %}disabled{% endif %}>
                     Complete Prep
                 </button>
             </span>
             {% endif %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+            hx-get="{{ url_for('lab_preps_htmx.file_form', lab_prep_id=lab_prep.id) }}">
+                Attach File
+            </button>
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Template
@@ -70,10 +86,22 @@
             {% if not lab_prep.plate_id %}disabled{% endif %}>
             Plate</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#files-tab" type="button" role="tab"
+            aria-controls="files-tab" aria-selected="true"
+            id="files-tab-btn">Files</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#comments-tab" type="button" role="tab"
+            aria-controls="comments-tab" aria-selected="true"
+            id="comments-tab-btn">Comments</button>
+        </li>
     </ul>
 </div>
 
-<div class="container">
+<div class="page-content">
     <div class="tab-content pt-1">
         <div class="tab-pane fade show active" id="lab_prep-libraries-tab" role="tabpanel" tabindex="0">
             <div class="d-flex justify-content-between align-items-center">
@@ -200,10 +228,39 @@
             </div>
             {% endif %}
         </div>
+
+        <div class="tab-pane fade" id="files-tab" role="tabpanel" tabindex="5">
+            <div hx-get="{{ url_for('lab_preps_htmx.get_files', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="comments-tab" role="tabpanel" tabindex="5">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Comments</h2>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                hx-get="{{ url_for('lab_preps_htmx.comment_form', lab_prep_id=lab_prep.id) }}">
+                    Comment
+                </button>
+            </div>
+            
+            <div hx-get="{{ url_for('lab_preps_htmx.get_comments', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
     </div>
 </div>
 <script>
     init_tooltips();
+
+    function open_file_tab(file_id) {
+        $('.nav-tabs button[data-bs-target="#files-tab"]').tab('show');
+        $('.nav-tabs button[data-bs-target="#file-' + file_id + '-tab"]').tab('show');
+    }
+
     function confirmation(ev) {
         ev.preventDefault();
         var url = ev.target.href;

@@ -5,8 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-
-from .Links import LanePoolLink, ExperimentPoolLink
+from . import links
 from ..categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum
 
 if TYPE_CHECKING:
@@ -56,8 +55,8 @@ class Pool(Base):
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", lazy="select")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
-    lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=LanePoolLink.__tablename__, back_populates="pools", lazy="select")
-    experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
+    lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=links.LanePoolLink.__tablename__, back_populates="pools", lazy="select")
+    experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=links.ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
     dilutions: Mapped[list["PoolDilution"]] = relationship("PoolDilution", back_populates="pool", lazy="select", cascade="merge, save-update, delete, delete-orphan", order_by="PoolDilution.timestamp_utc")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]

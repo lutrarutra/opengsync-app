@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
@@ -17,12 +18,19 @@ class SeqAuthForm(HTMXFlaskForm):
     _form_label = "seq_auth_form"
 
     file = FileField("Sequencing Authorization Form", validators=[DataRequired(), FileAllowed(["pdf"])],)
+    
+    def __init__(self, seq_request: models.SeqRequest, formdata: Optional[dict] = None):
+        super().__init__(formdata=formdata)
+        self.seq_request = seq_request
 
     def validate(self) -> bool:
         if not super().validate():
             return False
         
-        # Max size 3
+        if self.seq_request.seq_auth_form_file is not None:
+            self.file.errors = ("Authorization form has already been uploaded. Please, delete it first before continuing.",)
+            return False
+        
         MAX_MBYTES = 5
         max_bytes = MAX_MBYTES * 1024 * 1024
         self.size_bytes = len(self.file.data.read())
@@ -34,12 +42,9 @@ class SeqAuthForm(HTMXFlaskForm):
         
         return True
     
-    def process_request(self, **context) -> Response:
-        seq_request: models.SeqRequest = context["seq_request"]
+    def process_request(self, user: models.User) -> Response:
         if not self.validate():
-            return self.make_response(**context)
-
-        user: models.User = context["user"]
+            return self.make_response()
 
         filename, extension = os.path.splitext(self.file.data.filename)
 
@@ -48,17 +53,15 @@ class SeqAuthForm(HTMXFlaskForm):
             type=FileType.SEQ_AUTH_FORM,
             extension=extension,
             uploader_id=user.id,
-            size_bytes=self.size_bytes
+            size_bytes=self.size_bytes,
+            seq_request_id=self.seq_request.id,
         )
-
         filepath = os.path.join(current_app.config["MEDIA_FOLDER"], db_file.path)
         self.file.data.save(filepath)
 
-        db.add_file_to_seq_request(seq_request.id, db_file.id)
-
         flash("Authorization form uploaded!", "success")
-        logger.debug(f"Uploaded sequencing authorization form for sequencing request '{seq_request.name}': {filepath}")
+        logger.debug(f"Uploaded sequencing authorization form for sequencing request '{self.seq_request.name}': {filepath}")
 
         return make_response(
-            redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+            redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id),
         )

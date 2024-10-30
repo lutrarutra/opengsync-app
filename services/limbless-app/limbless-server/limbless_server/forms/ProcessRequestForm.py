@@ -70,19 +70,14 @@ class ProcessRequestForm(HTMXFlaskForm):
             return abort(HTTPResponse.INTERNAL_SERVER_ERROR.id)
         
         if self.notification_comment.data:
-            comment = db.create_comment(
+            _ = db.create_comment(
                 text=f"Request {response_type.display_name}. Comment: {self.notification_comment.data}",
-                author_id=user.id
+                author_id=user.id, seq_request_id=seq_request.id
             )
         else:
-            comment = db.create_comment(
+            _ = db.create_comment(
                 text=f"Request {response_type.display_name}",
-                author_id=user.id
+                author_id=user.id, seq_request_id=seq_request.id
             )
-            
-        db.add_seq_request_comment(
-            seq_request_id=seq_request.id,
-            comment_id=comment.id
-        )
 
         return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))
