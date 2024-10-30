@@ -9,8 +9,8 @@
         <div id="file-input-form" enctype="multipart/form-data">
             {{ file_input_form.csrf_token() }}
             <div class="row">
-                {{ select_input(file_input_form.file_type, class="col-3") }}
-                {{ form_group(file_input_form.file, class="col-9") }}
+                {{ select_input(file_input_form.file_type, class="col-6") }}
+                {{ form_group(file_input_form.file, class="col-6") }}
             </div>
             {{ form_group(file_input_form.comment) }}
         </div>

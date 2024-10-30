@@ -16,7 +16,7 @@ def link_sample_library(
     cmo_read: Optional[str] = None,
     flex_barcode: Optional[str] = None,
     commit: bool = True
-) -> models.SampleLibraryLink:
+) -> models.links.SampleLibraryLink:
     
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -27,13 +27,13 @@ def link_sample_library(
     if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
         
-    if self.session.query(models.SampleLibraryLink).where(
-        models.SampleLibraryLink.sample_id == sample_id,
-        models.SampleLibraryLink.library_id == library_id,
+    if self.session.query(models.links.SampleLibraryLink).where(
+        models.links.SampleLibraryLink.sample_id == sample_id,
+        models.links.SampleLibraryLink.library_id == library_id,
     ).first():
         raise exceptions.LinkAlreadyExists(f"Sample with id {sample_id} and Library with id {library_id} are already linked")
     
-    sample_library_link = models.SampleLibraryLink(
+    sample_library_link = models.links.SampleLibraryLink(
         sample_id=sample_id, library_id=library_id,
         cmo_sequence=cmo_sequence,
         cmo_pattern=cmo_pattern,
@@ -62,22 +62,22 @@ def get_sample_library_links(
     seq_request_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
     offset: Optional[int] = None,
-) -> tuple[list[models.SampleLibraryLink], int]:
+) -> tuple[list[models.links.SampleLibraryLink], int]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self.session.query(models.SampleLibraryLink)
+    query = self.session.query(models.links.SampleLibraryLink)
     if sample_id is not None:
-        query = query.where(models.SampleLibraryLink.sample_id == sample_id)
+        query = query.where(models.links.SampleLibraryLink.sample_id == sample_id)
 
     if library_id is not None:
-        query = query.where(models.SampleLibraryLink.library_id == library_id)
+        query = query.where(models.links.SampleLibraryLink.library_id == library_id)
 
     if seq_request_id is not None:
         query = query.join(
             models.Library,
-            models.Library.id == models.SampleLibraryLink.library_id,
+            models.Library.id == models.links.SampleLibraryLink.library_id,
         ).where(
             models.Library.seq_request_id == seq_request_id,
         )
@@ -107,11 +107,11 @@ def is_sample_in_seq_request(
     query = self.session.query(models.Sample)
 
     query = query.join(
-        models.SampleLibraryLink,
-        models.SampleLibraryLink.sample_id == sample_id,
+        models.links.SampleLibraryLink,
+        models.links.SampleLibraryLink.sample_id == sample_id,
     ).join(
         models.Library,
-        models.Library.id == models.SampleLibraryLink.library_id,
+        models.Library.id == models.links.SampleLibraryLink.library_id,
     ).where(
         models.Library.seq_request_id == seq_request_id,
     )
@@ -134,9 +134,9 @@ def link_feature_library(self: "DBHandler", feature_id: int, library_id: int):
     if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if self.session.query(models.LibraryFeatureLink).where(
-        models.LibraryFeatureLink.feature_id == feature_id,
-        models.LibraryFeatureLink.library_id == library_id,
+    if self.session.query(models.links.LibraryFeatureLink).where(
+        models.links.LibraryFeatureLink.feature_id == feature_id,
+        models.links.LibraryFeatureLink.library_id == library_id,
     ).first():
         raise exceptions.LinkAlreadyExists(f"Feature with id {feature_id} and Library with id {library_id} are already linked")
     
@@ -159,9 +159,9 @@ def unlink_feature_library(self: "DBHandler", feature_id: int, library_id: int):
     if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if (_ := self.session.query(models.LibraryFeatureLink).where(
-        models.LibraryFeatureLink.feature_id == feature_id,
-        models.LibraryFeatureLink.library_id == library_id,
+    if (_ := self.session.query(models.links.LibraryFeatureLink).where(
+        models.links.LibraryFeatureLink.feature_id == feature_id,
+        models.links.LibraryFeatureLink.library_id == library_id,
     ).first()) is None:
         raise exceptions.LinkDoesNotExist(f"Feature with id {feature_id} and Library with id {library_id} are not linked")
     
@@ -189,9 +189,9 @@ def add_pool_to_lane(
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
-    if self.session.query(models.LanePoolLink).where(
-        models.LanePoolLink.pool_id == pool_id,
-        models.LanePoolLink.lane_id == lane.id,
+    if self.session.query(models.links.LanePoolLink).where(
+        models.links.LanePoolLink.pool_id == pool_id,
+        models.links.LanePoolLink.lane_id == lane.id,
     ).first():
         raise exceptions.LinkAlreadyExists(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are already linked.")
     
@@ -219,9 +219,9 @@ def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, l
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
-    if self.session.query(models.LanePoolLink).where(
-        models.LanePoolLink.pool_id == pool_id,
-        models.LanePoolLink.lane_id == lane.id,
+    if self.session.query(models.links.LanePoolLink).where(
+        models.links.LanePoolLink.pool_id == pool_id,
+        models.links.LanePoolLink.lane_id == lane.id,
     ).first() is None:
         raise exceptions.LinkDoesNotExist(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are not linked.")
     
@@ -244,10 +244,10 @@ def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if self.session.query(models.ExperimentPoolLink).where(
+    if self.session.query(models.links.ExperimentPoolLink).where(
         and_(
-            models.ExperimentPoolLink.experiment_id == experiment_id,
-            models.ExperimentPoolLink.pool_id == pool_id
+            models.links.ExperimentPoolLink.experiment_id == experiment_id,
+            models.links.ExperimentPoolLink.pool_id == pool_id
         )
     ).first() is not None:
         raise exceptions.LinkAlreadyExists(f"Pool with id {pool_id} is already linked to an experiment")
@@ -274,18 +274,18 @@ def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
 
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if self.session.query(models.ExperimentPoolLink).where(
+    if self.session.query(models.links.ExperimentPoolLink).where(
         and_(
-            models.ExperimentPoolLink.experiment_id == experiment_id,
-            models.ExperimentPoolLink.pool_id == pool_id
+            models.links.ExperimentPoolLink.experiment_id == experiment_id,
+            models.links.ExperimentPoolLink.pool_id == pool_id
         )
     ).first() is None:
         raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
     
     for lane in experiment.lanes:
-        if (link := self.session.query(models.LanePoolLink).where(
-            models.LanePoolLink.pool_id == pool_id,
-            models.LanePoolLink.lane_id == lane.id,
+        if (link := self.session.query(models.links.LanePoolLink).where(
+            models.links.LanePoolLink.pool_id == pool_id,
+            models.links.LanePoolLink.lane_id == lane.id,
         ).first()) is not None:
             self.session.delete(link)
             self.session.commit()

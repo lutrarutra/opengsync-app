@@ -104,10 +104,10 @@ def add_sample_to_plate(
     if (_ := self.get_sample(sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
-    if self.session.query(models.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
+    if self.session.query(models.links.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
         raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
     
-    plate.sample_links.append(models.SamplePlateLink(
+    plate.sample_links.append(models.links.SamplePlateLink(
         plate_id=plate_id, well_idx=well_idx, sample_id=sample_id
     ))
 
@@ -133,10 +133,10 @@ def add_library_to_plate(
     if (_ := self.get_library(library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if self.session.query(models.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
+    if self.session.query(models.links.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
         raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
     
-    plate.sample_links.append(models.SamplePlateLink(
+    plate.sample_links.append(models.links.SamplePlateLink(
         plate_id=plate_id, well_idx=well_idx, library_id=library_id
     ))
 
@@ -174,11 +174,11 @@ def get_plate_sample(self: "DBHandler", plate_id: int, well_idx: int) -> Optiona
     if not (persist_session := self._session is not None):
         self.open_session()
     
-    link: Optional[models.SamplePlateLink]
-    link = self.session.query(models.SamplePlateLink).where(
+    link: Optional[models.links.SamplePlateLink]
+    link = self.session.query(models.links.SamplePlateLink).where(
         and_(
-            models.SamplePlateLink.plate_id == plate_id,
-            models.SamplePlateLink.well_idx == well_idx
+            models.links.SamplePlateLink.plate_id == plate_id,
+            models.links.SamplePlateLink.well_idx == well_idx
         )
     ).first()
 

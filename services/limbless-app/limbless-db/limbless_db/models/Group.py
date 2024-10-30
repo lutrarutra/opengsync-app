@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from .Links import UserAffiliation
+from . import links
 from ..categories import GroupType, GroupTypeEnum
 
 
@@ -13,7 +13,7 @@ class Group(Base):
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False, index=True, unique=True)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    user_links: Mapped[list[UserAffiliation]] = relationship("UserAffiliation", back_populates="group", lazy="select", cascade="all, save-update, merge")
+    user_links: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="group", lazy="select", cascade="all, save-update, merge")
 
     @property
     def type(self) -> GroupTypeEnum:

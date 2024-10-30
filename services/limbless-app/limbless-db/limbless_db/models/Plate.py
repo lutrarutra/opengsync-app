@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 from .Sample import Sample
 from .Library import Library
-from .Links import SamplePlateLink
+from . import links
 
 if TYPE_CHECKING:
     from .User import User
@@ -24,7 +24,7 @@ class Plate(Base):
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", lazy="joined")
 
-    sample_links: Mapped[list[SamplePlateLink]] = relationship(SamplePlateLink, back_populates="plate", lazy="select", order_by="SamplePlateLink.well_idx")
+    sample_links: Mapped[list[links.SamplePlateLink]] = relationship(links.SamplePlateLink, back_populates="plate", lazy="select", order_by="SamplePlateLink.well_idx")
 
     def __str__(self) -> str:
         return f"Plate(id: {self.id}, name: {self.name}, num_cols: {self.num_cols}, num_rows: {self.num_rows})"

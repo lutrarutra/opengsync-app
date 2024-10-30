@@ -1,4 +1,5 @@
 import os
+from typing import Optional, TYPE_CHECKING
 from datetime import datetime
 
 import sqlalchemy as sa
@@ -8,6 +9,9 @@ from .. import localize
 from .Base import Base
 from ..categories import FileType, FileTypeEnum
 from .User import User
+
+if TYPE_CHECKING:
+    from .Comment import Comment
 
 
 class File(Base):
@@ -22,6 +26,11 @@ class File(Base):
     
     uploader_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     uploader: Mapped["User"] = relationship("User", back_populates="files", lazy="joined")
+    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="file", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
+
+    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), nullable=True)
+    experiment_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=True)
+    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("lab_prep.id"), nullable=True)
 
     @property
     def type(self) -> FileTypeEnum:

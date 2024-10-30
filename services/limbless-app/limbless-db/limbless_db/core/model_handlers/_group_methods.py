@@ -28,7 +28,7 @@ def create_group(
         name=name.strip(),
         type_id=type.id
     )
-    group.user_links = [models.UserAffiliation(
+    group.user_links = [models.links.UserAffiliation(
         user_id=user_id,
         affiliation_type_id=AffiliationType.OWNER.id
     )]
@@ -64,10 +64,10 @@ def where(
         query = query.where(models.Group.type_id == type.id)
     if user_id is not None:
         query = query.join(
-            models.UserAffiliation,
-            models.UserAffiliation.group_id == models.Group.id
+            models.links.UserAffiliation,
+            models.links.UserAffiliation.group_id == models.Group.id
         ).where(
-            models.UserAffiliation.user_id == user_id
+            models.links.UserAffiliation.user_id == user_id
         )
     if type_in is not None:
         query = query.where(models.Group.type_id.in_([t.id for t in type_in]))
@@ -141,13 +141,13 @@ def query_groups(
     return groups
 
 
-def get_group_user_affiliation(self: "DBHandler", user_id: int, group_id: int) -> Optional[models.UserAffiliation]:
+def get_group_user_affiliation(self: "DBHandler", user_id: int, group_id: int) -> Optional[models.links.UserAffiliation]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self.session.query(models.UserAffiliation).where(
-        models.UserAffiliation.user_id == user_id,
-        models.UserAffiliation.group_id == group_id
+    res = self.session.query(models.links.UserAffiliation).where(
+        models.links.UserAffiliation.user_id == user_id,
+        models.links.UserAffiliation.group_id == group_id
     ).first()
 
     if not persist_session:
@@ -161,27 +161,27 @@ def get_group_affiliations(
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     type_in: Optional[list[GroupTypeEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[models.UserAffiliation], int]:
+) -> tuple[list[models.links.UserAffiliation], int]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if (_ := self.session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
-    query = self.session.query(models.UserAffiliation).where(
-        models.UserAffiliation.group_id == group_id
+    query = self.session.query(models.links.UserAffiliation).where(
+        models.links.UserAffiliation.group_id == group_id
     )
 
     if type is not None:
-        query = query.where(models.UserAffiliation.affiliation_type_id == type.id)
+        query = query.where(models.links.UserAffiliation.affiliation_type_id == type.id)
 
     if type_in is not None:
-        query = query.where(models.UserAffiliation.affiliation_type_id.in_([t.id for t in type_in]))
+        query = query.where(models.links.UserAffiliation.affiliation_type_id.in_([t.id for t in type_in]))
 
     n_pages = math.ceil(query.count() / limit) if limit is not None else 1
 
     if sort_by is not None:
-        attr = getattr(models.UserAffiliation, sort_by)
+        attr = getattr(models.links.UserAffiliation, sort_by)
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)
@@ -224,13 +224,13 @@ def add_user_to_group(self: "DBHandler", user_id: int, group_id: int, affiliatio
     if (group := self.session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
-    if self.session.query(models.UserAffiliation).where(
-        models.UserAffiliation.user_id == user_id,
-        models.UserAffiliation.group_id == group_id
+    if self.session.query(models.links.UserAffiliation).where(
+        models.links.UserAffiliation.user_id == user_id,
+        models.links.UserAffiliation.group_id == group_id
     ).first() is not None:
         raise exceptions.NotUniqueValue(f"User {user_id} is already in group {group_id}")
 
-    group.user_links.append(models.UserAffiliation(
+    group.user_links.append(models.links.UserAffiliation(
         user_id=user_id,
         group_id=group_id,
         affiliation_type_id=affiliation_type.id
@@ -256,9 +256,9 @@ def remove_user_from_group(self: "DBHandler", user_id: int, group_id: int) -> mo
     if (group := self.session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
-    if (affiliation := self.session.query(models.UserAffiliation).where(
-        models.UserAffiliation.user_id == user_id,
-        models.UserAffiliation.group_id == group_id
+    if (affiliation := self.session.query(models.links.UserAffiliation).where(
+        models.links.UserAffiliation.user_id == user_id,
+        models.links.UserAffiliation.group_id == group_id
     ).first()) is None:
         raise exceptions.ElementDoesNotExist(f"User {user_id} is not in group {group_id}")
 

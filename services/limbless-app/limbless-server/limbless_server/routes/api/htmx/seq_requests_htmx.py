@@ -287,48 +287,60 @@ def upload_auth_form(seq_request_id: int):
         affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
+    
+    return forms.SeqAuthForm(
+        seq_request=seq_request, formdata=request.form | request.files
+    ).process_request(
+        user=current_user
+    )
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/comment_form", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def comment_form(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
+    if request.method == "GET":
+        form = forms.comment.SeqRequestCommentForm(seq_request=seq_request)
+        return form.make_response()
+    elif request.method == "POST":
+        form = forms.comment.SeqRequestCommentForm(seq_request=seq_request, formdata=request.form)
+        return form.process_request(current_user)
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/file_form", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def file_form(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
         
-    if seq_request.seq_auth_form_file_id is not None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    return forms.SeqAuthForm(request.form | request.files).process_request(
-        seq_request=seq_request, user=current_user
-    )
-
-
-@seq_requests_htmx.route("<int:seq_request_id>/add_comment", methods=["POST"])
-@login_required
-def add_comment(seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-
-    return forms.comment.SeqRequestCommentForm(formdata=request.form, seq_request_id=seq_request_id).process_request(
-        seq_request=seq_request, user=current_user
-    )
-
-
-@seq_requests_htmx.route("<int:seq_request_id>/upload_file", methods=["POST"])
-@login_required
-def upload_file(seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
-    return forms.file.SeqRequestAttachmentForm(seq_request_id=seq_request_id, formdata=request.form | request.files).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    if request.method == "GET":
+        form = forms.file.SeqRequestAttachmentForm(seq_request=seq_request)
+        return form.make_response()
+    elif request.method == "POST":
+        form = forms.file.SeqRequestAttachmentForm(seq_request=seq_request, formdata=request.form | request.files)
+        return form.process_request(current_user)
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/delete_file/<int:file_id>", methods=["DELETE"])
+@db_session(db)
 @login_required
 def delete_file(seq_request_id: int, file_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -342,13 +354,16 @@ def delete_file(seq_request_id: int, file_id: int):
     if (file := db.get_file(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.remove_file_from_seq_request(seq_request_id, file_id)
-    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
-    if os.path.exists(filepath):
-        os.remove(filepath)
+    if file not in seq_request.files:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    file_path = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    db.delete_file(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from request (id='{seq_request_id}')")
-    flash(f"Deleted file '{file.name}' from experrequestiment.", "success")
+    flash(f"Deleted file '{file.name}' from request.", "success")
     return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id))
 
 
@@ -358,7 +373,7 @@ def remove_auth_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.seq_auth_form_file_id is None:
+    if seq_request.seq_auth_form_file is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
@@ -369,18 +384,13 @@ def remove_auth_form(seq_request_id: int):
     if seq_request.status != SeqRequestStatus.DRAFT:
         if not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
-
-    if (file := db.get_file(seq_request.seq_auth_form_file_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        
+    file = seq_request.seq_auth_form_file
 
     filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
     if os.path.exists(filepath):
         os.remove(filepath)
-
-    seq_request.seq_auth_form_file_id = None
-    seq_request = db.update_seq_request(seq_request=seq_request)
-
-    db.remove_file_from_seq_request(seq_request_id, file.id)
+    db.delete_file(file_id=file.id)
 
     flash("Authorization form removed!", "success")
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
@@ -855,14 +865,11 @@ def get_comments(seq_request_id: int):
         affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
-    
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
         render_template(
             "components/comment-list.html",
-            comments=seq_request.comments, seq_request=seq_request
+            comments=seq_request.comments
         )
     )
 
@@ -878,9 +885,6 @@ def get_files(seq_request_id: int):
         affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
-    
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
         render_template(

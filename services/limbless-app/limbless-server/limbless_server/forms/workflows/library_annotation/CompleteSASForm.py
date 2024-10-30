@@ -321,27 +321,22 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         if comment_table is not None:
             for _, row in comment_table.iterrows():
                 if row["context"] == "visium_instructions":
-                    comment = session.create_comment(
+                    _ = session.create_comment(
                         text=f"Visium data instructions: {row['text']}",
-                        author_id=user.id,
+                        author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif row["context"] == "custom_genome_reference":
-                    comment = session.create_comment(
+                    _ = session.create_comment(
                         text=f"Custom genome reference: {row['text']}",
-                        author_id=user.id,
+                        author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif row["context"] == "assay_tech_selection":
-                    comment = session.create_comment(
+                    _ = session.create_comment(
                         text=f"Additional info from assay selection: {row['text']}",
-                        author_id=user.id,
+                        author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 else:
                     raise ValueError(f"Unknown comment context: {row['context']}")
-                    
-                session.add_seq_request_comment(
-                    seq_request_id=self.seq_request.id,
-                    comment_id=comment.id
-                )
 
         self.__update_data(
             sample_table=sample_table,

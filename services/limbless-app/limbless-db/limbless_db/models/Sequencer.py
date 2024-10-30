@@ -4,7 +4,6 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .Base import Base
-
 from ..categories import SequencerModel, SequencerModelEnum
 
 

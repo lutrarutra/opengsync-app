@@ -36,7 +36,8 @@
             {% endif %}
             <span>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                    data-bs-target="#seq_request-file-form-popup">
+                data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                hx-get="{{ url_for('seq_requests_htmx.file_form', seq_request_id=seq_request.id) }}">
                     Attach File
                 </button>
             </span>
@@ -583,7 +584,7 @@
                     {{ metadata_group("Time", seq_request.seq_auth_form_file.timestamp_str(), class="col-3") }}
                 </div>
             </div>
-            <embed src="{{ url_for('pdf_file', file_id=seq_request.seq_auth_form_file_id) }}" width="100%" height="1000px">
+            <embed src="{{ url_for('pdf_file', file_id=seq_request.seq_auth_form_file.id) }}" width="100%" height="1000px">
             {% endif %}
         </div>
         <div class="tab-pane fade" id="request-overview-tab" role="tabpanel" tabindex="5">
@@ -601,9 +602,10 @@
                 <div>
                     <h2>Comments</h2>
                 </div>
-                <button type="button" class="btn btn-primary" data-bs-target="#comment-form-popup"
-                    data-bs-toggle="modal">
-                    New Comment
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                hx-get="{{ url_for('seq_requests_htmx.comment_form', seq_request_id=seq_request.id) }}">
+                    Comment
                 </button>
             </div>
 
@@ -648,17 +650,6 @@
                 {% endfor %}
             </div>
         </div>  
-    </div>
-    <div class="modal fade" id="seq_request-file-form-popup" aria-hidden="true" aria-labelledby="">
-        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
-            {% include file_input_form._template_path %}
-        </div>
-    </div>
-
-    <div class="modal fade" id="comment-form-popup" aria-hidden="true" aria-labelledby="">
-        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
-            {% include comment_form._template_path %}
-        </div>
     </div>
 
     <div class="modal fade" id="seq_request_share_email-form-popup" aria-hidden="true" aria-labelledby="">

@@ -4,7 +4,7 @@ from datetime import datetime
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .Links import LibraryFeatureLink, SampleLibraryLink
+from . import links
 from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum
@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from .VisiumAnnotation import VisiumAnnotation
     from .SeqQuality import SeqQuality
     from .File import File
-    from .Links import SamplePlateLink
     from .LibraryIndex import LibraryIndex
     from .LabPrep import LabPrep
 
@@ -60,12 +59,12 @@ class Library(Base):
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="libraries", lazy="select")
 
-    sample_links: Mapped[list[SampleLibraryLink]] = relationship(
-        SampleLibraryLink, back_populates="library", lazy="select",
+    sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
+        links.SampleLibraryLink, back_populates="library", lazy="select",
         cascade="save-update, merge, delete"
     )
-    features: Mapped[list["Feature"]] = relationship("Feature", secondary=LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
-    plate_links: Mapped[list["SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
+    features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
+    plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="delete")
 

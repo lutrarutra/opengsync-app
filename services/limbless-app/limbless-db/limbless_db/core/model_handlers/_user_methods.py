@@ -90,18 +90,18 @@ def get_users(
 
     if group_id is not None:
         query = query.join(
-            models.UserAffiliation,
-            models.UserAffiliation.user_id == models.User.id
+            models.links.UserAffiliation,
+            models.links.UserAffiliation.user_id == models.User.id
         ).where(
-            models.UserAffiliation.group_id == group_id
+            models.links.UserAffiliation.group_id == group_id
         )
 
     if exclude_group_id is not None:
         query = query.join(
-            models.UserAffiliation,
-            models.UserAffiliation.user_id == models.User.id
+            models.links.UserAffiliation,
+            models.links.UserAffiliation.user_id == models.User.id
         ).where(
-            models.UserAffiliation.group_id != exclude_group_id
+            models.links.UserAffiliation.group_id != exclude_group_id
         )
         
     if sort_by is not None:
@@ -230,23 +230,23 @@ def query_users_by_email(
 def get_user_affiliations(
     self: "DBHandler", user_id: int, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None
-) -> tuple[list[models.UserAffiliation], int]:
+) -> tuple[list[models.links.UserAffiliation], int]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    query = self.session.query(models.UserAffiliation).where(
-        models.UserAffiliation.user_id == user_id
+    query = self.session.query(models.links.UserAffiliation).where(
+        models.links.UserAffiliation.user_id == user_id
     )
 
     if affiliation_type is not None:
         query = query.where(
-            models.UserAffiliation.affiliation_type_id == affiliation_type.id
+            models.links.UserAffiliation.affiliation_type_id == affiliation_type.id
         )
 
     n_pages = math.ceil(query.count() / limit) if limit is not None else 1
 
     if sort_by is not None:
-        attr = getattr(models.UserAffiliation, sort_by)
+        attr = getattr(models.links.UserAffiliation, sort_by)
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)

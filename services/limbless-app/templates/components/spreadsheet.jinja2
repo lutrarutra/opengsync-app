@@ -26,7 +26,7 @@
 </div>
 <script>
     var spread_sheet = jspreadsheet(document.getElementById("{{ id }}"), {
-        data: {{ element.data }},
+        data: {{ element.data if element.data else "[[null]]" }},
         columns: [
             {% for col in columns %}
             {%- if col.type == "text" or col.type == "numeric" -%}

@@ -313,21 +313,48 @@ def unlane_pool(experiment_id: int, pool_id: int, lane_num: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/upload_file", methods=["POST"])
+@experiments_htmx.route("<int:experiment_id>/comment_form", methods=["GET", "POST"])
+@db_session(db)
 @login_required
-def upload_file(experiment_id: int):
+def comment_form(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.file.ExperimentAttachmentForm(experiment_id=experiment_id, formdata=request.form | request.files).process_request(
-        experiment=experiment, user=current_user
-    )
+    if request.method == "GET":
+        form = forms.comment.ExperimentCommentForm(experiment=experiment)
+        return form.make_response()
+    elif request.method == "POST":
+        form = forms.comment.ExperimentCommentForm(experiment=experiment, formdata=request.form)
+        return form.process_request(current_user)
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+    
+
+@experiments_htmx.route("<int:experiment_id>/file_form", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def file_form(experiment_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        form = forms.file.ExperimentAttachmentForm(experiment=experiment)
+        return form.make_response()
+    elif request.method == "POST":
+        form = forms.file.ExperimentAttachmentForm(experiment=experiment, formdata=request.form | request.files)
+        return form.process_request(current_user)
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
 @experiments_htmx.route("<int:experiment_id>/delete_file/<int:file_id>", methods=["DELETE"])
+@db_session(db)
 @login_required
 def delete_file(experiment_id: int, file_id: int):
     if not current_user.is_insider():
@@ -339,10 +366,13 @@ def delete_file(experiment_id: int, file_id: int):
     if (file := db.get_file(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.remove_file_from_experiment(experiment_id=experiment.id, file_id=file_id)
-    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
-    if os.path.exists(filepath):
-        os.remove(filepath)
+    if file not in experiment.files:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    file_path = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    db.delete_file(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
     flash(f"Deleted file '{file.name}' from experiment.", "success")

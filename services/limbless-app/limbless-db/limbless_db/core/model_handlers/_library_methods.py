@@ -113,10 +113,10 @@ def get_libraries(
 
     if sample_id is not None:
         query = query.join(
-            models.SampleLibraryLink,
+            models.links.SampleLibraryLink,
             and_(
-                models.SampleLibraryLink.library_id == models.Library.id,
-                models.SampleLibraryLink.sample_id == sample_id
+                models.links.SampleLibraryLink.library_id == models.Library.id,
+                models.links.SampleLibraryLink.sample_id == sample_id
             )
         )
 
@@ -125,10 +125,10 @@ def get_libraries(
             models.Pool,
             models.Pool.id == models.Library.pool_id,
         ).join(
-            models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.Pool.id,
+            models.links.ExperimentPoolLink,
+            models.links.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+            models.links.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     if pooled is not None:
@@ -213,8 +213,8 @@ def delete_library(self: "DBHandler", library_id: int):
     orphan_features = set()
     for feature in library.features:
         if feature.feature_kit_id is None:
-            if self.session.query(models.LibraryFeatureLink).where(
-                models.LibraryFeatureLink.feature_id == feature.id
+            if self.session.query(models.links.LibraryFeatureLink).where(
+                models.links.LibraryFeatureLink.feature_id == feature.id
             ).count() == 1:
                 orphan_features.add(feature)
 
@@ -272,10 +272,10 @@ def query_libraries(
 
     if sample_id is not None:
         query = query.join(
-            models.SampleLibraryLink,
+            models.links.SampleLibraryLink,
             and_(
-                models.SampleLibraryLink.library_id == models.Library.id,
-                models.SampleLibraryLink.sample_id == sample_id
+                models.links.SampleLibraryLink.library_id == models.Library.id,
+                models.links.SampleLibraryLink.sample_id == sample_id
             )
         )
 
@@ -314,10 +314,10 @@ def query_libraries(
             models.Pool,
             models.Pool.id == models.Library.pool_id,
         ).join(
-            models.ExperimentPoolLink,
-            models.ExperimentPoolLink.pool_id == models.Pool.id,
+            models.links.ExperimentPoolLink,
+            models.links.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
-            models.ExperimentPoolLink.experiment_id == experiment_id
+            models.links.ExperimentPoolLink.experiment_id == experiment_id
         )
 
     if name is not None:
@@ -505,9 +505,9 @@ def get_user_library_access_type(
     if library.owner_id == user_id:
         access_type = AccessType.OWNER
     elif library.seq_request.group_id is not None:
-        if self.session.query(models.UserAffiliation).where(
-            models.UserAffiliation.user_id == user_id,
-            models.UserAffiliation.group_id == library.seq_request.group_id
+        if self.session.query(models.links.UserAffiliation).where(
+            models.links.UserAffiliation.user_id == user_id,
+            models.links.UserAffiliation.group_id == library.seq_request.group_id
         ).first() is not None:
             access_type = AccessType.EDIT
 

@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, Optional
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from limbless_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum
+from limbless_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, FileType
+from limbless_db.models import links, Project
 
 from .Base import Base
 
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     from .Plate import Plate
     from .File import File
     from .Pool import Pool
+    from .Comment import Comment
 
 
 class LabPrep(Base):
@@ -30,12 +32,16 @@ class LabPrep(Base):
     plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
     plate: Mapped[Optional["Plate"]] = relationship("Plate", lazy="select")
 
-    prep_file_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
-    prep_file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[prep_file_id])
+    prep_file: Mapped[Optional["File"]] = relationship(
+        "File", lazy="joined", viewonly=True,
+        primaryjoin=f"and_(LabPrep.id == File.lab_prep_id, File.type_id == {FileType.LIBRARY_PREP_FILE.id})",
+    )
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="lab_prep", lazy="select", order_by="Library.id")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="lab_prep", lazy="select")
-
+    files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
+    comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
+    
     @property
     def protocol(self) -> LabProtocolEnum:
         return LabProtocol.get(self.protocol_id)

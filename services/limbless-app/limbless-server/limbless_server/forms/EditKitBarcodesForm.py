@@ -29,19 +29,19 @@ class EditKitBarcodesForm(HTMXFlaskForm):
         "well": SpreadSheetColumn("A", "well", "Well", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         "name_i7": SpreadSheetColumn("B", "name_i7", "Name i7", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
         "sequence_i7": SpreadSheetColumn("C", "sequence_i7", "Sequence i7", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        "name_i5": SpreadSheetColumn("D", "name_i5", "Name i5", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        "name_i5": SpreadSheetColumn("D", "name_i5", "Name i5", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
         "sequence_i5": SpreadSheetColumn("E", "sequence_i5", "Sequence i5", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     }
 
     single_index_columns = {
         "well": SpreadSheetColumn("A", "well", "Well", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        "name": SpreadSheetColumn("B", "name", "Name", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        "name": SpreadSheetColumn("B", "name", "Name", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
         "sequence": SpreadSheetColumn("C", "sequence", "Sequence", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     }
 
     tenx_atac_index_columns = {
         "well": SpreadSheetColumn("A", "well", "Well", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        "name": SpreadSheetColumn("B", "name", "Name", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        "name": SpreadSheetColumn("B", "name", "Name", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
         "sequence_2": SpreadSheetColumn("D", "sequence_2", "Sequence 2", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         "sequence_1": SpreadSheetColumn("C", "sequence_1", "Sequence 1", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         "sequence_3": SpreadSheetColumn("E", "sequence_3", "Sequence 3", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
@@ -119,7 +119,8 @@ class EditKitBarcodesForm(HTMXFlaskForm):
                 barcode_data["sequence"].append(row["sequences"][0])
 
         df = pd.DataFrame(barcode_data)
-        self.spreadsheet.data = json.dumps(df.replace(np.nan, "").values.tolist())
+        if len(df) > 0:
+            self.spreadsheet.data = json.dumps(df.replace(np.nan, "").values.tolist())
 
     def validate(self) -> bool:
         if not super().validate():

@@ -40,9 +40,6 @@ def experiment_page(experiment_id: int):
 
         pools, _ = db.get_pools(experiment_id=experiment_id, sort_by="id", descending=True, limit=None)
 
-        comment_form = forms.comment.ExperimentCommentForm(experiment_id=experiment_id)
-        file_input_form = forms.file.ExperimentAttachmentForm(experiment_id=experiment_id)
-
         experiment_lanes: dict[int, list[int]] = {}
         _lane_capacities: dict[int, float] = {}
 
@@ -104,8 +101,6 @@ def experiment_page(experiment_id: int):
             experiment=experiment,
             path_list=path_list,
             pools=pools,
-            file_input_form=file_input_form,
-            comment_form=comment_form,
             experiment_lanes=experiment_lanes,
             selected_sequencer=experiment.sequencer.name,
             selected_user=experiment.operator,

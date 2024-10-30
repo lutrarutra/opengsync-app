@@ -67,11 +67,11 @@ def where(
 ) -> Query:
     if seq_request_id is not None:
         query = query.join(
-            models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.sample_id == models.Sample.id
         ).join(
             models.Library,
-            models.Library.id == models.SampleLibraryLink.library_id
+            models.Library.id == models.links.SampleLibraryLink.library_id
         ).where(
             models.Library.seq_request_id == seq_request_id
         )
@@ -88,19 +88,19 @@ def where(
 
     if library_id is not None:
         query = query.join(
-            models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.sample_id == models.Sample.id
         ).where(
-            models.SampleLibraryLink.library_id == library_id
+            models.links.SampleLibraryLink.library_id == library_id
         )
 
     if pool_id is not None:
         query = query.join(
-            models.SampleLibraryLink,
-            models.SampleLibraryLink.sample_id == models.Sample.id
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.sample_id == models.Sample.id
         ).join(
             models.Library,
-            models.Library.id == models.SampleLibraryLink.library_id
+            models.Library.id == models.links.SampleLibraryLink.library_id
         ).where(
             models.Library.pool_id == pool_id
         )

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .. import localize
 from .Base import Base
 from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellTypeEnum, ExperimentWorkFlow, ExperimentWorkFlowEnum
-from .Links import ExperimentFileLink, ExperimentCommentLink, ExperimentPoolLink
+from . import links
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -45,10 +45,10 @@ class Experiment(Base):
 
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
-    pools: Mapped[list["Pool"]] = relationship("Pool", secondary=ExperimentPoolLink.__tablename__, lazy="select")
+    pools: Mapped[list["Pool"]] = relationship("Pool", secondary=links.ExperimentPoolLink.__tablename__, lazy="select")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
-    files: Mapped[list["File"]] = relationship("File", secondary=ExperimentFileLink.__tablename__, lazy="select", cascade="delete")
-    comments: Mapped[list["Comment"]] = relationship("Comment", secondary=ExperimentCommentLink.__tablename__, lazy="select", cascade="merge, save-update, delete", order_by="Comment.timestamp_utc.desc()")
+    files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
+    comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "num_lanes", "flowcell_type_id", "workflow_id"]

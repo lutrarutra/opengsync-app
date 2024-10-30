@@ -399,3 +399,106 @@ def get_pools(lab_prep_id: int, page: int):
             sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
         )
     )
+
+
+@lab_preps_htmx.route("<int:lab_prep_id>/get_files", methods=["GET"])
+@db_session(db)
+@login_required
+def get_files(lab_prep_id: int):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    return make_response(
+        render_template(
+            "components/file-list.html",
+            files=lab_prep.files, delete="lab_preps_htmx.delete_file",
+            delete_context={"lab_prep_id": lab_prep_id}
+        )
+    )
+
+
+@lab_preps_htmx.route("<int:lab_prep_id>/delete_file/<int:file_id>", methods=["DELETE"])
+@db_session(db)
+@login_required
+def delete_file(lab_prep_id: int, file_id: int):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (file := db.get_file(file_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if file not in lab_prep.files:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    file_path = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    db.delete_file(file_id=file.id)
+
+    logger.info(f"Deleted file '{file.name}' from prep (id='{lab_prep_id}')")
+    flash(f"Deleted file '{file.name}' from prep.", "success")
+    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+
+
+@lab_preps_htmx.route("<int:lab_prep_id>/file_form", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def file_form(lab_prep_id: int):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if request.method == "GET":
+        form = forms.file.LabPrepAttachmentForm(lab_prep=lab_prep)
+        return form.make_response()
+    elif request.method == "POST":
+        form = forms.file.LabPrepAttachmentForm(lab_prep=lab_prep, formdata=request.form | request.files)
+        return form.process_request(current_user)
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+    
+
+@lab_preps_htmx.route("<int:lab_prep_id>/comment_form", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def comment_form(lab_prep_id: int):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if request.method == "GET":
+        form = forms.comment.LabPrepCommentForm(lab_prep=lab_prep)
+        return form.make_response()
+    elif request.method == "POST":
+        form = forms.comment.LabPrepCommentForm(lab_prep=lab_prep, formdata=request.form)
+        return form.process_request(current_user)
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+
+
+@lab_preps_htmx.route("<int:lab_prep_id>/get_comments", methods=["GET"])
+@db_session(db)
+@login_required
+def get_comments(lab_prep_id: int):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    return make_response(
+        render_template(
+            "components/comment-list.html",
+            comments=lab_prep.comments
+        )
+    )

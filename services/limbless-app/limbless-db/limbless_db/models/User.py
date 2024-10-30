@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from itsdangerous import SignatureExpired, BadSignature, URLSafeTimedSerializer
 
 from .Base import Base
-from .Links import UserAffiliation
+from . import links
 from ..categories import UserRole, UserRoleEnum
 
 
@@ -81,7 +81,7 @@ class User(Base, UserMixin):
     num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
     num_seq_requests: Mapped[int] = mapped_column(nullable=False, default=0)
 
-    affiliations: Mapped[list[UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")
+    affiliations: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")
     requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="requestor", lazy="select")
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="owner", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="owner", lazy="select")
