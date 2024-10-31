@@ -1,7 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group, checkbox_input %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/legends.jinja2" import color_legend %}
-{% from "components/spreadsheet.jinja2" import spreadsheet %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 <div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
@@ -82,7 +82,7 @@
                         {{ form_group(select_assay_form.additional_info) }}
                     </div>
                     <div style="width: 50%; height: 100%;">
-                        {{ spreadsheet(id="grid", errors=select_assay_form.spreadsheet_dummy.errors) }}
+                        {{ spreadsheet_input(element=select_assay_form.spreadsheet) }}
                     </div>
                 </div>
             </div>
@@ -93,7 +93,7 @@
             {{ select_assay_form.file_uuid.data }}
         </div>
         <div class="footer-info">
-            {{ color_legend(colors) }}
+            {{ color_legend(select_assay_form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
             <button type="button" id="parse-spreadsheet-btn" class="btn btn-primary submit-form-btn">
@@ -165,27 +165,6 @@
             init_tooltips();
             update_optional_assays($("#assay_type").val());
 
-            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]"}};
-            const csrf_token = "{{ select_assay_form.csrf_token._value() }}";
-
-            var spread_sheet = jspreadsheet(document.getElementById('grid'), {
-                data: data,
-                columns: [
-                    {% for col in columns %}
-                    {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                    {%- elif col["type"] == "dropdown" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                    {%- endif -%}
-                    {% endfor %}
-                ],
-                minSpareRows: 10,
-                allowInsertColumn: false,
-                tableOverflow:true,
-                tableHeight:`calc(100% - 70px)`,
-                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
-            });
-
             $("#assay_type").on("change", function() {
                 update_optional_assays($(this).val());
             });
@@ -199,7 +178,7 @@
                     "values": {
                         "file_uuid": "{{ select_assay_form.file_uuid.data }}",
                         "spreadsheet": JSON.stringify(data),
-                        "csrf_token": csrf_token,
+                        "csrf_token": "{{ select_assay_form.csrf_token._value() }}",
                         "additional_info": $("#additional_info").val(),
                         "assay_type": $("#assay_type").val(),
                         "optional_assays-antibody_capture": $("#optional_assays-antibody_capture").is(":checked"),

@@ -91,6 +91,9 @@ table input.table-query-input{
                 color: $cemm-blue-darker;
                 text-decoration: none;
             }
+            td .h-list {
+                padding-left: 10px;
+            }
         }
         .comma:not(:first-child):before {
             content: ", ";

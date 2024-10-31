@@ -1,8 +1,6 @@
-import json
 from typing import Optional, Literal
 
 import pandas as pd
-import numpy as np
 
 from flask import Response
 from flask_wtf import FlaskForm
@@ -21,11 +19,7 @@ from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
 from .FeatureReferenceInputForm import FeatureReferenceInputForm
 from .SampleAnnotationForm import SampleAnnotationForm
-
-columns = {
-    "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
-    "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 300, str, GenomeRef.names()),
-}
+from ...SpreadsheetInput import SpreadsheetInput
 
 
 class OptionalAssaysForm(FlaskForm):
@@ -42,14 +36,18 @@ class AdditionalSerevicesForm(FlaskForm):
 
 
 class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
-    _template_path = "workflows/library_annotation/sas-2.2.html"
+    _template_path = "workflows/library_annotation/sas-2.tech.html"
     _form_label = "select_assay_form"
 
     assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), validators=[DataRequired()], coerce=int)
     additional_info = TextAreaField("Additional Information", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
     optional_assays = FormField(OptionalAssaysForm)
     additional_services = FormField(AdditionalSerevicesForm)
-    spreadsheet_dummy = StringField(validators=[OptionalValidator()])
+
+    columns = {
+        "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
+        "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 300, str, GenomeRef.names()),
+    }
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, uuid: Optional[str] = None):
         super().__init__(formdata=formdata)
@@ -57,52 +55,30 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             uuid = formdata.get("file_uuid")
         TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation")
         self.seq_request = seq_request
-        self.spreadsheet_style = {}
-        self._context["columns"] = columns.values()
-        self._context["colors"] = {
-            "missing_value": "#FAD7A0",
-            "invalid_value": "#F5B7B1",
-            "duplicate_value": "#D7BDE2",
-        }
         self._context["active_tab"] = "help"
         self._context["seq_request"] = seq_request
 
+        if (csrf_token := formdata.get("csrf_token")) is None:
+            csrf_token = self.csrf_token._value()  # type: ignore
+        self.spreadsheet = SpreadsheetInput(
+            columns=SpecifyAssayForm.columns, csrf_token=csrf_token,
+            post_url="", formdata=formdata, allow_new_rows=True
+        )
+
     def validate(self) -> bool:
-        self.df = None
-        if not (validated := super().validate()):
+        if not super().validate():
             return False
 
         if self.assay_type.data is None or AssayType.get(self.assay_type.data) == AssayType.CUSTOM:
             self.assay_type.errors = ("Please select an assay type.",)
             return False
         
-        data = json.loads(self.formdata["spreadsheet"])  # type: ignore
-        try:
-            self.df = pd.DataFrame(data)
-        except ValueError as e:
-            self.spreadsheet_dummy.errors = (str(e),)
-            return False
-
-        if not validated:
+        if not self.spreadsheet.validate():
             return False
         
-        if len(self.df.columns) != len(list(columns.keys())):
-            self.spreadsheet_dummy.errors = (f"Invalid number of columns (expected {len(columns)}). Do not insert new columns or rearrange existing columns.",)
-            return False
-        
-        self.df.columns = list(columns.keys())
-        self.df = self.df.replace(r'^\s*$', None, regex=True)
-        self.df = self.df.dropna(how="all")
+        df = self.spreadsheet.df
 
-        if len(self.df) == 0:
-            self.spreadsheet_dummy.errors = ("Please, fill-out spreadsheet",)
-            return False
-        
-        def add_error(row_num: int, column: str, message: str, color: Literal["missing_value", "invalid_value", "duplicate_value"]):
-            self.spreadsheet_style[f"{columns[column].column}{row_num}"] = f"background-color: {self._context['colors'][color]};"
-            self.spreadsheet_dummy.errors.append(f"Row {row_num}: {message}")  # type: ignore
-
-        sample_name_counts = self.df["sample_name"].value_counts()
+        sample_name_counts = df["sample_name"].value_counts()
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {project_id} does not exist.")
@@ -126,37 +102,39 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         if self.additional_services.multiplexing.data:
             selected_library_types.append(LibraryType.TENX_MULTIPLEXING_CAPTURE.abbreviation)
 
-        for i, (_, row) in enumerate(self.df.iterrows()):
+        for i, (_, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]):
-                add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
+                self.spreadsheet.add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
             elif sample_name_counts[row["sample_name"]] > 1:
-                add_error(i + 1, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
+                self.spreadsheet.add_error(i + 1, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
 
             duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
             if (duplicate_library).any():
                 library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore
-                add_error(i + 1, "sample_name", f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request", "duplicate_value")
+                self.spreadsheet.add_error(i + 1, "sample_name", f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request", "duplicate_value")
 
             if pd.isna(row["genome"]):
-                add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
+                self.spreadsheet.add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
         
         genome_map = {}
         for id, e in GenomeRef.as_tuples():
             genome_map[e.display_name] = id
         
-        self.df["genome_id"] = self.df["genome"].map(genome_map)
+        df["genome_id"] = df["genome"].map(genome_map)
 
-        self.df["sample_id"] = None
+        df["sample_id"] = None
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
                 raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
             
             for sample in project.samples:
-                self.df.loc[self.df["sample_name"] == sample.name, "sample_id"] = sample.id
+                df.loc[df["sample_name"] == sample.name, "sample_id"] = sample.id
 
-        if self.spreadsheet_dummy.errors:
+        if self.spreadsheet._errors:
             return False
+        
+        self.df = df
 
         try:
             self.assay_type_enum = AssayType.get(int(self.assay_type.data))
@@ -167,13 +145,8 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         return True
     
     def process_request(self) -> Response:
-        if not self.validate() or self.df is None:
+        if not self.validate():
             self._context["active_tab"] = "form"
-            self._context["spreadsheet_style"] = self.spreadsheet_style
-            if self.df is not None:
-                self._context["spreadsheet_data"] = self.df.replace(np.nan, "").values[:, :len(columns)].tolist()
-                if self._context["spreadsheet_data"] == []:
-                    self._context["spreadsheet_data"] = [[None]]
             return self.make_response()
 
         library_table_data = {

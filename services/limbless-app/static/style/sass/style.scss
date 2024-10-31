@@ -310,6 +310,8 @@ body {
         .jexcel_content {
             box-shadow: none !important;
             border: none !important;
+            display: flex;
+            justify-content: center;
         }
     }
 }

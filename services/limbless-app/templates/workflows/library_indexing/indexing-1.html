@@ -2,7 +2,7 @@
 {% from "components/table_input.jinja2" import table_input %}
 {% from "components/legends.jinja2" import color_legend %}
 {% from "components/search_select.jinja2" import search_select_field %}
-{% from "components/spreadsheet.jinja2" import spreadsheet %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 <div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
@@ -32,20 +32,27 @@
             </li>
         </ul>
         <div class="tab-content" id="library_pooling-form">
-            {{ library_indexing_form.csrf_token() }}
             <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
                 <div class="input-help">
-                    <h5>How to?</h5>
                     <ul>
-                        <li></li>
-                    </ul>
-                    <h5>Columns</h5>
-                    <ul>
+                        <li>
+                            <b>Pool:</b>
+                            <ul class="h-list" style="width: 60%; padding-left: 15px;">
+                                <li><b>x</b>: QC Failed (ignored)</li>
+                                <li><b>t</b>: Control Sample (ignored)</li>
+                            </ul>
+                        </li>
                     </ul>
                 </div>
             </div>
             <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="2">
-                {{ spreadsheet() }}
+                {{ 
+                    spreadsheet_input(
+                        element=library_indexing_form.spreadsheet,
+                        submit_btn_id="submit-spreadsheet-btn",
+                        target_element_id="library_pooling-form-container",
+                    )
+                }}
             </div>
             <div class="tab-pane fade" id="index-1-example-tab" role="tabpanel" tabindex="4">
                 {% include "components/examples/pool-indexing-1.html" %}
@@ -56,7 +63,7 @@
         <div class="text-nowrap text-muted footer-id">
         </div>
         <div class="footer-info">
-            {{ color_legend(colors) }}
+            {{ color_legend(library_indexing_form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
@@ -82,46 +89,6 @@
             $("#plate-form-tab-btn").on("click", function() {
                 $(".submit-form-btn").hide();
                 $("#submit-plate-form-btn").show();
-            });
-
-            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
-            const csrf_token = "{{ library_indexing_form.csrf_token._value() }}";
-            console.log($("#spreadsheet-grid").width());
-            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
-                data: data,
-                columns: [
-                    {% for col in columns %}
-                    {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                    {%- elif col["type"] == "dropdown" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                    {%- endif -%}
-                    {% endfor %}
-                ],
-                allowInsertColumn: false,
-                allowManualInsertRow: false,
-                allowDeleteRow: false,
-                allowDeleteColumn: false,
-                allowInsertColumn: false,
-                tableOverflow: true,
-                tableWidth: "100%",
-                tableHeight: "100%",
-                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
-            });
-
-            $("#submit-spreadsheet-btn").on("click", function() {
-                var data = spread_sheet.getData();
-
-                htmx.ajax("POST", "{{ url_for('library_indexing_workflow.parse_barcodes', lab_prep_id=lab_prep.id, input_type='spreadsheet') }}", {
-                    "target": "#library_pooling-form-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "spreadsheet": JSON.stringify(data),
-                        "csrf_token": csrf_token,
-                        "plate_form-csrf_token": csrf_token,
-                        "plate_form-index_kit-csrf_token": csrf_token,
-                    },
-                });
             });
         });
     </script>

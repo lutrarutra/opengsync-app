@@ -31,7 +31,7 @@
                         multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
-                <th scope="col" class="col-4">Library Types</th>
+                <th scope="col" class="col-6">Library Types</th>
             </tr>
         </thead>
         <tbody>
@@ -42,16 +42,12 @@
                 <td>{{ sample.status.name }} {{ sample.status.icon }}</td>
                 {% set cmo_index = "" %}
                 <td>
-                    <ul class="h-list">
                     {% for library_link in sample.library_links %}
                     {% set library = library_link.library %}
                     {% if seq_request.id == library.seq_request_id %}
-                        <li {{ tooltip(library.type.name) }}>
-                            {{ library.type.abbreviation }}
-                        </li>
+                    <span class="badge">{{ library.type.name }}</span>
                     {% endif %}
                     {% endfor %}
-                    </ul>
                 </td>
             </tr>
             {% endfor %}

@@ -69,6 +69,12 @@ def seq_request_page(seq_request_id: int):
                 (f"Group {id}", url_for("groups_page.group_page", group_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
+        elif page == "sample":
+            path_list = [
+                ("Samples", url_for("samples_page.samples_page")),
+                (f"Sample {id}", url_for("samples_page.sample_page", sample_id=id)),
+                (f"Request {seq_request_id}", ""),
+            ]
 
     process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
     seq_auth_form = forms.SeqAuthForm(seq_request=seq_request)

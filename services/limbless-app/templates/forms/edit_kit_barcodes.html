@@ -1,5 +1,6 @@
-{% from 'components/spreadsheet.jinja2' import complete_spreadsheet %}
+{% from 'components/spreadsheet.jinja2' import spreadsheet_input %}
 {% from 'components/form_group.jinja2' import switch_input %}
+{% from 'components/legends.jinja2' import color_legend %}
 
 <div class="modal-content" id="kit_barcodes-form-container">
     <div class="modal-header">
@@ -12,13 +13,7 @@
         {% if index_kit.type == IndexType.DUAL_INDEX %}
         {{ switch_input(form.rc_sequence_i5) }}
         {% endif %}
-        {{
-            complete_spreadsheet(
-                element=form.spreadsheet,
-                columns=columns,
-                style=spreadsheet_style,
-            ) 
-        }}
+        {{ spreadsheet_input(element=form.spreadsheet) }}
     </div>
     
     <div class="modal-footer">
@@ -26,6 +21,7 @@
             {{ index_kit.identifier }}
         </div>
         <div class="footer-info">
+            {{ color_legend(form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-success submit-form-btn" type="button" id="submit-spreadsheet-btn">

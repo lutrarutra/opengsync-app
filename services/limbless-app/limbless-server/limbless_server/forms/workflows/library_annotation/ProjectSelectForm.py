@@ -9,7 +9,7 @@ from limbless_db import models
 from .... import db, logger  # noqa F401
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
-from .SASInputForm import SASInputForm
+from .LibraryAnnotationForm import LibraryAnnotationForm
 from .SpecifyAssayForm import SpecifyAssayForm
 from .PoolDefinitionForm import PoolDefinitionForm
 
@@ -76,7 +76,7 @@ class ProjectSelectForm(HTMXFlaskForm):
         elif self.workflow_type == "pooled":
             form = PoolDefinitionForm(seq_request=self.seq_request)
         else:
-            form = SASInputForm(seq_request=self.seq_request)
+            form = LibraryAnnotationForm(seq_request=self.seq_request)
         
         form.metadata["project_name"] = self.project_name
         form.metadata["workflow"] = "library_annotation"

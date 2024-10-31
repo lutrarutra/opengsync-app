@@ -1,0 +1,86 @@
+{% from "components/legends.jinja2" import color_legend %}
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/spinner.jinja2' import spinner %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
+
+<div id="sample-table-submission-container" class="modal-content" style="height: 100%;">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">2. Specify Pooled Libraries</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="form-tab-spreadsheet-btn"
+                data-bs-target="#form-tab-spreadsheet" type="button" role="tab"
+                aria-controls="form-tab-spreadsheet" aria-selected="true">
+                Sheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="form-tab-help-btn"
+                data-bs-target="#form-tab-help" type="button" role="tab"
+                aria-controls="form-tab-help" aria-selected="false">
+                Help</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="form-tab-example-btn"
+                data-bs-target="#form-tab-example" type="button" role="tab"
+                aria-controls="form-tab-example" aria-selected="true">
+                Example</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
+                {{ spreadsheet_input(form.spreadsheet) }}
+            </div>
+            <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
+                {% include "workflows/library_annotation/raw_instructions.html" %}
+            </div>
+            <div class="tab-pane fade" id="form-tab-example" role="tabpanel" tabindex="2">
+                {% include "components/examples/sas_raw.html" %}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.file_uuid.data }}
+        </div>
+        <div class="footer-info">
+            {{ color_legend(form.spreadsheet.colors) }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning"
+                hx-target="#sample-table-submission-container" hx-swap="outerHTML"
+                hx-get="{{ url_for('library_annotation_workflow.define_pool', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+                Back
+            </button>
+            <button type="button" id="parse-spreadsheet-btn" class="btn btn-primary submit-form-btn">
+                Upload
+            </button>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            window.onbeforeunload = function() {
+                return "Data will be lost if you leave the page, are you sure?";
+            };
+
+            $("#parse-spreadsheet-btn").on("click", function() {
+                var data = spread_sheet.getData();
+
+                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, form_type='raw') }}", {
+                    "target": "#sample-table-submission-container",
+                    "swap": "outerHTML",
+                    "values": {
+                        "file_uuid": "{{ form.file_uuid.data }}",
+                        "spreadsheet": JSON.stringify(data),
+                        "csrf_token": "{{ form.csrf_token._value() }}"
+                    },
+                });
+            });
+        });
+    </script>
+</div>

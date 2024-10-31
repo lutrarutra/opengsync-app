@@ -35,6 +35,7 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
 
     predefined_columns = {"sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str)} | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()) if t.label != "custom"])
 
+    # FIXME: proper annotation widget
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, previous_form: Optional[TableDataForm] = None, uuid: Optional[str] = None):

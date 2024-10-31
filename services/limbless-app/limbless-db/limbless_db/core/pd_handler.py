@@ -561,3 +561,22 @@ def get_project_sample_attributes_df(self, project_id: int, pivot: bool = True) 
         df = df.pivot(index=["id", "name"], columns="attribute_name", values="attribute_value").reset_index()
         df.columns.name = None
     return df
+
+
+def get_lab_prep_libraries_df(self, lab_prep_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Library.id.label("id"),
+        models.Library.name.label("name"),
+        models.Library.status_id.label("status_id"),
+        models.Library.type_id.label("type_id"),
+        models.Library.genome_ref_id.label("genome_ref_id"),
+    ).where(
+        models.Library.lab_prep_id == lab_prep_id
+    )
+
+    df = pd.read_sql(query, self._engine)
+    df["status"] = df["status_id"].map(categories.LibraryStatus.get)  # type: ignore
+    df["type"] = df["type_id"].map(categories.LibraryType.get)  # type: ignore
+    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+
+    return df
