@@ -4,4 +4,4 @@ docker compose -f compose.test.yaml -p limbless-testing up --abort-on-container-
 STATUS=$?
 docker compose -f compose.test.yaml -p limbless-testing down --volumes
 
-exit $(STATUS)
+exit $STATUS
