@@ -5,10 +5,10 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..categories import SampleStatus, SampleStatusEnum
-from . import links
 from .Base import Base
 
 if TYPE_CHECKING:
+    from . import links
     from .Project import Project
     from .User import User
     from .SeqRequest import SeqRequest
