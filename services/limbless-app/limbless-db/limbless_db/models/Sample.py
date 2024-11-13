@@ -47,7 +47,7 @@ class Sample(Base):
     owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="joined")
 
     library_links: Mapped[list["links.SampleLibraryLink"]] = relationship(
-        links.SampleLibraryLink, back_populates="sample", lazy="select",
+        "SampleLibraryLink", back_populates="sample", lazy="select",
         cascade="save-update, merge, delete"
     )
 
