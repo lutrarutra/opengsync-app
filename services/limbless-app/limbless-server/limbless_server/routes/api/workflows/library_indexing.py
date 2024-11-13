@@ -27,8 +27,7 @@ def begin(lab_prep_id: int) -> Response:
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = forms.BarcodeInputForm(lab_prep=lab_prep, formdata=request.form)
-    form.prepare()
+    form = forms.BarcodeInputForm(lab_prep=lab_prep)
     return form.make_response()
     
 

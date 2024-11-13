@@ -1,6 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from "components/legends.jinja2" import color_legend %}
-{% from "components/spreadsheet.jinja2" import spreadsheet %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 <div id="sample_annotation_form-container" class="modal-content">
     <div class="modal-header">
@@ -10,17 +10,16 @@
     <div class="modal-body tab-body">
         <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
             <li class="nav-item" role="presentation">
-                <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
-                data-bs-target="#help-tab" type="button" role="tab"
-                aria-controls="help-tab" aria-selected="false">
-                Help</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
-                id="spreadsheet-tab-btn"
+                <button class="nav-link active" data-bs-toggle="tab"
                 data-bs-target="#spreadsheet-tab" type="button" role="tab"
                 aria-controls="spreadsheet-tab" aria-selected="true">
                 Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
@@ -33,7 +32,25 @@
             {{ sample_annotation_form.csrf_token() }}
             {{ sample_annotation_form.file_uuid(hidden=True, readonly=True) }}
 
-            <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                <p>
+                    You can add new variable to the spreadsheet by right-clicking on the column header. You can change the name of the variable by right clicking on the column header and selecting "Rename this column".
+                </p>
+                <p>
+                    <b>Please provide as many variables as possible/applicable as these are used in downstream analysis.</b>
+                </p>
+                {{ 
+                    spreadsheet_input(
+                        element=sample_annotation_form.spreadsheet,
+                        submit_btn_id="submit-spreadsheet-btn",
+                        target_element_id="sample_annotation_form-container",
+                        post_request_kwargs={
+                            "file_uuid": sample_annotation_form.file_uuid.data
+                        }
+                    )
+                }}
+            </div>
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 <div class="input-help">
                     <h5>How to?</h5>
                     <ul>
@@ -43,15 +60,6 @@
                     <ul>
                     </ul>
                 </div>
-            </div>
-            <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="1">
-                <p>
-                    You can add new variable to the spreadsheet by right-clicking on the column header. You can change the name of the variable by right clicking on the column header and selecting "Rename this column".
-                </p>
-                <p>
-                    <b>Please provide as many variables as possible/applicable as these are used in downstream analysis.</b>
-                </p>
-                {{ spreadsheet(errors=sample_annotation_form.spreadsheet_dummy.errors)}}
             </div>
             <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="3">
                 {% include "components/examples/sample_annotation.html" %}
@@ -63,7 +71,7 @@
             {{ sample_annotation_form.file_uuid.data }}
         </div>
         <div class="footer-info">
-            {{ color_legend(colors) }}
+            {{ color_legend(sample_annotation_form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
@@ -74,58 +82,6 @@
     <script>
         $(document).ready(function() {
             init_tooltips();
-
-            $(".example-tab-btn, .help-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-            });
-            $("#file-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-                $("#submit-file-form-btn").show();
-            });
-            $("#spreadsheet-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-                $("#submit-spreadsheet-btn").show();
-            });
-
-            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
-            const csrf_token = "{{ sample_annotation_form.csrf_token._value() }}";
-
-            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
-                data: data,
-                columns: [
-                    {% for col in columns %}
-                    {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                    {%- elif col["type"] == "dropdown" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                    {%- endif -%}
-                    {% endfor %}
-                ],
-                allowInsertRow: false,
-                allowManualInsertRow: false,
-                allowDeleteRow: false,
-                allowDeleteColumn: true,
-                allowInsertColumn: true,
-                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
-            });
-
-            $("#submit-spreadsheet-btn").on("click", function() {
-                var data = spread_sheet.getData();
-
-                console.log(spread_sheet.getHeaders());
-
-                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id) }}", {
-                    "target": "#sample_annotation_form-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "spreadsheet": JSON.stringify(data),
-                        "csrf_token": csrf_token,
-                        "feature_kit-csrf_token": csrf_token,
-                        "file_uuid": "{{ sample_annotation_form.file_uuid.data }}",
-                        "spreadsheet_dummy": JSON.stringify(spread_sheet.getHeaders()),
-                    },
-                });
-            });
         });
     </script>
 </div>

@@ -76,7 +76,7 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#prep_table-tab" type="button" role="tab"
             aria-controls="prep_table-tab" aria-selected="false"
-            {% if not lab_prep.prep_file_id %}disabled{% endif %}>
+            {% if not lab_prep.prep_file %}disabled{% endif %}>
             Prep Table</button>
         </li>
         <li class="nav-item" role="presentation">
@@ -214,8 +214,8 @@
         </div>
 
         <div class="tab-pane fade" id="prep_table-tab" role="tabpanel" tabindex="3">
-            {% if lab_prep.prep_file_id %}
-            <div hx-get="{{ url_for('files_htmx.render_xlsx', file_id=lab_prep.prep_file_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            {% if lab_prep.prep_file %}
+            <div hx-get="{{ url_for('files_htmx.render_xlsx', file_id=lab_prep.prep_file.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
             {% endif %}

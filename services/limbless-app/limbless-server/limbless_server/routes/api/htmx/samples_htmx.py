@@ -222,6 +222,7 @@ def table_query():
     
 
 @samples_htmx.route("<int:sample_id>/get_libraries", methods=["GET"])
+@db_session(db)
 @login_required
 def get_libraries(sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:

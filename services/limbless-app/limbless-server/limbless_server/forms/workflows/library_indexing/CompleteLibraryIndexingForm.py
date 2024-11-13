@@ -9,7 +9,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models
-from limbless_db.categories import PoolType, SeqRequestStatus
+from limbless_db.categories import PoolType, SeqRequestStatus, LibraryStatus
 
 from .... import logger, db, tools
 from ...TableDataForm import TableDataForm
@@ -77,8 +77,14 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             if (library := db.get_library(row["library_id"])) is None:
                 logger.error(f"{self.uuid}: Library {row['library_id']} not found")
                 raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
-            
+
             library = db.remove_library_indices(library.id)
+            if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
+                if library.pool_id is not None:
+                    library.pool_id = None
+                    library.status = LibraryStatus.FAILED
+                    library = db.update_library(library)
+                continue
 
             df = barcode_table[barcode_table["library_id"] == row["library_id"]].copy()
 
@@ -104,6 +110,9 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             library.pool_id = None
             library = db.update_library(library)
             library = db.pool_library(library_id=library.id, pool_id=pools[row["pool"]].id)
+            library.status = LibraryStatus.POOLED
+            library = db.update_library(library)
+
             if library.seq_request_id not in request_ids:
                 request_ids.append(library.seq_request_id)
         
@@ -142,7 +151,7 @@ class CompleteLibraryIndexingForm(HTMXFlaskForm, TableDataForm):
             
             prepared = True
             for library in seq_request.libraries:
-                prepared = prepared and library.is_pooled()
+                prepared = prepared and library.status.id >= LibraryStatus.POOLED.id
 
             if prepared and seq_request.status == SeqRequestStatus.ACCEPTED:
                 seq_request.status = SeqRequestStatus.PREPARED

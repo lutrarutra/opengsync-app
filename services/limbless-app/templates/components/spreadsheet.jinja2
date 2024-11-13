@@ -12,23 +12,23 @@
 </div>
 {%- endmacro %}
 
-{% macro complete_spreadsheet(element, columns, style, post_url=none, csrf_token=none, submit_btn_id=none, target_id=none, id="spreadsheet-grid", height=none) -%}
+{% macro spreadsheet_input(element, target_element_id=none, submit_btn_id=none, height=none, post_request_kwargs={}) -%}
 <div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
     <div class="invalid-feedback-container">
-        {% if element.errors %}
+        {% if element._errors %}
         <p>Errors:</p>
-        {% for error in element.errors %}
+        {% for error in element._errors %}
             <p>{{ error }}</p>
         {% endfor %}
         {% endif %}
     </div>
-    <div id="{{ id }}" class="spreadsheet-grid"></div>
+    <div id="{{ element.id }}" class="spreadsheet-grid"></div>
 </div>
 <script>
-    var spread_sheet = jspreadsheet(document.getElementById("{{ id }}"), {
-        data: {{ element.data if element.data else "[[null]]" }},
+    var spread_sheet = jspreadsheet(document.getElementById("{{ element.id }}"), {
+        data: {{ element._data if element._data else "[[null]]" }},
         columns: [
-            {% for col in columns %}
+            {% for col in element.columns.values() %}
             {%- if col.type == "text" or col.type == "numeric" -%}
             { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
             {%- elif col["type"] == "dropdown" -%}
@@ -36,21 +36,32 @@
             {%- endif -%}
             {% endfor %}
         ],
-        minSpareRows: 10,
-        allowInsertColumn: false,
-        style: {{ style | tojson if style else "{}" }},
+        minSpareRows: {{ element.min_spare_rows }},
+        allowInsertColumn: {{ element.allow_new_cols }},
+        allowDeleteColumn: {{ element.allow_new_cols }},
+        allowManualInsertRow: {{ element.allow_new_rows }},
+        allowDeleteRow: {{ element.allow_new_rows }},
+        allowRenameColumn: {{ element.allow_col_rename }},
+        tableOverflow: true,
+        tableWidth: "100%",
+        tableHeight: "100%",
+        style: {{ element.style | tojson if element.style else "{}" }},
     });
 
-    {% if post_url %}
+    {% if submit_btn_id %}
     $("#{{ submit_btn_id }}").on("click", function() {
         var data = spread_sheet.getData();
 
-        htmx.ajax("POST", "{{ post_url }}", {
-            "target": "#{{ target_id }}",
+        htmx.ajax("POST", "{{ element.post_url }}", {
+            "target": "#{{ target_element_id }}",
             "swap": "outerHTML",
             "values": {
                 "spreadsheet": JSON.stringify(data),
-                "csrf_token": "{{ csrf_token }}",
+                "csrf_token": "{{ element.csrf_token }}",
+                "columns": JSON.stringify(spread_sheet.getHeaders()),
+                {% for key, val in post_request_kwargs.items() %}
+                "{{ key }}": "{{ val }}"
+                {% endfor %}
             },
         });
     });

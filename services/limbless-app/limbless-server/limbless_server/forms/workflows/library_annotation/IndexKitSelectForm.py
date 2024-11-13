@@ -9,7 +9,7 @@ from .... import logger, db  # noqa F401
 from ...TableDataForm import TableDataForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
-from .SASInputForm import SASInputForm
+from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -55,10 +55,11 @@ class IndexKitSelectForm(HTMXFlaskForm, TableDataForm):
     def process_request(self) -> Response:
         if not self.validate():
             return self.make_response()
+        
+        index_specification_type = "manual" if self.custom_indices_used.data else "kit"
 
-        sas_input_form = SASInputForm(seq_request=self.seq_request, uuid=self.uuid)
-        sas_input_form.metadata["index_1_kit_id"] = self.index_1_kit.selected.data
-        sas_input_form.metadata["index_2_kit_id"] = self.index_2_kit.selected.data if self.index_2_kit.selected.data else self.index_1_kit.selected.data
-        sas_input_form.update_data()
-        sas_input_form.prepare()
-        return sas_input_form.make_response()
+        form = PooledLibraryAnnotationForm(seq_request=self.seq_request, index_specification_type=index_specification_type, uuid=self.uuid)
+        form.metadata["index_1_kit_id"] = self.index_1_kit.selected.data
+        form.metadata["index_2_kit_id"] = self.index_2_kit.selected.data if self.index_2_kit.selected.data else self.index_1_kit.selected.data
+        form.update_data()
+        return form.make_response()

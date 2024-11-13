@@ -24,13 +24,7 @@ library_annotation_workflow = Blueprint("library_annotation_workflow", __name__,
 @library_annotation_workflow.route("download_template/<string:file>", methods=["GET"])
 @login_required
 def download_template(file: str):
-    if file == "raw":
-        name = "raw_sample_annotation.tsv"
-        df = pd.DataFrame(columns=list(forms.SASInputForm._feature_mapping_raw.keys()))
-    elif file == "pooled":
-        df = pd.DataFrame(columns=list(forms.SASInputForm._feature_mapping_pooled.keys()))
-        name = "premade_library_annotation.tsv"
-    elif file == "cmo":
+    if file == "cmo":
         df = pd.DataFrame(columns=list(forms.CMOReferenceInputForm._mapping.keys()))
         name = "cmo_reference.tsv"
     elif file == "feature":
@@ -162,21 +156,25 @@ def select_index_kits(seq_request_id: int):
 
 
 # 2. Input sample annotation sheet
-@library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:input_method>", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/parse_table/<string:form_type>", methods=["POST"])
 @db_session(db)
 @login_required
-def parse_table(seq_request_id: int, input_method: Literal["file", "spreadsheet"]):
-    if input_method not in ["file", "spreadsheet"]:
+def parse_table(seq_request_id: int, form_type: Literal["pooled", "raw"]):
+    if form_type not in ["pooled", "raw"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.SASInputForm(
-        seq_request=seq_request, input_method=input_method,
-        formdata=request.form | request.files,
-    ).process_request()
+    if form_type == "pooled":
+        if (index_spec := request.args.get("index_spec")) is None:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        form = forms.PooledLibraryAnnotationForm(seq_request=seq_request, index_specification_type=index_spec, formdata=request.form)
+    elif form_type == "raw":
+        form = forms.LibraryAnnotationForm(seq_request=seq_request, formdata=request.form)
 
+    return form.process_request()
+        
 
 # 3. Map organisms if new samples
 @library_annotation_workflow.route("<int:seq_request_id>/map_genomes", methods=["POST"])

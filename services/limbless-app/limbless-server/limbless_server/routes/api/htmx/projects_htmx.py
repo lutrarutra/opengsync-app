@@ -306,7 +306,6 @@ def edit_sample_attributes(project_id: int):
     
     if request.method == "GET":
         form = forms.SampleAttributeTableForm(project)
-        form.prepare()
         return form.make_response()
     elif request.method == "POST":
         return forms.SampleAttributeTableForm(project=project, formdata=request.form).process_request()

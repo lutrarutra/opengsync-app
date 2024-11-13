@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required, current_user
 
 from limbless_db import db_session
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, LibraryStatus
 
 from ... import db, logger, forms  # noqa
 
@@ -30,7 +30,7 @@ def lab_prep_page(lab_prep_id: int):
     
     can_be_completed = len(lab_prep.libraries) > 0
     for library in lab_prep.libraries:
-        if library.pool_id is None:
+        if library.status.id < LibraryStatus.POOLED.id:
             can_be_completed = False
             break
         

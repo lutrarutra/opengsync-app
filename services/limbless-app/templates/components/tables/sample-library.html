@@ -29,7 +29,10 @@
                         col_size=2
                     )
                 }}
-                <th scope="col" class="col-4">
+                <th scope="col" class="col-2">
+                    Request
+                </th>
+                <th scope="col" class="col-3">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
@@ -57,7 +60,7 @@
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
-                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='sample@' + sample.id | string) }}">{{ library.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=library.seq_request_id, from='sample@' + sample.id | string) }}">{{ library.seq_request.name }}</a></td>
                 <td class="barcode-cell">
                     {% for index in library.indices %}
                     {% if index.name_i7 %}
@@ -72,6 +75,7 @@
                     <span class="badge index-badges" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
                     {% endfor %}
                 </td>
+                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='sample@' + sample.id | string) }}">{{ library.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
