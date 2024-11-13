@@ -542,7 +542,7 @@ def get_sample_attributes_df(self, sample_id: int) -> pd.DataFrame:
 
 def get_project_sample_attributes_df(self, project_id: int, pivot: bool = True) -> pd.DataFrame:
     query = sa.select(
-        models.Sample.id, models.Sample.name,
+        models.Sample.id, models.Sample.name.label("sample_name"),
         models.SampleAttribute.name.label("attribute_name"), models.SampleAttribute.value.label("attribute_value"),
         models.SampleAttribute.type_id.label("type_id"),
     )
@@ -558,7 +558,7 @@ def get_project_sample_attributes_df(self, project_id: int, pivot: bool = True) 
     if not pivot:
         df["type"] = df["type_id"].map(categories.AttributeType.get)  # type: ignore
     else:
-        df = df.pivot(index=["id", "name"], columns="attribute_name", values="attribute_value").reset_index()
+        df = df.pivot(index=["id", "sample_name"], columns="attribute_name", values="attribute_value").reset_index()
         df.columns.name = None
     return df
 

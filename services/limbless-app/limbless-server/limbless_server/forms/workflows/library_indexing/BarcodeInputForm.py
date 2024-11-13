@@ -56,7 +56,7 @@ class BarcodeInputForm(HTMXFlaskForm):
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
-        self.spreadsheet = SpreadsheetInput(
+        self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=BarcodeInputForm.columns, csrf_token=csrf_token,
             post_url=url_for("library_indexing_workflow.parse_barcodes", lab_prep_id=lab_prep.id),
             formdata=formdata, df=self.get_template(),

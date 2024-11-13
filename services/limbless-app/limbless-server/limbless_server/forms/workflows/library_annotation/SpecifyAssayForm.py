@@ -55,12 +55,11 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             uuid = formdata.get("file_uuid")
         TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation")
         self.seq_request = seq_request
-        self._context["active_tab"] = "help"
         self._context["seq_request"] = seq_request
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
-        self.spreadsheet = SpreadsheetInput(
+        self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=SpecifyAssayForm.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata, allow_new_rows=True
         )
@@ -146,7 +145,6 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            self._context["active_tab"] = "form"
             return self.make_response()
 
         library_table_data = {
@@ -263,7 +261,6 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
             return frp_annotation_form.make_response()
     
         sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        sample_annotation_form.prepare()
         return sample_annotation_form.make_response()
         
         

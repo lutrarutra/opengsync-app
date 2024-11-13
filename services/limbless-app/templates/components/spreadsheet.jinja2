@@ -12,7 +12,7 @@
 </div>
 {%- endmacro %}
 
-{% macro spreadsheet_input(element, target_element_id=none, submit_btn_id=none, height=none) -%}
+{% macro spreadsheet_input(element, target_element_id=none, submit_btn_id=none, height=none, post_request_kwargs={}) -%}
 <div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
     <div class="invalid-feedback-container">
         {% if element._errors %}
@@ -58,6 +58,10 @@
             "values": {
                 "spreadsheet": JSON.stringify(data),
                 "csrf_token": "{{ element.csrf_token }}",
+                "columns": JSON.stringify(spread_sheet.getHeaders()),
+                {% for key, val in post_request_kwargs.items() %}
+                "{{ key }}": "{{ val }}"
+                {% endfor %}
             },
         });
     });

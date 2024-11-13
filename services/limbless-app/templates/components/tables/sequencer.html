@@ -5,9 +5,10 @@
     <table class="table table-hover table-cursor">
         <thead>
             <tr>
-                <th scope="col-1">ID</th>
-                <th scope="col-3">name</th>
-                <th scope="col-3">ip</th>
+                <th scope="col" class="col-1">ID</th>
+                <th scope="col" class="col-4">Name</th>
+                <th scope="col" class="col-4">Model</th>
+                <th scope="col" class="col-3">IP</th>
             </tr>
         </thead>
         <tbody>
@@ -15,6 +16,7 @@
             <tr onclick="redirect(`{{ url_for('devices_page.sequencer_page', sequencer_id=sequencer.id) }}`);">
                 <th scope="row">{{ sequencer.id }}</th>
                 <td>{{ sequencer.name }}</td>
+                <td>{{ sequencer.model.display_name }}</td>
                 <td>{{ sequencer.ip if sequencer.ip }}</td>
             </tr>
             {% endfor %}

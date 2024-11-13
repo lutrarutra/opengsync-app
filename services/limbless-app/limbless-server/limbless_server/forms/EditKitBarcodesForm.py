@@ -65,7 +65,7 @@ class EditKitBarcodesForm(HTMXFlaskForm):
         else:
             csrf_token = formdata.get("csrf_token")
 
-        self.spreadsheet = SpreadsheetInput(
+        self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata, df=self.__fill_form(),
             allow_new_rows=True

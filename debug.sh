@@ -5,4 +5,6 @@ if [ ! -f "rclone/rclone.conf" ]; then
     exit 1
 fi
 
+source .env
+
 docker compose -f compose.dev.yaml -p limbless-dev up "$@"

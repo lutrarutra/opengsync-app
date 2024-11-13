@@ -39,6 +39,10 @@ class DBHandler():
             self.session.close()
             self._session = None
 
+    def __del__(self):
+        self.close_session()
+        self._engine.dispose()
+
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
         update_project, delete_project,

@@ -44,7 +44,7 @@ class LibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
         
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
-        self.spreadsheet = SpreadsheetInput(
+        self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=LibraryAnnotationForm.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata, allow_new_rows=True
         )
@@ -162,7 +162,6 @@ class LibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
             return frp_annotation_form.make_response()
     
         sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        sample_annotation_form.prepare()
         return sample_annotation_form.make_response()
 
         

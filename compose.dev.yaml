@@ -4,7 +4,6 @@ services:
         build:
             context: ./services/limbless-app
             dockerfile: Dockerfile.dev
-        command: "python3 /usr/src/app/debug.py --host=${LIMBLESS_HOST} --port=${LIMBLESS_PORT}"
         volumes:
             - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
             - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db
@@ -21,9 +20,9 @@ services:
             - ./db/dev_init:/usr/src/app/init
             - ./rclone:/root/.config/rclone:rw
             - .ssh/:/.ssh:ro
-        env_file: .env
         environment:
             TZ: ${TIMEZONE}
+        env_file: .env
         ports:
             - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
         expose:
@@ -156,6 +155,7 @@ services:
             postgres:
                 condition: service_healthy
                 restart: true
+        attach: false  # no logs
 
     yacht:
         container_name: yacht-dev

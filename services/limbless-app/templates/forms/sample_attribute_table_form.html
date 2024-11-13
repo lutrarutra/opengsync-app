@@ -1,29 +1,27 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/spreadsheet.jinja2' import spreadsheet_input %}
 {% from "components/legends.jinja2" import color_legend %}
 
 <div id="sample_attribute_table_form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Sample Attributes</h1>
-        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
     <div class="modal-body">
         {{ sample_attribute_table_form.csrf_token() }}
-        <div class="invalid-feedback-container">
-            {% if not disabled %}
-            {% for error in sample_attribute_table_form.spreadsheet_dummy.errors %}
-                <p>{{ error }}</p>
-            {% endfor %}
-            {% endif %}
-        </div>
-        <div id="spreadsheet-grid" class="spreadsheet-grid">
-        </div>
+        {{ 
+            spreadsheet_input(
+                element=sample_attribute_table_form.spreadsheet,
+                submit_btn_id="submit-spreadsheet-btn",
+                target_element_id="sample_attribute_table_form-container",
+            )
+        }}
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
             {{ project.name }}
         </div>
         <div class="footer-info">
-            {{ color_legend(colors) }}
+            {{ color_legend(sample_attribute_table_form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-success submit-form-btn" type="button" id="submit-spreadsheet-btn">
@@ -34,43 +32,6 @@
     <script>
         $(document).ready(function() {
             init_tooltips();
-
-            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
-            const csrf_token = "{{ sample_attribute_table_form.csrf_token._value() }}";
-
-            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
-                data: data,
-                columns: [
-                    {% for col in columns %}
-                    {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                    {%- elif col["type"] == "dropdown" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                    {%- endif -%}
-                    {% endfor %}
-                ],
-                allowInsertRow: false,
-                allowManualInsertRow: false,
-                allowDeleteRow: false,
-                allowDeleteColumn: true,
-                allowInsertColumn: true,
-                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
-            });
-
-            $("#submit-spreadsheet-btn").on("click", function() {
-                var data = spread_sheet.getData();
-
-                htmx.ajax("POST", "{{ url_for('projects_htmx.edit_sample_attributes', project_id=project.id) }}", {
-                    "target": "#sample_attribute_table_form-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "data": JSON.stringify(data),
-                        "csrf_token": csrf_token,
-                        "feature_kit-csrf_token": csrf_token,
-                        "columns": JSON.stringify(spread_sheet.getHeaders()),
-                    },
-                });
-            });
         });
     </script>
 </div>

@@ -11,7 +11,14 @@
     <div class="modal-body tab-body">
         <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
             <li class="nav-item" role="presentation">
-                <button class="nav-link {% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="form-tab-form-btn"
+                data-bs-target="#form-tab-form" type="button" role="tab"
+                aria-controls="form-tab-form" aria-selected="true">
+                Form</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
                 id="form-tab-form-help-btn"
                 data-bs-target="#form-tab-form-help" type="button" role="tab"
                 aria-controls="form-tab-form-help" aria-selected="false">
@@ -24,45 +31,9 @@
                 aria-controls="form-tab-form-assay" aria-selected="true">
                 Assay Types</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link {% if active_tab == 'form' %} active{% endif %}" data-bs-toggle="tab"
-                id="form-tab-form-btn"
-                data-bs-target="#form-tab-form" type="button" role="tab"
-                aria-controls="form-tab-form" aria-selected="true">
-                Form</button>
-            </li>
         </ul>
         <div class="tab-content">
-            <div class="tab-pane fade show {% if active_tab == 'help' %} show active{% endif %}" id="form-tab-form-help" role="tabpanel" tabindex="0">
-                <ol>
-                    <li>Select assay you want to request.</li>
-                    <li>Select additional options related to the assay, if needed.</li>
-                    <li>Specify additional requirements or relevant information.</li>
-                    <li>10X Products: <a href="https://www.10xgenomics.com/products" target="_blank">10xgenomics.com/products</a></li>
-                </ol>
-            </div>
-            <div class="tab-pane fade" id="form-tab-form-assay" role="tabpanel" tabindex="1">
-                <ul>
-                    {% for assay_type in AssayType.as_list() %}
-                    <li><b>{{ assay_type.name }}</b> {% if assay_type.platform %}<span class="desc">{{ assay_type.platform }}</span>{% endif %}</li>
-                    Library Types:
-                    <ul class="h-list" style="width: 60%; padding-left: 15px;">
-                        {% for library_type in assay_type.library_types %}
-                        <li><span {{ tooltip(library_type.name) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
-                        {% endfor %}
-                    </ul>
-                    {% if assay_type.optional_library_types | length %}
-                    Optional Assays:
-                    <ul class="h-list" style="width: 60%; padding-left: 15px;">
-                        {% for library_type in assay_type.optional_library_types %}
-                        <li><span {{ tooltip(library_type.name) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
-                        {% endfor %}
-                    </ul>
-                    {% endif %}
-                    {% endfor %}
-                </ul>
-            </div>
-            <div class="tab-pane fade {% if active_tab == 'form' %} show active{% endif %}" id="form-tab-form" role="tabpanel" tabindex="2">
+            <div class="tab-pane fade show active" id="form-tab-form" role="tabpanel" tabindex="0">
                 <div style="display: flex; gap: 20px; height: 100%; overflow-y: hidden;">
                     <div style="width: 50%;">
                         {{ form_group(select_assay_form.assay_type) }}
@@ -86,6 +57,36 @@
                     </div>
                 </div>
             </div>
+            <div class="tab-pane fade show" id="form-tab-form-help" role="tabpanel" tabindex="1">
+                <ol>
+                    <li>Select assay you want to request.</li>
+                    <li>Select additional options related to the assay, if needed.</li>
+                    <li>Specify additional requirements or relevant information.</li>
+                    <li>10X Products: <a href="https://www.10xgenomics.com/products" target="_blank">10xgenomics.com/products</a></li>
+                </ol>
+            </div>
+            <div class="tab-pane fade" id="form-tab-form-assay" role="tabpanel" tabindex="2">
+                <ul>
+                    {% for assay_type in AssayType.as_list() %}
+                    <li><b>{{ assay_type.name }}</b> {% if assay_type.platform %}<span class="desc">{{ assay_type.platform }}</span>{% endif %}</li>
+                    Library Types:
+                    <ul class="h-list" style="width: 60%; padding-left: 15px;">
+                        {% for library_type in assay_type.library_types %}
+                        <li><span {{ tooltip(library_type.name) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
+                        {% endfor %}
+                    </ul>
+                    {% if assay_type.optional_library_types | length %}
+                    Optional Assays:
+                    <ul class="h-list" style="width: 60%; padding-left: 15px;">
+                        {% for library_type in assay_type.optional_library_types %}
+                        <li><span {{ tooltip(library_type.name) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+
         </div>
     </div>
     <div class="modal-footer">
@@ -178,6 +179,7 @@
                     "values": {
                         "file_uuid": "{{ select_assay_form.file_uuid.data }}",
                         "spreadsheet": JSON.stringify(data),
+                        "columns": JSON.stringify(spread_sheet.getHeaders()),
                         "csrf_token": "{{ select_assay_form.csrf_token._value() }}",
                         "additional_info": $("#additional_info").val(),
                         "assay_type": $("#assay_type").val(),

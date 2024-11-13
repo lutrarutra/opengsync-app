@@ -1,15 +1,17 @@
 import json
 import uuid
-from typing import Optional, Literal
+import string
+from typing import Optional, Literal, Any, Type, Callable
 
 import pandas as pd
 import numpy as np
 
 from wtforms import StringField
 from wtforms.validators import DataRequired
-
-from ..tools import SpreadSheetColumn
 from flask_wtf import FlaskForm
+
+from .. import logger
+from ..tools import SpreadSheetColumn
 
 
 class SpreadsheetInput(FlaskForm):
@@ -39,19 +41,53 @@ class SpreadsheetInput(FlaskForm):
         self.allow_new_cols = "true" if allow_new_cols else "false"
         self.allow_col_rename = "true" if allow_col_rename else "false"
         self.min_spare_rows = min_spare_rows if allow_new_rows else 0
+        self.col_names = formdata.get("columns") if formdata is not None else None
+        if self.col_names is not None:
+            self.col_names = json.loads(self.col_names).split(",")
+        
+        self.col_title_map = dict([(col.name, col.label) for col in self.columns.values()])
 
         if df is not None:
-            self._data = df.replace(np.nan, "").values.tolist()
+            _df = df.copy()
+            for col in self.columns.keys():
+                if col not in _df.columns:
+                    _df[col] = None
+                
+            self._data = _df[self.columns.keys()].replace(np.nan, "").values.tolist()
 
         if formdata is not None and (data := formdata.get("spreadsheet")) is not None:
             self._data = json.loads(data)
 
         self.__df = df
 
+    def add_column(
+        self, label: str, name: str,
+        type: Literal["text", "numeric", "dropdown"],
+        width: float, var_type: Type,
+        source: Optional[Any] = None,
+        clean_up_fnc: Optional[Callable] = None,
+    ):
+        if label in self.columns.keys():
+            raise ValueError(f"Column with label '{label}' already exists.")
+        self.columns[label] = SpreadSheetColumn(
+            column=string.ascii_uppercase[len(self.columns)],
+            label=label,
+            name=name,
+            type=type,
+            width=width,
+            var_type=var_type,
+            source=source,
+            clean_up_fnc=clean_up_fnc
+        )
+
     def validate(self) -> bool:
         if not super().validate():
             self._errors = list(self.spreadsheet.errors)
             return False
+        
+        if self.col_names is None:
+            logger.error("No column names provided in the request form.")
+            raise ValueError("No column names provided in the request form.")
         
         if self.spreadsheet.data is None:
             self._errors = ["Spreadsheet is empty."]
@@ -65,8 +101,8 @@ class SpreadsheetInput(FlaskForm):
             self.spreadsheet.errors = (f"Invalid Input: {e}",)
             return False
         
-        self.__df.columns = list(self.columns.keys())
         self.__df = self.__df.replace(r'^\s*$', None, regex=True)
+        self.__df.columns = [self.col_title_map[col_name] if col_name in self.col_title_map else col_name.lower().replace(" ", "_") for col_name in self.col_names]
         self.__df = self.__df.dropna(how="all")
 
         for label, column in self.columns.items():
@@ -93,5 +129,9 @@ class SpreadsheetInput(FlaskForm):
     ):
         self.style[f"{self.columns[column].column}{row_num}"] = f"background-color: {SpreadsheetInput.colors[color]};"
         message = f"Row {row_num}: {message}"
+        if message not in self._errors:
+            self._errors.append(message)
+
+    def add_general_error(self, message: str):
         if message not in self._errors:
             self._errors.append(message)
