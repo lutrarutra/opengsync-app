@@ -8,6 +8,7 @@ services:
         volumes:
             - ./services/pytest/tests:/usr/src/app/tests:ro
             - ./services/limbless-app/static/resources/templates/library_prep/:/usr/src/app/prep_tables:ro
+            - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db:ro
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password
