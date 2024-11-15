@@ -13,6 +13,8 @@ from itsdangerous import URLSafeTimedSerializer
 
 from limbless_db import DBHandler
 
+from .tools import RedisConfigFileCache
+
 logger.remove()
 
 fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} ({file}:{line} in {function}):
@@ -58,15 +60,11 @@ login_manager = LoginManager()
 mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
-db_user = os.environ["POSTGRES_USER"]
-db_password = os.environ["POSTGRES_PASSWORD"]
-db_host = os.environ["POSTGRES_HOST"]
-db_port = os.environ["POSTGRES_PORT"]
-db_name = os.environ["POSTGRES_DB"]
 TIMEZONE = pytz.timezone(os.environ['TIMEZONE'])
 
-db = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
+db = DBHandler()
 cache = Cache()
+config_cache = RedisConfigFileCache()
 
 DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
     

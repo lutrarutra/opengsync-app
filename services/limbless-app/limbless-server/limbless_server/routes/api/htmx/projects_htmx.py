@@ -1,5 +1,6 @@
-from typing import Optional, TYPE_CHECKING
 import string
+import json
+from typing import Optional, TYPE_CHECKING
 
 import numpy as np
 
@@ -8,7 +9,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBHandler, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, UserRole
+from limbless_db.categories import HTTPResponse, UserRole, SampleStatus
 
 from .... import db, forms
 from ....tools import SpreadSheetColumn
@@ -217,14 +218,24 @@ def get_samples(project_id: int, page: int):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
-    samples, n_pages = db.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending)
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [SampleStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    samples, n_pages = db.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in)
 
     return make_response(
         render_template(
             "components/tables/project-sample.html", samples=samples,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
-            project=project
+            project=project, status_in=status_in
         )
     )
 

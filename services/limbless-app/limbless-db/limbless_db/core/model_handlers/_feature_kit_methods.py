@@ -122,27 +122,3 @@ def delete_feature_kit(self: "DBHandler", feature_kit_id: int):
 
     if not persist_session:
         self.close_session()
-
-
-def query_feature_kits(
-    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT
-) -> list[models.FeatureKit]:
-    
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.FeatureKit)
-
-    query = query.order_by(
-        sa.func.similarity(models.FeatureKit.name, word).desc(),
-    )
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    feature_kits = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return feature_kits

@@ -25,7 +25,6 @@ from .SampleAnnotationForm import SampleAnnotationForm
 
 class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-9.html"
-    _form_label = "visium_annotation_form"
 
     columns = {
         "library_name": SpreadSheetColumn("A", "library_name", "Library Name", "text", 170, str),
@@ -51,11 +50,10 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
     separator = SelectField(choices=_allowed_extensions, default="tsv", coerce=str)
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
+    # TODO: proper spreadsheet
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, input_type: Optional[Literal["spreadsheet", "file"]] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.input_type = input_type

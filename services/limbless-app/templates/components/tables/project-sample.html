@@ -29,7 +29,7 @@
                 }}
                 {{
                     table_col(
-                        table_container_id='project-samples-table', column_name='Status', column_var='status_id',
+                        table_container_id='project-sample-table', column_name='Status', column_var='status_id',
                         sort_url='projects_htmx.get_samples', context={'project_id': project.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                         multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in

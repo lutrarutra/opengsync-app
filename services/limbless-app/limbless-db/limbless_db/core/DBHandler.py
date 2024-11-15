@@ -8,7 +8,7 @@ from limbless_db.models.Base import Base
 
 
 class DBHandler():
-    def __init__(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432):
+    def connect(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432):
         self._url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
 
@@ -87,7 +87,7 @@ class DBHandler():
 
     from .model_handlers._index_kit_methods import (
         create_index_kit, get_index_kit, get_index_kits,
-        get_index_kit_by_name, query_index_kits, update_index_kit,
+        get_index_kit_by_name, update_index_kit,
         delete_index_kit, remove_all_barcodes_from_kit
     )
 
@@ -115,7 +115,6 @@ class DBHandler():
     from .model_handlers._feature_kit_methods import (
         create_feature_kit, get_feature_kit, get_feature_kits,
         get_feature_kit_by_name, update_feature_kit, delete_feature_kit,
-        query_feature_kits
     )
 
     from .model_handlers._sequencer_methods import (
@@ -144,7 +143,7 @@ class DBHandler():
     )
 
     from .model_handlers._kit_methods import (
-        create_kit, get_kit, get_kits
+        create_kit, get_kit, get_kits, query_kits, get_kit_by_name
     )
 
     from .model_handlers._link_methods import (

@@ -31,3 +31,18 @@ class Kit(Base):
     @kit_type.setter
     def kit_type(self, value: KitTypeEnum):
         self.kit_type_id = value.id
+
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.identifier
+    
+    def search_description(self) -> str | None:
+        return self.name
+    
+    def __str__(self):
+        return f"Kit('{self.identifier}', '{self.name}', '{self.kit_type.name}')"
+    
+    def __repr__(self) -> str:
+        return self.__str__()

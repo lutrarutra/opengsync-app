@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBSession, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, KitType
 from .... import db, logger, cache  # noqa: F401
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ def query():
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_feature_kits(word)
+    results = db.query_kits(word, kit_type=KitType.FEATURE_KIT)
 
     return make_response(
         render_template(
@@ -80,7 +80,7 @@ def table_query():
 
     feature_kits = []
     if field_name == "name":
-        feature_kits = db.query_feature_kits(word)
+        feature_kits = db.query_kits(word, kit_type=KitType.FEATURE_KIT)
     elif field_name == "id":
         try:
             _id = int(word)

@@ -17,7 +17,7 @@ class HTMXFlaskForm(FlaskForm):
         self.formdata = formdata
         self._context = {}
 
-    def process_request(self, **context) -> Response:
+    def process_request(self) -> Response:
         raise NotImplementedError("You must implement this method in your subclass.")
 
     @classproperty

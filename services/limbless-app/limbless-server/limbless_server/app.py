@@ -10,7 +10,7 @@ from flask_login import login_required
 
 from limbless_db import categories, models, exceptions, db_session, TIMEZONE, localize, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, config_cache
 from .routes import api, pages
 
 if TYPE_CHECKING:
@@ -27,12 +27,21 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         raise FileNotFoundError(f"Template folder not found: {template_folder}")
     
     app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
+    db.connect(
+        user=os.environ["POSTGRES_USER"],
+        password=os.environ["POSTGRES_PASSWORD"],
+        host=os.environ["POSTGRES_HOST"],
+        port=os.environ["POSTGRES_PORT"],
+        db=os.environ["POSTGRES_DB"],
+    )
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
     app.config["MEDIA_FOLDER"] = os.path.join("media")
     app.config["UPLOADS_FOLDER"] = os.path.join("uploads")
     if (REDIS_PORT := os.getenv("REDIS_PORT")) is None:
         raise ValueError("REDIS_PORT env-variable not set")
     cache.init_app(app, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
+
+    config_cache.connect("redis-cache", int(REDIS_PORT), 1)
 
     for file_type in categories.FileType.as_list():
         if file_type.dir is None:

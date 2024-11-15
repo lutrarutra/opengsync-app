@@ -1,30 +1,22 @@
 import os
 import io
-import re
 import yaml
 from typing import Optional, Any
 from uuid import uuid4
 
-from wtforms import StringField
-
 import pandas as pd
 
-from limbless_server.tools import io as io_tools
+from limbless_server.tools import io as iot
+from .. import config_cache, logger
 
 
 class TableDataForm():
-    file_uuid = StringField()
-
     def __init__(self, dirname: str, uuid: Optional[str], previous_form: Optional["TableDataForm"] = None):
         self.first_step = uuid is None
         if uuid is None:
-            if self.file_uuid.data is not None:
-                uuid = self.file_uuid.data
-            else:
-                uuid = str(uuid4())
+            uuid = str(uuid4())
 
         self.uuid = uuid
-        self.file_uuid.data = uuid
         self._dir = os.path.join("uploads", dirname)
 
         self.__metadata: dict[str, Any]
@@ -41,53 +33,30 @@ class TableDataForm():
 
     @property
     def path(self) -> str:
-        if self.file_uuid.data is None:
-            self.uuid = str(uuid4())
-            self.file_uuid.data = self.uuid
-
-        return os.path.join(self._dir, self.file_uuid.data + ".tsv")
+        return os.path.join(self._dir, self.uuid + ".tsv")
     
     def is_loaded(self) -> bool:
         return self.__tables is not None and self.__metadata is not None
     
     def parse_file(self) -> tuple[dict[str, Any], dict[str, pd.DataFrame]]:
-        metadata = {}
-        tables: dict[str, pd.DataFrame] = {}
-
+        if (response := config_cache.get(self.uuid)) is not None:
+            logger.debug(f"Using cached data for form '{self.uuid}'")
+            self.__metadata = response[0]
+            self.__tables = response[1]
+            return response[0], response[1]
+        
         if not os.path.exists(self.path):
-            if self.first_step:
-                return metadata, tables
-            raise FileNotFoundError(f"File '{self.path}' does not exist...")
-
-        with open(self.path, "r") as f:
-            content = f.read()
-            matches = re.findall(r"\[(.*?)\]\n(.*?)(?=\n\[|$)", content, re.DOTALL)
-            for label, text in matches:
-                content = text.strip()
-                if label == "metadata":
-                    metadata = yaml.safe_load(io.StringIO(content))
-                else:
-                    tables[label.strip()] = pd.read_csv(
-                        io.StringIO(content), delimiter="\t", index_col=None, header=0,
-                    )
-
-        self.__metadata = metadata
-        self.__tables = tables
-        return metadata, tables
+            if not os.path.exists(self.path):
+                if self.first_step:
+                    return {}, {}
+                raise FileNotFoundError(f"File '{self.path}' does not exist...")
+        
+        self.__metadata, self.__tables = iot.parse_config_tables(self.path)
+        return self.__metadata, self.__tables
 
     def update_data(self):
-        buffer = io.StringIO()
-
-        buffer.write("[metadata]\n")
-        yaml.dump(self.__metadata, buffer)
-
-        for header, content in self.__tables.items():
-            buffer.write(f"[{header}]\n")
-            content.to_csv(buffer, index=False, sep="\t")
-
-        buffer.write("\n\n")
-
-        io_tools.write_file(self.path, buffer.getvalue(), overwrite=True)
+        config_cache.set(self.uuid, self.__metadata, self.__tables)
+        iot.write_config_file(self.path, self.__metadata, self.__tables)
 
     def add_table(self, label: str, table: pd.DataFrame):
         self.__tables[label] = table

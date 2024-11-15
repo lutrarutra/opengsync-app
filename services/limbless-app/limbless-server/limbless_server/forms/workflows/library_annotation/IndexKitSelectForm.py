@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import Response
 from wtforms import FormField, BooleanField
@@ -19,17 +19,14 @@ else:
 
 class IndexKitSelectForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-1.3.html"
-    _form_label = "index_kit_select_form"
 
     index_1_kit = FormField(OptionalSearchBar, label="Select Index Kit")
     index_2_kit = FormField(OptionalSearchBar, label="Select Index Kit for index 2 (i5) if different from index 1 (i7)")
 
     custom_indices_used = BooleanField("I used a custom kit that is not in the list and will specify index sequences manually in forward orientation.", default=False)
 
-    def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
         TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation")
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request

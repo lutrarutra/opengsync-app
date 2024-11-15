@@ -1,12 +1,11 @@
 import math
-import string
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 
 import sqlalchemy as sa
-from ...categories import KitTypeEnum, KitType
+from ...categories import KitTypeEnum
 from ... import PAGE_LIMIT, models
 
 
@@ -55,6 +54,18 @@ def get_kit(self: "DBHandler", id: Optional[int] = None, identifier: Optional[st
     return kit
 
 
+def get_kit_by_name(self: "DBHandler", name: str) -> Optional[models.Kit]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    kit = self.session.query(models.Kit).where(models.Kit.name == name).first()
+
+    if not persist_session:
+        self.close_session()
+
+    return kit
+
+
 def get_kits(
     self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
     sort_by: Optional[str] = None, descending: bool = False
@@ -86,3 +97,28 @@ def get_kits(
         self.close_session()
 
     return res, n_pages
+
+
+def query_kits(
+    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT, kit_type: Optional[KitTypeEnum] = None,
+) -> list[models.Kit]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.Kit)
+
+    if kit_type is not None:
+        query = query.where(models.Kit.kit_type_id == kit_type.id)
+
+    query = query.order_by(
+        sa.func.similarity(models.Kit.identifier + ' ' + models.Kit.name, word).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    res = query.all()
+
+    if not persist_session:
+        self.close_session()
+    return res

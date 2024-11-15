@@ -3,7 +3,7 @@ import os
 import re
 import yaml
 import hashlib
-from typing import Optional
+from typing import Optional, Any
 
 import pandas as pd
 
@@ -54,60 +54,35 @@ def mkdir(path: str) -> str:
     return path
 
 
-def parse_config_tables(path: str, sep: Optional[str] = None) -> dict[str, pd.DataFrame | dict]:
-    if sep is None:
-        ext = path.split(".")[-1]
-        if ext == "csv":
-            sep = ","
-        elif ext.split(".")[-1] == "tsv":
-            sep = "\t"
-        else:
-            raise Exception(f"Could not infer separator from extension '.{ext}'. Specify it with 'sep'-parameter...")
+def parse_config_tables(path: str) -> tuple[dict[str, Any], dict[str, pd.DataFrame]]:
+    metadata = {}
+    tables: dict[str, pd.DataFrame] = {}
 
     with open(path, "r") as f:
         content = f.read()
-
-        # Construct a dictionary where keys are labels and values are the corresponding strings
-        result = dict()
-
-        matches = re.findall(r"\[(.*?)\]([yt])\n(.*?)(?=\n\[|$)", content, re.DOTALL)
-        for label, type, text in matches:
+        matches = re.findall(r"\[(.*?)\]\n(.*?)(?=\n\[|$)", content, re.DOTALL)
+        for label, text in matches:
             content = text.strip()
-            if type == "y":
-                result[label.strip()] = yaml.safe_load(io.StringIO(content))
-            elif type == "t":
-                result[label.strip()] = pd.read_csv(
-                    io.StringIO(content), delimiter=sep, index_col=None, header=0,
-                    comment="#"
-                )
+            if label == "metadata":
+                metadata = yaml.safe_load(io.StringIO(content))
             else:
-                raise Exception(f"Unsupported type: {type}, use 't' for table and 'y' for yaml...")
+                tables[label.strip()] = pd.read_csv(
+                    io.StringIO(content), delimiter="\t", index_col=None, header=0,
+                )
 
-        return result
+    return metadata, tables
 
 
-def write_config_tables_from_sections(path: str, sections: dict[str, pd.DataFrame | dict], sep: Optional[str] = None, overwrite: bool = False):
-    if sep is None:
-        ext = path.split(".")[-1]
-        if ext == "csv":
-            sep = ","
-        elif ext.split(".")[-1] == "tsv":
-            sep = "\t"
-        else:
-            raise Exception(f"Could not infer separator from extension '.{ext}'. Specify it with 'sep'-parameter...")
-
+def write_config_file(path: str, metadata: dict[str, Any], tables: dict[str, pd.DataFrame]):
     buffer = io.StringIO()
 
-    for header, content in sections.items():
-        if isinstance(content, pd.DataFrame):
-            buffer.write(f"[{header}]t\n")
-            content.to_csv(buffer, index=False, sep=sep)
-        elif isinstance(content, dict):
-            buffer.write(f"[{header}]y\n")
-            yaml.dump(content, buffer)
-        else:
-            raise TypeError(f"Unsupported type: {type(content)}")
+    buffer.write("[metadata]\n")
+    yaml.dump(metadata, buffer)
 
-        buffer.write("\n\n")
+    for header, content in tables.items():
+        buffer.write(f"[{header}]\n")
+        content.to_csv(buffer, index=False, sep="\t")
 
-    write_file(path, buffer.getvalue(), overwrite=overwrite)
+    buffer.write("\n\n")
+
+    write_file(path, buffer.getvalue(), overwrite=True)

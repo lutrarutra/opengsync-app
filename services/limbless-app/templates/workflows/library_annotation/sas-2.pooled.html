@@ -50,7 +50,13 @@
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
-                {{ spreadsheet_input(form.spreadsheet) }}
+                {{ 
+                    spreadsheet_input(
+                        element=form.spreadsheet,
+                        target_element_id="sample-table-submission-container",
+                        submit_btn_id="parse-spreadsheet-btn",
+                    )
+                }}
             </div>
             <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
                 {% include "workflows/library_annotation/pooled_instructions.html" %}
@@ -83,7 +89,7 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ form.file_uuid.data }}
+            {{ form.uuid }}
         </div>
         <div class="footer-info">
             {{ color_legend(form.spreadsheet.colors) }}
@@ -101,23 +107,10 @@
     </div>
     <script>
         $(document).ready(function() {
+            init_tooltips();
             window.onbeforeunload = function() {
                 return "Data will be lost if you leave the page, are you sure?";
             };
-
-            $("#parse-spreadsheet-btn").on("click", function() {
-                var data = spread_sheet.getData();
-
-                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, form_type='pooled', index_spec=form.index_specification_type) }}", {
-                    "target": "#sample-table-submission-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "file_uuid": "{{ form.file_uuid.data }}",
-                        "spreadsheet": JSON.stringify(data),
-                        "csrf_token": "{{ form.csrf_token._value() }}"
-                    },
-                });
-            });
         });
     </script>
 </div>

@@ -134,32 +134,6 @@ def get_index_kits(
     return res, n_pages
 
 
-def query_index_kits(
-    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT,
-    type_in: Optional[list[IndexTypeEnum]] = None,
-) -> list[models.IndexKit]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.IndexKit)
-
-    if type_in is not None:
-        query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
-
-    query = query.order_by(
-        sa.func.similarity(models.IndexKit.identifier + ' ' + models.IndexKit.name, word).desc()
-    )
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    res = query.all()
-
-    if not persist_session:
-        self.close_session()
-    return res
-
-
 def update_index_kit(
     self: "DBHandler", index_kit: models.IndexKit
 ) -> models.IndexKit:
