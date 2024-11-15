@@ -7,7 +7,7 @@ from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, FeatureType
+from limbless_db.categories import LibraryType, FeatureType, KitType
 
 from .... import db, logger
 from ...TableDataForm import TableDataForm
@@ -28,9 +28,7 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
 
     input_fields = FieldList(FormField(FeatureMappingSubForm), min_entries=1)
 
-    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.seq_request = seq_request
@@ -53,7 +51,7 @@ class KitMappingForm(HTMXFlaskForm, TableDataForm):
             if pd.isna(raw_kit_label := row["name"]):
                 selected_kit = None
             elif feature_kit_search_field.selected.data is None:
-                selected_kit = next(iter(db.query_feature_kits(raw_kit_label, 1)), None)
+                selected_kit = next(iter(db.query_kits(raw_kit_label, limit=1, kit_type=KitType.FEATURE_KIT)), None)
                 feature_kit_search_field.selected.data = selected_kit.id if selected_kit else None
                 feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
             else:

@@ -17,11 +17,8 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 
 class CompleteSASForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-complete.html"
-    _form_label = "complete_sas_form"
 
-    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         
@@ -31,6 +28,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
     def prepare(self):
         library_table = self.tables["library_table"]
         sample_table = self.tables["sample_table"]
+        pooling_table = self.tables["pooling_table"]
         feature_table = self.tables.get("feature_table")
         cmo_table = self.tables.get("cmo_table")
         visium_table = self.tables.get("visium_table")
@@ -39,6 +37,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         self._context["library_table"] = library_table
         self._context["sample_table"] = sample_table
+        self._context["pooling_table"] = pooling_table
         self._context["feature_table"] = feature_table
         self._context["cmo_table"] = cmo_table
         self._context["visium_table"] = visium_table
@@ -59,27 +58,26 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         node_idx = 1
         pool_nodes = {}
 
-        for sample_name, _df in library_table.groupby("sample_name"):
+        for sample_name, _df in pooling_table.groupby("sample_name"):
             sample_pool = []
-            for _, row in sample_table[sample_table["sample_pool"] == sample_name].iterrows():
-                sample_node = {
-                    "node": node_idx,
-                    "name": row["sample_name"],
-                }
-                sample_pool.append(sample_node)
-                nodes.append(sample_node)
-                node_idx += 1
+            sample_node = {
+                "node": node_idx,
+                "name": sample_name,
+            }
+            sample_pool.append(sample_node)
+            nodes.append(sample_node)
+            node_idx += 1
 
-                links.append({
-                    "source": project_node["node"],
-                    "target": sample_node["node"],
-                    "value": LINK_WIDTH_UNIT * len(library_table[library_table["sample_name"] == sample_name]),
-                })
+            links.append({
+                "source": project_node["node"],
+                "target": sample_node["node"],
+                "value": LINK_WIDTH_UNIT * len(library_table[library_table["sample_name"] == sample_name]),
+            })
 
             for _, row in _df.iterrows():
                 library_node = {
                     "node": node_idx,
-                    "name": f"{LibraryType.get(row['library_type_id']).abbreviation} - {row['library_name']}",
+                    "name": row['library_name'],
                 }
                 nodes.append(library_node)
                 node_idx += 1
@@ -130,6 +128,7 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
 
         library_table = self.tables["library_table"]
         sample_table = self.tables["sample_table"]
+        pooling_table = self.tables["pooling_table"]
         feature_table = self.tables.get("feature_table")
         cmo_table = self.tables.get("cmo_table")
         visium_table = self.tables.get("visium_table")
@@ -280,8 +279,8 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
                             name_i5=row["index_i5_name"] if pd.notna(row["index_i5_name"]) else None,
                         )
 
-                library_samples = sample_table[sample_table["sample_pool"] == row["sample_name"]]
-                for idx, sample_row in library_samples.iterrows():
+                library_samples = pooling_table[pooling_table["library_name"] == row["library_name"]]["sample_name"].values
+                for _, sample_row in sample_table[sample_table["sample_name"].isin(library_samples)].iterrows():
                     session.link_sample_library(
                         sample_id=sample_row["sample_id"],
                         library_id=library.id,

@@ -9,41 +9,40 @@
     </div>
     <div class="modal-body tab-body" id="pool-definition-form">
         <h4>Define new Pool</h4>
-        {{ pool_form.csrf_token() }}
+        {{ form.csrf_token() }}
         <div class="row">
-            {{ form_group(pool_form.name, class="col-6") }}
-            {{ form_group(pool_form.num_m_reads_requested, class="col-6") }}
+            {{ form_group(form.name, class="col-6") }}
+            {{ form_group(form.num_m_reads_requested, class="col-6") }}
         </div>
         <div class="row">
-            {{ form_group(pool_form.contact_name, class="col-4") }}
-            {{ form_group(pool_form.contact_email, class="col-4") }}
-            {{ form_group(pool_form.contact_phone, class="col-4") }}
+            {{ form_group(form.contact_name, class="col-4") }}
+            {{ form_group(form.contact_email, class="col-4") }}
+            {{ form_group(form.contact_phone, class="col-4") }}
         </div>
         <h5 class="text-muted">or</h5>
         <h4>Existing Pool</h4>
         {{
             search_select_field(
-                pool_form.existing_pool,
+                form.existing_pool,
                 url_for('pools_htmx.query', seq_request_id=seq_request.id),
             )
         }}
-        {{ pool_form.file_uuid(hidden=True, readonly=True) }}
-        {{ pool_form.csrf_token() }}
+        {{ form.csrf_token() }}
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ pool_form.file_uuid.data }}
+            {{ form.uuid }}
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-warning"
                 hx-target="#pool-mapping-container" hx-swap="outerHTML"
-                hx-get="{{ url_for('library_annotation_workflow.select_project', seq_request_id=seq_request.id, workflow_type='pooled', uuid=pool_form.uuid) }}">
+                hx-get="{{ url_for('library_annotation_workflow.select_project', seq_request_id=seq_request.id, workflow_type='pooled', uuid=form.uuid) }}">
                 Back
             </button>
             <button type="button" class="btn btn-primary"
                 hx-target="#pool-mapping-container" hx-swap="outerHTML"
                 hx-include="#pool-definition-form" id="submit-pool-definition-form-btn"
-                hx-post="{{ url_for('library_annotation_workflow.define_pool', seq_request_id=seq_request.id) }}">
+                hx-post="{{ url_for('library_annotation_workflow.define_pool', seq_request_id=seq_request.id, uuid=form.uuid) }}">
                 Next
             </button>
         </div>

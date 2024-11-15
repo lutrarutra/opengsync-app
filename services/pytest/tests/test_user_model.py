@@ -12,7 +12,8 @@ def db() -> DBHandler:
     db_host = os.environ["POSTGRES_HOST"]
     db_port = os.environ["POSTGRES_PORT"]
     db_name = os.environ["POSTGRES_DB"]
-    db = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
+    db = DBHandler()
+    db.connect(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
     db.create_tables()
     return db
 

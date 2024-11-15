@@ -8,7 +8,7 @@ from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import BarcodeType
+from limbless_db.categories import BarcodeType, KitType
 
 from .... import db, logger
 from ...TableDataForm import TableDataForm
@@ -51,7 +51,7 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
             if index_kit is None:
                 selected_kit = None
             elif index_kit_search_field.selected.data is None:
-                selected_kit = next(iter(db.query_index_kits(str(index_kit), 1)), None)
+                selected_kit = next(iter(db.query_kits(str(index_kit), limit=1, kit_type=KitType.INDEX_KIT)), None)
                 index_kit_search_field.selected.data = selected_kit.id if selected_kit else None
                 index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
             else:

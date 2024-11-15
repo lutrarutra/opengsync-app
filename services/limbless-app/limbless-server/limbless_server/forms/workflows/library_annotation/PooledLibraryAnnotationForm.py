@@ -1,8 +1,8 @@
-from typing import Optional, Literal
+from typing import Literal
 
 import pandas as pd
 
-from flask import Response
+from flask import Response, url_for
 
 from limbless_db import models
 from limbless_db.categories import LibraryType, GenomeRef, BarcodeType, IndexType
@@ -42,16 +42,23 @@ class PooledLibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
     }
 
     def __init__(
-        self, seq_request: models.SeqRequest, index_specification_type: Literal["manual", "kit"],
-        formdata: dict = {}, uuid: Optional[str] = None
+        self, seq_request: models.SeqRequest, uuid: str, index_specification_type: Literal["manual", "kit"],
+        formdata: dict = {}
     ):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
         TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation")
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self.index_specification_type = index_specification_type
+
+        self.index_1_kit_id = self.metadata.get("index_1_kit_id")
+        self.index_2_kit_id = self.metadata.get("index_2_kit_id")
+
+        self._context["index_1_kit_id"] = self.index_1_kit_id
+        self._context["index_2_kit_id"] = self.index_2_kit_id
+
+        logger.debug(self.index_1_kit_id)
+        logger.debug(self.index_2_kit_id)
 
         if self.index_specification_type == "manual":
             columns = PooledLibraryAnnotationForm.manual_columns
@@ -65,7 +72,8 @@ class PooledLibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
             csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=columns, csrf_token=csrf_token,
-            post_url="", formdata=formdata, allow_new_rows=True
+            post_url=url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, form_type='pooled', index_spec=self.index_specification_type, uuid=self.uuid),
+            formdata=formdata, allow_new_rows=True
         )
 
     def validate(self) -> bool:
@@ -82,9 +90,14 @@ class PooledLibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
         df["index_i5_name"] = None
 
         if self.index_specification_type == "kit":
-            if (kit_1 := db.get_index_kit(self.metadata["index_1_kit_id"])) is None:
-                logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_1_kit_id']} does not exist.")
-                raise ValueError(f"Index kit with ID {self.metadata['index_1_kit_id']} does not exist.")
+            if self.index_1_kit_id is None:
+                logger.error(f"{self.uuid}: Index kit ID is not set.")
+                raise ValueError("Index kit ID is not set.")
+            if self.index_2_kit_id is None:
+                self.index_2_kit_id = self.index_1_kit_id
+            if (kit_1 := db.get_index_kit(self.index_1_kit_id)) is None:
+                logger.error(f"{self.uuid}: Index kit with ID {self.index_1_kit_id} does not exist.")
+                raise ValueError(f"Index kit with ID {self.index_1_kit_id} does not exist.")
             
             if len(kit_1_df := db.get_index_kit_barcodes_df(self.metadata["index_1_kit_id"], per_adapter=False)) == 0:
                 logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_1_kit_id']} does not exist.")
@@ -94,11 +107,11 @@ class PooledLibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
                 kit_2 = kit_1
             else:
                 if (kit_2 := db.get_index_kit(self.metadata["index_2_kit_id"])) is None:
-                    logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
-                    raise ValueError(f"Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
+                    logger.error(f"{self.uuid}: Index kit with ID {self.index_2_kit_id} does not exist.")
+                    raise ValueError(f"Index kit with ID {self.index_2_kit_id} does not exist.")
                 if len(kit_2_df := db.get_index_kit_barcodes_df(self.metadata["index_2_kit_id"], per_adapter=False)) == 0:
-                    logger.error(f"{self.uuid}: Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
-                    raise ValueError(f"Index kit with ID {self.metadata['index_2_kit_id']} does not exist.")
+                    logger.error(f"{self.uuid}: Index kit with ID {self.index_2_kit_id} does not exist.")
+                    raise ValueError(f"Index kit with ID {self.index_2_kit_id} does not exist.")
                 
         def base_filter(x: str) -> list[str]:
             return list(set([c for c in x if c not in "ACGT"]))
@@ -238,14 +251,81 @@ class PooledLibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
 
     def process_request(self) -> Response:
         if not self.validate():
-            logger.debug(self.spreadsheet._errors)
             return self.make_response()
 
         self.__map_library_types()
         self.__map_genome_ref()
         self.__map_existing_samples()
-        
-        self.add_table("library_table", self.df)
+
+        sample_table_data = {
+            "sample_name": [],
+        }
+
+        library_table_data = {
+            "library_name": [],
+            "sample_name": [],
+            "genome": [],
+            "genome_id": [],
+            "library_type": [],
+            "library_type_id": [],
+            "index_well": [],
+            "index_i7_sequences": [],
+            "index_i7_name": [],
+            "index_i5_sequences": [],
+            "index_i5_name": [],
+        }
+
+        pooling_table = {
+            "sample_name": [],
+            "library_name": [],
+        }
+
+        for (sample_name), _df in self.df.groupby("sample_name"):
+            sample_table_data["sample_name"].append(sample_name)
+
+            for _, row in _df.iterrows():
+                genome = GenomeRef.get(int(row["genome_id"]))
+                library_type = LibraryType.get(int(row["library_type_id"]))
+                library_name = f"{sample_name}_{library_type.identifier}"
+
+                library_table_data["library_name"].append(library_name)
+                library_table_data["sample_name"].append(sample_name)
+                library_table_data["genome"].append(genome.name)
+                library_table_data["genome_id"].append(genome.id)
+                library_table_data["library_type"].append(row["library_type"])
+                library_table_data["library_type_id"].append(row["library_type_id"])
+                library_table_data["index_well"].append(row["index_well"])
+                library_table_data["index_i7_sequences"].append(row["index_i7_sequences"])
+                library_table_data["index_i7_name"].append(row["index_i7_name"])
+                library_table_data["index_i5_sequences"].append(row["index_i5_sequences"])
+                library_table_data["index_i5_name"].append(row["index_i5_name"])
+
+                pooling_table["sample_name"].append(sample_name)
+                pooling_table["library_name"].append(library_name)
+
+        library_table = pd.DataFrame(library_table_data)
+        library_table["seq_depth"] = None
+
+        sample_table = pd.DataFrame(sample_table_data)
+        sample_table["sample_id"] = None
+        sample_table["cmo_sequence"] = None
+        sample_table["cmo_pattern"] = None
+        sample_table["cmo_read"] = None
+        sample_table["flex_barcode"] = None
+
+        if (project_id := self.metadata.get("project_id")) is not None:
+            if (project := db.get_project(project_id)) is None:
+                logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
+                raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
+            
+            for sample in project.samples:
+                sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
+
+        pooling_table = pd.DataFrame(pooling_table)
+
+        self.add_table("library_table", library_table)
+        self.add_table("sample_table", sample_table)
+        self.add_table("pooling_table", pooling_table)
         self.update_data()
 
         if self.df["genome_id"].isna().any():
@@ -275,7 +355,6 @@ class PooledLibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
         
         if LibraryType.TENX_SC_GEX_FLEX.id in self.df["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
     
         sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

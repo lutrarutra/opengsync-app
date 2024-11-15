@@ -27,9 +27,7 @@ class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
     input_fields = FieldList(FormField(GenomeRefSubForm), min_entries=1)
     custom_reference = TextAreaField("Custom Reference", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], description="If the reference genome is not in the list, specify it here.")
 
-    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.seq_request = seq_request

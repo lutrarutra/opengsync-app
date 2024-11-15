@@ -13,3 +13,5 @@ from .CompleteSASForm import CompleteSASForm  # noqa: F401
 from .SampleAnnotationForm import SampleAnnotationForm  # noqa: F401
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm  # noqa: F401
 from .LibraryAnnotationForm import LibraryAnnotationForm  # noqa: F401
+from .DefineSamplesForm import DefineSamplesForm  # noqa: F401
+from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm  # noqa: F401

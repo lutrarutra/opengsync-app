@@ -49,7 +49,8 @@ label_search_columns: dict[str, list[str]] = {
 
 
 def init_db():
-    db_handler = DBHandler(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)  # type: ignore
+    db_handler = DBHandler()
+    db_handler.connect(user=db_user, password=db_password, db=db_name, host=db_host, port=db_port)  # type: ignore
 
     # Tables
     db_handler.create_tables()

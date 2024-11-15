@@ -47,6 +47,9 @@ class LibraryPrepForm(PrepTableForm):
                 self.file.errors = (f"Library name missing in row {i + 2}",)
                 return False
             
+            if str(row["pool"]).strip().lower() == "t":
+                continue
+            
             if pd.isna(row["library_id"]) and pd.notna(row["library_name"]):
                 self.file.errors = (f"Library ID missing in row {i + 2}",)
                 return False

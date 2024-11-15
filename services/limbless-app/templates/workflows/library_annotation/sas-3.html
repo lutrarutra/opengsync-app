@@ -23,20 +23,18 @@
                 )
             }}
             {% endfor %}
-            {{ form.file_uuid(hidden=True, readonly=True) }}
             {{ form_group(form.custom_reference) }}
             {{ form.csrf_token() }}
         </div>
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ form.file_uuid.data }}
+            {{ form.uuid }}
         </div>
         <div class="footer-controls">
             <button type="button" id="submit-map-genome-form-btn" class="btn btn-primary"
-                hx-target="#map-genome-form-container" hx-swap="outerHTML"
-                hx-include="#map-genome-form"
-                hx-post="{{ url_for('library_annotation_workflow.map_genomes', seq_request_id=seq_request.id) }}">
+                hx-target="#map-genome-form-container" hx-swap="outerHTML" hx-include="#map-genome-form"
+                hx-post="{{ url_for('library_annotation_workflow.map_genomes', seq_request_id=seq_request.id, uuid=form.uuid) }}">
                 Next
             </button>
         </div>

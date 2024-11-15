@@ -92,7 +92,7 @@ def table_query():
         except ValueError:
             pass
     elif field_name in ["name", "identifier"]:
-        index_kits = db.query_index_kits(word, type_in=type_in)
+        index_kits = db.query_kits(word)  # TODO: add type_in
 
     return make_response(
         render_template(

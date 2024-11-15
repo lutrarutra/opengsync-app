@@ -24,32 +24,31 @@
         <div class="row">
             {{
                 search_select_field(
-                    index_kit_select_form.index_1_kit,
+                    form.index_1_kit,
                     url_for('barcodes_htmx.query_index_kits'),
                     class="col-6"
                 )
             }}
             {{
                 search_select_field(
-                    index_kit_select_form.index_2_kit,
+                    form.index_2_kit,
                     url_for('barcodes_htmx.query_index_kits'),
                     class="col-6"
                 )
             }}
         </div>
-        {{ checkbox_input(index_kit_select_form.custom_indices_used) }}
-        {{ index_kit_select_form.file_uuid(hidden=True, readonly=True) }}
-        {{ index_kit_select_form.csrf_token() }}
+        {{ checkbox_input(form.custom_indices_used) }}
+        {{ form.csrf_token() }}
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ index_kit_select_form.file_uuid.data }}
+            {{ form.uuid }}
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-primary"
                 hx-target="#pool-mapping-container" hx-swap="outerHTML"
                 hx-include="#select_index_kits-form" id="submit-select_index_kits-form-btn"
-                hx-post="{{ url_for('library_annotation_workflow.select_index_kits', seq_request_id=seq_request.id) }}">
+                hx-post="{{ url_for('library_annotation_workflow.select_index_kits', seq_request_id=seq_request.id, uuid=form.uuid) }}">
                 Next
             </button>
         </div>

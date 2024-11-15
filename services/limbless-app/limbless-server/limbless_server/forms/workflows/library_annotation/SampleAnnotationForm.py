@@ -19,15 +19,12 @@ from ...SpreadsheetInput import SpreadsheetInput
 
 class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-11.html"
-    _form_label = "sample_annotation_form"
 
     predefined_columns = {
         "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str)
     } | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()[1:])])
 
-    def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, previous_form: Optional[TableDataForm] = None, uuid: Optional[str] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[TableDataForm] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
 
@@ -39,11 +36,10 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
             csrf_token = self.csrf_token._value()  # type: ignore
 
         library_table = self.tables["library_table"]
-        flex_table = self.tables.get("flex_table")
-        cmo_table = self.tables.get("cmo_table")
+        sample_table = self.tables["sample_table"]
+
         library_table["is_cmo_sample"] = False
         library_table["is_flex_sample"] = False
-
         for sample_name, _df in library_table.groupby("sample_name"):
             if LibraryType.TENX_MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
                 library_table.loc[library_table["sample_name"] == sample_name, "is_cmo_sample"] = True
@@ -52,92 +48,7 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
 
         self.update_table("library_table", library_table, False)
 
-        sample_data = {
-            "sample_name": [],
-            "sample_id": [],
-            "sample_pool": [],
-            "library_types": [],
-            "is_cmo_sample": [],
-            "is_flex_sample": [],
-            "cmo_sequence": [],
-            "cmo_pattern": [],
-            "cmo_read": [],
-            "flex_barcode": [],
-        }
-
-        def add_sample(
-            sample_name: str,
-            sample_id: Optional[int],
-            sample_pool: str,
-            is_cmo_sample: bool,
-            is_flex_sample: bool,
-            library_types: str,
-            cmo_sequence: Optional[str] = None,
-            cmo_pattern: Optional[str] = None,
-            cmo_read: Optional[str] = None,
-            flex_barcode: Optional[str] = None
-        ):
-            sample_data["sample_name"].append(sample_name)
-            sample_data["sample_id"].append(sample_id)
-            sample_data["sample_pool"].append(sample_pool)
-            sample_data["library_types"].append(library_types)
-            sample_data["is_cmo_sample"].append(is_cmo_sample)
-            sample_data["is_flex_sample"].append(is_flex_sample)
-            sample_data["cmo_sequence"].append(cmo_sequence)
-            sample_data["cmo_pattern"].append(cmo_pattern)
-            sample_data["cmo_read"].append(cmo_read)
-            sample_data["flex_barcode"].append(flex_barcode)
-
-        for (sample_name, sample_id, is_cmo_sample, is_flex_sample), _df in library_table.groupby(["sample_name", "sample_id", "is_cmo_sample", "is_flex_sample"], dropna=False, sort=False):
-            library_types = ";".join([LibraryType.get(library_type_id).abbreviation for library_type_id in _df["library_type_id"].unique()])
-            if is_cmo_sample:
-                if cmo_table is None:
-                    logger.error(f"{self.uuid}: CMO reference table not found.")
-                    raise Exception("CMO reference should not be None.")
-                
-                for _, cmo_row in cmo_table[cmo_table["sample_name"] == sample_name].iterrows():
-                    add_sample(
-                        sample_name=cmo_row["demux_name"],
-                        sample_pool=sample_name,
-                        library_types=library_types,
-                        is_cmo_sample=True,
-                        is_flex_sample=False,
-                        sample_id=sample_id if pd.notna(sample_id) else None,
-                        cmo_sequence=cmo_row["sequence"],
-                        cmo_pattern=cmo_row["pattern"],
-                        cmo_read=cmo_row["read"],
-                    )
-            elif is_flex_sample:
-                if flex_table is None:
-                    logger.error(f"{self.uuid}: flex reference table not found.")
-                    raise Exception("flex reference should not be None.")
-                
-                for (flex_sample_name, flex_demux_name, flex_barcode_id), _ in flex_table[flex_table["sample_name"] == sample_name].groupby(["sample_name", "demux_name", "barcode_id"], dropna=False):
-                    add_sample(
-                        sample_name=flex_demux_name,
-                        sample_pool=flex_sample_name,
-                        is_flex_sample=True,
-                        is_cmo_sample=False,
-                        library_types=library_types,
-                        flex_barcode=flex_barcode_id,
-                        sample_id=sample_id if pd.notna(sample_id) else None,
-                    )
-            else:
-                add_sample(
-                    sample_name=sample_name,
-                    sample_pool=sample_name,
-                    library_types=library_types,
-                    is_cmo_sample=False,
-                    is_flex_sample=False,
-                    sample_id=sample_id if pd.notna(sample_id) else None,
-                )
-
-        self.sample_table = pd.DataFrame(sample_data)
-        self._context["sample_table"] = self.sample_table
-        self.add_table("sample_table", self.sample_table)
-        self.update_data()
-
-        df = self.sample_table[["sample_name"]].copy()
+        df = sample_table[["sample_name"]].copy()
     
         for col in SampleAnnotationForm.predefined_columns.values():
             if col.label in df.columns:
@@ -145,8 +56,8 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
             
             df[col.label] = ""
 
-        for _, row in self.sample_table.iterrows():
-            attributes = db.get_sample_attributes(sample_id=row["sample_id"])
+        for _, row in sample_table[sample_table["sample_id"].notna()].iterrows():
+            attributes = db.get_sample_attributes(sample_id=int(row["sample_id"]))
             for attr in attributes:
                 df.loc[df["sample_name"] == row["sample_name"], attr.name] = attr.value
 
@@ -157,7 +68,7 @@ class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=columns, csrf_token=csrf_token,
-            post_url=url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id),
+            post_url=url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_cols=True, allow_col_rename=True, df=df
         )
 

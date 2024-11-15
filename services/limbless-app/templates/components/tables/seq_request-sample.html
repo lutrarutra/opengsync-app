@@ -45,7 +45,7 @@
                     {% for library_link in sample.library_links %}
                     {% set library = library_link.library %}
                     {% if seq_request.id == library.seq_request_id %}
-                    <span class="badge">{{ library.type.name }}</span>
+                    <span class="badge">{{ library.type.abbreviation }}</span>
                     {% endif %}
                     {% endfor %}
                 </td>

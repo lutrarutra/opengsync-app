@@ -58,9 +58,7 @@ class FeatureReferenceInputForm(HTMXFlaskForm, TableDataForm):
     file = FileField("File", validators=[FileAllowed([ext for ext, _ in _allowed_extensions])], description="Define custom features or use different predefined kits for each feature capture library.")
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["predefined", "spreadsheet", "file"]] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, input_type: Optional[Literal["predefined", "spreadsheet", "file"]] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.seq_request = seq_request

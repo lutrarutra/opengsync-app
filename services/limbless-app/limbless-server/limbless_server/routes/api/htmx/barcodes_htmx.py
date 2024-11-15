@@ -4,9 +4,9 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT, db_session
+from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse
-from .... import db
+from .... import db, logger  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -17,17 +17,14 @@ barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/hmtx/barco
 
 
 @barcodes_htmx.route("get/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
 
-    if sort_by not in models.Barcode.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-
-    with DBSession(db) as session:
-        barcodes, n_pages = session.get_seqbarcodes(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
+    barcodes, n_pages = db.get_barcodes(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
 
     return make_response(
         render_template(
@@ -47,7 +44,7 @@ def query_index_kits():
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_index_kits(word)
+    results = db.query_kits(word)
 
     return make_response(
         render_template(

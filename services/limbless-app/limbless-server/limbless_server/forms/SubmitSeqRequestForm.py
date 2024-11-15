@@ -25,9 +25,15 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
     def validate(self) -> bool:
         if not super().validate():
             return False
+        
+        if self.sample_submission_time.data is not None and self.samples_delivered_by_mail.data is True:
+            self.sample_submission_time.errors = ("Select sample submission time or delivery by mail.",)
+            self.samples_delivered_by_mail.errors = ("Select sample submission time or delivery by mail.",)
+            return False
 
         if self.sample_submission_time.data is None and self.samples_delivered_by_mail.data is False:
             self.sample_submission_time.errors = ("Select sample submission time or delivery by mail.",)
+            self.samples_delivered_by_mail.errors = ("Select sample submission time or delivery by mail.",)
             return False
 
         if self.sample_submission_time.data is not None:

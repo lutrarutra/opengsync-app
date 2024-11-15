@@ -30,7 +30,7 @@
                 <button class="nav-link {% if feature_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#feature-tab" type="button" role="tab"
                 aria-controls="feature-tab" aria-selected="true">
-                Features ({{ feature_table.shape[0] if feature_table is not none else "0" }})</button>
+                Features ({{ feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) | length if feature_table is not none else "0" }})</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if cmo_table is none %}{{ tooltip("No cell multiplexing libraries detected.", category="warning") }}{% endif %}>
@@ -88,7 +88,7 @@
                             {% if "index_i7_sequences" in library_table %}
                             <td class="barcode-cell">
                                 {% set seq_i7s = row["index_i7_sequences"].split(";") %}
-                                {% set seq_i5s = row["index_i5_sequences"].split(";") %}
+                                {% set seq_i5s = row["index_i5_sequences"].split(";") if row["index_i5_sequences"] else [] %}
                                 {% for i in range(seq_i7s | length) %}
                                 {% set sequence_i7 = seq_i7s[i] %}
                                 {% if i < seq_i5s | length %}
@@ -119,7 +119,7 @@
                     <thead>
                         <tr>
                             <th scope="col" class="col-2">Sample Name</th>
-                            <th scope="col" class="col-2">Libraries</th>
+                            <th scope="col" class="col-6">Libraries</th>
                             {% for col in sample_table.columns %}
                             {% if "_attr_" in col %}
                             <th scope="col" class="col-1">{{ col.removeprefix("_attr_").replace("_", " ").title() }}</th>
@@ -137,11 +137,9 @@
                         <tr>
                             <th scope="row">{{ row["sample_name"] }}</th>
                             <td>
-                                <ul class="h-list">
-                                    {% for library_type in row["library_types"].split(";") %}
-                                    <li>{{ library_type }}</li>
-                                    {% endfor %}
-                                </ul>
+                                {% for library_name in pooling_table[pooling_table["sample_name"] == row["sample_name"]]["library_name"] %}
+                                <span class="badge" >{{ library_table[library_table["library_name"] == library_name]["library_type"].values[0] }}</span>
+                                {% endfor %}
                             </td>
                             {% for col in sample_table.columns %}
                             {% if "_attr_" in col %}
@@ -180,13 +178,9 @@
                             <td>{{ pattern }}</td>
                             <td>{{ read }}</td>
                             <td>
-                                <ul class="h-list">
-                                    {% for _, row in df.iterrows() %}
-                                    <li>
-                                        {{ row["library_name"] }}
-                                    </li>
-                                    {% endfor %}
-                                </ul>
+                                {% for _, row in df.iterrows() %}
+                                <span class="badge" >{{ row["library_name"] }}</span>
+                                {% endfor %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -274,17 +268,16 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id" id="complete-sas-form">
-            {{ complete_sas_form.file_uuid.data }}
-            {{ complete_sas_form.file_uuid(hidden=True, readonly=True) }}
-            {{ complete_sas_form.csrf_token() }}
+            {{ form.uuid }}
+            {{ form.csrf_token() }}
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" type="button" id="submit-spreadsheet-btn"
                 hx-include="#complete-sas-form" hx-target="#complete-sas-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('library_annotation_workflow.complete', seq_request_id=seq_request.id) }}">
-                Complete
+                hx-post="{{ url_for('library_annotation_workflow.complete', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+                Next
             </button>
         </div>
     </div>

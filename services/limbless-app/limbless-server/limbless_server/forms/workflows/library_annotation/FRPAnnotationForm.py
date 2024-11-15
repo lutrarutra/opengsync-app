@@ -24,7 +24,6 @@ from .SampleAnnotationForm import SampleAnnotationForm
 
 class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-10.html"
-    _form_label = "frp_annotation_form"
 
     columns = {
         "sample_name": SpreadSheetColumn("A", "sample_name", "Library Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -50,9 +49,7 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
     file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, seq_request: models.SeqRequest, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None, input_type: Optional[Literal["spreadsheet", "file"]] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, input_type: Optional[Literal["spreadsheet", "file"]] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.input_type = input_type
@@ -66,10 +63,6 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
     def get_template(self) -> pd.DataFrame:
         df = pd.DataFrame(columns=[col.name for col in FRPAnnotationForm.columns.values()])
         return df
-
-    def prepare(self):
-        # self._context["spreadsheet_data"] = self.get_template().replace(np.nan, "").values.tolist()
-        pass
 
     def validate(self) -> bool:
         validated = super().validate()

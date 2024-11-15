@@ -58,28 +58,36 @@ def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFra
         return scipy.spatial.distance.hamming(list(x[0]), list(y[0]))
     
     if groupby is None:
-        _max = int(df["combined_index"].str.len().max())
-        df["combined_index"] = df["combined_index"].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
-        a = np.array(df["combined_index"]).reshape(-1, 1)
-        dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
-        p_dist = scipy.spatial.distance.squareform(dists)
-        np.fill_diagonal(p_dist, np.nan)
-        min_idx = np.nanargmin(p_dist, axis=0)
-        df["min_idx"] = min_idx
-        df["min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
-    else:
-        for _, _df in df.groupby(groupby):
+        if len(df) > 1:
             _max = int(df["combined_index"].str.len().max())
-            _df["combined_index"] = _df["combined_index"].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
-
-            a = np.array(_df["combined_index"]).reshape(-1, 1)
-
+            df["combined_index"] = df["combined_index"].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
+            a = np.array(df["combined_index"]).reshape(-1, 1)
             dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
             p_dist = scipy.spatial.distance.squareform(dists)
             np.fill_diagonal(p_dist, np.nan)
             min_idx = np.nanargmin(p_dist, axis=0)
-            df.loc[_df.index, "min_idx"] = min_idx
-            df.loc[_df.index, "min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
+            df["min_idx"] = min_idx
+            df["min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
+        else:
+            df["min_hamming_dist"] = 1.0
+            df["min_idx"] = 0
+    else:
+        for _, _df in df.groupby(groupby):
+            if len(_df) > 1:
+                _max = int(df["combined_index"].str.len().max())
+                _df["combined_index"] = _df["combined_index"].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
+
+                a = np.array(_df["combined_index"]).reshape(-1, 1)
+
+                dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
+                p_dist = scipy.spatial.distance.squareform(dists)
+                np.fill_diagonal(p_dist, np.nan)
+                min_idx = np.nanargmin(p_dist, axis=0)
+                df.loc[_df.index, "min_idx"] = min_idx
+                df.loc[_df.index, "min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
+            else:
+                df.loc[_df.index, "min_idx"] = 0
+                df.loc[_df.index, "min_hamming_dist"] = 1.0
 
     df["min_hamming_bases"] = df["min_hamming_dist"] * df["combined_index"].apply(lambda x: len(x))
     df["min_hamming_bases"] = df["min_hamming_bases"].astype(int)

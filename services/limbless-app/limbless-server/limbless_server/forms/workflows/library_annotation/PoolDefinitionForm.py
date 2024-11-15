@@ -20,7 +20,6 @@ else:
 
 class PoolDefinitionForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-1.2.html"
-    _form_label = "pool_form"
 
     name = StringField("Pool Name", validators=[OptionalValidator(), Length(min=4, max=models.Pool.name.type.length)])
     num_m_reads_requested = FloatField("Number of M Reads Requested", validators=[OptionalValidator()])
@@ -30,11 +29,9 @@ class PoolDefinitionForm(HTMXFlaskForm, TableDataForm):
 
     existing_pool = FormField(OptionalSearchBar, label="Select Existing Pool")
 
-    def __init__(self, seq_request: models.SeqRequest, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[TableDataForm] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
-        TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation")
+        TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

@@ -11,10 +11,11 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
 from .LibraryAnnotationForm import LibraryAnnotationForm
 from .SpecifyAssayForm import SpecifyAssayForm
+from ...TableDataForm import TableDataForm
 from .PoolDefinitionForm import PoolDefinitionForm
 
 
-class ProjectSelectForm(HTMXFlaskForm):
+class ProjectSelectForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_annotation/sas-1.1.html"
 
     existing_project = FormField(OptionalSearchBar, label="Select Existing Project")
@@ -23,6 +24,7 @@ class ProjectSelectForm(HTMXFlaskForm):
 
     def __init__(self, seq_request: models.SeqRequest, workflow_type: Literal["raw", "pooled", "tech"], formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
+        TableDataForm.__init__(self, uuid=None, dirname="library_annotation")
         self.workflow_type = workflow_type
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -71,19 +73,20 @@ class ProjectSelectForm(HTMXFlaskForm):
         if not validated:
             return self.make_response()
 
+        self.metadata["project_name"] = self.project_name
+        self.metadata["workflow"] = "library_annotation"
+        self.metadata["project_id"] = self.project_id
+        self.metadata["workflow_type"] = self.workflow_type
+        self.metadata["seq_request_id"] = self.seq_request.id
+        self.metadata["user_id"] = user.id
+        self.metadata["project_description"] = self.project_description.data
+        self.update_data()
+
         if self.workflow_type == "tech":
-            form = SpecifyAssayForm(seq_request=self.seq_request)
+            form = SpecifyAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         elif self.workflow_type == "pooled":
-            form = PoolDefinitionForm(seq_request=self.seq_request)
+            form = PoolDefinitionForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         else:
-            form = LibraryAnnotationForm(seq_request=self.seq_request)
+            form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         
-        form.metadata["project_name"] = self.project_name
-        form.metadata["workflow"] = "library_annotation"
-        form.metadata["project_id"] = self.project_id
-        form.metadata["workflow_type"] = self.workflow_type
-        form.metadata["seq_request_id"] = self.seq_request.id
-        form.metadata["user_id"] = user.id
-        form.metadata["project_description"] = self.project_description.data
-        form.update_data()
         return form.make_response()
