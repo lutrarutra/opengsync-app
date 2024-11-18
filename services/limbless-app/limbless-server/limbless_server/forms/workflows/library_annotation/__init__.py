@@ -1,6 +1,5 @@
 from .ProjectSelectForm import ProjectSelectForm  # noqa: F401
-from .PoolDefinitionForm import PoolDefinitionForm    # noqa: F401
-from .IndexKitSelectForm import IndexKitSelectForm    # noqa: F401
+from .PoolMappingForm import PoolMappingForm    # noqa: F401
 from .SpecifyAssayForm import SpecifyAssayForm  # noqa: F401
 from .VisiumAnnotationForm import VisiumAnnotationForm  # noqa: F401
 from .CMOReferenceInputForm import CMOReferenceInputForm    # noqa: F401
@@ -15,3 +14,5 @@ from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm  # noqa: F4
 from .LibraryAnnotationForm import LibraryAnnotationForm  # noqa: F401
 from .DefineSamplesForm import DefineSamplesForm  # noqa: F401
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm  # noqa: F401
+from .BarcodeInputForm import BarcodeInputForm  # noqa: F401
+from .IndexKitMappingForm import IndexKitMappingForm  # noqa: F401

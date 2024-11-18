@@ -1,6 +1,5 @@
-{% from 'components/form_group.jinja2' import form_group %}
-{% from "components/table_input.jinja2" import table_input %}
 {% from "components/legends.jinja2" import color_legend %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 <div id="cmo-reference-form-container" class="modal-content">
     <div class="modal-header">
@@ -30,26 +29,17 @@
             </li>
         </ul>
         <div class="tab-content">
-            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="1">
-                <div class="invalid-feedback-container">
-                    {% if not disabled %}
-                    {% for error in form.spreadsheet_dummy.errors %}
-                        <p>{{ error }}</p>
-                    {% endfor %}
-                    {% endif %}
-                </div>
-                <div id="spreadsheet-grid" class="spreadsheet-grid">
-                </div>
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                {{ 
+                    spreadsheet_input(
+                        element=form.spreadsheet,
+                        target_element_id="cmo-reference-form-container",
+                        submit_btn_id="parse-spreadsheet-btn",
+                    )
+                }}
             </div>
-            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="0">
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 <div class="input-help">
-                    <h5>How to?</h5>
-                    <ol>
-                        <li><a href="{{ url_for('library_annotation_workflow.download_template', file='cmo') }}">Download template</a></li>
-                        <li>Fill in the template</li>
-                        <li>Submit the file below</li>
-                    </ol>
-
                     <h5>Modify Columns</h5>
                     <ul>
                         <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
@@ -71,7 +61,6 @@
                     </ul>
                 </div>
             </div>
-
             <div class="tab-pane fade" id="cmo-1-example-tab" role="tabpanel" tabindex="2">
                 {% include "components/examples/cmo.html" %}
             </div>
@@ -82,10 +71,10 @@
             {{ form.uuid }}
         </div>
         <div class="footer-info">
-            {{ color_legend(colors) }}
+            {{ color_legend(form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
+            <button class="btn btn-primary submit-form-btn" type="button" id="parse-spreadsheet-btn">
                 Submit
             </button>
         </div>
@@ -93,51 +82,6 @@
     <script>
         $(document).ready(function() {
             init_tooltips();
-
-            $(".example-tab-btn, .help-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-            });
-            $("#file-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-                $("#submit-file-form-btn").show();
-            });
-            $("#spreadsheet-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-                $("#submit-spreadsheet-btn").show();
-            });
-
-            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
-            const csrf_token = "{{ form.csrf_token._value() }}";
-
-            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
-                data: data,
-                columns: [
-                    {% for col in columns %}
-                    {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                    {%- elif col["type"] == "dropdown" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                    {%- endif -%}
-                    {% endfor %}
-                ],
-                minSpareRows: 10,
-                allowInsertColumn: false,
-                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
-            });
-
-            $("#submit-spreadsheet-btn").on("click", function() {
-                var data = spread_sheet.getData();
-
-                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id, input_type='spreadsheet', uuid=form.uuid) }}", {
-                    "target": "#cmo-reference-form-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "spreadsheet": JSON.stringify(data),
-                        "csrf_token": csrf_token,
-                        "feature_kit-csrf_token": csrf_token,
-                    },
-                });
-            });
         });
     </script>
 </div>

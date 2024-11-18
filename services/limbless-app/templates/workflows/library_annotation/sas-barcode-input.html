@@ -1,9 +1,12 @@
+{% from 'components/form_group.jinja2' import form_group, select_input, switch_input %}
+{% from "components/table_input.jinja2" import table_input %}
 {% from "components/legends.jinja2" import color_legend %}
+{% from "components/search_select.jinja2" import search_select_field %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
-<div id="frp-reference-form-container" class="modal-content">
+<div id="barcode-input-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >10. Fixed RNA Profiling Annotation</h1>
+        <h1 class="modal-title fs-5" >Specify Barcodes</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -23,37 +26,30 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#fixed-1-example-tab" type="button" role="tab"
-                aria-controls="fixed-1-example-tab" aria-selected="true">
+                data-bs-target="#index-1-example-tab" type="button" role="tab"
+                aria-controls="index-1-example-tab" aria-selected="true">
                 Example 1.</button>
             </li>
         </ul>
-        <div class="tab-content" id="frp-reference-form">
+        <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{ 
                     spreadsheet_input(
                         element=form.spreadsheet,
-                        target_element_id="frp-reference-form-container",
-                        submit_btn_id="parse-spreadsheet-btn",
+                        submit_btn_id="submit-spreadsheet-btn",
+                        target_element_id="barcode-input-container",
                     )
                 }}
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 <div class="input-help">
-                    <h5>How to?</h5>
                     <ul>
-                        <li>Fill in the required columns and submit as a file or live spreadsheet.</li>
-                    </ul>
-                    <h5>Columns: </h5>
-                    <ul>
-                        <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
-                        <li>Barcode ID<span class="desc">e.g. 'BC001'</span></li>
-                        <li>Demux Name <span class="desc">name of the demultiplexed sample</span></li>
+                        <li>
+                        </li>
                     </ul>
                 </div>
             </div>
-            <div class="tab-pane fade" id="fixed-1-example-tab" role="tabpanel" tabindex="3">
-                {% include "components/examples/fixed_rna_profiling.html" %}
+            <div class="tab-pane fade" id="index-1-example-tab" role="tabpanel" tabindex="2">
             </div>
         </div>
     </div>
@@ -65,8 +61,8 @@
             {{ color_legend(form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-primary submit-form-btn" type="button" id="parse-spreadsheet-btn">
-                Next
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
+                Submit
             </button>
         </div>
     </div>

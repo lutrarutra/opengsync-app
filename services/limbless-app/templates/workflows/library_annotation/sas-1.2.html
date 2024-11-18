@@ -1,48 +1,55 @@
-{% from "components/form_group.jinja2" import form_group %}
+{% from "components/form_group.jinja2" import form_group, readonly_field %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
+
 <div id="pool-mapping-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">1.2 Describe Library-Pools</h1>
+        <h1 class="modal-title fs-5">1.2 Specify Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body" id="pool-definition-form">
-        <h4>Define new Pool</h4>
         {{ form.csrf_token() }}
-        <div class="row">
-            {{ form_group(form.name, class="col-6") }}
-            {{ form_group(form.num_m_reads_requested, class="col-6") }}
-        </div>
+        <h4>Contact Info</h4>
+        <p>Who pooled the libraries?</p>
         <div class="row">
             {{ form_group(form.contact_name, class="col-4") }}
             {{ form_group(form.contact_email, class="col-4") }}
             {{ form_group(form.contact_phone, class="col-4") }}
         </div>
-        <h5 class="text-muted">or</h5>
-        <h4>Existing Pool</h4>
-        {{
-            search_select_field(
-                form.existing_pool,
-                url_for('pools_htmx.query', seq_request_id=seq_request.id),
-            )
-        }}
-        {{ form.csrf_token() }}
+        <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+            {% for sub_form in form.pool_forms %}
+            {{ sub_form.csrf_token() }}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if loop.index0 == 0 %}active{% endif %} {% if sub_form.errors | length > 0 %}text-danger{% endif %}" data-bs-toggle="tab" data-bs-target="#pool-{{ loop.index0 }}-tab"
+                    type="button" role="tab" aria-controls="pool-{{ loop.index0 }}-tab" aria-selected="true">
+                    {{ sub_form.raw_label.data }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="tab-content">
+            {% for sub_form in form.pool_forms %}
+            <div class="tab-pane fade {% if loop.index0 == 0 %} show active{% endif %}" id="pool-{{ loop.index0 }}-tab" role="tabpanel" tabindex="{{ loop.index0 }}">
+                <div class="row">
+                    {{ readonly_field(sub_form.raw_label, class="col-2") }}
+                    {{ form_group(sub_form.new_pool_name, class="col-5") }}
+                    {{ form_group(sub_form.num_m_reads_requested, class="col-5") }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
             {{ form.uuid }}
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-warning"
-                hx-target="#pool-mapping-container" hx-swap="outerHTML"
-                hx-get="{{ url_for('library_annotation_workflow.select_project', seq_request_id=seq_request.id, workflow_type='pooled', uuid=form.uuid) }}">
-                Back
-            </button>
             <button type="button" class="btn btn-primary"
                 hx-target="#pool-mapping-container" hx-swap="outerHTML"
                 hx-include="#pool-definition-form" id="submit-pool-definition-form-btn"
-                hx-post="{{ url_for('library_annotation_workflow.define_pool', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+                hx-post="{{ url_for('library_annotation_workflow.define_pools', seq_request_id=seq_request.id, uuid=form.uuid) }}">
                 Next
             </button>
         </div>

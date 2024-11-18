@@ -241,7 +241,8 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
-    db = DBHandler(
+    db = DBHandler()
+    db.connect(
         user=args.user,
         password=args.password,
         host=args.host,

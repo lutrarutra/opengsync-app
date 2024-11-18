@@ -1,6 +1,4 @@
-{% from 'components/form_group.jinja2' import form_group %}
-{% from 'components/search_select.jinja2' import search_select_field %}
-{% from "components/table_input.jinja2" import table_input %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 {% from "components/legends.jinja2" import color_legend %}
 
 <div id="feature_reference-form-container" class="modal-content">
@@ -11,51 +9,52 @@
     <div class="modal-body tab-body">
         <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
             <li class="nav-item" role="presentation">
-                <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Form</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn" data-bs-toggle="tab"
                 data-bs-target="#help-tab" type="button" role="tab"
                 aria-controls="help-tab" aria-selected="false">
                 Help</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link{% if active_tab == 'predefined' %} active{% endif %}" data-bs-toggle="tab"
-                id="predefined_kit-tab-btn"
-                data-bs-target="#predefined_kit-tab" type="button" role="tab"
-                aria-controls="predefined_kit-tab" aria-selected="true">
-                1. predefined Kit</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
-                id="spreadsheet-tab-btn"
-                data-bs-target="#spreadsheet-tab" type="button" role="tab"
-                aria-controls="spreadsheet-tab" aria-selected="true">
-                2-4. Live Spreadsheet</button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                 data-bs-target="#feature-2-example-tab" type="button" role="tab"
                 aria-controls="feature-2-example-tab" aria-selected="true">
-                Example 2</button>
+                Example 1</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                 data-bs-target="#feature-3-example-tab" type="button" role="tab"
                 aria-controls="feature-3-example-tab" aria-selected="true">
-                Example 3</button>
+                Example 2</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                 data-bs-target="#feature-4-example-tab" type="button" role="tab"
                 aria-controls="feature-4-example-tab" aria-selected="true">
-                Example 4</button>
+                Example 3</button>
             </li>
         </ul>
-        <div class="tab-content" id="feature_reference-form" enctype="multipart/form-data">
-            {{ form.csrf_token() }}
-            <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                {{ 
+                    spreadsheet_input(
+                        element=form.spreadsheet,
+                        target_element_id="feature_reference-form-container",
+                        submit_btn_id="submit-spreadsheet-btn",
+                    )
+                }}
+            </div>
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 <div class="input-help">
                     <h5>How to?</h5>
                     <ol>
-                        <li>If using <b>the same</b> predefined <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">feature-kit</a> <b>for all Antibody Capture Libraries</b>, select kit from the search bar.</li>
+                        <li>If using a predefined <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">feature-kit</a> <b>for all Antibody Capture Libraries</b>: specify column <b>Kit</b></li>
                         <li>If using <b>all features</b> from a predefined <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">feature-kit</a>: specify columns <b>Library Name, Kit</b></li>
                         <li>If using <b>specific feature</b> from a predefined <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">feature-kit</a>: specify columns <b>Library Name, Kit, Feature</b></li>
                         <li>If using custom kit: specify columns <b>Library Name, Feature, Sequence, Pattern, Read</b></li>
@@ -75,38 +74,6 @@
                     </ul>
                 </div>
             </div>
-            <div class="tab-pane fade{% if active_tab == 'predefined' %} show active{% endif %}" id="predefined_kit-tab" role="tabpanel" tabindex="1">
-                {{ search_select_field(form.feature_kit, url_for('feature_kits_htmx.query'), class="col-5") }}
-            </div>
-            <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="2">
-                <div id="spreadsheet-grid" class="spreadsheet-grid">
-                    <div class="invalid-feedback-container">
-                        {% if not disabled %}
-                        {% for error in form.spreadsheet_dummy.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            <div class="tab-pane fade{% if active_tab == 'file' %} show active{% endif %}" id="file-tab" role="tabpanel" tabindex="3">
-                <div class="input-help">
-                    <h5>Columns:</h5>
-                    <ul>
-                        <li><b>Library Name</b> <span class="desc">Optional: if not specified, feature is part of all antibody feature libraries, else must mach one and only one value from 'Library Name'-column from sample annotation sheet</span></li>
-                        <li><b>Kit</b> <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
-                        <li><b>Feature</b> <span class="desc">Name of the feature</span></li>
-                        <li><b>Sequence</b> <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG', do not specify if using predefined kit</span></li>
-                        <li><b>Pattern</b> <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)', do not specify if using predefined kit</span></li>
-                        <li><b>Read</b> <span class="desc">e.g. 'R2', do not specify if using predefined kit</span></li>
-                    </ul>
-                </div>
-                <div class="row">
-                    {{ form_group(form.separator, class="col-2") }}
-                    {{ form_group(form.file, class="col-10") }}
-                </div>
-            </div>
-            
             <div class="tab-pane fade" id="feature-2-example-tab" role="tabpanel" tabindex="2">
                 {% include "components/examples/feature-2.html" %}
             </div>
@@ -123,66 +90,17 @@
             {{ form.uuid }}
         </div>
         <div class="footer-info">
-            {{ color_legend(colors) }}
+            {{ color_legend(form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-primary submit-form-btn" type="button" id="submit-predefined_kit-form-btn"
-                hx-include="#feature_reference-form" hx-target="#feature_reference-form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data" {% if active_tab != "predefined" %}style="display: none;"{% endif %}
-                hx-post="{{ url_for('library_annotation_workflow.select_feature_reference', seq_request_id=seq_request.id, input_type='predefined', uuid=form.uuid) }}">
-                Submit
-            </button>
-            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn" {% if active_tab != "spreadsheet" %}style="display: none;"{% endif %}>
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
                 Submit
             </button>
         </div>
     </div>
     <script>
-        init_tooltips();
         $(document).ready(function() {
-            $(".example-tab-btn, .help-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-            });
-            $("#predefined_kit-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-                $("#submit-predefined_kit-form-btn").show();
-            });
-            $("#spreadsheet-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-                $("#submit-spreadsheet-btn").show();
-            });
-
-            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
-            const csrf_token = "{{ form.csrf_token._value() }}";
-
-            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
-                data: data,
-                columns: [
-                    {% for col in columns %}
-                    {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                    {%- elif col["type"] == "dropdown" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                    {%- endif -%}
-                    {% endfor %}
-                ],
-                minSpareRows: 10,
-                allowInsertColumn: false,
-                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
-            });
-            $("#submit-spreadsheet-btn").on("click", function() {
-                var data = spread_sheet.getData();
-
-                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.select_feature_reference', seq_request_id=seq_request.id, input_type='spreadsheet', uuid=form.uuid) }}", {
-                    "target": "#feature_reference-form-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "spreadsheet": JSON.stringify(data),
-                        "csrf_token": csrf_token,
-                        "feature_kit-csrf_token": csrf_token,
-                    },
-                });
-            });
+            init_tooltips();
         }); 
     </script>
 </div>
