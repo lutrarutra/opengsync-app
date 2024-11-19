@@ -13,7 +13,6 @@ from .HTMXFlaskForm import HTMXFlaskForm
 
 class ResetPasswordForm(HTMXFlaskForm):
     _template_path = "forms/reset_password.html"
-    _form_label = "reset_password_form"
 
     password = PasswordField("Password", validators=[DataRequired(), Length(min=8)])
     confirm = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", "Passwords must match.")])

@@ -26,7 +26,7 @@
                 Samples ({{ sample_table.shape[0] if sample_table is not none else "0" }})</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab"
+                <button class="nav-link {% if pool_table is none %}disabled{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#pool-tab" type="button" role="tab"
                 aria-controls="pool-tab" aria-selected="false">
                 Pools ({{ pool_table.shape[0] if pool_table is not none else "0" }})</button>

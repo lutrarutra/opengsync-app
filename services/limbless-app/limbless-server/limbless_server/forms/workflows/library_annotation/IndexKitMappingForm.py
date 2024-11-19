@@ -115,39 +115,75 @@ class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
 
         kit_defined = self.barcode_table["kit_i7"].notna() | self.barcode_table["kit_i5"].notna()
 
-        for idx, row in self.barcode_table[kit_defined].iterrows():
-            kit_i7, kit_i7_df = kits[row["kit_i7_id"]]
-            kit_i5, kit_i5_df = kits[row["kit_i5_id"]]
+        barcode_table_data = {
+            "library_name": [],
+            "index_well": [],
+            "kit_i7": [],
+            "name_i7": [],
+            "sequence_i7": [],
+            "kit_i5": [],
+            "name_i5": [],
+            "sequence_i5": [],
+            "kit_i7_id": [],
+            "kit_i5_id": [],
+            "kit_i7_name": [],
+            "kit_i5_name": [],
+        }
 
-            i7_seqs = kit_i7_df.loc[kit_i7_df["type_id"] == BarcodeType.INDEX_I7.id]
-            i5_seqs = kit_i5_df.loc[kit_i5_df["type_id"] == BarcodeType.INDEX_I5.id]
+        for idx, row in self.barcode_table.iterrows():
+            if kit_defined.at[idx]:
+                kit_i7, kit_i7_df = kits[row["kit_i7_id"]]
+                kit_i5, kit_i5_df = kits[row["kit_i5_id"]]
 
-            if pd.notna(row["name_i7"]):
-                barcodes_i7 = i7_seqs[i7_seqs["name"] == row["name_i7"]]["sequence"].values
-                names_i7 = i7_seqs[i7_seqs["name"] == row["name_i7"]]["name"].values
-            elif pd.notna(row["index_well"]):
-                barcodes_i7 = i7_seqs[i7_seqs["well"] == row["index_well"]]["sequence"].values
-                names_i7 = i7_seqs[i7_seqs["well"] == row["index_well"]]["name"].values
+                i7_seqs = kit_i7_df.loc[kit_i7_df["type_id"] == BarcodeType.INDEX_I7.id]
+                i5_seqs = kit_i5_df.loc[kit_i5_df["type_id"] == BarcodeType.INDEX_I5.id]
+
+                if pd.notna(row["name_i7"]):
+                    barcodes_i7 = i7_seqs[i7_seqs["name"] == row["name_i7"]]["sequence"].values
+                    names_i7 = i7_seqs[i7_seqs["name"] == row["name_i7"]]["name"].values
+                elif pd.notna(row["index_well"]):
+                    barcodes_i7 = i7_seqs[i7_seqs["well"] == row["index_well"]]["sequence"].values
+                    names_i7 = i7_seqs[i7_seqs["well"] == row["index_well"]]["name"].values
+                else:
+                    raise ValueError()
+                
+                if pd.notna(row["name_i5"]):
+                    barcodes_i5 = i5_seqs[i5_seqs["name"] == row["name_i5"]]["sequence"].values
+                    names_i5 = i5_seqs[i5_seqs["name"] == row["name_i5"]]["name"].values
+                elif pd.notna(row["index_well"]):
+                    barcodes_i5 = i5_seqs[i5_seqs["well"] == row["index_well"]]["sequence"].values
+                    names_i5 = i5_seqs[i5_seqs["well"] == row["index_well"]]["name"].values
+                else:
+                    raise ValueError()
+                
+                for i in range(max(len(barcodes_i7), len(barcodes_i5))):
+                    barcode_table_data["library_name"].append(row["library_name"])
+                    barcode_table_data["index_well"].append(row["index_well"])
+                    barcode_table_data["kit_i7"].append(row["kit_i7"])
+                    barcode_table_data["kit_i5"].append(row["kit_i5"])
+                    barcode_table_data["kit_i7_id"].append(row["kit_i7_id"])
+                    barcode_table_data["kit_i5_id"].append(row["kit_i5_id"])
+                    barcode_table_data["kit_i7_name"].append(kit_i7.identifier)
+                    barcode_table_data["kit_i5_name"].append(kit_i5.identifier)
+                    barcode_table_data["sequence_i7"].append(barcodes_i7[i] if len(barcodes_i7) > i else None)
+                    barcode_table_data["sequence_i5"].append(barcodes_i5[i] if len(barcodes_i5) > i else None)
+                    barcode_table_data["name_i7"].append(names_i7[i] if len(names_i7) > i else None)
+                    barcode_table_data["name_i5"].append(names_i5[i] if len(names_i5) > i else None)
             else:
-                raise ValueError()
-            
-            if pd.notna(row["name_i5"]):
-                barcodes_i5 = i5_seqs[i5_seqs["name"] == row["name_i5"]]["sequence"].values
-                names_i5 = i5_seqs[i5_seqs["name"] == row["name_i5"]]["name"].values
-            elif pd.notna(row["index_well"]):
-                barcodes_i5 = i5_seqs[i5_seqs["well"] == row["index_well"]]["sequence"].values
-                names_i5 = i5_seqs[i5_seqs["well"] == row["index_well"]]["name"].values
-            else:
-                raise ValueError()
-            
-            for i in range(max(len(barcodes_i7), len(barcodes_i5))):
-                self.barcode_table.at[idx, "sequence_i7"] = barcodes_i7[i] if len(barcodes_i7) > i else None
-                self.barcode_table.at[idx, "sequence_i5"] = barcodes_i5[i] if len(barcodes_i5) > i else None
-                self.barcode_table.at[idx, "name_i7"] = names_i7[i] if len(names_i7) > i else None
-                self.barcode_table.at[idx, "name_i5"] = names_i5[i] if len(names_i5) > i else None
-                self.barcode_table.at[idx, "kit_i7_name"] = kit_i7.identifier
-                self.barcode_table.at[idx, "kit_i5_name"] = kit_i5.identifier
+                barcode_table_data["library_name"].append(row["library_name"])
+                barcode_table_data["index_well"].append(row["index_well"])
+                barcode_table_data["kit_i7"].append(None)
+                barcode_table_data["kit_i5"].append(None)
+                barcode_table_data["kit_i7_id"].append(None)
+                barcode_table_data["kit_i5_id"].append(None)
+                barcode_table_data["kit_i7_name"].append(None)
+                barcode_table_data["kit_i5_name"].append(None)
+                barcode_table_data["sequence_i7"].append(row["sequence_i7"])
+                barcode_table_data["sequence_i5"].append(row["sequence_i5"])
+                barcode_table_data["name_i7"].append(row["name_i7"])
+                barcode_table_data["name_i5"].append(row["name_i5"])
  
+        self.barcode_table = pd.DataFrame(barcode_table_data)
         return True
         
     def process_request(self) -> Response:

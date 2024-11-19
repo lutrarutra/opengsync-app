@@ -24,13 +24,10 @@ class IndexKitSubForm(FlaskForm):
 
 class IndexKitMappingForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/library_indexing/indexing-2.html"
-    _form_label = "library_indexing_form"
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
     def __init__(self, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, uuid: Optional[str] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_indexing", uuid=uuid, previous_form=previous_form)
 

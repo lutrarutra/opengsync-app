@@ -75,6 +75,7 @@ def create():
 
 
 @pools_htmx.route("<int:pool_id>/delete", methods=["DELETE"])
+@db_session(db)
 @login_required
 def delete(pool_id: int):
     if not current_user.is_insider():
@@ -83,9 +84,12 @@ def delete(pool_id: int):
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if len(pool.libraries) > 0:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     db.delete_pool(pool.id)
     flash("Pool deleted", "success")
-    return make_response(redirect=url_for("index_page"))
+    return make_response(redirect=url_for("pools_page.pools_page"))
 
 
 @pools_htmx.route("<int:pool_id>/remove_libraries", methods=["DELETE"])

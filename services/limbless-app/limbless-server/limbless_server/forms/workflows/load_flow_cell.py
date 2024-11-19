@@ -15,7 +15,6 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 
 class UnifiedLoadFlowCellForm(HTMXFlaskForm):
     _template_path = "workflows/experiment/load_flow_cell-1.2.html"
-    _form_label = "load_flow_cell_form"
 
     measured_qubit = FloatField(validators=[OptionalValidator()])
     target_molarity = FloatField(validators=[OptionalValidator()])

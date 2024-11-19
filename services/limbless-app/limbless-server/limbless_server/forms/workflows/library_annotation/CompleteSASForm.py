@@ -24,10 +24,11 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
+
         self.library_table = self.tables["library_table"]
         self.sample_table = self.tables["sample_table"]
         self.pooling_table = self.tables["pooling_table"]
-        self.barcode_table = self.tables["barcode_table"]
+        self.barcode_table = self.tables.get("barcode_table")
         self.pool_table = self.tables.get("pool_table")
         self.feature_table = self.tables.get("feature_table")
         self.cmo_table = self.tables.get("cmo_table")
@@ -61,6 +62,8 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
         node_idx = 1
         pool_nodes = {}
 
+        library_nodes = {}
+
         for sample_name, _df in self.pooling_table.groupby("sample_name"):
             sample_node = {
                 "node": node_idx,
@@ -76,12 +79,16 @@ class CompleteSASForm(HTMXFlaskForm, TableDataForm):
             })
 
             for _, row in _df.iterrows():
-                library_node = {
-                    "node": node_idx,
-                    "name": row['library_name'],
-                }
-                nodes.append(library_node)
-                node_idx += 1
+                if row["library_name"] in library_nodes.keys():
+                    library_node = library_nodes[row["library_name"]]
+                else:
+                    library_node = {
+                        "node": node_idx,
+                        "name": row['library_name'],
+                    }
+                    library_nodes[row["library_name"]] = library_node
+                    nodes.append(library_node)
+                    node_idx += 1
                 links.append({
                     "source": sample_node["node"],
                     "target": library_node["node"],

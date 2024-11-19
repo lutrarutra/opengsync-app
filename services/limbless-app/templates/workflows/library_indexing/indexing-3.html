@@ -8,8 +8,7 @@
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body" id="library_indexing-form">
-        {{ library_indexing_form.file_uuid(hidden=True, readonly=True) }}
-        {{ library_indexing_form.csrf_token() }}
+        {{ form.csrf_token() }}
         <table class="table table-hover">
             <thead>
                 <tr>
@@ -55,13 +54,13 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ library_indexing_form.file_uuid.data }}
+            {{ form.uuid }}
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
                 hx-target="#library_indexing-form-container" hx-swap="outerHTML"
                 hx-include="#library_indexing-form"
-                hx-post="{{ url_for('library_indexing_workflow.complete_pooling') }}" id="submit-library_indexing-form-btn">
+                hx-post="{{ url_for('library_indexing_workflow.complete_pooling', uuid=form.uuid) }}" id="submit-library_indexing-form-btn">
                 Complete
             </button>
         </div>

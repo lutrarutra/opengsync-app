@@ -48,7 +48,7 @@
             <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="2">
                 {{ 
                     spreadsheet_input(
-                        element=library_indexing_form.spreadsheet,
+                        element=form.spreadsheet,
                         submit_btn_id="submit-spreadsheet-btn",
                         target_element_id="library_pooling-form-container",
                     )
@@ -63,7 +63,7 @@
         <div class="text-nowrap text-muted footer-id">
         </div>
         <div class="footer-info">
-            {{ color_legend(library_indexing_form.spreadsheet.colors) }}
+            {{ color_legend(form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
