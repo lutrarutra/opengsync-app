@@ -10,7 +10,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType
 
 from .... import tools, logger  # noqa F401
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 from .CMOReferenceInputForm import CMOReferenceInputForm
@@ -87,14 +87,14 @@ class LibrarySubForm(FlaskForm):
     library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], default=None)
 
 
-class LibraryMappingForm(HTMXFlaskForm, TableDataForm):
+class LibraryMappingForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-4.html"
     
     input_fields = FieldList(FormField(LibrarySubForm), min_entries=1)
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

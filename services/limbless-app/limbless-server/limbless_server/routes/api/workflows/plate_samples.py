@@ -5,7 +5,7 @@ from flask_login import login_required
 
 import pandas as pd
 
-from limbless_db import models, DBSession, db_session
+from limbless_db import models, db_session
 from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
@@ -46,11 +46,11 @@ def begin() -> Response:
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        library_table = db.get_pool_libraries_df(pool.id, drop_empty_columns=False).rename(
+        library_table = db.get_pool_libraries_df(pool.id).rename(
             columns={"library_id": "id", "library_name": "name"}
         )[["id", "name", "status_id"]]
 
-        plate_samples_form = forms.PlateSamplesForm(context=context)
+        plate_samples_form = forms.PlateSamplesForm(context=context, uuid=None)
         plate_samples_form.metadata = {"workflow": "plate_samples", "pool_id": pool.id}
         plate_samples_form.add_table("sample_table", pd.DataFrame(columns=["id", "name", "status_id"]))
         plate_samples_form.add_table("library_table", library_table)
@@ -88,7 +88,7 @@ def select():
     
     sample_table, library_table, pool_table, _ = form.get_tables()
 
-    plate_samples_form = forms.PlateSamplesForm(context=context)
+    plate_samples_form = forms.PlateSamplesForm(context=context, uuid=None)
     plate_samples_form.metadata = {"workflow": "plate_samples"}
     if seq_request is not None:
         plate_samples_form.metadata["seq_request_id"] = seq_request.id  # type: ignore
@@ -101,10 +101,10 @@ def select():
     return plate_samples_form.make_response()
 
 
-@plate_samples_workflow.route("submit", methods=["POST"])
+@plate_samples_workflow.route("submit/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def submit():
+def submit(uuid: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -127,5 +127,5 @@ def submit():
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     
-    form = forms.PlateSamplesForm(context=context, formdata=request.form)
+    form = forms.PlateSamplesForm(uuid=uuid, context=context, formdata=request.form)
     return form.process_request(user=current_user)

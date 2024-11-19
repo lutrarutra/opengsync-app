@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -10,10 +11,10 @@ from limbless_db.categories import SampleStatus, LibraryStatus, PoolStatus
 
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
-from ..TableDataForm import TableDataForm
+from ..MultiStepForm import MultiStepForm
 
 
-class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
+class PlateSamplesForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/plate_samples/plate-1.html"
 
     plate_order = StringField()
@@ -21,9 +22,9 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
     plate_size = SelectField("Plate Size", choices=[("12x8", "12x8")], default="12x8")
     error_dummy = StringField()
 
-    def __init__(self, uuid: str, formdata: dict = {}, context: dict = {}):
+    def __init__(self, uuid: str | None, formdata: dict = {}, context: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="plate_samples", uuid=uuid)
+        MultiStepForm.__init__(self, dirname="plate_samples", uuid=uuid)
         self._context["url_context"] = {}
 
         self.plate = None

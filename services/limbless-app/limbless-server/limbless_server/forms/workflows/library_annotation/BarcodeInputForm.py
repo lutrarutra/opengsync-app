@@ -8,7 +8,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType
 
 from .... import logger, tools, db  # noqa F401
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -21,7 +21,7 @@ from .FRPAnnotationForm import FRPAnnotationForm
 from .SampleAnnotationForm import SampleAnnotationForm
 
 
-class BarcodeInputForm(HTMXFlaskForm, TableDataForm):
+class BarcodeInputForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-barcode-input.html"
     
     columns = {
@@ -38,9 +38,9 @@ class BarcodeInputForm(HTMXFlaskForm, TableDataForm):
     _mapping: dict[str, str] = dict([(col.name, col.label) for col in columns.values()])
     _required_columns: list[str] = [col.name for col in columns.values()]
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[TableDataForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

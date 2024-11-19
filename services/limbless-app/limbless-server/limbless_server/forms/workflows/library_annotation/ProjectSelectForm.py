@@ -9,13 +9,13 @@ from limbless_db import models
 from .... import db, logger  # noqa F401
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from .LibraryAnnotationForm import LibraryAnnotationForm
 from .SpecifyAssayForm import SpecifyAssayForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 
-class ProjectSelectForm(HTMXFlaskForm, TableDataForm):
+class ProjectSelectForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-1.1.html"
 
     existing_project = FormField(OptionalSearchBar, label="Select Existing Project")
@@ -24,7 +24,7 @@ class ProjectSelectForm(HTMXFlaskForm, TableDataForm):
 
     def __init__(self, seq_request: models.SeqRequest, workflow_type: Literal["raw", "pooled", "tech"], formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, uuid=None, dirname="library_annotation")
+        MultiStepForm.__init__(self, uuid=None, dirname="library_annotation")
         self.workflow_type = workflow_type
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request

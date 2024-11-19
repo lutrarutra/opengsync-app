@@ -10,7 +10,7 @@ from limbless_db.categories import GenomeRef
 from limbless_db import models
 
 from .... import tools
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from .LibraryMappingForm import LibraryMappingForm
 
@@ -21,15 +21,15 @@ class GenomeRefSubForm(FlaskForm):
 
 
 # 4. Select genome for libraries
-class GenomeRefMappingForm(HTMXFlaskForm, TableDataForm):
+class GenomeRefMappingForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-3.html"
 
     input_fields = FieldList(FormField(GenomeRefSubForm), min_entries=1)
     custom_reference = TextAreaField("Custom Reference", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], description="If the reference genome is not in the list, specify it here.")
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

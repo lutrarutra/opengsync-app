@@ -63,7 +63,7 @@ def select():
     
     sample_table, library_table, pool_table, _ = form.get_tables()
 
-    store_samples_form = forms.StoreSamplesForm(seq_request=seq_request)
+    store_samples_form = forms.StoreSamplesForm(seq_request=seq_request, uuid=None)
     store_samples_form.metadata = {"workflow": "store_samples"}
     if seq_request is not None:
         store_samples_form.metadata["seq_request_id"] = seq_request.id  # type: ignore
@@ -76,9 +76,9 @@ def select():
     return store_samples_form.make_response()
 
 
-@store_samples_workflow.route("submit", methods=["POST"])
+@store_samples_workflow.route("submit/<string:uuid>", methods=["POST"])
 @login_required
-def submit() -> Response:
+def submit(uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -94,5 +94,5 @@ def submit() -> Response:
     else:
         seq_request = None
 
-    form = forms.StoreSamplesForm(seq_request=seq_request, formdata=request.form)
+    form = forms.StoreSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
     return form.process_request(user=current_user)

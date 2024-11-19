@@ -12,19 +12,19 @@ from limbless_db.categories import SampleStatus, LibraryStatus, PoolStatus
 
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
-from ..TableDataForm import TableDataForm
+from ..MultiStepForm import MultiStepForm
 
 
-class StoreSamplesForm(HTMXFlaskForm, TableDataForm):
+class StoreSamplesForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/store_samples/store-1.html"
 
     plate_order = StringField()
     plate_name = StringField("Plate Name", validators=[OptionalValidator(), Length(min=3, max=models.Plate.name.type.length)])
     plate_size = SelectField("Plate Size", choices=[("12x8", "12x8"), ("24x16", "24x16")], default="12x8")
 
-    def __init__(self, uuid: str, formdata: dict = {}, seq_request: Optional[models.SeqRequest] = None):
+    def __init__(self, uuid: str | None, formdata: dict = {}, seq_request: Optional[models.SeqRequest] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="store_samples", uuid=uuid)
+        MultiStepForm.__init__(self, dirname="store_samples", uuid=uuid)
         self._context["url_context"] = {}
         self.seq_request = seq_request
         if seq_request is not None:

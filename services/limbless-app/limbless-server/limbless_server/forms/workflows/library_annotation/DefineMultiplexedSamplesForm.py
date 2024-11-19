@@ -10,14 +10,14 @@ from limbless_db.categories import AssayType, GenomeRef, LibraryType, LibraryTyp
 from .... import logger, db
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureReferenceInputForm import FeatureReferenceInputForm
 from .SampleAnnotationForm import SampleAnnotationForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class DefineMultiplexedSamplesForm(HTMXFlaskForm, TableDataForm):
+class DefineMultiplexedSamplesForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.2.html"
 
     columns = {
@@ -26,9 +26,9 @@ class DefineMultiplexedSamplesForm(HTMXFlaskForm, TableDataForm):
         "pool": SpreadSheetColumn("C", "pool", "Pool", "text", 300, str),
     }
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[TableDataForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         super().__init__(formdata=formdata)
-        TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

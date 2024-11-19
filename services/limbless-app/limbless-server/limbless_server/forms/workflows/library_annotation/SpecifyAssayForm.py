@@ -13,7 +13,7 @@ from limbless_db.categories import AssayType, GenomeRef, LibraryType
 from .... import logger, db  # noqa
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from .DefineSamplesForm import DefineSamplesForm
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm
 
@@ -31,7 +31,7 @@ class AdditionalSerevicesForm(FlaskForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False)
 
 
-class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
+class SpecifyAssayForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.tech.html"
 
     assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), validators=[DataRequired()], coerce=int)
@@ -44,9 +44,9 @@ class SpecifyAssayForm(HTMXFlaskForm, TableDataForm):
         "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 300, str, GenomeRef.names()),
     }
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[TableDataForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         super().__init__(formdata=formdata)
-        TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

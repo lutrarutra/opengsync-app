@@ -10,7 +10,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType, FeatureType, KitType
 
 from .... import db, logger
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -23,14 +23,14 @@ class FeatureMappingSubForm(FlaskForm):
     feature_kit = FormField(SearchBar, label="Select Feature Kit")
 
 
-class KitMappingForm(HTMXFlaskForm, TableDataForm):
+class KitMappingForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-8.html"
 
     input_fields = FieldList(FormField(FeatureMappingSubForm), min_entries=1)
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
     
