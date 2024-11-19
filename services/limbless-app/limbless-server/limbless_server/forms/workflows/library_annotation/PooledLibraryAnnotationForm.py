@@ -17,7 +17,7 @@ from .LibraryMappingForm import LibraryMappingForm
 from .PoolMappingForm import PoolMappingForm
 
 
-class PooledLibraryAnnotationForm(HTMXFlaskForm, MultiStepForm):
+class PooledLibraryAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.pooled.html"
 
     columns = {

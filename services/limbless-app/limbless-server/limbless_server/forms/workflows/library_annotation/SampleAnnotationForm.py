@@ -11,13 +11,12 @@ from limbless_db.categories import LibraryType, AttributeType
 
 from .... import logger, db  # noqa F401
 from ....tools import SpreadSheetColumn
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...MultiStepForm import MultiStepForm
 from .CompleteSASForm import CompleteSASForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class SampleAnnotationForm(HTMXFlaskForm, MultiStepForm):
+class SampleAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-11.html"
 
     predefined_columns = {
@@ -25,8 +24,7 @@ class SampleAnnotationForm(HTMXFlaskForm, MultiStepForm):
     } | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()[1:])])
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, formdata=formdata, previous_form=previous_form)
 
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request

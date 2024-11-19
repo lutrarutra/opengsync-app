@@ -21,7 +21,7 @@ from .SampleAnnotationForm import SampleAnnotationForm
 from .FeatureReferenceInputForm import FeatureReferenceInputForm
 
 
-class LibraryAnnotationForm(HTMXFlaskForm, MultiStepForm):
+class LibraryAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.raw.html"
 
     columns = {

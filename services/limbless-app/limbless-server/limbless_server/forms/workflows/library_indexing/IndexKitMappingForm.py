@@ -12,7 +12,6 @@ from limbless_db.categories import BarcodeType, KitType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .CompleteLibraryIndexingForm import CompleteLibraryIndexingForm
 
@@ -22,14 +21,13 @@ class IndexKitSubForm(FlaskForm):
     index_kit = FormField(SearchBar, label="Select Index Kit")
 
 
-class IndexKitMappingForm(HTMXFlaskForm, MultiStepForm):
+class IndexKitMappingForm(MultiStepForm):
     _template_path = "workflows/library_indexing/indexing-2.html"
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
     def __init__(self, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_indexing", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_indexing", uuid=uuid, formdata=formdata, previous_form=previous_form)
 
     def prepare(self):
         library_table = self.tables["library_table"]

@@ -12,7 +12,6 @@ from limbless_db.categories import BarcodeType, KitType, LibraryType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -26,14 +25,13 @@ class IndexKitSubForm(FlaskForm):
     index_kit = FormField(SearchBar, label="Select Index Kit")
 
 
-class IndexKitMappingForm(HTMXFlaskForm, MultiStepForm):
+class IndexKitMappingForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-index_kit-mapping-form.html"
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(self, uuid=uuid, formdata=formdata, dirname="library_annotation", previous_form=previous_form)
 
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request

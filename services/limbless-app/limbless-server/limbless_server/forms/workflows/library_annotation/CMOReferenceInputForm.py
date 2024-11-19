@@ -10,7 +10,6 @@ from limbless_db.categories import LibraryType, FeatureType
 from .... import logger, tools  # noqa
 from ....tools import SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .KitMappingForm import KitMappingForm
 from .FeatureReferenceInputForm import FeatureReferenceInputForm
@@ -19,7 +18,7 @@ from .FRPAnnotationForm import FRPAnnotationForm
 from .SampleAnnotationForm import SampleAnnotationForm
 
 
-class CMOReferenceInputForm(HTMXFlaskForm, MultiStepForm):
+class CMOReferenceInputForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-6.html"
     columns = {
         "demux_name": SpreadSheetColumn("A", "demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -32,8 +31,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, MultiStepForm):
     }
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, formdata=formdata, previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

@@ -11,7 +11,6 @@ from .... import logger, tools, db  # noqa F401
 from ...MultiStepForm import MultiStepForm
 
 from ....tools import SpreadSheetColumn
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOReferenceInputForm import CMOReferenceInputForm
@@ -21,7 +20,7 @@ from .FRPAnnotationForm import FRPAnnotationForm
 from .SampleAnnotationForm import SampleAnnotationForm
 
 
-class BarcodeInputForm(HTMXFlaskForm, MultiStepForm):
+class BarcodeInputForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-barcode-input.html"
     
     columns = {
@@ -39,8 +38,7 @@ class BarcodeInputForm(HTMXFlaskForm, MultiStepForm):
     _required_columns: list[str] = [col.name for col in columns.values()]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(self, uuid=uuid, formdata=formdata, dirname="library_annotation", previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

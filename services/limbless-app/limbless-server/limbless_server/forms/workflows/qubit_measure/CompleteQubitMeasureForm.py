@@ -13,7 +13,6 @@ from limbless_db.categories import PoolStatus, LibraryStatus, SampleStatus
 from limbless_db import DBSession
 
 from .... import db, logger
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...MultiStepForm import MultiStepForm
 
 
@@ -22,7 +21,7 @@ class SubForm(FlaskForm):
     qubit_concentration = FloatField(validators=[DataRequired(), NumberRange(min=0)])
 
 
-class CompleteQubitMeasureForm(HTMXFlaskForm, MultiStepForm):
+class CompleteQubitMeasureForm(MultiStepForm):
     _template_path = "workflows/qubit_measure/qubit-1.html"
 
     sample_fields = FieldList(FormField(SubForm), min_entries=0)
@@ -31,8 +30,7 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, MultiStepForm):
     lane_fields = FieldList(FormField(SubForm), min_entries=0)
 
     def __init__(self, uuid: str | None, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="qubit_measure", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="qubit_measure", uuid=uuid, formdata=formdata, previous_form=previous_form)
         self._context["enumerate"] = enumerate
         
     def prepare(self):

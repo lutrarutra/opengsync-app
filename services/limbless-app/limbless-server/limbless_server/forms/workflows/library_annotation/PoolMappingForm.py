@@ -28,7 +28,7 @@ class PoolMappingSubForm(FlaskForm):
     num_m_reads_requested = FloatField("Number of M Reads Requested", validators=[OptionalValidator()])
 
 
-class PoolMappingForm(HTMXFlaskForm, MultiStepForm):
+class PoolMappingForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-1.2.html"
 
     pool_forms = FieldList(FormField(PoolMappingSubForm), label="Pool Mapping")

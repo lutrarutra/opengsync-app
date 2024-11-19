@@ -87,7 +87,7 @@ class LibrarySubForm(FlaskForm):
     library_type = SelectField("Library Type", choices=LibraryType.as_selectable(), validators=[DataRequired()], default=None)
 
 
-class LibraryMappingForm(HTMXFlaskForm, MultiStepForm):
+class LibraryMappingForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-4.html"
     
     input_fields = FieldList(FormField(LibrarySubForm), min_entries=1)

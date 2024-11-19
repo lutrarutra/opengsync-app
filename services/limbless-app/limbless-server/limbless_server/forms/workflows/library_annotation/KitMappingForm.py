@@ -23,7 +23,7 @@ class FeatureMappingSubForm(FlaskForm):
     feature_kit = FormField(SearchBar, label="Select Feature Kit")
 
 
-class KitMappingForm(HTMXFlaskForm, MultiStepForm):
+class KitMappingForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-8.html"
 
     input_fields = FieldList(FormField(FeatureMappingSubForm), min_entries=1)

@@ -5,11 +5,14 @@ from uuid import uuid4
 import pandas as pd
 
 from limbless_server.tools import io as iot
+
 from .. import config_cache, logger
+from .HTMXFlaskForm import HTMXFlaskForm
 
 
-class MultiStepForm():
-    def __init__(self, dirname: str, uuid: str | None, previous_form: Optional["MultiStepForm"] = None):
+class MultiStepForm(HTMXFlaskForm):
+    def __init__(self, dirname: str, uuid: str | None, formdata: dict, previous_form: Optional["MultiStepForm"] = None):
+        HTMXFlaskForm.__init__(self, formdata=formdata)
         self.first_step = uuid is None
         if uuid is None:
             uuid = str(uuid4())
@@ -31,7 +34,7 @@ class MultiStepForm():
 
     @property
     def path(self) -> str:
-        return os.path.join(self._dir, self.uuid + ".tsv")
+        return os.path.join(self._dir, self.uuid + f"{self.step_num}.msf")
     
     def is_loaded(self) -> bool:
         return self.__tables is not None and self.__metadata is not None

@@ -12,15 +12,13 @@ from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 
 
-class CompleteSASForm(HTMXFlaskForm, MultiStepForm):
+class CompleteSASForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-complete.html"
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, formdata=formdata, previous_form=previous_form)
         
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -253,6 +251,9 @@ class CompleteSASForm(HTMXFlaskForm, MultiStepForm):
                 self.library_table.at[idx, "library_id"] = library.id
                 
                 if self.metadata["workflow_type"] == "pooled":
+                    if self.barcode_table is None:
+                        logger.error(f"{self.uuid}: Barcode table not found.")
+                        raise ValueError("Barcode table not found.")
                     for _, barcode_row in self.barcode_table[self.barcode_table["library_name"] == library_row["library_name"]].iterrows():
                         library = session.add_library_index(
                             library_id=library.id,
