@@ -83,7 +83,7 @@ def select():
         return form.make_response()
     sample_table, library_table, pool_table, lane_table = form.get_tables()
     
-    complete_ba_report_form = wff.CompleteBAReportForm()
+    complete_ba_report_form = wff.CompleteBAReportForm(uuid=None)
     metadata: dict[str, Any] = {"workflow": "ba_report"}
 
     if (experiment := context.get("experiment")) is not None:
@@ -104,9 +104,9 @@ def select():
     return complete_ba_report_form.make_response()
 
 
-@ba_report_workflow.route("qc_pools", methods=["POST"])
+@ba_report_workflow.route("complete/<string:uuid>", methods=["POST"])
 @login_required
-def complete():
+def complete(uuid: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    return wff.CompleteBAReportForm(formdata=request.form | request.files).process_request(user=current_user)
+    return wff.CompleteBAReportForm(uuid=uuid, formdata=request.form | request.files).process_request(user=current_user)

@@ -10,14 +10,14 @@ from limbless_db.categories import LibraryType, GenomeRef
 from .... import logger, db
 from ....tools import SpreadSheetColumn, tools
 from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .GenomeRefMappingForm import GenomeRefMappingForm
 from .LibraryMappingForm import LibraryMappingForm
 from .PoolMappingForm import PoolMappingForm
 
 
-class PooledLibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
+class PooledLibraryAnnotationForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.pooled.html"
 
     columns = {
@@ -29,10 +29,10 @@ class PooledLibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,
-        formdata: dict = {}, previous_form: Optional[TableDataForm] = None
+        formdata: dict = {}, previous_form: Optional[MultiStepForm] = None
     ):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         

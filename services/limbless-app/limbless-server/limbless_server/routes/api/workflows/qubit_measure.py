@@ -83,7 +83,7 @@ def select():
         return form.make_response()
     sample_table, library_table, pool_table, lane_table = form.get_tables()
     
-    complete_qubit_measure_form = wff.CompleteQubitMeasureForm()
+    complete_qubit_measure_form = wff.CompleteQubitMeasureForm(uuid=None)
     metadata: dict[str, Any] = {"workflow": "qubit_measure"}
 
     if (experiment := context.get("experiment")) is not None:
@@ -104,10 +104,10 @@ def select():
     return complete_qubit_measure_form.make_response()
 
 
-@qubit_measure_workflow.route("complete", methods=["POST"])
+@qubit_measure_workflow.route("complete/<string:uuid>", methods=["POST"])
 @login_required
-def complete():
+def complete(uuid: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
         
-    return wff.CompleteQubitMeasureForm(formdata=request.form).process_request()
+    return wff.CompleteQubitMeasureForm(uuid=uuid, formdata=request.form).process_request()

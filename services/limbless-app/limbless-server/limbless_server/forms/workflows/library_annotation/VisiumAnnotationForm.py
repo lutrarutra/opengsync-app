@@ -13,12 +13,12 @@ from .... import logger # noqa
 from ....tools import SpreadSheetColumn
 from ...SpreadsheetInput import SpreadsheetInput
 from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from .FRPAnnotationForm import FRPAnnotationForm
 from .SampleAnnotationForm import SampleAnnotationForm
 
 
-class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
+class VisiumAnnotationForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-9.html"
 
     columns = {
@@ -30,9 +30,9 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
 
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

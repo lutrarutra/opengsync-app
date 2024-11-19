@@ -11,16 +11,16 @@ from limbless_db import models, DBSession
 from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType
 
 from .... import db, logger
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 
-class CompleteSASForm(HTMXFlaskForm, TableDataForm):
+class CompleteSASForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-complete.html"
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request

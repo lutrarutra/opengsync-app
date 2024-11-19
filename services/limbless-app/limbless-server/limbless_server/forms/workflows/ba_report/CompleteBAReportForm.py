@@ -17,7 +17,7 @@ from limbless_db.categories import PoolStatus, FileType, LibraryStatus, SampleSt
 
 from .... import db, logger  # noqa
 from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 
 
 class SubForm(FlaskForm):
@@ -25,7 +25,7 @@ class SubForm(FlaskForm):
     avg_fragment_size = IntegerField(validators=[DataRequired(), NumberRange(min=0)])
 
 
-class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
+class CompleteBAReportForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/ba_report/bar-1.html"
     _form_label = "ba_report_form"
 
@@ -40,9 +40,9 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
 
     file = FileField("Bio Analyzer Report", validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])], description="Report exported from the BioAnalyzer software (pdf).")
 
-    def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, max_size_mbytes: int = 5):
+    def __init__(self, uuid: str | None, formdata: dict = {}, max_size_mbytes: int = 5):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="ba_report", uuid=uuid)
+        MultiStepForm.__init__(self, dirname="ba_report", uuid=uuid)
         self.max_size_mbytes = max_size_mbytes
         self._context["enumerate"] = enumerate
 

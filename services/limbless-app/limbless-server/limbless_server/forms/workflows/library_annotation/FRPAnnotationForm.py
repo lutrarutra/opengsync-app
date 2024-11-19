@@ -11,11 +11,11 @@ from .... import logger, tools
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SpreadsheetInput import SpreadsheetInput
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from .SampleAnnotationForm import SampleAnnotationForm
 
 
-class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
+class FRPAnnotationForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-10.html"
 
     columns = {
@@ -24,9 +24,9 @@ class FRPAnnotationForm(HTMXFlaskForm, TableDataForm):
         "demux_name": SpreadSheetColumn("C", "demux_name", "Demux Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
     }
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         if (csrf_token := formdata.get("csrf_token")) is None:

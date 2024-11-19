@@ -42,7 +42,7 @@ class BarcodeInputForm(HTMXFlaskForm):
     _mapping: dict[str, str] = dict([(col.name, col.label) for col in columns.values()])
     _required_columns: list[str] = [col.name for col in columns.values()]
 
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
 
         self.lab_prep = lab_prep

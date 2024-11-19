@@ -12,21 +12,21 @@ from limbless_db.categories import LibraryType, AttributeType
 from .... import logger, db  # noqa F401
 from ....tools import SpreadSheetColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from .CompleteSASForm import CompleteSASForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class SampleAnnotationForm(HTMXFlaskForm, TableDataForm):
+class SampleAnnotationForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-11.html"
 
     predefined_columns = {
         "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str)
     } | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()[1:])])
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[TableDataForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
 
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request

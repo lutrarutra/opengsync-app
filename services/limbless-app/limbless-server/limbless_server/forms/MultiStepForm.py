@@ -8,8 +8,8 @@ from limbless_server.tools import io as iot
 from .. import config_cache, logger
 
 
-class TableDataForm():
-    def __init__(self, dirname: str, uuid: Optional[str], previous_form: Optional["TableDataForm"] = None):
+class MultiStepForm():
+    def __init__(self, dirname: str, uuid: str | None, previous_form: Optional["MultiStepForm"] = None):
         self.first_step = uuid is None
         if uuid is None:
             uuid = str(uuid4())

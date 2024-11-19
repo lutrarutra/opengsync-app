@@ -10,7 +10,7 @@ from limbless_db.categories import LibraryType, GenomeRef
 from .... import logger, db
 from ....tools import SpreadSheetColumn, tools
 from ...HTMXFlaskForm import HTMXFlaskForm
-from ...TableDataForm import TableDataForm
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .CMOReferenceInputForm import CMOReferenceInputForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -21,7 +21,7 @@ from .SampleAnnotationForm import SampleAnnotationForm
 from .FeatureReferenceInputForm import FeatureReferenceInputForm
 
 
-class LibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
+class LibraryAnnotationForm(HTMXFlaskForm, MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.raw.html"
 
     columns = {
@@ -31,9 +31,9 @@ class LibraryAnnotationForm(HTMXFlaskForm, TableDataForm):
         "seq_depth": SpreadSheetColumn("D", "seq_depth", "Sequencing Depth", "numeric", 150, float, clean_up_fnc=lambda x: tools.parse_float(x)),
     }
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[TableDataForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         
