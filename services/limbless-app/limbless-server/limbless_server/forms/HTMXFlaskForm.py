@@ -1,4 +1,4 @@
-from typing import Optional, Any, Literal
+from typing import Optional, Any
 
 from flask import Response, render_template
 from flask_htmx import make_response

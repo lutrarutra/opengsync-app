@@ -9,9 +9,9 @@
     </div>
     <div class="modal-body">
         <div id="add_user_to_group-form">
-            {{ add_user_to_group_form.csrf_token() }}
-            {{ form_group(add_user_to_group_form.email) }}
-            {{ select_input(add_user_to_group_form.affiliation_type) }}
+            {{ form.csrf_token() }}
+            {{ form_group(form.email) }}
+            {{ select_input(form.affiliation_type) }}
         </div>
     </div>
     <div class="modal-footer">

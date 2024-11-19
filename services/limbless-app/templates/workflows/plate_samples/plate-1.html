@@ -10,14 +10,14 @@
     <div class="modal-body">
         <div class="plating-container">
             <div class="header">
-                {{ plate_samples_form.plate_name(value=pool.name if pool else "", class="form-control") }}
-                {{ plate_samples_form.plate_size(class="form-control") }}
+                {{ form.plate_name(value=pool.name if pool else "", class="form-control") }}
+                {{ form.plate_size(class="form-control") }}
                 <button id="plate-sort-abc" type="button" class="btn btn-primary">ABC</button>
                 <button id="plate-sort-id" type="button" class="btn btn-primary">ID</button>
                 <button id="plate-sort-remove" type="button" class="btn btn-danger">No Plate</button>
             </div>
             <div class="invalid-feedback-container">
-                {% for error in plate_samples_form.error_dummy.errors %}
+                {% for error in form.error_dummy.errors %}
                     <p>{{ error }}</p>
                 {% endfor %}
             </div>
@@ -69,7 +69,7 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ context }} {{ plate_samples_form.file_uuid.data }}
+            {{ context }} {{ form.uuid }}
         </div>
         <div class="footer-info">
         </div>
@@ -234,13 +234,12 @@
                 return;
             }
 
-            htmx.ajax("POST", "{{ url_for('plate_samples_workflow.submit', **url_context) }}", {
+            htmx.ajax("POST", "{{ url_for('plate_samples_workflow.submit', uuid=form.uuid, **url_context) }}", {
                 "target": "#plate_samples-form-container",
                 "swap": "outerHTML",
                 "values": {
-                    "file_uuid": "{{ plate_samples_form.file_uuid.data }}",
                     "plate_order": JSON.stringify(plate_samples),
-                    "csrf_token": "{{ plate_samples_form.csrf_token._value() }}",
+                    "csrf_token": "{{ form.csrf_token._value() }}",
                     "plate_name": $("#plate_name").val(),
                     {% if seq_request %}
                     seq_request_id: "{{ seq_request.id }}",

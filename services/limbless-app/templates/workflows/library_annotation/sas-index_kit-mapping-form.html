@@ -1,12 +1,12 @@
 {% from "components/categorical_mapping.jinja2" import categorical_mapping %}
 
-<div id="library_pooling-form-container" class="modal-content">
+<div id="index_kit-mapping-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">4. Map Index Kits</h1>
+        <h1 class="modal-title fs-5">Map Index Kits</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body">
-        <div id="library_pooling-form">
+        <div id="index_kit-mapping-form">
             {% for sub_form in form.input_fields %}
             {{    
                 categorical_mapping(
@@ -28,9 +28,8 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-primary"
-                hx-target="#library_pooling-form-container" hx-swap="outerHTML"
-                hx-include="#library_pooling-form"
-                hx-post="{{ url_for('library_indexing_workflow.map_index_kits', uuid=form.uuid) }}">
+                hx-target="#index_kit-mapping-form-container" hx-swap="outerHTML" hx-include="#index_kit-mapping-form"
+                hx-post="{{ url_for('library_annotation_workflow.map_index_kits', seq_request_id=seq_request.id, uuid=form.uuid) }}">
                 Map Kits
             </button>
         </div>

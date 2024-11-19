@@ -24,7 +24,6 @@ class SubForm(FlaskForm):
 
 class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/qubit_measure/qubit-1.html"
-    _form_label = "qubit_measure_form"
 
     sample_fields = FieldList(FormField(SubForm), min_entries=0)
     library_fields = FieldList(FormField(SubForm), min_entries=0)
@@ -32,8 +31,6 @@ class CompleteQubitMeasureForm(HTMXFlaskForm, TableDataForm):
     lane_fields = FieldList(FormField(SubForm), min_entries=0)
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, previous_form: Optional[TableDataForm] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="qubit_measure", uuid=uuid, previous_form=previous_form)
         self._context["enumerate"] = enumerate

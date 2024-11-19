@@ -1,5 +1,5 @@
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 {% from 'components/form_group.jinja2' import form_group %}
-{% from "components/table_input.jinja2" import table_input %}
 {% from "components/legends.jinja2" import color_legend %}
 
 <div id="visium-reference-form-container" class="modal-content">
@@ -30,19 +30,10 @@
             </li>
         </ul>
         <div class="tab-content" id="visium-reference-form">
-            {{ form.csrf_token() }}
             {{ form_group(form.instructions) }}
 
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
-                <div id="spreadsheet-grid" class="spreadsheet-grid">
-                    <div class="invalid-feedback-container">
-                        {% if not disabled %}
-                        {% for error in form.spreadsheet_dummy.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                        {% endif %}
-                    </div>
-                </div>
+                {{ spreadsheet_input(element=form.spreadsheet) }}
             </div>
 
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
@@ -70,7 +61,7 @@
             {{ form.uuid }}
         </div>
         <div class="footer-info">
-            {{ color_legend(colors) }}
+            {{ color_legend(form.spreadsheet.colors) }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
@@ -82,50 +73,16 @@
         $(document).ready(function() {
             init_tooltips();
 
-            $(".example-tab-btn, .help-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-            });
-            $("#file-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-                $("#submit-file-form-btn").show();
-            });
-            $("#spreadsheet-tab-btn").on("click", function() {
-                $(".submit-form-btn").hide();
-                $("#submit-spreadsheet-btn").show();
-            });
-
-            var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
-            const csrf_token = "{{ form.csrf_token._value() }}";
-
-            var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
-                data: data,
-                columns: [
-                    {% for col in columns %}
-                    {%- if col.type == "text" or col.type == "numeric" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                    {%- elif col["type"] == "dropdown" -%}
-                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                    {%- endif -%}
-                    {% endfor %}
-                ],
-                allowInsertRow: false,
-                allowManualInsertRow: false,
-                allowDeleteRow: false,
-                allowDeleteColumn: false,
-                allowInsertColumn: false,
-                style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
-            });
-
             $("#submit-spreadsheet-btn").on("click", function() {
                 var data = spread_sheet.getData();
 
-                htmx.ajax("POST", "{{ url_for('library_annotation_workflow.parse_visium_reference', seq_request_id=seq_request.id, input_type='spreadsheet', uuid=form.uuid) }}", {
+                htmx.ajax("POST", "{{ form.spreadsheet.post_url }}", {
                     "target": "#visium-reference-form-container",
                     "swap": "outerHTML",
                     "values": {
                         "spreadsheet": JSON.stringify(data),
-                        "csrf_token": csrf_token,
-                        "feature_kit-csrf_token": csrf_token,
+                        "csrf_token": "{{ form.csrf_token}}",
+                        "feature_kit-csrf_token": "{{ form.csrf_token}}",
                         "instructions": $("#instructions").val(),
                     },
                 });

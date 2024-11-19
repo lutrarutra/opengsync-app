@@ -25,6 +25,12 @@
                 aria-controls="sample-tab" aria-selected="false">
                 Samples ({{ sample_table.shape[0] if sample_table is not none else "0" }})</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if pool_table is none %}disabled{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#pool-tab" type="button" role="tab"
+                aria-controls="pool-tab" aria-selected="false">
+                Pools ({{ pool_table.shape[0] if pool_table is not none else "0" }})</button>
+            </li>
             <li class="nav-item" role="presentation"
             {% if feature_table is none %}{{ tooltip("No antibody feature libraries detected.", category="warning") }}{% endif %}>
                 <button class="nav-link {% if feature_table is none %}disabled{% endif %}" data-bs-toggle="tab"
@@ -62,12 +68,12 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th scope="col" class="col-1">Library Name</th>
-                            <th scope="col" class="col-1">Library Type</th>
-                            {% if "pool" in library_table %}
+                            <th scope="col" class="col-2">Library Name</th>
+                            <th scope="col" class="col-2">Library Type</th>
+                            {% if "pool" in library_table.columns %}
                             <th scope="col" class="col-2">Pool</th>
                             {% endif %}
-                            {% if "index_i7_sequences" in library_table %}
+                            {% if barcode_table is not none %}
                             <th scope="col" class="col-6">
                                 Barcode
                                 <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -85,27 +91,19 @@
                             <th scope="row">{{ row["library_name"] }}</th>
                             <td>{{ row["library_type"] }}</td>
                             {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
-                            {% if "index_i7_sequences" in library_table %}
+                            {% if barcode_table is not none %}
                             <td class="barcode-cell">
-                                {% set seq_i7s = row["index_i7_sequences"].split(";") %}
-                                {% set seq_i5s = row["index_i5_sequences"].split(";") if row["index_i5_sequences"] else [] %}
-                                {% for i in range(seq_i7s | length) %}
-                                {% set sequence_i7 = seq_i7s[i] %}
-                                {% if i < seq_i5s | length %}
-                                {% set sequence_i5 = seq_i5s[i] %}
-                                {% else %}
-                                {% set sequence_i5 = null %}
-                                {% endif %}
-                                {% if notna(row["index_i7_name"]) %}
-                                    {% if row["index_i7_name"] == row["index_i5_name"] or isna(row["index_i5_name"]) %}
-                                    <span class="badge index-badges" >{{ row["index_i7_name"] }}</span>
+                                {% for _, barcode_row in barcode_table[barcode_table["library_name"] == row["library_name"]].iterrows() %}
+                                {% if notna(barcode_row["name_i7"]) %}
+                                    {% if barcode_row["name_i7"] == barcode_row["name_i5"] or isna(barcode_row["name_i5"]) %}
+                                    <span class="badge index-badges" >{{ barcode_row["name_i7"] }}</span>
                                     {% else %}
-                                    <span class="badge index-badges" >{{ row["index_i7_name"] }}+{{ row["index_i5_name"] }}</span>
+                                    <span class="badge index-badges" >{{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}</span>
                                     {% endif %}
                                 {% else %}
-                                <span class="badge index-badges">{{ sequence_i7 }}{% if sequence_i5 %}+{{ sequence_i5 }}{% endif %}</span>
+                                <span class="badge index-badges">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
                                 {% endif %}
-                                <span class="badge index-badges" style="display: none;">{{ sequence_i7 }}{% if sequence_i5 %}+{{ sequence_i5 }}{% endif %}</span>
+                                <span class="badge index-badges" style="display: none;">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
                                 {% endfor %}
                             </td>
                             {% endif %}
@@ -156,7 +154,29 @@
                     </tbody>
                 </table>
             </div>
-            <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="3">
+            <div class="tab-pane fade" id="pool-tab" role="tabpanel" tabindex="3">
+                {% if pool_table is not none %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-8">Name</th>
+                            <th scope="col" class="col-2"># M. Reads Requested</th>
+                            <th scope="col" class="col-2"># Libraries</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for idx, row in pool_table.iterrows() %}
+                        <tr>
+                            <th scope="row">{{ row["pool_name"] }}</th>
+                            <td>{{ row["num_m_reads_requested"] }}</td>
+                            <td>{{ library_table[library_table["pool"] == row["pool_label"]] | length }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="4">
                 {% if feature_table is not none %}
                 <table class="table table-hover">
                     <thead>
@@ -188,7 +208,7 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="4">
+            <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="5">
                 {% if cmo_table is not none %}
                 <table class="table table-hover">
                     <thead>
@@ -218,7 +238,7 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="5">
+            <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="6">
                 {% if visium_table is not none %}
                 <table class="table table-hover">
                     <thead>
@@ -242,7 +262,7 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="flex-tab" role="tabpanel" tabindex="6">
+            <div class="tab-pane fade" id="flex-tab" role="tabpanel" tabindex="7">
                 {% if flex_table is not none %}
                 <table class="table table-hover">
                     <thead>
@@ -325,7 +345,7 @@
                         .text("Sample");
 
                     svg.append("text")
-                        .attr("x", dx * 2 {%- if "pool" in library_table.columns -%} -50 {%- endif -%})
+                        .attr("x", dx * 2 {%- if "pool" not in library_table.columns -%} -30 {%- endif -%})
                         .attr("y", -margin.top * 0.5)
                         .attr("text-anchor", "middle")
                         .style("font-size", "22px")

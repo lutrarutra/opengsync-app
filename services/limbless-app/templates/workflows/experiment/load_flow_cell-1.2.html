@@ -8,10 +8,10 @@
     </div>
     <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
         <div id="pool-dilution-form">
-            {{ load_flow_cell_form.csrf_token() }}
+            {{ form.csrf_token() }}
             <div class="row">
-                {{ form_group(load_flow_cell_form.target_molarity, class="col-6 target_molarity-col", unit="nM") }}
-                {{ form_group(load_flow_cell_form.measured_qubit, class="col-6 measured_qubit-col", unit="ng/μL") }}
+                {{ form_group(form.target_molarity, class="col-6 target_molarity-col", unit="nM") }}
+                {{ form_group(form.measured_qubit, class="col-6 measured_qubit-col", unit="ng/μL") }}
             </div>
             <div class="row">
                 {{ metadata_group("Avg. Fragment Size", avg_fragment_size, "col-4 avg_fragment_size-col", unit="bp") }}
@@ -19,7 +19,7 @@
                 {{ metadata_group("Sequencing Molarity", '%0.2f' % sequencing_molarity if sequencing_molarity, "sequencing_molarity-col col-4", unit="nM") }}
             </div>
             <div class="row">
-                {{ form_group(load_flow_cell_form.total_volume_ul, class="col-4 total_volume_ul-col", unit="μL") }}
+                {{ form_group(form.total_volume_ul, class="col-4 total_volume_ul-col", unit="μL") }}
                 {{ metadata_group("Library Volume", '%0.2f' % library_volume if library_volume, "library_volume-col col-4", unit="μL") }}
                 {{ metadata_group("EB Volume", '%0.2f' % eb_volume if eb_volume, "eb_volume-col col-4", unit="μL") }}
             </div>

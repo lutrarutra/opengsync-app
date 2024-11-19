@@ -25,7 +25,6 @@ class PlateSubForm(FlaskForm):
 
 class BarcodeInputForm(HTMXFlaskForm):
     _template_path = "workflows/library_indexing/indexing-1.html"
-    _form_label = "library_indexing_form"
     
     columns = {
         "library_id": SpreadSheetColumn("A", "library_id", "ID", "numeric", 50, int),
@@ -44,8 +43,6 @@ class BarcodeInputForm(HTMXFlaskForm):
     _required_columns: list[str] = [col.name for col in columns.values()]
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
 
         self.lab_prep = lab_prep

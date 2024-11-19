@@ -1,22 +1,17 @@
-import os
-from typing import Optional, Literal
-from uuid import uuid4
-from pathlib import Path
+from typing import Optional
 
 import pandas as pd
-import numpy as np
 
-from flask_wtf.file import FileField, FileAllowed
-from wtforms import SelectField, TextAreaField, StringField
-from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
-from flask import Response
-from werkzeug.utils import secure_filename
+from wtforms import TextAreaField
+from wtforms.validators import DataRequired, Length
+from flask import Response, url_for
 
 from limbless_db import models
 from limbless_db.categories import LibraryType
 
-from .... import logger, tools
+from .... import logger # noqa
 from ....tools import SpreadSheetColumn
+from ...SpreadsheetInput import SpreadsheetInput
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...TableDataForm import TableDataForm
 from .FRPAnnotationForm import FRPAnnotationForm
@@ -32,37 +27,22 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
         "slide": SpreadSheetColumn("C", "slide", "Slide", "text", 170, str),
         "area": SpreadSheetColumn("D", "area", "Area", "text", 170, str),
     }
-    _mapping: dict[str, str] = dict([(col.name, col.label) for col in columns.values()])
-    _required_columns: list[str] = [col.name for col in columns.values()]
 
-    _allowed_extensions: list[tuple[str, str]] = [
-        ("tsv", "Tab-separated"),
-        ("csv", "Comma-separated")
-    ]
-
-    colors = {
-        "missing_value": "#FAD7A0",
-        "invalid_value": "#F5B7B1",
-        "duplicate_value": "#D7BDE2",
-        "invalid_input": "#AED6F1"
-    }
-
-    separator = SelectField(choices=_allowed_extensions, default="tsv", coerce=str)
-    file = FileField(validators=[FileAllowed([ext for ext, _ in _allowed_extensions])])
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
-    # TODO: proper spreadsheet
-    spreadsheet_dummy = StringField(validators=[OptionalValidator()])
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}, input_type: Optional[Literal["spreadsheet", "file"]] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[TableDataForm] = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
-        self.input_type = input_type
         self.seq_request = seq_request
-        self._context["columns"] = VisiumAnnotationForm.columns.values()
         self._context["seq_request"] = seq_request
-        self._context["active_tab"] = "help"
-        self._context["colors"] = VisiumAnnotationForm.colors
-        self.spreadsheet_style = dict()
+
+        if (csrf_token := formdata.get("csrf_token")) is None:
+            csrf_token = self.csrf_token._value()  # type: ignore
+        self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
+            columns=VisiumAnnotationForm.columns, csrf_token=csrf_token,
+            post_url=url_for('library_annotation_workflow.parse_visium_reference', seq_request_id=seq_request.id, uuid=self.uuid),
+            formdata=formdata, allow_new_rows=True
+        )
 
     def get_template(self) -> pd.DataFrame:
         library_table: pd.DataFrame = self.tables["library_table"]
@@ -75,162 +55,46 @@ class VisiumAnnotationForm(HTMXFlaskForm, TableDataForm):
 
         return df
 
-    def prepare(self):
-        self._context["spreadsheet_data"] = self.get_template().replace(np.nan, "").values.tolist()
-
     def validate(self) -> bool:
-        validated = super().validate()
-        self.visium_table = None
-
-        if self.input_type is None:
-            logger.error("Input type not specified in constructor.")
-            raise Exception("Input type not specified in constructor.")
-        
-        self._context["active_tab"] = self.input_type
-        
-        if self.input_type == "file":
-            if self.file.data is None:
-                self.file.errors = ("Upload a file.",)
-                return False
-            
-        if self.input_type == "file":
-            filename = f"{Path(self.file.data.filename).stem}_{uuid4()}.{self.file.data.filename.split('.')[-1]}"
-            filename = secure_filename(filename)
-            filepath = os.path.join("uploads", "seq_request", filename)
-            self.file.data.save(filepath)
-
-            sep = "\t" if self.separator.data == "tsv" else ","
-
-            try:
-                self.visium_table = pd.read_csv(filepath, sep=sep, index_col=False, header=0)
-                validated = True
-            except pd.errors.ParserError as e:
-                self.file.errors = (str(e),)
-                validated = False
-            finally:
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-
-            if not validated or self.visium_table is None:
-                return False
-            
-            missing = []
-            for col in VisiumAnnotationForm._required_columns:
-                if col not in self.visium_table.columns:
-                    missing.append(col)
-            
-                if len(missing) > 0:
-                    self.file.errors = (f"Missing column(s): [{', '.join(missing)}]",)
-                    return False
-                
-            self.visium_table = self.visium_table.rename(columns=VisiumAnnotationForm._mapping)
-            self.visium_table = self.visium_table.replace(r'^\s*$', None, regex=True)
-            self.visium_table = self.visium_table.dropna(how="all")
-
-            if len(self.visium_table) == 0:
-                self.file.errors = ("File is empty.",)
-                return False
-            
-            if os.path.exists(filepath):
-                os.remove(filepath)
-
-        elif self.input_type == "spreadsheet":
-            import json
-            data = json.loads(self.formdata["spreadsheet"])  # type: ignore
-            try:
-                self.visium_table = pd.DataFrame(data)
-            except ValueError as e:
-                self.spreadsheet_dummy.errors = (str(e),)
-                return False
-            
-            columns = list(VisiumAnnotationForm.columns.keys())
-            if len(self.visium_table.columns) != len(columns):
-                self.spreadsheet_dummy.errors = (f"Invalid number of columns (expected {len(columns)}). Do not insert new columns or rearrange existing columns.",)
-                return False
-            
-            self.visium_table.columns = columns
-            self.visium_table = self.visium_table.replace(r'^\s*$', None, regex=True)
-            self.visium_table = self.visium_table.dropna(how="all")
-
-            if len(self.visium_table) == 0:
-                self.spreadsheet_dummy.errors = ("Please fill-out spreadsheet or upload a file.",)
-                return False
-            
-        if self.visium_table is None:
+        if not super().validate():
             return False
-        
+
+        if not self.spreadsheet.validate():
+            return False
+    
+        df = self.spreadsheet.df
         library_table: pd.DataFrame = self.tables["library_table"]
 
-        self.file.errors = []
-        self.spreadsheet_dummy.errors = []
-
-        self.visium_table["library_name"] = self.visium_table["library_name"].apply(lambda x: tools.make_alpha_numeric(x))
-
-        for i, (idx, row) in enumerate(self.visium_table.iterrows()):
+        for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["library_name"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Library Name' is missing.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Library Name' is missing.")
-                    self.spreadsheet_style[f"{VisiumAnnotationForm.columns['library_name'].column}{i + 1}"] = f"background-color: {VisiumAnnotationForm.colors['missing_value']};"
+                self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is missing.", "missing_value")
+
             elif row["library_name"] not in library_table["library_name"].values:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Library Name' is not found in the library table.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Library Name' is not found in the library table.")
-                    self.spreadsheet_style[f"{VisiumAnnotationForm.columns['library_name'].column}{i + 1}"] = f"background-color: {VisiumAnnotationForm.colors['invalid_value']};"
-            elif (self.visium_table["library_name"] == row["library_name"]).sum() > 1:
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Library Name' is a duplicate.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Library Name' is a duplicate.")
-                    self.spreadsheet_style[f"{VisiumAnnotationForm.columns['library_name'].column}{i + 1}"] = f"background-color: {VisiumAnnotationForm.colors['duplicate_value']};"
+                self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is not found in the library table.", "invalid_value")
+            elif (df["library_name"] == row["library_name"]).sum() > 1:
+                self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is a duplicate.", "duplicate_value")
             else:
                 if (library_table[library_table["library_name"] == row["library_name"]]["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
-                    if self.input_type == "file":
-                        self.file.errors.append(f"Row {i + 1}: 'Library Name' is not a Spatial Transcriptomic library.")
-                    else:
-                        self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Library Name' is not a Spatial Transcriptomic library.")
-                        self.spreadsheet_style[f"{VisiumAnnotationForm.columns['library_name'].column}{i + 1}"] = f"background-color: {VisiumAnnotationForm.colors['invalid_value']};"
+                    self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is not a Spatial Transcriptomic library.", "invalid_value")
 
             if pd.isna(row["image"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Image' is missing.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Image' is missing.")
-                    self.spreadsheet_style[f"{VisiumAnnotationForm.columns['image'].column}{i + 1}"] = f"background-color: {VisiumAnnotationForm.colors['missing_value']};"
+                self.spreadsheet.add_error(i + 1, "image", "'Image' is missing.", "missing_value")
+
             if pd.isna(row["slide"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Slide' is missing.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Slide' is missing.")
-                    self.spreadsheet_style[f"{VisiumAnnotationForm.columns['slide'].column}{i + 1}"] = f"background-color: {VisiumAnnotationForm.colors['missing_value']};"
+                self.spreadsheet.add_error(i + 1, "slide", "'Slide' is missing.", "missing_value")
+
             if pd.isna(row["area"]):
-                if self.input_type == "file":
-                    self.file.errors.append(f"Row {i + 1}: 'Area' is missing.")
-                else:
-                    self.spreadsheet_dummy.errors.append(f"Row {i + 1}: 'Area' is missing.")
-                    self.spreadsheet_style[f"{VisiumAnnotationForm.columns['area'].column}{i + 1}"] = f"background-color: {VisiumAnnotationForm.colors['missing_value']};"
+                self.spreadsheet.add_error(i + 1, "area", "'Area' is missing.", "missing_value")
             
-        if self.input_type == "file":
-            validated = validated and len(self.file.errors) == 0
-        elif self.input_type == "spreadsheet":
-            validated = validated and (len(self.spreadsheet_dummy.errors) == 0 and len(self.spreadsheet_style) == 0)
-        return validated
+        if len(self.spreadsheet._errors) > 0:
+            return False
+        
+        self.visium_table = df
+        return True
     
     def process_request(self) -> Response:
         if not self.validate():
-            if self.input_type == "spreadsheet":
-                self._context["spreadsheet_style"] = self.spreadsheet_style
-                if self.visium_table is not None:
-                    self._context["spreadsheet_data"] = self.visium_table.replace(np.nan, "").values.tolist()
-                    if self._context["spreadsheet_data"] == []:
-                        self.prepare()
             return self.make_response()
-        
-        if self.visium_table is None:
-            logger.error(f"{self.uuid}: Visium table is None.")
-            raise Exception("Visium table is None.")
         
         library_table = self.tables["library_table"]
 

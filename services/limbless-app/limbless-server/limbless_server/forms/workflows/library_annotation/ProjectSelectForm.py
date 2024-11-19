@@ -9,10 +9,10 @@ from limbless_db import models
 from .... import db, logger  # noqa F401
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
+from ...TableDataForm import TableDataForm
 from .LibraryAnnotationForm import LibraryAnnotationForm
 from .SpecifyAssayForm import SpecifyAssayForm
-from ...TableDataForm import TableDataForm
-from .PoolDefinitionForm import PoolDefinitionForm
+from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 
 class ProjectSelectForm(HTMXFlaskForm, TableDataForm):
@@ -85,7 +85,7 @@ class ProjectSelectForm(HTMXFlaskForm, TableDataForm):
         if self.workflow_type == "tech":
             form = SpecifyAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         elif self.workflow_type == "pooled":
-            form = PoolDefinitionForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         else:
             form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         

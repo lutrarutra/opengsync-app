@@ -26,6 +26,7 @@
                 halt the event
                 call Swal.fire({
                     title: 'Remove all libraries from pool \'{{ pool.name }}\'',
+                    icon: 'question',
                     showDenyButton: true,
                     text: 'Proceed?',
                     confirmButtonText: 'Yes',
@@ -33,6 +34,22 @@
                 })
                 if result.isConfirmed issueRequest()"
                 {% if not is_editable %}disabled{% endif %}>Remove Libraries</button>
+            </span>
+            <span {% if pool.libraries | length > 0 %} {{ tooltip("You can only delete empty pools", "left", "warning") }} {% endif %}>
+                <button type="button" class="btn btn-danger"
+                hx-delete="{{ url_for('pools_htmx.delete', pool_id=pool.id) }}"
+                _="on htmx:confirm(issueRequest)
+                halt the event
+                call Swal.fire({
+                    title: 'Delete Pool \'{{ pool.name }}\'',
+                    icon: 'question',
+                    showDenyButton: true,
+                    text: 'Proceed?',
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'No'
+                })
+                if result.isConfirmed issueRequest()"
+                {% if pool.libraries | length > 0 %}disabled{% endif %}>Delete Pool</button>
             </span>
         </div>
     </div>

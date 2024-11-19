@@ -15,16 +15,15 @@ from ..TableDataForm import TableDataForm
 
 class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
     _template_path = "workflows/plate_samples/plate-1.html"
-    _form_label = "plate_samples_form"
 
     plate_order = StringField()
     plate_name = StringField("Plate Name", validators=[DataRequired(), Length(min=3, max=models.Plate.name.type.length)])
     plate_size = SelectField("Plate Size", choices=[("12x8", "12x8")], default="12x8")
     error_dummy = StringField()
 
-    def __init__(self, formdata: dict = {}, context: dict = {}):
+    def __init__(self, uuid: str, formdata: dict = {}, context: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        TableDataForm.__init__(self, dirname="plate_samples", uuid=formdata.get("file_uuid"))
+        TableDataForm.__init__(self, dirname="plate_samples", uuid=uuid)
         self._context["url_context"] = {}
 
         self.plate = None
@@ -59,7 +58,7 @@ class PlateSamplesForm(HTMXFlaskForm, TableDataForm):
         self.samples: list[tuple[models.Sample | models.Library, int]] = []
         if (plate_order := self.plate_order.data) is not None:
             if not self.plate_name.data:
-                self.error.errors = ["Plate name is required"]
+                self.error_dummy.errors = ["Plate name is required"]
                 return False
 
             plate_order = json.loads(plate_order)

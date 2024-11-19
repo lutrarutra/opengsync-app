@@ -41,8 +41,6 @@ class CompleteBAReportForm(HTMXFlaskForm, TableDataForm):
     file = FileField("Bio Analyzer Report", validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])], description="Report exported from the BioAnalyzer software (pdf).")
 
     def __init__(self, formdata: dict = {}, uuid: Optional[str] = None, max_size_mbytes: int = 5):
-        if uuid is None:
-            uuid = formdata.get("file_uuid")
         HTMXFlaskForm.__init__(self, formdata=formdata)
         TableDataForm.__init__(self, dirname="ba_report", uuid=uuid)
         self.max_size_mbytes = max_size_mbytes

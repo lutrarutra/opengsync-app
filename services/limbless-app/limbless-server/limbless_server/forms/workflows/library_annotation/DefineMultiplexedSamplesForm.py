@@ -135,7 +135,7 @@ class DefineMultiplexedSamplesForm(HTMXFlaskForm, TableDataForm):
             "library_name": [],
         }
 
-        def add_library(ssample_pool: str, library_type: LibraryTypeEnum, genome: GenomeRefEnum):
+        def add_library(sample_pool: str, library_type: LibraryTypeEnum, genome: GenomeRefEnum):
             library_name = f"{sample_pool}_{library_type.identifier}"
             
             library_table_data["library_name"].append(library_name)
@@ -153,6 +153,9 @@ class DefineMultiplexedSamplesForm(HTMXFlaskForm, TableDataForm):
             
             if self.antibody_capture:
                 add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE, genome)
+
+            if self.antibody_multiplexing:
+                add_library(sample_pool, LibraryType.TENX_MULTIPLEXING_CAPTURE, genome)
 
             if self.vdj_b:
                 add_library(sample_pool, LibraryType.TENX_VDJ_B, genome)
@@ -172,6 +175,9 @@ class DefineMultiplexedSamplesForm(HTMXFlaskForm, TableDataForm):
                 for library_type in self.assay_type.library_types:
                     pooling_table["sample_name"].append(sample_name)
                     pooling_table["library_name"].append(f"{sample_pool}_{library_type.identifier}")
+                if self.antibody_multiplexing:
+                    pooling_table["sample_name"].append(sample_name)
+                    pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_MULTIPLEXING_CAPTURE.identifier}")
                 if self.antibody_capture:
                     pooling_table["sample_name"].append(sample_name)
                     pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_ANTIBODY_CAPTURE.identifier}")
@@ -221,6 +227,6 @@ class DefineMultiplexedSamplesForm(HTMXFlaskForm, TableDataForm):
             visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
-    
+        
         sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()

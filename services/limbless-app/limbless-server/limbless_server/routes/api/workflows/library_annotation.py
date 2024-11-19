@@ -1,8 +1,6 @@
 import os
 from typing import TYPE_CHECKING, Literal
 
-import pandas as pd
-
 from flask import Blueprint, request, abort, send_file, current_app, Response
 from flask_login import login_required
 
@@ -18,25 +16,6 @@ else:
     from flask_login import current_user
 
 library_annotation_workflow = Blueprint("library_annotation_workflow", __name__, url_prefix="/api/workflows/library_annotation/")
-
-
-# Template sample annotation sheet
-@library_annotation_workflow.route("download_template/<string:file>", methods=["GET"])
-@login_required
-def download_template(file: str):
-    if file == "cmo":
-        df = pd.DataFrame(columns=list(forms.CMOReferenceInputForm._mapping.keys()))
-        name = "cmo_reference.tsv"
-    elif file == "feature":
-        df = pd.DataFrame(columns=list(forms.FeatureReferenceInputForm._mapping.keys()))
-        name = "feature_reference.tsv"
-    else:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    return Response(
-        df.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": f"attachment; filename={name}"}
-    )
 
 
 # Template sample annotation sheet
@@ -115,27 +94,37 @@ def select_project(seq_request_id: int, workflow_type: str):
     
 
 # 1.2 Pool Definition
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/define_pool", methods=["POST", "GET"])
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/define_pools", methods=["POST", "GET"])
 @db_session(db)
 @login_required
-def define_pool(seq_request_id: int, uuid: str):
+def define_pools(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
-        return forms.PoolDefinitionForm(uuid=uuid, seq_request=seq_request).make_response()
+        return forms.PoolMappingForm(uuid=uuid, seq_request=seq_request).make_response()
     
-    return forms.PoolDefinitionForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request(user=current_user)
+    return forms.PoolMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request(user=current_user)
 
 
-# 1.3 Index Kit Selection
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/select_index_kits", methods=["POST"])
+# 1.2. Specify Barcodes
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_barcode_table", methods=["POST"])
 @login_required
-def select_index_kits(seq_request_id: int, uuid: str):
+def parse_barcode_table(seq_request_id: int, uuid: str):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    return forms.BarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+
+# 1.3 Index Kit Mapping
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/map_index_kits", methods=["POST"])
+@login_required
+def map_index_kits(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.IndexKitSelectForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+    return forms.IndexKitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_assay_form", methods=["POST"])
@@ -163,9 +152,7 @@ def parse_table(seq_request_id: int, uuid: str, form_type: Literal["pooled", "ra
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if form_type == "pooled":
-        if (index_spec := request.args.get("index_spec")) is None:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        form = forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, index_specification_type=index_spec, formdata=request.form)
+        form = forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
     elif form_type == "raw":
         form = forms.LibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
     elif form_type == "tech":
@@ -197,16 +184,13 @@ def map_libraries(seq_request_id: int, uuid: str):
 
 
 # 6. Specify CMO reference
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_cmo_reference/<string:input_type>", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_cmo_reference", methods=["POST"])
 @login_required
-def parse_cmo_reference(seq_request_id: int, uuid: str, input_type: Literal["spreadsheet", "file"]):
+def parse_cmo_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if input_type not in ["spreadsheet", "file"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    return forms.CMOReferenceInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
+    return forms.CMOReferenceInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 7. Specify Features
@@ -235,27 +219,21 @@ def map_feature_kits(seq_request_id: int, uuid: str):
 # 9. Visium Annotation
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_visium_reference/<string:input_type>", methods=["POST"])
 @login_required
-def parse_visium_reference(seq_request_id: int, uuid: str, input_type: Literal["spreadsheet", "file"]):
+def parse_visium_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if input_type not in ["spreadsheet", "file"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    return forms.VisiumAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
+    return forms.VisiumAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 10. Fixed RNA Profiling Annotation
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_frp_annotation/<string:input_type>", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_frp_annotation", methods=["POST"])
 @login_required
-def parse_frp_annotation(seq_request_id: int, uuid: str, input_type: Literal["spreadsheet", "file"]):
+def parse_frp_annotation(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if input_type not in ["spreadsheet", "file"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    return forms.FRPAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
+    return forms.FRPAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 11. Parse sample annotations
@@ -275,4 +253,5 @@ def complete(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.CompleteSASForm(uuid=uuid, formdata=request.form, seq_request=seq_request).process_request(user=current_user)
+    form = forms.CompleteSASForm(uuid=uuid, formdata=request.form, seq_request=seq_request)
+    return form.process_request(user=current_user)
