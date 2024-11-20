@@ -7,7 +7,6 @@ from wtforms.validators import Optional as OptionalValidator, Length
 from limbless_db import models
 
 from .... import db, logger  # noqa F401
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import OptionalSearchBar
 from ...MultiStepForm import MultiStepForm
 from .LibraryAnnotationForm import LibraryAnnotationForm
@@ -15,16 +14,20 @@ from .SpecifyAssayForm import SpecifyAssayForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 
-class ProjectSelectForm(HTMXFlaskForm, MultiStepForm):
+class ProjectSelectForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-1.1.html"
+    _workflow_name = "library_annotation"
+    _step_name = "project_select"
 
     existing_project = FormField(OptionalSearchBar, label="Select Existing Project")
     new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.name.type.length)])
     project_description = TextAreaField("Project Description", validators=[OptionalValidator(), Length(max=models.Project.description.type.length)], description="New projects only: brief context/background of the project.")
 
-    def __init__(self, seq_request: models.SeqRequest, workflow_type: Literal["raw", "pooled", "tech"], formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, uuid=None, dirname="library_annotation")
+    def __init__(self, seq_request: models.SeqRequest, workflow_type: Literal["raw", "pooled", "tech"], formdata: dict = {}, uuid: Optional[str] = None):
+        MultiStepForm.__init__(
+            self, uuid=uuid, formdata=formdata, step_name=ProjectSelectForm._step_name,
+            workflow=ProjectSelectForm._workflow_name, step_args={"workflow_type": workflow_type}
+        )
         self.workflow_type = workflow_type
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -82,6 +85,8 @@ class ProjectSelectForm(HTMXFlaskForm, MultiStepForm):
         self.metadata["project_description"] = self.project_description.data
         self.update_data()
 
+        self.debug()
+
         if self.workflow_type == "tech":
             form = SpecifyAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         elif self.workflow_type == "pooled":
@@ -89,4 +94,5 @@ class ProjectSelectForm(HTMXFlaskForm, MultiStepForm):
         else:
             form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         
+        form.debug()
         return form.make_response()

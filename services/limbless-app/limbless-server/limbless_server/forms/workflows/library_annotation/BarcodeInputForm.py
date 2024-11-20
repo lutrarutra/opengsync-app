@@ -11,18 +11,19 @@ from .... import logger, tools, db  # noqa F401
 from ...MultiStepForm import MultiStepForm
 
 from ....tools import SpreadSheetColumn
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .IndexKitMappingForm import IndexKitMappingForm
-from .CMOReferenceInputForm import CMOReferenceInputForm
+from .CMOAnnotationForm import CMOAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FeatureReferenceInputForm import FeatureReferenceInputForm
+from .FeatureAnnotationForm import FeatureAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .SampleAnnotationForm import SampleAnnotationForm
+from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
-class BarcodeInputForm(HTMXFlaskForm, MultiStepForm):
+class BarcodeInputForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-barcode-input.html"
+    _workflow_name = "library_annotation"
+    _step_name = "barcode_input"
     
     columns = {
         "library_name": SpreadSheetColumn("A", "library_name", "Library Name", "text", 250, str),
@@ -39,8 +40,11 @@ class BarcodeInputForm(HTMXFlaskForm, MultiStepForm):
     _required_columns: list[str] = [col.name for col in columns.values()]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, uuid=uuid, formdata=formdata, workflow=BarcodeInputForm._workflow_name,
+            step_name=BarcodeInputForm._step_name, previous_form=previous_form,
+            step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
@@ -167,7 +171,7 @@ class BarcodeInputForm(HTMXFlaskForm, MultiStepForm):
         if self.library_table["library_type_id"].isin([
             LibraryType.TENX_MULTIPLEXING_CAPTURE.id,
         ]).any():
-            cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            cmo_reference_input_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
         
         if (self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
@@ -176,12 +180,12 @@ class BarcodeInputForm(HTMXFlaskForm, MultiStepForm):
             return visium_annotation_form.make_response()
         
         if (self.library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
-            feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return feature_reference_input_form.make_response()
         
         if LibraryType.TENX_SC_GEX_FLEX.id in self.library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return frp_annotation_form.make_response()
     
-        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()

@@ -13,15 +13,19 @@ from limbless_db.categories import PoolType, SeqRequestStatus, LibraryStatus
 
 from .... import logger, db, tools
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 
 
-class CompleteLibraryIndexingForm(HTMXFlaskForm, MultiStepForm):
+class CompleteLibraryIndexingForm(MultiStepForm):
     _template_path = "workflows/library_indexing/indexing-3.html"
+    _workflow_name = "library_indexing"
+    _step_name = "complete_library_indexing"
 
     def __init__(self, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_indexing", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=CompleteLibraryIndexingForm._workflow_name,
+            step_name=CompleteLibraryIndexingForm._step_name, uuid=uuid,
+            formdata=formdata, previous_form=previous_form, step_args={}
+        )
 
     def prepare(self):
         barcode_table = self.tables["barcode_table"]

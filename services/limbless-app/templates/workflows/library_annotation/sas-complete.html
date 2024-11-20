@@ -294,6 +294,11 @@
         <div class="footer-info">
         </div>
         <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#complete-sas-form-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+                Back
+            </button>
             <button class="btn btn-success" type="button" id="submit-spreadsheet-btn"
                 hx-include="#complete-sas-form" hx-target="#complete-sas-form-container" hx-swap="outerHTML"
                 hx-post="{{ url_for('library_annotation_workflow.complete', seq_request_id=seq_request.id, uuid=form.uuid) }}">

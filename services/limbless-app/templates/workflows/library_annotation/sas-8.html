@@ -25,6 +25,11 @@
             {{ form.uuid }}
         </div>
         <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#feature_kit-mapping-form-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+                Back
+            </button>
             <button type="button" class="btn btn-primary"
                 hx-target="#feature_kit-mapping-form-container" hx-swap="outerHTML"
                 hx-include="#feature_kit-mapping-form" id="submit-feature-kit-mapping-form-btn"

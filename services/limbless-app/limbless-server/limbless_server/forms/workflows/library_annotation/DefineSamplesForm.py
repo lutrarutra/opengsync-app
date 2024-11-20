@@ -9,16 +9,17 @@ from limbless_db.categories import AssayType, GenomeRef, LibraryType, LibraryTyp
 
 from .... import logger, db
 from ....tools import SpreadSheetColumn
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...MultiStepForm import MultiStepForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FeatureReferenceInputForm import FeatureReferenceInputForm
-from .SampleAnnotationForm import SampleAnnotationForm
+from .FeatureAnnotationForm import FeatureAnnotationForm
+from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class DefineSamplesForm(HTMXFlaskForm, MultiStepForm):
+class DefineSamplesForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.1.html"
+    _workflow_name = "library_annotation"
+    _step_name = "define_samples"
 
     columns = {
         "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
@@ -26,8 +27,10 @@ class DefineSamplesForm(HTMXFlaskForm, MultiStepForm):
     }
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        super().__init__(formdata=formdata)
-        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, uuid=uuid, formdata=formdata, workflow=DefineSamplesForm._workflow_name,
+            step_name=DefineSamplesForm._step_name, previous_form=previous_form, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
@@ -190,7 +193,7 @@ class DefineSamplesForm(HTMXFlaskForm, MultiStepForm):
         self.update_data()
 
         if (library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
-            feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return feature_reference_input_form.make_response()
         
         if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
@@ -198,5 +201,5 @@ class DefineSamplesForm(HTMXFlaskForm, MultiStepForm):
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
     
-        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()

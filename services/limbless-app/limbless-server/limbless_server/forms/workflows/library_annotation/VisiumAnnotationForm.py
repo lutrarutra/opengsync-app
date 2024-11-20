@@ -12,14 +12,15 @@ from limbless_db.categories import LibraryType
 from .... import logger # noqa
 from ....tools import SpreadSheetColumn
 from ...SpreadsheetInput import SpreadsheetInput
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...MultiStepForm import MultiStepForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .SampleAnnotationForm import SampleAnnotationForm
+from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
-class VisiumAnnotationForm(HTMXFlaskForm, MultiStepForm):
+class VisiumAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-9.html"
+    _workflow_name = "library_annotation"
+    _step_name = "visium_annotation"
 
     columns = {
         "library_name": SpreadSheetColumn("A", "library_name", "Library Name", "text", 170, str),
@@ -31,8 +32,10 @@ class VisiumAnnotationForm(HTMXFlaskForm, MultiStepForm):
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=VisiumAnnotationForm._workflow_name, step_name=VisiumAnnotationForm._step_name,
+            uuid=uuid, previous_form=previous_form, formdata=formdata, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
@@ -121,6 +124,6 @@ class VisiumAnnotationForm(HTMXFlaskForm, MultiStepForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
         
-        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()
  

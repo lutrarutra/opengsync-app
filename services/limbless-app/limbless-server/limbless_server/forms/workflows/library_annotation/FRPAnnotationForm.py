@@ -9,14 +9,15 @@ from limbless_db.categories import LibraryType
 
 from .... import logger, tools
 from ....tools import SpreadSheetColumn
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
-from .SampleAnnotationForm import SampleAnnotationForm
+from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
-class FRPAnnotationForm(HTMXFlaskForm, MultiStepForm):
+class FRPAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-10.html"
+    _workflow_name = "library_annotation"
+    _step_name = "frp_annotation"
 
     columns = {
         "sample_name": SpreadSheetColumn("A", "sample_name", "Library Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -25,8 +26,10 @@ class FRPAnnotationForm(HTMXFlaskForm, MultiStepForm):
     }
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=FRPAnnotationForm._workflow_name, step_name=FRPAnnotationForm._step_name,
+            uuid=uuid, formdata=formdata, previous_form=previous_form, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         if (csrf_token := formdata.get("csrf_token")) is None:
@@ -91,5 +94,5 @@ class FRPAnnotationForm(HTMXFlaskForm, MultiStepForm):
         self.add_table("flex_table", self.flex_table)
         self.update_data()
         
-        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()

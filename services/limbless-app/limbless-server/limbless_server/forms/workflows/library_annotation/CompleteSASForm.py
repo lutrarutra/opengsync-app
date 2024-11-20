@@ -1,5 +1,4 @@
 import os
-import shutil
 from typing import Optional
 
 import pandas as pd
@@ -12,15 +11,18 @@ from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 
 
-class CompleteSASForm(HTMXFlaskForm, MultiStepForm):
+class CompleteSASForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-complete.html"
+    _workflow_name = "library_annotation"
+    _step_name = "complete_sas"
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=CompleteSASForm._workflow_name, step_name=CompleteSASForm._step_name,
+            uuid=uuid, formdata=formdata, previous_form=previous_form, step_args={}
+        )
         
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -111,7 +113,7 @@ class CompleteSASForm(HTMXFlaskForm, MultiStepForm):
                     links.append({
                         "source": library_node["node"],
                         "target": pool_node["node"],
-                        "value": LINK_WIDTH_UNIT * len(_df),
+                        "value": LINK_WIDTH_UNIT * len(self.pooling_table[self.pooling_table["library_name"] == row["library_name"]]),
                     })
 
         self._context["nodes"] = nodes
@@ -253,6 +255,9 @@ class CompleteSASForm(HTMXFlaskForm, MultiStepForm):
                 self.library_table.at[idx, "library_id"] = library.id
                 
                 if self.metadata["workflow_type"] == "pooled":
+                    if self.barcode_table is None:
+                        logger.error(f"{self.uuid}: Barcode table not found.")
+                        raise ValueError("Barcode table not found.")
                     for _, barcode_row in self.barcode_table[self.barcode_table["library_name"] == library_row["library_name"]].iterrows():
                         library = session.add_library_index(
                             library_id=library.id,
@@ -329,7 +334,6 @@ class CompleteSASForm(HTMXFlaskForm, MultiStepForm):
 
         newdir = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LIBRARY_ANNOTATION.dir, str(self.seq_request.id))
         os.makedirs(newdir, exist_ok=True)
-        shutil.copy(self.path, os.path.join(newdir, f"{self.uuid}.tsv"))
-        os.remove(self.path)
+        self.complete(os.path.join(newdir, f"{self.uuid}.msf"))
 
         return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))

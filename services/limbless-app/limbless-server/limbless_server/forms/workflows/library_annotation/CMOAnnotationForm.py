@@ -10,17 +10,18 @@ from limbless_db.categories import LibraryType, FeatureType
 from .... import logger, tools  # noqa
 from ....tools import SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .KitMappingForm import KitMappingForm
-from .FeatureReferenceInputForm import FeatureReferenceInputForm
+from .FeatureAnnotationForm import FeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .SampleAnnotationForm import SampleAnnotationForm
+from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
-class CMOReferenceInputForm(HTMXFlaskForm, MultiStepForm):
+class CMOAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-6.html"
+    _workflow_name = "library_annotation"
+    _step_name = "cmo_annotation"
     columns = {
         "demux_name": SpreadSheetColumn("A", "demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         "sample_name": SpreadSheetColumn("B", "sample_name", "Sample Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -32,15 +33,17 @@ class CMOReferenceInputForm(HTMXFlaskForm, MultiStepForm):
     }
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=CMOAnnotationForm._workflow_name, step_name=CMOAnnotationForm._step_name,
+            uuid=uuid, formdata=formdata, previous_form=previous_form, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=CMOReferenceInputForm.columns, csrf_token=csrf_token,
+            columns=CMOAnnotationForm.columns, csrf_token=csrf_token,
             post_url=url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )
@@ -130,7 +133,7 @@ class CMOReferenceInputForm(HTMXFlaskForm, MultiStepForm):
         self.update_data()
 
         if (library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
-            feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return feature_reference_input_form.make_response()
 
         if kit_table["kit_id"].isna().any():
@@ -148,5 +151,5 @@ class CMOReferenceInputForm(HTMXFlaskForm, MultiStepForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
 
-        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()
