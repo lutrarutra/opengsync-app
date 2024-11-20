@@ -23,6 +23,8 @@ class SubForm(FlaskForm):
 
 class CompleteQubitMeasureForm(MultiStepForm):
     _template_path = "workflows/qubit_measure/qubit-1.html"
+    _workflow_name = "qubit_measure"
+    _step_name = "complete_qubit_measure"
 
     sample_fields = FieldList(FormField(SubForm), min_entries=0)
     library_fields = FieldList(FormField(SubForm), min_entries=0)
@@ -30,7 +32,11 @@ class CompleteQubitMeasureForm(MultiStepForm):
     lane_fields = FieldList(FormField(SubForm), min_entries=0)
 
     def __init__(self, uuid: str | None, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        MultiStepForm.__init__(self, dirname="qubit_measure", uuid=uuid, formdata=formdata, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=CompleteQubitMeasureForm._workflow_name,
+            step_name=CompleteQubitMeasureForm._step_name, uuid=uuid,
+            formdata=formdata, previous_form=previous_form, step_args={}
+        )
         self._context["enumerate"] = enumerate
         
     def prepare(self):

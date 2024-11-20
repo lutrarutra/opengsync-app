@@ -17,9 +17,15 @@ from ...MultiStepForm import MultiStepForm
 
 class CompleteLibraryIndexingForm(MultiStepForm):
     _template_path = "workflows/library_indexing/indexing-3.html"
+    _workflow_name = "library_indexing"
+    _step_name = "complete_library_indexing"
 
     def __init__(self, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        MultiStepForm.__init__(self, dirname="library_indexing", uuid=uuid, formdata=formdata, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=CompleteLibraryIndexingForm._workflow_name,
+            step_name=CompleteLibraryIndexingForm._step_name, uuid=uuid,
+            formdata=formdata, previous_form=previous_form, step_args={}
+        )
 
     def prepare(self):
         barcode_table = self.tables["barcode_table"]

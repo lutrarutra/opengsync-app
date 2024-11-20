@@ -14,11 +14,13 @@ from ...SpreadsheetInput import SpreadsheetInput
 from .KitMappingForm import KitMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .SampleAnnotationForm import SampleAnnotationForm
+from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
-class FeatureReferenceInputForm(MultiStepForm):
+class FeatureAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-7.html"
+    _workflow_name = "library_annotation"
+    _step_name = "feature_annotation"
 
     columns = {
         "library_name": SpreadSheetColumn("A", "library_name", "Library Name", "text", 170, str),
@@ -30,14 +32,18 @@ class FeatureReferenceInputForm(MultiStepForm):
     }
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, formdata=formdata, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=FeatureAnnotationForm._workflow_name,
+            step_name=FeatureAnnotationForm._step_name, uuid=uuid,
+            formdata=formdata, previous_form=previous_form, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=FeatureReferenceInputForm.columns, csrf_token=csrf_token,
+            columns=FeatureAnnotationForm.columns, csrf_token=csrf_token,
             post_url=url_for('library_annotation_workflow.select_feature_reference', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )
@@ -225,6 +231,6 @@ class FeatureReferenceInputForm(MultiStepForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
 
-        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()
         

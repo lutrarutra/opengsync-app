@@ -14,6 +14,8 @@ from ..MultiStepForm import MultiStepForm
 
 class PlateSamplesForm(MultiStepForm):
     _template_path = "workflows/plate_samples/plate-1.html"
+    _workflow_name = "plate_samples"
+    _step_name = "plate_samples"
 
     plate_order = StringField()
     plate_name = StringField("Plate Name", validators=[DataRequired(), Length(min=3, max=models.Plate.name.type.length)])
@@ -21,7 +23,11 @@ class PlateSamplesForm(MultiStepForm):
     error_dummy = StringField()
 
     def __init__(self, uuid: str | None, formdata: dict = {}, context: dict = {}):
-        MultiStepForm.__init__(self, dirname="plate_samples", uuid=uuid, formdata=formdata)
+        MultiStepForm.__init__(
+            self, uuid=uuid, workflow=PlateSamplesForm._workflow_name,
+            step_name=PlateSamplesForm._step_name, formdata=formdata,
+            step_args={}
+        )
         self._context["url_context"] = {}
 
         self.plate = None

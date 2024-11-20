@@ -11,11 +11,10 @@ from limbless_db.categories import LibraryType, FeatureType, KitType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...SearchBar import SearchBar
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .SampleAnnotationForm import SampleAnnotationForm
+from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
 class FeatureMappingSubForm(FlaskForm):
@@ -25,12 +24,16 @@ class FeatureMappingSubForm(FlaskForm):
 
 class KitMappingForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-8.html"
-
+    _workflow_name = "library_annotation"
+    _step_name = "kit_mapping"
+    
     input_fields = FieldList(FormField(FeatureMappingSubForm), min_entries=1)
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, workflow=KitMappingForm._workflow_name, step_name=KitMappingForm._step_name,
+            uuid=uuid, previous_form=previous_form, formdata=formdata, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
     
@@ -295,5 +298,5 @@ class KitMappingForm(MultiStepForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
 
-        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()

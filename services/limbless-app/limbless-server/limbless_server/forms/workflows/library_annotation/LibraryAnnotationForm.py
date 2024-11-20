@@ -9,20 +9,19 @@ from limbless_db.categories import LibraryType, GenomeRef
 
 from .... import logger, db
 from ....tools import SpreadSheetColumn, tools
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
-from .CMOReferenceInputForm import CMOReferenceInputForm
+from .CMOAnnotationForm import CMOAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .GenomeRefMappingForm import GenomeRefMappingForm
 from .FRPAnnotationForm import FRPAnnotationForm
-from .LibraryMappingForm import LibraryMappingForm
-from .SampleAnnotationForm import SampleAnnotationForm
-from .FeatureReferenceInputForm import FeatureReferenceInputForm
+from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .FeatureAnnotationForm import FeatureAnnotationForm
 
 
 class LibraryAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.raw.html"
+    _workflow_name = "library_annotation"
+    _step_name = "library_annotation"
 
     columns = {
         "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -32,8 +31,11 @@ class LibraryAnnotationForm(MultiStepForm):
     }
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, uuid=uuid, workflow=LibraryAnnotationForm._workflow_name,
+            step_name=LibraryAnnotationForm._step_name, previous_form=previous_form,
+            formdata=formdata, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         
@@ -185,21 +187,11 @@ class LibraryAnnotationForm(MultiStepForm):
         self.add_table("sample_table", sample_table)
         self.add_table("pooling_table", pooling_table)
         self.update_data()
-
-        if library_table["genome_id"].isna().any():
-            organism_mapping_form = GenomeRefMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            organism_mapping_form.prepare()
-            return organism_mapping_form.make_response()
-        
-        if library_table["library_type_id"].isna().any():
-            library_mapping_form = LibraryMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            library_mapping_form.prepare()
-            return library_mapping_form.make_response()
         
         if library_table["library_type_id"].isin([
             LibraryType.TENX_MULTIPLEXING_CAPTURE.id,
         ]).any():
-            cmo_reference_input_form = CMOReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            cmo_reference_input_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return cmo_reference_input_form.make_response()
         
         if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
@@ -208,7 +200,7 @@ class LibraryAnnotationForm(MultiStepForm):
             return visium_annotation_form.make_response()
         
         if (library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
-            feature_reference_input_form = FeatureReferenceInputForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return feature_reference_input_form.make_response()
         
         if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
@@ -216,7 +208,7 @@ class LibraryAnnotationForm(MultiStepForm):
             frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
     
-        sample_annotation_form = SampleAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return sample_annotation_form.make_response()
 
         

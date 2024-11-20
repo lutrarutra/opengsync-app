@@ -9,6 +9,7 @@ from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import library_annotation as forms
+from ....forms.MultiStepForm import MultiStepForm
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -75,6 +76,23 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     form = forms.ProjectSelectForm(workflow_type=workflow_type, seq_request=seq_request)
     return form.make_response()
         
+
+# 0. Step
+@library_annotation_workflow.route("<int:seq_request_id>/previous/<string:uuid>", methods=["GET"])
+@login_required
+def previous(seq_request_id: int, uuid: str):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if (response := MultiStepForm.pop_last_step("library_annotation", uuid)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    step_name, step = response
+
+    prev_step_cls = forms.steps[step_name]
+    prev_step = prev_step_cls(uuid=uuid, seq_request=seq_request, **step.args)
+    return prev_step.make_response()
+
 
 # 1.1 Select project
 @library_annotation_workflow.route("<int:seq_request_id>/project_select/<string:workflow_type>", methods=["POST"])
@@ -161,26 +179,6 @@ def parse_table(seq_request_id: int, uuid: str, form_type: Literal["pooled", "ra
         form = forms.DefineMultiplexedSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
 
     return form.process_request()
-        
-
-# 3. Map organisms if new samples
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/map_genomes", methods=["POST"])
-@login_required
-def map_genomes(seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    return forms.GenomeRefMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
-
-
-# 4. Map libraries
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/map_libraries", methods=["POST"])
-@login_required
-def map_libraries(seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    return forms.LibraryMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 6. Specify CMO reference
@@ -190,7 +188,7 @@ def parse_cmo_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.CMOReferenceInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+    return forms.CMOAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 7. Specify Features
@@ -203,7 +201,7 @@ def select_feature_reference(seq_request_id: int, uuid: str, input_type: Literal
     if input_type not in ["predefined", "spreadsheet", "file"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    return forms.FeatureReferenceInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
+    return forms.FeatureAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
 
 
 # 8. Map Feature Kits
@@ -243,7 +241,7 @@ def parse_sas_form(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.SampleAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+    return forms.SampleAttributeAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
     
 # Complete SAS

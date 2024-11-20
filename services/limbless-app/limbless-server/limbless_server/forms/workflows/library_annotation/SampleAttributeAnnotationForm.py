@@ -16,15 +16,20 @@ from .CompleteSASForm import CompleteSASForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class SampleAnnotationForm(MultiStepForm):
+class SampleAttributeAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-11.html"
+    _workflow_name = "library_annotation"
+    _step_name = "sample_attribute_annotation"
 
     predefined_columns = {
         "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str)
     } | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()[1:])])
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        MultiStepForm.__init__(self, dirname="library_annotation", uuid=uuid, formdata=formdata, previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, uuid=uuid, formdata=formdata, workflow=SampleAttributeAnnotationForm._workflow_name,
+            step_name=SampleAttributeAnnotationForm._step_name, previous_form=previous_form, step_args={}
+        )
 
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -48,7 +53,7 @@ class SampleAnnotationForm(MultiStepForm):
 
         df = sample_table[["sample_name"]].copy()
     
-        for col in SampleAnnotationForm.predefined_columns.values():
+        for col in SampleAttributeAnnotationForm.predefined_columns.values():
             if col.label in df.columns:
                 continue
             
@@ -59,7 +64,7 @@ class SampleAnnotationForm(MultiStepForm):
             for attr in attributes:
                 df.loc[df["sample_name"] == row["sample_name"], attr.name] = attr.value
 
-        columns = SampleAnnotationForm.predefined_columns.copy()
+        columns = SampleAttributeAnnotationForm.predefined_columns.copy()
         for col in df.columns:
             if col not in columns.keys():
                 columns[col] = SpreadSheetColumn(string.ascii_uppercase[len(columns)], col, col.replace("_", " ").title(), "text", 100, str)

@@ -3,7 +3,7 @@ import os
 import re
 import yaml
 import hashlib
-from typing import Optional, Any
+from typing import Any
 
 import pandas as pd
 

@@ -27,6 +27,8 @@ class SubForm(FlaskForm):
 class CompleteBAReportForm(MultiStepForm):
     _template_path = "workflows/ba_report/bar-1.html"
     _form_label = "ba_report_form"
+    _workflow_name = "ba_report"
+    _step_name = "complete_ba_report"
 
     _allowed_extensions: list[tuple[str, str]] = [
         ("pdf", "PDF"),
@@ -40,7 +42,11 @@ class CompleteBAReportForm(MultiStepForm):
     file = FileField("Bio Analyzer Report", validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])], description="Report exported from the BioAnalyzer software (pdf).")
 
     def __init__(self, uuid: str | None, formdata: dict = {}, max_size_mbytes: int = 5):
-        MultiStepForm.__init__(self, dirname="ba_report", uuid=uuid, formdata=formdata)
+        MultiStepForm.__init__(
+            self, workflow=CompleteBAReportForm._workflow_name,
+            step_name=CompleteBAReportForm._step_name, uuid=uuid, formdata=formdata,
+            step_args={}
+        )
         self.max_size_mbytes = max_size_mbytes
         self._context["enumerate"] = enumerate
 

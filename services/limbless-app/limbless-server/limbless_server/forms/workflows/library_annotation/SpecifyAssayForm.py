@@ -11,7 +11,6 @@ from limbless_db import models
 from limbless_db.categories import AssayType, GenomeRef, LibraryType
 
 from .... import logger, db  # noqa
-from ....tools import SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
 from .DefineSamplesForm import DefineSamplesForm
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm
@@ -32,19 +31,20 @@ class AdditionalSerevicesForm(FlaskForm):
 
 class SpecifyAssayForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.tech.html"
+    _workflow_name = "library_annotation"
+    _step_name = "specify_assay"
 
     assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), validators=[DataRequired()], coerce=int)
     additional_info = TextAreaField("Additional Information", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
     optional_assays = FormField(OptionalAssaysForm)
     additional_services = FormField(AdditionalSerevicesForm)
 
-    columns = {
-        "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
-        "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 300, str, GenomeRef.names()),
-    }
-
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        MultiStepForm.__init__(self, uuid=uuid, formdata=formdata, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, uuid=uuid, formdata=formdata, workflow=SpecifyAssayForm._workflow_name,
+            step_name=SpecifyAssayForm._step_name, previous_form=previous_form,
+            step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 

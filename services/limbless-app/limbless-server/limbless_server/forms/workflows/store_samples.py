@@ -16,13 +16,19 @@ from ..MultiStepForm import MultiStepForm
 
 class StoreSamplesForm(MultiStepForm):
     _template_path = "workflows/store_samples/store-1.html"
+    _workflow_name = "store_samples"
+    _step_name = "store_samples"
 
     plate_order = StringField()
     plate_name = StringField("Plate Name", validators=[OptionalValidator(), Length(min=3, max=models.Plate.name.type.length)])
     plate_size = SelectField("Plate Size", choices=[("12x8", "12x8"), ("24x16", "24x16")], default="12x8")
 
     def __init__(self, uuid: str | None, formdata: dict = {}, seq_request: Optional[models.SeqRequest] = None):
-        MultiStepForm.__init__(self, dirname="store_samples", uuid=uuid, formdata=formdata)
+        MultiStepForm.__init__(
+            self, workflow=StoreSamplesForm._workflow_name,
+            step_name=StoreSamplesForm._step_name, uuid=uuid, formdata=formdata,
+            step_args={}
+        )
         self._context["url_context"] = {}
         self.seq_request = seq_request
         if seq_request is not None:

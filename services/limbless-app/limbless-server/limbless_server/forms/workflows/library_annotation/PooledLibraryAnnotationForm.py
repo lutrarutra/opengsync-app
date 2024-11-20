@@ -9,16 +9,15 @@ from limbless_db.categories import LibraryType, GenomeRef
 
 from .... import logger, db
 from ....tools import SpreadSheetColumn, tools
-from ...HTMXFlaskForm import HTMXFlaskForm
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
-from .GenomeRefMappingForm import GenomeRefMappingForm
-from .LibraryMappingForm import LibraryMappingForm
 from .PoolMappingForm import PoolMappingForm
 
 
 class PooledLibraryAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-2.pooled.html"
+    _workflow_name = "library_annotation"
+    _step_name = "pooled_library_annotation"
 
     columns = {
         "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -31,8 +30,11 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         self, seq_request: models.SeqRequest, uuid: str,
         formdata: dict = {}, previous_form: Optional[MultiStepForm] = None
     ):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, uuid=uuid, workflow=PooledLibraryAnnotationForm._workflow_name,
+            step_name=PooledLibraryAnnotationForm._step_name, previous_form=previous_form,
+            formdata=formdata, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         
@@ -178,16 +180,6 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         self.add_table("sample_table", sample_table)
         self.add_table("pooling_table", pooling_table)
         self.update_data()
-
-        if self.df["genome_id"].isna().any():
-            organism_mapping_form = GenomeRefMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            organism_mapping_form.prepare()
-            return organism_mapping_form.make_response()
-        
-        if self.df["library_type_id"].isna().any():
-            library_mapping_form = LibraryMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            library_mapping_form.prepare()
-            return library_mapping_form.make_response()
         
         pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return pool_mapping_form.make_response()

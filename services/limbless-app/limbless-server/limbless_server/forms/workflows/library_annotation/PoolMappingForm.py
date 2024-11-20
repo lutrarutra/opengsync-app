@@ -11,7 +11,6 @@ from limbless_db import models
 
 from .... import logger, db  # noqa F401
 from ...MultiStepForm import MultiStepForm
-from ...HTMXFlaskForm import HTMXFlaskForm
 from .BarcodeInputForm import BarcodeInputForm
 
 
@@ -30,6 +29,8 @@ class PoolMappingSubForm(FlaskForm):
 
 class PoolMappingForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-1.2.html"
+    _workflow_name = "library_annotation"
+    _step_name = "pool_mapping"
 
     pool_forms = FieldList(FormField(PoolMappingSubForm), label="Pool Mapping")
     contact_name = StringField("Contact Name", validators=[DataRequired(), Length(max=models.Contact.name.type.length)])
@@ -37,8 +38,11 @@ class PoolMappingForm(MultiStepForm):
     contact_phone = StringField("Contact Phone", validators=[DataRequired(), Length(max=models.Contact.phone.type.length)])
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
-        MultiStepForm.__init__(self, uuid=uuid, dirname="library_annotation", previous_form=previous_form)
+        MultiStepForm.__init__(
+            self, uuid=uuid, workflow=PoolMappingForm._workflow_name,
+            step_name=PoolMappingForm._step_name, previous_form=previous_form,
+            formdata=formdata, step_args={}
+        )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self.library_table = self.tables["library_table"]
