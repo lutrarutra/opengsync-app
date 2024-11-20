@@ -205,7 +205,6 @@ class LibraryAnnotationForm(MultiStepForm):
         
         if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
     
         sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
