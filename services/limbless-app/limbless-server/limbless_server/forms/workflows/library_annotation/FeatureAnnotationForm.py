@@ -44,7 +44,7 @@ class FeatureAnnotationForm(MultiStepForm):
             csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=FeatureAnnotationForm.columns, csrf_token=csrf_token,
-            post_url=url_for('library_annotation_workflow.select_feature_reference', seq_request_id=seq_request.id, uuid=self.uuid),
+            post_url=url_for('library_annotation_workflow.annotate_features', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )
 
@@ -226,9 +226,8 @@ class FeatureAnnotationForm(MultiStepForm):
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        if self.metadata["workflow_type"] == "pooled" and LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            frp_annotation_form.prepare()
             return frp_annotation_form.make_response()
 
         sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

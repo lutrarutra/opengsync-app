@@ -192,16 +192,13 @@ def parse_cmo_reference(seq_request_id: int, uuid: str):
 
 
 # 7. Specify Features
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/select_feature_reference/<string:input_type>", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/annotate_features", methods=["POST"])
 @login_required
-def select_feature_reference(seq_request_id: int, uuid: str, input_type: Literal["predefined", "spreadsheet", "file"]):
+def annotate_features(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if input_type not in ["predefined", "spreadsheet", "file"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
 
-    return forms.FeatureAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form | request.files, input_type=input_type).process_request()
+    return forms.FeatureAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 8. Map Feature Kits
