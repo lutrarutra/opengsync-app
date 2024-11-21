@@ -1,0 +1,91 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="input-help">
+    <h5>Columns</h5>
+    <ul>
+        <li>
+            <b>Library ID</b>:
+            <ul>
+                <li>Library ID (do not modify)</li>
+            </ul>
+        </li>
+        <li>
+            <b>Library Name</b>:
+            <ul>
+                <li>Name of the library (do not modify)</li>
+            </ul>
+        </li>
+        <li>
+            <b>Pool:</b>
+            <ul>
+                <li>'<b>x</b>': QC Failed (ignored)</li>
+                <li>'<b>t</b>': Control Sample (ignored)</li>
+            </ul>
+        </li>
+        <li>
+            <b>Index Well</b>:
+            <ul>
+                <li>Index Well, e.g. 'A1'.</li>
+            </ul>
+        </li>
+        <li>
+            <b>i7 Kit</b>:
+            <ul>
+                <li>Name of the index kit from <a href="{{ url_for('kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page</li>
+            </ul>
+        </li>
+        <li>
+            <b>i7 Name</b>:
+            <ul>
+                <li>Name of the i7 barcode, e.g. 'SI-TT-A1'.</li>
+                <li>Must exist in the kit.</li>
+            </ul>
+        </li>
+        <li>
+            <b>i7 Sequence</b>:
+            <ul>
+                <li>Manually specified sequence, e.g. 'TGAATCATCA'.</li>
+                <li><b>In Forward orientation only!</b></li>
+                <li>If more than one different sequences are used per library, separate sequences by semicolon ';', e.g. 10x ATAC-seq</li>
+            </ul>
+        </li>
+        <li>
+            <b>i5 Kit</b>:
+            <ul>
+                <li>Name of the index kit from <a href="{{ url_for('kits_page.index_kits_page') }}" target="_blank">'Index Kits'</a>-page</li>
+                <li>If not specified, i7 Kit will be used (if applicable).</li>
+            </ul>
+        </li>
+        <li>
+            <b>i5 Name</b>:
+            <ul>
+                <li>Name of the i5 barcode, e.g. 'SI-TT-A1'.</li>
+                <li>Must exist in the kit.</li>
+                <li>If not specified, i7 Name will be used (if applicable).</li>
+            </ul>
+        </li>
+        <li>
+            <b>i5 Sequence</b>:
+            <ul>
+                <li>Manually specified sequence, e.g. 'TGAATCATCA'.</li>
+                <li><b>In Forward orientation only!</b></li>
+                <li>If more than one different sequences are used per library, separate sequences by semicolon ';'</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h5>Important</h5>
+    <ul>
+        <li>Specify barcode sequences in forward orientation</li>
+        <li>
+            <b>Three ways to specify indices:</b>
+            <ol>
+                <li>Index Well + Kit <span class="desc">Recommended</span></li>
+                <li>Name + Kit <span class="desc">Recommended</span></li>
+                <li>Sequence <span class="desc">Avoid if possible to decrease a chance of a typo</span></li>
+            </ol>
+        </li>
+        <li>In edge cases, please contact us at <a href="mailto:bsf@cemm.at">bsf@cemm.at</a></li>
+    </ul>
+</div>
+<script>init_tooltips();</script>

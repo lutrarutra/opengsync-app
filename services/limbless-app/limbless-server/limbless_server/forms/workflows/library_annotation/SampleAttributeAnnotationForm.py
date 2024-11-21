@@ -17,7 +17,7 @@ from ...SpreadsheetInput import SpreadsheetInput
 
 
 class SampleAttributeAnnotationForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-11.html"
+    _template_path = "workflows/library_annotation/sas-sample_attribute_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "sample_attribute_annotation"
 

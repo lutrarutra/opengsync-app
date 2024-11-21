@@ -1,8 +1,6 @@
 import math
 from typing import Optional, TYPE_CHECKING
 
-import sqlalchemy as sa
-
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 

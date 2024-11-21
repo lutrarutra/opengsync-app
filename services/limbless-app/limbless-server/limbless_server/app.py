@@ -10,7 +10,7 @@ from flask_login import login_required
 
 from limbless_db import categories, models, exceptions, db_session, TIMEZONE, localize, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, config_cache
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache
 from .routes import api, pages
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         raise ValueError("REDIS_PORT env-variable not set")
     cache.init_app(app, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
 
-    config_cache.connect("redis-cache", int(REDIS_PORT), 1)
+    msf_cache.connect("redis-cache", int(REDIS_PORT), 1)
 
     for file_type in categories.FileType.as_list():
         if file_type.dir is None:

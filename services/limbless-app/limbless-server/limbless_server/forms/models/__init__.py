@@ -10,3 +10,4 @@ from .PlateForm import PlateForm # noqa
 from .LabPrepForm import LabPrepForm # noqa
 from .GroupForm import GroupForm # noqa
 from .IndexKitForm import IndexKitForm # noqa
+from .FeatureKitForm import FeatureKitForm # noqa

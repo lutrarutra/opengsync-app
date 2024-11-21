@@ -1,0 +1,55 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="input-help">
+    <h5>Columns</h5>
+    <ul>
+        <li>
+            <b>Sample Name</b>:
+            <ul>
+                <li>Biological Sample, e.g. sample_KO, sample_WT, ...</li>
+            </ul>
+        </li>
+        <li>
+            <b>Library type:</b>
+            <ul>
+                <li>Specifies the reference genome used in downstream</li>
+                <li>
+                    {% for library_type in LibraryType.as_list() %}
+                    <span {{ tooltip(library_type.name) }} style="cursor: help;" class="badge bg-cemm-blue">
+                        {{ library_type.abbreviation }}
+                    </span>
+                    {% endfor %}
+                </li>
+            </ul>
+        </li>
+        <li>
+            <b>Pool</b>:
+            <ul>
+                <li>Indicates how libraries were pooled.</li>
+                <li>E.g. rows '1,1,1,2,2,2' means 2 pools are created with 3 samples in each.</li>
+            </ul>
+        </li>
+        <li>
+            <b>Pool</b>:
+            <ul>
+                <li>Indicates how libraries were pooled.</li>
+                <li>E.g. rows '1,1,1,2,2,2' means 2 pools are created with 3 samples in each.</li>
+            </ul>
+        </li>
+        <li><b>Index 1</b> or <b>Adapter</b> + <b>Index Kit</b></li>
+        <li>
+            <b>Genome</b>:
+            <ul>
+                <li>Specifies the reference genome used in downstream</li>
+                <li>
+                    {% for genome_ref in GenomeRef.as_list() %}
+                    <span {{ tooltip(genome_ref.organism_latin_name) }} style="cursor: help;" class="badge bg-cemm-blue">
+                        {{ genome_ref.display_name }}
+                    </span>
+                    {% endfor %}
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<script>init_tooltips();</script>

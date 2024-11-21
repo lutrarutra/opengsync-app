@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import pickle
 import pandas as pd
 
-from .. import config_cache, logger
+from .. import msf_cache, logger
 from .HTMXFlaskForm import HTMXFlaskForm
 import shutil
 
@@ -43,7 +43,7 @@ class MultiStepForm(HTMXFlaskForm):
             self.__header = previous_form.__header
             self.__steps = previous_form.__steps
         elif os.path.exists(self.__path):
-            self.__read()
+            self.__header, self.__steps = self.__read(self.__path)
         else:
             self.__header = {
                 "workflow": self.workflow,
@@ -79,10 +79,7 @@ class MultiStepForm(HTMXFlaskForm):
         if not os.path.exists(path):
             return None
 
-        with open(path, "rb") as f:
-            raw = pickle.load(f)
-            raw.pop("header")
-            steps = raw
+        _, steps = MultiStepForm.__read(path)
 
         return steps
     
@@ -92,34 +89,41 @@ class MultiStepForm(HTMXFlaskForm):
         if not os.path.exists(path):
             return None
 
+        header, steps = MultiStepForm.__read(path)
+        last_step_name, last_step = steps.popitem()
+        MultiStepForm.__write(uuid, path, header, steps)
+
+        return last_step_name, last_step
+    
+    @staticmethod
+    def __read(path: str) -> tuple[dict[str, Any], dict[str, StepFile]]:
+        if (cached_response := msf_cache.get(path)) is not None:
+            return cached_response
+        
         with open(path, "rb") as f:
             raw = pickle.load(f)
             header = raw.pop("header")
             steps = raw
 
-        last_step_name, last_step = steps.popitem()
-
+        return header, steps
+    
+    @staticmethod
+    def __write(uuid: str, path: str, header: dict[str, Any], steps: dict[str, StepFile]):
+        msf_cache.set(uuid, header, steps)
         with open(path, "wb") as f:
             pickle.dump({"header": header, **steps}, f)
-
-        return last_step_name, last_step
 
     def complete(self, path: Optional[str] = None):
         if path is not None:
             shutil.copyfile(self.__path, path)
 
+        msf_cache.delete(self.uuid)
+
         if os.path.exists(self.__path):
             os.remove(self.__path)
-    
-    def __read(self):
-        with open(self.__path, "rb") as f:
-            raw = pickle.load(f)
-            self.__header = raw.pop("header")
-            self.__steps = raw
 
     def update_data(self):
-        with open(self.__path, "wb") as f:
-            pickle.dump({"header": self.__header, **self.__steps}, f)
+        MultiStepForm.__write(self.uuid, self.__path, self.__header, self.__steps)
 
     def add_table(self, label: str, table: pd.DataFrame):
         self.__current_step.tables[label] = table

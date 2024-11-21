@@ -1,9 +1,9 @@
-{% from "components/legends.jinja2" import color_legend %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
+{% from "components/legends.jinja2" import color_legend %}
 
-<div id="frp-reference-form-container" class="modal-content">
+<div id="feature_reference-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >10. Fixed RNA Profiling Annotation</h1>
+        <h1 class="modal-title fs-5" >7. Feature Reference Input Form</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -13,7 +13,7 @@
                 id="spreadsheet-tab-btn"
                 data-bs-target="#spreadsheet-tab" type="button" role="tab"
                 aria-controls="spreadsheet-tab" aria-selected="true">
-                Spreadsheet</button>
+                Form</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link help-tab-btn" data-bs-toggle="tab"
@@ -23,37 +23,44 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#fixed-1-example-tab" type="button" role="tab"
-                aria-controls="fixed-1-example-tab" aria-selected="true">
-                Example 1.</button>
+                data-bs-target="#feature-2-example-tab" type="button" role="tab"
+                aria-controls="feature-2-example-tab" aria-selected="true">
+                Example 1</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#feature-3-example-tab" type="button" role="tab"
+                aria-controls="feature-3-example-tab" aria-selected="true">
+                Example 2</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#feature-4-example-tab" type="button" role="tab"
+                aria-controls="feature-4-example-tab" aria-selected="true">
+                Example 3</button>
             </li>
         </ul>
-        <div class="tab-content" id="frp-reference-form">
+        <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{ 
                     spreadsheet_input(
                         element=form.spreadsheet,
-                        target_element_id="frp-reference-form-container",
-                        submit_btn_id="parse-spreadsheet-btn",
+                        target_element_id="feature_reference-form-container",
+                        submit_btn_id="submit-spreadsheet-btn",
                     )
                 }}
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
-                <div class="input-help">
-                    <h5>How to?</h5>
-                    <ul>
-                        <li>Fill in the required columns and submit as a file or live spreadsheet.</li>
-                    </ul>
-                    <h5>Columns: </h5>
-                    <ul>
-                        <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
-                        <li>Barcode ID<span class="desc">e.g. 'BC001'</span></li>
-                        <li>Demux Name <span class="desc">name of the demultiplexed sample</span></li>
-                    </ul>
-                </div>
+                {% include "instructions/feature_annotation.html" %}
             </div>
-            <div class="tab-pane fade" id="fixed-1-example-tab" role="tabpanel" tabindex="3">
-                {% include "components/examples/fixed_rna_profiling.html" %}
+            <div class="tab-pane fade" id="feature-2-example-tab" role="tabpanel" tabindex="2">
+                {% include "components/examples/feature-2.html" %}
+            </div>
+            <div class="tab-pane fade" id="feature-3-example-tab" role="tabpanel" tabindex="2">
+                {% include "components/examples/feature-3.html" %}
+            </div>
+            <div class="tab-pane fade" id="feature-4-example-tab" role="tabpanel" tabindex="2">
+                {% include "components/examples/feature-4.html" %}
             </div>
         </div>
     </div>
@@ -66,18 +73,18 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"
-            hx-target="#frp-reference-form-container" hx-swap="outerHTML"
+            hx-target="#feature_reference-form-container" hx-swap="outerHTML"
             hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
                 Back
             </button>
-            <button class="btn btn-primary submit-form-btn" type="button" id="parse-spreadsheet-btn">
-                Next
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
+                Submit
             </button>
         </div>
     </div>
     <script>
         $(document).ready(function() {
             init_tooltips();
-        });
+        }); 
     </script>
 </div>

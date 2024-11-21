@@ -18,7 +18,7 @@ from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
 class FeatureAnnotationForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-7.html"
+    _template_path = "workflows/library_annotation/sas-feature_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "feature_annotation"
 
@@ -125,7 +125,7 @@ class FeatureAnnotationForm(MultiStepForm):
                     self.spreadsheet.add_error(i + 1, "pattern", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
                     self.spreadsheet.add_error(i + 1, "read", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
 
-            elif row["kit_feature"]:
+            elif kit_feature.at[idx]:
                 idx_library_name = df["library_name"] == row["library_name"]
                 idx_kit = df["kit"] == row["kit"]
                 idx_feature = df["feature"] == row["feature"]

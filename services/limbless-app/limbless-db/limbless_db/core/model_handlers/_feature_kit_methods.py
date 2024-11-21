@@ -1,8 +1,6 @@
 import math
 from typing import Optional, TYPE_CHECKING
 
-import sqlalchemy as sa
-
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 
@@ -12,7 +10,7 @@ from ...categories import FeatureTypeEnum, KitType
 
 
 def create_feature_kit(
-    self: "DBHandler", name: str,
+    self: "DBHandler", identifier: str, name: str,
     type: FeatureTypeEnum,
 ) -> models.FeatureKit:
     if not (persist_session := self._session is not None):
@@ -23,6 +21,7 @@ def create_feature_kit(
 
     feature_kit = models.FeatureKit(
         name=name.strip(),
+        identifier=identifier.strip(),
         type_id=type.id,
         kit_type_id=KitType.FEATURE_KIT.id,
     )
@@ -90,17 +89,13 @@ def get_feature_kits(
     return feature_kits, n_pages
 
 
-def update_feature_kit(
-    self: "DBHandler", feature_kit: models.FeatureKit,
-    commit: bool = True,
-) -> models.FeatureKit:
+def update_feature_kit(self: "DBHandler", feature_kit: models.FeatureKit) -> models.FeatureKit:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     self.session.add(feature_kit)
-    if commit:
-        self.session.commit()
-        self.session.refresh(feature_kit)
+    self.session.commit()
+    self.session.refresh(feature_kit)
 
     if not persist_session:
         self.close_session()
@@ -119,6 +114,25 @@ def delete_feature_kit(self: "DBHandler", feature_kit_id: int):
         self.session.delete(feature)
 
     self.session.delete(feature_kit)
+    self.session.commit()
 
     if not persist_session:
         self.close_session()
+
+
+def remove_all_features_from_kit(self: "DBHandler", feature_kit_id: int) -> models.FeatureKit:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (feature_kit := self.session.get(models.FeatureKit, feature_kit_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"FeatureKit with id '{feature_kit_id}' not found.")
+    
+    for feature in feature_kit.features:
+        self.session.delete(feature)
+
+    self.session.commit()
+    self.session.refresh(feature_kit)
+
+    if not persist_session:
+        self.close_session()
+    return feature_kit

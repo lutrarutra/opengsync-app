@@ -1,0 +1,33 @@
+{% from 'components/spreadsheet.jinja2' import spreadsheet_input %}
+{% from 'components/form_group.jinja2' import switch_input %}
+{% from 'components/legends.jinja2' import color_legend %}
+
+<div class="modal-content" id="kit_features-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Edit Barcodes</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" id="kit_features-form">
+        {{ 
+            spreadsheet_input(
+                element=form.spreadsheet,
+                submit_btn_id="submit-spreadsheet-btn",
+                target_element_id="kit_features-form-container",
+            )
+        }}
+    </div>
+    
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ feature_kit.identifier }}
+        </div>
+        <div class="footer-info">
+            {{ color_legend(form.spreadsheet.colors) }}
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success submit-form-btn" type="button" id="submit-spreadsheet-btn">
+                Save
+            </button>
+        </div>
+    </div>
+</div>

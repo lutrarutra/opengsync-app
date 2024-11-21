@@ -1,0 +1,34 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="input-help">
+    <h5>Columns</h5>
+    <ul>
+        <li>
+            <b>Sample Name</b>:
+            <ul>
+                <li>Biological Sample, e.g. sample_KO, sample_WT, ...</li>
+            </ul>
+        </li>
+        <li>
+            <b>Genome</b>:
+            <ul>
+                <li>Specifies the reference genome used in downstream</li>
+                <li>
+                    {% for genome_ref in GenomeRef.as_list() %}
+                    <span {{ tooltip(genome_ref.organism_latin_name) }} style="cursor: help;" class="badge bg-cemm-blue">
+                        {{ genome_ref.display_name }}
+                    </span>
+                    {% endfor %}
+                </li>
+            </ul>
+        </li>
+        <li>
+            <b>Pool</b> <span class="desc">Optional</span>:
+            <ul>
+                <li>Specify if you have preference how samples are pooled. E.g. 'pool_1, pool_1, pool_2, pool_2' means 2 first samples will be pooled together and 2 last samples will be pooled together.</li>
+                <li>If not specified, samples will be pooled in order they are provided.</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<script>init_tooltips();</script>

@@ -7,7 +7,9 @@
             <h1>Feature Kits</h1>
         </div>
         <div class="page-controls">
-            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#feature_kit-form-popup">
+            <button  type="button" class="btn btn-primary"  data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                hx-get="{{ url_for('feature_kits_htmx.create') }}"
+                hx-target="#xl-modal-content" data-bs-toggle="modal" hx-swap="innerHTML">
                 New Kit
             </button>
         </div>
@@ -17,24 +19,6 @@
 <div class="page-content">
     <div hx-get="{{ url_for('feature_kits_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
-    </div>
-
-    <div class="modal fade" id="feature_kit-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5" >New Feature Kit</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-            </div>
-            <div class="modal-footer" id="popup-footer">
-                {# <button id="submit-project-btn" class="btn btn-primary"
-                hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('projects_htmx.create') }}">Submit</button> #}
-            </div>
-          </div>
-        </div>
     </div>
 </div>
 {% endblock content %}

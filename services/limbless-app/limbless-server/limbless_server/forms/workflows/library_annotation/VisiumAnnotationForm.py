@@ -18,7 +18,7 @@ from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
 class VisiumAnnotationForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-9.html"
+    _template_path = "workflows/library_annotation/sas-visium_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "visium_annotation"
 
@@ -38,18 +38,18 @@ class VisiumAnnotationForm(MultiStepForm):
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
+        self.library_table = self.tables["library_table"]
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=VisiumAnnotationForm.columns, csrf_token=csrf_token,
             post_url=url_for('library_annotation_workflow.parse_visium_reference', seq_request_id=seq_request.id, uuid=self.uuid),
-            formdata=formdata, allow_new_rows=True
+            formdata=formdata, allow_new_rows=True, df=self.get_template()
         )
 
     def get_template(self) -> pd.DataFrame:
-        library_table: pd.DataFrame = self.tables["library_table"]
-        df = library_table[library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])][["library_name"]]
+        df = self.library_table[self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])][["library_name"]]
         df = df.rename(columns={"library_name": "Library Name"})
 
         for col in VisiumAnnotationForm.columns.values():
@@ -66,18 +66,17 @@ class VisiumAnnotationForm(MultiStepForm):
             return False
     
         df = self.spreadsheet.df
-        library_table: pd.DataFrame = self.tables["library_table"]
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["library_name"]):
                 self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is missing.", "missing_value")
 
-            elif row["library_name"] not in library_table["library_name"].values:
+            elif row["library_name"] not in self.library_table["library_name"].values:
                 self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is not found in the library table.", "invalid_value")
             elif (df["library_name"] == row["library_name"]).sum() > 1:
                 self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is a duplicate.", "duplicate_value")
             else:
-                if (library_table[library_table["library_name"] == row["library_name"]]["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+                if (self.library_table[self.library_table["library_name"] == row["library_name"]]["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
                     self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is not a Spatial Transcriptomic library.", "invalid_value")
 
             if pd.isna(row["image"]):

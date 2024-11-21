@@ -17,7 +17,7 @@ from ...SpreadsheetInput import SpreadsheetInput
 
 
 class DefineMultiplexedSamplesForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-2.2.html"
+    _template_path = "workflows/library_annotation/sas-define_mux_samples.html"
     _workflow_name = "library_annotation"
     _step_name = "define_mux_samples"
 
@@ -80,6 +80,15 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         if self.antibody_multiplexing:
             selected_library_types.append(LibraryType.TENX_MULTIPLEXING_CAPTURE.abbreviation)
 
+        if df["pool"].isna().all():
+            for i, (idx, row) in enumerate(df.iterrows()):
+                if self.assay_type == AssayType.TENX_SC_4_PLEX_FLEX:
+                    df.at[idx, "pool"] = f"flex_pool_{i // 4 + 1}"
+                elif self.assay_type == AssayType.TENX_SC_16_PLEX_FLEX:
+                    df.at[idx, "pool"] = f"flex_pool_{i // 16 + 1}"
+                else:
+                    df.at[idx, "pool"] = f"hto_pool_{i + 1}"
+
         for i, (_, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]):
                 self.spreadsheet.add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
@@ -94,10 +103,11 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             if pd.isna(row["genome"]):
                 self.spreadsheet.add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
 
-            if pd.isna(row["pool"]):
-                self.spreadsheet.add_error(i + 1, "pool", "missing 'Pool'", "missing_value")
+            if not df["pool"].isna().all():
+                if pd.isna(row["pool"]):
+                    self.spreadsheet.add_error(i + 1, "pool", "missing 'Pool'", "missing_value")
 
-            if len(str(row["pool"])) < 4:
+            if pd.notna(row["pool"]) and len(str(row["pool"])) < 4:
                 self.spreadsheet.add_error(i + 1, "pool", "Pool must be at least 4 characters long", "invalid_value")
 
             if len(df[df["pool"] == row["pool"]]["genome"].unique()) > 1:

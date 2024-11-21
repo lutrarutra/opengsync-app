@@ -1,13 +1,10 @@
-import json
-from typing import Optional, Literal
+from typing import Optional
 
 import pandas as pd
-import numpy as np
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
-from wtforms import StringField, BooleanField
-from wtforms.validators import DataRequired
+from wtforms import BooleanField
 
 from limbless_db import models
 from limbless_db.categories import IndexType, BarcodeType
@@ -20,7 +17,6 @@ from .SpreadsheetInput import SpreadsheetInput
 
 class EditKitBarcodesForm(HTMXFlaskForm):
     _template_path = "forms/edit_kit_barcodes.html"
-    _form_label = "form"
 
     rc_sequence_i7 = BooleanField("Reverse Complement i7", default=False)
     rc_sequence_i5 = BooleanField("Reverse Complement i5", default=False)

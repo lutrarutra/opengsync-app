@@ -110,6 +110,7 @@
                         halt the event
                         call Swal.fire({
                             title: 'Unarchive request \'{{ seq_request.name }}\'',
+                            icon: 'question',
                             showDenyButton: true,
                             text: 'Do you want to proceed?',
                             confirmButtonText: 'Yes',
@@ -160,6 +161,23 @@
                             denyButtonText: 'No'
                         })
                         if result.isConfirmed issueRequest()">Clone (Raw)</button>
+                    </li>
+                    {% endif %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
+                    <li>
+                        <button class="dropdown-item"
+                        hx-delete="{{ url_for('seq_requests_htmx.remove_all_libraries', seq_request_id=seq_request.id) }}"
+                        _="on htmx:confirm(issueRequest)
+                        halt the event
+                        call Swal.fire({
+                            title: 'Remove All Libraries from \'{{ seq_request.name }}\'',
+                            icon: 'question',
+                            showDenyButton: true,
+                            text: 'Do you want to proceed?',
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'No'
+                        })
+                        if result.isConfirmed issueRequest()">Remove All Libraries</button>
                     </li>
                     {% endif %}
                 </ul>

@@ -65,7 +65,7 @@ def feature_kit_page(feature_kit_id: int):
 
     path_list = [
         ("Feature Kits", url_for("kits_page.feature_kits_page")),
-        (f"{feature_kit_id}", ""),
+        (f"Kit {feature_kit_id}", ""),
     ]
 
     return render_template(
