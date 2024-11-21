@@ -10,12 +10,12 @@ from .... import db, logger  # noqa F401
 from ...SearchBar import OptionalSearchBar
 from ...MultiStepForm import MultiStepForm
 from .LibraryAnnotationForm import LibraryAnnotationForm
-from .SpecifyAssayForm import SpecifyAssayForm
+from .SelectAssayForm import SelectAssayForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 
 class ProjectSelectForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-1.1.html"
+    _template_path = "workflows/library_annotation/sas-project_select.html"
     _workflow_name = "library_annotation"
     _step_name = "project_select"
 
@@ -88,7 +88,7 @@ class ProjectSelectForm(MultiStepForm):
         self.debug()
 
         if self.workflow_type == "tech":
-            form = SpecifyAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         elif self.workflow_type == "pooled":
             form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         else:

@@ -1,0 +1,52 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="input-help">
+    <h5>Columns</h5>
+    <ul>
+        <li>
+            <b>Library Name <span class="desc">Optional</span></b>:
+            <ul>
+                <li>Name of the library.</li>
+                <li>Must be defined previously.</li>
+                <li>If not defined, all antibody-capture libraries will be assigned the feature.</li>
+            </ul>
+            <b>Kit <span class="desc">Optional</span></b>:
+            <ul>
+                <li>Name of the kit from <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">'Feature Kits'</a>-page</li>
+                <li>E.g. 'Totalseq-C'</li>
+            </ul>
+            <b>Feature <span class="desc">Optional</span></b>:
+            <ul>
+                <li>Name of the feature, e.g. 'CD4'.</li>
+                <li>If kit is defined, feature must exist in the kit.</li>
+            </ul>
+            <b>Sequence <span class="desc">Optional</span></b>:
+            <ul>
+                <li>Manually specified barcode sequence of the feature, e.g. 'AACAAGACCCTTGAG'.</li>
+            </ul>
+            <b>Pattern <span class="desc">Optional</span></b>:
+            <ul>
+                <li>Manually specified barcode sequence of the feature, e.g. '5PNNNNNNNNNN(BC)'.</li>
+            </ul>
+            <b>Read <span class="desc">Optional</span></b>:
+            <ul>
+                <li>Manually specified read of the feature, usually 'R2'.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h5>Important</h5>
+    <ul>
+        <li>If feature is part of all Antibody-Capture libraries, leave 'Library Name'-column blank.</li>
+        <li>If feature is specific to a sample/library, specify the 'Library Name'-column.</li>
+        <li>
+            <b>Three ways to specify fetures</b>:
+            <ol>
+                <li>Kit: all features from the kit are used.</li>
+                <li>Kit + Feature: specific feature from a kit is used.</li>
+                <li>Feature + Sequence + Pattern + Read: Manually specified feature. Avoid if possible.</li>
+            </ol>
+        </li>
+    </ul>
+</div>
+<script>init_tooltips();</script>

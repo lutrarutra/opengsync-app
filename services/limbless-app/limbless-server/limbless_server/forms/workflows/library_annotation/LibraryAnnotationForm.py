@@ -19,7 +19,7 @@ from .FeatureAnnotationForm import FeatureAnnotationForm
 
 
 class LibraryAnnotationForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-2.raw.html"
+    _template_path = "workflows/library_annotation/sas-library_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "library_annotation"
 

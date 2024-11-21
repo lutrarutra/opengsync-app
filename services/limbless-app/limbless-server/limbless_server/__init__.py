@@ -13,7 +13,7 @@ from itsdangerous import URLSafeTimedSerializer
 
 from limbless_db import DBHandler
 
-from .tools import RedisConfigFileCache
+from .tools import RedisMSFFileCache
 
 logger.remove()
 
@@ -64,7 +64,7 @@ TIMEZONE = pytz.timezone(os.environ['TIMEZONE'])
 
 db = DBHandler()
 cache = Cache()
-config_cache = RedisConfigFileCache()
+msf_cache = RedisMSFFileCache()
 
 DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
     

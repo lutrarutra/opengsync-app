@@ -17,7 +17,7 @@ from ...SpreadsheetInput import SpreadsheetInput
 
 
 class DefineSamplesForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-2.1.html"
+    _template_path = "workflows/library_annotation/sas-define_samples.html"
     _workflow_name = "library_annotation"
     _step_name = "define_samples"
 

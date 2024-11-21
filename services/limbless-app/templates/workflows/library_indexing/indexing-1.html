@@ -33,17 +33,7 @@
         </ul>
         <div class="tab-content" id="library_pooling-form">
             <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
-                <div class="input-help">
-                    <ul>
-                        <li>
-                            <b>Pool:</b>
-                            <ul class="h-list" style="width: 60%; padding-left: 15px;">
-                                <li><b>x</b>: QC Failed (ignored)</li>
-                                <li><b>t</b>: Control Sample (ignored)</li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
+                {% include "instructions/barcode_input_prep.html" %}
             </div>
             <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="2">
                 {{ 

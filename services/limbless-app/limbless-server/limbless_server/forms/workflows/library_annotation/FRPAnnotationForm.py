@@ -15,7 +15,7 @@ from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
 class FRPAnnotationForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-10.html"
+    _template_path = "workflows/library_annotation/sas-frp_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "frp_annotation"
 
@@ -59,6 +59,10 @@ class FRPAnnotationForm(MultiStepForm):
         duplicate_samples = df.duplicated(subset=["sample_name", "demux_name"], keep=False)
 
         flex_libraries = library_table[library_table['library_type_id'] == LibraryType.TENX_SC_GEX_FLEX.id]
+
+        if (~flex_libraries["sample_name"].isin(df["sample_name"])).any():
+            self.spreadsheet.add_general_error(f"Missing samples for library: {flex_libraries[~flex_libraries['sample_name'].isin(df['sample_name'])]['sample_name'].values.tolist()}")
+            return False
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]):

@@ -28,7 +28,7 @@ class PoolMappingSubForm(FlaskForm):
 
 
 class PoolMappingForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-1.2.html"
+    _template_path = "workflows/library_annotation/sas-pool_mapping.html"
     _workflow_name = "library_annotation"
     _step_name = "pool_mapping"
 

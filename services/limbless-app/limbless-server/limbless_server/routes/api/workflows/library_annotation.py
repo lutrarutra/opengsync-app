@@ -155,7 +155,7 @@ def parse_assay_form(seq_request_id: int, uuid: str):
     if seq_request.requestor_id != current_user.id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.SpecifyAssayForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+    return forms.SelectAssayForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 2. Input sample annotation sheet

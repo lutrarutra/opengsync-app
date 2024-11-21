@@ -9,5 +9,6 @@ from .SubmitSeqRequestForm import SubmitSeqRequestForm  # noqa
 from .AddUserToGroupForm import AddUserToGroupForm  # noqa
 from .SampleAttributeTableForm import SampleAttributeTableForm  # noqa
 from .EditKitBarcodesForm import EditKitBarcodesForm  # noqa
+from .EditKitFeaturesForm import EditKitFeaturesForm  # noqa
 
 from . import models, comment, file, workflows  # noqa

@@ -1,5 +1,8 @@
 import json
+import string
 from typing import TYPE_CHECKING
+
+import pandas as pd
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
@@ -9,6 +12,7 @@ from limbless_db import models, DBSession, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus
 
 from .... import db, forms, logger  # noqa
+from ....tools import SpreadSheetColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -120,6 +124,44 @@ def get_features(library_id: int, page: int):
             "components/tables/library-feature.html",
             features=features, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order, library=library
+        )
+    )
+
+
+@libraries_htmx.route("<int:library_id>/render_feature_table", methods=["GET"])
+@db_session(db)
+@login_required
+def render_feature_table(library_id: int):
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and library.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    df = db.get_library_features_df(library_id=library.id)
+    df = df.drop(columns=["feature_type", "feature_type_id", "feature_kit_id"])
+
+    columns = []
+    for i, col in enumerate(df.columns):
+        if col == "feature_id":
+            width = 50
+        elif col == "read":
+            width = 50
+        else:
+            width = 200
+        columns.append(
+            SpreadSheetColumn(
+                string.ascii_uppercase[i], col,
+                col.replace("_", " ").title().replace("Id", "ID"),
+                "text", width, var_type=str
+            )
+        )
+    
+    return make_response(
+        render_template(
+            "components/itable.html", columns=columns,
+            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
+            table_id=f"library-feature-table-{library_id}"
         )
     )
 

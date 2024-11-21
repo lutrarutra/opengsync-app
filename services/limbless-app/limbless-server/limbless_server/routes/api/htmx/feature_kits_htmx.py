@@ -1,12 +1,18 @@
+import string
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, render_template, request, abort
+import pandas as pd
+
+from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT
+from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, KitType
+
 from .... import db, logger, cache  # noqa: F401
+from .... import forms
+from ....tools import SpreadSheetColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -18,8 +24,8 @@ feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/api/hm
 
 @feature_kits_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @feature_kits_htmx.route("get/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
-@cache.cached(timeout=300, query_string=True)
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -28,11 +34,10 @@ def get(page: int):
     if sort_by not in models.FeatureKit.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    with DBSession(db) as session:
-        feature_kits, n_pages = session.get_feature_kits(
-            offset=PAGE_LIMIT * page,
-            sort_by=sort_by, descending=descending
-        )
+    feature_kits, n_pages = db.get_feature_kits(
+        offset=PAGE_LIMIT * page,
+        sort_by=sort_by, descending=descending
+    )
 
     return make_response(
         render_template(
@@ -124,5 +129,111 @@ def get_features(feature_kit_id: int, page: int):
             sort_order=sort_order,
             n_pages=n_pages,
             active_page=page,
+        )
+    )
+
+
+@feature_kits_htmx.route("create", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def create():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if request.method == "GET":
+        return forms.models.FeatureKitForm(form_type="create").make_response()
+    elif request.method == "POST":
+        form = forms.models.FeatureKitForm(form_type="create", formdata=request.form)
+        return form.process_request()
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+
+
+@feature_kits_htmx.route("edit/<int:feature_kit_id>", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def edit(feature_kit_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        return forms.models.FeatureKitForm(form_type="edit", feature_kit=feature_kit).make_response()
+    elif request.method == "POST":
+        form = forms.models.FeatureKitForm(form_type="edit", formdata=request.form, feature_kit=feature_kit)
+        return form.process_request()
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+    
+
+@feature_kits_htmx.route("<int:feature_kit_id>/edit_features", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def edit_features(feature_kit_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        return forms.EditKitFeaturesForm(feature_kit=feature_kit).make_response()
+    elif request.method == "POST":
+        form = forms.EditKitFeaturesForm(
+            feature_kit=feature_kit,
+            formdata=request.form
+        )
+        return form.process_request()
+    
+    return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+
+
+@feature_kits_htmx.route("delete/<int:feature_kit_id>", methods=["DELETE"])
+@db_session(db)
+@login_required
+def delete(feature_kit_id: int):
+    if not current_user.is_admin():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (_ := db.get_feature_kit(feature_kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    db.delete_feature_kit(feature_kit_id=feature_kit_id)
+    flash("Index kit deleted successfully.", "success")
+    return make_response(redirect=url_for("kits_page.feature_kits_page"))
+
+
+@feature_kits_htmx.route("<int:feature_kit_id>/render_table", methods=["GET"])
+@db_session(db)
+@login_required
+def render_table(feature_kit_id: int):
+    if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    df = db.get_feature_kit_features_df(feature_kit_id=feature_kit.id)
+    df = df.drop(columns=["type", "type_id"])
+
+    columns = []
+    for i, col in enumerate(df.columns):
+        if col == "feature_id":
+            width = 50
+        elif col == "read":
+            width = 50
+        else:
+            width = 200
+        columns.append(
+            SpreadSheetColumn(
+                string.ascii_uppercase[i], col,
+                col.replace("_", " ").title().replace("Id", "ID"),
+                "text", width, var_type=str
+            )
+        )
+    
+    return make_response(
+        render_template(
+            "components/itable.html", feature_kit=feature_kit, columns=columns,
+            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
+            table_id=f"feature_kit_table-{feature_kit_id}"
         )
     )

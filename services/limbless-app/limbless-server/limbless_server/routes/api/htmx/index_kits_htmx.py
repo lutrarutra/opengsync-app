@@ -3,7 +3,6 @@ import json
 from typing import TYPE_CHECKING
 
 import pandas as pd
-import numpy as np
 
 from flask import Blueprint, render_template, request, abort, url_for, flash
 from flask_htmx import make_response
@@ -81,7 +80,7 @@ def table_query():
         if len(type_in) == 0:
             type_in = None
     
-    index_kits: list[models.IndexKit] = []
+    index_kits: list[models.Kit] = []
     if field_name == "id":
         try:
             _id = int(word)
@@ -92,7 +91,7 @@ def table_query():
         except ValueError:
             pass
     elif field_name in ["name", "identifier"]:
-        index_kits = db.query_kits(word)  # TODO: add type_in
+        index_kits = db.query_kits(word)
 
     return make_response(
         render_template(
@@ -194,7 +193,7 @@ def render_table(index_kit_id: int):
     return make_response(
         render_template(
             "components/itable.html", index_kit=index_kit, columns=columns,
-            spreadsheet_data=df.replace(np.nan, "").values.tolist(),
+            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
             table_id=f"index_kit_table-{index_kit_id}"
         )
     )
@@ -227,17 +226,23 @@ def get_form(form_type: str):
     ).make_response()
 
 
-@index_kits_htmx.route("create", methods=["POST"])
+@index_kits_htmx.route("create", methods=["GET", "POST"])
 @db_session(db)
 @login_required
 def create():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    form = forms.models.IndexKitForm(form_type="create", formdata=request.form)
-    return form.process_request()
+    
+    if request.method == "GET":
+        return forms.models.IndexKitForm(form_type="create").make_response()
+    elif request.method == "POST":
+        form = forms.models.IndexKitForm(form_type="create", formdata=request.form)
+        return form.process_request()
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@index_kits_htmx.route("edit/<int:index_kit_id>", methods=["POST"])
+@index_kits_htmx.route("edit/<int:index_kit_id>", methods=["GET", "POST"])
 @db_session(db)
 @login_required
 def edit(index_kit_id: int):
@@ -246,8 +251,13 @@ def edit(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = forms.models.IndexKitForm(form_type="edit", formdata=request.form, index_kit=index_kit)
-    return form.process_request()
+    if request.method == "GET":
+        return forms.models.IndexKitForm(form_type="edit", index_kit=index_kit).make_response()
+    elif request.method == "POST":
+        form = forms.models.IndexKitForm(form_type="edit", formdata=request.form, index_kit=index_kit)
+        return form.process_request()
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
 @index_kits_htmx.route("delete/<int:index_kit_id>", methods=["DELETE"])

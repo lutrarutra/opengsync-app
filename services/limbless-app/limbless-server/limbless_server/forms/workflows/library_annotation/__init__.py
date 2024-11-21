@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from .ProjectSelectForm import ProjectSelectForm  # noqa: F401
-from .SpecifyAssayForm import SpecifyAssayForm  # noqa: F401
+from .SelectAssayForm import SelectAssayForm  # noqa: F401
 from .DefineSamplesForm import DefineSamplesForm  # noqa: F401
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm  # noqa: F401
 from .LibraryAnnotationForm import LibraryAnnotationForm  # noqa: F401
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 _steps: list[type["MultiStepForm"]] = [
     ProjectSelectForm,
-    SpecifyAssayForm,
+    SelectAssayForm,
     DefineSamplesForm,
     DefineMultiplexedSamplesForm,
     LibraryAnnotationForm,

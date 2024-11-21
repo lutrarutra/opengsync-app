@@ -1,0 +1,34 @@
+{% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+
+<div class="modal-content" id="feature_kit-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Feature Kit</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body" id="feature_kit-form">
+        {{ form.csrf_token() }}
+        <div class="row">
+            {{ form_group(form.name, class="col-6") }}
+            {{ form_group(form.identifier, class="col-3") }}
+            {{ select_input(form.feature_type_id, class="col-3") }}
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if form.form_type == "edit" %}
+            <button class="btn btn-success" hx-include="#feature_kit-form" hx-target="#feature_kit-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('feature_kits_htmx.edit', feature_kit_id=feature_kit.id) }}">Submit</button>
+            {% elif form.form_type == "create" %}
+            <button class="btn btn-success" hx-include="#feature_kit-form" hx-target="#feature_kit-form-container"
+                hx-swap="outerHTML" hx-post="{{ url_for('feature_kits_htmx.create') }}">Create</button>
+            {% endif %}
+        </div>
+    </div>
+</div>

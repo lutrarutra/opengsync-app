@@ -29,8 +29,8 @@ class AdditionalSerevicesForm(FlaskForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False)
 
 
-class SpecifyAssayForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-2.tech.html"
+class SelectAssayForm(MultiStepForm):
+    _template_path = "workflows/library_annotation/sas-select_assay.html"
     _workflow_name = "library_annotation"
     _step_name = "specify_assay"
 
@@ -41,8 +41,8 @@ class SpecifyAssayForm(MultiStepForm):
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=SpecifyAssayForm._workflow_name,
-            step_name=SpecifyAssayForm._step_name, previous_form=previous_form,
+            self, uuid=uuid, formdata=formdata, workflow=SelectAssayForm._workflow_name,
+            step_name=SelectAssayForm._step_name, previous_form=previous_form,
             step_args={}
         )
         self.seq_request = seq_request

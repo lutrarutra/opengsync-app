@@ -1,4 +1,6 @@
-<div id="{{ table_id }}" class="spreadsheet-grid">
+<div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
+    <div id="{{ table_id }}" class="spreadsheet-grid">
+    </div>
 </div>
 <script>
     var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};

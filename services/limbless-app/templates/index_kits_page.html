@@ -11,9 +11,8 @@
         <div class="page-controls">
             {% if current_user.is_insider() %}
             <button type="button" class="btn btn-primary"  data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                hx-get="{{ url_for('index_kits_htmx.get_form', form_type='create') }}"
-                hx-target="#xl-modal-content" data-bs-toggle="modal"
-                hx-swap="innerHTML">
+                hx-get="{{ url_for('index_kits_htmx.create') }}"
+                hx-target="#xl-modal-content" data-bs-toggle="modal" hx-swap="innerHTML">
                 New Index Kit
             </button>
             {% endif %}
@@ -24,12 +23,6 @@
 <div class="page-content">
     <div hx-get="{{ url_for('index_kits_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
-    </div>
-
-    <div class="modal fade" id="xl-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">
-            {{ spinner() }}
-        </div>
     </div>
 </div>
 {% endblock content %}

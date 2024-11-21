@@ -37,19 +37,7 @@
             </div>
 
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
-                <div class="input-help">
-                    <h5>How to?</h5>
-                    <ul>
-                        <li>Fill in the required columns and submit as a file or live spreadsheet.</li>
-                    </ul>
-                    <h5>Columns: </h5>
-                    <ul>
-                        <li>Library Name <span class="desc">the library name from annotation sheet that this image belongs to</span></li>
-                        <li>Image <span class="desc">the filename of the image, e.g. 'sample_a.tif'</span></li>
-                        <li>Slide <span class="desc">the visium slide of the image, e.g. 'V01A02-123'</span></li>
-                        <li>Area <span class="desc">the area of the image, e.g. 'A1'</span></li>
-                    </ul>
-                </div>
+                {% include "instructions/visium_annotation.html" %}
             </div>
             <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="2">
                 {% include "components/examples/visium.html" %}

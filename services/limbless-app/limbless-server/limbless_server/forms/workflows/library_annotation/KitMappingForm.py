@@ -23,7 +23,7 @@ class FeatureMappingSubForm(FlaskForm):
 
 
 class KitMappingForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-8.html"
+    _template_path = "workflows/library_annotation/sas-kit_mapping.html"
     _workflow_name = "library_annotation"
     _step_name = "kit_mapping"
     
@@ -36,11 +36,12 @@ class KitMappingForm(MultiStepForm):
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
+
+        self.kit_table = self.tables["kit_table"]
+        self.feature_table = self.tables["feature_table"]
     
     def prepare(self):
-        kit_table = self.tables["kit_table"]
-
-        for i, (_, row) in enumerate(kit_table.iterrows()):
+        for i, (_, row) in enumerate(self.kit_table.iterrows()):
             if pd.notna(row["kit_id"]):
                 continue
             
@@ -65,10 +66,8 @@ class KitMappingForm(MultiStepForm):
         validated = super().validate()
         if not validated:
             return False
-        
-        kit_table = self.tables["kit_table"]
 
-        for i, (_, row) in enumerate(kit_table.iterrows()):
+        for i, (_, row) in enumerate(self.kit_table.iterrows()):
             if pd.notna(row["kit_id"]):
                 continue
             
@@ -83,17 +82,15 @@ class KitMappingForm(MultiStepForm):
                 logger.error(f"Feature kit with ID {kit_id} not found.")
                 raise Exception()
             
-            for _, row in kit_table[kit_table["name"] == raw_kit_label].iterrows():
+            for _, row in self.feature_table[self.feature_table["kit"] == raw_kit_label].iterrows():
                 if pd.isna(feature_name := row["feature"]):
                     continue
                 
-                if (_ := db.get_feature_from_kit_by_feature_name(feature_name, kit_id)) is None:
+                if len(_ := db.get_features_from_kit_by_feature_name(feature_name, kit_id)) == 0:
                     feature_kit_search_field.selected.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
                     return False
 
-            kit_table.loc[kit_table["name"] == kit_table, "kit_id"] = kit_id
-
-        self.kit_table = kit_table
+            self.kit_table.loc[self.kit_table["name"] == raw_kit_label, "kit_id"] = kit_id
 
         return validated
     
@@ -169,11 +166,22 @@ class KitMappingForm(MultiStepForm):
                             read=feature.read
                         )
             else:
-                feature = db.get_feature_from_kit_by_feature_name(feature_name, kit_id)
-                if pd.isna(row["library_name"]):
-                    for library_name in abc_libraries_df["library_name"]:
+                for feature in db.get_features_from_kit_by_feature_name(feature_name, kit_id):
+                    if pd.isna(row["library_name"]):
+                        for library_name in abc_libraries_df["library_name"]:
+                            add_feature(
+                                library_name=library_name,
+                                kit_id=kit.id,
+                                kit_name=kit.name,
+                                feature_id=feature.id,
+                                feature_name=feature.name,
+                                sequence=feature.sequence,
+                                pattern=feature.pattern,
+                                read=feature.read
+                            )
+                    else:
                         add_feature(
-                            library_name=library_name,
+                            library_name=row["library_name"],
                             kit_id=kit.id,
                             kit_name=kit.name,
                             feature_id=feature.id,
@@ -182,17 +190,6 @@ class KitMappingForm(MultiStepForm):
                             pattern=feature.pattern,
                             read=feature.read
                         )
-                else:
-                    add_feature(
-                        library_name=row["library_name"],
-                        kit_id=kit.id,
-                        kit_name=kit.name,
-                        feature_id=feature.id,
-                        feature_name=feature.name,
-                        sequence=feature.sequence,
-                        pattern=feature.pattern,
-                        read=feature.read
-                    )
         return pd.DataFrame(feature_data)
     
     def get_cmos(self, cmo_table: pd.DataFrame) -> pd.DataFrame:
@@ -241,18 +238,18 @@ class KitMappingForm(MultiStepForm):
                     logger.error(f"Feature kit with ID {kit_id} not found.")
                     raise Exception(f"Feature kit with ID {kit_id} not found.")
                 
-                feature = db.get_feature_from_kit_by_feature_name(row["feature"], kit_id)
-                add_cmo(
-                    demux_name=row["demux_name"],
-                    sample_name=row["sample_name"],
-                    kit_id=kit.id,
-                    kit_name=kit.name,
-                    feature_id=feature.id,
-                    feature_name=feature.name,
-                    sequence=feature.sequence,
-                    pattern=feature.pattern,
-                    read=feature.read
-                )
+                for feature in db.get_features_from_kit_by_feature_name(row["feature"], kit_id):
+                    add_cmo(
+                        demux_name=row["demux_name"],
+                        sample_name=row["sample_name"],
+                        kit_id=kit.id,
+                        kit_name=kit.name,
+                        feature_id=feature.id,
+                        feature_name=feature.name,
+                        sequence=feature.sequence,
+                        pattern=feature.pattern,
+                        read=feature.read
+                    )
 
         return pd.DataFrame(cmo_data)
     
@@ -266,16 +263,16 @@ class KitMappingForm(MultiStepForm):
         feature_table = self.tables.get("feature_table")
 
         for _, row in self.kit_table.iterrows():
-            if row["kit_type_id"] == FeatureType.CMO.id:
+            if row["type_id"] == FeatureType.CMO.id:
                 if cmo_table is None:
                     logger.error("CMO table should not be None")
                     raise Exception("CMO table should not be None")
                 cmo_table.loc[cmo_table["kit"] == row["kit"], "kit_id"] = row["kit_id"]
-            elif row["kit_type_id"] == FeatureType.ANTIBODY.id:
+            elif row["type_id"] == FeatureType.ANTIBODY.id:
                 if feature_table is None:
                     logger.error("Feature table should not be None")
                     raise Exception("Feature table should not be None")
-                feature_table.loc[feature_table["kit"] == row["kit"], "kit_id"] = row["kit_id"]
+                feature_table.loc[feature_table["kit"] == row["name"], "kit_id"] = row["kit_id"]
 
         if cmo_table is not None:
             cmo_table = self.get_cmos(cmo_table)
@@ -293,7 +290,7 @@ class KitMappingForm(MultiStepForm):
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        if self.metadata["workflow_type"] == "pooled" and LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
             frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return frp_annotation_form.make_response()
 

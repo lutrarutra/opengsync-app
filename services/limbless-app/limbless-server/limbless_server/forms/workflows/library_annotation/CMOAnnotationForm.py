@@ -19,7 +19,7 @@ from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
 class CMOAnnotationForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-6.html"
+    _template_path = "workflows/library_annotation/sas-cmo_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "cmo_annotation"
     columns = {
