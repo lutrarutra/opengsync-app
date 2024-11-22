@@ -147,9 +147,7 @@ class CompleteQubitMeasureForm(MultiStepForm):
 
             lane_table.loc[lane_table["id"] == lane.id, "qubit_concentration"] = lane.original_qubit_concentration
 
-        if os.path.exists(self.path):
-            os.remove(self.path)
-
+        self.complete()
         flash("Qubit Measurements saved!", "success")
         if (experiment_id := metadata.get("experiment_id")) is not None:
             return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id))

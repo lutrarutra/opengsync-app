@@ -130,13 +130,8 @@ class CompleteBAReportForm(MultiStepForm):
         filename, extension = os.path.splitext(self.file.data.filename)
         
         _uuid = str(uuid.uuid4())
-        filepath = os.path.join(self._dir, f"{_uuid}{extension}")
-        self.file.data.save(filepath)
-
-        ba_report_path = os.path.join(self._dir, f"{_uuid}{extension}")
         new_path = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.BIOANALYZER_REPORT.dir, f"{_uuid}{extension}")
-        shutil.copy(ba_report_path, new_path)
-        os.remove(ba_report_path)
+        self.file.data.save(new_path)
         size_bytes = os.stat(new_path).st_size
 
         ba_file = db.create_file(
@@ -217,9 +212,7 @@ class CompleteBAReportForm(MultiStepForm):
 
             lane_table.loc[lane_table["id"] == lane.id, "avg_fragment_size"] = lane.avg_fragment_size
 
-        if os.path.exists(self.path):
-            os.remove(self.path)
-
+        self.complete()
         flash("Qubit Measurements saved!", "success")
         if (experiment_id := metadata.get("experiment_id")) is not None:
             return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id))

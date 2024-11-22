@@ -8,7 +8,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT, db_session
+from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus
 
 from .... import db, forms, logger  # noqa
@@ -69,13 +69,13 @@ def get(page: int):
 
 
 @libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
+@db_session(db)
 @login_required
 def edit(library_id):
-    with DBSession(db) as session:
-        if (library := session.get_library(library_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        if not library.is_editable() and not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    if not library.is_editable() and not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.models.LibraryForm(request.form).process_request(
         library=library
@@ -167,19 +167,19 @@ def render_feature_table(library_id: int):
 
 
 @libraries_htmx.route("<int:library_id>/get_visium_annotation", methods=["GET"])
+@db_session(db)
 @login_required
 def get_visium_annotation(library_id: int):
-    with DBSession(db) as session:
-        if (library := session.get_library(library_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if not current_user.is_insider() and library.owner_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if library.type in [LibraryType.TENX_VISIUM, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM_HD]:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        visium_annotation = library.visium_annotation
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and library.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if library.type in [LibraryType.TENX_VISIUM, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM_HD]:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    visium_annotation = library.visium_annotation
     
     return make_response(
         render_template(
