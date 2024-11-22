@@ -31,37 +31,37 @@ def begin(lab_prep_id: int) -> Response:
     return form.make_response()
     
 
-@library_indexing_workflow.route("<int:lab_prep_id>/parse_barcodes", methods=["POST"])
+@library_indexing_workflow.route("<int:lab_prep_id>/parse_barcodes/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def parse_barcodes(lab_prep_id: int) -> Response:
+def parse_barcodes(lab_prep_id: int, uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = forms.BarcodeInputForm(lab_prep=lab_prep, formdata=request.form)
+    form = forms.BarcodeInputForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form)
     return form.process_request()
 
 
-@library_indexing_workflow.route("map_index_kits", methods=["POST"])
+@library_indexing_workflow.route("map_index_kits/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def map_index_kits() -> Response:
+def map_index_kits(uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    form = forms.IndexKitMappingForm(formdata=request.form)
+    form = forms.IndexKitMappingForm(uuid=uuid, formdata=request.form)
     return form.process_request()
 
 
-@library_indexing_workflow.route("complete_pooling", methods=["POST"])
+@library_indexing_workflow.route("complete_pooling/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def complete_pooling() -> Response:
+def complete_pooling(uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    form = forms.CompleteLibraryIndexingForm(formdata=request.form)
+    form = forms.CompleteLibraryIndexingForm(uuid=uuid, formdata=request.form)
     return form.process_request(user=current_user)
