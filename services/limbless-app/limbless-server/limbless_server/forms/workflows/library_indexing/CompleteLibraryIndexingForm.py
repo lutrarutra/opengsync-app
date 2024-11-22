@@ -168,9 +168,7 @@ class CompleteLibraryIndexingForm(MultiStepForm):
             if prepared and seq_request.status == SeqRequestStatus.ACCEPTED:
                 seq_request.status = SeqRequestStatus.PREPARED
                 seq_request = db.update_seq_request(seq_request)
-
-        if os.path.exists(self.path):
-            os.remove(self.path)
-                    
+        
+        self.complete()
         flash("Library Indexing completed!", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep.id))

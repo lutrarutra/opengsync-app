@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import pandas as pd
 
@@ -10,11 +11,11 @@ from limbless_db import models
 
 from .... import logger, tools, db  # noqa F401
 from ....tools import SpreadSheetColumn
-from ...HTMXFlaskForm import HTMXFlaskForm
+from ...MultiStepForm import MultiStepForm
+from ...SpreadsheetInput import SpreadsheetInput
+from ...SearchBar import OptionalSearchBar
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CompleteLibraryIndexingForm import CompleteLibraryIndexingForm
-from ...SearchBar import OptionalSearchBar
-from ...SpreadsheetInput import SpreadsheetInput
 
 
 class PlateSubForm(FlaskForm):
@@ -22,8 +23,10 @@ class PlateSubForm(FlaskForm):
     starting_index = SelectField("Starting Index", choices=[(i, models.Plate.well_identifier(i, 12, 8)) for i in range(96)], default=0, coerce=int)
 
 
-class BarcodeInputForm(HTMXFlaskForm):
+class BarcodeInputForm(MultiStepForm):
     _template_path = "workflows/library_indexing/indexing-1.html"
+    _workflow_name = "library_indexing"
+    _step_name = "barcode_input"
     
     columns = {
         "library_id": SpreadSheetColumn("A", "library_id", "ID", "numeric", 50, int),
@@ -41,8 +44,11 @@ class BarcodeInputForm(HTMXFlaskForm):
     _mapping: dict[str, str] = dict([(col.name, col.label) for col in columns.values()])
     _required_columns: list[str] = [col.name for col in columns.values()]
 
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
+        MultiStepForm.__init__(
+            self, formdata=formdata, uuid=uuid, step_name=BarcodeInputForm._step_name,
+            workflow=BarcodeInputForm._workflow_name, step_args={}
+        )
 
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep
@@ -163,7 +169,7 @@ class BarcodeInputForm(HTMXFlaskForm):
         self.df["kit_i5_id"] = None
 
         if self.df["kit_i7"].notna().any():
-            index_kit_mapping_form = IndexKitMappingForm()
+            index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
             index_kit_mapping_form.metadata["lab_prep_id"] = self.lab_prep.id
             index_kit_mapping_form.add_table("library_table", self.df)
             index_kit_mapping_form.update_data()
@@ -196,7 +202,7 @@ class BarcodeInputForm(HTMXFlaskForm):
         
         barcode_table = pd.DataFrame(barcode_table_data)
 
-        complete_pool_indexing_form = CompleteLibraryIndexingForm()
+        complete_pool_indexing_form = CompleteLibraryIndexingForm(uuid=self.uuid)
         complete_pool_indexing_form.metadata["lab_prep_id"] = self.lab_prep.id
         complete_pool_indexing_form.add_table("library_table", self.df)
         complete_pool_indexing_form.add_table("barcode_table", barcode_table)
