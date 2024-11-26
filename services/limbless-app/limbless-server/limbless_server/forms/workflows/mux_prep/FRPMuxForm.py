@@ -142,7 +142,8 @@ class FRPMuxForm(MultiStepForm):
                     status=LibraryStatus.PREPARING,
                     owner_id=old_library.owner_id,
                     seq_request_id=old_library.seq_request_id,
-                    lab_prep_id=self.lab_prep.id
+                    lab_prep_id=self.lab_prep.id,
+                    genome_ref=old_library.genome_ref,
                 )
                 libraries[lib] = new_library
             else:

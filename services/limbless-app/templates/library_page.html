@@ -100,7 +100,8 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#reads-tab" type="button" role="tab"
-            aria-controls="reads-tab" aria-selected="true" >
+            aria-controls="reads-tab" aria-selected="true"
+            {% if library.status != LibraryStatus.SEQUENCED %}disabled{% endif %}>
             Read Quality</button>
         </li>
     </ul>
@@ -198,7 +199,7 @@
             <div class="row">
                 {{ metadata_group("Type", library.type, class="col-4") }}
                 {{ metadata_group("Sample Name", library.sample_name, class="col-4") }}
-                {{ metadata_group("Genome Reference", library.genome_ref, class="col-4") }}
+                {{ metadata_group("Genome Reference", library.genome_ref.name, class="col-4") }}
             </div>
             <div class="row">
                 {{ 
