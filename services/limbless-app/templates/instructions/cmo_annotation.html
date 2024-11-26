@@ -1,0 +1,21 @@
+<div class="input-help">
+    <h5>Modify Columns</h5>
+    <ul>
+        <li>Demux Name <span class="desc">Demultiplexed sample name</span></li>
+        <li>Sample Name <span class="desc">The sample from annotation sheet that this CMO belongs to, must mach one and only one value from 'Sample Name'-column from sample annotation sheet</span></li>
+        <li>Feature <span class="desc">Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a> page</span></li>
+        <li>Kit <span class="desc">name of a predefined feature kit, one found in <a href="{{ url_for('kits_page.feature_kits_page') }}">Feature Kits</a> page</span></li>
+        <li>Sequence <span class="desc">e.g. 'TGAGTACAGGCTCCCAAG'</span></li>
+        <li>Pattern <span class="desc">e.g. '^NNNNNNNNNNNNNNNNNNNNNN(BC)'</span></li>
+        <li>Read <span class="desc">e.g. 'R2'</span></li>
+    </ul>
+
+    <h5>Important</h5>
+    <ul>
+        <li>Two ways to specify CMOs:</li>
+        <ol>
+            <li>If using predefined kit from <a href="{{ url_for('kits_page.feature_kits_page') }}" target="_blank">Feature Kits</a>: specify columns <b>Demux Name, Sample Name, Feature, Kit</b></li>
+            <li>If using custom kit: specify columns <b>Demux Name, Sample Name, Sequence, Pattern, Read</b></li>
+        </ol>
+    </ul>
+</div>

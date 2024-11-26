@@ -58,8 +58,8 @@ class FeatureAnnotationForm(MultiStepForm):
         df = self.spreadsheet.df
 
         library_table = self.tables["library_table"]
-        abc_libraries = library_table[library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id]
-            
+        abc_libraries = library_table[(library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)]
+
         # If ABC library is not mentioned in the feature table, i.e. no features assigned to it
         mentioned_abc_libraries = abc_libraries["library_name"].isin(df["library_name"])
         if pd.notna(df["library_name"]).any() and not mentioned_abc_libraries.all():
@@ -162,7 +162,7 @@ class FeatureAnnotationForm(MultiStepForm):
             "read": [],
             "feature_id": [],
         }
-        abc_libraries_df = library_table[library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id]
+        abc_libraries_df = library_table[(library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)]
 
         def add_feature(
             library_name: str, feature_name: str,

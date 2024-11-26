@@ -20,8 +20,10 @@ def create_library(
     seq_request_id: int,
     genome_ref: Optional[GenomeRefEnum] = None,
     pool_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None,
     visium_annotation_id: Optional[int] = None,
     seq_depth_requested: Optional[float] = None,
+    status: Optional[LibraryStatusEnum] = None,
     commit: bool = True
 ) -> models.Library:
     if not (persist_session := self._session is not None):
@@ -39,15 +41,16 @@ def create_library(
     if visium_annotation_id is not None:
         if (_ := self.session.get(models.VisiumAnnotation, visium_annotation_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Visium annotation with id {visium_annotation_id} does not exist")
-        
-    if pool_id is not None:
-        if (pool := self.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-        pool.num_libraries += 1
-        self.session.add(pool)
-        library_status = LibraryStatus.POOLED
-    else:
-        library_status = LibraryStatus.DRAFT
+    
+    if status is None:
+        if pool_id is not None:
+            if (pool := self.session.get(models.Pool, pool_id)) is None:
+                raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+            pool.num_libraries += 1
+            self.session.add(pool)
+            status = LibraryStatus.POOLED
+        else:
+            status = LibraryStatus.DRAFT
 
     library = models.Library(
         name=name.strip(),
@@ -57,7 +60,8 @@ def create_library(
         type_id=library_type.id,
         owner_id=owner_id,
         pool_id=pool_id,
-        status_id=library_status.id,
+        lab_prep_id=lab_prep_id,
+        status_id=status.id,
         visium_annotation_id=visium_annotation_id,
         seq_depth_requested=seq_depth_requested
     )
@@ -192,7 +196,7 @@ def get_libraries(
     return libraries, n_pages
 
 
-def delete_library(self: "DBHandler", library_id: int):
+def delete_library(self: "DBHandler", library_id: int, delete_orphan_samples: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -202,7 +206,7 @@ def delete_library(self: "DBHandler", library_id: int):
     for link in library.sample_links:
         link.sample.num_libraries -= 1
             
-        if link.sample.num_libraries == 0:
+        if link.sample.num_libraries == 0 and delete_orphan_samples:
             self.delete_sample(link.sample_id)
 
     if library.pool_id is not None and library.pool is not None:
@@ -539,6 +543,12 @@ def clone_library(self: "DBHandler", library_id: int, seq_request_id: int, index
             cmo_read=sample_link.cmo_read,
             cmo_pattern=sample_link.cmo_pattern,
             flex_barcode=sample_link.flex_barcode
+        )
+
+    for feature in library.features:
+        self.link_feature_library(
+            feature_id=feature.id,
+            library_id=cloned_library.id
         )
 
     if indexed:

@@ -23,7 +23,7 @@ class AssayType(ExtendedEnum[AssayTypeEnum], enum_type=AssayTypeEnum):
     CUSTOM = AssayTypeEnum(0, "Custom", "Custom")
 
     # 10x Genomics
-    TENX_SC_SINGLE_PLEX_FLEX = AssayTypeEnum(10, "10X Single Cell Gene Expression Flex Single-Plex", "10X Flex Single-Plex", "10X Chromium", library_types=[LibraryType.TENX_SC_GEX_FLEX], optional_library_types=[LibraryType.TENX_ANTIBODY_CAPTURE])
+    TENX_SC_SINGLE_PLEX_FLEX = AssayTypeEnum(10, "10X Single Cell Gene Expression Flex Single-Plex", "10X Flex Single-Plex", "10X Chromium", library_types=[LibraryType.TENX_SC_GEX_FLEX], optional_library_types=[LibraryType.TENX_SC_ABC_FLEX])
     TENX_SC_ATAC = AssayTypeEnum(11, "10X Single Cell ATAC", "10X ATAC", "10X Chromium", library_types=[LibraryType.TENX_SC_ATAC])
     TENX_SC_GEX_3PRIME = AssayTypeEnum(12, "10X Single Cell Gene Expression 3'", "10X 3'", "10X Chromium", can_be_multiplexed=True, library_types=[LibraryType.TENX_SC_GEX_3PRIME], optional_library_types=[LibraryType.TENX_ANTIBODY_CAPTURE])
     TENX_SC_GEX_5PRIME = AssayTypeEnum(13, "10X Single Cell Immune Profiling 5'", "10X 5'", "10X Chromium", can_be_multiplexed=True, library_types=[LibraryType.TENX_SC_GEX_5PRIME], optional_library_types=[LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_CRISPR_SCREENING, LibraryType.TENX_VDJ_B, LibraryType.TENX_VDJ_T, LibraryType.TENX_VDJ_T_GD])

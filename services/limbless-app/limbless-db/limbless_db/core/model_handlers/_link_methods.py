@@ -9,13 +9,47 @@ from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
+def get_sample_library_link(
+    self: "DBHandler", sample_id: int, library_id: int,
+) -> models.links.SampleLibraryLink | None:
+
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    link = self.session.query(models.links.SampleLibraryLink).where(
+        models.links.SampleLibraryLink.sample_id == sample_id,
+        models.links.SampleLibraryLink.library_id == library_id,
+    ).first()
+
+    if not persist_session:
+        self.close_session()
+
+    return link
+
+
+def update_sample_library_link(
+    self: "DBHandler", link: models.links.SampleLibraryLink,
+) -> models.links.SampleLibraryLink:
+
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    self.session.add(link)
+    self.session.commit()
+    self.session.refresh(link)
+
+    if not persist_session:
+        self.close_session()
+
+    return link
+
+
 def link_sample_library(
     self: "DBHandler", sample_id: int, library_id: int,
     cmo_sequence: Optional[str] = None,
     cmo_pattern: Optional[str] = None,
     cmo_read: Optional[str] = None,
     flex_barcode: Optional[str] = None,
-    commit: bool = True
 ) -> models.links.SampleLibraryLink:
     
     if not (persist_session := self._session is not None):
@@ -45,14 +79,41 @@ def link_sample_library(
     sample.num_libraries += 1
     library.num_samples += 1
 
-    if commit:
-        self.session.commit()
-        self.session.refresh(sample_library_link)
+    self.session.commit()
+    self.session.refresh(sample_library_link)
 
     if not persist_session:
         self.close_session()
 
     return sample_library_link
+
+
+def unlink_sample_library(self: "DBHandler", sample_id: int, library_id: int):
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (link := self.session.query(models.links.SampleLibraryLink).where(
+        models.links.SampleLibraryLink.sample_id == sample_id,
+        models.links.SampleLibraryLink.library_id == library_id,
+    ).first()) is None:
+        raise exceptions.LinkDoesNotExist(f"Sample with id {sample_id} and Library with id {library_id} are not linked")
+
+    if (sample := self.session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    
+    if (library := self.session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+
+    sample.num_libraries -= 1
+    library.num_samples -= 1
+
+    self.session.add(sample)
+    self.session.add(library)
+    self.session.delete(link)
+    self.session.commit()
+
+    if not persist_session:
+        self.close_session()
 
 
 def get_sample_library_links(

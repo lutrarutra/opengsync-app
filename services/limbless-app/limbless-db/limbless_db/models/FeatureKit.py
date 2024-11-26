@@ -37,4 +37,7 @@ class FeatureKit(Kit):
         return self.id
     
     def search_name(self) -> str:
+        return self.identifier
+    
+    def search_description(self) -> str | None:
         return self.name

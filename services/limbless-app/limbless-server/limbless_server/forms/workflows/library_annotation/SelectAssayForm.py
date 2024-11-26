@@ -55,20 +55,6 @@ class SelectAssayForm(MultiStepForm):
         if self.assay_type.data is None or AssayType.get(self.assay_type.data) == AssayType.CUSTOM:
             self.assay_type.errors = ("Please select an assay type.",)
             return False
-
-        selected_library_types = [t.abbreviation for t in AssayType.get(self.assay_type.data).library_types]
-        if self.optional_assays.antibody_capture.data:
-            selected_library_types.append(LibraryType.TENX_ANTIBODY_CAPTURE.abbreviation)
-        if self.optional_assays.vdj_b.data:
-            selected_library_types.append(LibraryType.TENX_VDJ_B.abbreviation)
-        if self.optional_assays.vdj_t.data:
-            selected_library_types.append(LibraryType.TENX_VDJ_T.abbreviation)
-        if self.optional_assays.vdj_t_gd.data:
-            selected_library_types.append(LibraryType.TENX_VDJ_T_GD.abbreviation)
-        if self.optional_assays.crispr_screening.data:
-            selected_library_types.append(LibraryType.TENX_CRISPR_SCREENING.abbreviation)
-        if self.additional_services.multiplexing.data:
-            selected_library_types.append(LibraryType.TENX_MULTIPLEXING_CAPTURE.abbreviation)
         
         genome_map = {}
         for id, e in GenomeRef.as_tuples():
