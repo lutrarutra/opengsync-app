@@ -91,6 +91,7 @@ def previous(seq_request_id: int, uuid: str):
 
     prev_step_cls = forms.steps[step_name]
     prev_step = prev_step_cls(uuid=uuid, seq_request=seq_request, **step.args)
+    prev_step.fill_previous_form()
     return prev_step.make_response()
 
 

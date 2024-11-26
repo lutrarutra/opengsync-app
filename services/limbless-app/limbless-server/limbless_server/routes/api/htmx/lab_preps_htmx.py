@@ -1,7 +1,10 @@
 import os
 import io
 import json
+import string
 from typing import TYPE_CHECKING, Literal
+
+import pandas as pd
 
 import openpyxl
 from openpyxl import styles as openpyxl_styles
@@ -12,9 +15,10 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus
+from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, LibraryType
 
 from .... import db, forms, logger  # noqa
+from ....tools import SpreadSheetColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -500,5 +504,46 @@ def get_comments(lab_prep_id: int):
         render_template(
             "components/comment-list.html",
             comments=lab_prep.comments
+        )
+    )
+
+
+@lab_preps_htmx.route("<int:lab_prep_id>/get_mux_table", methods=["GET"])
+@db_session(db)
+@login_required
+def get_mux_table(lab_prep_id: int):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    df = db.get_lab_prep_samples_df(lab_prep.id)
+
+    df = df[["sample_name", "sample_pool", "flex_barcode", "cmo_sequence", "cmo_pattern", "cmo_read", "library_name"]]
+
+    columns = []
+    for i, col in enumerate(df.columns):
+        if col == "flex_barcode":
+            width = 100
+        elif col == "cmo_read":
+            width = 100
+        elif "cmo" in col:
+            width = 200
+        else:
+            width = 250
+        columns.append(
+            SpreadSheetColumn(
+                string.ascii_uppercase[i], col,
+                col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
+                "text", width, var_type=str
+            )
+        )
+
+    return make_response(
+        render_template(
+            "components/itable.html", columns=columns,
+            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
+            table_id="mux-table"
         )
     )

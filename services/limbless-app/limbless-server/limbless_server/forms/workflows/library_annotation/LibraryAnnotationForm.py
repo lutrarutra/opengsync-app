@@ -199,7 +199,7 @@ class LibraryAnnotationForm(MultiStepForm):
             visium_annotation_form.prepare()
             return visium_annotation_form.make_response()
         
-        if (library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
+        if ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
             feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return feature_reference_input_form.make_response()
         

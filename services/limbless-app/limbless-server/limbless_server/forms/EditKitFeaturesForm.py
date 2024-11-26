@@ -6,6 +6,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from limbless_db import models
+from limbless_db.categories import FeatureType
 
 from .. import db, logger  # noqa
 from ..tools import SpreadSheetColumn, tools
@@ -55,10 +56,13 @@ class EditKitFeaturesForm(HTMXFlaskForm):
         df = self.spreadsheet.df
 
         duplicate_def = df.duplicated(subset=["sequence", "pattern", "read"], keep=False)
+        duplicate_feature = df.duplicated(subset=["name"], keep=False) & (self.feature_kit.type in [FeatureType.CMO])
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["name"]):
                 self.spreadsheet.add_error(i + 1, "name", "Name cannot be empty.", "missing_value")
+            elif duplicate_feature.at[idx]:
+                self.spreadsheet.add_error(i + 1, "name", f"Duplicate feature name not allowed in '{self.feature_kit.type.name}'-kit.", "duplicate_value")
             if pd.isna(row["sequence"]):
                 self.spreadsheet.add_error(i + 1, "sequence", "Sequence cannot be empty.", "missing_value")
             if pd.isna(row["pattern"]):

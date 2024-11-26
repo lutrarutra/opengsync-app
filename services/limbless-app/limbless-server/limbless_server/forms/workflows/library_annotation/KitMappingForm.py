@@ -106,7 +106,7 @@ class KitMappingForm(MultiStepForm):
             "feature_id": [],
         }
 
-        abc_libraries_df = library_table[library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id]
+        abc_libraries_df = library_table[(library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)]
 
         def add_feature(
             library_name: str, feature_name: str,

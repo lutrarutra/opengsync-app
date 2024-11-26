@@ -68,7 +68,10 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
 
         selected_library_types = [t.abbreviation for t in self.assay_type.library_types]
         if self.antibody_capture:
-            selected_library_types.append(LibraryType.TENX_ANTIBODY_CAPTURE.abbreviation)
+            if self.assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+                selected_library_types.append(LibraryType.TENX_SC_ABC_FLEX.abbreviation)
+            else:
+                selected_library_types.append(LibraryType.TENX_ANTIBODY_CAPTURE.abbreviation)
         if self.vdj_b:
             selected_library_types.append(LibraryType.TENX_VDJ_B.abbreviation)
         if self.vdj_t:
@@ -166,7 +169,10 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 add_library(sample_pool, library_type, genome)
             
             if self.antibody_capture:
-                add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE, genome)
+                if self.assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+                    add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX, genome)
+                else:
+                    add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE, genome)
 
             if self.antibody_multiplexing:
                 add_library(sample_pool, LibraryType.TENX_MULTIPLEXING_CAPTURE, genome)
@@ -194,7 +200,10 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                     pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_MULTIPLEXING_CAPTURE.identifier}")
                 if self.antibody_capture:
                     pooling_table["sample_name"].append(sample_name)
-                    pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_ANTIBODY_CAPTURE.identifier}")
+                    if self.assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+                        pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_SC_ABC_FLEX.identifier}")
+                    else:
+                        pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_ANTIBODY_CAPTURE.identifier}")
                 if self.vdj_b:
                     pooling_table["sample_name"].append(sample_name)
                     pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_B.identifier}")
@@ -233,7 +242,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.add_table("pooling_table", pooling_table)
         self.update_data()
         
-        if (library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id).any():
+        if ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
             feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
             return feature_reference_input_form.make_response()
         

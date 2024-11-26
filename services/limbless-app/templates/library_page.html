@@ -52,29 +52,43 @@
             aria-controls="library-samples-tab" aria-selected="true">
             Samples</button>
         </li>
-        {% if library.type in [LibraryType.TENX_VISIUM_HD, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM] %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-visium-tab" type="button" role="tab"
-            aria-controls="library-visium-tab" aria-selected="true">
+            aria-controls="library-visium-tab" aria-selected="true"
+            {% if library.type not in [LibraryType.TENX_VISIUM_HD, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM] %}disabled{% endif %}>
             Visium</button>
         </li>
-        {% elif library.type == LibraryType.TENX_ANTIBODY_CAPTURE %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#library-flex-tab" type="button" role="tab"
+            aria-controls="library-flex-tab" aria-selected="true"
+            {% if library.type not in [LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
+            Flex</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#library-hto-tab" type="button" role="tab"
+            aria-controls="library-hto-tab" aria-selected="true"
+            {% if not library.is_multiplexed() %}disabled{% endif %}>
+            HTO</button>
+        </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-abc-tab" type="button" role="tab"
-            aria-controls="library-abc-tab" aria-selected="true">
+            aria-controls="library-abc-tab" aria-selected="true"
+            {% if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
             Feature Capture
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-abc-table-tab" type="button" role="tab"
-            aria-controls="library-abc-table-tab" aria-selected="true">
+            aria-controls="library-abc-table-tab" aria-selected="true"
+            {% if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
             Feature Table
             </button>
         </li>
-        {% endif %}
         {% if library.ba_report_id and current_user.is_insider() %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -214,20 +228,35 @@
                 {{ spinner() }}
             </div>
         </div>
-        {% elif library.type == LibraryType.TENX_ANTIBODY_CAPTURE %}
-        <div class="tab-pane fade" id="library-abc-tab" role="tabpanel" tabindex="5">
+        {% endif %}
+        {% if library.type in [LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_SC_ABC_FLEX] %}
+        <div class="tab-pane fade" id="library-flex-tab" role="tabpanel" tabindex="5">
+            <div hx-get="{{ url_for('libraries_htmx.get_flex_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% endif %}
+        {% if library.is_multiplexed() %}
+        <div class="tab-pane fade" id="library-hto-tab" role="tabpanel" tabindex="6">
+            <div hx-get="{{ url_for('libraries_htmx.get_hto_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% endif %}
+        {% if library.type in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}
+        <div class="tab-pane fade" id="library-abc-tab" role="tabpanel" tabindex="7">
             <div hx-get="{{ url_for('libraries_htmx.get_features', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="library-abc-table-tab" role="tabpanel" tabindex="6">
+        <div class="tab-pane fade" id="library-abc-table-tab" role="tabpanel" tabindex="8">
             <div hx-get="{{ url_for('libraries_htmx.render_feature_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         {% endif %}
         {% if library.ba_report_id and current_user.is_insider() %}
-        <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="7">
+        <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="9">
             <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
                 <div class="row">
                     {{ metadata_group("Filename", library.ba_report.name + library.ba_report.extension, class="col-3") }}
@@ -244,7 +273,7 @@
             <embed src="{{ url_for('pdf_file', file_id=library.ba_report_id) }}" type="application/pdf" width="100%" height="1000px" onload="remove_spinner()">
         </div>
         {% endif %}
-        <div class="tab-pane fade" id="reads-tab" role="tabpanel" tabindex="8">
+        <div class="tab-pane fade" id="reads-tab" role="tabpanel" tabindex="10">
             <div hx-get="{{ url_for('libraries_htmx.reads_tab', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>

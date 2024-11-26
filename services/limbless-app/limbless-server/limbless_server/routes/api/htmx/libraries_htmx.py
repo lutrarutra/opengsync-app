@@ -551,3 +551,77 @@ def select_all(workflow: str):
 
     form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)
     return form.make_response(libraries=libraries)
+
+
+@libraries_htmx.route("<int:library_id>/get_flex_table", methods=["GET"])
+@db_session(db)
+@login_required
+def get_flex_table(library_id: int):
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and not library.owner_id != current_user.id:
+        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
+    df = db.get_library_samples_df(library.id)
+
+    df = df[["sample_name", "flex_barcode"]]
+
+    columns = []
+    for i, col in enumerate(df.columns):
+        if col == "flex_barcode":
+            width = 100
+        else:
+            width = 300
+        columns.append(
+            SpreadSheetColumn(
+                string.ascii_uppercase[i], col,
+                col.replace("_", " ").title().replace("Id", "ID"),
+                "text", width, var_type=str
+            )
+        )
+
+    return make_response(
+        render_template(
+            "components/itable.html", columns=columns,
+            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
+            table_id="flex-table"
+        )
+    )
+
+
+@libraries_htmx.route("<int:library_id>/get_hto_table", methods=["GET"])
+@db_session(db)
+@login_required
+def get_hto_table(library_id: int):
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and not library.owner_id != current_user.id:
+        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
+    df = db.get_library_samples_df(library.id)
+
+    df = df[["sample_name", "cmo_sequence", "cmo_pattern", "cmo_read"]]
+
+    columns = []
+    for i, col in enumerate(df.columns):
+        columns.append(
+            SpreadSheetColumn(
+                string.ascii_uppercase[i], col,
+                col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
+                "text", 300, var_type=str
+            )
+        )
+
+    return make_response(
+        render_template(
+            "components/itable.html", columns=columns,
+            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
+            table_id="flex-table"
+        )
+    )

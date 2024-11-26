@@ -18,7 +18,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     CUSTOM = LibraryTypeEnum(0, "Custom", "Custom", "Custom", "Custom")
 
     # 10X Base Technologies
-    TENX_SC_GEX_FLEX = LibraryTypeEnum(1, "10X Single Cell Gene Expression Flex", "10X Flex", "10XFLEXFRP", "Gene Expression")
+    TENX_SC_GEX_FLEX = LibraryTypeEnum(1, "10X Flex Gene Expression", "10X Flex GEX", "10XFLEXFRP", "Gene Expression")
     TENX_SC_ATAC = LibraryTypeEnum(2, "10X Single Cell ATAC", "10X ATAC", "10XATAC", "Chromatin Accessibility")
     TENX_SC_GEX_3PRIME = LibraryTypeEnum(3, "10X Single Cell Gene Expression 3'", "10X 3' GEX", "10XGEX3P", "Gene Expression")
     TENX_SC_GEX_5PRIME = LibraryTypeEnum(4, "10X Single Cell Immune Profiling 5'", "10X 5' GEX", "10XGEX5P", "Gene Expression")
@@ -35,6 +35,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     TENX_VDJ_B = LibraryTypeEnum(11, "10X VDJ B", "10X VDJ B", "10XVDJB", "VDJ-B")
     TENX_VDJ_T = LibraryTypeEnum(12, "10X VDJ T", "10X VDJ T", "10XVDJT", "VDJ-T")
     TENX_VDJ_T_GD = LibraryTypeEnum(13, "10X VDJ T GD", "10X VDJ T GD", "10XVDJTGD", "VDJ-T-GD")
+    TENX_SC_ABC_FLEX = LibraryTypeEnum(14, "10X Flex Antibody Capture", "10X Flex ABC", "10XFLEXABC", "Antibody Capture")
 
     # RNA-seq
     POLY_A_RNA_SEQ = LibraryTypeEnum(101, "Poly-A RNA-Seq", "Poly-A RNA-Seq", "POLYARNA", "Gene Expression")

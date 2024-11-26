@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required, current_user
 
 from limbless_db import db_session
-from limbless_db.categories import HTTPResponse, LibraryStatus
+from limbless_db.categories import HTTPResponse, LibraryStatus, LibraryType
 
 from ... import db, logger, forms  # noqa
 
@@ -29,9 +29,13 @@ def lab_prep_page(lab_prep_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     can_be_completed = len(lab_prep.libraries) > 0
+    contains_mux_libraries = False
     for library in lab_prep.libraries:
         if library.status.id < LibraryStatus.POOLED.id:
             can_be_completed = False
+        if library.type in [LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_MULTIPLEXING_CAPTURE]:
+            contains_mux_libraries = True
+        if can_be_completed and contains_mux_libraries:
             break
         
     path_list = [
@@ -49,4 +53,5 @@ def lab_prep_page(lab_prep_id: int):
 
     return render_template(
         "lab_prep_page.html", lab_prep=lab_prep, can_be_completed=can_be_completed, path_list=path_list,
+        contains_mux_libraries=contains_mux_libraries
     )

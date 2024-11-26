@@ -322,10 +322,11 @@ def get_library_features_df(self, library_id: int) -> pd.DataFrame:
     return df
 
 
-def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
+def get_library_samples_df(self, library_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.links.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.links.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.links.SampleLibraryLink.cmo_read.label("cmo_read"),
+        models.links.SampleLibraryLink.cmo_sequence, models.links.SampleLibraryLink.cmo_pattern, models.links.SampleLibraryLink.cmo_read,
+        models.links.SampleLibraryLink.flex_barcode
     ).join(
         models.links.SampleLibraryLink,
         models.links.SampleLibraryLink.sample_id == models.Sample.id
@@ -333,7 +334,7 @@ def get_library_cmos_df(self, library_id: int) -> pd.DataFrame:
         models.links.SampleLibraryLink.library_id == library_id
     )
 
-    df = pd.read_sql(query, self._engine)
+    df = pd.read_sql(query, self._engine).sort_values("sample_id")
 
     return df
 
@@ -570,6 +571,7 @@ def get_lab_prep_libraries_df(self, lab_prep_id: int) -> pd.DataFrame:
         models.Library.status_id.label("status_id"),
         models.Library.type_id.label("type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
+        models.Library.sample_name.label("sample_name"),
     ).where(
         models.Library.lab_prep_id == lab_prep_id
     )
@@ -579,4 +581,26 @@ def get_lab_prep_libraries_df(self, lab_prep_id: int) -> pd.DataFrame:
     df["type"] = df["type_id"].map(categories.LibraryType.get)  # type: ignore
     df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
 
+    return df
+
+
+def get_lab_prep_samples_df(self, lab_prep_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.Library.id.label("library_id"), models.Library.name.label("library_name"),
+        models.Library.type_id.label("library_type_id"), models.Library.sample_name.label("sample_pool"),
+        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
+        models.links.SampleLibraryLink.cmo_sequence, models.links.SampleLibraryLink.cmo_pattern, models.links.SampleLibraryLink.cmo_read,
+        models.links.SampleLibraryLink.flex_barcode
+    ).where(
+        models.Library.lab_prep_id == lab_prep_id
+    ).join(
+        models.links.SampleLibraryLink,
+        models.links.SampleLibraryLink.library_id == models.Library.id
+    ).join(
+        models.Sample,
+        models.Sample.id == models.links.SampleLibraryLink.sample_id,
+    )
+
+    df = pd.read_sql(query, self._engine).sort_values(["library_id", "sample_id"])
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
     return df
