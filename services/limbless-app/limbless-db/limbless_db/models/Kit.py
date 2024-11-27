@@ -36,10 +36,10 @@ class Kit(Base):
         return self.id
     
     def search_name(self) -> str:
-        return self.identifier
+        return self.name
     
     def search_description(self) -> str | None:
-        return self.name
+        return self.identifier
     
     def __str__(self):
         return f"Kit('{self.identifier}', '{self.name}', '{self.kit_type.name}')"

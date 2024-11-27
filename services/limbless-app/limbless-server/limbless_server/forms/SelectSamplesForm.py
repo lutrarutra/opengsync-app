@@ -6,7 +6,7 @@ import json
 from flask import url_for
 from wtforms import StringField
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import SampleStatusEnum, LibraryStatusEnum, PoolStatusEnum, SampleStatus, LibraryStatus, PoolStatus
 
 from .. import db, logger
@@ -153,6 +153,11 @@ class SelectSamplesForm(HTMXFlaskForm):
             self._context["library_url_context"]["status_id_in"] = json.dumps([status.id for status in library_status_filter])
         if pool_status_filter is not None:
             self._context["pool_url_context"]["status_id_in"] = json.dumps([status.id for status in pool_status_filter])
+
+        self.__sample_table: pd.DataFrame | None = None
+        self.__library_table: pd.DataFrame | None = None
+        self.__pool_table: pd.DataFrame | None = None
+        self.__lane_table: pd.DataFrame | None = None
         
     def validate(self) -> bool:
         validated = super().validate()
@@ -226,9 +231,10 @@ class SelectSamplesForm(HTMXFlaskForm):
         self._context["selected_libraries"] = self.library_ids
         self._context["selected_pools"] = self.pool_ids
         self._context["selected_lanes"] = self.lane_ids
-        return validated
-    
-    def get_tables(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+
+        if not validated:
+            return False
+
         sample_data = dict(id=[], name=[], status_id=[])
         library_data = dict(id=[], name=[], status_id=[])
         pool_data = dict(id=[], name=[], status_id=[])
@@ -246,57 +252,85 @@ class SelectSamplesForm(HTMXFlaskForm):
             pool_data["avg_fragment_size"] = []
             lane_data["avg_fragment_size"] = []
 
-        with DBSession(db) as session:
-            for sample_id in self.sample_ids:
-                if (sample := session.get_sample(sample_id)) is None:
-                    logger.error(f"Sample {sample_id} not found")
-                    raise ValueError(f"Sample {sample_id} not found")
-                
-                sample_data["id"].append(sample.id)
-                sample_data["name"].append(sample.name)
-                sample_data["status_id"].append(sample.status_id)
-                if self.workflow == "qubit_measure":
-                    sample_data["qubit_concentration"].append(sample.qubit_concentration)
-                elif self.workflow == "ba_report":
-                    sample_data["avg_fragment_size"].append(sample.avg_fragment_size)
+        for sample_id in self.sample_ids:
+            if (sample := db.get_sample(sample_id)) is None:
+                logger.error(f"Sample {sample_id} not found")
+                raise ValueError(f"Sample {sample_id} not found")
+            
+            sample_data["id"].append(sample.id)
+            sample_data["name"].append(sample.name)
+            sample_data["status_id"].append(sample.status_id)
+            if self.workflow == "qubit_measure":
+                sample_data["qubit_concentration"].append(sample.qubit_concentration)
+            elif self.workflow == "ba_report":
+                sample_data["avg_fragment_size"].append(sample.avg_fragment_size)
 
-            for library_id in self.library_ids:
-                if (library := session.get_library(library_id)) is None:
-                    logger.error(f"Library {library_id} not found")
-                    raise ValueError(f"Library {library_id} not found")
+        for library_id in self.library_ids:
+            if (library := db.get_library(library_id)) is None:
+                logger.error(f"Library {library_id} not found")
+                raise ValueError(f"Library {library_id} not found")
 
-                library_data["id"].append(library.id)
-                library_data["name"].append(library.name)
-                library_data["status_id"].append(library.status_id)
-                if self.workflow == "qubit_measure":
-                    library_data["qubit_concentration"].append(library.qubit_concentration)
-                elif self.workflow == "ba_report":
-                    library_data["avg_fragment_size"].append(library.avg_fragment_size)
+            library_data["id"].append(library.id)
+            library_data["name"].append(library.name)
+            library_data["status_id"].append(library.status_id)
+            if self.workflow == "qubit_measure":
+                library_data["qubit_concentration"].append(library.qubit_concentration)
+            elif self.workflow == "ba_report":
+                library_data["avg_fragment_size"].append(library.avg_fragment_size)
 
-            for pool_id in self.pool_ids:
-                if (pool := session.get_pool(pool_id)) is None:
-                    logger.error(f"Pool {pool_id} not found")
-                    raise ValueError(f"Pool {pool_id} not found")
+        for pool_id in self.pool_ids:
+            if (pool := db.get_pool(pool_id)) is None:
+                logger.error(f"Pool {pool_id} not found")
+                raise ValueError(f"Pool {pool_id} not found")
 
-                pool_data["id"].append(pool.id)
-                pool_data["name"].append(pool.name)
-                pool_data["status_id"].append(pool.status_id)
-                if self.workflow == "qubit_measure":
-                    pool_data["qubit_concentration"].append(pool.qubit_concentration)
-                elif self.workflow == "ba_report":
-                    pool_data["avg_fragment_size"].append(pool.avg_fragment_size)
+            pool_data["id"].append(pool.id)
+            pool_data["name"].append(pool.name)
+            pool_data["status_id"].append(pool.status_id)
+            if self.workflow == "qubit_measure":
+                pool_data["qubit_concentration"].append(pool.qubit_concentration)
+            elif self.workflow == "ba_report":
+                pool_data["avg_fragment_size"].append(pool.avg_fragment_size)
 
-            for lane_id in self.lane_ids:
-                if (lane := session.get_lane(lane_id)) is None:
-                    logger.error(f"Lane {lane_id} not found")
-                    raise ValueError(f"Lane {lane_id} not found")
+        for lane_id in self.lane_ids:
+            if (lane := db.get_lane(lane_id)) is None:
+                logger.error(f"Lane {lane_id} not found")
+                raise ValueError(f"Lane {lane_id} not found")
 
-                lane_data["id"].append(lane.id)
-                lane_data["name"].append(f"{lane.experiment.name}-L{lane.number}")
-                lane_data["status_id"].append(None)
-                if self.workflow == "qubit_measure":
-                    lane_data["qubit_concentration"].append(lane.original_qubit_concentration)
-                elif self.workflow == "ba_report":
-                    lane_data["avg_fragment_size"].append(lane.avg_fragment_size)
+            lane_data["id"].append(lane.id)
+            lane_data["name"].append(f"{lane.experiment.name}-L{lane.number}")
+            lane_data["status_id"].append(None)
+            if self.workflow == "qubit_measure":
+                lane_data["qubit_concentration"].append(lane.original_qubit_concentration)
+            elif self.workflow == "ba_report":
+                lane_data["avg_fragment_size"].append(lane.avg_fragment_size)
 
-        return pd.DataFrame(sample_data), pd.DataFrame(library_data), pd.DataFrame(pool_data), pd.DataFrame(lane_data)
+        self.__sample_table = pd.DataFrame(sample_data).sort_values("id")
+        self.__library_table = pd.DataFrame(library_data).sort_values("id")
+        self.__pool_table = pd.DataFrame(pool_data).sort_values("id")
+        self.__lane_table = pd.DataFrame(lane_data).sort_values("id")
+        
+        return True
+    
+    @property
+    def sample_table(self) -> pd.DataFrame:
+        if self.__sample_table is None:
+            raise ValueError("For not validated, call .validate() first..")
+        return self.__sample_table
+    
+    @property
+    def library_table(self) -> pd.DataFrame:
+        if self.__library_table is None:
+            raise ValueError("For not validated, call .validate() first..")
+        return self.__library_table
+    
+    @property
+    def pool_table(self) -> pd.DataFrame:
+        if self.__pool_table is None:
+            raise ValueError("For not validated, call .validate() first..")
+        return self.__pool_table
+    
+    @property
+    def lane_table(self) -> pd.DataFrame:
+        if self.__lane_table is None:
+            raise ValueError("For not validated, call .validate() first..")
+        return self.__lane_table

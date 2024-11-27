@@ -32,12 +32,3 @@ class FeatureKit(Kit):
 
     def __str__(self):
         return f"FeatureKit('{self.id}', '{self.name}')"
-    
-    def search_value(self) -> int:
-        return self.id
-    
-    def search_name(self) -> str:
-        return self.identifier
-    
-    def search_description(self) -> str | None:
-        return self.name

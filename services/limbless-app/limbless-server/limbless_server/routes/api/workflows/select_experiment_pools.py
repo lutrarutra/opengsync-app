@@ -64,14 +64,13 @@ def select():
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    form = SelectSamplesForm(workflow="ba_report", formdata=request.form, context=context)
+    form: SelectSamplesForm = SelectSamplesForm(workflow="ba_report", formdata=request.form, context=context)
     if not form.validate():
         return form.make_response()
-    _, _, pool_table, _ = form.get_tables()
 
     current_pool_ids = [pool.id for pool in experiment.pools]
 
-    for _, row in pool_table.iterrows():
+    for _, row in form.pool_table.iterrows():
         try:
             pool_id = int(row["id"])
         except ValueError:

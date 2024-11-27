@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, request, abort, Response
 from flask_login import login_required
 
-from limbless_db import models
+from limbless_db import models, db_session
 from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
@@ -39,6 +39,7 @@ def begin() -> Response:
 
 
 @store_samples_workflow.route("select", methods=["POST"])
+@db_session(db)
 @login_required
 def select():
     if not current_user.is_insider():
@@ -56,20 +57,18 @@ def select():
     else:
         seq_request = None
 
-    form = SelectSamplesForm(workflow="store_samples", context=context, formdata=request.form)
+    form: SelectSamplesForm = SelectSamplesForm(workflow="store_samples", context=context, formdata=request.form)
     
     if not form.validate():
         return form.make_response()
-    
-    sample_table, library_table, pool_table, _ = form.get_tables()
 
     store_samples_form = forms.StoreSamplesForm(seq_request=seq_request, uuid=None)
     store_samples_form.metadata = {"workflow": "store_samples"}
     if seq_request is not None:
         store_samples_form.metadata["seq_request_id"] = seq_request.id  # type: ignore
-    store_samples_form.add_table("sample_table", sample_table)
-    store_samples_form.add_table("library_table", library_table)
-    store_samples_form.add_table("pool_table", pool_table)
+    store_samples_form.add_table("sample_table", form.sample_table)
+    store_samples_form.add_table("library_table", form.library_table)
+    store_samples_form.add_table("pool_table", form.pool_table)
     store_samples_form.update_data()
     
     store_samples_form.prepare()

@@ -70,9 +70,11 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if current_user.id != seq_request.requestor_id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
     form = forms.ProjectSelectForm(workflow_type=workflow_type, seq_request=seq_request)
     return form.make_response()
         
@@ -83,6 +85,11 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
 def previous(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     if (response := MultiStepForm.pop_last_step("library_annotation", uuid)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -106,6 +113,11 @@ def select_project(seq_request_id: int, workflow_type: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
     if request.method == "GET":
         forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type)
     
@@ -120,6 +132,11 @@ def define_pools(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
     if request.method == "GET":
         return forms.PoolMappingForm(uuid=uuid, seq_request=seq_request).make_response()
     
@@ -132,6 +149,11 @@ def define_pools(seq_request_id: int, uuid: str):
 def parse_barcode_table(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.BarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -143,6 +165,11 @@ def map_index_kits(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
     return forms.IndexKitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
@@ -153,9 +180,11 @@ def parse_assay_form(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
     return forms.SelectAssayForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
@@ -169,6 +198,11 @@ def parse_table(seq_request_id: int, uuid: str, form_type: Literal["pooled", "ra
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     if form_type == "pooled":
         form = forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
@@ -189,6 +223,11 @@ def parse_cmo_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
     return forms.CMOAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
@@ -198,6 +237,11 @@ def parse_cmo_reference(seq_request_id: int, uuid: str):
 def annotate_features(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.FeatureAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -208,6 +252,11 @@ def annotate_features(seq_request_id: int, uuid: str):
 def map_feature_kits(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.KitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -219,6 +268,11 @@ def parse_visium_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
     return forms.VisiumAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
@@ -228,6 +282,11 @@ def parse_visium_reference(seq_request_id: int, uuid: str):
 def parse_frp_annotation(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.FRPAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -239,6 +298,11 @@ def parse_sas_form(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
     return forms.SampleAttributeAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
     
@@ -248,6 +312,11 @@ def parse_sas_form(seq_request_id: int, uuid: str):
 def complete(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     form = forms.CompleteSASForm(uuid=uuid, formdata=request.form, seq_request=seq_request)
     return form.process_request(user=current_user)

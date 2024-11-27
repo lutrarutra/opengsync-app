@@ -64,6 +64,7 @@ def begin() -> Response:
 
 
 @plate_samples_workflow.route("select", methods=["POST"])
+@db_session(db)
 @login_required
 def select():
     if not current_user.is_insider():
@@ -81,20 +82,18 @@ def select():
     else:
         seq_request = None
     
-    form = SelectSamplesForm.create_workflow_form("plate_samples", context=context, formdata=request.form)
+    form: SelectSamplesForm = SelectSamplesForm.create_workflow_form(workflow="plate_samples", context=context, formdata=request.form)
     
     if not form.validate():
         return form.make_response()
-    
-    sample_table, library_table, pool_table, _ = form.get_tables()
 
     plate_samples_form = forms.PlateSamplesForm(context=context, uuid=None)
     plate_samples_form.metadata = {"workflow": "plate_samples"}
     if seq_request is not None:
         plate_samples_form.metadata["seq_request_id"] = seq_request.id  # type: ignore
-    plate_samples_form.add_table("sample_table", sample_table)
-    plate_samples_form.add_table("library_table", library_table)
-    plate_samples_form.add_table("pool_table", pool_table)
+    plate_samples_form.add_table("sample_table", form.sample_table)
+    plate_samples_form.add_table("library_table", form.library_table)
+    plate_samples_form.add_table("pool_table", form.pool_table)
     plate_samples_form.update_data()
     
     plate_samples_form.prepare()

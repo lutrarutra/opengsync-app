@@ -47,14 +47,12 @@ def select(lab_prep_id: int) -> Response:
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = SelectSamplesForm.create_workflow_form("library_prep", formdata=request.form, context={"lab_prep": lab_prep})
+    form: SelectSamplesForm = SelectSamplesForm.create_workflow_form("library_prep", formdata=request.form, context={"lab_prep": lab_prep})
     
     if not form.validate():
         return form.make_response()
-    
-    _, library_table, _, _ = form.get_tables()
 
-    for _, row in library_table.iterrows():
+    for _, row in form.library_table.iterrows():
         lab_prep = db.add_library_to_prep(
             lab_prep_id=lab_prep_id,
             library_id=row["id"],

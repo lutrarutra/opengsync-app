@@ -106,14 +106,12 @@ def select() -> Response:
     
     context = {"pool": pool}
 
-    form = SelectSamplesForm.create_workflow_form("library_pooling", formdata=request.form, context=context)
+    form: SelectSamplesForm = SelectSamplesForm.create_workflow_form(workflow="library_pooling", formdata=request.form, context=context)
 
     if not form.validate():
         return form.make_response()
 
-    _, library_table, _, _ = form.get_tables()
-
-    for _, row in library_table.iterrows():
+    for _, row in form.library_table.iterrows():
         if (library := db.get_library(int(row["id"]))) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
