@@ -29,8 +29,7 @@ class CompleteLibraryIndexingForm(MultiStepForm):
 
     def prepare(self):
         barcode_table = self.tables["barcode_table"]
-        if len(barcode_table) > 1:
-            barcode_table = tools.check_indices(barcode_table, groupby="pool")
+        barcode_table = tools.check_indices(barcode_table, groupby="pool")
         self._context["barcode_table"] = barcode_table
 
     def validate(self) -> bool:
@@ -80,6 +79,7 @@ class CompleteLibraryIndexingForm(MultiStepForm):
                 )
         elif len(selected_libraries) > 0:
             selected_libraries["pool"] = "1"
+            library_table["pool"] = "1"
             pools["1"] = db.create_pool(
                 name=lab_prep.name, pool_type=PoolType.INTERNAL,
                 contact_email=user.email, contact_name=user.name, owner_id=user.id,
