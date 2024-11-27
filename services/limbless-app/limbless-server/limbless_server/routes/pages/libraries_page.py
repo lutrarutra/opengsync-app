@@ -18,8 +18,7 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 @libraries_page_bp.route("/libraries")
 @login_required
 def libraries_page():
-    library_form = forms.models.LibraryForm()
-    return render_template("libraries_page.html", library_form=library_form)
+    return render_template("libraries_page.html")
 
 
 @libraries_page_bp.route("/libraries/<int:library_id>")

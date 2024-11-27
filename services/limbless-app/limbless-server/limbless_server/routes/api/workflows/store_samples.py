@@ -1,13 +1,14 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, request, abort, Response
+from flask import Blueprint, request, abort, Response, flash, url_for
+from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models
-from limbless_db.categories import HTTPResponse
+from limbless_db import models, db_session
+from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus
 
 from .... import db, logger  # noqa
-from ....forms.workflows import store_samples as forms
 from ....forms import SelectSamplesForm
 
 if TYPE_CHECKING:
@@ -39,6 +40,7 @@ def begin() -> Response:
 
 
 @store_samples_workflow.route("select", methods=["POST"])
+@db_session(db)
 @login_required
 def select():
     if not current_user.is_insider():
@@ -56,43 +58,44 @@ def select():
     else:
         seq_request = None
 
-    form = SelectSamplesForm(workflow="store_samples", context=context, formdata=request.form)
+    form: SelectSamplesForm = SelectSamplesForm(workflow="store_samples", context=context, formdata=request.form)
     
     if not form.validate():
         return form.make_response()
-    
-    sample_table, library_table, pool_table, _ = form.get_tables()
 
-    store_samples_form = forms.StoreSamplesForm(seq_request=seq_request, uuid=None)
-    store_samples_form.metadata = {"workflow": "store_samples"}
+    for i, row in form.sample_table.iterrows():
+        if (sample := db.get_sample(row["id"])) is None:
+            logger.error(f"Sample {row['id']} not found")
+            raise ValueError(f"Sample {row['id']} not found")
+            
+        sample.status = SampleStatus.STORED
+        sample.timestamp_stored_utc = datetime.now()
+        sample = db.update_sample(sample)
+
+    for i, row in form.library_table.iterrows():
+        if (library := db.get_library(row["id"])) is None:
+            logger.error(f"Library {row['id']} not found")
+            raise ValueError(f"Library {row['id']} not found")
+        
+        if library.is_pooled():
+            library.status = LibraryStatus.POOLED
+        else:
+            library.status = LibraryStatus.STORED
+        
+        library.timestamp_stored_utc = datetime.now()
+        library = db.update_library(library)
+
+    for i, row in form.pool_table.iterrows():
+        if (pool := db.get_pool(row["id"])) is None:
+            logger.error(f"Pool {row['id']} not found")
+            raise ValueError(f"Pool {row['id']} not found")
+        
+        pool.status = PoolStatus.STORED
+        pool.timestamp_stored_utc = datetime.now()
+        pool = db.update_pool(pool)
+
+    flash("Samples Stored!", "success")
     if seq_request is not None:
-        store_samples_form.metadata["seq_request_id"] = seq_request.id  # type: ignore
-    store_samples_form.add_table("sample_table", sample_table)
-    store_samples_form.add_table("library_table", library_table)
-    store_samples_form.add_table("pool_table", pool_table)
-    store_samples_form.update_data()
+        return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))
     
-    store_samples_form.prepare()
-    return store_samples_form.make_response()
-
-
-@store_samples_workflow.route("submit/<string:uuid>", methods=["POST"])
-@login_required
-def submit(uuid: str) -> Response:
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    context = {}
-    if (seq_request_id := request.form.get("seq_request_id")) is not None:
-        try:
-            seq_request_id = int(seq_request_id)
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            context["seq_request"] = seq_request
-        except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-    else:
-        seq_request = None
-
-    form = forms.StoreSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
-    return form.process_request(user=current_user)
+    return make_response(redirect=url_for("index_page"))

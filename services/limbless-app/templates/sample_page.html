@@ -7,7 +7,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>Sample: {{ sample.name }} <span class="desc">{{ sample.status.name }} {{ sample.status.icon }}</span></h1>
+            <h1>Sample: {{ sample.name }} {% if sample.status %}<span class="desc">{{ sample.status.name }} {{ sample.status.icon }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
             <span

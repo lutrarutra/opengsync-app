@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -28,7 +28,7 @@ def create_visium_annotation(
     return visium_annotation
 
 
-def get_visium_annotation(self: "DBHandler", visium_annotation_id: int) -> Optional[models.VisiumAnnotation]:
+def get_visium_annotation(self: "DBHandler", visium_annotation_id: int) -> models.VisiumAnnotation | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

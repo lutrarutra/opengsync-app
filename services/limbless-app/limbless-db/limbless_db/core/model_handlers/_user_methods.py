@@ -46,7 +46,7 @@ def create_user(
     return user
 
 
-def get_user(self: "DBHandler", user_id: int) -> Optional[models.User]:
+def get_user(self: "DBHandler", user_id: int) -> models.User | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -58,7 +58,7 @@ def get_user(self: "DBHandler", user_id: int) -> Optional[models.User]:
     return res
 
 
-def get_user_by_email(self: "DBHandler", email: str) -> Optional[models.User]:
+def get_user_by_email(self: "DBHandler", email: str) -> models.User | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

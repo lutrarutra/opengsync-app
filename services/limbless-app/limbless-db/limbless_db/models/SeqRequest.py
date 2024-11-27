@@ -115,13 +115,13 @@ class SeqRequest(Base):
         self.read_type_id = value.id
     
     @property
-    def timestamp_submitted(self) -> Optional[datetime]:
+    def timestamp_submitted(self) -> datetime | None:
         if self.timestamp_submitted_utc is None:
             return None
         return localize(self.timestamp_submitted_utc)
     
     @property
-    def timestamp_finished(self) -> Optional[datetime]:
+    def timestamp_finished(self) -> datetime | None:
         if self.timestamp_finished_utc is None:
             return None
         return localize(self.timestamp_finished_utc)

@@ -34,7 +34,7 @@ def create_project(self: "DBHandler", name: str, description: str, owner_id: int
     return project
 
 
-def get_project(self: "DBHandler", project_id: int) -> Optional[models.Project]:
+def get_project(self: "DBHandler", project_id: int) -> models.Project | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

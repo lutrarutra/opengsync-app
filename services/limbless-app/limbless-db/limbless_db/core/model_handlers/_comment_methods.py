@@ -59,7 +59,7 @@ def create_comment(
     return comment
 
 
-def get_comment(self: "DBHandler", comment_id: int) -> Optional[models.Comment]:
+def get_comment(self: "DBHandler", comment_id: int) -> models.Comment | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

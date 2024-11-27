@@ -37,7 +37,7 @@ def create_event(
     return event
 
 
-def get_event(self: "DBHandler", event_id: int) -> Optional[models.Event]:
+def get_event(self: "DBHandler", event_id: int) -> models.Event | None:
     if not (persist_session := self._session is not None):
         self.open_session()
     

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 from flask import Blueprint, request, abort, Request
 from flask_login import login_required
 
-from limbless_db import models
+from limbless_db import models, db_session
 from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus, SampleStatus
 
 from .... import db, logger  # noqa
@@ -72,16 +72,16 @@ def begin():
 
 
 @qubit_measure_workflow.route("select", methods=["POST"])
+@db_session(db)
 @login_required
 def select():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
     context = get_context(request)
-    form = SelectSamplesForm(workflow="qubit_measure", formdata=request.form, context=context)
+    form: SelectSamplesForm = SelectSamplesForm(workflow="qubit_measure", formdata=request.form, context=context)
     if not form.validate():
         return form.make_response()
-    sample_table, library_table, pool_table, lane_table = form.get_tables()
     
     complete_qubit_measure_form = wff.CompleteQubitMeasureForm(uuid=None)
     metadata: dict[str, Any] = {"workflow": "qubit_measure"}
@@ -94,10 +94,10 @@ def select():
         metadata["pool_id"] = pool.id
 
     complete_qubit_measure_form.metadata = metadata
-    complete_qubit_measure_form.add_table("sample_table", sample_table)
-    complete_qubit_measure_form.add_table("library_table", library_table)
-    complete_qubit_measure_form.add_table("pool_table", pool_table)
-    complete_qubit_measure_form.add_table("lane_table", lane_table)
+    complete_qubit_measure_form.add_table("sample_table", form.sample_table)
+    complete_qubit_measure_form.add_table("library_table", form.library_table)
+    complete_qubit_measure_form.add_table("pool_table", form.pool_table)
+    complete_qubit_measure_form.add_table("lane_table", form.lane_table)
     complete_qubit_measure_form.update_data()
 
     complete_qubit_measure_form.prepare()

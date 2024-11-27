@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType
+from limbless_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType, SampleStatus
 from limbless_db.core import exceptions
 from .... import db, forms, logger
 
@@ -938,3 +938,26 @@ def clone(seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
 
     flash("Request cloned", "success")
     return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=cloned_request.id))
+
+
+@seq_requests_htmx.route("<int:seq_request_id>/store_samples", methods=["GET"])
+@db_session(db)
+@login_required
+def store_samples(seq_request_id: int):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    form: forms.SelectSamplesForm = forms.SelectSamplesForm(
+        workflow="store_samples",
+        sample_status_filter=[SampleStatus.WAITING_DELIVERY],
+        context=dict(
+            seq_request=seq_request,
+        ),
+        select_samples=True, select_libraries=False, select_pools=False,
+        selected_samples=[s for s in seq_request.samples if s.status == SampleStatus.WAITING_DELIVERY]
+    )
+
+    return form.make_response()

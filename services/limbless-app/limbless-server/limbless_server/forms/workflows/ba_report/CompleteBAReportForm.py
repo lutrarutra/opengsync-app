@@ -185,14 +185,6 @@ class CompleteBAReportForm(MultiStepForm):
                     for library in pool.libraries:
                         if library.is_pooled():
                             library.status = LibraryStatus.POOLED
-                            for sample_link in library.sample_links:
-                                sample_is_prepped = True
-                                for library_link in sample_link.sample.library_links:
-                                    if library_link.library != library and not library_link.library.is_indexed():
-                                        sample_is_prepped = False
-                                        break
-                                if sample_is_prepped:
-                                    sample_link.sample.status = SampleStatus.PREPARED
 
                 if pool.status == PoolStatus.ACCEPTED:
                     pool.status = PoolStatus.STORED

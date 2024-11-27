@@ -33,7 +33,7 @@ class PoolDilution(Base):
     qubit_concentration: Mapped[float] = mapped_column(sa.Float)
     volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
 
-    def molarity(self, pool: models.Pool) -> Optional[float]:
+    def molarity(self, pool: models.Pool) -> float | None:
         if pool.avg_fragment_size is None:
             return None
         

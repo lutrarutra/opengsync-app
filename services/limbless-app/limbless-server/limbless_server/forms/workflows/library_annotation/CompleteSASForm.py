@@ -7,7 +7,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType
+from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType, LibraryStatus
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
@@ -172,7 +172,7 @@ class CompleteSASForm(MultiStepForm):
                         name=library_row["sample_name"],
                         project_id=project.id,
                         owner_id=user.id,
-                        status=SampleStatus.DRAFT
+                        status=None if self.metadata["workflow_type"] == "pooled" else SampleStatus.DRAFT
                     )
                     self.sample_table.at[idx, "sample_id"] = sample.id
 

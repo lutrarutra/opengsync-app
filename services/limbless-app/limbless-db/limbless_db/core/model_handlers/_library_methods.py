@@ -18,7 +18,7 @@ def create_library(
     library_type: LibraryTypeEnum,
     owner_id: int,
     seq_request_id: int,
-    genome_ref: Optional[GenomeRefEnum] = None,
+    genome_ref: GenomeRefEnum,
     pool_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
     visium_annotation_id: Optional[int] = None,
@@ -78,7 +78,7 @@ def create_library(
     return library
 
 
-def get_library(self: "DBHandler", library_id: int) -> Optional[models.Library]:
+def get_library(self: "DBHandler", library_id: int) -> models.Library | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -497,7 +497,7 @@ def remove_library_indices(self: "DBHandler", library_id: int) -> models.Library
 
 def get_user_library_access_type(
     self: "DBHandler", library_id: int, user_id: int
-) -> Optional[AccessTypeEnum]:
+) -> AccessTypeEnum | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

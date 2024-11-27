@@ -49,7 +49,7 @@
             <tr onclick="redirect('{{ url_for('samples_page.sample_page', sample_id=sample.id) }}');">
                 <th scope="row">{{ sample.id }}</th>
                 <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
-                <td>{{ sample.status.name }} {{ sample.status.icon }}</td>
+                <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
                 <td>{{ sample.num_libraries }}</td>
             </tr>

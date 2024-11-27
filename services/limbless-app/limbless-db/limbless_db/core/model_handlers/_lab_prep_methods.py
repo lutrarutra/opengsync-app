@@ -34,9 +34,7 @@ def create_lab_prep(
     return lab_prep
 
 
-def get_lab_prep(
-    self: "DBHandler", lab_prep_id: int
-) -> Optional[models.LabPrep]:
+def get_lab_prep(self: "DBHandler", lab_prep_id: int) -> models.LabPrep | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

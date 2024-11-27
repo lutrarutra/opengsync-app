@@ -61,7 +61,7 @@ def create_pool(
     return pool
 
 
-def get_pool(self: "DBHandler", pool_id: int) -> Optional[models.Pool]:
+def get_pool(self: "DBHandler", pool_id: int) -> models.Pool | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -279,9 +279,7 @@ def query_pools(
     return pools
 
 
-def get_pool_dilution(
-    self: "DBHandler", pool_id: int, identifier: str,
-) -> Optional[models.PoolDilution]:
+def get_pool_dilution(self: "DBHandler", pool_id: int, identifier: str) -> models.PoolDilution | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -347,9 +345,7 @@ def get_pool_dilutions(
     return dilutions, n_pages
 
 
-def get_user_pool_access_type(
-    self: "DBHandler", pool_id: int, user_id: int
-) -> Optional[AccessTypeEnum]:
+def get_user_pool_access_type(self: "DBHandler", pool_id: int, user_id: int) -> AccessTypeEnum | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, url_for, abort, make_response
+from flask import Blueprint, render_template, url_for, abort, make_response, request
 from flask_login import login_required
 
 from limbless_db import db_session
@@ -46,6 +46,15 @@ def index_kit_page(index_kit_id: int):
         (f"Kit {index_kit_id}", ""),
     ]
 
+    if (_from := request.args.get("from", None)) is not None:
+        page, id = _from.split("@")
+        if page == "library":
+            path_list = [
+                ("Libraries", url_for("libraries_page.libraries_page")),
+                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                (f"Kit {index_kit_id}", ""),
+            ]
+
     return render_template(
         "index_kit_page.html", path_list=path_list, index_kit=index_kit,
     )
@@ -67,6 +76,15 @@ def feature_kit_page(feature_kit_id: int):
         ("Feature Kits", url_for("kits_page.feature_kits_page")),
         (f"Kit {feature_kit_id}", ""),
     ]
+
+    if (_from := request.args.get("from", None)) is not None:
+        page, id = _from.split("@")
+        if page == "library":
+            path_list = [
+                ("Libraries", url_for("libraries_page.libraries_page")),
+                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                (f"Kit {feature_kit_id}", ""),
+            ]
 
     return render_template(
         "feature_kit_page.html",

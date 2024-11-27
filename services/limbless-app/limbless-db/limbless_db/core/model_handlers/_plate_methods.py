@@ -31,7 +31,7 @@ def create_plate(
     return plate
 
 
-def get_plate(self: "DBHandler", plate_id: int) -> Optional[models.Plate]:
+def get_plate(self: "DBHandler", plate_id: int) -> models.Plate | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -170,7 +170,7 @@ def clear_plate(self: "DBHandler", plate_id: int) -> models.Plate:
     return plate
 
 
-def get_plate_sample(self: "DBHandler", plate_id: int, well_idx: int) -> Optional[models.Sample | models.Library]:
+def get_plate_sample(self: "DBHandler", plate_id: int, well_idx: int) -> models.Sample | models.Library | None:
     if not (persist_session := self._session is not None):
         self.open_session()
     

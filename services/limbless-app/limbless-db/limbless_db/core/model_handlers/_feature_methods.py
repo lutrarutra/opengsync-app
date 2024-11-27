@@ -62,7 +62,7 @@ def create_feature(
     return feature
 
 
-def get_feature(self: "DBHandler", feature_id: int) -> Optional[models.Feature]:
+def get_feature(self: "DBHandler", feature_id: int) -> models.Feature | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

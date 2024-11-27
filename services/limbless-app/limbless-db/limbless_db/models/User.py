@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -106,7 +106,7 @@ class User(Base, UserMixin):
         return str(serializer.dumps({"email": email, "role": role.id}))
 
     @staticmethod
-    def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> Optional[tuple[str, UserRoleEnum]]:
+    def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[str, UserRoleEnum] | None:
         try:
             data = serializer.loads(token, max_age=3600)
             email = data["email"]
@@ -118,7 +118,7 @@ class User(Base, UserMixin):
         return email, role
     
     @staticmethod
-    def verify_reset_token(token: str, serializer: URLSafeTimedSerializer) -> Optional[tuple[int, str, str]]:
+    def verify_reset_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[int, str, str] | None:
         try:
             data = serializer.loads(token, max_age=3600)
             id = data["id"]
@@ -144,7 +144,7 @@ class User(Base, UserMixin):
     def search_name(self) -> str:
         return self.first_name + " " + self.last_name
     
-    def search_description(self) -> Optional[str]:
+    def search_description(self) -> str:
         return self.email
     
     def __str__(self) -> str:

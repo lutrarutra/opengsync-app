@@ -386,7 +386,7 @@ def get_seq_request_libraries_df(
         )
 
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+    df["genome_ref"] = df["genome_ref_id"].apply(lambda x: categories.LibraryType.get(x) if pd.notna(x) else None)  # type: ignore
 
     return df
 
@@ -426,7 +426,7 @@ def get_seq_request_samples_df(
     df = pd.read_sql(query, self._engine)
 
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+    df["genome_ref"] = df["genome_ref_id"].apply(lambda x: categories.LibraryType.get(x) if pd.notna(x) else None)  # type: ignore
 
     return df
 
@@ -579,7 +579,7 @@ def get_lab_prep_libraries_df(self, lab_prep_id: int) -> pd.DataFrame:
     df = pd.read_sql(query, self._engine)
     df["status"] = df["status_id"].map(categories.LibraryStatus.get)  # type: ignore
     df["type"] = df["type_id"].map(categories.LibraryType.get)  # type: ignore
-    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+    df["genome_ref"] = df["genome_ref_id"].apply(lambda x: categories.LibraryType.get(x) if pd.notna(x) else None)  # type: ignore
 
     return df
 

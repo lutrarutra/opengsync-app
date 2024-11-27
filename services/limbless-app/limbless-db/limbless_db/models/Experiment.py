@@ -82,7 +82,7 @@ class Experiment(Base):
         return localize(self.timestamp_created_utc)
     
     @property
-    def timestamp_finished(self) -> Optional[datetime]:
+    def timestamp_finished(self) -> datetime | None:
         if self.timestamp_finished_utc is None:
             return None
         return localize(self.timestamp_finished_utc)

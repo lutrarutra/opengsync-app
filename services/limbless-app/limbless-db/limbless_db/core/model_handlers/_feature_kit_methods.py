@@ -34,7 +34,7 @@ def create_feature_kit(
     return feature_kit
 
 
-def get_feature_kit(self: "DBHandler", id: int) -> Optional[models.FeatureKit]:
+def get_feature_kit(self: "DBHandler", id: int) -> models.FeatureKit | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -46,7 +46,7 @@ def get_feature_kit(self: "DBHandler", id: int) -> Optional[models.FeatureKit]:
     return res
 
 
-def get_feature_kit_by_name(self: "DBHandler", name: str) -> Optional[models.FeatureKit]:
+def get_feature_kit_by_name(self: "DBHandler", name: str) -> models.FeatureKit | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

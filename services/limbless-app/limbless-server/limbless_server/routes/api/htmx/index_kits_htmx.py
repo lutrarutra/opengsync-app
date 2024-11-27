@@ -9,7 +9,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, db_session, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, IndexType, BarcodeType
+from limbless_db.categories import HTTPResponse, IndexType, BarcodeType, KitType
 
 from .... import db, logger, cache, forms  # noqa F401
 from ....tools import SpreadSheetColumn
@@ -91,7 +91,7 @@ def table_query():
         except ValueError:
             pass
     elif field_name in ["name", "identifier"]:
-        index_kits = db.query_kits(word)
+        index_kits = db.query_kits(word, kit_type=KitType.INDEX_KIT)
 
     return make_response(
         render_template(

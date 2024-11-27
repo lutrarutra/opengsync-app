@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, KitType
 from .... import db, logger  # noqa
 
 if TYPE_CHECKING:
@@ -44,7 +44,7 @@ def query_index_kits():
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_kits(word)
+    results = db.query_kits(word, kit_type=KitType.INDEX_KIT)
 
     return make_response(
         render_template(

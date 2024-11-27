@@ -40,7 +40,7 @@ def create_barcode(
 
 def get_barcode(
     self: "DBHandler", barcode_id: int
-) -> Optional[models.Barcode]:
+) -> models.Barcode | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -95,7 +95,7 @@ def get_barcodes(
 
 def get_barcode_from_kit(
     self: "DBHandler", index_kit_id: int, name: str, type: BarcodeTypeEnum
-) -> Optional[models.Barcode]:
+) -> models.Barcode | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

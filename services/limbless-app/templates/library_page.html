@@ -146,43 +146,16 @@
                 {% endif %}
             </div>
             <h4>Barcodes</h4>
+            {% for index in library.indices %}
             <div class="row">
-                {{
-                    metadata_group(
-                        "Adapter",
-                        library.index_1_adapter if library.index_1_adapter else "",
-                        class="col-2"
-                    )
-                }}
-                {{
-                    metadata_group(
-                        "Index 1 (i7)",
-                        library.index_1_sequence if library.index_1_sequence else "",
-                        class="col-2"
-                    )
-                }}
-                {{
-                    metadata_group(
-                        "Index 2 (i5)",
-                        library.index_2_sequence if library.index_2_sequence else "",
-                        class="col-2"
-                    )
-                }}
-                {{
-                    metadata_group(
-                        "Index 3",
-                        library.index_3_sequence if library.index_3_sequence else "",
-                        class="col-2"
-                    )
-                }}
-                {{
-                    metadata_group(
-                        "Index 4",
-                        library.index_4_sequence if library.index_4_sequence else "",
-                        class="col-2"
-                    )
-                }}
+                {{ metadata_group_link("Kit i7", index.index_kit_i7.name, url_for("kits_page.index_kit_page", index_kit_id=index.index_kit_i7_id, from="library@" + library.id | string), class="col-2") }}
+                {{ metadata_group("Name i7", index.name_i5, class="col-2") }}
+                {{ metadata_group("Sequence i7", index.sequence_i7, class="col-2") }}
+                {{ metadata_group_link("Kit i5", index.index_kit_i5.name, url_for("kits_page.index_kit_page", index_kit_id=index.index_kit_i5_id, from="library@" + library.id | string), class="col-2") }}
+                {{ metadata_group("Name i5", index.name_i5, class="col-2") }}
+                {{ metadata_group("Sequence i5", index.sequence_i5, class="col-2") }}
             </div>
+            {% endfor %}
         </div>
         <div class="tab-pane fade" id="library-wetlab-tab" role="tabpanel" tabindex="1">
             <div class="row">

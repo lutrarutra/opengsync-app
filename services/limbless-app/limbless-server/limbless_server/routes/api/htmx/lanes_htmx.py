@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT, DBSession
+from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse
 
 from .... import db, forms, logger  # noqa
@@ -19,6 +19,7 @@ lanes_htmx = Blueprint("lanes_htmx", __name__, url_prefix="/api/hmtx/lanes/")
 
 @lanes_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
 @lanes_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def browse(workflow: str, page: int):
     if not current_user.is_insider():
@@ -38,17 +39,16 @@ def browse(workflow: str, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
     
-    with DBSession(db) as session:
-        lanes, n_pages = session.get_lanes(
-            sort_by=sort_by, descending=descending, offset=offset, experiment_id=experiment_id
-        )
+    lanes, n_pages = db.get_lanes(
+        sort_by=sort_by, descending=descending, offset=offset, experiment_id=experiment_id
+    )
 
-        context["workflow"] = workflow
-        return make_response(
-            render_template(
-                "components/tables/select-lanes.html",
-                lanes=lanes, n_pages=n_pages, active_page=page,
-                sort_by=sort_by, sort_order=sort_order, context=context,
-                workflow=workflow
-            )
+    context["workflow"] = workflow
+    return make_response(
+        render_template(
+            "components/tables/select-lanes.html",
+            lanes=lanes, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, context=context,
+            workflow=workflow
         )
+    )

@@ -16,7 +16,7 @@
             autocomplete="off" icon="{{ status.select_name }}" value="{{ status.id }}" field="{{ field_name }}"
             onclick="table_filter('{{ url }}', '{{ table_container_id }}');"
             {% if selected and status in selected %}checked{% endif %}>
-            <label class="btn" for="{{table_container_id}}-{{ field_name }}-select-{{ status.id }}">{{ status.display_name }} <span class="desc">{{ status.select_name }}</span></label>
+            <label class="btn" for="{{table_container_id}}-{{ field_name }}-select-{{ status.id }}">{{ status.name }} <span class="desc">{{ status.select_name }}</span></label>
         </li>
         {% endfor %}
     </ul>

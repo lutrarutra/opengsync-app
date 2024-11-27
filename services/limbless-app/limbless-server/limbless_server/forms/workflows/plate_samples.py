@@ -131,16 +131,7 @@ class PlateSamplesForm(MultiStepForm):
                     logger.error(f"{self.uuid}: Sample {row['id']} not found")
                     raise ValueError(f"{self.uuid}: Sample {row['id']} not found")
                 
-                sample_prepared = True
-                for library_link in sample.library_links:
-                    if not library_link.library.is_pooled():
-                        sample_prepared = False
-                        break
-                    
-                if sample_prepared:
-                    sample.status = SampleStatus.PREPARED
-                else:
-                    sample.status = SampleStatus.STORED
+                sample.status = SampleStatus.STORED
 
                 for library_link in sample.library_links:
                     library_link.library.status = LibraryStatus.PREPARING

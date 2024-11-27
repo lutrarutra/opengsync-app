@@ -36,7 +36,7 @@ def create_index_kit(
     return seq_kit
 
 
-def get_index_kit(self: "DBHandler", id: int) -> Optional[models.IndexKit]:
+def get_index_kit(self: "DBHandler", id: int) -> models.IndexKit | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -48,7 +48,7 @@ def get_index_kit(self: "DBHandler", id: int) -> Optional[models.IndexKit]:
     return res
 
 
-def get_index_kit_by_name(self: "DBHandler", name: str) -> Optional[models.IndexKit]:
+def get_index_kit_by_name(self: "DBHandler", name: str) -> models.IndexKit | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
