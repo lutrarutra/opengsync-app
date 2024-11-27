@@ -4,12 +4,11 @@
 <div id="edit-library-form">
     {{ library_form.csrf_token() }}
     <div class="row">
-        {{ form_group(library_form.name, class="col") }}
-        {{ select_input(library_form.library_type, class="col") }}
-        {{ select_input(library_form.genome, class="col") }}
+        {{ form_group(library_form.name, class="col-6") }}
+        {{ select_input(library_form.library_type, class="col-6") }}
     </div>
     <div class="row">
-        {{ form_group(library_form.index_1, class="col") }}
-        {{ form_group(library_form.index_2, class="col") }}
+        {{ select_input(library_form.genome, class="col-6") }}
+        {{ select_input(library_form.status, class="col-6") }}
     </div>
 </div>

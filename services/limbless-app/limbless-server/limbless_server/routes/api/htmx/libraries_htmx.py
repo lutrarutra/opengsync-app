@@ -77,9 +77,7 @@ def edit(library_id):
     if not library.is_editable() and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    return forms.models.LibraryForm(request.form).process_request(
-        library=library
-    )
+    return forms.models.LibraryForm(library=library, formdata=request.form).process_request()
 
 
 @libraries_htmx.route("query", methods=["POST"])

@@ -26,7 +26,7 @@ class SampleForm(HTMXFlaskForm):
 
     def __fill_form(self, sample: models.Sample):
         self.name.data = sample.name
-        self.status.data = sample.status.id
+        self.status.data = sample.status.id if sample.status is not None else None
 
     def validate(self, user_id: int, sample: models.Sample) -> bool:
         if not super().validate():

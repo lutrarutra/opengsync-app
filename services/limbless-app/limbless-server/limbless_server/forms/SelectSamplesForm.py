@@ -15,7 +15,7 @@ from .HTMXFlaskForm import HTMXFlaskForm
 
 workflow_settings = {
     "store_samples": dict(
-        sample_status_filter=[SampleStatus.ACCEPTED],
+        sample_status_filter=[SampleStatus.WAITING_DELIVERY],
         library_status_filter=[LibraryStatus.ACCEPTED],
         pool_status_filter=[PoolStatus.ACCEPTED],
         select_all_samples=True,

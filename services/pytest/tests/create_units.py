@@ -4,7 +4,7 @@ from typing import Optional
 from limbless_db import DBHandler, models
 from limbless_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
-    ReadType, ExperimentStatus, PoolType, SubmissionType, FileType
+    ReadType, ExperimentStatus, PoolType, SubmissionType, FileType, GenomeRef, SampleStatus
 )
 
 
@@ -59,6 +59,7 @@ def create_sample(db: DBHandler, user: models.User, project: models.Project) -> 
         name=_uuid,
         owner_id=user.id,
         project_id=project.id,
+        status=None
     )
 
 
@@ -70,6 +71,7 @@ def create_library(db: DBHandler, user: models.User, seq_request: models.SeqRequ
         owner_id=user.id,
         seq_request_id=seq_request.id,
         library_type=LibraryType.POLY_A_RNA_SEQ,
+        genome_ref=GenomeRef.CUSTOM
     )
 
 

@@ -1,5 +1,5 @@
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -61,7 +61,7 @@ class Plate(Base):
 
         return row * self.num_cols + col
     
-    def get_sample(self, well_idx: int) -> Optional[Sample | Library]:
+    def get_sample(self, well_idx: int) -> Sample | Library | None:
         for link in self.sample_links:
             if link.well_idx == well_idx:
                 if link.sample is not None:
@@ -71,5 +71,5 @@ class Plate(Base):
                 raise ValueError(f"SamplePlateLink {link} has neither a sample nor a library")
         return None
     
-    def get_sample_xy(self, row: int, col: int) -> Optional[Sample | Library]:
+    def get_sample_xy(self, row: int, col: int) -> Sample | Library | None:
         return self.get_sample(row * self.num_cols + col)

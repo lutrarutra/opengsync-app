@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Union
 
 from sqlalchemy.orm import DeclarativeBase
 
@@ -28,5 +28,5 @@ class Base(DeclarativeBase):
     def search_name(self) -> str:
         raise NotImplementedError()
     
-    def search_description(self) -> Optional[str]:
+    def search_description(self) -> str | None:
         return None

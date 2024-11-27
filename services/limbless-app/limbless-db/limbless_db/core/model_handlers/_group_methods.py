@@ -44,7 +44,7 @@ def create_group(
     return group
 
 
-def get_group(self: "DBHandler", group_id: int) -> Optional[models.Group]:
+def get_group(self: "DBHandler", group_id: int) -> models.Group | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -141,7 +141,7 @@ def query_groups(
     return groups
 
 
-def get_group_user_affiliation(self: "DBHandler", user_id: int, group_id: int) -> Optional[models.links.UserAffiliation]:
+def get_group_user_affiliation(self: "DBHandler", user_id: int, group_id: int) -> models.links.UserAffiliation | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

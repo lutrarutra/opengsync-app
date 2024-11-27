@@ -103,7 +103,7 @@ def create_seq_request(
     return seq_request
 
 
-def get_seq_request(self: "DBHandler", seq_request_id: int) -> Optional[models.SeqRequest]:
+def get_seq_request(self: "DBHandler", seq_request_id: int) -> models.SeqRequest | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -207,11 +207,6 @@ def submit_seq_request(self: "DBHandler", seq_request_id: int) -> models.SeqRequ
         if library.status == LibraryStatus.DRAFT:
             library.status = LibraryStatus.SUBMITTED
             self.session.add(library)
-
-    for sample in seq_request.samples:
-        if sample.status == SampleStatus.DRAFT:
-            sample.status = SampleStatus.SUBMITTED
-            self.session.add(sample)
 
     for pool in seq_request.pools:
         pool.status = PoolStatus.SUBMITTED
@@ -390,32 +385,26 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
             seq_request.sample_submission_event = None
     
     if status == SeqRequestStatus.ACCEPTED:
-        sample_status = SampleStatus.ACCEPTED
         library_status = LibraryStatus.ACCEPTED
         pool_status = PoolStatus.ACCEPTED
     elif status == SeqRequestStatus.DRAFT:
-        sample_status = SampleStatus.DRAFT
         library_status = LibraryStatus.DRAFT
         pool_status = PoolStatus.DRAFT
     elif status == SeqRequestStatus.REJECTED:
-        sample_status = SampleStatus.REJECTED
         library_status = LibraryStatus.REJECTED
         pool_status = PoolStatus.REJECTED
     else:
         raise TypeError(f"Cannot process request to '{status}'.")
-    
+
     for sample in seq_request.samples:
-        sample.status = sample_status
-        if sample_status != SampleStatus.ACCEPTED:
-            continue
-        
-        is_prepared = True
-        for library_link in sample.library_links:
-            if library_link.library.pool_id is None:
-                is_prepared = False
-                break
-        if is_prepared:
-            sample.status = SampleStatus.PREPARED
+        if sample.status is None:
+            continue  # Sample was not prepared in-house -> no specimen stored
+        if status == SeqRequestStatus.ACCEPTED:
+            sample.status = SampleStatus.WAITING_DELIVERY
+        elif status == SeqRequestStatus.DRAFT:
+            sample.status = SampleStatus.DRAFT
+        elif status == SeqRequestStatus.REJECTED:
+            sample.status = SampleStatus.REJECTED
     
     is_prepared = status == SeqRequestStatus.ACCEPTED
     for library in seq_request.libraries:
@@ -444,9 +433,7 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
     return seq_request
 
 
-def get_user_seq_request_access_type(
-    self: "DBHandler", seq_request_id: int, user_id: int
-) -> Optional[AccessTypeEnum]:
+def get_user_seq_request_access_type(self: "DBHandler", seq_request_id: int, user_id: int) -> AccessTypeEnum | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

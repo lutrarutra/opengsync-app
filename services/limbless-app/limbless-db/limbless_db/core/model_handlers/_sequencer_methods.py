@@ -40,7 +40,7 @@ def create_sequencer(
     return sequencer
 
 
-def get_sequencer(self: "DBHandler", sequencer_id: int) -> Optional[models.Sequencer]:
+def get_sequencer(self: "DBHandler", sequencer_id: int) -> models.Sequencer | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -103,9 +103,7 @@ def update_sequencer(self: "DBHandler", sequencer: models.Sequencer) -> models.S
     return sequencer
 
 
-def get_sequencer_by_name(
-    self: "DBHandler", name: str
-) -> Optional[models.Sequencer]:
+def get_sequencer_by_name(self: "DBHandler", name: str) -> models.Sequencer | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

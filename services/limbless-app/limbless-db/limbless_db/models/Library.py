@@ -28,8 +28,8 @@ class Library(Base):
     sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    genome_ref_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    genome_ref_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
@@ -87,9 +87,7 @@ class Library(Base):
         self.type_id = value.id
     
     @property
-    def genome_ref(self) -> Optional[GenomeRefEnum]:
-        if self.genome_ref_id is None:
-            return None
+    def genome_ref(self) -> GenomeRefEnum:
         return GenomeRef.get(self.genome_ref_id)
     
     @genome_ref.setter
@@ -103,7 +101,7 @@ class Library(Base):
         return f"{q:.2f}"
     
     @property
-    def molarity(self) -> Optional[float]:
+    def molarity(self) -> float | None:
         if self.avg_fragment_size is None or self.qubit_concentration is None:
             return None
         return self.qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000

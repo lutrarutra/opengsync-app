@@ -37,7 +37,7 @@ def create_lane(
     return lane
 
 
-def get_lane(self: "DBHandler", lane_id: int) -> Optional[models.Lane]:
+def get_lane(self: "DBHandler", lane_id: int) -> models.Lane | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -48,7 +48,7 @@ def get_lane(self: "DBHandler", lane_id: int) -> Optional[models.Lane]:
     return res
 
 
-def get_experiment_lane(self: "DBHandler", experiment_id: int, lane_num: int) -> Optional[models.Lane]:
+def get_experiment_lane(self: "DBHandler", experiment_id: int, lane_num: int) -> models.Lane | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

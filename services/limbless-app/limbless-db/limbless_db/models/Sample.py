@@ -21,7 +21,7 @@ class Sample(Base):
     
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
-    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    status_id: Mapped[int | None] = mapped_column(sa.SmallInteger, nullable=True)
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
@@ -59,12 +59,17 @@ class Sample(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
 
     @property
-    def status(self) -> SampleStatusEnum:
+    def status(self) -> SampleStatusEnum | None:
+        if self.status_id is None:
+            return None
         return SampleStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: SampleStatusEnum):
-        self.status_id = value.id
+    def status(self, value: SampleStatusEnum | None):
+        if value is None:
+            self.status_id = None
+        else:
+            self.status_id = value.id
     
     @property
     def timestamp_stored_str(self) -> str:
@@ -82,7 +87,7 @@ class Sample(Base):
     def search_name(self) -> str:
         return self.name
     
-    def search_description(self) -> Optional[str]:
+    def search_description(self) -> str:
         return self.project.name
     
     def is_editable(self) -> bool:

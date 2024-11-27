@@ -69,7 +69,7 @@ def create_file(
     return file
 
 
-def get_file(self: "DBHandler", file_id: int) -> Optional[models.File]:
+def get_file(self: "DBHandler", file_id: int) -> models.File | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

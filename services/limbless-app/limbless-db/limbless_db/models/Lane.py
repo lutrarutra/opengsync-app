@@ -58,25 +58,25 @@ class Lane(Base):
         )
 
     @property
-    def original_molarity(self) -> Optional[float]:
+    def original_molarity(self) -> float | None:
         if self.original_qubit_concentration is None or self.avg_fragment_size is None:
             return None
         return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
     @property
-    def sequencing_molarity(self) -> Optional[float]:
+    def sequencing_molarity(self) -> float | None:
         if self.sequencing_qubit_concentration is None or self.avg_fragment_size is None:
             return None
         return self.sequencing_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
     @property
-    def qubit_concentration(self) -> Optional[float]:
+    def qubit_concentration(self) -> float | None:
         if self.sequencing_qubit_concentration is not None:
             return self.sequencing_qubit_concentration
         return self.original_qubit_concentration
     
     @property
-    def molarity(self) -> Optional[float]:
+    def molarity(self) -> float | None:
         if self.sequencing_qubit_concentration is not None:
             return self.sequencing_molarity
         return self.original_molarity

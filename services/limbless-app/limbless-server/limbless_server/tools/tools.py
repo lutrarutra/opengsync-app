@@ -6,8 +6,6 @@ import pandas as pd
 import scipy
 import numpy as np
 
-from .. import logger
-
 
 tab_10_colors = [
     "#1f77b4",
@@ -106,7 +104,7 @@ def make_filenameable(val, keep: list[str] = ['-', '.', '_']) -> str:
     return "".join(c for c in str(val) if c.isalnum() or c in keep)
 
 
-def make_alpha_numeric(val, keep: list[str] = [".", "-", "_"], replace_white_spaces_with: Optional[str] = "_") -> Optional[str]:
+def make_alpha_numeric(val, keep: list[str] = [".", "-", "_"], replace_white_spaces_with: Optional[str] = "_") -> str | None:
     if pd.isna(val) or val is None or val == "":
         return None
     
@@ -115,7 +113,7 @@ def make_alpha_numeric(val, keep: list[str] = [".", "-", "_"], replace_white_spa
     return "".join(c for c in val if c.isalnum() or c in keep)
     
 
-def parse_float(val: Union[int, float, str, None]) -> Optional[float]:
+def parse_float(val: Union[int, float, str, None]) -> float | None:
     if isinstance(val, int) or isinstance(val, float):
         return float(val)
     if isinstance(val, str):
@@ -126,7 +124,7 @@ def parse_float(val: Union[int, float, str, None]) -> Optional[float]:
     return None
 
 
-def parse_int(val: Union[int, str, None]) -> Optional[int]:
+def parse_int(val: Union[int, str, None]) -> int | None:
     if isinstance(val, int):
         return val
     if isinstance(val, str):

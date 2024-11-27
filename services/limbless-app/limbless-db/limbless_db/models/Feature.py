@@ -38,7 +38,7 @@ class Feature(Base):
     def search_value(self) -> int:
         return self.id
     
-    def search_description(self) -> Optional[str]:
+    def search_description(self) -> str | None:
         return self.type.name
     
     def __repr__(self) -> str:

@@ -8,13 +8,13 @@ from sqlalchemy.sql import and_
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
-from ...categories import SampleStatus, SampleStatusEnum, AttributeType, AttributeTypeEnum, AccessType, AccessTypeEnum
+from ...categories import SampleStatusEnum, AttributeType, AttributeTypeEnum, AccessType, AccessTypeEnum
 from .. import exceptions
 
 
 def create_sample(
     self: "DBHandler", name: str, owner_id: int, project_id: int,
-    status: SampleStatusEnum = SampleStatus.DRAFT
+    status: SampleStatusEnum | None
 ) -> models.Sample:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -29,7 +29,7 @@ def create_sample(
         name=name.strip(),
         project_id=project_id,
         owner_id=owner_id,
-        status_id=status.id
+        status_id=status.id if status is not None else None
     )
 
     self.session.add(sample)
@@ -44,7 +44,7 @@ def create_sample(
     return sample
 
 
-def get_sample(self: "DBHandler", sample_id: int) -> Optional[models.Sample]:
+def get_sample(self: "DBHandler", sample_id: int) -> models.Sample | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -262,9 +262,7 @@ def set_sample_attribute(
     return sample
 
 
-def get_sample_attribute(
-    self: "DBHandler", sample_id: int, name: str
-) -> Optional[models.SampleAttribute]:
+def get_sample_attribute(self: "DBHandler", sample_id: int, name: str) -> models.SampleAttribute | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -326,9 +324,7 @@ def delete_sample_attribute(
     return sample
 
 
-def get_user_sample_access_type(
-    self: "DBHandler", sample_id: int, user_id: int,
-) -> Optional[AccessTypeEnum]:
+def get_user_sample_access_type(self: "DBHandler", sample_id: int, user_id: int) -> AccessTypeEnum | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

@@ -38,7 +38,7 @@ def create_adapter(
     return adapter
 
 
-def get_adapter(self: "DBHandler", id: int) -> Optional[models.Adapter]:
+def get_adapter(self: "DBHandler", id: int) -> models.Adapter | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

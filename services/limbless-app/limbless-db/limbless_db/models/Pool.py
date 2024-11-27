@@ -83,7 +83,7 @@ class Pool(Base):
         self.type_id = value.id
     
     @property
-    def molarity(self) -> Optional[float]:
+    def molarity(self) -> float | None:
         if self.avg_fragment_size is None or self.qubit_concentration is None:
             return None
         
@@ -124,7 +124,7 @@ class Pool(Base):
     def search_name(self) -> str:
         return f"{self.name}"
     
-    def search_description(self) -> Optional[str]:
+    def search_description(self) -> str:
         return f"{self.status.name} {self.status.icon}"
     
     def is_qced(self) -> bool:

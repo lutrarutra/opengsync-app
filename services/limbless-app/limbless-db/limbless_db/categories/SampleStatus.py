@@ -15,11 +15,7 @@ class SampleStatusEnum(DBEnum):
 
 class SampleStatus(ExtendedEnum[SampleStatusEnum], enum_type=SampleStatusEnum):
     DRAFT = SampleStatusEnum(0, "Draft", "✍🏼", "Draft plan of the sample")
-    SUBMITTED = SampleStatusEnum(1, "Submitted", "🚀", "Submitted plan with sequencing request for review")
-    ACCEPTED = SampleStatusEnum(2, "Accepted", "✅", "Sample plan was accepted for sequencing")
-    STORED = SampleStatusEnum(3, "Stored", "📦", "Library is received and stored")
-    PREPARED = SampleStatusEnum(4, "Prepared", "🧪", "All libraries of the sample are prepared and ready for sequencing")
-    SEQUENCED = SampleStatusEnum(5, "Sequenced", "🧬", "All libraries of the sample are sequenced")
-    FAILED = SampleStatusEnum(10, "Failed", "❌", "Sequencing of the library could not be completed")
-    REJECTED = SampleStatusEnum(11, "Rejected", "⛔", "Library was not accepted to be sequenced by staff")
-    ARCHIVED = SampleStatusEnum(12, "Archived", "🗃️", "Library is sequenced and the data is archived")
+    WAITING_DELIVERY = SampleStatusEnum(1, "Waiting Delivery", "📭", "Waiting for delivery")
+    STORED = SampleStatusEnum(2, "Stored", "📬", "Sample specimen was received from customer and stored")
+    DEPLETED = SampleStatusEnum(10, "Depleted", "🪫", "Sample specimen was epleted")
+    REJECTED = SampleStatusEnum(11, "Rejected", "⛔", "Request was rejected")

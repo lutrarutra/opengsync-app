@@ -64,7 +64,7 @@ def create_seq_run(
     return seq_run
 
 
-def get_seq_run(self: "DBHandler", id: Optional[int] = None, experiment_name: Optional[str] = None) -> Optional[SeqRun]:
+def get_seq_run(self: "DBHandler", id: Optional[int] = None, experiment_name: Optional[str] = None) -> SeqRun | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 

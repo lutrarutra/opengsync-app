@@ -56,7 +56,7 @@ def create_experiment(
     return experiment
 
 
-def get_experiment(self: "DBHandler", id: Optional[int] = None, name: Optional[str] = None) -> Optional[models.Experiment]:
+def get_experiment(self: "DBHandler", id: Optional[int] = None, name: Optional[str] = None) -> models.Experiment | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
