@@ -2,12 +2,12 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/categorical_mapping.jinja2" import raw_label_mapping %}
 
-<div id="library_indexing-form-container" class="modal-content">
+<div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">5. Check Barcode Clashes</h1>
+        <h1 class="modal-title fs-5">3. Check Barcode Clashes</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body" id="library_indexing-form">
+    <div class="modal-body" id="library_pooling-form">
         {{ form.csrf_token() }}
         <table class="table table-hover">
             <thead>
@@ -42,7 +42,7 @@
                     class="cemm-green"
                     {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
                     <td>{{ row["kit_i7"] if row["kit_i7"] }}</td>
-                    <td>{{ row["name_i7"] if row["name_i5"] }}</td>
+                    <td>{{ row["name_i7"] if row["name_i7"] }}</td>
                     <td class="index-cell-1">{{ row["sequence_i7"] if row["sequence_i7"] }}</td>
                     <td>{{ row["kit_i5"] if row["kit_i5"] }}</td>
                     <td>{{ row["name_i5"] if row["name_i5"] }}</td>
@@ -58,16 +58,16 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
-                hx-target="#library_indexing-form-container" hx-swap="outerHTML"
-                hx-include="#library_indexing-form"
-                hx-post="{{ url_for('library_indexing_workflow.complete_pooling', uuid=form.uuid) }}" id="submit-library_indexing-form-btn">
+                hx-target="#library_pooling-form-container" hx-swap="outerHTML"
+                hx-include="#library_pooling-form"
+                hx-post="{{ url_for('library_pooling_workflow.complete_pooling', uuid=form.uuid) }}" id="submit-library_pooling-form-btn">
                 Complete
             </button>
         </div>
     </div>
     <script>
         init_tooltips();
-        $("#submit-library_indexing-form-btn").click(function() {
+        $("#submit-library_pooling-form-btn").click(function() {
             window.onbeforeunload = null;
         });
     </script>

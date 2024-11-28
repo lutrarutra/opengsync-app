@@ -7,7 +7,8 @@ from wtforms.validators import Optional as OptionalValidator, DataRequired, Leng
 
 from limbless_db import models
 from limbless_db.categories import RequestResponse, SeqRequestStatus, HTTPResponse
-from .. import logger, db
+
+from .. import logger, db  # noqa
 from .HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -29,7 +30,6 @@ class ProcessRequestForm(HTMXFlaskForm):
 
     def validate(self) -> bool:
         if not super().validate():
-            logger.debug(self.errors)
             return False
         
         if self.response_type.data == -1:

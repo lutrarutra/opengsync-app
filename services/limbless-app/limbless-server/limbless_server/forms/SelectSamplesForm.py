@@ -31,17 +31,6 @@ workflow_settings = {
         select_libraries=False,
         select_samples=False,
     ),
-    "plate_samples": dict(
-        sample_status_filter=[SampleStatus.STORED],
-        library_status_filter=[LibraryStatus.STORED],
-        select_pools=False,
-        select_all_samples=True,
-        select_all_libraries=True,
-    ),
-    "library_pooling": dict(
-        select_samples=False, select_pools=False, select_all_libraries=True,
-        library_status_filter=[LibraryStatus.PREPARING, LibraryStatus.STORED]
-    ),
     "library_prep": dict(
         select_samples=False, select_pools=False, select_libraries=True,
         library_status_filter=[LibraryStatus.ACCEPTED], select_all_libraries=True

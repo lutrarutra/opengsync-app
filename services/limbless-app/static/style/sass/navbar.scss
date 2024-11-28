@@ -15,6 +15,10 @@ nav#navbar {
     top: 0;
     z-index: 15;
 
+    p:hover {
+        cursor: default;
+    }
+
     a#bsf-banner {
         margin: auto 0 auto 0;
         padding: 0 10px 0 10px;

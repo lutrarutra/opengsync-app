@@ -166,7 +166,7 @@
                     <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
                         <div class="card-front">
                             <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="120px">
+                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="120px">
                             </div>
                             <div class="card-body">
                                 <h5 class="card-title">HTO Multiplexing Prep</h5>
@@ -191,7 +191,7 @@
                     <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
                         <div class="card-front">
                             <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="120px">
+                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="120px">
                             </div>
                             <div class="card-body">
                                 <h5 class="card-title">Flex Multiplexing Prep</h5>
@@ -235,21 +235,21 @@
                     {{ tooltip("You cannot edit completed prep.", category="warning") }}
                     {% else %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('library_indexing_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                    hx-get="{{ url_for('library_pooling_workflow.begin', lab_prep_id=lab_prep.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click" {% endif %}>
                     <div class="flip-card-container">
                         <div class="card-front">
                             <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="110px">
+                                <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="110px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">Index Libraries</h5>
+                                <h5 class="card-title">Pool Libraries</h5>
                             </div>
                         </div>
                         <div class="card-back">
                             <div class="text-container">
-                                <p class="card-text">Index libraries in the workflow</p>
+                                <p class="card-text">Pool libraries in the prep.</p>
                             </div>
                         </div>
                     </div>

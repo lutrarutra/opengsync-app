@@ -154,7 +154,7 @@ class LanePoolingForm(HTMXFlaskForm):
                 break
             
         if old_file:
-            db.remove_file_from_experiment(experiment_id=experiment.id, file_id=old_file.id)
+            db.delete_file(file_id=old_file.id)
             os.remove(os.path.join(current_app.config["MEDIA_FOLDER"], old_file.path))
             logger.info(f"Old file '{old_file.path}' removed.")
 
@@ -170,18 +170,15 @@ class LanePoolingForm(HTMXFlaskForm):
             type=FileType.LANE_POOLING_TABLE,
             extension=extension,
             uploader_id=user.id,
+            experiment_id=experiment.id
         )
-        comment = db.create_comment(
+        _ = db.create_comment(
             author_id=user.id,
             file_id=db_file.id,
-            text="Added file for pooling ratios"
-        )
-        db.add_experiment_comment(
-            experiment_id=experiment.id,
-            comment_id=comment.id
+            text="Added file for pooling ratios",
+            experiment_id=experiment.id
         )
 
-        db.add_file_to_experiment(experiment.id, db_file.id)
         flash("Laning Completed!", "success")
 
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))

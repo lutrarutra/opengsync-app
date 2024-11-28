@@ -15,15 +15,15 @@ from .... import logger, db, tools
 from ...MultiStepForm import MultiStepForm
 
 
-class CompleteLibraryIndexingForm(MultiStepForm):
-    _template_path = "workflows/library_indexing/indexing-3.html"
-    _workflow_name = "library_indexing"
-    _step_name = "complete_library_indexing"
+class CompleteLibraryPoolingForm(MultiStepForm):
+    _template_path = "workflows/library_pooling/complete-pooling.html"
+    _workflow_name = "library_pooling"
+    _step_name = "complete_library_pooling"
 
     def __init__(self, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
-            self, workflow=CompleteLibraryIndexingForm._workflow_name,
-            step_name=CompleteLibraryIndexingForm._step_name, uuid=uuid,
+            self, workflow=CompleteLibraryPoolingForm._workflow_name,
+            step_name=CompleteLibraryPoolingForm._step_name, uuid=uuid,
             formdata=formdata, previous_form=previous_form, step_args={}
         )
 

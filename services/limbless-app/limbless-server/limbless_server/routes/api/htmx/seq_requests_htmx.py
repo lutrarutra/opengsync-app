@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType, SampleStatus
+from limbless_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType, SampleStatus, SubmissionType, PoolStatus
 from limbless_db.core import exceptions
 from .... import db, forms, logger
 
@@ -950,14 +950,27 @@ def store_samples(seq_request_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    form: forms.SelectSamplesForm = forms.SelectSamplesForm(
-        workflow="store_samples",
-        sample_status_filter=[SampleStatus.WAITING_DELIVERY],
-        context=dict(
-            seq_request=seq_request,
-        ),
-        select_samples=True, select_libraries=False, select_pools=False,
-        selected_samples=[s for s in seq_request.samples if s.status == SampleStatus.WAITING_DELIVERY]
-    )
+    if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
+        form: forms.SelectSamplesForm = forms.SelectSamplesForm(
+            workflow="store_samples",
+            sample_status_filter=[SampleStatus.WAITING_DELIVERY],
+            context=dict(
+                seq_request=seq_request,
+            ),
+            select_samples=True, select_libraries=False, select_pools=False,
+            selected_samples=[s for s in seq_request.samples if s.status == SampleStatus.WAITING_DELIVERY]
+        )
+    else:
+        form: forms.SelectSamplesForm = forms.SelectSamplesForm(
+            workflow="store_samples",
+            library_status_filter=[LibraryStatus.ACCEPTED],
+            pool_status_filter=[PoolStatus.ACCEPTED],
+            context=dict(
+                seq_request=seq_request,
+            ),
+            select_samples=False, select_libraries=True, select_pools=True,
+            selected_libraries=[library for library in seq_request.libraries if library.status == LibraryStatus.ACCEPTED],
+            selected_pools=[pool for pool in seq_request.pools if pool.status == PoolStatus.ACCEPTED]
+        )
 
     return form.make_response()

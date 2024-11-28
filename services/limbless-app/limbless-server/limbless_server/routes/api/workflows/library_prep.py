@@ -24,11 +24,6 @@ library_prep_workflow = Blueprint("library_prep_workflow", __name__, url_prefix=
 def begin(lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    
-    # if pool.type == PoolType.RNA_SEQ:
-    #     form = forms.RNAPrepForm(pool=pool, formdata=request.form)
-    # else:
-    #     return abort(HTTPResponse.BAD_REQUEST.id)
 
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

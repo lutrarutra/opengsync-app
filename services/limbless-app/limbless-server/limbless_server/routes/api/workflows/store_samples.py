@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus
+from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus, SeqRequestStatus, SubmissionType
 
 from .... import db, logger  # noqa
 from ....forms import SelectSamplesForm
@@ -63,6 +63,7 @@ def select():
     if not form.validate():
         return form.make_response()
 
+    check_request_ids = []
     for i, row in form.sample_table.iterrows():
         if (sample := db.get_sample(row["id"])) is None:
             logger.error(f"Sample {row['id']} not found")
@@ -70,12 +71,19 @@ def select():
             
         sample.status = SampleStatus.STORED
         sample.timestamp_stored_utc = datetime.now()
+        for library_link in sample.library_links:
+            if library_link.library.seq_request.status == SeqRequestStatus.ACCEPTED:
+                if library_link.library.seq_request.id not in check_request_ids:
+                    check_request_ids.append(library_link.library.seq_request.id)
         sample = db.update_sample(sample)
 
     for i, row in form.library_table.iterrows():
         if (library := db.get_library(row["id"])) is None:
             logger.error(f"Library {row['id']} not found")
             raise ValueError(f"Library {row['id']} not found")
+        
+        if library.seq_request_id not in check_request_ids:
+            check_request_ids.append(library.seq_request_id)
         
         if library.is_pooled():
             library.status = LibraryStatus.POOLED
@@ -90,9 +98,37 @@ def select():
             logger.error(f"Pool {row['id']} not found")
             raise ValueError(f"Pool {row['id']} not found")
         
+        if pool.seq_request_id is not None and pool.seq_request_id not in check_request_ids:
+            check_request_ids.append(pool.seq_request_id)
+
         pool.status = PoolStatus.STORED
         pool.timestamp_stored_utc = datetime.now()
         pool = db.update_pool(pool)
+
+    for _srid in check_request_ids:
+        if (seq_request := db.get_seq_request(_srid)) is None:
+            logger.error(f"SeqRequest {_srid} not found")
+            raise Exception(f"SeqRequest {_srid} not found")
+        
+        if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
+            all_samples_stored = True
+            for sample in seq_request.samples:
+                all_samples_stored = sample.status >= SampleStatus.STORED and all_samples_stored
+                if not all_samples_stored:
+                    break
+            if all_samples_stored:
+                seq_request.status = SeqRequestStatus.SAMPLES_RECEIVED
+                seq_request = db.update_seq_request(seq_request)
+
+        elif seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
+            all_pools_stored = True
+            for pool in seq_request.pools:
+                all_pools_stored = pool.status >= PoolStatus.STORED and all_pools_stored
+                if not all_pools_stored:
+                    break
+            if all_pools_stored:
+                seq_request.status = SeqRequestStatus.PREPARED
+                seq_request = db.update_seq_request(seq_request)
 
     flash("Samples Stored!", "success")
     if seq_request is not None:

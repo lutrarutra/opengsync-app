@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Optional
 
 import pandas as pd
@@ -15,7 +16,7 @@ from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from ...SearchBar import OptionalSearchBar
 from .IndexKitMappingForm import IndexKitMappingForm
-from .CompleteLibraryIndexingForm import CompleteLibraryIndexingForm
+from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
 
 
 class PlateSubForm(FlaskForm):
@@ -23,15 +24,20 @@ class PlateSubForm(FlaskForm):
     starting_index = SelectField("Starting Index", choices=[(i, models.Plate.well_identifier(i, 12, 8)) for i in range(96)], default=0, coerce=int)
 
 
+def index_well_clean_up_fnc(x: str) -> str:
+    well = re.sub(r"([a-zA-Z]+)0*(\d+)", r"\1\2", x)
+    return well.upper()
+
+
 class BarcodeInputForm(MultiStepForm):
-    _template_path = "workflows/library_indexing/indexing-1.html"
-    _workflow_name = "library_indexing"
+    _template_path = "workflows/library_pooling/barcode-input.html"
+    _workflow_name = "library_pooling"
     _step_name = "barcode_input"
     
     columns = {
         "library_id": SpreadSheetColumn("A", "library_id", "ID", "numeric", 50, int),
         "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 250, str),
-        "index_well": SpreadSheetColumn("C", "index_well", "Index Well", "text", 70, str),
+        "index_well": SpreadSheetColumn("C", "index_well", "Index Well", "text", 70, str, clean_up_fnc=lambda x: index_well_clean_up_fnc(str(x)) if pd.notna(x) else None),
         "pool": SpreadSheetColumn("D", "pool", "Pool", "text", 70, str),
         "kit_i7": SpreadSheetColumn("E", "kit_i7", "i7 Kit", "text", 200, str),
         "name_i7": SpreadSheetColumn("F", "name_i7", "i7 Name", "text", 150, str),
@@ -59,7 +65,7 @@ class BarcodeInputForm(MultiStepForm):
             csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=BarcodeInputForm.columns, csrf_token=csrf_token,
-            post_url=url_for("library_indexing_workflow.parse_barcodes", lab_prep_id=lab_prep.id, uuid=self.uuid),
+            post_url=url_for("library_pooling_workflow.parse_barcodes", lab_prep_id=lab_prep.id, uuid=self.uuid),
             formdata=formdata, df=self.get_template(),
         )
 
@@ -77,11 +83,11 @@ class BarcodeInputForm(MultiStepForm):
             library_data["index_well"].append(None)
             library_data["pool"].append(None)
             library_data["kit_i7"].append(None)
-            library_data["name_i7"].append(None)
-            library_data["sequence_i7"].append(None)
+            library_data["name_i7"].append(library.names_i7_str(";"))
+            library_data["sequence_i7"].append(library.sequences_i7_str(";"))
             library_data["kit_i5"].append(None)
-            library_data["name_i5"].append(None)
-            library_data["sequence_i5"].append(None)
+            library_data["name_i5"].append(library.names_i5_str(";"))
+            library_data["sequence_i5"].append(library.sequences_i5_str(";"))
 
         return pd.DataFrame(library_data)
     
@@ -156,7 +162,7 @@ class BarcodeInputForm(MultiStepForm):
 
         self.df = df
 
-        return validated
+        return True
 
     def process_request(self) -> Response:
         if not self.validate():
@@ -202,7 +208,7 @@ class BarcodeInputForm(MultiStepForm):
         
         barcode_table = pd.DataFrame(barcode_table_data)
 
-        complete_pool_indexing_form = CompleteLibraryIndexingForm(uuid=self.uuid)
+        complete_pool_indexing_form = CompleteLibraryPoolingForm(uuid=self.uuid)
         complete_pool_indexing_form.metadata["lab_prep_id"] = self.lab_prep.id
         complete_pool_indexing_form.add_table("library_table", self.df)
         complete_pool_indexing_form.add_table("barcode_table", barcode_table)

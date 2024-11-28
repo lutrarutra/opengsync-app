@@ -23,6 +23,9 @@
         allowInsertColumn: false,
         allowRenameColumn: false,
         editable: false,
+        tableOverflow: true,
+        tableWidth: "100%",
+        tableHeight: "100%",
         style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
     });
 </script>

@@ -6,36 +6,33 @@
 
 <div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >Specify Barcodes</h1>
+        <h1 class="modal-title fs-5" >1. Specify Barcodes</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
         <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
             <li class="nav-item" role="presentation">
-                <button class="nav-link help-tab-btn{% if active_tab == 'help' %} active{% endif %}" data-bs-toggle="tab"
-                data-bs-target="#help-tab" type="button" role="tab"
-                aria-controls="help-tab" aria-selected="false">
-                Help</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link{% if active_tab == 'spreadsheet' %} active{% endif %}" data-bs-toggle="tab"
+                <button class="nav-link active" data-bs-toggle="tab"
                 id="spreadsheet-tab-btn"
                 data-bs-target="#spreadsheet-tab" type="button" role="tab"
                 aria-controls="spreadsheet-tab" aria-selected="true">
                 Spreadsheet</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#index-1-example-tab" type="button" role="tab"
                 aria-controls="index-1-example-tab" aria-selected="true">
                 Example 1.</button>
             </li>
         </ul>
         <div class="tab-content" id="library_pooling-form">
-            <div class="tab-pane fade{% if active_tab == 'help' %} show active{% endif %}" id="help-tab" role="tabpanel" tabindex="0">
-                {% include "instructions/barcode_input_prep.html" %}
-            </div>
-            <div class="tab-pane fade{% if active_tab == 'spreadsheet' %} show active{% endif %}" id="spreadsheet-tab" role="tabpanel" tabindex="2">
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{ 
                     spreadsheet_input(
                         element=form.spreadsheet,
@@ -44,7 +41,10 @@
                     )
                 }}
             </div>
-            <div class="tab-pane fade" id="index-1-example-tab" role="tabpanel" tabindex="4">
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
+                {% include "instructions/barcode_input_prep.html" %}
+            </div>
+            <div class="tab-pane fade" id="index-1-example-tab" role="tabpanel" tabindex="2">
                 {% include "components/examples/pool-indexing-1.html" %}
             </div>
         </div>
