@@ -149,3 +149,19 @@ class Library(Base):
                 i5s.append(index.sequence_i5)
 
         return sep.join(i5s)
+    
+    def names_i7_str(self, sep: str = ", ") -> str:
+        i7s = []
+        for index in self.indices:
+            if index.name_i7:
+                i7s.append(index.name_i7)
+
+        return sep.join(i7s)
+    
+    def names_i5_str(self, sep: str = ", ") -> str:
+        i5s = []
+        for index in self.indices:
+            if index.name_i5:
+                i5s.append(index.name_i5)
+
+        return sep.join(i5s)

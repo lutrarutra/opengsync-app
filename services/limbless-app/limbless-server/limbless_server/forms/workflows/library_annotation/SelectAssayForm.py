@@ -8,7 +8,7 @@ from wtforms import SelectField, TextAreaField, BooleanField, FormField
 from wtforms.validators import Optional as OptionalValidator, Length, DataRequired
 
 from limbless_db import models
-from limbless_db.categories import AssayType, GenomeRef, LibraryType
+from limbless_db.categories import AssayType, GenomeRef
 
 from .... import logger, db  # noqa
 from ...MultiStepForm import MultiStepForm
@@ -17,7 +17,7 @@ from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm
 
 
 class OptionalAssaysForm(FlaskForm):
-    antibody_capture = BooleanField("Cell Surface Protein Capture", description="Anitbody Capture", default=False)
+    antibody_capture = BooleanField("Cell Surface Protein Capture", description="Antibody Capture", default=False)
     vdj_b = BooleanField("VDJ-B", description="BCR-sequencing", default=False)
     vdj_t = BooleanField("VDJ-T", description="TCR-sequencing", default=False)
     vdj_t_gd = BooleanField("VDJ-T-GD", description="TCR-GD-sequencing", default=False)

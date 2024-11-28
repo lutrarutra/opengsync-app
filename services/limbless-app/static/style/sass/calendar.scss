@@ -47,6 +47,10 @@
                 padding: 0;
             }
 
+            .day-number:hover {
+                cursor: default;
+            }
+
 
             ::-webkit-scrollbar {
                 width: 5px;

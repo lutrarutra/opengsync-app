@@ -261,7 +261,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     
     app.register_blueprint(api.plotting.plots_api)
 
-    app.register_blueprint(api.workflows.library_pooling_workflow)
     app.register_blueprint(api.workflows.library_annotation_workflow)
     app.register_blueprint(api.workflows.lane_pools_workflow)
     app.register_blueprint(api.workflows.ba_report_workflow)
@@ -272,8 +271,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.load_flow_cell_workflow)
     app.register_blueprint(api.workflows.qubit_measure_workflow)
     app.register_blueprint(api.workflows.store_samples_workflow)
-    app.register_blueprint(api.workflows.plate_samples_workflow)
-    app.register_blueprint(api.workflows.library_indexing_workflow)
+    app.register_blueprint(api.workflows.library_pooling_workflow)
     app.register_blueprint(api.workflows.library_prep_workflow)
     app.register_blueprint(api.workflows.mux_prep_workflow)
 

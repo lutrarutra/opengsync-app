@@ -15,7 +15,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, LibraryType
+from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
 
 from .... import db, forms, logger  # noqa
 from ....tools import SpreadSheetColumn
@@ -194,9 +194,17 @@ def complete(lab_prep_id: int):
     
     for pool in lab_prep.pools:
         pool.status = PoolStatus.STORED
-        
+        pool = db.update_pool(pool)
+
     for library in lab_prep.libraries:
-        library.status = LibraryStatus.STORED
+        is_prepared = True
+        for sr_library in library.seq_request.libraries:
+            is_prepared = sr_library.status >= LibraryStatus.POOLED and is_prepared
+            if not is_prepared:
+                break
+        if is_prepared:
+            library.seq_request.status = SeqRequestStatus.PREPARED
+            library = db.update_library(library)
 
     lab_prep.status = PrepStatus.COMPLETED
     lab_prep = db.update_lab_prep(lab_prep)

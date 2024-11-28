@@ -202,6 +202,10 @@ body {
                     padding: 0;
                     overflow-x: hidden;
                 }
+
+                h1:hover, h2:hover {
+                    cursor: default;
+                }
             }
             .page-controls {
                 flex-shrink: 0;
@@ -640,6 +644,9 @@ span.id-desc::after {
         .color-label {
             font-size: 15px;
             font-weight: 600;
+        }
+        .color-label:hover {
+            cursor: default;
         }
     }
 }

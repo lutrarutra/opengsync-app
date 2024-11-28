@@ -13,7 +13,7 @@
             <h1>{{ seq_request.name }}</h1>
         </div>
         <div class="page-controls">
-            {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ACCEPTED and seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
+            {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ACCEPTED %}
             <button hx-get="{{ url_for('seq_requests_htmx.store_samples', seq_request_id=seq_request.id) }}" class="btn btn-success"
                 data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click">
                 Store Samples
@@ -354,90 +354,24 @@
                     </div>
                 </div>
                 {% endif %}
-                {% if  seq_request.status == SeqRequestStatus.ACCEPTED and current_user.is_insider() %}
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('store_samples_workflow.begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/store.svg') }}" width="90px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Store Samples</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Store samples received from customers.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('plate_samples_workflow.begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/plate.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Plate Samples</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Put samples (samples, libraries, pools) on a plate.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
+                {% if seq_request.status >= SeqRequestStatus.ACCEPTED and current_user.is_insider() %}
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                    hx-get="{{ url_for('pools_htmx.get_form', form_type='create') }}"
+                    hx-get=""
                     hx-target="#xl-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
                     <div class="flip-card-container">
                         <div class="card-front">
                             <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
+                                <img src="{{ url_for('static', filename='images/licensed/prepare.svg') }}" width="120px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">Create Pool</h5>
+                                <h5 class="card-title">Add Libraries to Prep</h5>
                             </div>
                         </div>
                         <div class="card-back">
                             <div class="text-container">
-                                <p class="card-text">Create pool from libraries associated to this sequencing request.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                    hx-get="{{ url_for('library_pooling_workflow.browse_pool', seq_request_id=seq_request.id) }}"
-                    hx-target="#xl-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Add Libraries to Pool</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Select libraries from this sequencing request to be added to a pool.</p>
+                                <p class="card-text">Select libraries from this sequencing request to be added to a prep.</p>
                             </div>
                         </div>
                     </div>
@@ -700,8 +634,8 @@
                     <div class="footer-info">
                     </div>
                     <div class="footer-controls">
-                        <button class="btn btn-primary" hx-include="#process_request-form" hx-target="#process_request-form" hx-swap="outerHTML"
-                            hx-post="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}">Submit</button>
+                        <button class="btn btn-success" hx-include="#process_request-form" hx-target="#process_request-form" hx-swap="outerHTML"
+                            hx-post="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}">Process</button>
                     </div>
                 </div>
             </div>

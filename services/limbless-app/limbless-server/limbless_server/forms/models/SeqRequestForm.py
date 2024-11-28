@@ -261,7 +261,7 @@ class SeqRequestForm(HTMXFlaskForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.form_type = form_type
 
-        if form_type == "create" and current_user is not None:
+        if form_type == "create" and current_user is not None and not formdata:
             self.contact_form.contact_person_name.data = current_user.name
             self.contact_form.contact_person_email.data = current_user.email
             self.contact_form.current_user_is_contact.data = True

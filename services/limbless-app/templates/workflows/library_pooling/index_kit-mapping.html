@@ -2,7 +2,7 @@
 
 <div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">4. Map Index Kits</h1>
+        <h1 class="modal-title fs-5">2. Map Index Kits</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body">
@@ -30,7 +30,7 @@
             <button type="button" class="btn btn-primary"
                 hx-target="#library_pooling-form-container" hx-swap="outerHTML"
                 hx-include="#library_pooling-form"
-                hx-post="{{ url_for('library_indexing_workflow.map_index_kits', uuid=form.uuid) }}">
+                hx-post="{{ url_for('library_pooling_workflow.map_index_kits', uuid=form.uuid) }}">
                 Map Kits
             </button>
         </div>

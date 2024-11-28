@@ -184,8 +184,6 @@
                             <th class="col-2" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
                             {% elif workflow == "ba_report" %}
                             <th class="col-2" scope="col">Avg. Fragment Size</th>
-                            {% elif workflow == "library_pooling" %}
-                            <th class="col-2" scope="col">Pool</th>
                             {% endif %}
                         </tr>
                     </thead>
@@ -216,8 +214,6 @@
                                     <div class="unit">bp</div>
                                 </div>
                             </td>
-                            {% elif workflow == "library_pooling" %}
-                            <td>{{ library.pool.name }}</td>
                             {% endif %}
                         </tr>
                     {% endfor %}

@@ -13,7 +13,7 @@ from limbless_db.categories import BarcodeType, KitType
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
 from ...SearchBar import SearchBar
-from .CompleteLibraryIndexingForm import CompleteLibraryIndexingForm
+from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
 
 
 class IndexKitSubForm(FlaskForm):
@@ -22,8 +22,8 @@ class IndexKitSubForm(FlaskForm):
 
 
 class IndexKitMappingForm(MultiStepForm):
-    _template_path = "workflows/library_indexing/indexing-2.html"
-    _workflow_name = "library_indexing"
+    _template_path = "workflows/library_pooling/index_kit-mapping.html"
+    _workflow_name = "library_pooling"
     _step_name = "index_kit_mapping"
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
@@ -194,6 +194,6 @@ class IndexKitMappingForm(MultiStepForm):
         self.add_table("barcode_table", self.barcode_table)
         self.update_data()
 
-        complete_pool_indexing_form = CompleteLibraryIndexingForm(previous_form=self, uuid=self.uuid)
+        complete_pool_indexing_form = CompleteLibraryPoolingForm(previous_form=self, uuid=self.uuid)
         complete_pool_indexing_form.prepare()
         return complete_pool_indexing_form.make_response()

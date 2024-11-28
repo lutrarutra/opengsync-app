@@ -358,8 +358,7 @@ def browse(workflow: str, page: int):
         sort_by=sort_by, descending=descending, offset=offset,
         seq_request_id=seq_request_id, experiment_id=experiment_id,
         type_in=type_in, status_in=status_in,
-        pool_id=pool_id if workflow != "library_pooling" else None,
-        pooled=False if workflow == "library_pooling" else None,
+        pool_id=pool_id,
         in_lab_prep=False if workflow == "library_prep" else None
     )
     context["workflow"] = workflow
@@ -441,9 +440,8 @@ def browse_query(workflow: str):
     libraries: list[models.Library] = []
     if field_name == "name":
         libraries = db.query_libraries(
-            name=word, status_in=status_in, type_in=type_in, experiment_id=experiment_id, seq_request_id=seq_request_id,
-            pool_id=pool_id if workflow != "library_pooling" else None,
-            pooled=False if workflow == "library_pooling" else None
+            name=word, status_in=status_in, type_in=type_in, experiment_id=experiment_id,
+            seq_request_id=seq_request_id, pool_id=pool_id,
         )
     elif field_name == "id":
         try:
@@ -461,9 +459,8 @@ def browse_query(workflow: str):
             pass
     elif field_name == "owner_id":
         libraries = db.query_libraries(
-            owner=word, status_in=status_in, type_in=type_in, experiment_id=experiment_id, seq_request_id=seq_request_id,
-            pool_id=pool_id if workflow != "library_pooling" else None,
-            pooled=False if workflow == "library_pooling" else None
+            owner=word, status_in=status_in, type_in=type_in, experiment_id=experiment_id,
+            seq_request_id=seq_request_id, pool_id=pool_id,
         )
 
     context["workflow"] = workflow
@@ -542,9 +539,7 @@ def select_all(workflow: str):
 
     libraries, _ = db.get_libraries(
         seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
-        pool_id=pool_id if workflow != "library_pooling" else None,
-        pooled=False if workflow == "library_pooling" else None,
-        in_lab_prep=False if workflow == "library_prep" else None,
+        pool_id=pool_id, in_lab_prep=False if workflow == "library_prep" else None,
     )
 
     form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)
