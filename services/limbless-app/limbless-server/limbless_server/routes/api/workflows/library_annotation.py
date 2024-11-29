@@ -262,7 +262,7 @@ def map_feature_kits(seq_request_id: int, uuid: str):
 
 
 # 9. Visium Annotation
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_visium_reference/<string:input_type>", methods=["POST"])
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_visium_reference", methods=["POST"])
 @login_required
 def parse_visium_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:

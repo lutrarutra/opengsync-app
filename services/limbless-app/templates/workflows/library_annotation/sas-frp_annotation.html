@@ -1,5 +1,5 @@
 {% from "components/legends.jinja2" import color_legend %}
-{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input, static_spreadsheet %}
 
 <div id="frp-reference-form-container" class="modal-content">
     <div class="modal-header">
@@ -22,6 +22,12 @@
                 Help</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link available-samples-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#available-samples-tab" type="button" role="tab"
+                aria-controls="available-samples-tab" aria-selected="false">
+                Available Samples</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                 data-bs-target="#fixed-1-example-tab" type="button" role="tab"
                 aria-controls="fixed-1-example-tab" aria-selected="true">
@@ -40,6 +46,9 @@
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 {% include "instructions/frp_annotation.html" %}
+            </div>
+            <div class="tab-pane fade" id="available-samples-tab" role="tabpanel" tabindex="2">
+                {{ static_spreadsheet(available_samples) }}
             </div>
             <div class="tab-pane fade" id="fixed-1-example-tab" role="tabpanel" tabindex="3">
                 {% include "components/examples/fixed_rna_profiling.html" %}

@@ -158,7 +158,7 @@ class LanePoolingForm(HTMXFlaskForm):
             os.remove(os.path.join(current_app.config["MEDIA_FOLDER"], old_file.path))
             logger.info(f"Old file '{old_file.path}' removed.")
 
-        _uuid = str(uuid.uuid4())
+        _uuid = uuid.uuid4().hex
         filepath = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size

@@ -17,14 +17,14 @@ from .SpreadsheetInput import SpreadsheetInput
 class EditKitFeaturesForm(HTMXFlaskForm):
     _template_path = "forms/edit_kit_features.html"
 
-    columns = {
-        "name": SpreadSheetColumn("A", "name", "Name", "text", 250, str),
-        "sequence": SpreadSheetColumn("B", "sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        "pattern": SpreadSheetColumn("C", "pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        "read": SpreadSheetColumn("D", "read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        "target_name": SpreadSheetColumn("E", "target_name", "Target Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        "target_id": SpreadSheetColumn("f", "target_id", "Target ID", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-    }
+    columns = [
+        SpreadSheetColumn("name", "Name", "text", 250, str),
+        SpreadSheetColumn("sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        SpreadSheetColumn("pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        SpreadSheetColumn("read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        SpreadSheetColumn("target_name", "Target Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        SpreadSheetColumn("target_id", "Target ID", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+    ]
 
     def __init__(self, feature_kit: models.FeatureKit, formdata: Optional[dict] = None):
         super().__init__(formdata=formdata)
@@ -44,7 +44,7 @@ class EditKitFeaturesForm(HTMXFlaskForm):
 
     def __fill_form(self):
         template = db.get_feature_kit_features_df(self.feature_kit.id)
-        return template[list(EditKitFeaturesForm.columns.keys())]
+        return template[self.spreadsheet.labels()]
 
     def validate(self) -> bool:
         if not super().validate():

@@ -1,4 +1,4 @@
-{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input, static_spreadsheet %}
 {% from "components/legends.jinja2" import color_legend %}
 
 <div id="feature_reference-form-container" class="modal-content">
@@ -20,6 +20,12 @@
                 data-bs-target="#help-tab" type="button" role="tab"
                 aria-controls="help-tab" aria-selected="false">
                 Help</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link available-samples-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#available-samples-tab" type="button" role="tab"
+                aria-controls="available-samples-tab" aria-selected="false">
+                Available Samples</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
@@ -53,13 +59,16 @@
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 {% include "instructions/feature_annotation.html" %}
             </div>
-            <div class="tab-pane fade" id="feature-2-example-tab" role="tabpanel" tabindex="2">
+            <div class="tab-pane fade" id="available-samples-tab" role="tabpanel" tabindex="2">
+                {{ static_spreadsheet(available_samples) }}
+            </div>
+            <div class="tab-pane fade" id="feature-2-example-tab" role="tabpanel" tabindex="3">
                 {% include "components/examples/feature-2.html" %}
             </div>
-            <div class="tab-pane fade" id="feature-3-example-tab" role="tabpanel" tabindex="2">
+            <div class="tab-pane fade" id="feature-3-example-tab" role="tabpanel" tabindex="4">
                 {% include "components/examples/feature-3.html" %}
             </div>
-            <div class="tab-pane fade" id="feature-4-example-tab" role="tabpanel" tabindex="2">
+            <div class="tab-pane fade" id="feature-4-example-tab" role="tabpanel" tabindex="5">
                 {% include "components/examples/feature-4.html" %}
             </div>
         </div>

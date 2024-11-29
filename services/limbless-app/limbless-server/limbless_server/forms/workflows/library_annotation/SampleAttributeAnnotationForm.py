@@ -1,5 +1,4 @@
 import os
-import string
 from typing import Optional
 
 import pandas as pd
@@ -21,9 +20,9 @@ class SampleAttributeAnnotationForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "sample_attribute_annotation"
 
-    predefined_columns = {
-        "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 170, str)
-    } | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()[1:])])
+    predefined_columns = [
+        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str)
+    ] + [SpreadSheetColumn(t.label, t.name, "text", 100, str) for i, t in enumerate(AttributeType.as_list()[1:])]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
@@ -34,6 +33,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self.upload_path = os.path.join("uploads", "seq_request")
+        self.columns = SampleAttributeAnnotationForm.predefined_columns.copy()
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
@@ -53,7 +53,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         df = sample_table[["sample_name"]].copy()
     
-        for col in SampleAttributeAnnotationForm.predefined_columns.values():
+        for col in SampleAttributeAnnotationForm.predefined_columns:
             if col.label in df.columns:
                 continue
             
@@ -64,13 +64,12 @@ class SampleAttributeAnnotationForm(MultiStepForm):
             for attr in attributes:
                 df.loc[df["sample_name"] == row["sample_name"], attr.name] = attr.value
 
-        columns = SampleAttributeAnnotationForm.predefined_columns.copy()
         for col in df.columns:
-            if col not in columns.keys():
-                columns[col] = SpreadSheetColumn(string.ascii_uppercase[len(columns)], col, col.replace("_", " ").title(), "text", 100, str)
+            if col not in [c.label for c in self.columns]:
+                self.columns.append(SpreadSheetColumn(col, col.replace("_", " ").title(), "text", 100, str))
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=columns, csrf_token=csrf_token,
+            columns=self.columns, csrf_token=csrf_token,
             post_url=url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_cols=True, allow_col_rename=True, df=df
         )
@@ -143,6 +142,5 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         self.update_table("sample_table", self.sample_table)
         
-        complete_sas_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        complete_sas_form.prepare()
-        return complete_sas_form.make_response()
+        next_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        return next_form.make_response()

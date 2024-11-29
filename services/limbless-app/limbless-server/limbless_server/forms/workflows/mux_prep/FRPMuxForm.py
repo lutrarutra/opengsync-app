@@ -19,11 +19,11 @@ class FRPMuxForm(MultiStepForm):
     _workflow_name = "mux_prep"
     _step_name = "frp_mux"
     
-    columns = {
-        "demux_name": SpreadSheetColumn("A", "demux_name", "Demultiplexed Name", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "sample_pool": SpreadSheetColumn("B", "sample_pool", "Sample Pool", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "barcode_id": SpreadSheetColumn("C", "barcode_id", "Bardcode ID", "text", 200, str, clean_up_fnc=lambda x: str(x).strip().upper() if pd.notna(x) else None),
-    }
+    columns = [
+        SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("sample_pool", "Sample Pool", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("barcode_id", "Bardcode ID", "text", 200, str, clean_up_fnc=lambda x: str(x).strip().upper() if pd.notna(x) else None),
+    ]
 
     allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
 

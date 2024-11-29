@@ -1,4 +1,3 @@
-import string
 import json
 from typing import Optional, TYPE_CHECKING
 
@@ -292,9 +291,7 @@ def get_sample_attributes(project_id: int):
             width = 300
         else:
             width = 150
-        columns.append(SpreadSheetColumn(
-            string.ascii_uppercase[i], col, col.replace("_", " ").title(), "text", width, var_type=str
-        ))
+        columns.append(SpreadSheetColumn(col, col.replace("_", " ").title(), "text", width, var_type=str))
 
     return make_response(
         render_template(

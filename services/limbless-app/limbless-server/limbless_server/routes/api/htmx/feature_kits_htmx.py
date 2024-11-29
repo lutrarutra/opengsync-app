@@ -1,4 +1,3 @@
-import string
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -224,8 +223,7 @@ def render_table(feature_kit_id: int):
             width = 200
         columns.append(
             SpreadSheetColumn(
-                string.ascii_uppercase[i], col,
-                col.replace("_", " ").title().replace("Id", "ID"),
+                col, col.replace("_", " ").title().replace("Id", "ID"),
                 "text", width, var_type=str
             )
         )

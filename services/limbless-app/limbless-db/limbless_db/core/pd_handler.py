@@ -604,3 +604,29 @@ def get_lab_prep_samples_df(self, lab_prep_id: int) -> pd.DataFrame:
     df = pd.read_sql(query, self._engine).sort_values(["library_id", "sample_id"])
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
     return df
+
+
+def query_barcode_sequences_df(self, sequence: str, limit: int = 10) -> pd.DataFrame:
+    query = sa.select(
+        models.Barcode.id.label("id"), models.Barcode.sequence.label("sequence"),
+        models.Barcode.well.label("well"), models.Barcode.name.label("name"),
+        models.Barcode.type_id.label("type_id"),
+        models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
+    )
+
+    query = query.order_by(
+        sa.func.similarity(models.Barcode.sequence, sequence).desc()
+    ).limit(limit)
+
+    df = pd.read_sql(query, self._engine)
+    
+    def hamming_distance(str1: str, str2: str) -> int:
+        min_length = min(len(str1), len(str2))
+        distance = sum(c1 != c2 for c1, c2 in zip(str1[:min_length], str2[:min_length]))
+        distance += abs(len(str1) - len(str2))
+        return distance
+
+    df["hamming"] = df["sequence"].apply(lambda x: hamming_distance(x, sequence))
+    df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
+
+    return df

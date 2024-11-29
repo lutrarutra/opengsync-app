@@ -22,15 +22,15 @@ class CMOAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-cmo_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "cmo_annotation"
-    columns = {
-        "demux_name": SpreadSheetColumn("A", "demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "sample_name": SpreadSheetColumn("B", "sample_name", "Sample Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "kit": SpreadSheetColumn("C", "kit", "Kit", "text", 170, str),
-        "feature": SpreadSheetColumn("D", "feature", "Feature", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "sequence": SpreadSheetColumn("E", "sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        "pattern": SpreadSheetColumn("F", "pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        "read": SpreadSheetColumn("G", "read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-    }
+    columns = [
+        SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("kit", "Kit", "text", 170, str),
+        SpreadSheetColumn("feature", "Feature", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        SpreadSheetColumn("pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        SpreadSheetColumn("read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+    ]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
@@ -126,29 +126,24 @@ class CMOAnnotationForm(MultiStepForm):
             if (existing_kit_table := self.tables.get("kit_table")) is None:  # type: ignore
                 self.add_table("kit_table", kit_table)
             else:
-                kit_table = pd.concat([kit_table, existing_kit_table])
+                kit_table = pd.concat([kit_table[kit_table["type_id"] != FeatureType.CMO.id], existing_kit_table])
                 self.update_table("kit_table", kit_table, update_data=False)
         
         self.add_table("cmo_table", self.cmo_table)
         self.update_data()
 
         if ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
-            feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return feature_reference_input_form.make_response()
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
 
-        if kit_table["kit_id"].isna().any():
-            feature_kit_mapping_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            feature_kit_mapping_form.prepare()
-            return feature_kit_mapping_form.make_response()
+        elif kit_table["kit_id"].isna().any():
+            next_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         
-        if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
-            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            visium_annotation_form.prepare()
-            return visium_annotation_form.make_response()
+        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         
-        if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
-            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return frp_annotation_form.make_response()
-
-        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        return sample_annotation_form.make_response()
+        elif LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+            next_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        else:
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        
+        return next_form.make_response()

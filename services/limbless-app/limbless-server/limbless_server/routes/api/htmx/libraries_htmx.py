@@ -1,5 +1,4 @@
 import json
-import string
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -149,8 +148,7 @@ def render_feature_table(library_id: int):
             width = 200
         columns.append(
             SpreadSheetColumn(
-                string.ascii_uppercase[i], col,
-                col.replace("_", " ").title().replace("Id", "ID"),
+                col, col.replace("_", " ").title().replace("Id", "ID"),
                 "text", width, var_type=str
             )
         )
@@ -570,8 +568,7 @@ def get_flex_table(library_id: int):
             width = 300
         columns.append(
             SpreadSheetColumn(
-                string.ascii_uppercase[i], col,
-                col.replace("_", " ").title().replace("Id", "ID"),
+                col, col.replace("_", " ").title().replace("Id", "ID"),
                 "text", width, var_type=str
             )
         )
@@ -605,8 +602,7 @@ def get_hto_table(library_id: int):
     for i, col in enumerate(df.columns):
         columns.append(
             SpreadSheetColumn(
-                string.ascii_uppercase[i], col,
-                col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
+                col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
                 "text", 300, var_type=str
             )
         )

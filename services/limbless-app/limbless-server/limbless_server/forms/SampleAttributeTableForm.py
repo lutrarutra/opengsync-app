@@ -1,5 +1,3 @@
-import string
-
 import pandas as pd
 
 from flask import Response, url_for, flash
@@ -18,10 +16,10 @@ class SampleAttributeTableForm(HTMXFlaskForm):
     _template_path = "forms/sample_attribute_table_form.html"
     _form_label = "sample_attribute_table_form"
 
-    predefined_columns = {
-        "id": SpreadSheetColumn("A", "id", "ID", "text", 50, str),
-        "sample_name": SpreadSheetColumn("B", "sample_name", "Sample Name", "text", 170, str),
-    } | dict([(t.label, SpreadSheetColumn(string.ascii_uppercase[i + 1], t.label, t.name, "text", 100, str)) for i, t in enumerate(AttributeType.as_list()[1:])])
+    predefined_columns = [
+        SpreadSheetColumn("id", "ID", "text", 50, str),
+        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str),
+    ] + [SpreadSheetColumn(t.label, t.name, "text", 100, str) for i, t in enumerate(AttributeType.as_list()[1:])]
 
     def __init__(self, project: models.Project, formdata: dict = {}):
         super().__init__(formdata=formdata)
@@ -33,8 +31,8 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         columns = SampleAttributeTableForm.predefined_columns.copy()
 
         for col in df.columns:
-            if col not in columns.keys():
-                columns[col] = SpreadSheetColumn(string.ascii_uppercase[len(columns)], col, col.replace("_", " ").title(), "text", 100, str)
+            if col not in [c.label for c in columns]:
+                SpreadSheetColumn(col, col.replace("_", " ").title(), "text", 100, str)
 
         csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(

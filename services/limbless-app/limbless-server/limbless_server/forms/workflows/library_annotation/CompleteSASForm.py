@@ -7,7 +7,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models, DBSession
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType, LibraryStatus
+from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
@@ -37,8 +37,10 @@ class CompleteSASForm(MultiStepForm):
         self.visium_table = self.tables.get("visium_table")
         self.flex_table = self.tables.get("flex_table")
         self.comment_table = self.tables.get("comment_table")
+        if not formdata:
+            self.__prepare()
 
-    def prepare(self):
+    def __prepare(self):
         self._context["library_table"] = self.library_table
         self._context["sample_table"] = self.sample_table
         self._context["pooling_table"] = self.pooling_table
@@ -131,7 +133,7 @@ class CompleteSASForm(MultiStepForm):
 
     def process_request(self, user: models.User) -> Response:
         if not self.validate():
-            self.prepare()
+            self.__prepare()
             return self.make_response()
 
         if self.visium_table is not None:

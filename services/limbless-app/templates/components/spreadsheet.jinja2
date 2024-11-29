@@ -12,6 +12,38 @@
 </div>
 {%- endmacro %}
 
+{% macro static_spreadsheet(element) -%}
+<div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
+    <div id="{{ element._id }}" class="spreadsheet-grid">
+    </div>
+</div>
+<script>
+    jspreadsheet(document.getElementById("{{ element._id }}"), {
+        data: {{ element._data }},
+        columns: [
+            {% for col in element.columns %}
+            {%- if col.type == "text" or col.type == "numeric" -%}
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+            {%- elif col["type"] == "dropdown" -%}
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+            {%- endif -%}
+            {% endfor %}
+        ],
+        allowInsertRow: false,
+        allowManualInsertRow: false,
+        allowDeleteRow: false,
+        allowDeleteColumn: false,
+        allowInsertColumn: false,
+        allowRenameColumn: false,
+        editable: false,
+        tableOverflow: true,
+        tableWidth: "100%",
+        tableHeight: "100%",
+        style: {{ element.style | tojson }},
+    });
+</script>
+{%- endmacro %}
+
 {% macro spreadsheet_input(element, target_element_id=none, submit_btn_id=none, height=none, post_request_kwargs={}) -%}
 <div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
     <div class="invalid-feedback-container">

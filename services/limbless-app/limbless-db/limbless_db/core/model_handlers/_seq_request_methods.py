@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 from ... import to_utc
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType, SubmissionTypeEnum, AccessType, AccessTypeEnum
+from ...categories import SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType, SubmissionTypeEnum, AccessType, AccessTypeEnum, SubmissionType
 from .. import exceptions
 
 
@@ -466,6 +466,11 @@ def clone_seq_request(self: "DBHandler", seq_request_id: int, method: Literal["p
 
     if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
         raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+    
+    if method == "raw":
+        submission_type = SubmissionType.RAW_SAMPLES
+    else:
+        submission_type = SubmissionType.POOLED_LIBRARIES
 
     cloned_request = self.create_seq_request(
         name=f"RE: {seq_request.name}"[:models.SeqRequest.name.type.length],
@@ -475,7 +480,7 @@ def clone_seq_request(self: "DBHandler", seq_request_id: int, method: Literal["p
         billing_contact_id=seq_request.billing_contact_id,
         data_delivery_mode=seq_request.data_delivery_mode,
         read_type=seq_request.read_type,
-        submission_type=seq_request.submission_type,
+        submission_type=submission_type,
         contact_person_id=seq_request.contact_person_id,
         organization_contact_id=seq_request.organization_contact_id,
         bioinformatician_contact_id=seq_request.bioinformatician_contact_id,

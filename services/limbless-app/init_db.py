@@ -45,6 +45,7 @@ label_search_columns: dict[str, list[str]] = {
     str(models.Feature.__tablename__): ["name", "target_name", "target_id"],
     str(models.SeqRun.__tablename__): ["experiment_name"],
     str(models.Plate.__tablename__): ["name"],
+    str(models.Barcode.__tablename__): ["sequence", "name"],
 }
 
 

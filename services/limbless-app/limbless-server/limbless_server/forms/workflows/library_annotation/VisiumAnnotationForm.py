@@ -10,7 +10,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType
 
 from .... import logger # noqa
-from ....tools import SpreadSheetColumn
+from ....tools import SpreadSheetColumn, StaticSpreadSheet
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
 from .FRPAnnotationForm import FRPAnnotationForm
@@ -22,12 +22,12 @@ class VisiumAnnotationForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "visium_annotation"
 
-    columns = {
-        "library_name": SpreadSheetColumn("A", "library_name", "Library Name", "text", 170, str),
-        "image": SpreadSheetColumn("B", "image", "Image", "text", 170, str),
-        "slide": SpreadSheetColumn("C", "slide", "Slide", "text", 170, str),
-        "area": SpreadSheetColumn("D", "area", "Area", "text", 170, str),
-    }
+    columns = [
+        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str),
+        SpreadSheetColumn("image", "Image", "text", 170, str),
+        SpreadSheetColumn("slide", "Slide", "text", 170, str),
+        SpreadSheetColumn("area", "Area", "text", 170, str),
+    ]
 
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
 
@@ -39,24 +39,37 @@ class VisiumAnnotationForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self.library_table = self.tables["library_table"]
+        self.visium_libraries = self.library_table[self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])]
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
+        
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=VisiumAnnotationForm.columns, csrf_token=csrf_token,
             post_url=url_for('library_annotation_workflow.parse_visium_reference', seq_request_id=seq_request.id, uuid=self.uuid),
-            formdata=formdata, allow_new_rows=True, df=self.get_template()
+            formdata=formdata, allow_new_rows=False, df=self.get_template()
+        )
+
+        self._context["available_samples"] = StaticSpreadSheet(
+            df=self.visium_libraries,
+            columns=[SpreadSheetColumn("sample_name", "Sample Name", "text", 500, str)],
         )
 
     def get_template(self) -> pd.DataFrame:
-        df = self.library_table[self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])][["library_name"]]
-        df = df.rename(columns={"library_name": "Library Name"})
+        data = {
+            "sample_name": [],
+            "image": [],
+            "slide": [],
+            "area": [],
+        }
 
-        for col in VisiumAnnotationForm.columns.values():
-            if col.name not in df.columns:
-                df[col.name] = ""
+        for _, row in self.visium_libraries.iterrows():
+            data["sample_name"].append(row["sample_name"])
+            data["image"].append(None)
+            data["slide"].append(None)
+            data["area"].append(None)
 
-        return df
+        return pd.DataFrame(data)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -68,16 +81,16 @@ class VisiumAnnotationForm(MultiStepForm):
         df = self.spreadsheet.df
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["library_name"]):
-                self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is missing.", "missing_value")
+            if pd.isna(row["sample_name"]):
+                self.spreadsheet.add_error(i + 1, "sample_name", "'Sample Name' is missing.", "missing_value")
 
-            elif row["library_name"] not in self.library_table["library_name"].values:
-                self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is not found in the library table.", "invalid_value")
-            elif (df["library_name"] == row["library_name"]).sum() > 1:
-                self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is a duplicate.", "duplicate_value")
+            elif row["sample_name"] not in self.library_table["sample_name"].values:
+                self.spreadsheet.add_error(i + 1, "sample_name", "'Sample Name' is not found in the library table.", "invalid_value")
+            elif (df["sample_name"] == row["sample_name"]).sum() > 1:
+                self.spreadsheet.add_error(i + 1, "sample_name", "'Sample Name' is a duplicate.", "duplicate_value")
             else:
-                if (self.library_table[self.library_table["library_name"] == row["library_name"]]["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
-                    self.spreadsheet.add_error(i + 1, "library_name", "'Library Name' is not a Spatial Transcriptomic library.", "invalid_value")
+                if (row["sample_name"] not in self.visium_libraries["sample_name"].values):
+                    self.spreadsheet.add_error(i + 1, "sample_name", f"Sample, '{row['sample_name']}', is not a Spatial Transcriptomic library.", "invalid_value")
 
             if pd.isna(row["image"]):
                 self.spreadsheet.add_error(i + 1, "image", "'Image' is missing.", "missing_value")
@@ -91,7 +104,9 @@ class VisiumAnnotationForm(MultiStepForm):
         if len(self.spreadsheet._errors) > 0:
             return False
         
-        self.visium_table = df
+        self.df = df
+        library_sample_map = self.visium_libraries.set_index("sample_name").to_dict()["library_name"]
+        self.df["library_name"] = self.df["sample_name"].map(library_sample_map)
         return True
     
     def process_request(self) -> Response:
@@ -114,14 +129,13 @@ class VisiumAnnotationForm(MultiStepForm):
                 })
             ])
         
-        self.add_table("visium_table", self.visium_table)
+        self.add_table("visium_table", self.df)
         self.add_table("comment_table", comment_table)
         self.update_data()
 
         if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
-            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return frp_annotation_form.make_response()
-        
-        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        return sample_annotation_form.make_response()
+            next_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        else:
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        return next_form.make_response()
  

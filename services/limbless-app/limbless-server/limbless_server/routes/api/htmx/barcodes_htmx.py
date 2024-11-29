@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
@@ -6,7 +6,7 @@ from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, KitType
-from .... import db, logger  # noqa
+from .... import db, logger, forms  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -55,25 +55,13 @@ def query_index_kits():
     )
 
 
-@barcodes_htmx.route("query/<int:index_kit_id>", methods=["POST"], defaults={"exclude_library_id": None})
-@barcodes_htmx.route("query_adapters/<int:index_kit_id>/<int:exclude_library_id>", methods=["POST"])
+@barcodes_htmx.route("query_barcode_sequences", methods=["GET", "POST"])
+@db_session(db)
 @login_required
-def query_adapters(index_kit_id: int, exclude_library_id: Optional[int] = None):
-    field_name = next(iter(request.form.keys()))
+def query_barcode_sequences():
+    if request.method == "GET":
+        form = forms.QueryBarcodeSequencesForm()
+        return form.make_response()
     
-    if (word := request.form.get(field_name)) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-
-    raise NotImplementedError("This function is not implemented yet.")
-    # TODO: add exclude_library_id to query_adapters
-    results = db.query_adapters(
-        word, index_kit_id=index_kit_id
-    )
-
-    return make_response(
-        render_template(
-            "components/search_select_results.html",
-            results=results,
-            field_name=field_name
-        )
-    )
+    form = forms.QueryBarcodeSequencesForm(formdata=request.form)
+    return form.process_request()

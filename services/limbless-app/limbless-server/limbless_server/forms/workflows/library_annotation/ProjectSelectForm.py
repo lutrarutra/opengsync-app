@@ -85,14 +85,11 @@ class ProjectSelectForm(MultiStepForm):
         self.metadata["project_description"] = self.project_description.data
         self.update_data()
 
-        self.debug()
-
         if self.workflow_type == "tech":
-            form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         elif self.workflow_type == "pooled":
-            form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         else:
-            form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         
-        form.debug()
-        return form.make_response()
+        return next_form.make_response()
