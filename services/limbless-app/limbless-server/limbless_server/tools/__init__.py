@@ -2,3 +2,4 @@ from .tools import connect_similar_strings, make_filenameable, parse_float, pars
 from .classproperty import classproperty  # noqa
 from .SpreadSheetColumn import SpreadSheetColumn  # noqa
 from .RedisMSFFileCache import RedisMSFFileCache  # noqa
+from .StaticSpreadSheet import StaticSpreadSheet  # noqa

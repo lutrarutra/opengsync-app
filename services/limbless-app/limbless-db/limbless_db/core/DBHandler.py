@@ -135,7 +135,7 @@ class DBHandler():
     )
 
     from .model_handlers._barcode_methods import (
-        create_barcode, get_barcode, get_barcodes
+        create_barcode, get_barcode, get_barcodes, query_barcode_sequences
     )
 
     from .model_handlers._lab_prep_methods import (
@@ -201,5 +201,5 @@ class DBHandler():
         get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df,
         get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df,
         get_sample_attributes_df, get_project_sample_attributes_df, get_lab_prep_libraries_df,
-        get_lab_prep_samples_df
+        get_lab_prep_samples_df, query_barcode_sequences_df
     )

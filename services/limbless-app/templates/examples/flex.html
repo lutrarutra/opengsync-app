@@ -1,4 +1,4 @@
-<div class="example-table" id="fixed-1-example">
+<div class="example-table" id="flex-1-example">
     <div class="input-help">
         <ul>
             <li>Library Name <span class="desc">the library name from annotation sheet</span></li>
@@ -9,14 +9,14 @@
 </div>
 <script>
     $(document).ready(function() {
-        jspreadsheet(document.getElementById('fixed-1-example'), {
+        jspreadsheet(document.getElementById('flex-1-example'), {
             data: [
-                ["FIXED_LIBRARY_A", "BC001", "sample_A_lung"],
-                ["FIXED_LIBRARY_A", "BC002", "sample_A_heart"],
-                ["FIXED_LIBRARY_A", "BC003", "sample_A_brain"],
-                ["FIXED_LIBRARY_B", "BC001", "sample_B_lung"],
-                ["FIXED_LIBRARY_B", "BC002", "sample_B_heart"],
-                ["FIXED_LIBRARY_B", "BC003", "sample_B_brain"],
+                ["FLEX_SAMPLE_POOL_A", "BC001", "sample_A_lung"],
+                ["FLEX_SAMPLE_POOL_A", "BC002", "sample_A_heart"],
+                ["FLEX_SAMPLE_POOL_A", "BC003", "sample_A_brain"],
+                ["FLEX_SAMPLE_POOL_B", "BC001", "sample_B_lung"],
+                ["FLEX_SAMPLE_POOL_B", "BC002", "sample_B_heart"],
+                ["FLEX_SAMPLE_POOL_B", "BC003", "sample_B_brain"],
             ],
             columns: [
                 {% for col in columns %}

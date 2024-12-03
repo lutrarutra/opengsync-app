@@ -25,18 +25,29 @@ class SpreadsheetInput(FlaskForm):
     }
 
     def __init__(
-        self, columns: dict[str, SpreadSheetColumn], post_url: str, csrf_token: Optional[str],
+        self, columns: list[SpreadSheetColumn], post_url: str, csrf_token: Optional[str],
         df: Optional[pd.DataFrame] = None, formdata: Optional[dict] = None,
         allow_new_rows: bool = False, allow_new_cols: bool = False,
         allow_col_rename: bool = False, min_spare_rows: int = 10,
     ):
         super().__init__(formdata=formdata)
-        self.columns = columns
+        self.columns: dict[str, SpreadSheetColumn] = {}
+        for col in columns:
+            self.add_column(
+                label=col.label,
+                name=col.name,
+                type=col.type,
+                width=col.width,
+                var_type=col.var_type,
+                source=col.source,
+                clean_up_fnc=col.clean_up_fnc
+            )
+
         self.style: dict[str, str] = {}
         self._errors: list[str] = []
         self.post_url = post_url
         self.csrf_token = csrf_token
-        self.id = str(uuid.uuid4())
+        self.id = uuid.uuid4().hex
         self.allow_new_rows = "true" if allow_new_rows else "false"
         self.allow_new_cols = "true" if allow_new_cols else "false"
         self.allow_col_rename = "true" if allow_col_rename else "false"
@@ -70,7 +81,7 @@ class SpreadsheetInput(FlaskForm):
         if label in self.columns.keys():
             raise ValueError(f"Column with label '{label}' already exists.")
         self.columns[label] = SpreadSheetColumn(
-            column=string.ascii_uppercase[len(self.columns)],
+            letter=string.ascii_uppercase[len(self.columns)],
             label=label,
             name=name,
             type=type,
@@ -127,7 +138,7 @@ class SpreadsheetInput(FlaskForm):
         self, row_num: int, column: str, message: str,
         color: Literal["missing_value", "invalid_value", "duplicate_value", "invalid_input"]
     ):
-        self.style[f"{self.columns[column].column}{row_num}"] = f"background-color: {SpreadsheetInput.colors[color]};"
+        self.style[f"{self.columns[column].letter}{row_num}"] = f"background-color: {SpreadsheetInput.colors[color]};"
         message = f"Row {row_num}: {message}"
         if message not in self._errors:
             self._errors.append(message)
@@ -135,3 +146,6 @@ class SpreadsheetInput(FlaskForm):
     def add_general_error(self, message: str):
         if message not in self._errors:
             self._errors.append(message)
+
+    def labels(self) -> list[str]:
+        return list(self.columns.keys())

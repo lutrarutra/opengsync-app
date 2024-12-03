@@ -34,21 +34,18 @@ class BarcodeInputForm(MultiStepForm):
     _workflow_name = "library_pooling"
     _step_name = "barcode_input"
     
-    columns = {
-        "library_id": SpreadSheetColumn("A", "library_id", "ID", "numeric", 50, int),
-        "library_name": SpreadSheetColumn("B", "library_name", "Library Name", "text", 250, str),
-        "index_well": SpreadSheetColumn("C", "index_well", "Index Well", "text", 70, str, clean_up_fnc=lambda x: index_well_clean_up_fnc(str(x)) if pd.notna(x) else None),
-        "pool": SpreadSheetColumn("D", "pool", "Pool", "text", 70, str),
-        "kit_i7": SpreadSheetColumn("E", "kit_i7", "i7 Kit", "text", 200, str),
-        "name_i7": SpreadSheetColumn("F", "name_i7", "i7 Name", "text", 150, str),
-        "sequence_i7": SpreadSheetColumn("G", "sequence_i7", "i7 Sequence", "text", 180, str),
-        "kit_i5": SpreadSheetColumn("H", "kit_i5", "i5 Kit", "text", 200, str),
-        "name_i5": SpreadSheetColumn("I", "name_i5", "i5 Name", "text", 150, str),
-        "sequence_i5": SpreadSheetColumn("J", "sequence_i5", "i5 Sequence", "text", 180, str),
-    }
-    
-    _mapping: dict[str, str] = dict([(col.name, col.label) for col in columns.values()])
-    _required_columns: list[str] = [col.name for col in columns.values()]
+    columns = [
+        SpreadSheetColumn("library_id", "ID", "numeric", 50, int),
+        SpreadSheetColumn("library_name", "Library Name", "text", 250, str),
+        SpreadSheetColumn("index_well", "Index Well", "text", 70, str, clean_up_fnc=lambda x: index_well_clean_up_fnc(str(x)) if pd.notna(x) else None),
+        SpreadSheetColumn("pool", "Pool", "text", 70, str),
+        SpreadSheetColumn("kit_i7", "i7 Kit", "text", 200, str),
+        SpreadSheetColumn("name_i7", "i7 Name", "text", 150, str),
+        SpreadSheetColumn("sequence_i7", "i7 Sequence", "text", 180, str),
+        SpreadSheetColumn("kit_i5", "i5 Kit", "text", 200, str),
+        SpreadSheetColumn("name_i5", "i5 Name", "text", 150, str),
+        SpreadSheetColumn("sequence_i5", "i5 Sequence", "text", 180, str),
+    ]
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
         MultiStepForm.__init__(
@@ -73,9 +70,9 @@ class BarcodeInputForm(MultiStepForm):
         if self.lab_prep.prep_file is not None:
             prep_table = pd.read_excel(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), "prep_table")  # type: ignore
             prep_table = prep_table.dropna(subset=["library_id", "library_name"])
-            return prep_table[BarcodeInputForm.columns.keys()].copy()
+            return prep_table[[col.label for col in BarcodeInputForm.columns]].copy()
         
-        library_data = dict([(key, []) for key in BarcodeInputForm.columns.keys()])
+        library_data = dict([(col.label, []) for col in BarcodeInputForm.columns])
 
         for library in self.lab_prep.libraries:
             library_data["library_id"].append(library.id)

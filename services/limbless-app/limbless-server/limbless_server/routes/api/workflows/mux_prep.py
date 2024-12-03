@@ -34,7 +34,7 @@ def begin(lab_prep_id: int, multiplexing_type: Literal["cmo", "flex"]):
         form = forms.CMOMuxForm(lab_prep=lab_prep)
         return form.make_response()
     elif multiplexing_type == "flex":
-        form = forms.FRPMuxForm(lab_prep=lab_prep)
+        form = forms.FlexMuxForm(lab_prep=lab_prep)
         return form.make_response()
 
     return abort(HTTPResponse.BAD_REQUEST.id)
@@ -50,11 +50,11 @@ def parse_cmo_annotation(lab_prep_id: int, uuid: str):
     return forms.CMOMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
 
 
-@mux_prep_workflow.route("<int:lab_prep_id>/parse_frp_annotation/<string:uuid>", methods=["POST"])
+@mux_prep_workflow.route("<int:lab_prep_id>/parse_flex_annotation/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def parse_frp_annotation(lab_prep_id: int, uuid: str):
+def parse_flex_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.FRPMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
+    return forms.FlexMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()

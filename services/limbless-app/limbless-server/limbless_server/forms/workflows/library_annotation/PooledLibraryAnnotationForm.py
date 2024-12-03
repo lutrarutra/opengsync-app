@@ -19,12 +19,12 @@ class PooledLibraryAnnotationForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "pooled_library_annotation"
 
-    columns = {
-        "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
-        "library_type": SpreadSheetColumn("C", "library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
-        "pool": SpreadSheetColumn("D", "pool", "Pool", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-    }
+    columns = [
+        SpreadSheetColumn("sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
+        SpreadSheetColumn("library_type", "Library Type", "dropdown", 300, str, LibraryType.names()),
+        SpreadSheetColumn("pool", "Pool", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+    ]
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,
@@ -181,7 +181,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         self.add_table("pooling_table", pooling_table)
         self.update_data()
         
-        pool_mapping_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        return pool_mapping_form.make_response()
+        next_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        return next_form.make_response()
 
         

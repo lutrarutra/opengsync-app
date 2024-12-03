@@ -1,0 +1,38 @@
+<div class="spreadsheet-container">
+    <div class="spreadsheet-grid" id="tenx-example">
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        jspreadsheet(document.getElementById('tenx-example'), {
+            data: [
+                ["sample_1", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "pool_1"],
+                ["sample_2", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "pool_1"],
+                ["sample_3", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "pool_1"],
+                ["sample_4", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "pool_2"],
+                ["sample_5", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "pool_2"],
+                ["sample_6", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "pool_2"],
+            ],
+            columns: [
+                {% for col in form.spreadsheet.columns.values() %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            minSpareRows: 0,
+            allowInsertColumn: false,
+            allowDeleteColumn: false,
+            allowManualInsertRow: false,
+            allowInsertRow: false,
+            allowDeleteRow: false,
+            allowRenameColumn: false,
+            tableOverflow: true,
+            editable: false,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        });
+    });
+</script>

@@ -1,7 +1,6 @@
 import os
 import io
 import json
-import string
 from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
@@ -542,8 +541,7 @@ def get_mux_table(lab_prep_id: int):
             width = 250
         columns.append(
             SpreadSheetColumn(
-                string.ascii_uppercase[i], col,
-                col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
+                col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
                 "text", width, var_type=str
             )
         )

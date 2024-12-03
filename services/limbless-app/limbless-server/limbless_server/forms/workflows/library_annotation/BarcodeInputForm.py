@@ -16,7 +16,7 @@ from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOAnnotationForm import CMOAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
-from .FRPAnnotationForm import FRPAnnotationForm
+from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
@@ -25,19 +25,16 @@ class BarcodeInputForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "barcode_input"
     
-    columns = {
-        "library_name": SpreadSheetColumn("A", "library_name", "Library Name", "text", 250, str),
-        "index_well": SpreadSheetColumn("B", "index_well", "Index Well", "text", 100, str),
-        "kit_i7": SpreadSheetColumn("C", "kit_i7", "i7 Kit", "text", 200, str),
-        "name_i7": SpreadSheetColumn("D", "name_i7", "i7 Name", "text", 150, str),
-        "sequence_i7": SpreadSheetColumn("E", "sequence_i7", "i7 Sequence", "text", 180, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
-        "kit_i5": SpreadSheetColumn("F", "kit_i5", "i5 Kit", "text", 200, str),
-        "name_i5": SpreadSheetColumn("G", "name_i5", "i5 Name", "text", 150, str),
-        "sequence_i5": SpreadSheetColumn("H", "sequence_i5", "i5 Sequence", "text", 180, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
-    }
-    
-    _mapping: dict[str, str] = dict([(col.name, col.label) for col in columns.values()])
-    _required_columns: list[str] = [col.name for col in columns.values()]
+    columns = [
+        SpreadSheetColumn("library_name", "Library Name", "text", 250, str),
+        SpreadSheetColumn("index_well", "Index Well", "text", 100, str),
+        SpreadSheetColumn("kit_i7", "i7 Kit", "text", 200, str),
+        SpreadSheetColumn("name_i7", "i7 Name", "text", 150, str),
+        SpreadSheetColumn("sequence_i7", "i7 Sequence", "text", 180, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
+        SpreadSheetColumn("kit_i5", "i5 Kit", "text", 200, str),
+        SpreadSheetColumn("name_i5", "i5 Name", "text", 150, str),
+        SpreadSheetColumn("sequence_i5", "i5 Sequence", "text", 180, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
+    ]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
@@ -164,28 +161,15 @@ class BarcodeInputForm(MultiStepForm):
         self.update_data()
 
         if barcode_table["kit_i7"].notna().any():
-            index_kit_mapping_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
-            index_kit_mapping_form.prepare()
-            return index_kit_mapping_form.make_response()
-
-        if self.library_table["library_type_id"].isin([
-            LibraryType.TENX_MULTIPLEXING_CAPTURE.id,
-        ]).any():
-            cmo_reference_input_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return cmo_reference_input_form.make_response()
-        
-        if (self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
-            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            visium_annotation_form.prepare()
-            return visium_annotation_form.make_response()
-        
-        if ((self.library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (self.library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
-            feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return feature_reference_input_form.make_response()
-        
-        if LibraryType.TENX_SC_GEX_FLEX.id in self.library_table["library_type_id"].values:
-            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return frp_annotation_form.make_response()
-    
-        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        return sample_annotation_form.make_response()
+            next_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+        elif self.library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
+            next_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif (self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif ((self.library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (self.library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif LibraryType.TENX_SC_GEX_FLEX.id in self.library_table["library_type_id"].values:
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        else:
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        return next_form.make_response()

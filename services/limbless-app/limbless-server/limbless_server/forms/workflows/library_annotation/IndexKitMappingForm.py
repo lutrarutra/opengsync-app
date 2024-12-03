@@ -16,7 +16,7 @@ from ...SearchBar import SearchBar
 from .CMOAnnotationForm import CMOAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
-from .FRPAnnotationForm import FRPAnnotationForm
+from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
@@ -43,27 +43,27 @@ class IndexKitMappingForm(MultiStepForm):
         self.library_table = self.tables["library_table"]
         self.barcode_table = self.tables["barcode_table"]
 
-    def prepare(self):
-        index_kits = list(set(self.barcode_table["kit_i7"].unique().tolist() + self.barcode_table["kit_i5"].unique().tolist()))
-        index_kits = [kit for kit in index_kits if pd.notna(kit)]
+        if not formdata:
+            index_kits = list(set(self.barcode_table["kit_i7"].unique().tolist() + self.barcode_table["kit_i5"].unique().tolist()))
+            index_kits = [kit for kit in index_kits if pd.notna(kit)]
 
-        for i, index_kit in enumerate(index_kits):
-            if i > len(self.input_fields) - 1:
-                self.input_fields.append_entry()
+            for i, index_kit in enumerate(index_kits):
+                if i > len(self.input_fields) - 1:
+                    self.input_fields.append_entry()
 
-            entry = self.input_fields[i]
-            index_kit_search_field: SearchBar = entry.index_kit  # type: ignore
-            entry.raw_label.data = index_kit
+                entry = self.input_fields[i]
+                index_kit_search_field: SearchBar = entry.index_kit  # type: ignore
+                entry.raw_label.data = index_kit
 
-            if index_kit is None:
-                selected_kit = None
-            elif index_kit_search_field.selected.data is None:
-                selected_kit = next(iter(db.query_kits(str(index_kit), limit=1, kit_type=KitType.INDEX_KIT)), None)
-                index_kit_search_field.selected.data = selected_kit.id if selected_kit else None
-                index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
-            else:
-                selected_kit = db.get_index_kit(index_kit_search_field.selected.data)
-                index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
+                if index_kit is None:
+                    selected_kit = None
+                elif index_kit_search_field.selected.data is None:
+                    selected_kit = next(iter(db.query_kits(str(index_kit), limit=1, kit_type=KitType.INDEX_KIT)), None)
+                    index_kit_search_field.selected.data = selected_kit.id if selected_kit else None
+                    index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
+                else:
+                    selected_kit = db.get_index_kit(index_kit_search_field.selected.data)
+                    index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
 
     def validate(self) -> bool:
         if not super().validate():
@@ -196,24 +196,14 @@ class IndexKitMappingForm(MultiStepForm):
         self.update_table("barcode_table", self.barcode_table)
         self.update_data()
 
-        if self.library_table["library_type_id"].isin([
-            LibraryType.TENX_MULTIPLEXING_CAPTURE.id,
-        ]).any():
-            cmo_reference_input_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return cmo_reference_input_form.make_response()
-        
-        if (self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
-            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            visium_annotation_form.prepare()
-            return visium_annotation_form.make_response()
-        
-        if ((self.library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (self.library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
-            feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return feature_reference_input_form.make_response()
-        
-        if LibraryType.TENX_SC_GEX_FLEX.id in self.library_table["library_type_id"].values:
-            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return frp_annotation_form.make_response()
-    
-        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        return sample_annotation_form.make_response()
+        if self.library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
+            next_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif (self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif ((self.library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (self.library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif LibraryType.TENX_SC_GEX_FLEX.id in self.library_table["library_type_id"].values:
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        else:
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        return next_form.make_response()

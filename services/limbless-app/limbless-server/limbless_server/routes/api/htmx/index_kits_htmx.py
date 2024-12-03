@@ -1,4 +1,3 @@
-import string
 import json
 from typing import TYPE_CHECKING
 
@@ -59,6 +58,7 @@ def get(page: int):
 
 
 @index_kits_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if (word := request.args.get("name")) is not None:
@@ -188,7 +188,7 @@ def render_table(index_kit_id: int):
             width = 100
         else:
             width = 150
-        columns.append(SpreadSheetColumn(string.ascii_uppercase[i], col, col, "text", width, var_type=str))
+        columns.append(SpreadSheetColumn(col, col, "text", width, var_type=str))
     
     return make_response(
         render_template(

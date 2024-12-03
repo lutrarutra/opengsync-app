@@ -23,14 +23,14 @@ class CMOMuxForm(MultiStepForm):
 
     kit = FormField(OptionalSearchBar, label="Select Kit")
     
-    columns = {
-        "demux_name": SpreadSheetColumn("A", "demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "sample_pool": SpreadSheetColumn("B", "sample_pool", "Sample Pool", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "feature": SpreadSheetColumn("C", "feature", "Feature", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        "sequence": SpreadSheetColumn("D", "sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        "pattern": SpreadSheetColumn("E", "pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        "read": SpreadSheetColumn("F", "read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-    }
+    columns = [
+        SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("sample_pool", "Sample Pool", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("feature", "Feature", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        SpreadSheetColumn("pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        SpreadSheetColumn("read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+    ]
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
         MultiStepForm.__init__(

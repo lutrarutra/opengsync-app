@@ -10,5 +10,6 @@ from .AddUserToGroupForm import AddUserToGroupForm  # noqa
 from .SampleAttributeTableForm import SampleAttributeTableForm  # noqa
 from .EditKitBarcodesForm import EditKitBarcodesForm  # noqa
 from .EditKitFeaturesForm import EditKitFeaturesForm  # noqa
+from .QueryBarcodeSequencesForm import QueryBarcodeSequencesForm  # noqa
 
 from . import models, comment, file, workflows  # noqa

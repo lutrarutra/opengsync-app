@@ -21,11 +21,11 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "define_mux_samples"
 
-    columns = {
-        "sample_name": SpreadSheetColumn("A", "sample_name", "Sample Name", "text", 300, str),
-        "genome": SpreadSheetColumn("B", "genome", "Genome", "dropdown", 300, str, GenomeRef.names()),
-        "pool": SpreadSheetColumn("C", "pool", "Pool", "text", 300, str),
-    }
+    columns = [
+        SpreadSheetColumn("sample_name", "Sample Name", "text", 300, str),
+        SpreadSheetColumn("genome", "Genome", "dropdown", 300, str, GenomeRef.names()),
+        SpreadSheetColumn("pool", "Pool", "text", 300, str),
+    ]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
@@ -243,13 +243,9 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.update_data()
         
         if ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
-            feature_reference_input_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return feature_reference_input_form.make_response()
-        
-        if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
-            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            visium_annotation_form.prepare()
-            return visium_annotation_form.make_response()
-        
-        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        return sample_annotation_form.make_response()
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        else:
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        return next_form.make_response()

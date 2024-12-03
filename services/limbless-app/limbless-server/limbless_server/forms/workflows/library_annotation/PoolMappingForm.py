@@ -122,9 +122,9 @@ class PoolMappingForm(MultiStepForm):
         self.add_table("pool_table", self.pool_table)
         self.update_data()
 
-        barcode_input_form = BarcodeInputForm(
+        next_form = BarcodeInputForm(
             seq_request=self.seq_request,
             uuid=self.uuid,
             previous_form=self,
         )
-        return barcode_input_form.make_response()
+        return next_form.make_response()

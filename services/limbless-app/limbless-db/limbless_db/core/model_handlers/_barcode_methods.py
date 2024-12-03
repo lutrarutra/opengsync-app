@@ -109,3 +109,24 @@ def get_barcode_from_kit(
         self.close_session()
 
     return barcode
+
+
+def query_barcode_sequences(self: "DBHandler", sequence: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.Barcode]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.Barcode)
+
+    query = query.order_by(
+        sa.func.similarity(models.Barcode.sequence, sequence).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    barcodes = query.all()
+
+    if not persist_session:
+        self.close_session()
+
+    return barcodes

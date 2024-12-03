@@ -13,7 +13,7 @@ from .... import db, logger
 from ...MultiStepForm import MultiStepForm
 from ...SearchBar import SearchBar
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FRPAnnotationForm import FRPAnnotationForm
+from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
@@ -38,29 +38,30 @@ class KitMappingForm(MultiStepForm):
         self._context["seq_request"] = seq_request
 
         self.kit_table = self.tables["kit_table"]
+        logger.debug(self.kit_table)
         self.feature_table = self.tables["feature_table"]
-    
-    def prepare(self):
-        for i, (_, row) in enumerate(self.kit_table.iterrows()):
-            if pd.notna(row["kit_id"]):
-                continue
-            
-            if i > len(self.input_fields) - 1:
-                self.input_fields.append_entry()
+        
+        if not formdata:
+            for i, (_, row) in enumerate(self.kit_table.iterrows()):
+                if pd.notna(row["kit_id"]):
+                    continue
+                
+                if i > len(self.input_fields) - 1:
+                    self.input_fields.append_entry()
 
-            entry = self.input_fields[i]
-            feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
-            entry.raw_label.data = row["name"] if pd.notna(row["name"]) else None
+                entry = self.input_fields[i]
+                feature_kit_search_field: SearchBar = entry.feature_kit  # type: ignore
+                entry.raw_label.data = row["name"] if pd.notna(row["name"]) else None
 
-            if pd.isna(raw_kit_label := row["name"]):
-                selected_kit = None
-            elif feature_kit_search_field.selected.data is None:
-                selected_kit = next(iter(db.query_kits(raw_kit_label, limit=1, kit_type=KitType.FEATURE_KIT)), None)
-                feature_kit_search_field.selected.data = selected_kit.id if selected_kit else None
-                feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
-            else:
-                selected_kit = db.get_feature_kit(feature_kit_search_field.selected.data)
-                feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
+                if pd.isna(raw_kit_label := row["name"]):
+                    selected_kit = None
+                elif feature_kit_search_field.selected.data is None:
+                    selected_kit = next(iter(db.query_kits(raw_kit_label, limit=1, kit_type=KitType.FEATURE_KIT)), None)
+                    feature_kit_search_field.selected.data = selected_kit.id if selected_kit else None
+                    feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
+                else:
+                    selected_kit = db.get_feature_kit(feature_kit_search_field.selected.data)
+                    feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
     
     def validate(self) -> bool:
         validated = super().validate()
@@ -286,13 +287,10 @@ class KitMappingForm(MultiStepForm):
         self.update_data()
 
         if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
-            visium_annotation_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            visium_annotation_form.prepare()
-            return visium_annotation_form.make_response()
-        
-        if self.metadata["workflow_type"] == "pooled" and LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
-            frp_annotation_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-            return frp_annotation_form.make_response()
-
-        sample_annotation_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        return sample_annotation_form.make_response()
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif self.metadata["workflow_type"] == "pooled" and LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        else:
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            
+        return next_form.make_response()
