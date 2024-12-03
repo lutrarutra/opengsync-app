@@ -13,7 +13,7 @@ from .VisiumAnnotationForm import VisiumAnnotationForm  # noqa: F401
 from .CMOAnnotationForm import CMOAnnotationForm    # noqa: F401
 from .KitMappingForm import KitMappingForm    # noqa: F401
 from .FeatureAnnotationForm import FeatureAnnotationForm  # noqa: F401
-from .FRPAnnotationForm import FRPAnnotationForm  # noqa: F401
+from .FlexAnnotationForm import FlexAnnotationForm  # noqa: F401
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm  # noqa: F401
 from .CompleteSASForm import CompleteSASForm  # noqa: F401
 
@@ -36,7 +36,7 @@ _steps: list[type["MultiStepForm"]] = [
     CMOAnnotationForm,
     KitMappingForm,
     FeatureAnnotationForm,
-    FRPAnnotationForm,
+    FlexAnnotationForm,
     SampleAttributeAnnotationForm,
     CompleteSASForm,
 ]

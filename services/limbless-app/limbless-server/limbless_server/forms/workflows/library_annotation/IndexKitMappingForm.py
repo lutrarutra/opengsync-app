@@ -16,7 +16,7 @@ from ...SearchBar import SearchBar
 from .CMOAnnotationForm import CMOAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
-from .FRPAnnotationForm import FRPAnnotationForm
+from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
@@ -203,7 +203,7 @@ class IndexKitMappingForm(MultiStepForm):
         elif ((self.library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (self.library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif LibraryType.TENX_SC_GEX_FLEX.id in self.library_table["library_type_id"].values:
-            next_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return next_form.make_response()

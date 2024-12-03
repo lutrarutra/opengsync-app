@@ -14,10 +14,10 @@ from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class FRPMuxForm(MultiStepForm):
-    _template_path = "workflows/mux_prep/mux_prep-frp_annotation.html"
+class FlexMuxForm(MultiStepForm):
+    _template_path = "workflows/mux_prep/mux_prep-flex_annotation.html"
     _workflow_name = "mux_prep"
-    _step_name = "frp_mux"
+    _step_name = "flex_mux"
     
     columns = [
         SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -29,8 +29,8 @@ class FRPMuxForm(MultiStepForm):
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
         MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=FRPMuxForm._workflow_name,
-            step_name=FRPMuxForm._step_name, step_args={"multiplexing_type": "flex"}
+            self, uuid=uuid, formdata=formdata, workflow=FlexMuxForm._workflow_name,
+            step_name=FlexMuxForm._step_name, step_args={"multiplexing_type": "flex"}
         )
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
@@ -46,7 +46,7 @@ class FRPMuxForm(MultiStepForm):
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
-            post_url=url_for("mux_prep_workflow.parse_frp_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
+            post_url=url_for("mux_prep_workflow.parse_flex_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
             formdata=formdata, df=self.__get_template()
         )
 
@@ -92,8 +92,8 @@ class FRPMuxForm(MultiStepForm):
 
             if pd.isna(row["barcode_id"]):
                 self.spreadsheet.add_error(i + 1, "barcode_id", "'Barcode ID' is missing.", "missing_value")
-            elif row["barcode_id"] not in FRPMuxForm.allowed_barcodes:
-                self.spreadsheet.add_error(i + 1, "barcode_id", f"'Barcode ID' must be one of: {', '.join(FRPMuxForm.allowed_barcodes)}", "invalid_value")
+            elif row["barcode_id"] not in FlexMuxForm.allowed_barcodes:
+                self.spreadsheet.add_error(i + 1, "barcode_id", f"'Barcode ID' must be one of: {', '.join(FlexMuxForm.allowed_barcodes)}", "invalid_value")
             elif duplicate_barcode.at[idx]:
                 self.spreadsheet.add_error(i + 1, "barcode_id", "'Barcode ID' is duplicated in library.", "duplicate_value")
 

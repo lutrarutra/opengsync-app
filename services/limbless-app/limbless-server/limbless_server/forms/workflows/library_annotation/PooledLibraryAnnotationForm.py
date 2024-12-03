@@ -22,7 +22,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
     columns = [
         SpreadSheetColumn("sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         SpreadSheetColumn("genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
-        SpreadSheetColumn("library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
+        SpreadSheetColumn("library_type", "Library Type", "dropdown", 300, str, LibraryType.names()),
         SpreadSheetColumn("pool", "Pool", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
     ]
 

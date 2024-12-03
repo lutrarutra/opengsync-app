@@ -32,15 +32,15 @@ def download_visium_template(uuid: str):
     )
 
 
-@library_annotation_workflow.route("download_frp_template", methods=["GET"])
+@library_annotation_workflow.route("download_flex_template", methods=["GET"])
 @login_required
-def download_frp_template():
-    form = forms.FRPAnnotationForm()
+def download_flex_template():
+    form = forms.FlexAnnotationForm()
     template = form.get_template()
 
     return Response(
         template.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=frp_annotation.tsv"}
+        headers={"Content-disposition": "attachment; filename=flex_annotation.tsv"}
     )
 
 
@@ -276,10 +276,10 @@ def parse_visium_reference(seq_request_id: int, uuid: str):
     return forms.VisiumAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 10. Fixed RNA Profiling Annotation
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_frp_annotation", methods=["POST"])
+# 10. Flex Annotation
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_flex_annotation", methods=["POST"])
 @login_required
-def parse_frp_annotation(seq_request_id: int, uuid: str):
+def parse_flex_annotation(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -288,7 +288,7 @@ def parse_frp_annotation(seq_request_id: int, uuid: str):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.FRPAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+    return forms.FlexAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 11. Parse sample annotations

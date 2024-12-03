@@ -12,17 +12,39 @@
         <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" data-bs-toggle="tab"
-                id="form-tab-spreadsheet-btn"
                 data-bs-target="#form-tab-spreadsheet" type="button" role="tab"
                 aria-controls="form-tab-spreadsheet" aria-selected="true">
                 Sheet</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
-                id="form-tab-help-btn"
                 data-bs-target="#form-tab-help" type="button" role="tab"
                 aria-controls="form-tab-help" aria-selected="false">
                 Help</button>
+            </li>
+            <li>
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#form-tab-rna_example" type="button" role="tab"
+                aria-controls="form-tab-rna_example" aria-selected="false">
+                Example: RNA</button>
+            </li>
+            <li>
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#form-tab-tenx_example" type="button" role="tab"
+                aria-controls="form-tab-tenx_example" aria-selected="false">
+                Example: 10X GEX</button>
+            </li>
+            <li>
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#form-tab-multiome_example" type="button" role="tab"
+                aria-controls="form-tab-multiome_example" aria-selected="false">
+                Example: 10X Multiome</button>
+            </li>
+            <li>
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#form-tab-multi_example" type="button" role="tab"
+                aria-controls="form-tab-multi_example" aria-selected="false">
+                Example: 10X GEX + HTO + ABC</button>
             </li>
         </ul>
         <div class="tab-content">
@@ -37,6 +59,18 @@
             </div>
             <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
                 {% include "instructions/pooled_libraries.html" %}
+            </div>
+            <div class="tab-pane fade" id="form-tab-rna_example" role="tabpanel" tabindex="2">
+                {% include "examples/rna.html" with context %}
+            </div>
+            <div class="tab-pane fade" id="form-tab-tenx_example" role="tabpanel" tabindex="3">
+                {% include "examples/tenx.html" with context %}
+            </div>
+            <div class="tab-pane fade" id="form-tab-multiome_example" role="tabpanel" tabindex="4">
+                {% include "examples/multiome.html" with context %}
+            </div>
+            <div class="tab-pane fade" id="form-tab-multi_example" role="tabpanel" tabindex="5">
+                {% include "examples/multi.html" with context %}
             </div>
         </div>
     </div>

@@ -1,0 +1,38 @@
+<div class="spreadsheet-container">
+    <div class="spreadsheet-grid" id="multiome-example">
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        jspreadsheet(document.getElementById('multiome-example'), {
+            data: [
+                ["sample_1", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
+                ["sample_1", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
+                ["sample_2", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
+                ["sample_2", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
+                ["sample_3", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
+                ["sample_3", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
+            ],
+            columns: [
+                {% for col in form.spreadsheet.columns.values() %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            minSpareRows: 0,
+            allowInsertColumn: false,
+            allowDeleteColumn: false,
+            allowManualInsertRow: false,
+            allowInsertRow: false,
+            allowDeleteRow: false,
+            allowRenameColumn: false,
+            tableOverflow: true,
+            editable: false,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        });
+    });
+</script>

@@ -14,7 +14,7 @@ from ...SpreadsheetInput import SpreadsheetInput
 from .KitMappingForm import KitMappingForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FRPAnnotationForm import FRPAnnotationForm
+from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
@@ -142,7 +142,7 @@ class CMOAnnotationForm(MultiStepForm):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         
         elif LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
-            next_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         

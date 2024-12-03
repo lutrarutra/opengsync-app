@@ -13,7 +13,7 @@ from .... import logger # noqa
 from ....tools import SpreadSheetColumn, StaticSpreadSheet
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
-from .FRPAnnotationForm import FRPAnnotationForm
+from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
@@ -134,7 +134,7 @@ class VisiumAnnotationForm(MultiStepForm):
         self.update_data()
 
         if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
-            next_form = FRPAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return next_form.make_response()

@@ -3,6 +3,7 @@ from typing import Optional
 import pandas as pd
 
 from flask import Response, url_for
+from wtforms import BooleanField
 
 from limbless_db import models
 from limbless_db.categories import LibraryType
@@ -14,10 +15,10 @@ from ...MultiStepForm import MultiStepForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
-class FRPAnnotationForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-frp_annotation.html"
+class FlexAnnotationForm(MultiStepForm):
+    _template_path = "workflows/library_annotation/sas-flex_annotation.html"
     _workflow_name = "library_annotation"
-    _step_name = "frp_annotation"
+    _step_name = "flex_annotation"
 
     columns = [
         SpreadSheetColumn("sample_name", "Sample Name", "text", 250, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -25,19 +26,23 @@ class FRPAnnotationForm(MultiStepForm):
         SpreadSheetColumn("barcode_id", "Bardcode ID", "text", 250, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
     ]
 
+    single_plex = BooleanField("Single-Plex", default=False)
+
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
-            self, workflow=FRPAnnotationForm._workflow_name, step_name=FRPAnnotationForm._step_name,
+            self, workflow=FlexAnnotationForm._workflow_name, step_name=FlexAnnotationForm._step_name,
             uuid=uuid, formdata=formdata, previous_form=previous_form, step_args={}
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
+
+        logger.debug(formdata)
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=FRPAnnotationForm.columns, csrf_token=csrf_token,
-            post_url=url_for('library_annotation_workflow.parse_frp_annotation', seq_request_id=seq_request.id, uuid=self.uuid),
+            columns=FlexAnnotationForm.columns, csrf_token=csrf_token,
+            post_url=url_for('library_annotation_workflow.parse_flex_annotation', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )
         self.library_table = self.tables["library_table"]
@@ -49,12 +54,15 @@ class FRPAnnotationForm(MultiStepForm):
         )
 
     def get_template(self) -> pd.DataFrame:
-        df = pd.DataFrame(columns=[col.name for col in FRPAnnotationForm.columns])
+        df = pd.DataFrame(columns=[col.name for col in FlexAnnotationForm.columns])
         return df
 
     def validate(self) -> bool:
         if not super().validate():
             return False
+
+        if self.single_plex.data:
+            return True
 
         if not self.spreadsheet.validate():
             return False
@@ -95,12 +103,13 @@ class FRPAnnotationForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
         
-        if self.flex_table is None:
-            logger.error(f"{self.uuid}: FRP table is None.")
-            raise Exception("FRP table is None.")
+        if not self.single_plex.data:
+            if self.flex_table is None:
+                logger.error(f"{self.uuid}: Flex table is None.")
+                raise Exception("Flex table is None.")
         
-        self.add_table("flex_table", self.flex_table)
-        self.update_data()
+            self.add_table("flex_table", self.flex_table)
+            self.update_data()
         
         next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         return next_form.make_response()
