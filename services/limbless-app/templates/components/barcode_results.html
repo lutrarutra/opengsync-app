@@ -1,0 +1,28 @@
+<div style="width: 100%; overflow-y: auto; flex-grow: 1;">
+    <ul class="list-group">
+    {% if fc_df is defined %}
+    {% for _, row in fc_df.iterrows()%}
+        <a href="{{ url_for('kits_page.index_kit_page', index_kit_id=row['index_kit_id']) }}" class="list-group-item list-group-item-action" target="_blank" style="white-space: nowrap; overflow: hidden;">
+            <b>{{ row["type"].abbreviation }}</b>:
+            <i {% if row["hamming"] == 0 %}class="cemm-green"{% elif row["hamming"] < 3 %}class="cemm-yellow"{% else %}class="cemm-red"{% endif %}>{{ row["sequence"] }}</i>
+            <b>{{ row["name"] }}</b>
+            <span class="desc">hamming: {{ row["hamming"] }}</span>
+        </a>
+    {% endfor %}
+    {% endif %}
+    </ul>
+</div>
+<div style="width: 100%; overflow-y: auto; flex-grow: 1;">
+    <ul class="list-group">
+    {% if rc_df is defined %}
+    {% for _, row in rc_df.iterrows() %}
+        <a href="{{ url_for('kits_page.index_kit_page', index_kit_id=row['index_kit_id']) }}" class="list-group-item list-group-item-action" target="_blank" style="white-space: nowrap; overflow: hidden;">
+            <b>{{ row["type"].abbreviation }}</b>:
+            <i {% if row["hamming"] == 0 %}class="cemm-green"{% elif row["hamming"] < 3 %}class="cemm-yellow"{% else %}class="cemm-red"{% endif %}>{{ row["sequence"] }}</i>
+            <b>{{ row["name"] }}</b>
+            <span class="desc">hamming: {{ row["hamming"] }}</span>
+        </a>
+    {% endfor %}
+    {% endif %}
+    </ul>
+</div>

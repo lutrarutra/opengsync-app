@@ -612,6 +612,9 @@ def query_barcode_sequences_df(self, sequence: str, limit: int = 10) -> pd.DataF
         models.Barcode.well.label("well"), models.Barcode.name.label("name"),
         models.Barcode.type_id.label("type_id"),
         models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
+    ).join(
+        models.IndexKit,
+        models.IndexKit.id == models.Barcode.index_kit_id
     )
 
     query = query.order_by(

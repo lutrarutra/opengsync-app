@@ -52,7 +52,7 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr>
+            <tr class="pool-row" id="pool-row-{{ pool.id }}">
                 <th scope="row">{{ pool.id }}</th>
                 <td>
                     {% if experiment.workflow.combined_lanes %}
@@ -83,7 +83,7 @@
                     </span>
                     {% endif %}
                 </td>
-                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}"><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">{{ pool.name }}</a></td>
+                <td><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">{{ pool.name }}</a></td>
                 <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
                 <td><a href="{{ url_for('users_page.user_page', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
@@ -141,11 +141,12 @@
                     redirect($(this).attr("dest"));
                 }
             });
-            $(document).off("contextmenu", ".pool-name-cell").on("contextmenu", ".pool-name-cell", function(e) {
+            $(document).off("contextmenu", ".pool-row").on("contextmenu", ".pool-row", function(e) {
                 e.preventDefault();
                 const x = e.pageX;
                 const y = e.pageY;
-                selected_pool_id = e.target.id.split("-")[3];
+
+                selected_pool_id = $(this).closest("tr").attr("id").split("-")[2];
                 $("#copy-edit-menu").css({
                     display: "block",
                     left: x + 8, top: y + 8

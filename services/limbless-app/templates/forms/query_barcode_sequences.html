@@ -1,6 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group %}
 
-<div id="query_barcode_sequences-form-container" class="modal-content">
+<div class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Query Barcode Sequences</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -11,7 +11,7 @@
             class="form-control"
             value="{{ form.sequence.data if form.sequence.data else '' }}"
             name="{{ form.sequence.name }}" id="{{ form.sequence.name }}"
-            hx-include="#query_barcode_sequences-form" hx-target="#query_barcode_sequences-form-container"
+            hx-include="#query_barcode_sequences-form" hx-target="#query_barcode_sequences-results"
             hx-trigger="keyup changed delay:500ms" hx-swap="innerHTML"
             hx-post="{{ url_for('barcodes_htmx.query_barcode_sequences') }}"
             placeholder="Search...">
@@ -20,35 +20,7 @@
             <h5 class="width: 100%; background-color: red;">Forward </h5>
             <h5 class="width: 100%; background-color: red;">Reverse </h5>
         </div>
-        <div class="d-flex" style="gap: 20px; overflow-y: hidden; flex-grow: 1;">
-            <div style="width: 100%; overflow-y: auto; flex-grow: 1;">
-                <ul class="list-group">
-                {% if fc_df is defined %}
-                {% for _, row in fc_df.iterrows()%}
-                    <a href="{{ url_for('kits_page.index_kit_page', index_kit_id=row['index_kit_id']) }}" class="list-group-item list-group-item-action" target="_blank" style="white-space: nowrap; overflow: hidden;">
-                        <b>{{ row["type"].abbreviation }}</b>:
-                        <i {% if row["hamming"] == 0 %}class="cemm-green"{% elif row["hamming"] < 3 %}class="cemm-yellow"{% else %}class="cemm-red"{% endif %}>{{ row["sequence"] }}</i>
-                        <b>{{ row["name"] }}</b>
-                        <span class="desc">hamming: {{ row["hamming"] }}</span>
-                    </a>
-                {% endfor %}
-                {% endif %}
-                </ul>
-            </div>
-            <div style="width: 100%; overflow-y: auto; flex-grow: 1;">
-                <ul class="list-group">
-                {% if rc_df is defined %}
-                {% for _, row in rc_df.iterrows() %}
-                    <a href="{{ url_for('kits_page.index_kit_page', index_kit_id=row['index_kit_id']) }}" class="list-group-item list-group-item-action" target="_blank" style="white-space: nowrap; overflow: hidden;">
-                        <b>{{ row["type"].abbreviation }}</b>:
-                        <i {% if row["hamming"] == 0 %}class="cemm-green"{% elif row["hamming"] < 3 %}class="cemm-yellow"{% else %}class="cemm-red"{% endif %}>{{ row["sequence"] }}</i>
-                        <b>{{ row["name"] }}</b>
-                        <span class="desc">hamming: {{ row["hamming"] }}</span>
-                    </a>
-                {% endfor %}
-                {% endif %}
-                </ul>
-            </div>
+        <div class="d-flex" style="gap: 20px; overflow-y: hidden; flex-grow: 1;" id="query_barcode_sequences-results">
         </div>
     </div>
 </div>

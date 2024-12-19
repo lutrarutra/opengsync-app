@@ -15,6 +15,7 @@ class FileInputForm(HTMXFlaskForm):
     _form_label = "file_input_form"
     _allowed_extensions: list[tuple[str, str]] = [
         ("tsv", "Tab-separated"),
+        ("xlsx", "Excel"),
         ("csv", "Comma-separated"),
         ("pdf", "PDF"),
         ("png", "PNG"),

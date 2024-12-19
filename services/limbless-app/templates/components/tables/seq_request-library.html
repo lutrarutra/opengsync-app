@@ -60,9 +60,9 @@
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr>
+            <tr class="library-row" id="library-row-{{library.id}}">
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}"><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">{{ library.name }}</a></td>
+                <td><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">{{ library.name }}</a></td>
                 <td>
                 {% if library.pool_id %}
                     <a href="{{ url_for('pools_page.pool_page', pool_id=library.pool_id, from='seq_request@' + seq_request.id | string)}}">{{ library.pool.name }}</a>
@@ -101,7 +101,7 @@
 
         function remove_library() {
             Swal.fire({
-                title: `Remove library (id='${selected_library_id}') from '{{seq_request.name}}'-request ?`,
+                title: `Remove library (id=${selected_library_id}) from '{{seq_request.name}}'-request ?`,
                 showDenyButton: true,
                 text: 'Are you sure?',
                 confirmButtonText: 'Yes',
@@ -122,12 +122,11 @@
         $(document).ready(function() {
             init_tooltips();
 
-            $(document).off("contextmenu", ".library-name-cell").on("contextmenu", ".library-name-cell", function(e) {
+            $(document).off("contextmenu", ".library-row").on("contextmenu", ".library-row", function(e) {
                 e.preventDefault();
                 const x = e.pageX;
                 const y = e.pageY;
-                selected_library_id = e.target.closest(".library-name-cell").id.split("-")[3];
-
+                selected_library_id = $(this).closest("tr").attr("id").split("-")[2];
                 $("#copy-edit-menu").css({
                     display: "block",
                     left: x + 8, top: y + 8
