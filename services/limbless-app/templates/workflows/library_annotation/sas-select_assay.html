@@ -39,7 +39,7 @@
                 {{ form.additional_services.csrf_token() }}
                 <h5>Additional Assays for 10X</h5>
                 <div class="d-flex justify-contents-evenly" style="width: 100%; gap: 20px;">
-                    {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_ANTIBODY_CAPTURE.id | string) }}
+                    {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
                     {{ checkbox_input(form.optional_assays.vdj_b, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_B.id | string) }}
                     {{ checkbox_input(form.optional_assays.vdj_t, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_T.id | string) }}
                     {{ checkbox_input(form.optional_assays.vdj_t_gd, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_T_GD.id | string) }}

@@ -1,6 +1,7 @@
 from typing import Any
 
-from flask import Response
+from flask_htmx import make_response
+from flask import Response, render_template
 from wtforms import StringField
 
 from limbless_db import models
@@ -19,12 +20,11 @@ class QueryBarcodeSequencesForm(HTMXFlaskForm):
 
     def process_request(self) -> Response:
         if not (sequence := tools.make_alpha_numeric(self.sequence.data, keep=[], replace_white_spaces_with="")):
-            return self.make_response()
+            return make_response(render_template("components/barcode_results.html"))
         
         sequence = sequence.upper()
-        self.sequence.data = sequence
         
         fc_df = db.query_barcode_sequences_df(sequence, limit=30)
         rc_df = db.query_barcode_sequences_df(models.Barcode.reverse_complement(sequence), limit=30)
 
-        return self.make_response(fc_df=fc_df, rc_df=rc_df)
+        return make_response(render_template("components/barcode_results.html", fc_df=fc_df, rc_df=rc_df))

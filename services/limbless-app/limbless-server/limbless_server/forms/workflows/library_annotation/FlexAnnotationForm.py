@@ -26,7 +26,7 @@ class FlexAnnotationForm(MultiStepForm):
         SpreadSheetColumn("barcode_id", "Bardcode ID", "text", 250, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
     ]
 
-    single_plex = BooleanField("Single-Plex", default=False)
+    single_plex = BooleanField("Single-Plex (do not fill the spreadsheet)", description="Samples were not multiplexed, i.e. one sample per library.", default=False)
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
@@ -37,8 +37,6 @@ class FlexAnnotationForm(MultiStepForm):
         self._context["seq_request"] = seq_request
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
-
-        logger.debug(formdata)
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=FlexAnnotationForm.columns, csrf_token=csrf_token,
@@ -60,7 +58,7 @@ class FlexAnnotationForm(MultiStepForm):
     def validate(self) -> bool:
         if not super().validate():
             return False
-
+        
         if self.single_plex.data:
             return True
 
