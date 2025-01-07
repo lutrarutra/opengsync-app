@@ -96,21 +96,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     def index_page():
         if not current_user.is_authenticated:
             return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))
-            
-        if current_user.is_insider():
-            show_drafts = False
-            _user_id = None
-            recent_experiments, _ = db.get_experiments(sort_by="id", descending=True)
-        else:
-            show_drafts = True
-            _user_id = current_user.id
-            recent_experiments = None
 
-        recent_seq_requests, _ = db.get_seq_requests(user_id=_user_id, sort_by="timestamp_submitted_utc", descending=True, show_drafts=show_drafts)
-
-        return render_template(
-            "index.html", recent_seq_requests=recent_seq_requests, recent_experiments=recent_experiments,
-        )
+        return render_template("index.html")
 
     @app.route("/pdf_file/<int:file_id>")
     @login_required

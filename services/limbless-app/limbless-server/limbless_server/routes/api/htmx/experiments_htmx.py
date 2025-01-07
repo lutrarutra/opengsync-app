@@ -388,7 +388,7 @@ def add_comment(experiment_id: int):
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return forms.comment.ExperimentCommentForm(experiment_id=experiment_id, formdata=request.form).process_request(user=current_user, experiment=experiment)
+    return forms.comment.ExperimentCommentForm(experiment=experiment, formdata=request.form).process_request(user=current_user)
 
 
 @experiments_htmx.route("<int:experiment_id>/remove_pool", methods=["DELETE"])
@@ -688,4 +688,24 @@ def get_pool_dilutions(experiment_id: int, page: int):
             dilutions=dilutions, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order, experiment=experiment,
         )
+    )
+
+
+@experiments_htmx.route("get_recent_experiments", methods=["GET"])
+@db_session(db)
+@login_required
+def get_recent_experiments():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (sort_by := request.args.get("sort_by")) is not None:
+        if sort_by not in ["name", "id", "timestamp_created_utc"]:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        sort_by = "name"
+
+    experiments, _ = db.get_experiments(sort_by=sort_by, descending=True)
+
+    return make_response(
+        render_template("components/recent_experiments_list.html", experiments=experiments, sort_by=sort_by)
     )

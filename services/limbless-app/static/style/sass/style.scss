@@ -95,23 +95,23 @@ body {
             padding: 0;
         }
         .banner-title {
-            padding-left: 5px;
-            padding-right: 5px;
+            padding: 0 5px 5px 5px;
             .title {
                 white-space: nowrap;
                 overflow-x: hidden;
+                font-weight: 600;
             }
 
-            div {
+            .title-row {
                 text-align: center;
                 vertical-align: middle;
                 font-size: 1rem;
                 padding-bottom: 3px;
             }
-            div:first-child {
+            .title-row div:first-child {
                 text-align: start;
             }
-            div:last-child {
+            .title-row div:last-child {
                 text-align: end;
             }
         }

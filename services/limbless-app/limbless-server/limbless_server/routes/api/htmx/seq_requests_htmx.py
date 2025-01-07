@@ -974,3 +974,24 @@ def store_samples(seq_request_id: int):
         )
 
     return form.make_response()
+
+
+@seq_requests_htmx.route("get_recent_seq_requests", methods=["GET"])
+@db_session(db)
+@login_required
+def get_recent_seq_requests():
+    if (sort_by := request.args.get("sort_by")) is not None:
+        if sort_by not in ["timestamp_submitted_utc", "id"]:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        sort_by = "timestamp_submitted_utc"
+
+    seq_requests, _ = db.get_seq_requests(
+        user_id=None if current_user.is_insider() else current_user.id,
+        sort_by=sort_by, descending=True,
+        show_drafts=False if current_user.is_insider() else True,
+    )
+
+    return make_response(
+        render_template("components/recent_seq_requests_list.html", seq_requests=seq_requests, sort_by=sort_by)
+    )

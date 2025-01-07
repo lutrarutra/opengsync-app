@@ -9,44 +9,12 @@
 <div class="page-content">
     <div class="dash">
         <div class="dash-left">
-            <div class="dash-top">
-                <div class="dash-component-header">
-                    <h4>Recent Sequencing Requests</h4>
-                </div>
-                <div class="banner-container">
-                {% for seq_request in recent_seq_requests %}
-                    <div class="p-2 element-banner">
-                        <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
-                            <div class="row banner-title">
-                                <div class="title col-4">{{ seq_request.name }} <span class="id-desc">{{ seq_request.id }}</span></div>
-                                <div class="description col-4"> {{ seq_request.requestor.name }}</div>
-                                <div class="submitted-time col-4">{{ seq_request.timestamp_submitted_str() }} </div>
-                            </div>
-                            {{ seq_request_status_bar(seq_request) }}
-                        </a>
-                    </div>
-                {% endfor %}
-                </div>
+            <div class="dash-top" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
+                {{ spinner() }}
             </div>
             {% if current_user.is_insider() %}
-            <div class="dash-bottom">
-                <div class="dash-component-header">
-                    <h4>Recent Experiments</h4>
-                </div>
-                <div class="banner-container">
-                {% for experiment in recent_experiments %}
-                    <div class="p-2 element-banner">
-                        <a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
-                            <div class="row banner-title">
-                                <div class="title col-4">{{ experiment.name }} <span class="id-desc">{{ experiment.id }}</span></div>
-                                <div class="description col-4"> {{ experiment.operator.name }}</div>
-                                <div class="submitted-time col-4">{{ experiment.timestamp_created_str() }} </div>
-                            </div>
-                            {{ experiment_status_bar(experiment) }}
-                        </a>
-                    </div>
-                {% endfor %}
-                </div>
+            <div class="dash-bottom" hx-get="{{ url_for('experiments_htmx.get_recent_experiments') }}" hx-trigger="load once">
+                {{ spinner() }}
             </div>
             {% endif %}
         </div>
