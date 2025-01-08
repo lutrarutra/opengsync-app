@@ -135,6 +135,7 @@ services:
 
     postgres:
         container_name: postgres
+        user: "1001:1001"
         image: postgres:16rc1-alpine3.17
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
