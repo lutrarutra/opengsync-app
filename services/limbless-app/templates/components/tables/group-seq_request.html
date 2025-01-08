@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="group-seq_request-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -47,10 +47,10 @@
         </thead>
         <tbody>
             {% for seq_request in seq_requests %}
-            <tr onclick="redirect('{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id, from='group@' + group.id | string) }}');">
+            <tr>
                 <th scope="row">{{ seq_request.id }}</th>
-                <td>{{ seq_request.name }}</td>
-                <td>{{ seq_request.requestor.name }}</td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id, from='group@' + group.id | string) }}">{{ seq_request.name }}</a></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=seq_request.requestor_id, from='group@' + group.id | string) }}">{{ seq_request.requestor.name }}</a> <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
                 <td>{{ seq_request.num_libraries }}</td>

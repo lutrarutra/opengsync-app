@@ -3,7 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="group-user-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -36,9 +36,11 @@
         </thead>
         <tbody>
             {% for affiliation in affiliations %}
-            <tr onclick="redirect('{{ url_for('users_page.user_page', user_id=affiliation.user.id, from='group@' + group.id | string) }}');">
+            <tr>
                 <th scope="row">{{ affiliation.user.id }}</th>
-                <td class="user-cell" id="user-cell-{{ affiliation.user.id }}">{{ affiliation.user.name }}{% if affiliation.user_id == current_user.id %} <span class="desc">me</span>{% endif %}</td>
+                <td class="user-cell" id="user-cell-{{ affiliation.user.id }}">
+                    <a href="{{ url_for('users_page.user_page', user_id=affiliation.user.id, from='group@' + group.id | string) }}">{{ affiliation.user.name }}</a>{% if affiliation.user_id == current_user.id %} <span class="desc">me</span>{% endif %}
+                </td>
                 <td>{{ affiliation.user.email }}</td>
                 <td>{{ affiliation.affiliation_type.name }} {{ affiliation.affiliation_type.icon }}</td>
             </tr>
