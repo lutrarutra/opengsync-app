@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="feature_kit-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -14,6 +14,14 @@
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='feature_kits_htmx.table_query', current_query=current_query,
                         active_query_field=active_query_field, query_type="number", col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='kit-table', column_name='Identifier', column_var='identifier',
+                        sort_url='kits_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        query_url='kits_htmx.table_query', current_query=current_query,
+                        active_query_field=active_query_field, query_type="text", col_size=2
                     )
                 }}
                 {{
@@ -29,17 +37,17 @@
                     table_col(
                         table_container_id='library-table', column_name='Type', column_var='type_id',
                         sort_url='libraries_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=5,
+                        sort_by=sort_by, sort_order=sort_order, col_size=3,
                     )
                 }}
             </tr>
         </thead>
         <tbody>
             {% for feature_kit in feature_kits %}
-            <tr onclick="redirect('{{ url_for('kits_page.feature_kit_page', feature_kit_id=feature_kit.id) }}');">
+            <tr>
                 <th scope="row">{{ feature_kit.id }}</th>
-                <td>{{ feature_kit.name }}</td>
+                <td>{{ feature_kit.identifier }}</td>
+                <td><a href="{{ url_for('kits_page.feature_kit_page', feature_kit_id=feature_kit.id) }}">{{ feature_kit.name }}</a></td>
                 <td>{{ feature_kit.type.name }}</td>
             </tr>
             {% endfor %}

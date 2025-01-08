@@ -26,7 +26,7 @@ index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/i
 @index_kits_htmx.route("get/<int:page>", methods=["GET"])
 @db_session(db)
 @login_required
-@cache.cached(timeout=300, query_string=True)
+# @cache.cached(timeout=300, query_string=True)
 def get(page: int):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")

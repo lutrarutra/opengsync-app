@@ -6,7 +6,7 @@
 {% set active_page = 0 %}
 {% endif %}
 <div id="library-sample-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -24,14 +24,14 @@
                         sort_url='libraries_htmx.get_samples', context={'library_id': library.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='libraries_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, col_size=4
+                        active_query_field=active_query_field, col_size=5
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='library-samples-table', column_name='Status', column_var='status_id',
                         sort_url='libraries_htmx.get_samples', context={'library_id': library.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_by=sort_by, sort_order=sort_order, col_size=3,
                         multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
@@ -39,19 +39,18 @@
                     table_col(
                         table_container_id='library-sample-table', column_name='Owner', column_var='owner_id',
                         sort_url='libraries_htmx.get_samples', context={'library_id': library.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
             </tr>
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="redirect(`{{ url_for('samples_page.sample_page', sample_id=sample.id, from='library@' + library.id | string) }}`);">
+            <tr>
                 <th scope="row">{{ sample.id }}</th>
-                <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
+                <td><a href="{{ url_for('samples_page.sample_page', sample_id=sample.id, from='library@' + library.id | string) }}">{{ sample.name }}</a></td>
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
-                <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=sample.owner_id, from='library@' + library.id | string) }}">{{ sample.owner.name }}</a>{% if current_user.id == sample.owner_id %} <span class="desc">me</span>{% endif %}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -59,29 +58,3 @@
     {{ spinner("library-sample-table-spinner") }}
     {{ pagination("library-sample-table", "libraries_htmx.get_samples", n_pages, active_page, context={ "library_id":library.id }) }}
 </div>
-
-<script>
-    var selected_sample_id = null;
-
-    function copy_sample_name_to_clipboard() {
-        const content = $("#sample-name-cell-" + selected_sample_id).text().trim();
-        navigator.clipboard.writeText(content);
-    }
-
-    $(document).off("contextmenu", ".sample-name-cell").on("contextmenu", ".sample-name-cell", function(e) {
-        e.preventDefault();
-        const x = e.pageX;
-        const y = e.pageY;
-        selected_sample_id = e.target.id.split("-")[3];
-        $("#copy-edit-menu").css({
-            display: "block",
-            left: x + 8, top: y + 8
-        }).empty().append([
-            `<li><a class='dropdown-item' onclick='copy_sample_name_to_clipboard()'>Copy</a></li>`,
-        ]);
-
-        $("#right-click-bg").css({
-            display: "block"
-        });
-    });
-</script>

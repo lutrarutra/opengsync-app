@@ -3,7 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="project-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -21,31 +21,31 @@
                         sort_url='projects_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=3
+                        active_query_field=active_query_field, query_type="text", col_size=5
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='project-table', column_name='Owner', column_var='owner_id',
                         sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=4
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='project-table', column_name='# Samples', column_var='num_samples',
                         sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
             </tr>
         </thead>
         <tbody>
             {% for project in projects %}
-            <tr onclick="redirect('{{ url_for('projects_page.project_page', project_id=project.id) }}');">
+            <tr>
                 <th scope="row">{{ project.id }}</th>
-                <td>{{ project.name }}</td>
-                <td>{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></td>
+                <td><a href="{{ url_for('projects_page.project_page', project_id=project.id) }}">{{ project.name }}</a></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=project.owner_id) }}">{{ project.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></td>
                 <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}

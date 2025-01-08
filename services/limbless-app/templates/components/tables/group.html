@@ -3,7 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="group-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -15,22 +15,22 @@
                 {{
                     table_col(
                         table_container_id='group-table', column_name='Name', column_var='name',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=6
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=7
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='group-table', column_name='Type', column_var='type_id',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=5,
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=4,
                     )
                 }}
             </tr>
         </thead>
         <tbody>
             {% for group in groups %}
-            <tr onclick="redirect('{{ url_for('groups_page.group_page', group_id=group.id) }}');">
+            <tr>
                 <th scope="row">{{ group.id }}</th>
-                <td>{{ group.name }}</td>
+                <td><a href="{{ url_for('groups_page.group_page', group_id=group.id) }}">{{ group.name }}</a></td>
                 <td>{{ group.type.name }} {{ group.type.icon }}</td>
             </tr>
             {% endfor %}

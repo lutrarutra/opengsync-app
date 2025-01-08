@@ -3,7 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="sample-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -33,24 +33,24 @@
                 {{
                     table_col(
                         table_container_id='sample-table', column_name='Owner', column_var='owner_id',
-                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
+                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='sample-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
+                        sort_url='samples_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
             </tr>
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="redirect('{{ url_for('samples_page.sample_page', sample_id=sample.id) }}');">
+            <tr>
                 <th scope="row">{{ sample.id }}</th>
-                <td class="sample-name-cell" id="sample-name-cell-{{sample.id}}">{{ sample.name }}</td>
+                <td><a href="{{ url_for('samples_page.sample_page', sample_id=sample.id) }}">{{ sample.name }}</a></td>
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
-                <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=sample.owner_id) }}">{{ sample.owner.name }}</a> {% if current_user.id == sample.owner_id %} <span class="desc">me</span>{% endif %}</td>
                 <td>{{ sample.num_libraries }}</td>
             </tr>
             {% endfor %}
@@ -59,29 +59,3 @@
     {{ spinner("sample-table-spinner") }}
     {{ pagination("sample-table", "samples_htmx.get", n_pages, active_page) }}
 </div>
-
-<script>
-    var selected_sample_id = null;
-
-    function copy_sample_name_to_clipboard() {
-        const content = $("#sample-name-cell-" + selected_sample_id).text().trim();
-        navigator.clipboard.writeText(content);
-    }
-
-    $(document).off("contextmenu", ".sample-name-cell").on("contextmenu", ".sample-name-cell", function(e) {
-        e.preventDefault();
-        const x = e.pageX;
-        const y = e.pageY;
-        selected_sample_id = e.target.id.split("-")[3];
-        $("#copy-edit-menu").css({
-            display: "block",
-            left: x + 8, top: y + 8
-        }).empty().append([
-            `<li><a class='dropdown-item' onclick='copy_sample_name_to_clipboard()'>Copy</a></li>`,
-        ]);
-
-        $("#right-click-bg").css({
-            display: "block"
-        });
-    });
-</script>
