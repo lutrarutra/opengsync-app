@@ -30,7 +30,9 @@ Web app for NGS sample/library/project tracking
     - Populate .env as required.
 - `mkdir rclone && cp templates/rclone.conf rclone/`
     - Populate rclone/rclone.conf as required.
-- `mkdir db/pgadmin && sudo chown -R 5050:5050 db/pgadmin`
+- `mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin`
+- `mkdir -p db/postgres && sudo chown -R 1001:1001 db/postgres`
+- `mkdir -p backup/postgres && sudo chown -R 1001:1001 backup/postgres`
 
 ## Start Production Server (2 options)
 
