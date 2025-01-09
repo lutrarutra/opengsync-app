@@ -7,19 +7,16 @@ services:
         volumes:
             - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
             - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db
-            - ./uploads:/usr/src/app/uploads
-            - ./media:/usr/src/app/media
-            - ./logs/limbless:/usr/src/app/logs
-            - ./data:/usr/src/app/data:ro
             - ./services/limbless-app/static/images:/usr/src/app/static/images:ro
             - ./services/limbless-app/static/js:/usr/src/app/static/js:ro
             - ./services/limbless-app/static/resources:/usr/src/app/static/resources:ro
-            - compiled_css:/usr/src/app/static/style/compiled:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
             - ./cert:/usr/src/app/cert
-            - ./db/dev_init:/usr/src/app/init
-            - ./rclone:/root/.config/rclone:rw
-            - .ssh/:/.ssh:ro
+            - ${UPLOADS_DIR}:/usr/src/app/uploads
+            - ${DATA_DIR}/media:/usr/src/app/media
+            - ${DATA_DIR}/logs/limbless:/usr/src/app/logs
+            - ${DB_DIR}/dev_init:/usr/src/app/init
+            - compiled_css:/usr/src/app/static/style/compiled:ro
         environment:
             TZ: ${TIMEZONE}
         env_file: .env
@@ -27,12 +24,6 @@ services:
             - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
         expose:
             - ${LIMBLESS_PORT}
-        devices:
-            - "/dev/fuse:/dev/fuse:rwm"
-        cap_add:
-            - SYS_ADMIN
-        security_opt:
-            - apparmor:unconfined
         restart: always
         depends_on:
             postgres:
@@ -60,17 +51,10 @@ services:
         env_file: .env
         environment:
             TZ: ${TIMEZONE}
-        devices:
-            - "/dev/fuse:/dev/fuse:rwm"
-        cap_add:
-            - SYS_ADMIN
-        security_opt:
-            - apparmor:unconfined
         volumes:
             - ./services/rf-scanner/src:/usr/src/app/src:ro
-            - ./rclone:/root/.config/rclone:rw
-            - .ssh/:/.ssh:ro
-            - ./logs/rf-scanner:/var/log
+            - ${DATA_DIR}/logs/rf-scanner:/var/log
+            - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
         depends_on:
             postgres:
                 condition: service_healthy
@@ -129,9 +113,9 @@ services:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
         restart: always
         volumes:
-            - ./db/dev_postgres:/var/lib/postgresql/data
             - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
-            - ./backup/dev_postgres:/var/lib/postgresql/backup
+            - ${DB_DIR}/dev_postgres:/var/lib/postgresql/data
+            - ${DATA_DIR}/db_backup:/var/lib/postgresql/backup
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s
@@ -150,7 +134,7 @@ services:
             - ${PGADMIN_PORT}:80
         restart: always
         volumes:
-            - ./db/dev_pgadmin:/var/lib/pgadmin
+            - ${DB_DIR}/dev_pgadmin:/var/lib/pgadmin
         depends_on:
             postgres:
                 condition: service_healthy
