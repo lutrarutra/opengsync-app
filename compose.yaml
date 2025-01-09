@@ -6,8 +6,8 @@ services:
         volumes:
             - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
             - ./uploads:/usr/src/app/uploads
-            - ./media:/usr/src/app/media
-            - ./logs/limbless:/usr/src/app/logs
+            - ${BACKUP_DIR}/media:/usr/src/app/media
+            - ${BACKUP_DIR}/logs/limbless:/usr/src/app/logs
             - ./data:/usr/src/app/data:ro
             - ./services/limbless-app/templates:/usr/src/app/templates:ro
             - ./cert:/usr/src/app/cert

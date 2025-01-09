@@ -1,10 +1,12 @@
 data/
+.data/
 logs/
 cache/
 db/
 uploads/
 media/
 cert/
+mnt/
 backup/
 .vscode/
 *.env
@@ -13,7 +15,6 @@ backup/
 .ssh/
 test*.ipynb
 licensed/
-rclone/
 !templates/rclone
 ~*.xlsx
 
