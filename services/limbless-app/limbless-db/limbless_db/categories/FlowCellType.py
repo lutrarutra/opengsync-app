@@ -9,6 +9,10 @@ class FlowCellTypeEnum(DBEnum):
     num_lanes: int
     max_m_reads_per_lane: int
 
+    @property
+    def max_m_reads(self) -> int:
+        return self.num_lanes * self.max_m_reads_per_lane
+
 
 # https://emea.illumina.com/systems/sequencing-platforms/novaseq/specifications.html
 class FlowCellType(ExtendedEnum[FlowCellTypeEnum], enum_type=FlowCellTypeEnum):

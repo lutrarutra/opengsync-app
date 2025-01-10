@@ -656,7 +656,8 @@ span.id-desc::after {
     flex-wrap: wrap;
     gap: 10px;
     .flowcell-capacity-bar {
-        width: calc(50% - 5px);
+        min-width: calc(50% - 5px);
+        flex: 1;
     }
 }
 
