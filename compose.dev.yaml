@@ -60,12 +60,7 @@ services:
                 condition: service_healthy
                 restart: true
         restart: always
-        healthcheck:
-            test: ["CMD-SHELL", "mountpoint -q /illumina_run_folder || exit 1"]
-            interval: 10s
-            timeout: 10s
-            retries: 3
-
+        
     redis-cache:
         container_name: redis-cache-dev
         image: redis:6.2-alpine
@@ -115,7 +110,7 @@ services:
         volumes:
             - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
             - ${DB_DIR}/dev_postgres:/var/lib/postgresql/data
-            - ${DATA_DIR}/db_backup:/var/lib/postgresql/backup
+            - ${DATA_DIR}/db_backup/wal:/var/lib/postgresql/backup
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s

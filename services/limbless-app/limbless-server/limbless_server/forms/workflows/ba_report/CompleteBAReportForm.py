@@ -205,7 +205,7 @@ class CompleteBAReportForm(MultiStepForm):
             lane_table.loc[lane_table["id"] == lane.id, "avg_fragment_size"] = lane.avg_fragment_size
 
         self.complete()
-        flash("Qubit Measurements saved!", "success")
+        flash("Bio Analyzer report saved!", "success")
         if (experiment_id := metadata.get("experiment_id")) is not None:
             return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id))
         

@@ -10,9 +10,6 @@ RUN apt update
 RUN apt install cron -y
 RUN apt install wget -y
 
-RUN apt install fuse -y
-RUN apt install rclone -y
-
 RUN apt install build-essential -y
 RUN apt install libpq-dev -y
 RUN apt install curl -y
