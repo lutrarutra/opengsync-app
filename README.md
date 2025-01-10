@@ -19,7 +19,6 @@ Web app for NGS sample/library/project tracking
 1. `logs` - Log files
 1. `backup` - Backup of database
 1. `cert` - SSL certificates
-1. `rclone` - rclone configuration
 1. `cache` - Cache for Flask app
 1. `db` - Database files
 
@@ -28,8 +27,6 @@ Web app for NGS sample/library/project tracking
 ## Initial Setup
 - `cp templates/template.env .env`
     - Populate .env as required.
-- `mkdir rclone && cp templates/rclone.conf rclone/`
-    - Populate rclone/rclone.conf as required.
 - `mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin`
 - `mkdir -p db/postgres && sudo chown -R 1001:1001 db/postgres`
 - `mkdir -p backup/postgres && sudo chown -R 1001:1001 backup/postgres`

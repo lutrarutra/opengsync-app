@@ -9,13 +9,13 @@ cert/
 mnt/
 backup/
 .vscode/
+local/
 *.env
 !templates/template.env
 .tmp/
 .ssh/
 test*.ipynb
 licensed/
-!templates/rclone
 ~*.xlsx
 
 .snakemake/
