@@ -82,7 +82,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             return render_template("test.html")
         
     @app.route("/help")
-    @cache.cached(timeout=1500)
+    # @cache.cached(timeout=1500)
     def help_page():
         return render_template("help.html")
 

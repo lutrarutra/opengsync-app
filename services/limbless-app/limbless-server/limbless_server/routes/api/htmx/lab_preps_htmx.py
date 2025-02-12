@@ -212,6 +212,27 @@ def complete(lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
 
 
+@lab_preps_htmx.route("<int:lab_prep_id>/uncomplete", methods=["POST"])
+@db_session(db)
+@login_required
+def uncomplete(lab_prep_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    for library in lab_prep.libraries:
+        if library.status == LibraryStatus.POOLED:
+            library.status = LibraryStatus.PREPARING
+
+    lab_prep.status = PrepStatus.PREPARING
+    lab_prep = db.update_lab_prep(lab_prep)
+
+    flash("Lab prep completed!", "success")
+    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+
+
 @lab_preps_htmx.route("<int:lab_prep_id>/remove_library", methods=["DELETE"])
 @db_session(db)
 @login_required

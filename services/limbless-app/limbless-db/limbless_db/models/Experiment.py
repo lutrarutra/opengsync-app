@@ -7,7 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .. import localize
 from .Base import Base
 from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellTypeEnum, ExperimentWorkFlow, ExperimentWorkFlowEnum
-from . import links
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -45,7 +44,7 @@ class Experiment(Base):
 
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
-    pools: Mapped[list["Pool"]] = relationship("Pool", secondary=links.ExperimentPoolLink.__tablename__, lazy="select")
+    pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", cascade="merge, save-update", back_populates="experiment")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
     files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")

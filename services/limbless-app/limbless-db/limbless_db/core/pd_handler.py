@@ -166,11 +166,8 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
         models.Pool.status_id, models.Pool.num_libraries,
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
         models.Pool.avg_fragment_size,
-    ).join(
-        models.links.ExperimentPoolLink,
-        models.links.ExperimentPoolLink.pool_id == models.Pool.id,
     ).where(
-        models.links.ExperimentPoolLink.experiment_id == experiment_id
+        models.Pool.experiment_id == experiment_id
     )
 
     df = pd.read_sql(query, self._engine)

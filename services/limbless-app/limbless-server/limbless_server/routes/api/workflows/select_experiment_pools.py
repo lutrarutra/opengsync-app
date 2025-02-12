@@ -21,24 +21,18 @@ select_experiment_pools_workflow = Blueprint("select_experiment_pools_workflow",
 
 
 @select_experiment_pools_workflow.route("<int:experiment_id>/begin", methods=["GET"])
+@db_session(db)
 @login_required
 def begin(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    with DBSession(db) as session:
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        experiment.pools
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     context = {"experiment": experiment}
     form = SelectSamplesForm(
         workflow="select_experiment_pools", context=context,
-        pool_status_filter=[PoolStatus.STORED],
-        select_lanes=False,
-        select_libraries=False,
-        select_samples=False,
     )
     return form.make_response()
 
@@ -64,7 +58,7 @@ def select():
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    form: SelectSamplesForm = SelectSamplesForm(workflow="ba_report", formdata=request.form, context=context)
+    form: SelectSamplesForm = SelectSamplesForm(workflow="select_experiment_pools", formdata=request.form, context=context)
     if not form.validate():
         return form.make_response()
 

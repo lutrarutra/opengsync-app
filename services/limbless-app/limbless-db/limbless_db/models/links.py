@@ -48,12 +48,6 @@ class SamplePlateLink(Base):
     library: Mapped[Optional["Library"]] = relationship("Library", back_populates="plate_links", lazy="joined")
 
 
-class ExperimentPoolLink(Base):
-    __tablename__ = "experiment_pool_link"
-    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), primary_key=True)
-    pool_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("pool.id"), primary_key=True)
-
-
 class SampleLibraryLink(Base):
     __tablename__ = "sample_library_link"
     __mapper_args__ = {"confirm_deleted_rows": False}

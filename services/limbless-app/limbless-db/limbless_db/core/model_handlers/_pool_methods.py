@@ -104,11 +104,8 @@ def get_pools(
         )
 
     if experiment_id is not None:
-        query = query.join(
-            models.links.ExperimentPoolLink,
-            models.links.ExperimentPoolLink.pool_id == models.Pool.id,
-        ).where(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id
+        query = query.where(
+            models.Pool.experiment_id == experiment_id
         )
 
     if seq_request_id is not None:
@@ -247,11 +244,8 @@ def query_pools(
     query = self.session.query(models.Pool)
 
     if experiment_id is not None:
-        query = query.join(
-            models.links.ExperimentPoolLink,
-            models.links.ExperimentPoolLink.pool_id == models.Pool.id,
-        ).where(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id
+        query = query.where(
+            models.Pool.experiment_id == experiment_id
         )
 
     if seq_request_id is not None:
@@ -316,11 +310,8 @@ def get_pool_dilutions(
         query = query.join(
             models.Pool,
             models.Pool.id == models.PoolDilution.pool_id
-        ).join(
-            models.links.ExperimentPoolLink,
-            models.links.ExperimentPoolLink.pool_id == models.Pool.id
         ).where(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id
+            models.Pool.experiment_id == experiment_id
         )
 
     if sort_by is not None:

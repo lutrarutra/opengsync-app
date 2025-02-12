@@ -128,11 +128,8 @@ def get_libraries(
         query = query.join(
             models.Pool,
             models.Pool.id == models.Library.pool_id,
-        ).join(
-            models.links.ExperimentPoolLink,
-            models.links.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id
+            models.Pool.experiment_id == experiment_id
         )
 
     if pooled is not None:
@@ -317,11 +314,8 @@ def query_libraries(
         query = query.join(
             models.Pool,
             models.Pool.id == models.Library.pool_id,
-        ).join(
-            models.links.ExperimentPoolLink,
-            models.links.ExperimentPoolLink.pool_id == models.Pool.id,
         ).where(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id
+            models.Pool.experiment_id == experiment_id
         )
 
     if name is not None:

@@ -128,11 +128,10 @@
 
             function update_shares(lane) {
                 var total_reads = 0;
-                $(`.pool-row-${lane}`).each(function() {
+                $(`#lane-pooling-form .pool-row-${lane}`).each(function() {
                     total_reads += parseFloat($(this).find(`.m_reads-col-${lane}`).first().find("input").first().val());
                 });
-                console.log(total_reads);
-                $(`.pool-row-${lane}`).each(function() {
+                $(`#lane-pooling-form .pool-row-${lane}`).each(function() {
                     var reads = parseFloat($(this).find(`.m_reads-col-${lane}`).first().find("input").first().val());
                     var share = reads / total_reads * 100;
                     $(this).find(`.share-col-${lane}`).first().find(".value").first().text(share.toFixed(1));
@@ -143,7 +142,7 @@
                 var total_volume = 0;
                 var target_total_volume = parseFloat($(`#target_total_volume-${lane}`).val());
                 var target_concentration = parseFloat($(`#target_concentration-${lane}`).val());
-                $(`.pool-row-${lane}`).each(function() {
+                $(`#lane-pooling-form .pool-row-${lane}`).each(function() {
                     var molarity = parseFloat($(this).find(`.molarity-col-${lane}`).first().find(".value").first().text());
                     var share = parseFloat($(this).find(`.share-col-${lane}`).first().find(".value").first().text());
 

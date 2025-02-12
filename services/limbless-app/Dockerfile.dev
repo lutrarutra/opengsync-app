@@ -1,4 +1,4 @@
-FROM python:3.11.3-slim-buster
+FROM python:3.11-bookworm
 
 # set work directory
 WORKDIR /usr/src/app
@@ -11,9 +11,7 @@ RUN apt install curl -y
 RUN apt install postgresql-client -y
 RUN pip install --upgrade pip
 COPY . /usr/src/app/
-RUN pip install -r /usr/src/app/limbless-db/requirements.txt
 RUN pip install -e /usr/src/app/limbless-db
-RUN pip install -r /usr/src/app/limbless-server/requirements.txt
 RUN pip install -e /usr/src/app/limbless-server
 RUN chmod +x /usr/src/app/entrypoint.sh
 

@@ -466,8 +466,8 @@ def browse_query(workflow: str):
             return abort(HTTPResponse.BAD_REQUEST.id)
         
         if (pool := db.get_pool(pool_id=_id)) is not None:
-            if experiment_id in [e.id for e in pool.experiments]:
-                pools = [pool]
+            if pool.experiment_id == pool.id:
+                pools.append(pool)
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     

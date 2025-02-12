@@ -7,11 +7,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 from . import links
 from ..categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum
+from .Experiment import Experiment
 
 if TYPE_CHECKING:
     from .Library import Library
     from .User import User
-    from .Experiment import Experiment
     from .SeqRequest import SeqRequest
     from .Lane import Lane
     from .Contact import Contact
@@ -54,9 +54,11 @@ class Pool(Base):
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", lazy="select")
 
+    experiment_id: Mapped[Optional["Experiment"]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
+    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="pools")
+
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
     lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=links.LanePoolLink.__tablename__, back_populates="pools", lazy="select")
-    experiments: Mapped[list["Experiment"]] = relationship("Experiment", secondary=links.ExperimentPoolLink.__tablename__, back_populates="pools", lazy="select")
     dilutions: Mapped[list["PoolDilution"]] = relationship("PoolDilution", back_populates="pool", lazy="select", cascade="merge, save-update, delete, delete-orphan", order_by="PoolDilution.timestamp_utc")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]

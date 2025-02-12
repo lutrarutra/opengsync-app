@@ -50,6 +50,14 @@ def get_context(request: Request) -> dict:
             context["pool"] = pool
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
+    if (lab_prep_id := args.get("lab_prep_id")) is not None:
+        try:
+            lab_prep_id = int(lab_prep_id)
+            if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+                return abort(HTTPResponse.NOT_FOUND.id)
+            context["lab_prep"] = lab_prep
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
     return context
 
@@ -66,7 +74,10 @@ def begin():
         sample_status_filter=[SampleStatus.STORED],
         library_status_filter=[LibraryStatus.PREPARING],
         pool_status_filter=[PoolStatus.STORED],
-        select_lanes=True
+        select_libraries=True,
+        select_pools=True if not context.get("lab_prep") else False,
+        select_samples=True if not context.get("lab_prep") else False,
+        select_lanes=True if not context.get("lab_prep") else False,
     )
     return form.make_response()
 
@@ -92,8 +103,11 @@ def select():
         metadata["seq_request_id"] = seq_request.id
     if (pool := context.get("pool")) is not None:
         metadata["pool_id"] = pool.id
+    if (lab_prep := context.get("lab_prep")) is not None:
+        metadata["lab_prep_id"] = lab_prep.id
 
     complete_ba_report_form.metadata = metadata
+    logger.debug(lab_prep)
     complete_ba_report_form.add_table("sample_table", form.sample_table)
     complete_ba_report_form.add_table("library_table", form.library_table)
     complete_ba_report_form.add_table("pool_table", form.pool_table)
@@ -105,6 +119,7 @@ def select():
 
 
 @ba_report_workflow.route("complete/<string:uuid>", methods=["POST"])
+@db_session(db)
 @login_required
 def complete(uuid: str):
     if not current_user.is_insider():

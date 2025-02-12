@@ -305,12 +305,7 @@ def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if self.session.query(models.links.ExperimentPoolLink).where(
-        and_(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id,
-            models.links.ExperimentPoolLink.pool_id == pool_id
-        )
-    ).first() is not None:
+    if pool.experiment_id is not None:
         raise exceptions.LinkAlreadyExists(f"Pool with id {pool_id} is already linked to an experiment")
 
     experiment.pools.append(pool)
@@ -335,12 +330,7 @@ def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
 
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if self.session.query(models.links.ExperimentPoolLink).where(
-        and_(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id,
-            models.links.ExperimentPoolLink.pool_id == pool_id
-        )
-    ).first() is None:
+    if pool.experiment_id != experiment_id:
         raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
     
     for lane in experiment.lanes:

@@ -28,6 +28,7 @@ def begin(experiment_id: int):
             return abort(HTTPResponse.NOT_FOUND.id)
 
     if experiment.workflow.combined_lanes:
+        logger.debug("hello")
         form = wff.UnifiedLanePoolingForm()
     else:
         form = wff.LanePoolingForm()
@@ -46,8 +47,6 @@ def lane_pools(experiment_id: int):
             return abort(HTTPResponse.NOT_FOUND.id)
         
         experiment.files
-
-    logger.debug(request.form)
 
     if experiment.workflow.combined_lanes:
         form = wff.UnifiedLanePoolingForm(formdata=request.form)

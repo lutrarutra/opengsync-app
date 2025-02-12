@@ -1,7 +1,5 @@
 import os
-import shutil
 import uuid
-from typing import Optional
 
 import pandas as pd
 
@@ -12,8 +10,8 @@ from wtforms.validators import NumberRange, DataRequired
 from wtforms import IntegerField, FieldList, FormField
 from flask_wtf import FlaskForm
 
-from limbless_db import models, DBSession
-from limbless_db.categories import PoolStatus, FileType, LibraryStatus, SampleStatus
+from limbless_db import models
+from limbless_db.categories import PoolStatus, FileType, LibraryStatus
 
 from .... import db, logger  # noqa
 from ...MultiStepForm import MultiStepForm
@@ -134,6 +132,11 @@ class CompleteBAReportForm(MultiStepForm):
         self.file.data.save(new_path)
         size_bytes = os.stat(new_path).st_size
 
+        if (lab_prep_id := metadata.get("lab_prep_id")) is not None:
+            if db.get_lab_prep(lab_prep_id) is None:
+                logger.error(f"{self.uuid}: lab_prep_id {lab_prep_id} not found")
+                raise ValueError(f"{self.uuid}: lab_prep_id {lab_prep_id} not found")
+
         ba_file = db.create_file(
             name=filename,
             extension=extension,
@@ -141,6 +144,7 @@ class CompleteBAReportForm(MultiStepForm):
             type=FileType.BIOANALYZER_REPORT,
             uploader_id=user.id,
             uuid=_uuid,
+            lab_prep_id=lab_prep_id
         )
 
         self.metadata["ba_report"] = {
@@ -173,24 +177,22 @@ class CompleteBAReportForm(MultiStepForm):
             library_table.loc[library_table["id"] == library.id, "avg_fragment_size"] = library.avg_fragment_size
 
         for sub_form in self.pool_fields:
-            with DBSession(db) as session:
-                if (pool := session.get_pool(sub_form.obj_id.data)) is None:
-                    logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
-                    raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
-                
-                pool.avg_fragment_size = sub_form.avg_fragment_size.data
-                pool.ba_report_id = ba_file.id
+            if (pool := db.get_pool(sub_form.obj_id.data)) is None:
+                logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+                raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+            
+            pool.avg_fragment_size = sub_form.avg_fragment_size.data
+            pool.ba_report_id = ba_file.id
 
-                if pool.avg_fragment_size is not None:
-                    for library in pool.libraries:
-                        if library.is_pooled():
-                            library.status = LibraryStatus.POOLED
+            if pool.avg_fragment_size is not None:
+                for library in pool.libraries:
+                    if library.is_pooled():
+                        library.status = LibraryStatus.POOLED
 
-                if pool.status == PoolStatus.ACCEPTED:
-                    pool.status = PoolStatus.STORED
+            if pool.status == PoolStatus.ACCEPTED:
+                pool.status = PoolStatus.STORED
 
-                pool = session.update_pool(pool)
-
+            pool = db.update_pool(pool)
             pool_table.loc[pool_table["id"] == pool.id, "avg_fragment_size"] = pool.avg_fragment_size
 
         for sub_form in self.lane_fields:
@@ -208,5 +210,8 @@ class CompleteBAReportForm(MultiStepForm):
         flash("Bio Analyzer report saved!", "success")
         if (experiment_id := metadata.get("experiment_id")) is not None:
             return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id))
+        
+        if lab_prep_id is not None:
+            return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
         
         return make_response(redirect=url_for("index_page"))

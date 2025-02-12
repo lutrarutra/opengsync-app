@@ -33,6 +33,24 @@
                 </button>
             </span>
             {% endif %}
+            {% if lab_prep.status >= PrepStatus.COMPLETED %}
+            <button class="btn btn-warning"
+                hx-post="{{ url_for('lab_preps_htmx.uncomplete', lab_prep_id=lab_prep.id) }}"
+                _="on htmx:confirm(issueRequest)
+                halt the event
+                call Swal.fire({
+                    title: 'Undo Library Prep?',
+                    showDenyButton: true,
+                    text: 'This will change the status of all \'Pooled\' libraries to \'Preparing\'. Are you sure?',
+                    icon: 'question',
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'No'
+                })
+                if result.isConfirmed issueRequest()"
+                {% if can_be_completed == false %}disabled{% endif %}>
+                Undo Prep
+            </button>
+            {% endif %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
             data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
             hx-get="{{ url_for('lab_preps_htmx.file_form', lab_prep_id=lab_prep.id) }}">
@@ -225,6 +243,31 @@
                         <div class="card-back">
                             <div class="text-container">
                                 <p class="card-text">Upload prep table</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
+                    {% if lab_prep.status != PrepStatus.PREPARING %}
+                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
+                    {% else %}
+                    data-bs-toggle="modal" data-bs-target="#xl-modal"
+                    hx-get="{{ url_for('ba_report_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                    hx-target="#xl-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
+                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/analyzer.svg') }}" width="80px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Bio Analyzer Report</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Upload results form Bio Analyzer.</p>
                             </div>
                         </div>
                     </div>
