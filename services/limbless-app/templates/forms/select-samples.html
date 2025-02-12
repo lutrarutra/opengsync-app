@@ -241,6 +241,36 @@
                         </tr>
                     </thead>
                     <tbody id="selected-pools-table-container">
+                        {% for pool in selected_pools %}
+                        <tr onclick="toggle_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" class="pool-row">
+                            <th scope="row">{{ pool.id }}</th>
+                            <td>{{ pool.name }}</td>
+                            <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
+                            <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+                            {% if workflow == "qubit_measure" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ pool.qubit_concentration_str }}</div>
+                                    <div class="unit">ng/μL</div>
+                                </div>
+                            </td>
+                            {% elif workflow == "ba_report" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ pool.avg_fragment_size if pool.avg_fragment_size }}</div>
+                                    <div class="unit">bp</div>
+                                </div>
+                            </td>
+                            {% elif workflow == "select_experiment_pools" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ pool.num_m_reads_requested if pool.num_m_reads_requested }}</div>
+                                    <div class="unit">M</div>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>

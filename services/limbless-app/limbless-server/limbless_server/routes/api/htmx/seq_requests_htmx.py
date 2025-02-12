@@ -954,23 +954,25 @@ def store_samples(seq_request_id: int):
         form: forms.SelectSamplesForm = forms.SelectSamplesForm(
             workflow="store_samples",
             sample_status_filter=[SampleStatus.WAITING_DELIVERY],
-            context=dict(
-                seq_request=seq_request,
-            ),
+            context=dict(seq_request=seq_request),
             select_samples=True, select_libraries=False, select_pools=False,
             selected_samples=[s for s in seq_request.samples if s.status == SampleStatus.WAITING_DELIVERY]
+        )
+    elif seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
+        form: forms.SelectSamplesForm = forms.SelectSamplesForm(
+            workflow="store_samples",
+            pool_status_filter=[PoolStatus.ACCEPTED],
+            context=dict(seq_request=seq_request),
+            select_samples=False, select_libraries=False, select_pools=True,
+            selected_pools=[pool for pool in seq_request.pools if pool.status == PoolStatus.ACCEPTED]
         )
     else:
         form: forms.SelectSamplesForm = forms.SelectSamplesForm(
             workflow="store_samples",
             library_status_filter=[LibraryStatus.ACCEPTED],
-            pool_status_filter=[PoolStatus.ACCEPTED],
-            context=dict(
-                seq_request=seq_request,
-            ),
-            select_samples=False, select_libraries=True, select_pools=True,
+            context=dict(seq_request=seq_request),
+            select_samples=False, select_libraries=True, select_pools=False,
             selected_libraries=[library for library in seq_request.libraries if library.status == LibraryStatus.ACCEPTED],
-            selected_pools=[pool for pool in seq_request.pools if pool.status == PoolStatus.ACCEPTED]
         )
 
     return form.make_response()

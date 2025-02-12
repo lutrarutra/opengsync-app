@@ -131,7 +131,7 @@
                     display: "block",
                     left: x + 8, top: y + 8
                 }).empty().append([
-                    {% if seq_request.status.name == "Draft" %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT %}
                     `<li><a class='dropdown-item' onclick='remove_library()'>Remove</a></li>`
                     {% else %}
                     `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`

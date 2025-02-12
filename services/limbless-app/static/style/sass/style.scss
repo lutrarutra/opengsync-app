@@ -627,6 +627,10 @@ span.id-desc::after {
     }
 }
 
+.progress-bar:hover {
+    cursor: default;
+}
+
 .color-legend {
     display: flex;
     flex-wrap: wrap;

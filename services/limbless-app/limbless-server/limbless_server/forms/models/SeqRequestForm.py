@@ -96,11 +96,20 @@ class TechinicalInfoSubForm(FlaskForm):
     def is_validated(self) -> bool:
         return self._validated
     
-    def validate(self) -> bool:
+    def validate(self, user: models.User) -> bool:
         self._validated = super().validate()
         if self.submission_type.data == -1:
             self.submission_type.errors = ("Submission type is required",)
             self._validated = False
+
+        try:
+            if SubmissionType.get(self.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not user.is_insider():
+                self.submission_type.errors = ("You can only submit raw samples or pooled libraries by default.",)
+                self._validated = False
+        except ValueError:
+            logger.error(f"Invalid submission type: {self.submission_type.data}")
+            raise ValueError(f"Invalid submission type: {self.submission_type.data}")
+        
         return self._validated
 
 

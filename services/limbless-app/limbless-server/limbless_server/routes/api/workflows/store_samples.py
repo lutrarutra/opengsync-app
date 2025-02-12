@@ -130,6 +130,16 @@ def select():
                 seq_request.status = SeqRequestStatus.PREPARED
                 seq_request = db.update_seq_request(seq_request)
 
+        elif seq_request.submission_type == SubmissionType.UNPOOLED_LIBRARIES:
+            all_libraries_stored = True
+            for library in seq_request.libraries:
+                all_libraries_stored = library.status >= LibraryStatus.STORED and all_libraries_stored
+                if not all_libraries_stored:
+                    break
+            if all_libraries_stored:
+                seq_request.status = SeqRequestStatus.SAMPLES_RECEIVED
+                seq_request = db.update_seq_request(seq_request)
+
     flash("Samples Stored!", "success")
     if seq_request is not None:
         return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))

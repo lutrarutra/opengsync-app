@@ -1,18 +1,20 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
 {% macro seq_request_status_bar(seq_request) -%}
-{% if seq_request.status.name == 'Draft' %}
-<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+{% if seq_request.status == SeqRequestStatus.DRAFT %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(SeqRequestStatus.DRAFT.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-transparent text-muted" style="width: 100%">
         {{ SeqRequestStatus.DRAFT.name }} {{ SeqRequestStatus.DRAFT.icon | safe }}
     </div>
 </div>
-{% elif seq_request.status.name == 'Archived' %}
-<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+{% elif seq_request.status == SeqRequestStatus.ARCHIVED %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(SeqRequestStatus.DRAFT.description, position='top', category='warning') }}>
 <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
         {{ SeqRequestStatus.ARCHIVED.name }} {{ SeqRequestStatus.ARCHIVED.icon | safe }}
     </div>
 </div>
-{% elif seq_request.status.name == 'Failed' %}
-<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+{% elif seq_request.status == SeqRequestStatus.FAILED %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(SeqRequestStatus.FAILED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
         {{ SeqRequestStatus.FAILED.name }} {{ SeqRequestStatus.FAILED.icon | safe }}
     </div>
@@ -21,29 +23,32 @@
 <div class="progress-stacked">
     {% set fill_pct = (100 / SeqRequestStatus.FINISHED.id + 1) %}
     {% for status_id in range(1, SeqRequestStatus.FINISHED.id + 1) %}
-    <div class="progress" role="progressbar" aria-valuenow="{{ fill_pct }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ fill_pct }}%">
-        {% if seq_request.status.id >= status_id %}
-        <div class="progress-bar bg-tab-10-{{status_id}}">
+    {% set status = SeqRequestStatus.get(status_id) %}
+    <div class="progress" role="progressbar" aria-valuenow="{{ fill_pct }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ fill_pct }}%"
+    {{ tooltip(status.description, position='top', category='warning') }}>
+        {% if seq_request.status >= status %}
+        <div class="progress-bar bg-tab-10-{{ status_id }}">
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted  bg-transparent">
         {% endif %}
-        {{ SeqRequestStatus.get(status_id).name }} {{ SeqRequestStatus.get(status_id).icon | safe }}
+        {{ status.name }} {{ status.icon | safe }}
         </div>
     </div>
     {% endfor %}
 </div>
 {% endif %}
+<script>init_tooltips();</script>
 {%- endmacro %}
 
 {% macro experiment_status_bar(experiment) -%}
-{% if experiment.status.name == 'Archived' %}
-<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+{% if experiment.status == ExperimentStatus.ARCHIVED %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(ExperimentStatus.ARCHIVED.description, position='top', category='warning') }}>
 <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
         {{ ExperimentStatus.ARCHIVED.name }} {{ ExperimentStatus.ARCHIVED.icon | safe }}
     </div>
 </div>
-{% elif experiment.status.name == 'Failed' %}
-<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+{% elif experiment.status == ExperimentStatus.FAILED %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(ExperimentStatus.FAILED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
         {{ ExperimentStatus.FAILED.name }} {{ ExperimentStatus.FAILED.icon | safe }}
     </div>
@@ -52,13 +57,15 @@
 <div class="progress-stacked">
     {% set fill_pct = (100 / ExperimentStatus.FINISHED.id + 1) %}
     {% for status_id in range(0, ExperimentStatus.FINISHED.id + 1) %}
-    <div class="progress" role="progressbar" aria-valuenow="{{ fill_pct }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ fill_pct }}%">
+    {% set status = ExperimentStatus.get(status_id) %}
+    <div class="progress" role="progressbar" aria-valuenow="{{ fill_pct }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ fill_pct }}%"
+    {{ tooltip(status.description, position='top', category='warning') }}>
         {% if experiment.status.id >= status_id %}
         <div class="progress-bar bg-tab-10-{{status_id + 1}}">
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted  bg-transparent">
         {% endif %}
-        {{ ExperimentStatus.get(status_id).name }} {{ ExperimentStatus.get(status_id).icon | safe }}
+        {{ status.name }} {{ status.icon | safe }}
         </div>
     </div>
     {% endfor %}
@@ -67,14 +74,14 @@
 {%- endmacro %}
 
 {% macro library_status_bar(library) -%}
-{% if library.status.name == 'Draft' %}
-<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+{% if library.status == LibraryStatus.DRAFT %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(LibraryStatus.DRAFT.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-transparent text-muted" style="width: 100%">
         {{ LibraryStatus.DRAFT.name }} {{ LibraryStatus.DRAFT.icon | safe }}
     </div>
 </div>
-{% elif library.status.name == 'Failed' %}
-<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+{% elif library.status == LibraryStatus.FAILED %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(LibraryStatus.FAILED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
         {{ LibraryStatus.FAILED.name }} {{ LibraryStatus.FAILED.icon | safe }}
     </div>
@@ -83,13 +90,15 @@
 <div class="progress-stacked">
     {% set fill_pct = (100 / LibraryStatus.SEQUENCED.id + 1) %}
     {% for status_id in range(1, LibraryStatus.SEQUENCED.id + 1) %}
-    <div class="progress" role="progressbar" aria-valuenow="{{ fill_pct }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ fill_pct }}%">
-        {% if library.status.id >= status_id %}
+    {% set status = LibraryStatus.get(status_id) %}
+    <div class="progress" role="progressbar" aria-valuenow="{{ fill_pct }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ fill_pct }}%"
+    {{ tooltip(status.description, position='top', category='warning') }}>
+        {% if library.status >= status %}
         <div class="progress-bar bg-tab-10-{{status_id}}">
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted bg-transparent">
         {% endif %}
-        {{ LibraryStatus.get(status_id).name }} {{ LibraryStatus.get(status_id).icon | safe }}
+        {{ status.name }} {{ status.icon | safe }}
         </div>
     </div>
     {% endfor %}

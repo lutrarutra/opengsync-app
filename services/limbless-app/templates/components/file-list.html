@@ -48,7 +48,7 @@
             </div>
         </div>
         <div class="file-container">
-            {% if file.type.name == "Lane Pooling Table" %}
+            {% if file.type == FileType.LANE_POOLING_TABLE %}
             <div hx-get="{{ url_for('experiments_htmx.render_lane_pooling_tables', file_id=file.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
                 {{ spinner() }}
             </div>

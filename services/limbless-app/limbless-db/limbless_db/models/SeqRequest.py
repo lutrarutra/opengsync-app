@@ -34,12 +34,13 @@ class SeqRequest(Base):
     read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     submission_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=SeqRequestStatus.DRAFT.id)
-    read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
 
     timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
+    read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     num_lanes: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     organization_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)

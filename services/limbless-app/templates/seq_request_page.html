@@ -37,7 +37,7 @@
                 </button>
             </span>
             {% endif %}
-            {% if current_user.is_insider() and seq_request.status.name == "Submitted" %}
+            {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.SUBMITTED %}
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#process_request-form-popup">Process</button>
             {% endif %}
             <span>

@@ -418,7 +418,7 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
         is_prepared = is_prepared and library.status.id >= LibraryStatus.POOLED.id
     
     if status == SeqRequestStatus.ACCEPTED:
-        seq_request.status = SeqRequestStatus.PREPARED if is_prepared else SeqRequestStatus.ACCEPTED
+        seq_request.status = SeqRequestStatus.ACCEPTED
 
     for pool in seq_request.pools:
         pool.status = pool_status
