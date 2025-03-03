@@ -31,33 +31,35 @@ def experiments_page():
 def experiment_page(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
-    
+
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
+
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
     pools, _ = db.get_pools(experiment_id=experiment_id, sort_by="id", descending=True, limit=None)
 
     experiment_lanes: dict[int, list[int]] = {}
-    _lane_capacities: dict[int, float] = {}
 
     all_lanes_qced = len(experiment.lanes) > 0
     flow_cell_ready = len(experiment.lanes) > 0
-        
+
     for lane in experiment.lanes:
         all_lanes_qced = all_lanes_qced and lane.is_qced()
         flow_cell_ready = flow_cell_ready and lane.is_loaded()
         experiment_lanes[lane.number] = []
-        _lane_capacities[lane.number] = 0
-        
-        for pool in lane.pools:
-            experiment_lanes[lane.number].append(pool.id)
-            if pool.num_m_reads_requested is not None:
-                _lane_capacities[lane.number] += pool.num_m_reads_requested
 
-    lane_capacities: dict[int, tuple[float, float]] = dict([(lane.number, (_lane_capacities[lane.number], 100.0 * _lane_capacities[lane.number] / (experiment.flowcell_type.max_m_reads if experiment.workflow.combined_lanes else experiment.flowcell_type.max_m_reads_per_lane))) for lane in experiment.lanes])
+        for link in lane.pool_links:
+            experiment_lanes[lane.number].append(link.pool_id)
+
+    lane_capacities: dict[int, float] = dict([(lane.number, 0) for lane in experiment.lanes])
+    for link in experiment.laned_pool_links:
+        if link.lane.number not in lane_capacities.keys():
+            lane_capacities[link.lane.number] = 0.0
+
+        lane_capacities[link.lane.number] += link.num_m_reads if link.num_m_reads is not None else 0.0
+
     all_pools_laned = len(pools) > 0
 
     qubit_concentration_measured = len(pools) > 0

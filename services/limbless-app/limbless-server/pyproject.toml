@@ -59,6 +59,14 @@ dependencies = [
     "pyyaml >= 6.0.1",
 ]
 
+[tool.flake8]
+max-line-length = 88
+exclude = [
+    ".git",
+    "__pycache__",
+]
+extend-ignore = ["E501", "W292", "W293"]
+
 [project.urls]
 Repository = "https://github.com/lutrarutra/limbless-app"
 

@@ -1,2 +1,2 @@
-from .DBHandler import DBHandler
-from .DBSession import DBSession
+from .DBHandler import DBHandler    # noqa
+from .DBSession import DBSession    # noqa

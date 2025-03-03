@@ -100,7 +100,7 @@ def get_lanes(
     return lanes, n_pages
 
 
-def update_lane(self: "DBHandler", lane: models.Lane,) -> models.Lane:
+def update_lane(self: "DBHandler", lane: models.Lane) -> models.Lane:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -112,3 +112,21 @@ def update_lane(self: "DBHandler", lane: models.Lane,) -> models.Lane:
         self.close_session()
 
     return lane
+
+
+def delete_lane(self: "DBHandler", lane_id: int):
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (lane := self.session.get(models.Lane, lane_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Lane with id {lane_id} does not exist")
+    
+    for link in lane.pool_links:
+        self.session.delete(link)
+    
+    lane.experiment.lanes.remove(lane)
+    self.session.delete(lane)
+    self.session.commit()
+
+    if not persist_session:
+        self.close_session()

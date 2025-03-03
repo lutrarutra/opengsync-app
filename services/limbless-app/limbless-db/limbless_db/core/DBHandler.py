@@ -104,7 +104,8 @@ class DBHandler():
     )
 
     from .model_handlers._lane_methods import (
-        create_lane, get_lane, get_lanes, update_lane, get_experiment_lane
+        create_lane, get_lane, get_lanes, update_lane, get_experiment_lane,
+        delete_lane
     )
 
     from .model_handlers._feature_methods import (

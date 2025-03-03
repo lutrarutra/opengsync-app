@@ -20,22 +20,24 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
     target_molarity = FloatField(validators=[OptionalValidator()])
     total_volume_ul = FloatField(validators=[OptionalValidator()])
 
-    def __init__(self, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
+        self.experiment = experiment
         self._context["warning_min"] = models.Lane.warning_min_molarity
         self._context["warning_max"] = models.Lane.warning_max_molarity
         self._context["error_min"] = models.Lane.error_min_molarity
         self._context["error_max"] = models.Lane.error_max_molarity
         self._context["enumerate"] = enumerate
+        self._context["experiment"] = experiment
 
-    def __get_params(self, experiment: models.Experiment, df: pd.DataFrame) -> dict:
+    def __get_params(self, df: pd.DataFrame):
         row = df.iloc[0]
         lane_molarity = row["original_qubit_concentration"] / (row["avg_fragment_size"] * 660) * 1_000_000
 
         if pd.notna(row["total_volume_ul"]):
             self.total_volume_ul.data = row["total_volume_ul"]
         else:
-            self.total_volume_ul.data = experiment.workflow.volume_target_ul
+            self.total_volume_ul.data = self.experiment.workflow.volume_target_ul
 
         if pd.notna(row["sequencing_qubit_concentration"]):
             self.measured_qubit.data = row["sequencing_qubit_concentration"]
@@ -53,41 +55,36 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
         else:
             sequencing_molarity = None
 
-        return dict(
-            avg_fragment_size=row["avg_fragment_size"],
-            lane_molarity=lane_molarity,
-            library_volume=library_volume,
-            eb_volume=eb_volume,
-            sequencing_molarity=sequencing_molarity,
-        )
+        self._context["avg_fragment_size"] = row["avg_fragment_size"]
+        self._context["lane_molarity"] = lane_molarity
+        self._context["library_volume"] = library_volume
+        self._context["eb_volume"] = eb_volume
+        self._context["sequencing_molarity"] = sequencing_molarity
 
-    def prepare(self, experiment: models.Experiment) -> dict:
-        df = db.get_experiment_lanes_df(experiment.id)
-        return self.__get_params(experiment, df)
+    def prepare(self):
+        df = db.get_experiment_lanes_df(self.experiment.id)
+        self.__get_params(df)
     
-    def process_request(self, **context) -> Response:
-        experiment: models.Experiment = context["experiment"]
-        
+    def process_request(self) -> Response:
         if not self.validate():
-            df = db.get_experiment_lanes_df(experiment.id)
-            context = context | self.__get_params(experiment, df)
-            return self.make_response(**context)
+            self._context["df"] = db.get_experiment_lanes_df(self.experiment.id)
+            return self.make_response()
 
         loaded = True
-        for lane in experiment.lanes:
+        for lane in self.experiment.lanes:
             lane.total_volume_ul = self.total_volume_ul.data
             lane.sequencing_qubit_concentration = self.measured_qubit.data
             lane.target_molarity = self.target_molarity.data
-            if (lane_molarity := lane.original_molarity) is not None and lane.target_molarity is not None and lane.total_volume_ul is not None:
-                lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane_molarity
+            if ((lane_molarity := lane.original_molarity) is not None) and (lane.target_molarity is not None) and (lane.total_volume_ul is not None):
+                lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane_molarity  # type: ignore
             else:
                 loaded = False
 
             lane = db.update_lane(lane)
 
         if loaded:
-            experiment.status = ExperimentStatus.LOADED
-            experiment = db.update_experiment(experiment)
+            self.experiment.status = ExperimentStatus.LOADED
+            experiment = db.update_experiment(self.experiment)
 
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
@@ -105,16 +102,17 @@ class LoadFlowCellForm(HTMXFlaskForm):
 
     input_fields = FieldList(FormField(SubForm), min_entries=1)
 
-    def __init__(self, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
+        self.experiment = experiment
         self._context["warning_min"] = models.Lane.warning_min_molarity
         self._context["warning_max"] = models.Lane.warning_max_molarity
         self._context["error_min"] = models.Lane.error_min_molarity
         self._context["error_max"] = models.Lane.error_max_molarity
         self._context["enumerate"] = enumerate
 
-    def prepare(self, experiment: models.Experiment) -> dict:
-        df = db.get_experiment_lanes_df(experiment.id)
+    def prepare(self):
+        df = db.get_experiment_lanes_df(self.experiment.id)
         df["lane_molarity"] = df["original_qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
         df["library_volume"] = None
@@ -129,7 +127,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
             if pd.notna(row["total_volume_ul"]):
                 entry.total_volume_ul.data = row["total_volume_ul"]
             else:
-                entry.total_volume_ul.data = experiment.workflow.volume_target_ul
+                entry.total_volume_ul.data = self.experiment.workflow.volume_target_ul
 
             if pd.notna(row["sequencing_qubit_concentration"]):
                 entry.measured_qubit.data = row["sequencing_qubit_concentration"]
@@ -141,18 +139,16 @@ class LoadFlowCellForm(HTMXFlaskForm):
                 df.at[idx, "eb_volume"] = entry.total_volume_ul.data - library_volume
 
         df["sequencing_molarity"] = df["sequencing_qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
-
-        return {"df": df}
+        self._context["df"] = df
     
-    def process_request(self, **context) -> Response:
-        experiment = context["experiment"]
-        df = db.get_experiment_lanes_df(experiment.id)
+    def process_request(self) -> Response:
+        df = db.get_experiment_lanes_df(self.experiment.id)
 
         if not self.validate():
             df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
             df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
-            context["df"] = df
-            return self.make_response(**context)
+            self._context["df"] = df
+            return self.make_response()
         
         all_lanes_loaded = True
         for i, (_, row) in enumerate(df.iterrows()):
@@ -164,14 +160,14 @@ class LoadFlowCellForm(HTMXFlaskForm):
             lane.target_molarity = entry.target_molarity.data
             lane.total_volume_ul = entry.total_volume_ul.data
             lane.sequencing_qubit_concentration = entry.measured_qubit.data
-            if lane.total_volume_ul is not None and lane.target_molarity is not None:
-                lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity
+            if (lane.total_volume_ul is not None) and (lane.target_molarity is not None) and (lane.original_molarity is not None):
+                lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity  # type: ignore
             lane = db.update_lane(lane)
             all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
 
         if all_lanes_loaded:
-            experiment.status = ExperimentStatus.LOADED
-            experiment = db.update_experiment(experiment)
+            self.experiment.status = ExperimentStatus.LOADED
+            self.experiment = db.update_experiment(self.experiment)
 
         flash("Saved!", "success")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))

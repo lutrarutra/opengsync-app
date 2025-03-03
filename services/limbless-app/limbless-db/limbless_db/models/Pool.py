@@ -58,8 +58,15 @@ class Pool(Base):
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="pools")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
-    lanes: Mapped[list["Lane"]] = relationship("Lane", secondary=links.LanePoolLink.__tablename__, back_populates="pools", lazy="select")
-    dilutions: Mapped[list["PoolDilution"]] = relationship("PoolDilution", back_populates="pool", lazy="select", cascade="merge, save-update, delete, delete-orphan", order_by="PoolDilution.timestamp_utc")
+    lane_links: Mapped[list[links.LanePoolLink]] = relationship(
+        links.LanePoolLink, back_populates="pool", lazy="select",
+        cascade="save-update, merge, delete",
+        order_by="links.LanePoolLink.lane_num"
+    )
+    dilutions: Mapped[list["PoolDilution"]] = relationship(
+        "PoolDilution", back_populates="pool", lazy="select",
+        cascade="merge, save-update, delete, delete-orphan", order_by="PoolDilution.timestamp_utc"
+    )
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]
 
@@ -140,3 +147,16 @@ class Pool(Base):
     
     def __repr__(self) -> str:
         return str(self)
+    
+    def lane(self, lane_num: int) -> "tuple[Lane | None, float | None]":
+        for link in self.lane_links:
+            if link.lane.number == lane_num:
+                return link.lane, link.num_m_reads
+        return None, None
+    
+    def reads_planned(self) -> float:
+        num_reads = 0.0
+        for link in self.lane_links:
+            if link.num_m_reads is not None:
+                num_reads += link.num_m_reads
+        return num_reads

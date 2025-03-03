@@ -70,10 +70,10 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     mail.init_app(app)
 
     @login_manager.user_loader
-    def load_user(user_id: int) -> models.User:
+    def load_user(user_id: int) -> models.User | None:
         if (user := db.get_user(user_id)) is None:
-            logger.error(f"User {user_id} not found")
-            raise exceptions.ElementDoesNotExist(f"User {user_id} not found")
+            logger.error(f"User not found: {user_id}")
+            return None
         return user
     
     if app.debug:
@@ -82,7 +82,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             return render_template("test.html")
         
     @app.route("/help")
-    # @cache.cached(timeout=1500)
+    @cache.cached(timeout=1500)
     def help_page():
         return render_template("help.html")
 
@@ -261,6 +261,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.library_pooling_workflow)
     app.register_blueprint(api.workflows.library_prep_workflow)
     app.register_blueprint(api.workflows.mux_prep_workflow)
+    app.register_blueprint(api.workflows.dist_reads_workflow)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

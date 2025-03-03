@@ -4,7 +4,7 @@ from flask import Blueprint, request, abort, flash, url_for
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import HTTPResponse, PoolStatus
 
 from limbless_db import db_session
@@ -31,9 +31,7 @@ def begin(experiment_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     context = {"experiment": experiment}
-    form = SelectSamplesForm(
-        workflow="select_experiment_pools", context=context,
-    )
+    form = SelectSamplesForm.create_workflow_form(workflow="select_experiment_pools", context=context)
     return form.make_response()
 
 
@@ -58,7 +56,7 @@ def select():
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    form: SelectSamplesForm = SelectSamplesForm(workflow="select_experiment_pools", formdata=request.form, context=context)
+    form: SelectSamplesForm = SelectSamplesForm.create_workflow_form(workflow="select_experiment_pools", formdata=request.form, context=context)
     if not form.validate():
         return form.make_response()
 

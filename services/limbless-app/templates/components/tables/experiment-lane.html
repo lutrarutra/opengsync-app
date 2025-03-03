@@ -21,7 +21,7 @@
             <tr>
                 <th scope="row">{{ lane.id }}</th>
                 <td>{{ lane.number }}</td>
-                <td>{{ lane.pools | length }}</td>
+                <td>{{ lane.pool_links | length }}</td>
                 <td class="qubit-col">
                     <div class="quantity-container">
                         <div class="value">{{ lane.qubit_concentration if lane.qubit_concentration }}</div>

@@ -184,7 +184,7 @@ def edit(seq_request_id: int):
             return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.models.SeqRequestForm(form_type="edit", formdata=request.form).process_request(
-        seq_request=seq_request, user_id=current_user.id
+        seq_request=seq_request, user=current_user
     )
 
 
@@ -274,7 +274,7 @@ def submit_request(seq_request_id: int):
 @seq_requests_htmx.route("create", methods=["POST"])
 @login_required
 def create():
-    return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user_id=current_user.id)
+    return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user=current_user, seq_request=None)
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/upload_auth_form", methods=["POST"])

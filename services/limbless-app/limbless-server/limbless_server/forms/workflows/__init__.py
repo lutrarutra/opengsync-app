@@ -7,3 +7,4 @@ from . import lane_qc  # noqa: F401
 from . import load_flow_cell  # noqa: F401
 from . import library_prep  # noqa: F401
 from . import library_pooling  # noqa: F401
+from . import dist_reads  # noqa: F401

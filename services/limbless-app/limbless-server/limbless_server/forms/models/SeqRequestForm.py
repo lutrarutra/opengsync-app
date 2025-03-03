@@ -96,19 +96,11 @@ class TechinicalInfoSubForm(FlaskForm):
     def is_validated(self) -> bool:
         return self._validated
     
-    def validate(self, user: models.User) -> bool:
+    def validate(self) -> bool:
         self._validated = super().validate()
         if self.submission_type.data == -1:
             self.submission_type.errors = ("Submission type is required",)
             self._validated = False
-
-        try:
-            if SubmissionType.get(self.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not user.is_insider():
-                self.submission_type.errors = ("You can only submit raw samples or pooled libraries by default.",)
-                self._validated = False
-        except ValueError:
-            logger.error(f"Invalid submission type: {self.submission_type.data}")
-            raise ValueError(f"Invalid submission type: {self.submission_type.data}")
         
         return self._validated
 
@@ -280,7 +272,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
             self._context["seq_request"] = seq_request
 
-    def validate(self, user_id: int, seq_request: Optional[models.SeqRequest] = None) -> bool:
+    def validate(self, user: models.User, seq_request: Optional[models.SeqRequest] = None) -> bool:
         if not super().validate():
             return False
         
@@ -289,8 +281,16 @@ class SeqRequestForm(HTMXFlaskForm):
                 self.bioinformatician_form.bioinformatician_email.errors = ("Bioinformatician email is required",)
                 self.bioinformatician_form.bioinformatician_email.flags.required = True
                 return False
+            
+        try:
+            if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not user.is_insider():
+                self.technical_info_form.submission_type.errors = ("You can only submit raw samples or pooled libraries by default.",)
+                self.technical_info_form._validated = False
+        except ValueError:
+            logger.error(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
+            raise ValueError(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
 
-        user_requests, _ = db.get_seq_requests(user_id=user_id, limit=None)
+        user_requests, _ = db.get_seq_requests(user_id=user.id, limit=None)
         for request in user_requests:
             if seq_request is not None and seq_request.id == request.id:
                 continue
@@ -384,7 +384,7 @@ class SeqRequestForm(HTMXFlaskForm):
             redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
         )
     
-    def __create_new_request(self, user_id: int) -> Response:
+    def __create_new_request(self, user: models.User) -> Response:
         contact_person = db.create_contact(
             name=self.contact_form.contact_person_name.data,  # type: ignore
             email=self.contact_form.contact_person_email.data,
@@ -426,7 +426,7 @@ class SeqRequestForm(HTMXFlaskForm):
             read_length=self.technical_info_form.read_length.data,
             special_requirements=self.technical_info_form.special_requirements.data,
             
-            requestor_id=user_id,
+            requestor_id=user.id,
             contact_person_id=contact_person.id,
             billing_contact_id=billing_contact.id,
             bioinformatician_contact_id=bioinformatician_contact_id,
@@ -440,14 +440,11 @@ class SeqRequestForm(HTMXFlaskForm):
             redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
         )
     
-    def process_request(self, **context) -> Response:
-        user_id = context["user_id"]
-        seq_request: Optional[models.SeqRequest] = context.get("seq_request")
-
-        if not self.validate(user_id=user_id, seq_request=seq_request):
-            return self.make_response(**context)
+    def process_request(self, user: models.User, seq_request: Optional[models.SeqRequest]) -> Response:
+        if not self.validate(user=user, seq_request=seq_request):
+            return self.make_response()
         
         if seq_request is not None:
             return self.__edit_existing_request(seq_request)
         
-        return self.__create_new_request(user_id=user_id)
+        return self.__create_new_request(user=user)

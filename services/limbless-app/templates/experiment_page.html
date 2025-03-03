@@ -124,24 +124,27 @@
 <div class="page-content">
     <div class="tab-content pt-1">
         <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
-            <div class="flowcell-capacity-container pb-1 pt-1">
+            <div class="progress-bar-container flowcell-capacity-container pb-1 pt-1">
                 {% if experiment.workflow.combined_lanes %}
-                {% set m_reads_selected, reads_used_pct = lane_capacities[1] %}
+                {% set m_reads_used = lane_capacities[1] %}
+                {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads %}
                 <div class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;">
                     <div class="progress-title">
-                        <b>Flowcell</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_selected | int }}/{{ experiment.flowcell_type.max_m_reads }} Million Reads)
+                        <b>Flowcell</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads }} Million Reads)
                     </div>
-                    <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct < 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
+                    <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct <= 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
                     </div>  
                 </div>
                 {% else %}
-                {% for lane in range(1, experiment.num_lanes + 1) %}
-                {% set m_reads_selected, reads_used_pct = lane_capacities[lane] %}
-                <div class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;">
+                {% for lane in experiment.lanes %}
+                {% set m_reads_used = lane_capacities[lane.number] %}
+                {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads_per_lane %}
+                <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
+                hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
                     <div class="progress-title">
-                        <b>Lane {{ lane }}</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_selected | int }}/{{ experiment.flowcell_type.max_m_reads_per_lane }} Million Reads)
+                        <b>Lane {{ lane.number }}</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads_per_lane }} Million Reads)
                     </div>
-                    <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct < 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
+                    <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct <= 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
                     </div>  
                 </div>
                 {% endfor %}

@@ -166,9 +166,7 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
             lanes = experiment.lanes.copy()
             for lane in lanes:
                 if lane.number > experiment.flowcell_type.num_lanes:
-                    for pool in lane.pools:
-                        lane.pools.remove(pool)
-                    experiment.lanes.remove(lane)
+                    self.delete_lane(lane.id)
 
         elif prev_workflow.flow_cell_type.num_lanes < workflow.flow_cell_type.num_lanes:
             for lane_num in range(workflow.flow_cell_type.num_lanes - prev_workflow.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
@@ -177,18 +175,21 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
                 lane = models.Lane(number=lane_num, experiment_id=experiment.id)
                 self.session.add(lane)
 
-        self.session.add(experiment)
-        self.session.commit()
-        self.session.refresh(experiment)
         if experiment.workflow.combined_lanes:
-            for lane in experiment.lanes:
-                for pool in experiment.pools:
-                    if pool not in lane.pools:
-                        lane.pools.append(pool)
-
+            for link in experiment.laned_pool_links:
+                self.session.delete(link)
+            
             self.session.add(experiment)
             self.session.commit()
             self.session.refresh(experiment)
+            
+            for lane in experiment.lanes:
+                for pool in experiment.pools:
+                    lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
+        
+        self.session.add(experiment)
+        self.session.commit()
+        self.session.refresh(experiment)
 
     if not persist_session:
         self.close_session()

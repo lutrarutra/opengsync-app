@@ -1,6 +1,7 @@
 class InvalidValue(Exception):
     pass
 
+
 class LinkDoesNotExist(Exception):
     pass
 

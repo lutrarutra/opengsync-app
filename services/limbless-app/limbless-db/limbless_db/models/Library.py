@@ -123,7 +123,7 @@ class Library(Base):
         return self.status == LibraryStatus.DRAFT
     
     def is_indexed(self) -> bool:
-        return self.is_pooled()
+        return len(self.indices) > 0
     
     def is_pooled(self) -> bool:
         return self.status == LibraryStatus.POOLED

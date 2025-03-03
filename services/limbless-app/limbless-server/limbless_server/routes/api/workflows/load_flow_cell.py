@@ -6,7 +6,7 @@ from flask_login import login_required
 from limbless_db import models, DBSession
 from limbless_db.categories import HTTPResponse
 
-from .... import db, logger
+from .... import db, logger  # noqa
 from ....forms.workflows import load_flow_cell as wff
 
 if TYPE_CHECKING:
@@ -28,12 +28,12 @@ def begin(experiment_id: int):
             return abort(HTTPResponse.NOT_FOUND.id)
 
     if experiment.workflow.combined_lanes:
-        form = wff.UnifiedLoadFlowCellForm()
+        form = wff.UnifiedLoadFlowCellForm(experiment=experiment)
     else:
-        form = wff.LoadFlowCellForm()
+        form = wff.LoadFlowCellForm(experiment=experiment)
         
-    context = form.prepare(experiment)
-    return form.make_response(experiment=experiment, **context)
+    form.prepare()
+    return form.make_response()
 
 
 @load_flow_cell_workflow.route("<int:experiment_id>/load", methods=["POST"])
@@ -49,8 +49,8 @@ def load(experiment_id: int):
         experiment.files
 
         if experiment.workflow.combined_lanes:
-            form = wff.UnifiedLoadFlowCellForm(request.form)
+            form = wff.UnifiedLoadFlowCellForm(experiment=experiment, formdata=request.form)
         else:
-            form = wff.LoadFlowCellForm(request.form)
+            form = wff.LoadFlowCellForm(experiment=experiment, formdata=request.form)
 
-        return form.process_request(experiment=experiment)
+        return form.process_request()
