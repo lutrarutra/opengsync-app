@@ -63,18 +63,16 @@
                             {% for lane_num in range(1, experiment.num_lanes + 1) %}
                             {% set lane, num_m_reads = pool.lane(lane_num) %}
                             {% if experiment.workflow.combined_lanes %}
-                            <span {{ tooltip("Reads: " + num_m_reads | string) }}>
-                                <button type="button" class="btn btn-primary table-btn disabled pool-lane-btn">
-                                    {{ lane_num }}
-                                </button>
-                            </span>
+                            <button type="button" class="btn btn-primary table-btn disabled pool-lane-btn">
+                                {{ lane_num }}
+                            </button>
                             {% else %}
                             {% if pool.id in experiment_lanes[lane_num] %}
                             {% set lane, num_m_reads = pool.lane(lane_num) %}
                             <button type="button" class="btn btn-primary table-btn pool-lane-btn"
                             hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num) }}">
                                 <span {{ tooltip("Reads: " + num_m_reads | string) }}>
-                                {{ lane_num }}
+                                    {{ lane_num }}
                                 </span>
                             </button>
                             {% else %}

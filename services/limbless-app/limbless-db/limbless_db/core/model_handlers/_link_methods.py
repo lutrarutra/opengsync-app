@@ -1,11 +1,11 @@
 import math
 from typing import Optional, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 
+if TYPE_CHECKING:
+    from ..DBHandler import DBHandler
 
 def get_sample_library_link(
     self: "DBHandler", sample_id: int, library_id: int,
@@ -240,7 +240,7 @@ def add_pool_to_lane(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (_ := self.session.get(models.Experiment, experiment_id)) is None:
+    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
     if (lane := self.session.query(models.Lane).where(
@@ -257,7 +257,13 @@ def add_pool_to_lane(
     ).first():
         raise exceptions.LinkAlreadyExists(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are already linked.")
     
-    num_m_reads_per_lane = pool.num_m_reads_requested / (len(pool.lane_links) + 1) if pool.num_m_reads_requested else None
+    if experiment.workflow.combined_lanes:
+        num_m_reads_per_lane = pool.num_m_reads_requested / experiment.num_lanes if pool.num_m_reads_requested else None
+    else:
+        num_m_reads_per_lane = pool.num_m_reads_requested / (len(pool.lane_links) + 1) if pool.num_m_reads_requested else None
+    self.debug(len(pool.lane_links))
+    self.debug(pool.num_m_reads_requested)
+    self.debug(num_m_reads_per_lane)
 
     for link in pool.lane_links:
         link.num_m_reads = num_m_reads_per_lane

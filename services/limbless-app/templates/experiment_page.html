@@ -126,9 +126,10 @@
         <div class="tab-pane fade show active" id="pools-tab" role="tabpanel" tabindex="0">
             <div class="progress-bar-container flowcell-capacity-container pb-1 pt-1">
                 {% if experiment.workflow.combined_lanes %}
-                {% set m_reads_used = lane_capacities[1] %}
+                {% set m_reads_used = experiment.m_reads_planned() %}
                 {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads %}
-                <div class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;">
+                <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
+                hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
                     <div class="progress-title">
                         <b>Flowcell</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads }} Million Reads)
                     </div>
@@ -137,7 +138,7 @@
                 </div>
                 {% else %}
                 {% for lane in experiment.lanes %}
-                {% set m_reads_used = lane_capacities[lane.number] %}
+                {% set m_reads_used = lane.m_reads_planned() %}
                 {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads_per_lane %}
                 <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
                 hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">

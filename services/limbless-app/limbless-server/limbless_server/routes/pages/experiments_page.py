@@ -53,13 +53,6 @@ def experiment_page(experiment_id: int):
         for link in lane.pool_links:
             experiment_lanes[lane.number].append(link.pool_id)
 
-    lane_capacities: dict[int, float] = dict([(lane.number, 0) for lane in experiment.lanes])
-    for link in experiment.laned_pool_links:
-        if link.lane.number not in lane_capacities.keys():
-            lane_capacities[link.lane.number] = 0.0
-
-        lane_capacities[link.lane.number] += link.num_m_reads if link.num_m_reads is not None else 0.0
-
     all_pools_laned = len(pools) > 0
 
     qubit_concentration_measured = len(pools) > 0
@@ -113,5 +106,4 @@ def experiment_page(experiment_id: int):
         all_lanes_qced=all_lanes_qced,
         flow_cell_ready=flow_cell_ready,
         laning_completed=laning_completed,
-        lane_capacities=lane_capacities,
     )

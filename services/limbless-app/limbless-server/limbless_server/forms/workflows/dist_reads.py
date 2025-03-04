@@ -97,3 +97,58 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
         self.experiment = db.update_experiment(self.experiment)
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))
+    
+
+class PoolReadsSubForm(FlaskForm):
+    pool_id = IntegerField(validators=[DataRequired()])
+    pool_name = StringField()
+    num_reads = FloatField(validators=[DataRequired()])
+
+
+class DistributeReadsCombinedForm(HTMXFlaskForm):
+    _template_path = "workflows/dist_reads/combined.html"
+
+    experiment_id = IntegerField(validators=[DataRequired()])
+    pool_reads_fields = FieldList(FormField(PoolReadsSubForm), min_entries=1)
+
+    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+        HTMXFlaskForm.__init__(self, formdata=formdata)
+        self.experiment = experiment
+        self.experiment_id.data = self.experiment.id
+        self._context["experiment"] = experiment
+
+    def prepare(self):
+        for i, pool in enumerate(self.experiment.pools):
+            if i > len(self.pool_reads_fields) - 1:
+                self.pool_reads_fields.append_entry()
+
+            pool_reads_field: PoolReadsSubForm = self.pool_reads_fields[-1]  # type: ignore
+            pool_reads_field.pool_id.data = pool.id
+            pool_reads_field.pool_name.data = pool.name
+            pool_reads_field.num_reads.data = 0
+
+    def validate(self) -> bool:
+        if not super().validate():
+            return False
+        
+        return True
+
+    def process_request(self) -> Response:
+        if not self.validate():
+            return make_response()
+
+        links: dict[tuple[int, int], models.links.LanePoolLink] = {}
+        for link in self.experiment.laned_pool_links:
+            links[(link.lane_id, link.pool_id)] = link
+
+        for pool_field in self.pool_reads_fields:
+            if (pool := db.get_pool(pool_field.pool_id.data)) is None:
+                logger.error(f"Pool with id {pool_field.pool_id.data} does not exist")
+                raise ValueError(f"Pool with id {pool_field.pool_id.data} does not exist")
+
+            for link in pool.lane_links:
+                link.num_m_reads = pool_field.num_reads.data / self.experiment.num_lanes
+                
+        self.experiment = db.update_experiment(self.experiment)
+        flash("Saved!", "success")
+        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))

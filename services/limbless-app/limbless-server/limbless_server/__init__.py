@@ -62,7 +62,7 @@ serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 TIMEZONE = pytz.timezone(os.environ['TIMEZONE'])
 
-db = DBHandler()
+db = DBHandler(logger=logger)
 cache = Cache()
 msf_cache = RedisMSFFileCache()
 

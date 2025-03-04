@@ -1,0 +1,43 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell, readonly_field %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div id="distribute-reads-form" class="modal-content">
+    {{ form.csrf_token() }}
+    <div class="modal-header">
+        <h4 class="modal-title">Separate Distinct Reads</h4>
+    </div>
+    <div class="modal-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col" class="col-6">Pool</th>
+                    <th scope="col" class="col-6">Num. Reads</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for field in form.pool_reads_fields %}
+                {{ field.csrf_token() }}
+                <tr>
+                    {{ field.pool_id(readonly=true, hidden=true) }}
+                    <th>{{ field.pool_name.data }}</th>
+                    <td>{{ form_cell(field.num_reads, unit="M") }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ context }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-post="{{ url_for('dist_reads_workflow.submit', experiment_id=experiment.id) }}"
+            hx-target="#distribute-reads-form" hx-swap="outerHTML" hx-include="#distribute-reads-form">
+                Save
+            </button>
+        </div>
+    </div>
+</div>

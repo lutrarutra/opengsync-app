@@ -116,3 +116,9 @@ class Experiment(Base):
     
     def search_value(self) -> int:
         return self.id
+    
+    def m_reads_planned(self) -> float:
+        reads = 0.0
+        for lane in self.lanes:
+            reads += lane.m_reads_planned()
+        return reads

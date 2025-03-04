@@ -59,7 +59,7 @@ class Pool(Base):
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
     lane_links: Mapped[list[links.LanePoolLink]] = relationship(
-        links.LanePoolLink, back_populates="pool", lazy="select",
+        "LanePoolLink", back_populates="pool", lazy="select",
         cascade="save-update, merge, delete",
         order_by="links.LanePoolLink.lane_num"
     )

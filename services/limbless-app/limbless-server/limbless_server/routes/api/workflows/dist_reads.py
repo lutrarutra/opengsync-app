@@ -28,7 +28,7 @@ def begin(experiment_id: int) -> Response:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if experiment.workflow.combined_lanes:
-        raise NotImplementedError()
+        form = forms.DistributeReadsCombinedForm(experiment=experiment)
     else:
         form = forms.DistributeReadsSeparateForm(experiment=experiment)
     
@@ -47,7 +47,7 @@ def submit(experiment_id: int) -> Response:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if experiment.workflow.combined_lanes:
-        raise NotImplementedError()
+        form = forms.DistributeReadsCombinedForm(experiment=experiment, formdata=request.form)
     else:
         form = forms.DistributeReadsSeparateForm(experiment=experiment, formdata=request.form)
     
