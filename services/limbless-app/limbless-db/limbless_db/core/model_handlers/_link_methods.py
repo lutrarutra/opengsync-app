@@ -7,6 +7,7 @@ from .. import exceptions
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 
+
 def get_sample_library_link(
     self: "DBHandler", sample_id: int, library_id: int,
 ) -> models.links.SampleLibraryLink | None:

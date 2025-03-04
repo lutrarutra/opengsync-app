@@ -1,5 +1,3 @@
-import pandas as pd
-
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
@@ -74,13 +72,14 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
         for link in self.experiment.laned_pool_links:
             links[(link.lane_id, link.pool_id)] = link
 
-        for pool_field in self.pool_fields:
-            if (pool := db.get_pool(pool_field.pool_id.data)) is None:
+        pool_field: PoolSubForm
+        for pool_field in self.pool_fields:  # type: ignore
+            if (pool := db.get_pool(pool_field.pool_id.data)) is None:  # type: ignore
                 logger.error(f"Pool with id {pool_field.pool_id.data} does not exist")
                 raise ValueError(f"Pool with id {pool_field.pool_id.data} does not exist")
 
             lane_field: LaneSubForm
-            for lane_field in pool_field.reads_fields:
+            for lane_field in pool_field.reads_fields:  # type: ignore
                 if lane_field.num_reads.data is None:
                     continue
 
