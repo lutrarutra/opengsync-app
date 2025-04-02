@@ -403,7 +403,9 @@ def browse(workflow: str, page: int):
         if len(status_in) == 0:
             status_in = None
 
+    associated_to_experiment = None
     if workflow == "select_experiment_pools":
+        associated_to_experiment = False
         experiment_id = None
 
     sort_by = request.args.get("sort_by", "id")
@@ -413,7 +415,7 @@ def browse(workflow: str, page: int):
     
     pools, n_pages = db.get_pools(
         sort_by=sort_by, descending=descending, offset=offset, status_in=status_in, experiment_id=experiment_id,
-        seq_request_id=seq_request_id
+        seq_request_id=seq_request_id, associated_to_experiment=associated_to_experiment
     )
 
     context["workflow"] = workflow

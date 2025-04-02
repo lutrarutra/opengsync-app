@@ -220,7 +220,7 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
         models.Lane.id.label("lane_id"), models.Lane.number.label("lane"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
-        models.Pool.avg_fragment_size,
+        models.Pool.avg_fragment_size, models.links.LanePoolLink.num_m_reads
     ).where(
         models.Lane.experiment_id == experiment_id
     ).join(

@@ -124,7 +124,7 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
             pool_reads_field: PoolReadsSubForm = self.pool_reads_fields[-1]  # type: ignore
             pool_reads_field.pool_id.data = pool.id
             pool_reads_field.pool_name.data = pool.name
-            pool_reads_field.num_reads.data = 0
+            pool_reads_field.num_reads.data = pool.lane_links[0].num_m_reads * self.experiment.num_lanes if pool.lane_links[0].num_m_reads is not None else None
 
     def validate(self) -> bool:
         if not super().validate():
@@ -134,6 +134,7 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
 
     def process_request(self) -> Response:
         if not self.validate():
+            logger.debug(self.errors)  # FIXME: Erros not printed
             return make_response()
 
         links: dict[tuple[int, int], models.links.LanePoolLink] = {}

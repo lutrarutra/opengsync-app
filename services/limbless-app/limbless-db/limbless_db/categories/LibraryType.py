@@ -57,6 +57,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     ARTIC_SARS_COV_2 = LibraryTypeEnum(113, "ARTIC SARS-CoV-2", "ARTIC SARS-CoV-2", "ARTIC", "Viral Sequencing")
     IMMUNE_SEQ = LibraryTypeEnum(114, "Immune Sequencing", "Immune Sequencing", "IMMUNE", "Immune Sequencing")
     AMPLICON_SEQ = LibraryTypeEnum(115, "Amplicon-seq", "Amplicon-seq", "AMPLICON", "Gene Expression")
+    CUT_AND_RUN = LibraryTypeEnum(116, "Cut & Run", "Cut&Run", "CUTNRUN", "Binding Site Quantification")
 
 
 identifiers = []
