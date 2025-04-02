@@ -262,9 +262,6 @@ def add_pool_to_lane(
         num_m_reads_per_lane = pool.num_m_reads_requested / experiment.num_lanes if pool.num_m_reads_requested else None
     else:
         num_m_reads_per_lane = pool.num_m_reads_requested / (len(pool.lane_links) + 1) if pool.num_m_reads_requested else None
-    self.debug(len(pool.lane_links))
-    self.debug(pool.num_m_reads_requested)
-    self.debug(num_m_reads_per_lane)
 
     for link in pool.lane_links:
         link.num_m_reads = num_m_reads_per_lane
