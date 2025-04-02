@@ -9,7 +9,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import FileType
 
 from .... import db, logger
@@ -68,18 +68,17 @@ class LanePoolingForm(HTMXFlaskForm):
                 sample_sub_form.lane.data = lane
                 sample_sub_form.m_reads.data = row["num_m_reads_requested"]
 
-                with DBSession(db) as session:
-                    if (pool := session.get_pool(row["pool_id"])) is None:
-                        logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
-                        raise ValueError(f"Pool with id {row['pool_id']} does not exist")
-                    
-                    df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]
-                    sample_sub_form.dilution.data = "Orig."
-                    
-                    for dilution in pool.dilutions:
-                        sample_sub_form.dilution.data = dilution.identifier
-                        df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))
-                        df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
+                if (pool := db.get_pool(row["pool_id"])) is None:
+                    logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
+                    raise ValueError(f"Pool with id {row['pool_id']} does not exist")
+                
+                df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]
+                sample_sub_form.dilution.data = "Orig."
+                
+                for dilution in pool.dilutions:
+                    sample_sub_form.dilution.data = dilution.identifier
+                    df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))
+                    df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
 
                 counter += 1
         

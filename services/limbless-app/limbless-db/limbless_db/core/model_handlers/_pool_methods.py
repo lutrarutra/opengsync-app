@@ -80,6 +80,7 @@ def get_pools(
     experiment_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
+    associated_to_experiment: Optional[bool] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     status: Optional[PoolStatusEnum] = None,
     status_in: Optional[list[PoolStatusEnum]] = None,
@@ -130,6 +131,12 @@ def get_pools(
         query = query.where(
             models.Pool.type_id.in_([t.id for t in type_in])
         )
+
+    if associated_to_experiment is not None:
+        if associated_to_experiment:
+            query = query.where(models.Pool.experiment_id.isnot(None))
+        else:
+            query = query.where(models.Pool.experiment_id.is_(None))
 
     if sort_by is not None:
         attr = getattr(models.Pool, sort_by)

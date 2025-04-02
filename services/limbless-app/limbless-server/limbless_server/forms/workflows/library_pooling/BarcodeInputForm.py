@@ -106,7 +106,7 @@ class BarcodeInputForm(MultiStepForm):
         df["sequence_i7"] = df["sequence_i7"].apply(lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with=""))
         df["sequence_i5"] = df["sequence_i5"].apply(lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with=""))
 
-        df.loc[df["index_well"].notna(), "index_well"] = df.loc[df["index_well"].notna(), "index_well"].str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+        df.loc[df["index_well"].notna(), "index_well"] = df.loc[df["index_well"].notna(), "index_well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         kit_defined = df["kit_i7"].notna() & (df["index_well"].notna() | df["name_i7"].notna())
         manual_defined = df["sequence_i7"].notna()
@@ -152,14 +152,21 @@ class BarcodeInputForm(MultiStepForm):
             if self.prep_libraries_df[self.prep_libraries_df["id"] == row["library_id"]]["name"].isin([row["library_name"]]).all() == 0:
                 self.spreadsheet.add_error(i + 1, "library_name", "invalid 'library_name' for 'library_id'", "invalid_value")
 
-            if not kit_defined.at[idx] and not manual_defined.at[idx]:
-                self.spreadsheet.add_error(i + 1, "sequence_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+            if (not kit_defined.at[idx]) and (not manual_defined.at[idx]):
+                if not pd.isna(row["kit_i7"]):
+                    if pd.isna(row["index_well"]) and not pd.isna(row["name_i7"]):
+                        self.spreadsheet.add_error(i + 1, "index_well", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                    if pd.isna(row["name_i7"]) and not pd.isna(row["index_well"]):
+                        self.spreadsheet.add_error(i + 1, "name_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                elif not pd.isna(row["index_well"]) or not pd.isna(row["name_i7"]):
+                    self.spreadsheet.add_error(i + 1, "kit_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                elif pd.isna(row["sequence_i7"]):
+                    self.spreadsheet.add_error(i + 1, "sequence_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
 
         validated = validated and (len(self.spreadsheet._errors) == 0)
 
         self.df = df
-
-        return True
+        return validated
 
     def process_request(self) -> Response:
         if not self.validate():

@@ -9,7 +9,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import FileType
 
 from .... import db, logger
@@ -57,24 +57,23 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             df.at[idx, "form_idx"] = i
             sample_sub_form = self.sample_sub_forms[i]
             sample_sub_form.pool_id.data = row["pool_id"]
-            sample_sub_form.m_reads.data = row["num_m_reads_requested"]
+            sample_sub_form.m_reads.data = row["num_m_reads"] * experiment.flowcell_type.num_lanes
 
-            with DBSession(db) as session:
-                if (pool := session.get_pool(row["pool_id"])) is None:
-                    logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
-                    raise ValueError(f"Pool with id {row['pool_id']} does not exist")
-                
-                df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]
-                
-                for dilution in pool.dilutions:
-                    sample_sub_form.dilution.data = dilution.identifier
-                    df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))
-                    df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
+            if (pool := db.get_pool(row["pool_id"])) is None:
+                logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
+                raise ValueError(f"Pool with id {row['pool_id']} does not exist")
+            
+            df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]
+            
+            for dilution in pool.dilutions:
+                sample_sub_form.dilution.data = dilution.identifier
+                df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))
+                df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
         
         # https://knowledge.illumina.com/library-preparation/dna-library-prep/library-preparation-dna-library-prep-reference_material-list/000001240
         df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
-        df["share"] = df["num_m_reads_requested"] / df["num_m_reads_requested"].sum()
+        df["share"] = df["num_m_reads"] / df["num_m_reads"].sum()
 
         df["molarity_color"] = "cemm-green"
         df.loc[df["molarity"] < models.Pool.warning_min_molarity, "molarity_color"] = "cemm-yellow"
