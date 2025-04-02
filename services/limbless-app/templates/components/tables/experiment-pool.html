@@ -14,7 +14,6 @@
                         sort_by=sort_by, sort_order=sort_order, query_type="number"
                     )
                 }}
-                <th scope="col" class="col-2">Lanes</th>
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='Pool Name', column_var='name',
@@ -22,6 +21,7 @@
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
+                <th scope="col" class="col-2">Lanes</th>
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='Status', column_var='status_id',
@@ -47,33 +47,38 @@
                 }}
                 <th class="col-1" scope="col">Library Size</th>
                 <th class="col-1" scope="col" {{ tooltip("Sample molarity of the pool") }}>Molarity</th>
-                <th class="col-1" scope="col"># Reads Requested</th>
+                <th class="col-1" scope="col"># Reads</th>
             </tr>
         </thead>
         <tbody>
             {% for pool in pools %}
             <tr class="pool-row" id="pool-row-{{ pool.id }}">
                 <th scope="row">{{ pool.id }}</th>
+                <td><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">{{ pool.name }}</a></td>
                 <td>
                     {% if experiment.workflow.combined_lanes %}
                     <span class="table-btn" {{ tooltip("You cannot edit laning configurations in this workflow.", "top", category="warning") }}>
                     {% endif %}
                         <div class="btn-group table-btn {% if experiment.workflow.combined_lanes %}disabled{% endif %}">
-                            {% for lane in range(1, experiment.num_lanes + 1) %}
+                            {% for lane_num in range(1, experiment.num_lanes + 1) %}
+                            {% set lane, num_m_reads = pool.lane(lane_num) %}
                             {% if experiment.workflow.combined_lanes %}
-                            <button type="button" class="btn btn-primary table-btn disabled">
-                                {{ lane }}
+                            <button type="button" class="btn btn-primary table-btn disabled pool-lane-btn">
+                                {{ lane_num }}
                             </button>
                             {% else %}
-                            {% if pool.id in experiment_lanes[lane] %}
-                            <button type="button" class="btn btn-primary table-btn"
-                            hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane) }}">
-                                {{ lane }}
+                            {% if pool.id in experiment_lanes[lane_num] %}
+                            {% set lane, num_m_reads = pool.lane(lane_num) %}
+                            <button type="button" class="btn btn-primary table-btn pool-lane-btn"
+                            hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num) }}">
+                                <span {{ tooltip("Reads: " + num_m_reads | string) }}>
+                                    {{ lane_num }}
+                                </span>
                             </button>
                             {% else %}
-                            <button type="button" class="btn btn-outline-primary table-btn"
-                            hx-post="{{ url_for('experiments_htmx.lane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane) }}">
-                                {{ lane }}
+                            <button type="button" class="btn btn-outline-primary table-btn pool-lane-btn"
+                            hx-post="{{ url_for('experiments_htmx.lane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num) }}">
+                                {{ lane_num }}
                             </button>
                             {% endif %}
                             {% endif %}
@@ -83,7 +88,6 @@
                     </span>
                     {% endif %}
                 </td>
-                <td><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">{{ pool.name }}</a></td>
                 <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
                 <td><a href="{{ url_for('users_page.user_page', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
@@ -100,8 +104,8 @@
                     </div>
                 </td>
                 <td>
-                    <div class="quantity-container">
-                        <div class="value">{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
+                    <div class="quantity-container" {{ tooltip("Planned / Requested") }}>
+                        <div class="value">{{ pool.reads_planned() | int }} / {{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
                         <div class="unit">M</div>
                     </div>
                 </td>

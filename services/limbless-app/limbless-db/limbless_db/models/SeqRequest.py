@@ -34,12 +34,13 @@ class SeqRequest(Base):
     read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     submission_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=SeqRequestStatus.DRAFT.id)
-    read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
 
     timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
+    read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     num_lanes: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    
     num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     organization_contact_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("contact.id"), nullable=False)
@@ -74,10 +75,9 @@ class SeqRequest(Base):
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
     delivery_email_links: Mapped[list[links.SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete,merge", back_populates="seq_request")
     samples: Mapped[list["Sample"]] = relationship(
-        "Sample",
+        "Sample", viewonly=True,
         secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id).join(Library, Library.id == SampleLibraryLink.library_id)",
         primaryjoin="SeqRequest.id == Library.seq_request_id",
-        viewonly=True
     )
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]

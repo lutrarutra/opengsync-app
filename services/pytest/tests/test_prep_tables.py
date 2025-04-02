@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import openpyxl
 
+from limbless_db.categories import LabProtocol
+
 common_columns = [
     "library_id",
     "library_name",
@@ -33,23 +35,31 @@ def common_prep_table_test(table_path: str):
     assert len(df) == 96
 
     for col in common_columns:
-        assert col in df.columns
-        assert df[col].isna().sum() == len(df)
+        assert col in df.columns, f"Column not found: {col}"
+        assert df[col].isna().sum() == len(df), f"Not empty: {col}"
 
     return wb, df
 
 
 def test_default_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, "template.xlsx"))
+    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.CUSTOM.prep_file_name))
 
 
 def test_rna_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, "RNA.xlsx"))
+    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.RNA_SEQ.prep_file_name))
 
 
 def test_wgs_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, "WGS.xlsx"))
+    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.WGS.prep_file_name))
 
 
 def test_qseq_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, "QSEQ.xlsx"))
+    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.QUANT_SEQ.prep_file_name))
+
+
+def test_tenx_table():
+    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.TENX.prep_file_name))
+
+
+def test_smartseq_table():
+    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.SMART_SEQ.prep_file_name))

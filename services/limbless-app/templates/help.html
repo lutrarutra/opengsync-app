@@ -48,6 +48,12 @@
         sequenced. Samples can contain metadata information such as tissue, sex, genotype etc. Each sample can be
         prepared into one or more libraries.
     </p>
+    
+    <ul>
+    {% for status in SampleStatus.as_list() %}
+        <li><b>{{ status.display_name }}</b>: {{ status.description }}</li>
+    {% endfor %}
+    </ul>
 
     <h3>Library</h3>
     <p>
@@ -59,12 +65,23 @@
         created from that sample. Samples can be multiplexed in a same library, e.g. using 10X sample multiplexing
         hash-tag-oligos (HTOs).
     </p>
+    <ul>
+    {% for status in LibraryStatus.as_list() %}
+        <li><b>{{ status.display_name }}</b>: {{ status.description }}</li>
+    {% endfor %}
+    </ul>
 
     <h3>Pool</h3>
     <p>
         Pool is a collection of libraries that are sequenced together. A pool can be sequenced on multiple lanes of a
-        flowcell.
+        flowcell. Pool can be associated to only a single experiment; on re-sequencing, pool and libraries are cloned.
     </p>
+    <ul>
+    {% for status in PoolStatus.as_list() %}
+        <li><b>{{ status.display_name }}</b>: {{ status.description }}</li>
+    {% endfor %}
+    </ul>
+
 </div>
 
 {% endblock content %}

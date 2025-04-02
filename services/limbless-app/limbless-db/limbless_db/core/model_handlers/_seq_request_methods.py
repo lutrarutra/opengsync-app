@@ -418,7 +418,7 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
         is_prepared = is_prepared and library.status.id >= LibraryStatus.POOLED.id
     
     if status == SeqRequestStatus.ACCEPTED:
-        seq_request.status = SeqRequestStatus.PREPARED if is_prepared else SeqRequestStatus.ACCEPTED
+        seq_request.status = SeqRequestStatus.ACCEPTED
 
     for pool in seq_request.pools:
         pool.status = pool_status
@@ -469,7 +469,9 @@ def clone_seq_request(self: "DBHandler", seq_request_id: int, method: Literal["p
     
     if method == "raw":
         submission_type = SubmissionType.RAW_SAMPLES
-    else:
+    elif method == "indexed":
+        submission_type = SubmissionType.UNPOOLED_LIBRARIES
+    elif method == "pooled":
         submission_type = SubmissionType.POOLED_LIBRARIES
 
     cloned_request = self.create_seq_request(
@@ -492,14 +494,12 @@ def clone_seq_request(self: "DBHandler", seq_request_id: int, method: Literal["p
 
     if method == "pooled":
         pools: dict[int, models.Pool] = {}
-
         for library in seq_request.libraries:
             cloned_library = self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True)
             if library.pool_id is not None:
                 if library.pool_id not in pools.keys():
-                    pools[library.pool_id] = self.clone_pool(library.pool_id, seq_request_id=seq_request.id)
+                    pools[library.pool_id] = self.clone_pool(library.pool_id, seq_request_id=cloned_request.id)
                 self.pool_library(library_id=cloned_library.id, pool_id=pools[library.pool_id].id)
-
     elif method == "indexed":
         for library in seq_request.libraries:
             self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True)

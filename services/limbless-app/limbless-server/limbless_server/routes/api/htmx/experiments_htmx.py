@@ -559,8 +559,8 @@ def get_pools(experiment_id: int, page: int):
     for lane in experiment.lanes:
         experiment_lanes[lane.number] = []
         
-        for pool in lane.pools:
-            experiment_lanes[lane.number].append(pool.id)
+        for link in lane.pool_links:
+            experiment_lanes[lane.number].append(link.pool_id)
 
     return make_response(
         render_template(

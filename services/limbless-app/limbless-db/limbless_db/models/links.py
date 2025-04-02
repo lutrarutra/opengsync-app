@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from .Plate import Plate
     from .Group import Group
     from .User import User
+    from .Pool import Pool
+    from .Lane import Lane
 
 
 class UserAffiliation(Base):
@@ -48,12 +50,6 @@ class SamplePlateLink(Base):
     library: Mapped[Optional["Library"]] = relationship("Library", back_populates="plate_links", lazy="joined")
 
 
-class ExperimentPoolLink(Base):
-    __tablename__ = "experiment_pool_link"
-    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), primary_key=True)
-    pool_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("pool.id"), primary_key=True)
-
-
 class SampleLibraryLink(Base):
     __tablename__ = "sample_library_link"
     __mapper_args__ = {"confirm_deleted_rows": False}
@@ -83,9 +79,22 @@ class LanePoolLink(Base):
     __tablename__ = "lane_pool_link"
     lane_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lane.id"), primary_key=True)
     pool_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("pool.id"), primary_key=True)
+    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=False)
+
+    lane: Mapped["Lane"] = relationship(
+        "Lane", lazy="select", back_populates="pool_links",
+        cascade="save-update, merge"
+    )
+    pool: Mapped["Pool"] = relationship(
+        "Pool", lazy="select", back_populates="lane_links",
+        cascade="save-update, merge"
+    )
+
+    num_m_reads: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    lane_num: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     def __str__(self) -> str:
-        return f"LanePoolLink(lane_id: {self.lane_id}, pool_id: {self.pool_id})"
+        return f"LanePoolLink(experiment_id: {self.experiment_id}, lane_id: {self.lane_id}, pool_id: {self.pool_id})"
 
 
 class LibraryFeatureLink(Base):

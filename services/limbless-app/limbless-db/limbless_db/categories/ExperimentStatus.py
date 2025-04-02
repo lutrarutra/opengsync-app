@@ -6,6 +6,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 @dataclass
 class ExperimentStatusEnum(DBEnum):
     icon: str
+    description: str
 
     @property
     def select_name(self) -> str:
@@ -13,9 +14,9 @@ class ExperimentStatusEnum(DBEnum):
 
 
 class ExperimentStatus(ExtendedEnum[ExperimentStatusEnum], enum_type=ExperimentStatusEnum):
-    DRAFT = ExperimentStatusEnum(0, "Draft", "✍🏼")
-    LOADED = ExperimentStatusEnum(1, "Loaded", "📦")
-    SEQUENCING = ExperimentStatusEnum(2, "Sequencing", "🧬")
-    FINISHED = ExperimentStatusEnum(3, "Finished", "✅")
-    ARCHIVED = ExperimentStatusEnum(10, "Archived", "🗃️")
-    FAILED = ExperimentStatusEnum(11, "Failed", "❌")
+    DRAFT = ExperimentStatusEnum(0, "Draft", "✍🏼", "Draft plan of the experiment")
+    LOADED = ExperimentStatusEnum(1, "Loaded", "📦", "Libraries are loaded on the flowcell")
+    SEQUENCING = ExperimentStatusEnum(2, "Sequencing", "🧬", "Sequencing")
+    FINISHED = ExperimentStatusEnum(3, "Finished", "✅", "Sequencing is finished")
+    ARCHIVED = ExperimentStatusEnum(10, "Archived", "🗃️", "Data is archived")
+    FAILED = ExperimentStatusEnum(11, "Failed", "❌", "Sequencing failed")

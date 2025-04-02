@@ -1,12 +1,11 @@
 import math
 from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import and_
+from ... import models, PAGE_LIMIT
+from .. import exceptions
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
-from ... import models, PAGE_LIMIT
-from .. import exceptions
 
 
 def get_sample_library_link(
@@ -242,6 +241,9 @@ def add_pool_to_lane(
     if not (persist_session := self._session is not None):
         self.open_session()
 
+    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+
     if (lane := self.session.query(models.Lane).where(
         models.Lane.experiment_id == experiment_id,
         models.Lane.number == lane_num,
@@ -256,9 +258,25 @@ def add_pool_to_lane(
     ).first():
         raise exceptions.LinkAlreadyExists(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are already linked.")
     
-    lane.pools.append(pool)
+    if experiment.workflow.combined_lanes:
+        num_m_reads_per_lane = pool.num_m_reads_requested / experiment.num_lanes if pool.num_m_reads_requested else None
+    else:
+        num_m_reads_per_lane = pool.num_m_reads_requested / (len(pool.lane_links) + 1) if pool.num_m_reads_requested else None
+    self.debug(len(pool.lane_links))
+    self.debug(pool.num_m_reads_requested)
+    self.debug(num_m_reads_per_lane)
+
+    for link in pool.lane_links:
+        link.num_m_reads = num_m_reads_per_lane
+        self.session.add(link)
     
-    self.session.add(lane)
+    link = models.links.LanePoolLink(
+        lane_id=lane.id, pool_id=pool_id, experiment_id=experiment_id,
+        num_m_reads=num_m_reads_per_lane,
+        lane_num=lane_num,
+    )
+    
+    self.session.add(link)
     self.session.commit()
     self.session.refresh(lane)
 
@@ -272,22 +290,31 @@ def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, l
     if not (persist_session := self._session is not None):
         self.open_session()
 
+    if (_ := self.session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+
     if (lane := self.session.query(models.Lane).where(
         models.Lane.experiment_id == experiment_id,
         models.Lane.number == lane_num,
     ).first()) is None:
         raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment_id}")
+    
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
     
-    if self.session.query(models.links.LanePoolLink).where(
+    if (link := self.session.query(models.links.LanePoolLink).where(
         models.links.LanePoolLink.pool_id == pool_id,
         models.links.LanePoolLink.lane_id == lane.id,
-    ).first() is None:
+    ).first()) is None:
         raise exceptions.LinkDoesNotExist(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are not linked.")
     
-    lane.pools.remove(pool)
-    self.session.add(lane)
+    pool.lane_links.remove(link)
+    self.session.delete(link)
+    
+    for link in pool.lane_links:
+        link.num_m_reads = pool.num_m_reads_requested / len(pool.lane_links) if pool.num_m_reads_requested else None
+        self.session.add(link)
+    
     self.session.commit()
     self.session.refresh(lane)
 
@@ -305,12 +332,7 @@ def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if self.session.query(models.links.ExperimentPoolLink).where(
-        and_(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id,
-            models.links.ExperimentPoolLink.pool_id == pool_id
-        )
-    ).first() is not None:
+    if pool.experiment_id is not None:
         raise exceptions.LinkAlreadyExists(f"Pool with id {pool_id} is already linked to an experiment")
 
     experiment.pools.append(pool)
@@ -335,12 +357,7 @@ def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
 
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-    if self.session.query(models.links.ExperimentPoolLink).where(
-        and_(
-            models.links.ExperimentPoolLink.experiment_id == experiment_id,
-            models.links.ExperimentPoolLink.pool_id == pool_id
-        )
-    ).first() is None:
+    if pool.experiment_id != experiment_id:
         raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
     
     for lane in experiment.lanes:

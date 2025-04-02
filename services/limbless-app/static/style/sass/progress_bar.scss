@@ -1,0 +1,35 @@
+$progress-height: 1.2rem !default;
+
+.progress-bar-container a {
+    width: 100%;
+    .progress {
+        color: black;
+        text-decoration: none;
+    }
+}
+
+.relative-progress {
+    position: relative;
+
+    .progress-title {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        font-size: 13px;
+        padding-top: 2px;
+    }
+}
+
+.progress-bar:hover {
+    cursor: default;
+}
+
+.flowcell-capacity-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    a, .flowcell-capacity-bar {
+        min-width: calc(50% - 5px);
+        flex: 1;
+    }
+}

@@ -68,15 +68,13 @@ Web app for NGS sample/library/project tracking
     - default password: `pass`
 
 
-# Setup for Development
+# Setup for Development (virtual/conda environment recommended)
 
 * ✅ Hot reload python files on change.
 * ✅ Compilation of scss files on change.
 
 ```bash
-pip install -r services/limbless-app/limbless-db/requirements.txt
 pip install -e services/limbless-app/limbless-db
-pip install -r services/limbless-app/limbless-server/requirements.txt
 pip install -e services/limbless-app/limbless-server
 mkdir db/dev_pgadmin
 sudo chown -R 5050:5050 db/dev_pgadmin

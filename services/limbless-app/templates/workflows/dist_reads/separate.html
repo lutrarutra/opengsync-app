@@ -1,0 +1,54 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell, readonly_field %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div id="distribute-reads-form" class="modal-content">
+    {{ form.csrf_token() }}
+    <div class="modal-header">
+        <h4 class="modal-title">Separate Distinct Reads</h4>
+    </div>
+    <div class="modal-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col" class="col-2">Pool</th>
+                    {% for lane in experiment.lanes %}
+                    <th scope="col" class="col-2">Lane {{ lane.number }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for pool_field in form.pool_fields %}
+                {{ pool_field.csrf_token() }}
+                <tr>
+                    {{ pool_field.pool_id(readonly=true, hidden=true) }}
+                    <th>{{ pool_field.pool_name.data }}</th>
+                    {% for lane_num in range(experiment.num_lanes) %}
+                    {% set read_field = pool_field.get_read_field(lane_num + 1) %}
+                    {% if read_field %}
+                    {{ read_field.lane_id(readonly=true, hidden=true) }}
+                    {{ read_field.csrf_token() }}
+                    <td>{{ form_cell(read_field.num_reads, unit="M") }}</td>
+                    {% else %}
+                    <td></td>
+                    {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ context }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+            hx-post="{{ url_for('dist_reads_workflow.submit', experiment_id=experiment.id) }}"
+            hx-target="#distribute-reads-form" hx-swap="outerHTML" hx-include="#distribute-reads-form">
+                Save
+            </button>
+        </div>
+    </div>
+</div>

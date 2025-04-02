@@ -368,10 +368,10 @@ def test_experiment_lanes(db: DBHandler):
         for _lane in experiment.lanes:
             if _lane.number == 1:
                 assert _lane.id == lane.id
-                assert len(_lane.pools) == 1
+                assert len(_lane.pool_links) == 1
             else:
                 assert _lane.id != lane.id
-                assert len(_lane.pools) == 0
+                assert len(_lane.pool_links) == 0
 
     lane = db.remove_pool_from_lane(experiment.id, empty_pool.id, 1)
 
@@ -383,7 +383,7 @@ def test_experiment_lanes(db: DBHandler):
         experiment = session.get_experiment(experiment.id)
         assert experiment is not None
         for lane in experiment.lanes:
-            assert len(lane.pools) == 0
+            assert len(lane.pool_links) == 0
 
     for i, pool in enumerate(pools):
         db.add_pool_to_lane(experiment.id, pool.id, (i % experiment.num_lanes) + 1)
@@ -393,7 +393,7 @@ def test_experiment_lanes(db: DBHandler):
         experiment = session.get_experiment(experiment.id)
         assert experiment is not None
         for lane in experiment.lanes:
-            counter += len(lane.pools)
+            counter += len(lane.pool_links)
 
         assert counter == NUM_POOLS
 
@@ -433,7 +433,7 @@ def test_experiment_lanes(db: DBHandler):
         assert experiment.num_lanes == ExperimentWorkFlow.NOVASEQ_S4_STD.flow_cell_type.num_lanes
 
         for pool in experiment.pools:
-            assert len(pool.lanes) == ExperimentWorkFlow.NOVASEQ_S4_STD.flow_cell_type.num_lanes
+            assert len(pool.lane_links) == ExperimentWorkFlow.NOVASEQ_S4_STD.flow_cell_type.num_lanes
 
     # Decrease Lanes
     experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_S1_STD.id
@@ -447,7 +447,7 @@ def test_experiment_lanes(db: DBHandler):
         assert experiment.num_lanes == ExperimentWorkFlow.NOVASEQ_S1_STD.flow_cell_type.num_lanes
 
         for pool in experiment.pools:
-            assert len(pool.lanes) == ExperimentWorkFlow.NOVASEQ_S1_STD.flow_cell_type.num_lanes
+            assert len(pool.lane_links) == ExperimentWorkFlow.NOVASEQ_S1_STD.flow_cell_type.num_lanes
 
     # Delete experiment
     db.delete_experiment(experiment.id)
@@ -457,7 +457,7 @@ def test_experiment_lanes(db: DBHandler):
         for pool in pools:
             pool = session.get_pool(pool.id)
             assert pool is not None
-            assert len(pool.lanes) == 0
+            assert len(pool.lane_links) == 0
 
 
 def test_files(db: DBHandler):

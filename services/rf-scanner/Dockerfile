@@ -1,4 +1,4 @@
-FROM --platform=linux/x86_64 python:3.12
+FROM --platform=linux/x86_64 python:3.11-bookworm
 
 # set work directory
 WORKDIR /usr/src/app
@@ -16,7 +16,6 @@ RUN apt install curl -y
 
 RUN pip install --upgrade pip
 COPY limbless-app/limbless-db /usr/src/limbless-db
-RUN pip install -r /usr/src/limbless-db/requirements.txt
 RUN pip install /usr/src/limbless-db
 RUN pip install Werkzeug==3.0.3
 RUN pip install interop

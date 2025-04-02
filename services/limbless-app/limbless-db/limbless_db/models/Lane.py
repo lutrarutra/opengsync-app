@@ -9,7 +9,6 @@ from . import links
 
 if TYPE_CHECKING:
     from .Experiment import Experiment
-    from .Pool import Pool
     from .File import File
 
 
@@ -32,7 +31,9 @@ class Lane(Base):
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
-    pools: Mapped[list["Pool"]] = relationship("Pool", secondary=links.LanePoolLink.__tablename__, back_populates="lanes", lazy="select")
+    pool_links: Mapped[list["links.LanePoolLink"]] = relationship(
+        "LanePoolLink", back_populates="lane", lazy="select"
+    )
 
     sortable_fields: ClassVar[list[str]] = ["id", "number", "experiment_id", "phi_x"]
 
@@ -111,3 +112,10 @@ class Lane(Base):
     
     def __repr__(self) -> str:
         return str(self)
+
+    def m_reads_planned(self) -> float:
+        reads = 0.0
+        for link in self.pool_links:
+            if link.num_m_reads is not None:
+                reads += link.num_m_reads
+        return reads

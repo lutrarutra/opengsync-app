@@ -5,10 +5,14 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from limbless_db.models.Base import Base
+import loguru
 
 
 class DBHandler():
-    def connect(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432):
+    def __init__(self, logger: Optional["loguru.Logger"] = None) -> None:
+        self._logger = logger
+        
+    def connect(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432) -> None:
         self._url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
 
@@ -17,6 +21,29 @@ class DBHandler():
         except Exception as e:
             raise Exception(f"Could not connect to DB '{self._url}':\n{e}")
         self._session: Optional[orm.Session] = None
+
+        self.log(f"Connected to DB 'postgresql://{host}:{port}/{db}'")
+
+    def log(self, *values: object) -> None:
+        message = " ".join([str(value) for value in values])
+        if self._logger is not None:
+            self._logger.info(message)
+        else:
+            print(f"LOG: {message}")
+    
+    def error(self, *values: object) -> None:
+        message = " ".join([str(value) for value in values])
+        if self._logger is not None:
+            self._logger.error(message)
+        else:
+            print(f"ERROR: {message}")
+
+    def debug(self, *values: object) -> None:
+        message = " ".join([str(value) for value in values])
+        if self._logger is not None:
+            self._logger.debug(message)
+        else:
+            print(f"DEBUG: {message}")
 
     @property
     def session(self) -> orm.Session:
@@ -104,7 +131,8 @@ class DBHandler():
     )
 
     from .model_handlers._lane_methods import (
-        create_lane, get_lane, get_lanes, update_lane, get_experiment_lane
+        create_lane, get_lane, get_lanes, update_lane, get_experiment_lane,
+        delete_lane
     )
 
     from .model_handlers._feature_methods import (
