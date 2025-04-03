@@ -22,6 +22,6 @@ class PoolStatus(ExtendedEnum[PoolStatusEnum], enum_type=PoolStatusEnum):
     SUBMITTED = PoolStatusEnum(1, "Submitted", "🚀", "Pool is submitted by a customer")
     ACCEPTED = PoolStatusEnum(2, "Accepted", "✅", "Pool is accepted and waiting to be handed over for sequencing")
     STORED = PoolStatusEnum(3, "Stored", "📦", "Pool is stored and ready for sequencing")
-    SEQUENCED = PoolStatusEnum(4, "Sequenced", "🧬", "Pool is sequenced")
+    SEQUENCED = PoolStatusEnum(4, "Sequenced", "🏁", "Pool is sequenced")
     REJECTED = PoolStatusEnum(10, "Rejected", "⛔", "Pool was not accepted to be sequenced by staff")
     ARCHIVED = PoolStatusEnum(11, "Archived", "🗃️", "Pool is sequenced and the data is archived")
