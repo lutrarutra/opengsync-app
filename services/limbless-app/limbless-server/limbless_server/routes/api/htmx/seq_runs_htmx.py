@@ -22,7 +22,7 @@ seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_r
 @login_required
 @cache.cached(timeout=60, query_string=True)
 def get(page: int):
-    sort_by = request.args.get("sort_by", "experiment_name")
+    sort_by = request.args.get("sort_by", "run_folder")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
