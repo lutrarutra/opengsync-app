@@ -63,3 +63,7 @@ def test_tenx_table():
 
 def test_smartseq_table():
     wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.SMART_SEQ.prep_file_name))
+
+
+def test_wes_table():
+    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.WES.prep_file_name))

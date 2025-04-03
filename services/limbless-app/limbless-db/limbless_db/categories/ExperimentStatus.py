@@ -15,8 +15,8 @@ class ExperimentStatusEnum(DBEnum):
 
 class ExperimentStatus(ExtendedEnum[ExperimentStatusEnum], enum_type=ExperimentStatusEnum):
     DRAFT = ExperimentStatusEnum(0, "Draft", "✍🏼", "Draft plan of the experiment")
-    LOADED = ExperimentStatusEnum(1, "Loaded", "📦", "Libraries are loaded on the flowcell")
+    LOADED = ExperimentStatusEnum(1, "Loaded", "✅", "Libraries are loaded on the flowcell")
     SEQUENCING = ExperimentStatusEnum(2, "Sequencing", "🧬", "Sequencing")
-    FINISHED = ExperimentStatusEnum(3, "Finished", "✅", "Sequencing is finished")
+    FINISHED = ExperimentStatusEnum(3, "Finished", "🏁", "Sequencing is finished")
     ARCHIVED = ExperimentStatusEnum(10, "Archived", "🗃️", "Data is archived")
     FAILED = ExperimentStatusEnum(11, "Failed", "❌", "Sequencing failed")

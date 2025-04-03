@@ -174,18 +174,13 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
                     raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
                 lane = models.Lane(number=lane_num, experiment_id=experiment.id)
                 self.session.add(lane)
-
+            
         if experiment.workflow.combined_lanes:
-            for link in experiment.laned_pool_links:
-                self.session.delete(link)
-            
-            self.session.add(experiment)
-            self.session.commit()
-            self.session.refresh(experiment)
-            
+            lps = set([(link.lane_id, link.pool_id) for link in experiment.laned_pool_links ])
             for lane in experiment.lanes:
                 for pool in experiment.pools:
-                    lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
+                    if (lane.id, pool.id) not in lps:
+                        lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
         
         self.session.add(experiment)
         self.session.commit()
