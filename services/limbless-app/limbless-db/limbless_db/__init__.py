@@ -9,6 +9,8 @@ if (__timezone := os.environ.get("TIMEZONE")) is None:
     __timezone = tzlocal.get_localzone_name()
 TIMEZONE: pytz.BaseTzInfo = pytz.timezone(__timezone)
 
+LAB_PROTOCOL_START_NUMBER = int(os.environ["LAB_PROTOCOL_START_NUMBER"])
+
 
 def localize(timestamp: dt.datetime, timezone: pytz.BaseTzInfo | str = TIMEZONE) -> dt.datetime:
     """

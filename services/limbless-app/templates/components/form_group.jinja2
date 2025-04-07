@@ -1,6 +1,6 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 
-{% macro form_group(field, class="", id=none, disabled=false, trigger_dest_id=none, autocomplete="on", unit=none) -%}
+{% macro form_group(field, class="", id=none, disabled=false, trigger_dest_id=none, autocomplete="on", unit=none, placeholder=none) -%}
 <div class="{{class}} form-group">
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
@@ -13,7 +13,7 @@
     {{ 
         field(
             class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else ""), 
-            placeholder=("" if disabled else ("Required" if field.flags.required else "Optional")),
+            placeholder=("" if disabled else (placeholder if placeholder else ("Required" if field.flags.required else "Optional"))),
             readonly=disabled, value=field.data if field.data else "",
             onchange="htmx.trigger('#" + trigger_dest_id + "', 'change');" if trigger_dest_id else "",
             id=(id if id else field.name), autocomplete=autocomplete
