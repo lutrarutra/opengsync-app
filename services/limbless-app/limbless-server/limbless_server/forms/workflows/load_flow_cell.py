@@ -110,6 +110,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
         self._context["error_min"] = models.Lane.error_min_molarity
         self._context["error_max"] = models.Lane.error_max_molarity
         self._context["enumerate"] = enumerate
+        self._context["experiment"] = experiment
 
     def prepare(self):
         df = db.get_experiment_lanes_df(self.experiment.id)

@@ -304,14 +304,7 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
         logger.error("Static folder not set")
         raise ValueError("Static folder not set")
     
-    if lab_prep.protocol == LabProtocol.RNA_SEQ:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "RNA.xlsx")
-    elif lab_prep.protocol == LabProtocol.WGS:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "WGS.xlsx")
-    elif lab_prep.protocol == LabProtocol.QUANT_SEQ:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "QSEQ.xlsx")
-    else:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "template.xlsx")
+    filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
@@ -328,7 +321,7 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     active_sheet = template["prep_table"]
     column_mapping: dict[str, str] = {}
     
-    for col_i in range(0, active_sheet.max_column):
+    for col_i in range(0, min(active_sheet.max_column, 96)):
         col = get_column_letter(col_i + 1)
         column_name = active_sheet[f"{col}1"].value
         column_mapping[column_name] = col
@@ -340,9 +333,13 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
                 cell.fill = openpyxl_styles.PatternFill(start_color="ffffff", end_color="ffffff", fill_type="solid")
 
     for row_idx, cell in enumerate(active_sheet[column_mapping["plate_well"]][1:]):
+        if row_idx > 95:
+            break
         cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
 
     for row_idx, cell in enumerate(active_sheet[column_mapping["index_well"]][1:]):
+        if row_idx > 95:
+            break
         cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
         
     for i, library in enumerate(lab_prep.libraries):
