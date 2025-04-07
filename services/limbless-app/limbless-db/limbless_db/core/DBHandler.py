@@ -167,7 +167,7 @@ class DBHandler():
     )
 
     from .model_handlers._lab_prep_methods import (
-        create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_identifier,
+        create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_number,
         update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps,
     )
 

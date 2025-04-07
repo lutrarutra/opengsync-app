@@ -5,22 +5,28 @@ import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
-from ... import models, PAGE_LIMIT
+from ... import models, PAGE_LIMIT, LAB_PROTOCOL_START_NUMBER
 from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum
 from .. import exceptions
 
 
 def create_lab_prep(
-    self: "DBHandler", name: str, creator_id: int, protocol: LabProtocolEnum,
+    self: "DBHandler", name: str | None, creator_id: int, protocol: LabProtocolEnum,
 ) -> models.LabPrep:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if (creator := self.session.get(models.User, creator_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{creator_id}', not found.")
+    
+    number = self.get_next_protocol_number(protocol)
+
+    if not name:
+        name = f"{protocol.identifier}{number + LAB_PROTOCOL_START_NUMBER:04d}"
 
     lab_prep = models.LabPrep(
         name=name.strip(),
+        prep_number=number,
         creator_id=creator.id,
         protocol_id=protocol.id,
     )
@@ -135,23 +141,26 @@ def query_lab_preps(
     return lab_preps
 
 
-def get_next_protocol_identifier(self: "DBHandler", protocol: LabProtocolEnum) -> str:
+def get_next_protocol_number(self: "DBHandler", protocol: LabProtocolEnum) -> int:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if not protocol.identifier:
         raise TypeError(f"Pool type {protocol} does not have an identifier")
 
-    n_pools = self.session.query(models.LabPrep).where(
+    if (latest_prep := self.session.query(models.LabPrep).where(
         models.LabPrep.protocol_id == protocol.id
-    ).count()
-
-    identifier = f"{protocol.identifier}{n_pools + 1:04d}"
+    ).order_by(
+        models.LabPrep.prep_number.desc()
+    ).first()) is not None:
+        prep_number = latest_prep.prep_number + 1
+    else:
+        prep_number = 1
 
     if not persist_session:
         self.close_session()
 
-    return identifier
+    return prep_number
 
 
 def update_lab_prep(

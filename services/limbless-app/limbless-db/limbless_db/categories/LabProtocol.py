@@ -11,7 +11,7 @@ class LabProtocolEnum(DBEnum):
 
 
 class LabProtocol(ExtendedEnum[LabProtocolEnum], enum_type=LabProtocolEnum):
-    CUSTOM = LabProtocolEnum(0, "Custom", "Custom", "", "template.xlsx")
+    CUSTOM = LabProtocolEnum(0, "Custom", "Custom", "X", "template.xlsx")
     RNA_SEQ = LabProtocolEnum(1, "RNA-seq", "RNA", "R", "RNA.xlsx")
     QUANT_SEQ = LabProtocolEnum(2, "Quant-seq", "QUANT", "Q", "QUANTSEQ.xlsx")
     SMART_SEQ = LabProtocolEnum(3, "Smart-seq", "SMART", "S", "SMARTSEQ.xlsx")
