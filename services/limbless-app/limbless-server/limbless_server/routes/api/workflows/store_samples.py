@@ -144,4 +144,4 @@ def select():
     if seq_request is not None:
         return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))
     
-    return make_response(redirect=url_for("index_page"))
+    return make_response(redirect=url_for("dashboard"))

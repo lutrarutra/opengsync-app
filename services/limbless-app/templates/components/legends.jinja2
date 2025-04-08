@@ -1,5 +1,5 @@
 {% macro color_legend(colors) -%}
-<div class="color-legend pt-2 pb-2">
+<div class="color-legend pt-1 pb-2">
     {% for label, color in colors.items() %}
     <span class="legend-unit">
         <div class="color-square" style="background-color: {{ color }};"></div>
@@ -10,7 +10,7 @@
 {%- endmacro %}
 
 {% macro icon_legend(icons) -%}
-<div class="color-legend pt-2 pb-2">
+<div class="color-legend">
     {% for label, icon in icons.items() %}
     <span class="legend-unit">
         <div class="icon">{{ icon }}</div>

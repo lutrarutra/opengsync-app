@@ -59,6 +59,53 @@ def render_calendar_month(year: int, month: int):
     ))
 
 
+@events_htmx.route("/render_calendar_week/<int:year>/<int:week>", methods=["GET"])
+@events_htmx.route("/render_calendar_week", methods=["GET"], defaults={"year": datetime.now().year, "week": datetime.now().isocalendar().week})
+@db_session(db)
+@login_required
+def render_calendar_week(year: int, week: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    try:
+        start_date = datetime.fromisocalendar(year, week, 1)
+        end_date = datetime.fromisocalendar(year, week, 7)
+    except TypeError:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    events, _ = db.get_events(
+        start_date=start_date, end_date=end_date, limit=None,
+        sort_by="timestamp_utc", descending=False,
+    )
+
+    calendar = {}
+    it = start_date
+    show_weekend = False
+    while it <= end_date:
+        calendar[it] = []
+        for event in events:
+            if event.timestamp_utc.date() == it.date():
+                calendar[it].append(event)
+                if it.weekday() == 5 or it.weekday() == 6:
+                    show_weekend = True
+        it += timedelta(days=1)
+
+    if not show_weekend:
+        calendar.pop(datetime.fromisocalendar(year, week, 7))
+        calendar.pop(datetime.fromisocalendar(year, week, 6))
+
+    return make_response(render_template(
+        "components/calendar-week.html",
+        year=year, week=week, events=events,
+        prev_year=year if week > 1 else year - 1,
+        prev_week=week - 1 if week > 1 else 52,
+        next_year=year if week < 52 else year + 1,
+        next_week=week + 1 if week < 52 else 1,
+        month_name=start_date.strftime("%B"),
+        today=datetime.now(),
+        calendar=calendar,
+    ))
+
+
 @events_htmx.route("/render_calendar_day/<int:year>/<int:month>/<int:day>", methods=["GET"])
 @events_htmx.route("/render_calendar_day", methods=["GET"], defaults={"year": datetime.now().year, "month": datetime.now().month, "day": datetime.now().day})
 @db_session(db)

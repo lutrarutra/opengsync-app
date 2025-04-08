@@ -5,7 +5,7 @@ from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT, DBHandler, db_session
+from limbless_db import models, PAGE_LIMIT, DBHandler, db_session
 from limbless_db.categories import HTTPResponse, UserRole, SampleStatus
 from .... import db, logger, forms
 
@@ -19,6 +19,7 @@ samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/hmtx/samples
 
 @samples_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @samples_htmx.route("get/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
@@ -58,6 +59,7 @@ def get(page: int):
 
 
 @samples_htmx.route("<int:sample_id>/delete", methods=["DELETE"])
+@db_session(db)
 @login_required
 def delete(sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
@@ -101,6 +103,7 @@ def edit(sample_id):
 
 
 @samples_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))
@@ -124,6 +127,7 @@ def query():
 
 
 @samples_htmx.route("table_query", methods=["POST"])
+@db_session(db)
 @login_required
 def table_query():
     if (word := request.form.get("name", None)) is not None:
@@ -179,46 +183,45 @@ def table_query():
         return samples
 
     context = {}
-    with DBSession(db) as session:
-        if (project_id := request.args.get("project_id", None)) is not None:
-            template = "components/tables/project-sample.html"
-            try:
-                project_id = int(project_id)
+    if (project_id := request.args.get("project_id", None)) is not None:
+        template = "components/tables/project-sample.html"
+        try:
+            project_id = int(project_id)
 
-            except (ValueError, TypeError):
-                return abort(HTTPResponse.BAD_REQUEST.id)
-            
-            if (project := session.get_project(project_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-                
-            samples = __get_samples(session, word, field_name, project_id=project_id, seq_request_id=None)
-            context["project"] = project
+        except (ValueError, TypeError):
+            return abort(HTTPResponse.BAD_REQUEST.id)
         
-        elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-            template = "components/tables/seq_request-sample.html"
-            try:
-                seq_request_id = int(seq_request_id)
-            except (ValueError, TypeError):
-                return abort(HTTPResponse.BAD_REQUEST.id)
+        if (project := db.get_project(project_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
             
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            
-            samples = __get_samples(session, word, field_name, project_id=None, seq_request_id=seq_request_id)
-            context["seq_request"] = seq_request
-        else:
-            template = "components/tables/sample.html"
-            samples = __get_samples(session, word, field_name, project_id=None, seq_request_id=None)
+        samples = __get_samples(db, word, field_name, project_id=project_id, seq_request_id=None)
+        context["project"] = project
+    
+    elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
+        template = "components/tables/seq_request-sample.html"
+        try:
+            seq_request_id = int(seq_request_id)
+        except (ValueError, TypeError):
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        samples = __get_samples(db, word, field_name, project_id=None, seq_request_id=seq_request_id)
+        context["seq_request"] = seq_request
+    else:
+        template = "components/tables/sample.html"
+        samples = __get_samples(db, word, field_name, project_id=None, seq_request_id=None)
 
-        return make_response(
-            render_template(
-                template,
-                current_query=word,
-                samples=samples,
-                field_name=field_name,
-                **context
-            )
+    return make_response(
+        render_template(
+            template,
+            current_query=word,
+            samples=samples,
+            field_name=field_name,
+            **context
         )
+    )
     
 
 @samples_htmx.route("<int:sample_id>/get_libraries", methods=["GET"])
@@ -267,6 +270,7 @@ def get_plate(sample_id: int):
 
 @samples_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
 @samples_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def browse(workflow: str, page: int):
     if not current_user.is_insider():
@@ -321,6 +325,7 @@ def browse(workflow: str, page: int):
 
 
 @samples_htmx.route("<string:workflow>/browse_query", methods=["GET"])
+@db_session(db)
 @login_required
 def browse_query(workflow: str):
     if not current_user.is_insider():
@@ -373,6 +378,7 @@ def browse_query(workflow: str):
 
 
 @samples_htmx.route("<string:workflow>/select_all", methods=["GET"])
+@db_session(db)
 @login_required
 def select_all(workflow: str):
     if not current_user.is_insider():

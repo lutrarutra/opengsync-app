@@ -85,19 +85,17 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @cache.cached(timeout=1500)
     def help_page():
         return render_template("help.html")
-
-    @app.route("/index_page")
-    def _index_page():
-        return redirect(url_for("index_page"))
     
     @app.route("/")
     @db_session(db)
     @login_required
-    def index_page():
+    def dashboard():
         if not current_user.is_authenticated:
-            return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))
-
-        return render_template("index.html")
+            return redirect(url_for("auth_page.auth_page", next=url_for("dashboard")))
+        
+        if current_user.is_insider():
+            return render_template("dashboard-insider.html")
+        return render_template("dashboard-user.html")
 
     @app.route("/pdf_file/<int:file_id>")
     @login_required

@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import EmailField
 from wtforms.validators import DataRequired, Length, Email
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from .. import logger, db
 from .HTMXFlaskForm import HTMXFlaskForm
 
@@ -27,16 +27,15 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
             self.email.errors = ("Please enter an email address.",)
             return False
         
-        with DBSession(db) as session:
-            if (seq_request := session.get_seq_request(seq_request_id)) is None:
-                logger.error(f"SeqRequest with id '{seq_request_id}' not found.")
-                raise ValueError(f"SeqRequest with id '{seq_request_id}' not found.")
+        if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            logger.error(f"SeqRequest with id '{seq_request_id}' not found.")
+            raise ValueError(f"SeqRequest with id '{seq_request_id}' not found.")
 
-            email = self.email.data.strip()
-            
-            if email in [link.email for link in seq_request.delivery_email_links]:
-                self.email.errors = ("This email adress is already in the list.",)
-                return False
+        email = self.email.data.strip()
+        
+        if email in [link.email for link in seq_request.delivery_email_links]:
+            self.email.errors = ("This email adress is already in the list.",)
+            return False
         
         return True
 

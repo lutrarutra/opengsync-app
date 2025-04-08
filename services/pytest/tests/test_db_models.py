@@ -2,7 +2,6 @@ import os
 import pytest
 
 from limbless_db import DBHandler, DBSession
-from limbless_db import exceptions
 from limbless_db.categories import ExperimentWorkFlow
 
 from .create_units import (
