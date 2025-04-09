@@ -19,7 +19,7 @@ class PoolStatusEnum(DBEnum):
 
 class PoolStatus(ExtendedEnum[PoolStatusEnum], enum_type=PoolStatusEnum):
     DRAFT = PoolStatusEnum(0, "Draft", "✍🏼", "Draft plan of the pool")
-    SUBMITTED = PoolStatusEnum(1, "Submitted", "🚀", "Pool is submitted by a customer")
+    SUBMITTED = PoolStatusEnum(1, "Submitted", "🚀", "Pool is submitted for review by a customer")
     ACCEPTED = PoolStatusEnum(2, "Accepted", "✅", "Pool is accepted and waiting to be handed over for sequencing")
     STORED = PoolStatusEnum(3, "Stored", "📦", "Pool is stored and ready for sequencing")
     SEQUENCED = PoolStatusEnum(4, "Sequenced", "🏁", "Pool is sequenced")

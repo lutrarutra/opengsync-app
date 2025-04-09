@@ -3,26 +3,17 @@ requires = ["setuptools>=70.1", "wheel>=0.43"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "limbless_db"
+name = "rf_scanner"
 version = "1.0"
-description = "Database for NGS sample/library/project tracking app."
+description = ""
 authors = [
     { name = "lutrarutra", email = "artur.gynter@proton.me" }
 ]
 requires-python = ">=3.11"
 
 dependencies = [
-    "numpy >= 2",
-    "pandas >= 2.2.2",
-    "numba",
-    "numexpr",
-    "itsdangerous >= 2.1.2",
-    "loguru >= 0.7.2",
-    "psycopg[binary]",
-    "SQLAlchemy >= 2.0.28",
-    "pytz >= 2023.3.post1",
-    "tzlocal >= 5.2",
-    "Werkzeug >= 3.0.3",
+    "numpy < 2",
+    "interop",
 ]
 
 [tool.flake8]
@@ -35,5 +26,3 @@ extend-ignore = ["E501", "W292", "W293"]
 
 [project.urls]
 Repository = "https://github.com/lutrarutra/limbless-app"
-
-

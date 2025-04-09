@@ -49,6 +49,7 @@ def create_experiment(
         self.session.add(lane)
 
     self.session.commit()
+    self.session.refresh(experiment)
 
     if not persist_session:
         self.close_session()

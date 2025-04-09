@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import SequencerModel
 
 from ... import logger, db
@@ -39,25 +39,24 @@ class SequencerForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        with DBSession(db) as session:
-            # Editing existing sequencer
-            if sequencer is not None:
-                if (_ := session.get_sequencer(sequencer.id)) is None:
-                    logger.error(f"Sequencer with id {sequencer.id} does not exist.")
-                    return False
-                
-                if self.name.data is not None:
-                    if (temp := session.get_sequencer_by_name(self.name.data)) is not None:
-                        if temp.id != sequencer.id:
-                            self.name.errors = ("You already have a sequencer with this name.",)
-                            return False
-                
-            # Creating new sequencer
-            else:
-                if self.name.data is not None:
-                    if session.get_sequencer_by_name(self.name.data) is not None:
+        # Editing existing sequencer
+        if sequencer is not None:
+            if (_ := db.get_sequencer(sequencer.id)) is None:
+                logger.error(f"Sequencer with id {sequencer.id} does not exist.")
+                return False
+            
+            if self.name.data is not None:
+                if (temp := db.get_sequencer_by_name(self.name.data)) is not None:
+                    if temp.id != sequencer.id:
                         self.name.errors = ("You already have a sequencer with this name.",)
                         return False
+            
+        # Creating new sequencer
+        else:
+            if self.name.data is not None:
+                if db.get_sequencer_by_name(self.name.data) is not None:
+                    self.name.errors = ("You already have a sequencer with this name.",)
+                    return False
 
         return True
     

@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus
+from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType
 
 from .... import db, forms, logger  # noqa
 from ....tools import SpreadSheetColumn
@@ -612,5 +612,79 @@ def get_hto_table(library_id: int):
             "components/itable.html", columns=columns,
             spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
             table_id="flex-table"
+        )
+    )
+
+
+@libraries_htmx.route("get_todo_libraries", methods=["GET"])
+@db_session(db)
+@login_required
+def get_todo_libraries():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    libraries, _ = db.get_libraries(
+        status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
+        limit=512
+    )
+
+    data = {
+        "assay_type": [],
+        "library_name": [],
+        "status": [],
+    }
+
+    for library in libraries:
+        data["assay_type"].append(library.assay_type)
+        data["library_name"].append(library.name)
+        data["status"].append(library.status)
+
+    df = pd.DataFrame(data)
+    
+    return make_response(
+        render_template(
+            "components/recent-todo-assays-lists.html", df=df
+        )
+    )
+
+
+@libraries_htmx.route("get_assay_type_todo_libraries/<int:assay_type_id>", methods=["GET"])
+@db_session(db)
+@login_required
+def get_assay_type_todo_libraries(assay_type_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    try:
+        assay_type = AssayType.get(assay_type_id)
+    except ValueError:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    libraries, _ = db.get_libraries(
+        status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
+        assay_type=assay_type, limit=512
+    )
+
+    data = {
+        "library_name": [],
+        "library_type": [],
+        "status": [],
+        "seq_request": [],
+        "sample_name": []
+    }
+
+    for library in libraries:
+        data["library_name"].append(library.name)
+        data["library_type"].append(library.type)
+        data["seq_request"].append(library.seq_request)
+        data["status"].append(library.status)
+        data["sample_name"].append(library.sample_name)
+
+    df = pd.DataFrame(data)
+
+    return make_response(
+        render_template(
+            "components/assay_type-todo-list.html",
+            assay_type=assay_type, df=df
         )
     )

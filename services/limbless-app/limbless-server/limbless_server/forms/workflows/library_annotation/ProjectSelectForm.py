@@ -79,7 +79,6 @@ class ProjectSelectForm(MultiStepForm):
         self.metadata["project_name"] = self.project_name
         self.metadata["workflow"] = "library_annotation"
         self.metadata["project_id"] = self.project_id
-        self.metadata["workflow_type"] = self.workflow_type
         self.metadata["seq_request_id"] = self.seq_request.id
         self.metadata["user_id"] = user.id
         self.metadata["project_description"] = self.project_description.data

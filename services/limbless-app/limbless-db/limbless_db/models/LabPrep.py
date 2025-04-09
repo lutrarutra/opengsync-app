@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from limbless_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, FileType
+from limbless_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, FileType, AssayTypeEnum, AssayType
 
 from .Base import Base
 from .. import LAB_PROTOCOL_START_NUMBER
@@ -26,6 +26,7 @@ class LabPrep(Base):
 
     protocol_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    assay_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     creator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     creator: Mapped["User"] = relationship("User", back_populates="preps", lazy="joined")
@@ -58,6 +59,14 @@ class LabPrep(Base):
     @status.setter
     def status(self, value: PrepStatusEnum):
         self.status_id = value.id
+
+    @property
+    def assay_type(self) -> AssayTypeEnum:
+        return AssayType.get(self.assay_type_id)
+    
+    @assay_type.setter
+    def assay_type(self, value: AssayTypeEnum):
+        self.assay_type_id = value.id
 
     @property
     def identifier(self) -> str:

@@ -9,20 +9,23 @@ import loguru
 
 
 class DBHandler():
+    Session: orm.scoped_session
+
     def __init__(self, logger: Optional["loguru.Logger"] = None) -> None:
         self._logger = logger
         
     def connect(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432) -> None:
-        self._url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+        self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
-
         try:
             self._engine.connect()
         except Exception as e:
             raise Exception(f"Could not connect to DB '{self._url}':\n{e}")
-        self._session: Optional[orm.Session] = None
-
-        self.log(f"Connected to DB 'postgresql://{host}:{port}/{db}'")
+        self.log(f"Connected to DB '{self._url.split(':')[0]}://{host}:{port}/{db}'")
+        
+        self._session: orm.Session | None = None
+        self.session_factory = orm.sessionmaker(bind=self._engine)
+        DBHandler.Session = orm.scoped_session(self.session_factory)
 
     def log(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
@@ -59,11 +62,11 @@ class DBHandler():
 
     def open_session(self, autoflush: bool = False) -> None:
         if self._session is None:
-            self._session = orm.Session(self._engine, expire_on_commit=False, autoflush=autoflush)
+            self._session = DBHandler.Session(autoflush=autoflush)
 
     def close_session(self) -> None:
         if self._session is not None:
-            self.session.close()
+            DBHandler.Session.remove()
             self._session = None
 
     def __del__(self):

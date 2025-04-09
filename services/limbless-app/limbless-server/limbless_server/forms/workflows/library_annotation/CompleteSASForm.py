@@ -6,8 +6,8 @@ import pandas as pd
 from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
-from limbless_db import models, DBSession
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType
+from limbless_db import models
+from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType, AssayType, SubmissionType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
@@ -138,14 +138,13 @@ class CompleteSASForm(MultiStepForm):
 
         if self.visium_table is not None:
             self.visium_table["id"] = None
-            with DBSession(db) as session:
-                for idx, visium_row in self.visium_table.iterrows():
-                    visium_annotation = db.create_visium_annotation(
-                        area=visium_row["area"],
-                        image=visium_row["image"],
-                        slide=visium_row["slide"],
-                    )
-                    self.visium_table.at[idx, "id"] = visium_annotation.id
+            for idx, visium_row in self.visium_table.iterrows():
+                visium_annotation = db.create_visium_annotation(
+                    area=visium_row["area"],
+                    image=visium_row["image"],
+                    slide=visium_row["slide"],
+                )
+                self.visium_table.at[idx, "id"] = visium_annotation.id
 
             self.visium_table["id"] = self.visium_table["id"].astype(int)
 
@@ -160,46 +159,45 @@ class CompleteSASForm(MultiStepForm):
                 owner_id=user.id
             )
 
-        with DBSession(db) as session:
-            predefined_attrs = [f"_attr_{attr.label}" for attr in AttributeType.as_list()]
-            custom_sample_attributes = [attr for attr in self.sample_table.columns if attr.startswith("_attr_") and attr not in predefined_attrs]
+        predefined_attrs = [f"_attr_{attr.label}" for attr in AttributeType.as_list()]
+        custom_sample_attributes = [attr for attr in self.sample_table.columns if attr.startswith("_attr_") and attr not in predefined_attrs]
 
-            for idx, library_row in self.sample_table.iterrows():
-                if pd.notna(library_row["sample_id"]):
-                    if (sample := session.get_sample(library_row["sample_id"])) is None:
-                        logger.error(f"{self.uuid}: Sample with id {library_row['sample_id']} not found.")
-                        raise ValueError(f"Sample with id {library_row['sample_id']} not found.")
-                else:
-                    sample = session.create_sample(
-                        name=library_row["sample_name"],
-                        project_id=project.id,
-                        owner_id=user.id,
-                        status=None if self.metadata["workflow_type"] == "pooled" else SampleStatus.DRAFT
+        for idx, library_row in self.sample_table.iterrows():
+            if pd.notna(library_row["sample_id"]):
+                if (sample := db.get_sample(library_row["sample_id"])) is None:
+                    logger.error(f"{self.uuid}: Sample with id {library_row['sample_id']} not found.")
+                    raise ValueError(f"Sample with id {library_row['sample_id']} not found.")
+            else:
+                sample = db.create_sample(
+                    name=library_row["sample_name"],
+                    project_id=project.id,
+                    owner_id=user.id,
+                    status=None if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES else SampleStatus.DRAFT
+                )
+                self.sample_table.at[idx, "sample_id"] = sample.id
+
+            for attr in AttributeType.as_list():
+                attr_label = f"_attr_{attr.label}"
+                if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
+                    sample = db.set_sample_attribute(
+                        sample_id=sample.id,
+                        type=attr,
+                        value=str(library_row[attr_label]),
+                        name=None
                     )
-                    self.sample_table.at[idx, "sample_id"] = sample.id
 
-                for attr in AttributeType.as_list():
-                    attr_label = f"_attr_{attr.label}"
-                    if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
-                        sample = session.set_sample_attribute(
-                            sample_id=sample.id,
-                            type=attr,
-                            value=str(library_row[attr_label]),
-                            name=None
-                        )
-
-                for attr_label in custom_sample_attributes:
-                    if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
-                        sample = session.set_sample_attribute(
-                            sample_id=sample.id,
-                            type=AttributeType.CUSTOM,
-                            value=str(library_row[attr_label]),
-                            name=attr_label.removeprefix("_attr_")
-                        )
+            for attr_label in custom_sample_attributes:
+                if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
+                    sample = db.set_sample_attribute(
+                        sample_id=sample.id,
+                        type=AttributeType.CUSTOM,
+                        value=str(library_row[attr_label]),
+                        name=attr_label.removeprefix("_attr_")
+                    )
 
         self.sample_table["sample_id"] = self.sample_table["sample_id"].astype(int)
 
-        if self.metadata["workflow_type"] == "pooled":
+        if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
             if self.pool_table is None:
                 logger.error(f"{self.uuid}: Pool table not found.")
                 raise ValueError("Pool table not found.")
@@ -225,104 +223,104 @@ class CompleteSASForm(MultiStepForm):
                 
             self.pool_table["pool_id"] = self.pool_table["pool_id"].astype(int)
 
-        with DBSession(db) as session:
-            self.library_table["library_id"] = None
-            for idx, library_row in self.library_table.iterrows():
-                if self.visium_table is not None:
-                    visium_row = self.visium_table[self.visium_table["library_name"] == library_row["library_name"]].iloc[0]
-                    visium_annotation_id = int(visium_row["id"])
-                else:
-                    visium_annotation_id = None
+        self.library_table["library_id"] = None
+        for idx, library_row in self.library_table.iterrows():
+            if self.visium_table is not None:
+                visium_row = self.visium_table[self.visium_table["library_name"] == library_row["library_name"]].iloc[0]
+                visium_annotation_id = int(visium_row["id"])
+            else:
+                visium_annotation_id = None
 
-                if self.metadata["workflow_type"] == "pooled":
-                    if self.pool_table is None:
-                        logger.error(f"{self.uuid}: Pool table not found.")
-                        raise ValueError("Pool table not found.")
-                    pool_id = int(self.pool_table[self.pool_table["pool_label"] == library_row["pool"]]["pool_id"].values[0])
-                else:
-                    pool_id = None
+            if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
+                if self.pool_table is None:
+                    logger.error(f"{self.uuid}: Pool table not found.")
+                    raise ValueError("Pool table not found.")
+                pool_id = int(self.pool_table[self.pool_table["pool_label"] == library_row["pool"]]["pool_id"].values[0])
+            else:
+                pool_id = None
 
-                library = session.create_library(
-                    name=library_row["library_name"],
-                    sample_name=library_row["sample_name"],
-                    seq_request_id=self.seq_request.id,
-                    library_type=LibraryType.get(library_row["library_type_id"]),
-                    owner_id=user.id,
-                    genome_ref=GenomeRef.get(library_row["genome_id"]),
-                    visium_annotation_id=visium_annotation_id,
-                    pool_id=pool_id,
-                    seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
-                )
+            assay_type = AssayType.get(self.metadata["assay_type_id"])
 
-                self.library_table.at[idx, "library_id"] = library.id
-                
-                if self.metadata["workflow_type"] == "pooled":
-                    if self.barcode_table is None:
-                        logger.error(f"{self.uuid}: Barcode table not found.")
-                        raise ValueError("Barcode table not found.")
-                    for _, barcode_row in self.barcode_table[self.barcode_table["library_name"] == library_row["library_name"]].iterrows():
-                        library = session.add_library_index(
-                            library_id=library.id,
-                            sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
-                            sequence_i5=barcode_row["sequence_i5"] if pd.notna(barcode_row["sequence_i5"]) else None,
-                            index_kit_i7_id=barcode_row["kit_i7_id"] if pd.notna(barcode_row["kit_i7_id"]) else None,
-                            index_kit_i5_id=barcode_row["kit_i5_id"] if pd.notna(barcode_row["kit_i5_id"]) else None,
-                            name_i7=barcode_row["name_i7"] if pd.notna(barcode_row["name_i7"]) else None,
-                            name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
-                        )
+            library = db.create_library(
+                name=library_row["library_name"],
+                sample_name=library_row["sample_name"],
+                seq_request_id=self.seq_request.id,
+                library_type=LibraryType.get(library_row["library_type_id"]),
+                owner_id=user.id,
+                genome_ref=GenomeRef.get(library_row["genome_id"]),
+                visium_annotation_id=visium_annotation_id,
+                pool_id=pool_id,
+                assay_type=assay_type,
+                seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
+            )
 
-                library_samples = self.pooling_table[self.pooling_table["library_name"] == library_row["library_name"]]["sample_name"].values
-                for _, sample_row in self.sample_table[self.sample_table["sample_name"].isin(library_samples)].iterrows():
-                    session.link_sample_library(
-                        sample_id=sample_row["sample_id"],
+            self.library_table.at[idx, "library_id"] = library.id
+            
+            if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
+                if self.barcode_table is None:
+                    logger.error(f"{self.uuid}: Barcode table not found.")
+                    raise ValueError("Barcode table not found.")
+                for _, barcode_row in self.barcode_table[self.barcode_table["library_name"] == library_row["library_name"]].iterrows():
+                    library = db.add_library_index(
                         library_id=library.id,
-                        cmo_sequence=sample_row["cmo_sequence"] if pd.notna(sample_row["cmo_sequence"]) else None,
-                        cmo_pattern=sample_row["cmo_pattern"] if pd.notna(sample_row["cmo_pattern"]) else None,
-                        cmo_read=sample_row["cmo_read"] if pd.notna(sample_row["cmo_read"]) else None,
-                        flex_barcode=sample_row["flex_barcode"] if pd.notna(sample_row["flex_barcode"]) else None,
+                        sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
+                        sequence_i5=barcode_row["sequence_i5"] if pd.notna(barcode_row["sequence_i5"]) else None,
+                        index_kit_i7_id=barcode_row["kit_i7_id"] if pd.notna(barcode_row["kit_i7_id"]) else None,
+                        index_kit_i5_id=barcode_row["kit_i5_id"] if pd.notna(barcode_row["kit_i5_id"]) else None,
+                        name_i7=barcode_row["name_i7"] if pd.notna(barcode_row["name_i7"]) else None,
+                        name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
                     )
 
-            self.library_table["library_id"] = self.library_table["library_id"].astype(int)
+            library_samples = self.pooling_table[self.pooling_table["library_name"] == library_row["library_name"]]["sample_name"].values
+            for _, sample_row in self.sample_table[self.sample_table["sample_name"].isin(library_samples)].iterrows():
+                db.link_sample_library(
+                    sample_id=sample_row["sample_id"],
+                    library_id=library.id,
+                    cmo_sequence=sample_row["cmo_sequence"] if pd.notna(sample_row["cmo_sequence"]) else None,
+                    cmo_pattern=sample_row["cmo_pattern"] if pd.notna(sample_row["cmo_pattern"]) else None,
+                    cmo_read=sample_row["cmo_read"] if pd.notna(sample_row["cmo_read"]) else None,
+                    flex_barcode=sample_row["flex_barcode"] if pd.notna(sample_row["flex_barcode"]) else None,
+                )
+
+        self.library_table["library_id"] = self.library_table["library_id"].astype(int)
 
         if self.feature_table is not None:
             custom_features = self.feature_table[self.feature_table["feature_id"].isna()]
-            with DBSession(db) as session:
-                for (feature, pattern, read, sequence), _df in custom_features.groupby(["feature", "pattern", "read", "sequence"]):
-                    feature = session.create_feature(
-                        name=feature,
-                        sequence=sequence,
-                        pattern=pattern,
-                        read=read,
-                        type=FeatureType.ANTIBODY
-                    )
-                    feature_id = feature.id
-                    self.feature_table.loc[_df.index, "feature_id"] = feature_id
+            for (feature, pattern, read, sequence), _df in custom_features.groupby(["feature", "pattern", "read", "sequence"]):
+                feature = db.create_feature(
+                    name=feature,
+                    sequence=sequence,
+                    pattern=pattern,
+                    read=read,
+                    type=FeatureType.ANTIBODY
+                )
+                feature_id = feature.id
+                self.feature_table.loc[_df.index, "feature_id"] = feature_id
 
-            with DBSession(db) as session:
-                for _, feature_row in self.feature_table.iterrows():
-                    libraries = self.library_table[self.library_table["library_name"] == feature_row["library_name"]]
-                    for _, library_row in libraries.iterrows():
-                        session.link_feature_library(
-                            feature_id=feature_row["feature_id"],
-                            library_id=library_row["library_id"]
-                        )
+            for _, feature_row in self.feature_table.iterrows():
+                libraries = self.library_table[self.library_table["library_name"] == feature_row["library_name"]]
+                for _, library_row in libraries.iterrows():
+                    db.link_feature_library(
+                        feature_id=feature_row["feature_id"],
+                        library_id=library_row["library_id"]
+                    )
 
             self.feature_table["feature_id"] = self.feature_table["feature_id"].astype(int)
             
         if self.comment_table is not None:
             for _, library_row in self.comment_table.iterrows():
                 if library_row["context"] == "visium_instructions":
-                    _ = session.create_comment(
+                    _ = db.create_comment(
                         text=f"Visium data instructions: {library_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif library_row["context"] == "custom_genome_reference":
-                    _ = session.create_comment(
+                    _ = db.create_comment(
                         text=f"Custom genome reference: {library_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif library_row["context"] == "assay_tech_selection":
-                    _ = session.create_comment(
+                    _ = db.create_comment(
                         text=f"Additional info from assay selection: {library_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )

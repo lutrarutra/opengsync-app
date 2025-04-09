@@ -1,0 +1,80 @@
+
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/status_bar.jinja2" import seq_request_status_bar, experiment_status_bar with context %}
+
+{% extends "base.html" %}
+{% set active_page = "" %}
+{% block content %}
+<div class="page-content">
+    <div class="dash">
+        <div class="dash-left">
+            <div class="dash-top" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
+                {{ spinner() }}
+            </div>
+            <div class="dash-bottom" hx-get="{{ url_for('experiments_htmx.get_recent_experiments') }}" hx-trigger="load once">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="dash-right">
+            <div class="dash-top">
+                <div class="dash-component-header">
+                    <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab"
+                            data-bs-target="#tab-pools" type="button" role="tab"
+                            aria-controls="tab-pools" aria-selected="true">
+                            Pools</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab"
+                            data-bs-target="#tab-todo-libraries" type="button" role="tab"
+                            aria-controls="tab-todo-libraries" aria-selected="false">
+                            Preps</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="tab-pools" role="tabpanel" tabindex="0">
+                        <div hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="load once" hx-swap="outerHTML">
+                            {{ spinner() }}
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tab-todo-libraries" role="tabpanel" tabindex="1">
+                        <div hx-get="{{ url_for('libraries_htmx.get_todo_libraries') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                            {{ spinner() }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="dash-bottom">
+                <div class="dash-component-header">
+                    <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab"
+                            data-bs-target="#tab-calendar" type="button" role="tab"
+                            aria-controls="tab-calendar" aria-selected="true">
+                            Calendar</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab"
+                            data-bs-target="#tab-workflows" type="button" role="tab"
+                            aria-controls="tab-workflows" aria-selected="false">
+                            Workflows</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="tab-calendar" role="tabpanel" tabindex="0">
+                        <div hx-get="{{ url_for('events_htmx.render_calendar_week') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                            {{ spinner() }}
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tab-workflows" role="tabpanel" tabindex="1">
+                        {% include "components/workflow-container.html"%}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -230,7 +230,8 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             print("Added!")
 
 
-if __name__ == "__main__":
+def cli():
+    exit(1)
     parser = argparse.ArgumentParser()
     parser.add_argument("run_folder", type=str)
     parser.add_argument("user", type=str)
@@ -254,5 +255,9 @@ if __name__ == "__main__":
         raise FileNotFoundError(f"Run folder not found: {args.run_folder}")
         
     process_run_folder(args.run_folder, db)
+
+
+if __name__ == "__main__":
+    cli()
 
 exit(0)

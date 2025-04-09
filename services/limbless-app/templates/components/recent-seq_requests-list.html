@@ -19,18 +19,19 @@
     </div>
 </div>
 <div class="banner-container">
-{% for seq_request in seq_requests %}
-    <div class="p-2 element-banner">
-        <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
-            <div class="banner-title">
-                <div class="row title-row">
-                    <div class="description col-8">{{ seq_request.requestor.name }} <span class="desc">{{ seq_request.requestor.email }}</span></div>
-                    <div class="submitted-time col-4">{{ seq_request.timestamp_submitted_str("%-d. %b. @ %-H:%M") }}</div>
-                </div>
-                <div class="title"><span class="id-desc">{{ seq_request.id }}</span> {{ seq_request.name }}</div>
+    {% for seq_request in seq_requests %}
+    <a class="element-banner" href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
+        <div class="banner-title">
+            <div class="row title-row">
+                <div class="title col-6">{{ seq_request.name }}</div>
+                <div class="title col-6">{{ seq_request.submission_type.name }}</div>
             </div>
-            {{ seq_request_status_bar(seq_request) }}
-        </a>
-    </div>
-{% endfor %}
+            <div class="row title-row">
+                <div class="description col-8">{{ seq_request.requestor.name }} <span class="desc">{{ seq_request.requestor.email }}</span></div>
+                <div class="submitted-time col-4">{{ seq_request.timestamp_submitted_str("%-d. %b. @ %-H:%M") }}</div>
+            </div>
+        </div>
+        {{ seq_request_status_bar(seq_request) }}
+    </a>
+    {% endfor %}
 </div>

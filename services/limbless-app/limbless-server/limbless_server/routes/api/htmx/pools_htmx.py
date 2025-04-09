@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBSession, PAGE_LIMIT, db_session
+from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus, PoolType
 
 from .... import db, forms, logger  # noqa
@@ -93,30 +93,31 @@ def delete(pool_id: int):
 
 
 @pools_htmx.route("<int:pool_id>/remove_libraries", methods=["DELETE"])
+@db_session(db)
 @login_required
 def remove_libraries(pool_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    with DBSession(db) as session:
-        if (pool := session.get_pool(pool_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        if pool.status != PoolStatus.DRAFT:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if pool.status != PoolStatus.DRAFT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
-        for library in pool.libraries:
-            library.pool_id = None
-            library.status = LibraryStatus.PREPARING
+    for library in pool.libraries:
+        library.pool_id = None
+        library.status = LibraryStatus.PREPARING
 
-        pool.num_libraries = 0
-        session.update_pool(pool)
+    pool.num_libraries = 0
+    db.update_pool(pool)
     
     flash("Libraries removed from pool", "success")
     return make_response(redirect=url_for("pools_page.pool_page", pool_id=pool_id))
 
 
 @pools_htmx.route("get_form/<string:form_type>", methods=["GET"])
+@db_session(db)
 @login_required
 def get_form(form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
@@ -140,31 +141,31 @@ def get_form(form_type: Literal["create", "edit"]):
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        with DBSession(db) as session:
-            if (pool := session.get_pool(pool_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
-            
-            if not current_user.is_insider() and pool.owner_id != current_user.id:
-                return abort(HTTPResponse.FORBIDDEN.id)
-            
-            form = forms.models.PoolForm("edit")
-            form.prepare(pool)
-            return form.make_response()
-    
-
-@pools_htmx.route("<int:pool_id>/edit", methods=["POST"])
-@login_required
-def edit(pool_id: int):
-    with DBSession(db) as session:
-        if (pool := session.get_pool(pool_id)) is None:
+        if (pool := db.get_pool(pool_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
         if not current_user.is_insider() and pool.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
-        return forms.models.PoolForm("edit", formdata=request.form).process_request(user=current_user, pool=pool)
+        
+        form = forms.models.PoolForm("edit")
+        form.prepare(pool)
+        return form.make_response()
+    
+
+@pools_htmx.route("<int:pool_id>/edit", methods=["POST"])
+@db_session(db)
+@login_required
+def edit(pool_id: int):
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and pool.owner_id != current_user.id:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    return forms.models.PoolForm("edit", formdata=request.form).process_request(user=current_user, pool=pool)
 
 
 @pools_htmx.route("<int:pool_id>/remove_library", methods=["DELETE"])
+@db_session(db)
 @login_required
 def remove_library(pool_id: int):
     if not current_user.is_insider():
@@ -196,6 +197,7 @@ def remove_library(pool_id: int):
 
 
 @pools_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if (word := request.args.get("name", None)) is not None:
@@ -263,6 +265,7 @@ def query():
 
 @pools_htmx.route("<int:pool_id>/get_libraries/<int:page>", methods=["GET"])
 @pools_htmx.route("<int:pool_id>/get_libraries", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get_libraries(pool_id: int, page: int):
     if (pool := db.get_pool(pool_id)) is None:
@@ -491,3 +494,21 @@ def browse_query(workflow: str):
             workflow=workflow
         )
     )
+
+
+@pools_htmx.route("get_recent_pools", methods=["GET"])
+@db_session(db)
+@login_required
+def get_recent_pools():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    pools, _ = db.get_pools(
+        status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED], sort_by="id", descending=True,
+        limit=15
+    )
+    
+    return make_response(render_template(
+        "components/recent-pools-list.html",
+        pools=pools, sort_by="id"
+    ))

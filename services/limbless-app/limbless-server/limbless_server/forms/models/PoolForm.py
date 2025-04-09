@@ -6,7 +6,7 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 
 from flask_htmx import make_response
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import PoolStatus, PoolType
 
 from ... import logger, db  # noqa F401
@@ -65,19 +65,18 @@ class PoolForm(HTMXFlaskForm):
         self._context["pool"] = pool
 
     def __edit_existing_pool(self, pool_id: int) -> models.Pool:
-        with DBSession(db) as session:
-            if (pool := session.get_pool(pool_id)) is None:
-                raise ValueError(f"Pool {pool_id} not found")
-                
-            pool.name = self.name.data  # type: ignore
-            pool.status = PoolStatus.get(self.status.data)
-            pool.type = PoolType.get(self.pool_type.data)
-            pool.num_m_reads_requested = self.num_m_reads_requested.data
-            pool.contact.name = self.contact_name.data  # type: ignore
-            pool.contact.email = self.contact_email.data  # type: ignore
-            pool.contact.phone = self.contact_phone.data  # type: ignore
+        if (pool := db.get_pool(pool_id)) is None:
+            raise ValueError(f"Pool {pool_id} not found")
+            
+        pool.name = self.name.data  # type: ignore
+        pool.status = PoolStatus.get(self.status.data)
+        pool.type = PoolType.get(self.pool_type.data)
+        pool.num_m_reads_requested = self.num_m_reads_requested.data
+        pool.contact.name = self.contact_name.data  # type: ignore
+        pool.contact.email = self.contact_email.data  # type: ignore
+        pool.contact.phone = self.contact_phone.data  # type: ignore
 
-            pool = session.update_pool(pool)
+        pool = db.update_pool(pool)
 
         return pool
 

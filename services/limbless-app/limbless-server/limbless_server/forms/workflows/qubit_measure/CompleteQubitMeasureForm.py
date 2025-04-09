@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 import pandas as pd
@@ -9,8 +8,7 @@ from flask_htmx import make_response
 from wtforms import FloatField, IntegerField, FieldList, FormField
 from wtforms.validators import NumberRange, DataRequired
 
-from limbless_db.categories import PoolStatus, LibraryStatus, SampleStatus
-from limbless_db import DBSession
+from limbless_db.categories import PoolStatus, LibraryStatus
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
@@ -110,22 +108,21 @@ class CompleteQubitMeasureForm(MultiStepForm):
             library_table.loc[library_table["id"] == library.id, "qubit_concentration"] = library.qubit_concentration
 
         for sub_form in self.pool_fields:
-            with DBSession(db) as session:
-                if (pool := session.get_pool(sub_form.obj_id.data)) is None:
-                    logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
-                    raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
-                
-                pool.qubit_concentration = sub_form.qubit_concentration.data
+            if (pool := db.get_pool(sub_form.obj_id.data)) is None:
+                logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+                raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
+            
+            pool.qubit_concentration = sub_form.qubit_concentration.data
 
-                if pool.qubit_concentration is not None:
-                    for library in pool.libraries:
-                        if library.is_pooled():
-                            library.status = LibraryStatus.POOLED
+            if pool.qubit_concentration is not None:
+                for library in pool.libraries:
+                    if library.is_pooled():
+                        library.status = LibraryStatus.POOLED
 
-                if pool.status == PoolStatus.ACCEPTED:
-                    pool.status = PoolStatus.STORED
+            if pool.status == PoolStatus.ACCEPTED:
+                pool.status = PoolStatus.STORED
 
-                pool = session.update_pool(pool)
+            pool = db.update_pool(pool)
 
             pool_table.loc[pool_table["id"] == pool.id, "qubit_concentration"] = pool.qubit_concentration
 
@@ -144,4 +141,4 @@ class CompleteQubitMeasureForm(MultiStepForm):
         if (experiment_id := metadata.get("experiment_id")) is not None:
             return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id))
         
-        return make_response(redirect=url_for("index_page"))
+        return make_response(redirect=url_for("dashboard"))

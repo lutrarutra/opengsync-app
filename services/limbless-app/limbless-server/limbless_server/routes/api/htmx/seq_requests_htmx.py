@@ -995,5 +995,5 @@ def get_recent_seq_requests():
     )
 
     return make_response(
-        render_template("components/recent_seq_requests_list.html", seq_requests=seq_requests, sort_by=sort_by)
+        render_template("components/recent-seq_requests-list.html", seq_requests=seq_requests, sort_by=sort_by)
     )

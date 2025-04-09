@@ -19,7 +19,7 @@
             align-items: center;
         }
         h4:hover {
-            cursor: default;
+        cursor: default;
         }
         margin-bottom: 10px;
         background-color: $gray-200;
@@ -46,12 +46,6 @@
             border: solid var(--bs-border-color);
             border-radius: var(--bs-border-radius);
         }
-        .banner-container {
-            margin-right: 5px;
-            padding: 0 5px 5px 15px;
-            overflow-y: auto;
-            height: calc(100% - 60px);
-        }
     }
 
     .dash-right {
@@ -67,21 +61,38 @@
             border: solid var(--bs-border-color);
             border-radius: var(--bs-border-radius);
             height: 100%;
+            .tab-content {
+                height: calc(100% - 60px);
+                .tab-pane {
+                    height: 100%;
+                    .banner-container {
+                        margin-right: 5px;
+                        padding: 0 5px 5px 15px;
+                        overflow-y: auto;
+                        height: 100%;
+                    }
+                }
+            }
         }
         .dash-bottom {
             height: 100%;
+            .tab-content {
+                height: calc(100% - 60px);
+                .tab-pane {
+                    height: 100%;
+                    .workflow-container {
+                        margin-right: 5px;
+                        padding: 0 5px 10px 15px;
+                        justify-content: space-evenly;
+                        align-content: flex-start;
+                        height: 100%;
+                        overflow-y: auto;
+                    }
+                }
+            }
             overflow-y: hidden;
             border: solid var(--bs-border-color);
             border-radius: var(--bs-border-radius);
-            .workflow-container {
-                margin-right: 5px;
-                padding: 0 5px 0 15px;
-                justify-content: space-evenly;
-                align-content: flex-start;
-                height: 100%;
-                overflow-y: auto;
-                padding-bottom: 70px;
-            }
         }
         
     }

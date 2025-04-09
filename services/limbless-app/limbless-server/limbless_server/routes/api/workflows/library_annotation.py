@@ -1,11 +1,11 @@
 import os
 from typing import TYPE_CHECKING, Literal
 
-from flask import Blueprint, request, abort, send_file, current_app, Response
+from flask import Blueprint, request, abort, send_file, current_app
 from flask_login import login_required
 
 from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, SubmissionType
 
 from .... import db, logger  # noqa
 from ....forms.workflows import library_annotation as forms
@@ -17,31 +17,6 @@ else:
     from flask_login import current_user
 
 library_annotation_workflow = Blueprint("library_annotation_workflow", __name__, url_prefix="/api/workflows/library_annotation/")
-
-
-# Template sample annotation sheet
-@library_annotation_workflow.route("download_visium_template/<string:uuid>", methods=["GET"])
-@login_required
-def download_visium_template(uuid: str):
-    form = forms.VisiumAnnotationForm(uuid=uuid)
-    template = form.get_template()
-
-    return Response(
-        template.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=visium_annotation.tsv"}
-    )
-
-
-@library_annotation_workflow.route("download_flex_template", methods=["GET"])
-@login_required
-def download_flex_template():
-    form = forms.FlexAnnotationForm()
-    template = form.get_template()
-
-    return Response(
-        template.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=flex_annotation.tsv"}
-    )
 
 
 # Template sequencing authorization form
@@ -69,6 +44,18 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if workflow_type == "pooled":
+        if seq_request.submission_type != SubmissionType.POOLED_LIBRARIES:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    elif workflow_type == "raw":
+        if seq_request.submission_type != SubmissionType.RAW_SAMPLES:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    elif workflow_type == "tech":
+        if seq_request.submission_type != SubmissionType.RAW_SAMPLES:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
         affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None

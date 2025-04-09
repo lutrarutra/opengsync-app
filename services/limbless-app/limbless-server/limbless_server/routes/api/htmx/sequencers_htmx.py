@@ -4,7 +4,7 @@ from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import DBSession, PAGE_LIMIT, exceptions, models
+from limbless_db import PAGE_LIMIT, exceptions, models, db_session
 from limbless_db.categories import HTTPResponse, UserRole
 from .... import db, forms, cache
 
@@ -18,25 +18,27 @@ else:
 
 @sequencers_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @sequencers_htmx.route("get/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 @cache.cached(timeout=60, query_string=True)
 def get(page: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    with DBSession(db) as session:
-        sequencers, n_pages = session.get_sequencers(offset=PAGE_LIMIT * page)
+    sequencers, n_pages = db.get_sequencers(offset=PAGE_LIMIT * page)
     
     return make_response(
         render_template(
             "components/tables/sequencer.html",
             sequencers=sequencers,
-            n_pages=n_pages, active_page=page
+            n_pages=n_pages,
+            active_page=page
         )
     )
 
 
 @sequencers_htmx.route("create", methods=["POST"])
+@db_session(db)
 @login_required
 def create():
     if current_user.role != UserRole.ADMIN:
@@ -46,6 +48,7 @@ def create():
 
 
 @sequencers_htmx.route("update/<int:sequencer_id>", methods=["POST"])
+@db_session(db)
 @login_required
 def update(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
@@ -60,22 +63,22 @@ def update(sequencer_id: int):
 
 
 @sequencers_htmx.route("delete/<int:sequencer_id>", methods=["GET"])
+@db_session(db)
 @login_required
 def delete(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    with DBSession(db) as session:
-        if session.get_sequencer(sequencer_id) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
-        
-        try:
-            session.delete_sequencer(sequencer_id)
-        except exceptions.ElementIsReferenced:
-            flash("Sequencer is referenced by experiment(s) and cannot be deleted.", "error")
-            return make_response(
-                redirect=url_for("devices_page.sequencer_page", sequencer_id=sequencer_id)
-            )
+    if db.get_sequencer(sequencer_id) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    try:
+        db.delete_sequencer(sequencer_id)
+    except exceptions.ElementIsReferenced:
+        flash("Sequencer is referenced by experiment(s) and cannot be deleted.", "error")
+        return make_response(
+            redirect=url_for("devices_page.sequencer_page", sequencer_id=sequencer_id)
+        )
 
     flash("Sequencer deleted.", "success")
     return make_response(
@@ -84,6 +87,7 @@ def delete(sequencer_id: int):
 
 
 @sequencers_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))

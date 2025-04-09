@@ -6,7 +6,7 @@ from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length
 
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import SampleStatus
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -32,18 +32,17 @@ class SampleForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        with DBSession(db) as session:
-            if (user := session.get_user(user_id)) is None:
-                logger.error(f"User with id {user_id} does not exist.")
-                return False
-            
-            user_samples = user.samples
-            
-            for user_sample in user_samples:
-                if self.name.data == user_sample.name:
-                    if sample.id != user_sample.id:
-                        self.name.errors = ("You already have a sample with this name.",)
-                        return False
+        if (user := db.get_user(user_id)) is None:
+            logger.error(f"User with id {user_id} does not exist.")
+            return False
+        
+        user_samples = user.samples
+        
+        for user_sample in user_samples:
+            if self.name.data == user_sample.name:
+                if sample.id != user_sample.id:
+                    self.name.errors = ("You already have a sample with this name.",)
+                    return False
         
         return True
     

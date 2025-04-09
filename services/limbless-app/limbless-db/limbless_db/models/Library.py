@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from . import links
 from .Base import Base
 from .SeqRequest import SeqRequest
-from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum
+from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum, AssayType, AssayTypeEnum
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -30,6 +30,7 @@ class Library(Base):
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     genome_ref_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    assay_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
@@ -93,6 +94,14 @@ class Library(Base):
     @genome_ref.setter
     def genome_ref(self, value: GenomeRefEnum):
         self.genome_ref_id = value.id
+
+    @property
+    def assay_type(self) -> AssayTypeEnum:
+        return AssayType.get(self.assay_type_id)
+    
+    @assay_type.setter
+    def assay_type(self, value: AssayTypeEnum):
+        self.assay_type_id = value.id
     
     @property
     def qubit_concentration_str(self) -> str:
