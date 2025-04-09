@@ -40,6 +40,7 @@ services:
             interval: 60s
             timeout: 10s
             retries: 5
+        command: "sh ./entrypoint.sh"
 
     rf-scanner:
         container_name: rf-scanner-dev
@@ -52,7 +53,6 @@ services:
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ./services/rf-scanner/src:/usr/src/app/src:ro
             - ${DATA_DIR}/logs/rf-scanner:/var/log
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
         depends_on:
@@ -60,6 +60,7 @@ services:
                 condition: service_healthy
                 restart: true
         restart: always
+        command: "sh ./rf-scanner/entrypoint.sh"
         
     redis-cache:
         container_name: redis-cache-dev

@@ -42,7 +42,6 @@ services:
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ./services/rf-scanner/src:/usr/src/app/src:ro
             - ${DATA_DIR}/logs/rf-scanner:/var/log
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
         depends_on:
@@ -50,6 +49,7 @@ services:
                 condition: service_healthy
                 restart: true
         restart: always
+        command: "sh ./rf-scanner/entrypoint.sh"
 
     ofelia:
         container_name: ofelia
@@ -66,6 +66,16 @@ services:
             ofelia.job-local.uploads-cleanup.schedule: "0 1 * * *"  # every night at 1am
             ofelia.job-local.uploads-cleanup.command: "find /uploads -type f -mtime +1 -delete"
 
+    sass-compiler:
+        container_name: sass-compiler
+        build: ./services/sass-compiler
+        environment:
+            TZ: ${TIMEZONE}
+        volumes:
+            - ./services/limbless-app/static/style/sass:/usr/src/static/style/sass:ro
+            - compiled_css:/usr/src/app/static/style/compiled
+        command: "sass --style compressed --update /usr/src/static/style/sass:/usr/src/app/static/style/compiled"
+
     nginx:
         container_name: nginx-proxy
         build: ./services/nginx
@@ -80,6 +90,9 @@ services:
             limbless-app:
                 condition: service_started
                 restart: true
+            sass-compiler:
+                condition: service_completed_successfully
+                restart: false
         environment:
             TZ: ${TIMEZONE}
             LIMBLESS_PORT: ${LIMBLESS_PORT}
@@ -101,16 +114,6 @@ services:
             timeout: 10s
             retries: 5
         command: --port ${REDIS_PORT}
-
-    sass-compiler:
-        container_name: sass-compiler
-        build: ./services/sass-compiler
-        environment:
-            TZ: ${TIMEZONE}
-        volumes:
-            - ./services/limbless-app/static/style/sass:/usr/src/static/style/sass:ro
-            - compiled_css:/usr/src/app/static/style/compiled
-        command: "sass --style compressed --update /usr/src/static/style/sass:/usr/src/app/static/style/compiled"
 
     postgres:
         container_name: postgres

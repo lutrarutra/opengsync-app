@@ -1,16 +1,14 @@
-FROM python:3.11-bookworm
+FROM python:3.13-bookworm
 
 # set work directory
 WORKDIR /usr/src/app
 
 # install dependencies
 RUN apt update
-RUN apt install build-essential -y
-RUN apt install libpq-dev -y
-RUN apt install curl -y
-RUN apt install postgresql-client -y
+RUN apt install build-essential libpq-dev curl postgresql-client -y
+
 RUN pip install --upgrade pip
-COPY ./pytest/requirements.txt /usr/src/app/
 COPY ./limbless-app/limbless-db /usr/src/app/limbless-db
+RUN pip install /usr/src/app/limbless-db
+COPY ./pytest/requirements.txt /usr/src/app/
 RUN pip install -r requirements.txt
-RUN pip install ./limbless-db
