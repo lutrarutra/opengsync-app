@@ -1,0 +1,23 @@
+{% from "components/spinner.jinja2" import spinner %}
+
+<div class="banner-container">
+{% for assay_type, _df in df.groupby("assay_type") %}
+    <div type="button" class="element-banner"
+     hx-get="{{ url_for('libraries_htmx.get_assay_type_todo_libraries', assay_type_id=assay_type.id) }}"
+        hx-target="#assay-type-todo-modal-content" hx-swap="innerHTML" data-bs-target="#assay-type-todo-modal" data-bs-toggle="modal">
+        <div class="banner-title">
+            <div class="row">
+                <div class="title col-6">{{ assay_type.abbreviation }}</div>
+                <div class="col-2"><b>Waiting:</b> {{ (_df["status"] == LibraryStatus.ACCEPTED).sum() }}</div>
+                <div class="col-2"><b>Preparing:</b> {{ (_df["status"] == LibraryStatus.PREPARING).sum() }}</div>
+                <div class="col-2"><b>Ready:</b> {{ (_df["status"] == LibraryStatus.STORED).sum() }}</div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>
+<div class="modal fade" id="assay-type-todo-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="true">
+    <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="assay-type-todo-modal-content">
+        {{ spinner() }}
+    </div>
+</div>

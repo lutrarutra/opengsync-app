@@ -178,9 +178,10 @@
         </div>
         <div class="tab-pane fade" id="library-metadata-tab" role="tabpanel" tabindex="2">
             <div class="row">
-                {{ metadata_group("Type", library.type, class="col-4") }}
-                {{ metadata_group("Sample Name", library.sample_name, class="col-4") }}
-                {{ metadata_group("Genome Reference", library.genome_ref.name, class="col-4") }}
+                {{ metadata_group("Type", library.type.name, class="col-3") }}
+                {{ metadata_group("Assay", library.assay_type.name, class="col-3") }}
+                {{ metadata_group("Sample Name", library.sample_name, class="col-3") }}
+                {{ metadata_group("Genome Reference", library.genome_ref.name, class="col-3") }}
             </div>
             <div class="row">
                 {{ 

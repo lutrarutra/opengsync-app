@@ -18,6 +18,6 @@ if __name__ == "__main__":
     # ssl_context = ("cert/server.crt", "cert/server.key")
     ssl_context = None
     logger.debug(f"Running on {args.host}:{args.port}")
-    app.run(host=args.host, port=args.port, debug=True, ssl_context=ssl_context)
+    app.run(host=args.host, port=args.port, debug=True, ssl_context=ssl_context, threaded=True)
 
 exit(0)

@@ -707,5 +707,5 @@ def get_recent_experiments():
     experiments, _ = db.get_experiments(sort_by=sort_by, descending=True)
 
     return make_response(
-        render_template("components/recent_experiments_list.html", experiments=experiments, sort_by=sort_by)
+        render_template("components/recent-experiments-list.html", experiments=experiments, sort_by=sort_by)
     )

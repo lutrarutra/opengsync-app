@@ -144,6 +144,7 @@ class FlexMuxForm(MultiStepForm):
                     seq_request_id=old_library.seq_request_id,
                     lab_prep_id=self.lab_prep.id,
                     genome_ref=old_library.genome_ref,
+                    assay_type=self.lab_prep.assay_type
                 )
                 libraries[lib] = new_library
             else:

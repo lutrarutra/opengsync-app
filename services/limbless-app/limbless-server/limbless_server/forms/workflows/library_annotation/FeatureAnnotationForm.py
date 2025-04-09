@@ -5,7 +5,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, FeatureType
+from limbless_db.categories import LibraryType, FeatureType, SubmissionType
 
 from .... import db, logger, tools  # noqa
 from ....tools import SpreadSheetColumn, StaticSpreadSheet
@@ -227,7 +227,7 @@ class FeatureAnnotationForm(MultiStepForm):
             next_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif self.metadata["workflow_type"] == "pooled" and LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        elif self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES and LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

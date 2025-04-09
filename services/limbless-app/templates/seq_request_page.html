@@ -10,7 +10,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ seq_request.name }}</h1>
+            <h1>{{ seq_request.name }} <span class="desc">{{ seq_request.submission_type.name }}</span></h1>
         </div>
         <div class="page-controls">
             {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ACCEPTED %}
@@ -276,7 +276,7 @@
                 </div>
             </div>
             <div class="workflow-container">
-                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES or current_user.is_insider() %}
+                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
                 <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES and current_user.is_insider() %}muted{% endif %}"
                     style="width: 250px;"
                     {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
@@ -326,7 +326,7 @@
                 </div>
                 {% endif %}
                 {% endif %}
-                {% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES or current_user.is_insider() %}
+                {% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES %}
                 <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.POOLED_LIBRARIES and current_user.is_insider() %}muted{% endif %}"
                     style="width: 250px;"
                     {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
@@ -340,7 +340,7 @@
                                 <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="90px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">C. Define ready-to-sequence Pool <br><span class="desc">Pooled Libraries</span></h5>
+                                <h5 class="card-title">Define ready-to-sequence Pool <br><span class="desc">Pooled Libraries</span></h5>
                             </div>
                         </div>
                         <div class="card-back">

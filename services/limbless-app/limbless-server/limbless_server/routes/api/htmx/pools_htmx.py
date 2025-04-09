@@ -507,13 +507,8 @@ def get_recent_pools():
         status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED], sort_by="id", descending=True,
         limit=15
     )
-
-    for pool in pools:
-        logger.debug(pool.experiment)
-
-    template = render_template(
-        "components/recent_pools_list.html",
-        pools=pools, sort_by="id"
-    )
     
-    return make_response(template)
+    return make_response(render_template(
+        "components/recent-pools-list.html",
+        pools=pools, sort_by="id"
+    ))

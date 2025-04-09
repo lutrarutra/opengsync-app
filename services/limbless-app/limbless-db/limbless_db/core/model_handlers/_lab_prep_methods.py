@@ -6,12 +6,16 @@ import sqlalchemy as sa
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT, LAB_PROTOCOL_START_NUMBER
-from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum
+from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum, AssayTypeEnum
 from .. import exceptions
 
 
 def create_lab_prep(
-    self: "DBHandler", name: str | None, creator_id: int, protocol: LabProtocolEnum,
+    self: "DBHandler",
+    name: str | None,
+    creator_id: int,
+    protocol: LabProtocolEnum,
+    assay_type: AssayTypeEnum
 ) -> models.LabPrep:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -29,6 +33,7 @@ def create_lab_prep(
         prep_number=number,
         creator_id=creator.id,
         protocol_id=protocol.id,
+        assay_type_id=assay_type.id,
     )
 
     self.session.add(lab_prep)

@@ -7,7 +7,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType
+from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType, AssayType, SubmissionType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
@@ -172,7 +172,7 @@ class CompleteSASForm(MultiStepForm):
                     name=library_row["sample_name"],
                     project_id=project.id,
                     owner_id=user.id,
-                    status=None if self.metadata["workflow_type"] == "pooled" else SampleStatus.DRAFT
+                    status=None if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES else SampleStatus.DRAFT
                 )
                 self.sample_table.at[idx, "sample_id"] = sample.id
 
@@ -197,7 +197,7 @@ class CompleteSASForm(MultiStepForm):
 
         self.sample_table["sample_id"] = self.sample_table["sample_id"].astype(int)
 
-        if self.metadata["workflow_type"] == "pooled":
+        if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
             if self.pool_table is None:
                 logger.error(f"{self.uuid}: Pool table not found.")
                 raise ValueError("Pool table not found.")
@@ -231,13 +231,15 @@ class CompleteSASForm(MultiStepForm):
             else:
                 visium_annotation_id = None
 
-            if self.metadata["workflow_type"] == "pooled":
+            if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
                 if self.pool_table is None:
                     logger.error(f"{self.uuid}: Pool table not found.")
                     raise ValueError("Pool table not found.")
                 pool_id = int(self.pool_table[self.pool_table["pool_label"] == library_row["pool"]]["pool_id"].values[0])
             else:
                 pool_id = None
+
+            assay_type = AssayType.get(self.metadata["assay_type_id"])
 
             library = db.create_library(
                 name=library_row["library_name"],
@@ -248,12 +250,13 @@ class CompleteSASForm(MultiStepForm):
                 genome_ref=GenomeRef.get(library_row["genome_id"]),
                 visium_annotation_id=visium_annotation_id,
                 pool_id=pool_id,
+                assay_type=assay_type,
                 seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
             )
 
             self.library_table.at[idx, "library_id"] = library.id
             
-            if self.metadata["workflow_type"] == "pooled":
+            if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
                 if self.barcode_table is None:
                     logger.error(f"{self.uuid}: Barcode table not found.")
                     raise ValueError("Barcode table not found.")
@@ -279,7 +282,7 @@ class CompleteSASForm(MultiStepForm):
                     flex_barcode=sample_row["flex_barcode"] if pd.notna(sample_row["flex_barcode"]) else None,
                 )
 
-            self.library_table["library_id"] = self.library_table["library_id"].astype(int)
+        self.library_table["library_id"] = self.library_table["library_id"].astype(int)
 
         if self.feature_table is not None:
             custom_features = self.feature_table[self.feature_table["feature_id"].isna()]

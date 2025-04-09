@@ -3,9 +3,10 @@ from typing import Optional
 import pandas as pd
 
 from flask import Response, url_for
+from wtforms import SelectField
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, GenomeRef
+from limbless_db.categories import LibraryType, GenomeRef, AssayType
 
 from .... import logger, db
 from ....tools import SpreadSheetColumn, tools
@@ -18,6 +19,8 @@ class PooledLibraryAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-pooled_library_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "pooled_library_annotation"
+
+    assay_type = SelectField("Assay Type", choices=[(-1, "")] + AssayType.as_selectable(), coerce=int, default=None)
 
     columns = [
         SpreadSheetColumn("sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -52,6 +55,15 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
         if not self.spreadsheet.validate():
             return False
+        
+        if self.assay_type.data is None or self.assay_type.data == -1:
+            self.assay_type.errors = ("Assay Type is required.",)
+            return False
+        try:
+            assay_type = AssayType.get(self.assay_type.data)
+        except ValueError:
+            self.assay_type.errors = ("Invalid Assay Type.",)
+            return False
     
         df = self.spreadsheet.df
 
@@ -77,46 +89,76 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
             if pd.isna(row["genome"]):
                 self.spreadsheet.add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
-                
+
+        for sample_name, _df in df.groupby("sample_name"):
+            if len(_df) > 1:
+                if len(_df["genome"].unique()) > 1:
+                    self.spreadsheet.add_general_error(f"Sample '{sample_name}' has multiple different genomes.")
+        
         if len(self.spreadsheet._errors) > 0:
             return False
         
-        self.df = df
+        df = self.__map_library_types(df)
+
+        if assay_type != AssayType.CUSTOM:
+            required_type_ids = [library_type.id for library_type in assay_type.library_types]
+
+            for sample_name, _df in df.groupby("sample_name"):
+                missing_library_type_mask = pd.Series(required_type_ids).isin(_df["library_type_id"])
+                if not missing_library_type_mask.all():
+                    missing_library_types = pd.Series(required_type_ids)[~missing_library_type_mask].apply(lambda x: LibraryType.get(x).name).to_list()
+                    self.spreadsheet.add_general_error(f"Missing: {missing_library_types} library type(s) for sample '{sample_name}'")
+
+                for idx, row in _df.iterrows():
+                    library_type_id = row["library_type_id"]
+                    if library_type_id not in required_type_ids:
+                        self.spreadsheet.add_error(
+                            idx + 1, "library_type",  # type: ignore
+                            f"Library type '{LibraryType.get(library_type_id).name}' is not part of '{assay_type.name}' assay.",
+                            "invalid_value"
+                        )
+
+        if len(self.spreadsheet._errors) > 0:
+            return False
+        
+        df = self.__map_genome_ref(df)
+        self.df = self.__map_existing_samples(df)
         return True
     
-    def __map_library_types(self):
+    def __map_library_types(self, df: pd.DataFrame) -> pd.DataFrame:
         library_type_map = {}
         for id, e in LibraryType.as_tuples():
             library_type_map[e.display_name] = id
         
-        self.df["library_type_id"] = self.df["library_type"].map(library_type_map)
-        self.df["library_name"] = self.df["sample_name"] + self.df["library_type_id"].apply(lambda x: f"_{LibraryType.get(x).identifier}")
+        df["library_type_id"] = df["library_type"].map(library_type_map)
+        df["library_name"] = df["sample_name"] + df["library_type_id"].apply(lambda x: f"_{LibraryType.get(x).identifier}")
+        return df
 
-    def __map_genome_ref(self):
+    def __map_genome_ref(self, df: pd.DataFrame) -> pd.DataFrame:
         organism_map = {}
         for id, e in GenomeRef.as_tuples():
             organism_map[e.display_name] = id
         
-        self.df["genome_id"] = self.df["genome"].map(organism_map)
+        df["genome_id"] = df["genome"].map(organism_map)
+        return df
 
-    def __map_existing_samples(self):
-        self.df["sample_id"] = None
+    def __map_existing_samples(self, df: pd.DataFrame) -> pd.DataFrame:
+        df["sample_id"] = None
         if self.metadata["project_id"] is None:
-            return
+            return df
         if (project := db.get_project(self.metadata["project_id"])) is None:
             logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
             raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
         
         for sample in project.samples:
-            self.df.loc[self.df["sample_name"] == sample.name, "sample_id"] = sample.id
+            df.loc[df["sample_name"] == sample.name, "sample_id"] = sample.id
+        return df
 
     def process_request(self) -> Response:
         if not self.validate():
             return self.make_response()
 
-        self.__map_library_types()
-        self.__map_genome_ref()
-        self.__map_existing_samples()
+        self.metadata["assay_type_id"] = AssayType.get(self.assay_type.data).id
 
         sample_table_data = {
             "sample_name": [],
