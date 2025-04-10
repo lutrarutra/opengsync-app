@@ -128,7 +128,8 @@ def get_samples(
     status_in: Optional[list[SampleStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-) -> tuple[list[models.Sample], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Sample], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -137,7 +138,7 @@ def get_samples(
         query, user_id=user_id, project_id=project_id, library_id=library_id,
         pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in
     )
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.Sample, sort_by)

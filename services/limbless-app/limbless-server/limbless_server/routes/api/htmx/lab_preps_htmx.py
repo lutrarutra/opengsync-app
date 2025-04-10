@@ -62,7 +62,7 @@ def get(page: int):
 
     lab_preps, n_pages = db.get_lab_preps(
         status_in=status_in, protocol_in=protocol_in,
-        offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending
+        offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending, count_pages=True
     )
     
     return render_template(
@@ -276,7 +276,7 @@ def get_libraries(lab_prep_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    libraries, n_pages = db.get_libraries(offset=offset, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending)
+    libraries, n_pages = db.get_libraries(offset=offset, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -418,7 +418,7 @@ def get_pools(lab_prep_id: int, page: int):
     offset = PAGE_LIMIT * page
 
     pools, n_pages = db.get_pools(
-        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending
+        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(

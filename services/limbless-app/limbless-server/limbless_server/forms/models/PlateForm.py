@@ -50,7 +50,6 @@ class PlateForm(HTMXFlaskForm):
             name=self.name.data,  # type: ignore
             num_cols=self.num_cols.data,  # type: ignore
             num_rows=self.num_rows.data,  # type: ignore
-            pool_id=self.pool.id if self.pool else None,
             owner_id=user.id
         )
 
@@ -61,8 +60,8 @@ class PlateForm(HTMXFlaskForm):
             libraries, _ = db.get_libraries(pool_id=self.pool.id, limit=None, sort_by="id")
             for i, library in enumerate(libraries):
                 db.add_library_to_plate(
-                    plate_id=plate.id, library_id=library.id, well=get_well(i)
-                )  # FIXME
+                    plate_id=plate.id, library_id=library.id, well_idx=i
+                )
 
             flash(f"Plate {plate.name} created", "success")
             return make_response(redirect=url_for("pools_page.pool_page", pool_id=self.pool.id))

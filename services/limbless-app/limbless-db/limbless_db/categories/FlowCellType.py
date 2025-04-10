@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass
+@dataclass(eq=False)
 class FlowCellTypeEnum(DBEnum):
     manufacturer: str
     num_lanes: int

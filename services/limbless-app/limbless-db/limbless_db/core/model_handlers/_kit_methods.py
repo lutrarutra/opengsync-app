@@ -68,8 +68,9 @@ def get_kit_by_name(self: "DBHandler", name: str) -> models.Kit | None:
 
 def get_kits(
     self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
-    sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[models.Kit], int]:
+    sort_by: Optional[str] = None, descending: bool = False,
+    count_pages: bool = False
+) -> tuple[list[models.Kit], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -83,7 +84,7 @@ def get_kits(
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if limit is not None:
         query = query.limit(limit)

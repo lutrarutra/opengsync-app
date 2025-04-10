@@ -35,7 +35,7 @@ def get(page: int, index_kit_id: Optional[int]):
         if (index_kit := db.get_index_kit(index_kit_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
 
-    adapters, n_pages = db.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending)
+    adapters, n_pages = db.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(

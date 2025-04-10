@@ -5,22 +5,28 @@
     margin-right: 5px;
     padding: 0 5px 5px 15px;
     overflow-y: auto;
-    height: calc(100% - 60px);
 
     a.element-banner {
         color: $black;
         text-decoration: none;
     }
 
+    a .progress-bar:hover {
+        cursor: pointer;
+    }
+
     .element-banner {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
         border: 1px solid #ccc;
         border-radius: 5px;
         margin: 0;
-        padding: 0;
         padding: 7px;
+        
         .badge {
             background-color: $cemm-blue;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .qc-container {
@@ -29,28 +35,26 @@
             justify-content: flex-start;
             align-items: center;
         }
-        .banner-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        .title {
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            overflow-x: hidden;
+            font-weight: 600;
+        }
 
-            .title {
-                white-space: nowrap;
-                overflow-x: hidden;
-                font-weight: 600;
-            }
-
-            .title-row {
-                text-align: center;
-                vertical-align: middle;
-                font-size: 1rem;
-            }
-            .title-row div:first-child {
-                text-align: start;
-            }
-            .title-row div:last-child {
-                text-align: end;
-            }
+        .title-row {
+            text-align: center;
+            vertical-align: middle;
+            font-size: 1rem;
+        }
+        .title-row div:first-child {
+            text-align: start;
+        }
+        .title-row div:last-child {
+            text-align: end;
         }
     }
 

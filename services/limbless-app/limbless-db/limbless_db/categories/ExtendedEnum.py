@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, Type
 from collections import OrderedDict
 
 
-@dataclass
+@dataclass(eq=False)
 class DBEnum():
     id: int
     name: str

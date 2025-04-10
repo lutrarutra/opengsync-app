@@ -25,7 +25,7 @@ def get(page: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    sequencers, n_pages = db.get_sequencers(offset=PAGE_LIMIT * page)
+    sequencers, n_pages = db.get_sequencers(offset=PAGE_LIMIT * page, count_pages=True)
     
     return make_response(
         render_template(

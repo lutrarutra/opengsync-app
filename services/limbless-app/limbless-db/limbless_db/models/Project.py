@@ -1,9 +1,12 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
+from datetime import datetime
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
+from .. import localize
+from ..categories import ProjectStatus, ProjectStatusEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -16,6 +19,10 @@ class Project(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     description: Mapped[Optional[str]] = mapped_column(sa.String(1024), default=None, nullable=True)
+
+    timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
+
+    status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
 
@@ -31,6 +38,21 @@ class Project(Base):
     
     def search_name(self) -> str:
         return self.name
+    
+    @property
+    def status(self) -> ProjectStatusEnum:
+        return ProjectStatus.get(self.status_id)
+    
+    @status.setter
+    def status(self, value: ProjectStatusEnum):
+        self.status_id = value.id
+
+    @property
+    def timestamp_created(self) -> datetime:
+        return localize(self.timestamp_created_utc)
+
+    def timestamp_created_str(self) -> str:
+        return self.timestamp_created.strftime('%Y-%m-%d %H:%M')
     
     def __str__(self) -> str:
         return f"Project(id: {self.id}, name: {self.name}, owner_id: {self.owner_id})"

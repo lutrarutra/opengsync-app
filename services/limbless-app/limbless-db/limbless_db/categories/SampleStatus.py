@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass
+@dataclass(eq=False)
 class SampleStatusEnum(DBEnum):
     icon: str
     description: str

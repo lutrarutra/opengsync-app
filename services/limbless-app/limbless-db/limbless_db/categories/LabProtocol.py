@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass
+@dataclass(eq=False)
 class LabProtocolEnum(DBEnum):
     abbreviation: str
     identifier: str

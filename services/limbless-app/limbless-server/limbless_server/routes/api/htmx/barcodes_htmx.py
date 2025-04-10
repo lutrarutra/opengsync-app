@@ -24,7 +24,7 @@ def get(page: int):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
 
-    barcodes, n_pages = db.get_barcodes(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
+    barcodes, n_pages = db.get_barcodes(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(

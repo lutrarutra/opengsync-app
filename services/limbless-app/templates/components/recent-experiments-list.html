@@ -23,15 +23,13 @@
         </div>
     </div>
 </div>
-<div class="banner-container">
+<div class="banner-container dash-component-content">
     {% for experiment in experiments %}
     <a class="element-banner" href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
-        <div class="banner-title">
-            <div class="row title-row">
-                <div class="title col-4">{{ experiment.name }}</div>
-                <div class="description col-4">{{ experiment.operator.name }}</span></div>
-                <div class="submitted-time col-4">{{ experiment.timestamp_created_str("%-d. %b. @ %-H:%M") }}</div>
-            </div>
+        <div class="row title-row">
+            <div class="title col-4">{{ experiment.name }}</div>
+            <div class="description col-4">{{ experiment.operator.name }}</span></div>
+            <div class="submitted-time col-4">{{ experiment.timestamp_created_str("%-d. %b. @ %-H:%M") }}</div>
         </div>
         {{ experiment_status_bar(experiment) }}
     </a>

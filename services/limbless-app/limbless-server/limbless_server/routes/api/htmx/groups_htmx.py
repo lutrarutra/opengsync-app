@@ -33,7 +33,7 @@ def get(page: int):
         user_id = None
 
     groups, n_pages = db.get_groups(
-        user_id=user_id, sort_by=sort_by, descending=descending, offset=offset
+        user_id=user_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
     )
 
     return make_response(
@@ -107,7 +107,7 @@ def get_users(group_id: int, page: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     affiliations, n_pages = db.get_group_affiliations(
-        group_id=group_id, sort_by=sort_by, descending=descending, offset=offset
+        group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
     )
 
     affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=group_id)
@@ -193,7 +193,7 @@ def get_seq_requests(group_id: int, page: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     seq_requests, n_pages = db.get_seq_requests(
-        group_id=group_id, sort_by=sort_by, descending=descending, offset=offset
+        group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
     )
 
     return make_response(

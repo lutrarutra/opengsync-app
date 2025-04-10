@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBHandler, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, UserRole, SampleStatus
+from limbless_db.categories import HTTPResponse, UserRole, SampleStatus, ProjectStatus
 
 from .... import db, forms
 from ....tools import SpreadSheetColumn
@@ -49,7 +49,7 @@ def get(page: int):
         if (user := db.get_user(user_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
+        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True)
         context["user"] = user
     else:
         template = "components/tables/project.html"
@@ -57,7 +57,7 @@ def get(page: int):
             user_id = current_user.id
         else:
             user_id = None
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by="id", descending=descending)
+        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by="id", descending=descending, count_pages=True)
 
     return make_response(
         render_template(
@@ -99,7 +99,7 @@ def query():
 @db_session(db)
 @login_required
 def create():
-    return forms.models.ProjectForm(request.form).process_request(user_id=current_user.id)
+    return forms.models.ProjectForm(formdata=request.form).process_request(user=current_user)
 
 
 @projects_htmx.route("<int:project_id>/edit", methods=["POST"])
@@ -112,8 +112,8 @@ def edit(project_id: int):
     if project.owner_id != current_user.id and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.models.ProjectForm(request.form).process_request(
-        user_id=current_user.id, project=project
+    return forms.models.ProjectForm(project=project, formdata=request.form).process_request(
+        user=current_user
     )
 
 
@@ -227,7 +227,7 @@ def get_samples(project_id: int, page: int):
         if len(status_in) == 0:
             status_in = None
 
-    samples, n_pages = db.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in)
+    samples, n_pages = db.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True)
 
     return make_response(
         render_template(
@@ -319,3 +319,27 @@ def edit_sample_attributes(project_id: int):
         return forms.SampleAttributeTableForm(project=project, formdata=request.form).process_request()
     
     return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+
+
+@projects_htmx.route("get_recent_projects", methods=["GET"])
+@db_session(db)
+@login_required
+def get_recent_projects():
+    status_in = None
+    if current_user.is_insider():
+        status_in = [
+            ProjectStatus.PROCESSING,
+            ProjectStatus.DELIVERED,
+            ProjectStatus.ARCHIVED
+        ]
+
+    projects, _ = db.get_projects(
+        user_id=current_user.id, sort_by="id", limit=15,
+        status_in=status_in, descending=True
+    )
+
+    return make_response(
+        render_template(
+            "components/recent-projects-list.html", projects=projects
+        )
+    )

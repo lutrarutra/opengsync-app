@@ -80,8 +80,9 @@ def get_groups(
     user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     type_in: Optional[list[GroupTypeEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[models.Group], int]:
+    sort_by: Optional[str] = None, descending: bool = False,
+    count_pages: bool = False
+) -> tuple[list[models.Group], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -90,7 +91,7 @@ def get_groups(
         query, user_id=user_id, type=type, type_in=type_in
     )
 
-    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.Group, sort_by)
@@ -160,8 +161,9 @@ def get_group_affiliations(
     self: "DBHandler", group_id: int, type: Optional[GroupTypeEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     type_in: Optional[list[GroupTypeEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[models.links.UserAffiliation], int]:
+    sort_by: Optional[str] = None, descending: bool = False,
+    count_pages: bool = False
+) -> tuple[list[models.links.UserAffiliation], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -178,7 +180,7 @@ def get_group_affiliations(
     if type_in is not None:
         query = query.where(models.links.UserAffiliation.affiliation_type_id.in_([t.id for t in type_in]))
 
-    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.links.UserAffiliation, sort_by)

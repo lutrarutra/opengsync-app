@@ -70,8 +70,8 @@ class TechinicalInfoSubForm(FlaskForm):
     )
 
     submission_type = SelectField(
-        "Submission Type", choices=[(-1, "")] + SubmissionType.as_selectable(), validators=[DataRequired()],
-        coerce=int, default=None
+        "Submission Type", choices=[(-1, "")] + SubmissionType.as_selectable(inlcude_unpooled_libraries=False), validators=[DataRequired()],
+        coerce=int, default=None, description="Raw Samples: We do library preparation and pooling for you."
     )
 
     read_length = IntegerField(

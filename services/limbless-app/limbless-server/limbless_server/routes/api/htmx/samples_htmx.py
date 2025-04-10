@@ -45,7 +45,7 @@ def get(page: int):
     samples, n_pages = db.get_samples(
         offset=offset,
         user_id=current_user.id if not current_user.is_insider() else None,
-        sort_by=sort_by, descending=descending, status_in=status_in
+        sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True
     )
     
     return make_response(
@@ -237,7 +237,7 @@ def get_libraries(sample_id: int):
             return abort(HTTPResponse.FORBIDDEN.id)
     
     libraries, n_pages = db.get_libraries(
-        sample_id=sample_id
+        sample_id=sample_id, count_pages=True
     )
     
     return make_response(
@@ -311,7 +311,7 @@ def browse(workflow: str, page: int):
 
     samples, n_pages = db.get_samples(
         seq_request_id=seq_request_id, status_in=status_in, offset=offset, sort_by=sort_by, descending=descending,
-        pool_id=pool_id
+        pool_id=pool_id, count_pages=True
     )
     context["workflow"] = workflow
     return make_response(

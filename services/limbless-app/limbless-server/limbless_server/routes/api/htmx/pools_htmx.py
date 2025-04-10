@@ -52,7 +52,7 @@ def get(page: int):
 
     pools, n_pages = db.get_pools(
         sort_by=sort_by, descending=descending,
-        offset=offset, status_in=status_in, type_in=type_in
+        offset=offset, status_in=status_in, type_in=type_in, count_pages=True
     )
 
     return make_response(
@@ -279,7 +279,7 @@ def get_libraries(pool_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    libraries, n_pages = db.get_libraries(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending)
+    libraries, n_pages = db.get_libraries(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -362,12 +362,12 @@ def get_dilutions(pool_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    dilutions, n_pages = db.get_pool_dilutions(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, limit=None)
+    dilutions, _ = db.get_pool_dilutions(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, limit=None)
     
     return make_response(
         render_template(
             "components/tables/pool-dilution.html",
-            dilutions=dilutions, n_pages=n_pages, active_page=page,
+            dilutions=dilutions, active_page=page,
             sort_by=sort_by, sort_order=sort_order, pool=pool
         )
     )
@@ -418,7 +418,7 @@ def browse(workflow: str, page: int):
     
     pools, n_pages = db.get_pools(
         sort_by=sort_by, descending=descending, offset=offset, status_in=status_in, experiment_id=experiment_id,
-        seq_request_id=seq_request_id, associated_to_experiment=associated_to_experiment
+        seq_request_id=seq_request_id, associated_to_experiment=associated_to_experiment, count_pages=True
     )
 
     context["workflow"] = workflow

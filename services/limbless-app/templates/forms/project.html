@@ -1,7 +1,13 @@
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, select_input %}
 
 <div id="project-form">
     {{ project_form.csrf_token() }}
-    {{ form_group(project_form.name) }}
+    <div class="row">
+        {{ form_group(project_form.name, class="col-6") }}
+        {{ select_input(project_form.status, class="col-6") }}
+    </div>
     {{ form_group(project_form.description) }}
 </div>
+<script>
+    init_tooltips();
+</script>

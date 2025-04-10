@@ -53,7 +53,7 @@ def get(page: int):
 
     experiments, n_pages = db.get_experiments(
         offset=offset, sort_by=sort_by, descending=descending,
-        status_in=status_in, workflow_in=workflow_in
+        status_in=status_in, workflow_in=workflow_in, count_pages=True
     )
 
     return make_response(
@@ -592,7 +592,7 @@ def get_libraries(experiment_id: int, page: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     libraries, n_pages = db.get_libraries(
-        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
+        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(
@@ -680,12 +680,12 @@ def get_pool_dilutions(experiment_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    dilutions, n_pages = db.get_pool_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
+    dilutions, _ = db.get_pool_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
     
     return make_response(
         render_template(
             "components/tables/experiment-pool-dilution.html",
-            dilutions=dilutions, n_pages=n_pages, active_page=page,
+            dilutions=dilutions, active_page=page,
             sort_by=sort_by, sort_order=sort_order, experiment=experiment,
         )
     )

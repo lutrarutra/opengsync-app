@@ -3,100 +3,71 @@
 .dash {
     display: flex;
     height: calc(100vh - 60px);
-    padding: 10px 0 10px 0;
+    padding: 10px 0;
     gap: 10px;
 
-    .dash-component-header {
-        display: flex;
-        align-items: center;
-        padding: 0 15px 0 15px;
-        height: 50px !important;
-        h4 {
-            margin: 0;
-            color: $gray-600;
-            height: 50px !important;
-            display: flex;
-            align-items: center;
-        }
-        h4:hover {
-        cursor: default;
-        }
-        margin-bottom: 10px;
-        background-color: $gray-200;
-        border-bottom: solid var(--bs-border-color);
-        justify-content: space-between;
-    }
-
-    .dash-left {
-        width: 50%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-
-        .dash-top {
-            height: 100%;
-            overflow-y: hidden;
-            border: solid var(--bs-border-color);
-            border-radius: var(--bs-border-radius);
-        }
-        .dash-bottom {
-            height: 100%;
-            overflow-y: hidden;
-            border: solid var(--bs-border-color);
-            border-radius: var(--bs-border-radius);
-        }
-    }
-
+    .dash-left,
     .dash-right {
-        display: flex;
-        flex-direction: column;
         width: 50%;
         height: 100%;
+        display: flex;
+        flex-direction: column;
         gap: 10px;
 
-        .dash-top {
-            height: 100%;
-            overflow-y: hidden;
+        .dash-component-container {
+            flex: 1; // Makes each cell take equal height
+            display: flex;
+            flex-direction: column;
             border: solid var(--bs-border-color);
             border-radius: var(--bs-border-radius);
-            height: 100%;
-            .tab-content {
-                height: calc(100% - 60px);
-                .tab-pane {
-                    height: 100%;
-                    .banner-container {
-                        margin-right: 5px;
-                        padding: 0 5px 5px 15px;
-                        overflow-y: auto;
-                        height: 100%;
+            overflow: hidden;
+
+            .dash-component-header {
+                height: 50px !important;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                padding: 0 10px;
+                background-color: $gray-200;
+                border-bottom: solid var(--bs-border-color);
+                justify-content: space-between;
+
+                h4 {
+                    color: $gray-600;
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+
+                    &:hover {
+                        cursor: default;
                     }
                 }
             }
-        }
-        .dash-bottom {
-            height: 100%;
-            .tab-content {
-                height: calc(100% - 60px);
+
+            .dash-component-content {
+                flex: 1; // Take remaining space
+                overflow: auto;
+                padding: 10px;
+                margin: 0;
+
                 .tab-pane {
                     height: 100%;
+                    overflow: hidden;
+
                     .workflow-container {
+                        height: 100%;
                         margin-right: 5px;
                         padding: 0 5px 10px 15px;
                         justify-content: space-evenly;
                         align-content: flex-start;
-                        height: 100%;
                         overflow-y: auto;
                     }
                 }
             }
-            overflow-y: hidden;
-            border: solid var(--bs-border-color);
-            border-radius: var(--bs-border-radius);
         }
-        
     }
 }
+
 
 @media screen and (max-width: 768px) {
     .dash {

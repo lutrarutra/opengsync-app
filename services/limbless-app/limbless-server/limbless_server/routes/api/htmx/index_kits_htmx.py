@@ -45,7 +45,7 @@ def get(page: int):
         if len(type_in) == 0:
             type_in = None
 
-    index_kits, n_pages = db.get_index_kits(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, type_in=type_in)
+    index_kits, n_pages = db.get_index_kits(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, type_in=type_in, count_pages=True)
 
     return make_response(
         render_template(
@@ -114,7 +114,7 @@ def get_adapters(index_kit_id: int, page: int):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
-    adapters, n_pages = db.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending)
+    adapters, n_pages = db.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(

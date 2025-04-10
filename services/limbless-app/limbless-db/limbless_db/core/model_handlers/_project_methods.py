@@ -6,10 +6,14 @@ import sqlalchemy as sa
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
+from ...categories import ProjectStatus, ProjectStatusEnum
 from .. import exceptions
 
 
-def create_project(self: "DBHandler", name: str, description: str, owner_id: int) -> models.Project:
+def create_project(
+    self: "DBHandler", name: str, description: str, owner_id: int,
+    status: ProjectStatusEnum = ProjectStatus.DRAFT,
+) -> models.Project:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -19,7 +23,8 @@ def create_project(self: "DBHandler", name: str, description: str, owner_id: int
     project = models.Project(
         name=name.strip(),
         description=description.strip(),
-        owner_id=owner_id
+        owner_id=owner_id,
+        status_id=status.id,
     )
 
     self.session.add(project)
@@ -46,10 +51,14 @@ def get_project(self: "DBHandler", project_id: int) -> models.Project | None:
 
 
 def get_projects(
-    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler",
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    user_id: Optional[int] = None
-) -> tuple[list[models.Project], int]:
+    user_id: Optional[int] = None, count_pages: bool = False,
+    seq_request_id: Optional[int] = None,
+    status: Optional[ProjectStatusEnum] = None,
+    status_in: Optional[list[ProjectStatusEnum]] = None,
+) -> tuple[list[models.Project], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -60,13 +69,33 @@ def get_projects(
             models.Project.owner_id == user_id
         )
 
+    if seq_request_id is not None:
+        query = query.join(
+            models.Sample,
+            models.Sample.project_id == models.Project.id,
+        ).join(
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.sample_id == models.Sample.id,
+        ).join(
+            models.Library,
+            models.Library.id == models.links.SampleLibraryLink.library_id,
+        ).where(
+            models.Library.seq_request_id == seq_request_id
+        ).distinct(models.Project.id)
+
+    if status is not None:
+        query = query.where(models.Project.status_id == status.id)
+
+    if status_in is not None:
+        query = query.where(models.Project.status_id.in_([s.id for s in status_in]))
+
     if sort_by is not None:
         attr = getattr(models.Project, sort_by)
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if offset is not None:
         query = query.offset(offset)
@@ -118,26 +147,14 @@ def delete_project(
 
 
 def update_project(
-    self: "DBHandler", project_id: int,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    commit: bool = True
+    self: "DBHandler", project: models.Project
 ) -> models.Project:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    project = self.session.get(models.Project, project_id)
-    if not project:
-        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
-
-    if name is not None:
-        project.name = name
-    if description is not None:
-        project.description = description
-
-    if commit:
-        self.session.commit()
-        self.session.refresh(project)
+    self.session.add(project)
+    self.session.commit()
+    self.session.refresh(project)
 
     if not persist_session:
         self.close_session()

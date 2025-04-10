@@ -8,16 +8,19 @@
 <div class="page-content">
     <div class="dash">
         <div class="dash-left">
-            <div class="dash-top" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
+            <div class="dash-top dash-component-container" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
                 {{ spinner() }}
             </div>
         </div>
         <div class="dash-right">
-            <div class="dash-bottom">
+            <div class="dash-top dash-component-container" hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once">
+                {{ spinner() }}
+            </div>
+            <div class="dash-bottom dash-component-container">
                 <div class="dash-component-header">
                     <h4>Workflows</h4>
                 </div>
-                <div class="workflow-container">
+                <div class="workflow-container dash-component-content">
                     <div class="flip-card card"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-get="{{ url_for('seq_requests_htmx.get_form', form_type='create') }}"
