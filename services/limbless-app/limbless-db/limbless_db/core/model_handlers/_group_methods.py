@@ -101,9 +101,7 @@ def get_groups(
         self.open_session()
 
     query = self.session.query(models.Group)
-    query = where(
-        query, user_id=user_id, type=type, type_in=type_in
-    )
+    query = where(query, user_id=user_id, type=type, type_in=type_in)
 
     n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
@@ -135,20 +133,7 @@ def query_groups(
         self.open_session()
 
     query = self.session.query(models.Group)
-    
-    if user_id is not None:
-        query = query.join(
-            models.links.UserAffiliation,
-            models.links.UserAffiliation.group_id == models.Group.id
-        ).where(
-            models.links.UserAffiliation.user_id == user_id
-        )
-
-    if type is not None:
-        query = query.where(models.Group.type_id == type.id)
-
-    if type_in is not None:
-        query = query.where(models.Group.type_id.in_([t.id for t in type_in]))
+    query = where(query, user_id=user_id, type=type, type_in=type_in)
 
     query = query.order_by(
         sa.func.similarity(models.Group.name, name).desc()

@@ -2,6 +2,8 @@ import math
 from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
+from sqlalchemy.orm import Query
+from sqlalchemy import or_
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -56,25 +58,26 @@ def get_project(self: "DBHandler", project_id: int) -> models.Project | None:
     return res
 
 
-def get_projects(
-    self: "DBHandler",
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    user_id: Optional[int] = None, count_pages: bool = False,
+def where(
+    query: Query,
     seq_request_id: Optional[int] = None,
     group_id: Optional[int] = None,
     status: Optional[ProjectStatusEnum] = None,
     status_in: Optional[list[ProjectStatusEnum]] = None,
-) -> tuple[list[models.Project], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.Project)
-
+    user_id: Optional[int] = None,
+) -> Query:
+    
     if user_id is not None:
-        query = query.where(
-            models.Project.owner_id == user_id
-        )
+        query = query.join(
+            models.links.UserAffiliation,
+            models.links.UserAffiliation.group_id == models.Project.group_id,
+            isouter=True
+        ).where(
+            or_(
+                models.links.UserAffiliation.user_id == user_id,
+                models.Project.owner_id == user_id,
+            )
+        ).distinct(models.Project.id)
 
     if group_id is not None:
         query = query.where(
@@ -101,6 +104,30 @@ def get_projects(
     if status_in is not None:
         query = query.where(models.Project.status_id.in_([s.id for s in status_in]))
 
+    return query
+
+
+def get_projects(
+    self: "DBHandler",
+    seq_request_id: Optional[int] = None,
+    group_id: Optional[int] = None,
+    status: Optional[ProjectStatusEnum] = None,
+    status_in: Optional[list[ProjectStatusEnum]] = None,
+    user_id: Optional[int] = None,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    sort_by: Optional[str] = None, descending: bool = False,
+    count_pages: bool = False,
+) -> tuple[list[models.Project], int | None]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.Project)
+    query = where(
+        query, seq_request_id=seq_request_id,
+        group_id=group_id, status=status,
+        status_in=status_in, user_id=user_id
+    )
+
     if sort_by is not None:
         attr = getattr(models.Project, sort_by)
         if descending:
@@ -120,23 +147,6 @@ def get_projects(
     if not persist_session:
         self.close_session()
     return projects, n_pages
-
-
-def get_num_projects(self: "DBHandler", user_id: Optional[int] = None) -> int:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.Project)
-    if user_id is not None:
-        query = query.where(
-            models.Project.owner_id == user_id
-        )
-
-    res = query.count()
-
-    if not persist_session:
-        self.close_session()
-    return res
 
 
 def delete_project(
@@ -196,20 +206,22 @@ def project_contains_sample_with_name(
 
 def query_projects(
     self: "DBHandler", word: str,
-    user_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
     group_id: Optional[int] = None,
+    status: Optional[ProjectStatusEnum] = None,
+    status_in: Optional[list[ProjectStatusEnum]] = None,
+    user_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Project]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self.session.query(models.Project)
-
-    if user_id is not None:
-        query = query.where(models.Project.owner_id == user_id)
-
-    if group_id is not None:
-        query = query.where(models.Project.group_id == group_id)
+    query = where(
+        query, seq_request_id=seq_request_id,
+        group_id=group_id, status=status,
+        status_in=status_in, user_id=user_id
+    )
 
     query = query.order_by(
         sa.func.similarity(models.Project.name, word).desc()

@@ -35,7 +35,7 @@ class Project(Base):
     group_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), nullable=True)
     group: Mapped[Optional["Group"]] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_samples"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_samples", "status_id", "group_id", "timestamp_created_utc"]
 
     def search_value(self) -> int:
         return self.id

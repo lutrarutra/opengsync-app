@@ -40,6 +40,7 @@
             "swap": "outerHTML",
             "values": {
                 "spreadsheet": JSON.stringify(data),
+                "columns": JSON.stringify(spread_sheet.getHeaders()),
                 "rc_sequence_i7": $("#rc_sequence_i7").prop("checked"),
                 "rc_sequence_i5": $("#rc_sequence_i5").prop("checked"),
                 "csrf_token": "{{ form.csrf_token._value() }}",

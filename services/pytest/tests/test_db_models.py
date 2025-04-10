@@ -6,7 +6,7 @@ from limbless_db.categories import ExperimentWorkFlow
 
 from .create_units import (
     create_user, create_project, create_contact, create_seq_request, create_sample, create_library, create_pool,
-    create_feature, create_experiment, create_file
+    create_feature, create_experiment, create_file, create_group
 )  # noqa
 
 
@@ -471,3 +471,29 @@ def test_files(db: DBHandler):
     assert len(db.get_files()) == NUM_FILES + 2
     db.delete_seq_request(seq_request.id)
     assert len(db.get_files()) == NUM_FILES
+
+
+def test_group_affiliations(db: DBHandler):
+    user_1 = create_user(db)
+    user_2 = create_user(db)
+
+    group = create_group(db, user_1)
+
+    with DBSession(db) as _:
+        req_1 = create_seq_request(db, user_1)
+        req_2 = create_seq_request(db, user_2)
+
+        p1 = create_project(db, user_1)
+        p2 = create_project(db, user_2)
+
+        req_2.group_id = group.id
+        p2.group_id = group.id
+
+        db.update_seq_request(req_2)
+        db.update_project(p2)
+
+    assert len(db.get_seq_requests(user_id=user_1.id, limit=None)[0]) == 2
+    assert len(db.get_seq_requests(user_id=user_2.id, limit=None)[0]) == 1
+    assert len(db.get_projects(user_id=user_1.id, limit=None)[0]) == 2
+    assert len(db.get_projects(user_id=user_2.id, limit=None)[0]) == 1
+
