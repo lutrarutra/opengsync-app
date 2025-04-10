@@ -7,12 +7,12 @@
         <div class="banner-container">
             {% for seq_request, _df in df.groupby("seq_request", sort=False) %}
             <a class="element-banner" href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
-                <div class="row">
+                <div class="row title-row">
                     <div class="title col-4">{{ seq_request.name }}</div>
                     <div class="col-4">{{ seq_request.requestor.name }}</div>
                     <div class="col-4">{{ seq_request.status.name }} {{ seq_request.status.icon }}</div>
                 </div>
-                <div class="row">
+                <div class="row title-row">
                     <div class="col-6">
                         {% for library_type, __df in _df.groupby("library_type", sort=False) %}
                         <span class="badge">{{ library_type.abbreviation }}: {{ __df.shape[0] }}</span>
