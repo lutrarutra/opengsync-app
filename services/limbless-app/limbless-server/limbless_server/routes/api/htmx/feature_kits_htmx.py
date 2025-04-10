@@ -35,7 +35,7 @@ def get(page: int):
 
     feature_kits, n_pages = db.get_feature_kits(
         offset=PAGE_LIMIT * page,
-        sort_by=sort_by, descending=descending
+        sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(
@@ -118,7 +118,7 @@ def get_features(feature_kit_id: int, page: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
         
     feature_kit = db.get_feature_kit(feature_kit_id)
-    features, n_pages = db.get_features(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending)
+    features, n_pages = db.get_features(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(

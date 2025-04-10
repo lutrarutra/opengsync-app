@@ -48,7 +48,7 @@ def get(page: int):
 
     seq_requests, n_pages = db.get_seq_requests(
         offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
-        show_drafts=True, status_in=status_in
+        show_drafts=True, status_in=status_in, count_pages=True
     )
 
     return make_response(
@@ -744,7 +744,7 @@ def get_libraries(seq_request_id: int, page: int):
 
     libraries, n_pages = db.get_libraries(
         offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending,
-        status_in=status_in, type_in=type_in
+        status_in=status_in, type_in=type_in, count_pages=True
     )
 
     return make_response(
@@ -839,7 +839,7 @@ def get_samples(seq_request_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    samples, n_pages = db.get_samples(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
+    samples, n_pages = db.get_samples(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(
@@ -868,7 +868,7 @@ def get_pools(seq_request_id: int, page: int):
     offset = PAGE_LIMIT * page
 
     pools, n_pages = db.get_pools(
-        seq_request_id=seq_request_id, offset=offset, sort_by=sort_by, descending=descending
+        seq_request_id=seq_request_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(

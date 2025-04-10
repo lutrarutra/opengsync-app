@@ -66,7 +66,8 @@ def get_lanes(
     self: "DBHandler", experiment_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.Lane], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Lane], int | None]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -76,7 +77,7 @@ def get_lanes(
     if experiment_id is not None:
         query = query.filter(models.Lane.experiment_id == experiment_id)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.Lane, sort_by)

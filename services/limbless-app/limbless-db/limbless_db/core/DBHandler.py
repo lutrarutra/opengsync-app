@@ -76,7 +76,7 @@ class DBHandler():
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
         update_project, delete_project,
-        get_num_projects, project_contains_sample_with_name,
+        project_contains_sample_with_name,
         query_projects
     )
 
@@ -220,7 +220,8 @@ class DBHandler():
     from .model_handlers._group_methods import (
         create_group, get_group, get_groups, update_group,
         query_groups, add_user_to_group, remove_user_from_group,
-        get_group_user_affiliation, get_group_affiliations
+        get_group_user_affiliation, get_group_affiliations,
+        get_group_by_name
     )
 
     from .pd_handler import (

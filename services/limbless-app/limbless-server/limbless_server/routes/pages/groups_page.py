@@ -48,6 +48,12 @@ def group_page(group_id: int):
                 (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
                 (f"Group {group.id}", ""),
             ]
+        elif page == "project":
+            path_list = [
+                ("Projects", url_for("projects_page.projects_page")),
+                (f"Project {id}", url_for("projects_page.project_page", project_id=id)),
+                (f"Group {group.id}", ""),
+            ]
 
     affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=group_id)
 

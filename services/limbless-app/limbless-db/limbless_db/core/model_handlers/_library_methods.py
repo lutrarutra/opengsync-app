@@ -103,7 +103,8 @@ def get_libraries(
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.Library], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Library], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -177,7 +178,7 @@ def get_libraries(
             models.Library.status_id.in_([s.id for s in status_in])
         )
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.Library, sort_by)

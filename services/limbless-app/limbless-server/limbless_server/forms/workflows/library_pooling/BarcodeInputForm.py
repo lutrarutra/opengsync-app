@@ -122,46 +122,46 @@ class BarcodeInputForm(MultiStepForm):
                 continue
             if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "t":
                 if row["library_id"]:
-                    self.spreadsheet.add_error(i + 1, "pool", "Requested library cannot be marked as control", "invalid_value")
+                    self.spreadsheet.add_error(idx, "pool", "Requested library cannot be marked as control", "invalid_value")
                 else:
                     continue
             if pd.isna(row["pool"]):
-                self.spreadsheet.add_error(i + 1, "pool", "missing 'pool'", "missing_value")
+                self.spreadsheet.add_error(idx, "pool", "missing 'pool'", "missing_value")
 
             if pd.isna(row["library_id"]):
-                self.spreadsheet.add_error(i + 1, "library_id", "missing 'library_id'", "missing_value")
+                self.spreadsheet.add_error(idx, "library_id", "missing 'library_id'", "missing_value")
             elif row["library_id"] not in self.prep_libraries_df["id"].values:
-                self.spreadsheet.add_error(i + 1, "library_id", "invalid 'library_id'", "invalid_value")
+                self.spreadsheet.add_error(idx, "library_id", "invalid 'library_id'", "invalid_value")
             else:
                 try:
                     _id = int(row["library_id"])
                 except ValueError:
-                    self.spreadsheet.add_error(i + 1, "library_id", "invalid 'library_id'", "invalid_value")
+                    self.spreadsheet.add_error(idx, "library_id", "invalid 'library_id'", "invalid_value")
                 if (library := db.get_library(_id)) is None:
-                    self.spreadsheet.add_error(i + 1, "library_id", "invalid 'library_id'", "invalid_value")
+                    self.spreadsheet.add_error(idx, "library_id", "invalid 'library_id'", "invalid_value")
                 elif library.name != row["library_name"]:
-                    self.spreadsheet.add_error(i + 1, "library_name", "invalid 'library_name' for 'library_id'", "invalid_value")
+                    self.spreadsheet.add_error(idx, "library_name", "invalid 'library_name' for 'library_id'", "invalid_value")
                 elif library.lab_prep_id != self.lab_prep.id:
-                    self.spreadsheet.add_error(i + 1, "library_id", "Library is not part of this lab prep", "invalid_value")
+                    self.spreadsheet.add_error(idx, "library_id", "Library is not part of this lab prep", "invalid_value")
 
             if pd.isna(row["library_name"]):
-                self.spreadsheet.add_error(i + 1, "library_name", "missing 'library_name'", "missing_value")
+                self.spreadsheet.add_error(idx, "library_name", "missing 'library_name'", "missing_value")
             elif row["library_name"] not in self.prep_libraries_df["name"].values:
-                self.spreadsheet.add_error(i + 1, "library_name", "invalid 'library_name'", "invalid_value")
+                self.spreadsheet.add_error(idx, "library_name", "invalid 'library_name'", "invalid_value")
 
             if self.prep_libraries_df[self.prep_libraries_df["id"] == row["library_id"]]["name"].isin([row["library_name"]]).all() == 0:
-                self.spreadsheet.add_error(i + 1, "library_name", "invalid 'library_name' for 'library_id'", "invalid_value")
+                self.spreadsheet.add_error(idx, "library_name", "invalid 'library_name' for 'library_id'", "invalid_value")
 
             if (not kit_defined.at[idx]) and (not manual_defined.at[idx]):
                 if not pd.isna(row["kit_i7"]):
                     if pd.isna(row["index_well"]) and not pd.isna(row["name_i7"]):
-                        self.spreadsheet.add_error(i + 1, "index_well", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                        self.spreadsheet.add_error(idx, "index_well", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
                     if pd.isna(row["name_i7"]) and not pd.isna(row["index_well"]):
-                        self.spreadsheet.add_error(i + 1, "name_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                        self.spreadsheet.add_error(idx, "name_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
                 elif not pd.isna(row["index_well"]) or not pd.isna(row["name_i7"]):
-                    self.spreadsheet.add_error(i + 1, "kit_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                    self.spreadsheet.add_error(idx, "kit_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
                 elif pd.isna(row["sequence_i7"]):
-                    self.spreadsheet.add_error(i + 1, "sequence_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
 
         validated = validated and (len(self.spreadsheet._errors) == 0)
 

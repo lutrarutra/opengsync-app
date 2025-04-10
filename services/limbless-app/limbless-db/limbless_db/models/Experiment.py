@@ -45,7 +45,7 @@ class Experiment(Base):
 
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
-    pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", cascade="merge, save-update", back_populates="experiment")
+    pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", cascade="save-update", back_populates="experiment")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
     files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")

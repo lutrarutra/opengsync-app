@@ -210,6 +210,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             LabProtocol=categories.LabProtocol,
             PoolType=categories.PoolType,
             KitType=categories.KitType,
+            ProjectStatus=categories.ProjectStatus,
             isna=pd.isna,
             notna=pd.notna,
         )

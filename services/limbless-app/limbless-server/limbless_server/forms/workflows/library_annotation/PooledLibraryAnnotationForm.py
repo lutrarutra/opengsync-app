@@ -73,22 +73,22 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_name", "missing 'Sample Name'", "missing_value")
 
             if pd.isna(row["pool"]):
-                self.spreadsheet.add_error(i + 1, "pool", "missing 'Pool'", "missing_value")
+                self.spreadsheet.add_error(idx, "pool", "missing 'Pool'", "missing_value")
 
             if duplicate_sample_libraries.at[idx]:
-                self.spreadsheet.add_error(i + 1, "sample_name", "Duplicate 'Sample Name' and 'Library Type'", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sample_name", "Duplicate 'Sample Name' and 'Library Type'", "duplicate_value")
 
             if ((seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.name) == row["library_type"])).any():
-                self.spreadsheet.add_error(i + 1, "library_type", f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request", "duplicate_value")
+                self.spreadsheet.add_error(idx, "library_type", f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request", "duplicate_value")
 
             if pd.isna(row["library_type"]):
-                self.spreadsheet.add_error(i + 1, "library_type", "missing 'Library Type'", "missing_value")
+                self.spreadsheet.add_error(idx, "library_type", "missing 'Library Type'", "missing_value")
 
             if pd.isna(row["genome"]):
-                self.spreadsheet.add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
+                self.spreadsheet.add_error(idx, "genome", "missing 'Genome'", "missing_value")
 
         for sample_name, _df in df.groupby("sample_name"):
             if len(_df) > 1:

@@ -122,7 +122,8 @@ def get_sample_library_links(
     seq_request_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
     offset: Optional[int] = None,
-) -> tuple[list[models.links.SampleLibraryLink], int]:
+    count_pages: bool = False,
+) -> tuple[list[models.links.SampleLibraryLink], int | None]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -142,7 +143,7 @@ def get_sample_library_links(
             models.Library.seq_request_id == seq_request_id,
         )
     
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if limit is not None:
         query = query.limit(limit)

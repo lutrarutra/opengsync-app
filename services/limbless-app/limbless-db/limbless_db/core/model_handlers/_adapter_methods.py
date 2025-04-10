@@ -54,8 +54,8 @@ def get_adapters(
     self: "DBHandler", index_kit_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-
-) -> tuple[list[models.Adapter], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Adapter], int | None]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -65,7 +65,7 @@ def get_adapters(
     if index_kit_id is not None:
         query = query.where(models.Adapter.index_kit_id == index_kit_id)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.Adapter, sort_by)

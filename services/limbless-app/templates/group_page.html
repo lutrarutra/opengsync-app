@@ -36,6 +36,12 @@
                 Requests
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#group-projects-tab"
+                type="button" role="tab" aria-controls="group-projects-tab" aria-selected="false">
+                Projects
+            </button>
+        </li>
     </ul>
 </div>
 
@@ -62,6 +68,18 @@
                 </div>
             </div>
             <div hx-get="{{ url_for('groups_htmx.get_seq_requests', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="group-projects-tab" role="tabpanel" tabindex="1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Projects</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('groups_htmx.get_projects', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

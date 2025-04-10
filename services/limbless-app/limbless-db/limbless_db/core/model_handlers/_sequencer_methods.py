@@ -53,15 +53,16 @@ def get_sequencer(self: "DBHandler", sequencer_id: int) -> models.Sequencer | No
 
 
 def get_sequencers(
-    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None
-) -> tuple[list[models.Sequencer], int]:
+    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    count_pages: bool = False
+) -> tuple[list[models.Sequencer], int | None]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self.session.query(models.Sequencer)
 
-    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if offset is not None:
         query = query.offset(offset)

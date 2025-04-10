@@ -8,19 +8,25 @@
 <div class="page-content">
     <div class="dash">
         <div class="dash-left">
-            <div class="dash-top" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
+            <div class="dash-top dash-component-container" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
                 {{ spinner() }}
             </div>
-            <div class="dash-bottom" hx-get="{{ url_for('experiments_htmx.get_recent_experiments') }}" hx-trigger="load once">
+            <div class="dash-bottom dash-component-container" hx-get="{{ url_for('experiments_htmx.get_recent_experiments') }}" hx-trigger="load once">
                 {{ spinner() }}
             </div>
         </div>
         <div class="dash-right">
-            <div class="dash-top">
+            <div class="dash-top dash-component-container">
                 <div class="dash-component-header">
                     <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" data-bs-toggle="tab"
+                            data-bs-target="#tab-projects" type="button" role="tab"
+                            aria-controls="tab-projects" aria-selected="false">
+                            Projects</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab"
                             data-bs-target="#tab-pools" type="button" role="tab"
                             aria-controls="tab-pools" aria-selected="true">
                             Pools</button>
@@ -33,9 +39,9 @@
                         </li>
                     </ul>
                 </div>
-                <div class="tab-content">
-                    <div class="tab-pane fade show active" id="tab-pools" role="tabpanel" tabindex="0">
-                        <div hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="load once" hx-swap="outerHTML">
+                <div class="tab-content dash-component-content">
+                    <div class="tab-pane fade show active" id="tab-projects" role="tabpanel" tabindex="0">
+                        <div hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once" hx-swap="outerHTML">
                             {{ spinner() }}
                         </div>
                     </div>
@@ -44,9 +50,14 @@
                             {{ spinner() }}
                         </div>
                     </div>
+                    <div class="tab-pane fade" id="tab-pools" role="tabpanel" tabindex="2">
+                        <div hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="load once" hx-swap="outerHTML">
+                            {{ spinner() }}
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="dash-bottom">
+            <div class="dash-bottom dash-component-container">
                 <div class="dash-component-header">
                     <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
                         <li class="nav-item" role="presentation">
@@ -63,7 +74,7 @@
                         </li>
                     </ul>
                 </div>
-                <div class="tab-content">
+                <div class="tab-content dash-component-content">
                     <div class="tab-pane fade show active" id="tab-calendar" role="tabpanel" tabindex="0">
                         <div hx-get="{{ url_for('events_htmx.render_calendar_week') }}" hx-trigger="intersect once" hx-swap="outerHTML">
                             {{ spinner() }}

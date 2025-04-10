@@ -11,7 +11,12 @@ if TYPE_CHECKING:
 
 from ... import to_utc
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType, SubmissionTypeEnum, AccessType, AccessTypeEnum, SubmissionType
+from ...categories import (
+    SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum,
+    PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType,
+    SubmissionTypeEnum, AccessType, AccessTypeEnum, SubmissionType,
+    ProjectStatus,
+)
 from .. import exceptions
 
 
@@ -126,8 +131,15 @@ def where(
         )
 
     if user_id is not None:
-        query = query.where(
-            models.SeqRequest.requestor_id == user_id
+        query = query.join(
+            models.links.UserAffiliation,
+            models.links.UserAffiliation.group_id == models.SeqRequest.group_id,
+            isouter=True
+        ).where(
+            or_(
+                models.links.UserAffiliation.user_id == user_id,
+                models.SeqRequest.requestor_id == user_id,
+            )
         )
 
     if status_in is not None:
@@ -161,13 +173,13 @@ def get_seq_requests(
     user_id: Optional[int] = None,
     group_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.SeqRequest], int]:
+    count_pages: bool = False
+) -> tuple[list[models.SeqRequest], int | None]:
 
     if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self.session.query(models.SeqRequest)
-
     query = where(query, status_in=status_in, show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status)
 
     if sort_by is not None:
@@ -177,7 +189,7 @@ def get_seq_requests(
 
         query = query.order_by(sa.nulls_last(attr))
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if offset is not None:
         query = query.offset(offset)
@@ -422,6 +434,10 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
 
     for pool in seq_request.pools:
         pool.status = pool_status
+
+    for project in self.get_projects(seq_request_id=seq_request_id)[0]:
+        project.status = ProjectStatus.PROCESSING
+        self.session.add(project)
 
     self.session.add(seq_request)
     self.session.commit()

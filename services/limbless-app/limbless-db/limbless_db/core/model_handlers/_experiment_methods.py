@@ -81,8 +81,9 @@ def get_experiments(
     status: Optional[ExperimentStatusEnum] = None,
     status_in: Optional[list[ExperimentStatusEnum]] = None,
     workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[models.Experiment], int]:
+    sort_by: Optional[str] = None, descending: bool = False,
+    count_pages: bool = False
+) -> tuple[list[models.Experiment], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -103,7 +104,7 @@ def get_experiments(
     if workflow_in is not None:
         query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if offset is not None:
         query = query.offset(offset)

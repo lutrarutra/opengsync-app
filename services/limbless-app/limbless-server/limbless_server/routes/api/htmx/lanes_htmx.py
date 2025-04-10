@@ -40,7 +40,7 @@ def browse(workflow: str, page: int):
     offset = PAGE_LIMIT * page
     
     lanes, n_pages = db.get_lanes(
-        sort_by=sort_by, descending=descending, offset=offset, experiment_id=experiment_id
+        sort_by=sort_by, descending=descending, offset=offset, experiment_id=experiment_id, count_pages=True
     )
 
     context["workflow"] = workflow

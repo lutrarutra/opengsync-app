@@ -62,22 +62,22 @@ class LibraryAnnotationForm(MultiStepForm):
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_name", "missing 'Sample Name'", "missing_value")
             elif len(df[df["sample_name"] == row["sample_name"]]["genome"].unique()) > 1:
-                self.spreadsheet.add_error(i + 1, "sample_name", "All libraries of a same sample must have the same genome", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "genome", "All libraries of a same sample must have the same genome", "invalid_input")
+                self.spreadsheet.add_error(idx, "sample_name", "All libraries of a same sample must have the same genome", "invalid_input")
+                self.spreadsheet.add_error(idx, "genome", "All libraries of a same sample must have the same genome", "invalid_input")
 
             if duplicate_sample_libraries.at[idx]:
-                self.spreadsheet.add_error(i + 1, "sample_name", "Duplicate 'Sample Name' and 'Library Type'", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sample_name", "Duplicate 'Sample Name' and 'Library Type'", "duplicate_value")
 
             if ((seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.name) == row["library_type"])).any():
-                self.spreadsheet.add_error(i + 1, "library_type", f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request", "duplicate_value")
+                self.spreadsheet.add_error(idx, "library_type", f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request", "duplicate_value")
 
             if pd.isna(row["library_type"]):
-                self.spreadsheet.add_error(i + 1, "library_type", "missing 'Library Type'", "missing_value")
+                self.spreadsheet.add_error(idx, "library_type", "missing 'Library Type'", "missing_value")
 
             if pd.isna(row["genome"]):
-                self.spreadsheet.add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
+                self.spreadsheet.add_error(idx, "genome", "missing 'Genome'", "missing_value")
 
             if pd.notna(row["seq_depth"]):
                 try:
@@ -86,7 +86,7 @@ class LibraryAnnotationForm(MultiStepForm):
 
                     row["seq_depth"] = float(row["seq_depth"])
                 except ValueError:
-                    self.spreadsheet.add_error(i + 1, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
+                    self.spreadsheet.add_error(idx, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
 
         if len(self.spreadsheet._errors) > 0:
             return False

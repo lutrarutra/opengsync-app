@@ -101,7 +101,8 @@ def get_index_kits(
     self: "DBHandler", type_in: Optional[list[IndexTypeEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-) -> tuple[list[models.IndexKit], int]:
+    count_pages: bool = False
+) -> tuple[list[models.IndexKit], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -110,7 +111,7 @@ def get_index_kits(
     if type_in is not None:
         query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
 
-    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.IndexKit, sort_by)

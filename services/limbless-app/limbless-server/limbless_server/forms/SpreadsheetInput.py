@@ -1,7 +1,7 @@
 import json
 import uuid
 import string
-from typing import Optional, Literal, Any, Type, Callable
+from typing import Optional, Literal, Any, Type, Callable, Hashable
 
 import pandas as pd
 import numpy as np
@@ -135,9 +135,10 @@ class SpreadsheetInput(FlaskForm):
         return self.__df.copy()
     
     def add_error(
-        self, row_num: int, column: str, message: str,
+        self, idx: Hashable, column: str, message: str,
         color: Literal["missing_value", "invalid_value", "duplicate_value", "invalid_input"]
     ):
+        row_num = self.df.index.get_loc(idx) + 1  # type: ignore
         self.style[f"{self.columns[column].letter}{row_num}"] = f"background-color: {SpreadsheetInput.colors[color]};"
         message = f"Row {row_num}: {message}"
         if message not in self._errors:

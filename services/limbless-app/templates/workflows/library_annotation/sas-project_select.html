@@ -13,11 +13,20 @@
                 <li>Select an existing project or create a new project.</li>
                 <li>Samples associated to a same project are processed together.</li>
                 <li>Samples from different sequencing requests can be associated to a same project.</li>
+                {% if seq_request.group_id %}
+                <li>Only showing projects from group: '{{ seq_request.group.name }}'. <span class="desc">Since request is associated with it. You can change it in 'Manage' -> 'Edit' -> 'Group' on the request's page.</span></li>
+                {% endif %}
             </ul>
         </div>
         <div id="project-select-form">
             <div class="row">
-                {{ search_select_field(form.existing_project, url_for('projects_htmx.query'), class="col-5") }}
+                {{ 
+                    search_select_field(
+                        form.existing_project,
+                        url_for('projects_htmx.query', group_id=seq_request.group_id),
+                        class="col-5"
+                    )
+                }}
                 <div class="col-2 mapping-or">
                     or
                 </div>

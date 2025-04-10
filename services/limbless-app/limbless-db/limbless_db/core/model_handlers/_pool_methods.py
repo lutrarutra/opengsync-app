@@ -86,7 +86,8 @@ def get_pools(
     status_in: Optional[list[PoolStatusEnum]] = None,
     type_in: Optional[list[PoolTypeEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.Pool], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Pool], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -144,7 +145,7 @@ def get_pools(
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
     
     if offset is not None:
         query = query.offset(offset)
@@ -300,7 +301,8 @@ def get_pool_dilutions(
     experiment_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.PoolDilution], int]:
+    count_pages: bool = False
+) -> tuple[list[models.PoolDilution], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -327,7 +329,7 @@ def get_pool_dilutions(
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
     
     if offset is not None:
         query = query.offset(offset)

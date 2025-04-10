@@ -54,7 +54,7 @@ def get(page: int):
         offset=offset,
         user_id=current_user.id if not current_user.is_insider() else None,
         sort_by=sort_by, descending=descending,
-        status_in=status_in, type_in=type_in
+        status_in=status_in, type_in=type_in, count_pages=True
     )
 
     return make_response(
@@ -114,7 +114,7 @@ def get_features(library_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    features, n_pages = db.get_features(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending)
+    features, n_pages = db.get_features(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -265,7 +265,7 @@ def get_samples(library_id: int, page: int):
     offset = PAGE_LIMIT * page
     
     samples, n_pages = db.get_samples(
-        offset=offset, library_id=library_id, sort_by=sort_by, descending=descending
+        offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(
@@ -357,7 +357,7 @@ def browse(workflow: str, page: int):
         seq_request_id=seq_request_id, experiment_id=experiment_id,
         type_in=type_in, status_in=status_in,
         pool_id=pool_id,
-        in_lab_prep=False if workflow == "library_prep" else None
+        in_lab_prep=False if workflow == "library_prep" else None, count_pages=True
     )
     context["workflow"] = workflow
 

@@ -96,28 +96,28 @@ class CMOMuxForm(MultiStepForm):
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["demux_name"]):
-                self.spreadsheet.add_error(i + 1, "demux_name", "'Demux Name' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "demux_name", "'Demux Name' is missing.", "missing_value")
             elif row["demux_name"] not in self.sample_table["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "demux_name", f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}", "invalid_value")
+                self.spreadsheet.add_error(idx, "demux_name", f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}", "invalid_value")
             
             if pd.isna(row["sample_pool"]):
-                self.spreadsheet.add_error(i + 1, "sample_pool", "'Sample Pool' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_pool", "'Sample Pool' is missing.", "missing_value")
 
             if kit is not None:
                 if pd.notna(row["sequence"]):
-                    self.spreadsheet.add_error(i + 1, "sequence", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
+                    self.spreadsheet.add_error(idx, "sequence", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
                 if pd.notna(row["pattern"]):
-                    self.spreadsheet.add_error(i + 1, "pattern", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
+                    self.spreadsheet.add_error(idx, "pattern", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
                 if pd.notna(row["read"]):
-                    self.spreadsheet.add_error(i + 1, "read", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
+                    self.spreadsheet.add_error(idx, "read", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
                 
                 if pd.isna(row["feature"]):
-                    self.spreadsheet.add_error(i + 1, "feature", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
+                    self.spreadsheet.add_error(idx, "feature", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
                 elif duplicate_kit_feature.at[idx]:
-                    self.spreadsheet.add_error(i + 1, "feature", f"Row {i+1} has duplicate 'Kit' + 'Feature' specified in same pool.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "feature", f"Row {i+1} has duplicate 'Kit' + 'Feature' specified in same pool.", "duplicate_value")
                 else:
                     if len(features := db.get_features_from_kit_by_feature_name(row["feature"], kit.id)) == 0:
-                        self.spreadsheet.add_error(i + 1, "feature", f"Feature '{row['feature']}' not found in '{kit.name}'.", "invalid_value")
+                        self.spreadsheet.add_error(idx, "feature", f"Feature '{row['feature']}' not found in '{kit.name}'.", "invalid_value")
                     else:
                         feature = features[0]
                         df.at[idx, "sequence"] = feature.sequence
@@ -125,17 +125,17 @@ class CMOMuxForm(MultiStepForm):
                         df.at[idx, "read"] = feature.read
             else:
                 if pd.isna(row["sequence"]):
-                    self.spreadsheet.add_error(i + 1, "sequence", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
                 if pd.isna(row["pattern"]):
-                    self.spreadsheet.add_error(i + 1, "pattern", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
+                    self.spreadsheet.add_error(idx, "pattern", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
                 if pd.isna(row["read"]):
-                    self.spreadsheet.add_error(i + 1, "read", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
+                    self.spreadsheet.add_error(idx, "read", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
                 if pd.notna(row["feature"]):
-                    self.spreadsheet.add_error(i + 1, "feature", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
+                    self.spreadsheet.add_error(idx, "feature", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
                 if duplicate_manual_feature.at[idx]:
-                    self.spreadsheet.add_error(i + 1, "sequence", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
-                    self.spreadsheet.add_error(i + 1, "pattern", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
-                    self.spreadsheet.add_error(i + 1, "read", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "sequence", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "pattern", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "read", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
                 
         if len(self.spreadsheet._errors) > 0:
             return False

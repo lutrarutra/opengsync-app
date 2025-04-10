@@ -41,7 +41,7 @@ def get(page: int):
         if len(type_in) == 0:
             type_in = None
 
-    kits, n_pages = db.get_kits(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending)
+    kits, n_pages = db.get_kits(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(

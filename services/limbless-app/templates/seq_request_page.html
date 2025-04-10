@@ -198,8 +198,8 @@
     <ul class="nav nav-tabs" id="auth-tab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
-            data-bs-target="#request-libraries-tab" type="button" role="tab"
-            aria-controls="request-libraries-tab" aria-selected="true">Libraries</button>
+            data-bs-target="#request-samples-tab" type="button" role="tab"
+            aria-controls="request-samples-tab" aria-selected="true">Samples</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#workflows-tab"
@@ -209,8 +209,8 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#request-samples-tab" type="button" role="tab"
-            aria-controls="request-samples-tab" aria-selected="true">Samples</button>
+            data-bs-target="#request-libraries-tab" type="button" role="tab"
+            aria-controls="request-libraries-tab" aria-selected="true">Libraries</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -257,15 +257,13 @@
 
 <div class="page-content">
     <div class="tab-content pt-1">
-        <div class="tab-pane fade show active" id="request-libraries-tab" role="tabpanel" tabindex="0">
+        <div class="tab-pane fade show active" id="request-samples-tab" role="tabpanel" tabindex="0">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
-                </div>
-                <div>
+                    <h2>Samples</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="load" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_samples', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -290,7 +288,7 @@
                                 <img src="{{ url_for('static', filename='images/licensed/select-tech.svg') }}" width="90px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">A. Select Product <br><span class="desc">Raw Samples</span></h5>
+                                <h5 class="card-title">Select Assay <br><span class="desc">Raw Samples</span></h5>
                             </div>
                         </div>
                         <div class="card-back">
@@ -314,7 +312,7 @@
                                 <img src="{{ url_for('static', filename='images/licensed/petri-dish.svg') }}" width="90px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">B. Add Samples <br><span class="desc">Raw Samples</span></h5>
+                                <h5 class="card-title">Specify Samples <br><span class="desc">Raw Samples</span></h5>
                             </div>
                         </div>
                         <div class="card-back">
@@ -379,13 +377,15 @@
                 {% endif %}
             </div>
         </div>
-        <div class="tab-pane fade" id="request-samples-tab" role="tabpanel" tabindex="2">
+        <div class="tab-pane fade" id="request-libraries-tab" role="tabpanel" tabindex="2">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h2>Samples</h2>
+                    <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+                <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_samples', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="load" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -421,12 +421,6 @@
                     {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-3") }}
                 </div>
 
-                <div class="row">
-                    {{ metadata_group("R1 Cycles", seq_request.num_cycles_read_1, class="col-3") }}
-                    {{ metadata_group("I1 Cycles", seq_request.num_cycles_index_1, class="col-3") }}
-                    {{ metadata_group("I2 Cycles", seq_request.num_cycles_index_2, class="col-3") }}
-                    {{ metadata_group("R2 Cycles", seq_request.num_cycles_read_2, class="col-3") }}
-                </div>
                 {{ metadata_group_textarea("Special Requirements", seq_request.special_requirements) }}
 
                 <br>

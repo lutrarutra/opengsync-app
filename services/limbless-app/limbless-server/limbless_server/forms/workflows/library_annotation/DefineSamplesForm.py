@@ -84,19 +84,19 @@ class DefineSamplesForm(MultiStepForm):
 
         for i, (_, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(i + 1, "sample_name", "missing 'Sample Name'", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_name", "missing 'Sample Name'", "missing_value")
             elif sample_name_counts[row["sample_name"]] > 1:
-                self.spreadsheet.add_error(i + 1, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
             elif len(str(row["sample_name"])) < 4:
-                self.spreadsheet.add_error(i + 1, "sample_name", "Sample Name must be at least 4 characters long", "invalid_input")
+                self.spreadsheet.add_error(idx, "sample_name", "Sample Name must be at least 4 characters long", "invalid_input")
 
             duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
             if (duplicate_library).any():
                 library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore
-                self.spreadsheet.add_error(i + 1, "sample_name", f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sample_name", f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request", "duplicate_value")
 
             if pd.isna(row["genome"]):
-                self.spreadsheet.add_error(i + 1, "genome", "missing 'Genome'", "missing_value")
+                self.spreadsheet.add_error(idx, "genome", "missing 'Genome'", "missing_value")
         
         genome_map = {}
         for id, e in GenomeRef.as_tuples():

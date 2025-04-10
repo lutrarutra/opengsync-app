@@ -4,7 +4,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 from .BarcodeType import BarcodeTypeEnum, BarcodeType
 
 
-@dataclass
+@dataclass(eq=False)
 class IndexTypeEnum(DBEnum):
     config: list[tuple[BarcodeTypeEnum, int]]
 

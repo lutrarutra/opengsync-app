@@ -30,3 +30,4 @@ from .AccessType import AccessType, AccessTypeEnum  # noqa: F401
 from .GroupType import GroupType, GroupTypeEnum  # noqa: F401
 from .PrepStatus import PrepStatus, PrepStatusEnum  # noqa: F401
 from .KitType import KitType, KitTypeEnum  # noqa: F401
+from .ProjectStatus import ProjectStatus, ProjectStatusEnum  # noqa: F401

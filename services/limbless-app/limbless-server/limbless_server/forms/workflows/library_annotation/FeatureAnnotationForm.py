@@ -79,41 +79,41 @@ class FeatureAnnotationForm(MultiStepForm):
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if duplicated.at[idx]:
-                self.spreadsheet.add_error(i + 1, "sample_name", "duplicate feature definition", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "kit", "duplicate feature definition", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "feature", "duplicate feature definition", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "sequence", "duplicate feature definition", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "pattern", "duplicate feature definition", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "read", "duplicate feature definition", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sample_name", "duplicate feature definition", "duplicate_value")
+                self.spreadsheet.add_error(idx, "kit", "duplicate feature definition", "duplicate_value")
+                self.spreadsheet.add_error(idx, "feature", "duplicate feature definition", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sequence", "duplicate feature definition", "duplicate_value")
+                self.spreadsheet.add_error(idx, "pattern", "duplicate feature definition", "duplicate_value")
+                self.spreadsheet.add_error(idx, "read", "duplicate feature definition", "duplicate_value")
 
             if pd.notna(row["sample_name"]) and row["sample_name"] not in self.abc_libraries["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "sample_name", f"'Sample Name' must be one of: [{', '.join(set(self.abc_libraries['sample_name'].values.tolist()))}]", "invalid_value")
+                self.spreadsheet.add_error(idx, "sample_name", f"'Sample Name' must be one of: [{', '.join(set(self.abc_libraries['sample_name'].values.tolist()))}]", "invalid_value")
 
             # Defined both kit and custom
             if invalid_feature.at[idx]:
                 if pd.notna(row["kit"]):
-                    self.spreadsheet.add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
                 if pd.notna(row["sequence"]):
-                    self.spreadsheet.add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
                 if pd.notna(row["pattern"]):
-                    self.spreadsheet.add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
                 if pd.notna(row["read"]):
-                    self.spreadsheet.add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "invalid_input")
             # Not defined custom nor kit feature
             elif (not custom_feature.at[idx] and not kit_feature.at[idx]):
-                self.spreadsheet.add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(i + 1, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                self.spreadsheet.add_error(idx, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                self.spreadsheet.add_error(idx, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                self.spreadsheet.add_error(idx, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                self.spreadsheet.add_error(idx, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
 
             # Defined both custom and kit feature
             elif custom_feature.at[idx] and kit_feature.at[idx]:
-                self.spreadsheet.add_error(i + 1, "kit", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "feature", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "sequence", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "pattern", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "read", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                self.spreadsheet.add_error(idx, "kit", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                self.spreadsheet.add_error(idx, "feature", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                self.spreadsheet.add_error(idx, "sequence", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                self.spreadsheet.add_error(idx, "pattern", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                self.spreadsheet.add_error(idx, "read", "must have either 'Kit' or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
 
             elif custom_feature.at[idx]:
                 idx_sample_name = df["sample_name"] == row["sample_name"]
@@ -126,9 +126,9 @@ class FeatureAnnotationForm(MultiStepForm):
                     idx = idx & idx_sample_name
 
                 if df[idx].shape[0] > 1:
-                    self.spreadsheet.add_error(i + 1, "sequence", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
-                    self.spreadsheet.add_error(i + 1, "pattern", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
-                    self.spreadsheet.add_error(i + 1, "read", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "sequence", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "pattern", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "read", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library.", "duplicate_value")
 
             elif kit_feature.at[idx]:
                 idx_sample_name = df["sample_name"] == row["sample_name"]
@@ -143,7 +143,7 @@ class FeatureAnnotationForm(MultiStepForm):
                     idx = idx & idx_feature
                 
                 if df[idx].shape[0] > 1:
-                    self.spreadsheet.add_error(i + 1, "feature", f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same library.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "feature", f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same library.", "duplicate_value")
 
         if len(self.spreadsheet._errors) > 0:
             return False
