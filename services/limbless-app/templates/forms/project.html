@@ -1,12 +1,19 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+
 
 <div id="project-form">
-    {{ project_form.csrf_token() }}
+    {{ form.csrf_token() }}
     <div class="row">
-        {{ form_group(project_form.name, class="col-6") }}
-        {{ select_input(project_form.status, class="col-6") }}
+        {{ form_group(form.name, class="col-6") }}
+        {{ select_input(form.status, class="col-6") }}
     </div>
-    {{ form_group(project_form.description) }}
+    {{
+        search_select_field(
+            form.group, query_url=url_for('groups_htmx.query'),
+        ) 
+    }}
+    {{ form_group(form.description) }}
 </div>
 <script>
     init_tooltips();

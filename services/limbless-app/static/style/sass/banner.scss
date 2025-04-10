@@ -2,9 +2,6 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-right: 5px;
-    padding: 0 5px 5px 15px;
-    overflow-y: auto;
 
     a.element-banner {
         color: $black;
@@ -45,15 +42,15 @@
             font-weight: 600;
         }
 
-        .title-row {
+        .row {
             text-align: center;
             vertical-align: middle;
             font-size: 1rem;
         }
-        .title-row div:first-child {
+        .row div:first-child {
             text-align: start;
         }
-        .title-row div:last-child {
+        .row div:last-child {
             text-align: end;
         }
     }

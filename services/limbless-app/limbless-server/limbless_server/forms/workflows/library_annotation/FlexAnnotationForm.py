@@ -76,20 +76,20 @@ class FlexAnnotationForm(MultiStepForm):
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(i + 1, "sample_name", "'Library Name' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_name", "'Library Name' is missing.", "missing_value")
             elif row["sample_name"] not in self.flex_table["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "sample_name", f"Unknown sample '{row['sample_name']}'. Must be one of: {', '.join(self.flex_table['sample_name'])}", "invalid_value")
+                self.spreadsheet.add_error(idx, "sample_name", f"Unknown sample '{row['sample_name']}'. Must be one of: {', '.join(self.flex_table['sample_name'])}", "invalid_value")
             elif duplicate_barcode.at[idx]:
-                self.spreadsheet.add_error(i + 1, "barcode_id", "'Barcode ID' is not unique in the library.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "barcode_id", "'Barcode ID' is not unique in the library.", "duplicate_value")
 
             if pd.isna(row["barcode_id"]):
-                self.spreadsheet.add_error(i + 1, "barcode_id", "'Barcode ID' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "barcode_id", "'Barcode ID' is missing.", "missing_value")
             
             if pd.isna(row["demux_name"]):
-                self.spreadsheet.add_error(i + 1, "demux_name", "'Sample Name' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "demux_name", "'Sample Name' is missing.", "missing_value")
 
             elif duplicate_samples.at[idx]:
-                self.spreadsheet.add_error(i + 1, "demux_name", "'Sample Name' is not unique in the library.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "demux_name", "'Sample Name' is not unique in the library.", "duplicate_value")
 
         if len(self.spreadsheet._errors) > 0:
             return False

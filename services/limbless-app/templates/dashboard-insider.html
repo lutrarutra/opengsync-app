@@ -21,6 +21,12 @@
                     <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" data-bs-toggle="tab"
+                            data-bs-target="#tab-projects" type="button" role="tab"
+                            aria-controls="tab-projects" aria-selected="false">
+                            Projects</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab"
                             data-bs-target="#tab-pools" type="button" role="tab"
                             aria-controls="tab-pools" aria-selected="true">
                             Pools</button>
@@ -34,13 +40,18 @@
                     </ul>
                 </div>
                 <div class="tab-content dash-component-content">
-                    <div class="tab-pane fade show active" id="tab-pools" role="tabpanel" tabindex="0">
-                        <div hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="load once" hx-swap="outerHTML">
+                    <div class="tab-pane fade show active" id="tab-projects" role="tabpanel" tabindex="0">
+                        <div hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once" hx-swap="outerHTML">
                             {{ spinner() }}
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tab-todo-libraries" role="tabpanel" tabindex="1">
                         <div hx-get="{{ url_for('libraries_htmx.get_todo_libraries') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                            {{ spinner() }}
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tab-pools" role="tabpanel" tabindex="2">
+                        <div hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="load once" hx-swap="outerHTML">
                             {{ spinner() }}
                         </div>
                     </div>

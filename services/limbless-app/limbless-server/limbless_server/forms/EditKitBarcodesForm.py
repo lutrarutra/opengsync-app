@@ -128,53 +128,53 @@ class EditKitBarcodesForm(HTMXFlaskForm):
         if self.index_kit.type == IndexType.DUAL_INDEX:
             df.loc[df["name_i5"].isna(), "name_i5"] = df.loc[df["name_i5"].isna(), "name_i7"]
 
-        for i, (idx, row) in enumerate(df.iterrows()):
+        for idx, row in df.iterrows():
             if row["well"] is None:
-                self.spreadsheet.add_error(i + 1, "well", "Well is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "well", "Well is missing.", "missing_value")
             elif duplicate_well.at[idx]:
-                self.spreadsheet.add_error(i + 1, "well", "Duplicate well.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "well", "Duplicate well.", "duplicate_value")
 
             if self.index_kit.type == IndexType.DUAL_INDEX:
                 if row["name_i7"] is None:
-                    self.spreadsheet.add_error(i + 1, "name_i7", "Name i7 is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "name_i7", "Name i7 is missing.", "missing_value")
                 if row["sequence_i7"] is None:
-                    self.spreadsheet.add_error(i + 1, "sequence_i7", "Sequence i7 is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence_i7", "Sequence i7 is missing.", "missing_value")
                 if row["name_i5"] is None:
-                    self.spreadsheet.add_error(i + 1, "name_i5", "Name i5 is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "name_i5", "Name i5 is missing.", "missing_value")
                 if row["sequence_i5"] is None:
-                    self.spreadsheet.add_error(i + 1, "sequence_i5", "Sequence i5 is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence_i5", "Sequence i5 is missing.", "missing_value")
 
                 if (row["name_i7"] == df["name_i7"]).sum() > 1:
-                    self.spreadsheet.add_error(i + 1, "name_i7", "Duplicate name i7.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "name_i7", "Duplicate name i7.", "duplicate_value")
                 if (row["sequence_i7"] == df["sequence_i7"]).sum() > 1:
-                    self.spreadsheet.add_error(i + 1, "sequence_i7", "Duplicate sequence i7.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "sequence_i7", "Duplicate sequence i7.", "duplicate_value")
                 if (row["name_i5"] == df["name_i5"]).sum() > 1:
-                    self.spreadsheet.add_error(i + 1, "name_i5", "Duplicate name i5.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "name_i5", "Duplicate name i5.", "duplicate_value")
                 if (row["sequence_i5"] == df["sequence_i5"]).sum() > 1:
-                    self.spreadsheet.add_error(i + 1, "sequence_i5", "Duplicate sequence i5.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "sequence_i5", "Duplicate sequence i5.", "duplicate_value")
 
             elif self.index_kit.type == IndexType.SINGLE_INDEX:
                 if row["name"] is None:
-                    self.spreadsheet.add_error(i + 1, "name", "Name is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "name", "Name is missing.", "missing_value")
                 if row["sequence"] is None:
-                    self.spreadsheet.add_error(i + 1, "sequence", "Sequence is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence", "Sequence is missing.", "missing_value")
                 
                 if (row["name"] == df["name"]).sum() > 1:
-                    self.spreadsheet.add_error(i + 1, "name", "Duplicate name.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "name", "Duplicate name.", "duplicate_value")
                 if (row["sequence"] == df["sequence"]).sum() > 1:
-                    self.spreadsheet.add_error(i + 1, "sequence", "Duplicate sequence.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "sequence", "Duplicate sequence.", "duplicate_value")
             
             elif self.index_kit.type == IndexType.TENX_ATAC_INDEX:
                 if row["name"] is None:
-                    self.spreadsheet.add_error(i + 1, "name", "Name is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "name", "Name is missing.", "missing_value")
                 if row["sequence_1"] is None:
-                    self.spreadsheet.add_error(i + 1, "sequence_1", "Sequence 1 is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence_1", "Sequence 1 is missing.", "missing_value")
                 if row["sequence_2"] is None:
-                    self.spreadsheet.add_error(i + 1, "sequence_2", "Sequence 2 is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence_2", "Sequence 2 is missing.", "missing_value")
                 if row["sequence_3"] is None:
-                    self.spreadsheet.add_error(i + 1, "sequence_3", "Sequence 3 is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence_3", "Sequence 3 is missing.", "missing_value")
                 if row["sequence_4"] is None:
-                    self.spreadsheet.add_error(i + 1, "sequence_4", "Sequence 4 is missing.", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence_4", "Sequence 4 is missing.", "missing_value")
 
         if len(self.spreadsheet._errors) > 0:
             return False
@@ -230,7 +230,7 @@ class EditKitBarcodesForm(HTMXFlaskForm):
                 for i in range(4):
                     db.create_barcode(
                         name=row["name"],
-                        sequence=row[f"sequence_{i + 1}"] if not self.rc_sequence_i7.data else models.Barcode.reverse_complement(row[f"sequence_{i + 1}"]),
+                        sequence=row[f"sequence_{idx}"] if not self.rc_sequence_i7.data else models.Barcode.reverse_complement(row[f"sequence_{idx}"]),
                         well=row["well"],
                         adapter_id=adapter.id,
                         type=BarcodeType.INDEX_I7,

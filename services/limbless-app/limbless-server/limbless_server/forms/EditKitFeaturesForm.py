@@ -58,21 +58,21 @@ class EditKitFeaturesForm(HTMXFlaskForm):
         duplicate_def = df.duplicated(subset=["sequence", "pattern", "read"], keep=False)
         duplicate_feature = df.duplicated(subset=["name"], keep=False) & (self.feature_kit.type in [FeatureType.CMO])
 
-        for i, (idx, row) in enumerate(df.iterrows()):
+        for idx, row in df.iterrows():
             if pd.isna(row["name"]):
-                self.spreadsheet.add_error(i + 1, "name", "Name cannot be empty.", "missing_value")
+                self.spreadsheet.add_error(idx, "name", "Name cannot be empty.", "missing_value")
             elif duplicate_feature.at[idx]:
-                self.spreadsheet.add_error(i + 1, "name", f"Duplicate feature name not allowed in '{self.feature_kit.type.name}'-kit.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "name", f"Duplicate feature name not allowed in '{self.feature_kit.type.name}'-kit.", "duplicate_value")
             if pd.isna(row["sequence"]):
-                self.spreadsheet.add_error(i + 1, "sequence", "Sequence cannot be empty.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence", "Sequence cannot be empty.", "missing_value")
             if pd.isna(row["pattern"]):
-                self.spreadsheet.add_error(i + 1, "pattern", "Pattern cannot be empty.", "missing_value")
+                self.spreadsheet.add_error(idx, "pattern", "Pattern cannot be empty.", "missing_value")
             if pd.isna(row["read"]):
-                self.spreadsheet.add_error(i + 1, "read", "Read cannot be empty.", "missing_value")
+                self.spreadsheet.add_error(idx, "read", "Read cannot be empty.", "missing_value")
             if duplicate_def.at[idx]:
-                self.spreadsheet.add_error(i + 1, "sequence", "Duplicate sequence + pattern + read combination.", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "pattern", "Duplicate sequence + pattern + read combination.", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "read", "Duplicate sequence + pattern + read combination.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sequence", "Duplicate sequence + pattern + read combination.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "pattern", "Duplicate sequence + pattern + read combination.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "read", "Duplicate sequence + pattern + read combination.", "duplicate_value")
         
         if len(self.spreadsheet._errors) > 0:
             return False

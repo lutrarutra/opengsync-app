@@ -130,7 +130,7 @@
                 <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" id="help-page" href="{{ url_for('help_page') }}">Help</a>
             </div>
             {% endif %}
-            {% if user_role == UserRole.ADMIN %}
+            {% if current_user.is_authenticated and user_role == UserRole.ADMIN %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'devices-page' else ''}}" id="devices-page" href="{{ url_for('devices_page.devices_page') }}">Devices</a>
             </div>

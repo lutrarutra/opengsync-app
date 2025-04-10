@@ -83,19 +83,19 @@ class FlexMuxForm(MultiStepForm):
         
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["demux_name"]):
-                self.spreadsheet.add_error(i + 1, "demux_name", "'Demux Name' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "demux_name", "'Demux Name' is missing.", "missing_value")
             elif row["demux_name"] not in self.sample_table["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "demux_name", f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}", "invalid_value")
+                self.spreadsheet.add_error(idx, "demux_name", f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}", "invalid_value")
             
             if pd.isna(row["sample_pool"]):
-                self.spreadsheet.add_error(i + 1, "sample_pool", "'Sample Pool' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_pool", "'Sample Pool' is missing.", "missing_value")
 
             if pd.isna(row["barcode_id"]):
-                self.spreadsheet.add_error(i + 1, "barcode_id", "'Barcode ID' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "barcode_id", "'Barcode ID' is missing.", "missing_value")
             elif row["barcode_id"] not in FlexMuxForm.allowed_barcodes:
-                self.spreadsheet.add_error(i + 1, "barcode_id", f"'Barcode ID' must be one of: {', '.join(FlexMuxForm.allowed_barcodes)}", "invalid_value")
+                self.spreadsheet.add_error(idx, "barcode_id", f"'Barcode ID' must be one of: {', '.join(FlexMuxForm.allowed_barcodes)}", "invalid_value")
             elif duplicate_barcode.at[idx]:
-                self.spreadsheet.add_error(i + 1, "barcode_id", "'Barcode ID' is duplicated in library.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "barcode_id", "'Barcode ID' is duplicated in library.", "duplicate_value")
 
         if len(self.spreadsheet._errors) > 0:
             return False

@@ -13,8 +13,15 @@
             </div>
         </div>
         <div class="dash-right">
-            <div class="dash-top dash-component-container" hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once">
-                {{ spinner() }}
+            <div class="dash-top dash-component-container" >
+                <div class="dash-component-header" id="project_list-container">
+                    <div class="dash-component-title-container">
+                        <h4>Recent Projects</h4>
+                    </div>
+                </div>
+                <div class="tab-content dash-component-content" hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once">
+                    {{ spinner() }}
+                </div>
             </div>
             <div class="dash-bottom dash-component-container">
                 <div class="dash-component-header">

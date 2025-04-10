@@ -10,7 +10,7 @@ from flask_login import login_required
 from limbless_db import models, DBHandler, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, UserRole, SampleStatus, ProjectStatus
 
-from .... import db, forms
+from .... import db, forms, logger
 from ....tools import SpreadSheetColumn
 
 if TYPE_CHECKING:
@@ -36,6 +36,16 @@ def get(page: int):
     projects: list[models.Project] = []
     context = {}
 
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [ProjectStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
     if (user_id := request.args.get("user_id", None)) is not None:
         template = "components/tables/user-project.html"
         try:
@@ -49,7 +59,7 @@ def get(page: int):
         if (user := db.get_user(user_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True)
+        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
         context["user"] = user
     else:
         template = "components/tables/project.html"
@@ -57,13 +67,14 @@ def get(page: int):
             user_id = current_user.id
         else:
             user_id = None
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by="id", descending=descending, count_pages=True)
+        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by="id", descending=descending, count_pages=True, status_in=status_in)
 
     return make_response(
         render_template(
             template, projects=projects,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
+            status_in=status_in,
             **context
         )
     )
@@ -79,12 +90,23 @@ def query():
     if word is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    if current_user.role == UserRole.CLIENT:
+    if not current_user.is_insider():
         _user_id = current_user.id
     else:
         _user_id = None
 
-    results = db.query_projects(word, user_id=_user_id)
+    if (group_id := request.args.get("group_id", None)) is not None:
+        try:
+            group_id = int(group_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if (_ := db.get_group(group_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        _user_id = None
+
+    results = db.query_projects(word, user_id=_user_id, group_id=group_id)
 
     return make_response(
         render_template(
@@ -109,8 +131,10 @@ def edit(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.models.ProjectForm(project=project, formdata=request.form).process_request(
         user=current_user
@@ -209,8 +233,10 @@ def get_samples(project_id: int, page: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -248,8 +274,10 @@ def query_samples(project_id: int, field_name: str):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     samples = []
     if field_name == "name":
@@ -278,8 +306,10 @@ def get_sample_attributes(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     df = db.get_project_sample_attributes_df(project_id=project_id)
 
@@ -309,8 +339,10 @@ def edit_sample_attributes(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     if request.method == "GET":
         form = forms.SampleAttributeTableForm(project)
@@ -334,7 +366,8 @@ def get_recent_projects():
         ]
 
     projects, _ = db.get_projects(
-        user_id=current_user.id, sort_by="id", limit=15,
+        user_id=current_user.id if not current_user.is_insider() else None,
+        sort_by="id", limit=15,
         status_in=status_in, descending=True
     )
 

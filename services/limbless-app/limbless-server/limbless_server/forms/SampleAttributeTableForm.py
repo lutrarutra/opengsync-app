@@ -68,15 +68,27 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             self.spreadsheet.add_general_error("Duplicate column names",)
             return False
 
-        for i, (idx, row) in enumerate(df.iterrows()):
+        for idx, row in df.iterrows():
             try:
                 df.at[idx, "id"] = int(row["id"])
             except ValueError:
-                self.spreadsheet.add_error(i + 1, "id", "Invalid ID", "invalid_value")
+                self.spreadsheet.add_error(idx, "id", "Invalid ID", "invalid_value")  # type: ignore
+                continue
+            except TypeError:
+                self.spreadsheet.add_error(idx, "id", "Invalid ID", "invalid_value")
                 continue
             
-            if row["id"] not in df["id"].values:
-                self.spreadsheet.add_error(i + 1, "id", "Sample ID not found in the project", "invalid_value")
+        for idx, row in df.iterrows():
+            if (sample := db.get_sample(row["id"])) is None:
+                self.spreadsheet.add_error(idx, "id", f"Sample with ID {row['id']} does not exist", "invalid_value")
+                continue
+            
+            if sample.project_id != self.project.id:
+                self.spreadsheet.add_error(idx, "id", f"Sample with ID {row['id']} does not belong to this project", "invalid_value")
+                continue
+            
+            if sample.name != row["sample_name"]:
+                self.spreadsheet.add_error(idx, "sample_name", f"Sample name does not match sample with ID {row['id']}", "invalid_value")
                 continue
             
         if len(self.spreadsheet._errors) > 0:

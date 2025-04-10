@@ -421,12 +421,6 @@
                     {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-3") }}
                 </div>
 
-                <div class="row">
-                    {{ metadata_group("R1 Cycles", seq_request.num_cycles_read_1, class="col-3") }}
-                    {{ metadata_group("I1 Cycles", seq_request.num_cycles_index_1, class="col-3") }}
-                    {{ metadata_group("I2 Cycles", seq_request.num_cycles_index_2, class="col-3") }}
-                    {{ metadata_group("R2 Cycles", seq_request.num_cycles_read_2, class="col-3") }}
-                </div>
                 {{ metadata_group_textarea("Special Requirements", seq_request.special_requirements) }}
 
                 <br>

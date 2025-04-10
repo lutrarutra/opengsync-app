@@ -102,12 +102,12 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]) or row["sample_name"] == "":
-                self.spreadsheet.add_error(i + 1, "sample_name", "Missing value", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_name", "Missing value", "missing_value")
                 validated = False
                 continue
             
             if row["sample_name"] not in self.tables["sample_table"]["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "sample_name", f"Unknown sample name '{row['sample_name']}'", "invalid_value")
+                self.spreadsheet.add_error(idx, "sample_name", f"Unknown sample name '{row['sample_name']}'", "invalid_value")
                 validated = False
                 continue
             
@@ -119,7 +119,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
                     continue
                 
                 if pd.isna(row[col]):
-                    self.spreadsheet.add_error(i + 1, col, "Missing value", "missing_value")
+                    self.spreadsheet.add_error(idx, col, "Missing value", "missing_value")
                     validated = False
 
         if len(self.spreadsheet._errors) > 0 or not validated:

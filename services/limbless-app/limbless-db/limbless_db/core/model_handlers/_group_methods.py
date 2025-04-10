@@ -56,6 +56,20 @@ def get_group(self: "DBHandler", group_id: int) -> models.Group | None:
     return res
 
 
+def get_group_by_name(self: "DBHandler", name: str) -> models.Group | None:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    res = self.session.query(models.Group).where(
+        models.Group.name == name
+    ).first()
+
+    if not persist_session:
+        self.close_session()
+
+    return res
+
+
 def where(
     query: Query, user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
     type_in: Optional[list[GroupTypeEnum]] = None
@@ -121,9 +135,20 @@ def query_groups(
         self.open_session()
 
     query = self.session.query(models.Group)
-    query = where(
-        query, user_id=user_id, type=type, type_in=type_in
-    )
+    
+    if user_id is not None:
+        query = query.join(
+            models.links.UserAffiliation,
+            models.links.UserAffiliation.group_id == models.Group.id
+        ).where(
+            models.links.UserAffiliation.user_id == user_id
+        )
+
+    if type is not None:
+        query = query.where(models.Group.type_id == type.id)
+
+    if type_in is not None:
+        query = query.where(models.Group.type_id.in_([t.id for t in type_in]))
 
     query = query.order_by(
         sa.func.similarity(models.Group.name, name).desc()

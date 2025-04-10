@@ -156,7 +156,8 @@ class CompleteSASForm(MultiStepForm):
             project = db.create_project(
                 name=self.metadata["project_name"],
                 description=self.metadata["project_description"],
-                owner_id=user.id
+                owner_id=user.id,
+                group_id=self.seq_request.group_id
             )
 
         predefined_attrs = [f"_attr_{attr.label}" for attr in AttributeType.as_list()]

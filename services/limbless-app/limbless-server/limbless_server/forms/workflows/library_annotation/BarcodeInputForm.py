@@ -109,12 +109,12 @@ class BarcodeInputForm(MultiStepForm):
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["library_name"]):
-                self.spreadsheet.add_error(i + 1, "library_name", "missing 'library_name'", "missing_value")
+                self.spreadsheet.add_error(idx, "library_name", "missing 'library_name'", "missing_value")
             elif row["library_name"] not in self.library_table["library_name"].values:
-                self.spreadsheet.add_error(i + 1, "library_name", "invalid 'library_name'", "invalid_value")
+                self.spreadsheet.add_error(idx, "library_name", "invalid 'library_name'", "invalid_value")
 
             if not kit_defined.at[idx] and not manual_defined.at[idx]:
-                self.spreadsheet.add_error(i + 1, "sequence_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
 
         validated = validated and (len(self.spreadsheet._errors) == 0)
 

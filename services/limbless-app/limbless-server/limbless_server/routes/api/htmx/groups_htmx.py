@@ -1,11 +1,12 @@
 from typing import TYPE_CHECKING
+import json
 
 from flask import Blueprint, render_template, abort, request, url_for, flash
 from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, db_session, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, AffiliationType, UserRole
+from limbless_db.categories import HTTPResponse, AffiliationType, UserRole, ProjectStatus
 from .... import db, forms
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ def query():
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     else:
-        user_id = current_user.id if current_user.is_insider() else None
+        user_id = current_user.id if not current_user.is_insider() else None
     
     groups = db.query_groups(name=query, user_id=user_id)
     return make_response(
@@ -200,5 +201,42 @@ def get_seq_requests(group_id: int, page: int):
         render_template(
             "components/tables/group-seq_request.html", seq_requests=seq_requests, n_pages=n_pages,
             sort_by=sort_by, sort_order=sort_order, active_page=page, group=group
+        )
+    )
+
+
+@groups_htmx.route("<int:group_id>/get_projects/<int:page>", methods=["GET"])
+@groups_htmx.route("<int:group_id>/get_projects", methods=["GET"], defaults={"page": 0})
+@db_session(db)
+@login_required
+def get_projects(group_id: int, page: int):
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    if (group := db.get_group(group_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [ProjectStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    projects, n_pages = db.get_projects(
+        group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True,
+        status_in=status_in
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/group-project.html", projects=projects, n_pages=n_pages,
+            sort_by=sort_by, sort_order=sort_order, active_page=page, group=group,
+            status_in=status_in
         )
     )

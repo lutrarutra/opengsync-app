@@ -82,24 +82,24 @@ class VisiumAnnotationForm(MultiStepForm):
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(i + 1, "sample_name", "'Sample Name' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_name", "'Sample Name' is missing.", "missing_value")
 
             elif row["sample_name"] not in self.library_table["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "sample_name", "'Sample Name' is not found in the library table.", "invalid_value")
+                self.spreadsheet.add_error(idx, "sample_name", "'Sample Name' is not found in the library table.", "invalid_value")
             elif (df["sample_name"] == row["sample_name"]).sum() > 1:
-                self.spreadsheet.add_error(i + 1, "sample_name", "'Sample Name' is a duplicate.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sample_name", "'Sample Name' is a duplicate.", "duplicate_value")
             else:
                 if (row["sample_name"] not in self.visium_libraries["sample_name"].values):
-                    self.spreadsheet.add_error(i + 1, "sample_name", f"Sample, '{row['sample_name']}', is not a Spatial Transcriptomic library.", "invalid_value")
+                    self.spreadsheet.add_error(idx, "sample_name", f"Sample, '{row['sample_name']}', is not a Spatial Transcriptomic library.", "invalid_value")
 
             if pd.isna(row["image"]):
-                self.spreadsheet.add_error(i + 1, "image", "'Image' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "image", "'Image' is missing.", "missing_value")
 
             if pd.isna(row["slide"]):
-                self.spreadsheet.add_error(i + 1, "slide", "'Slide' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "slide", "'Slide' is missing.", "missing_value")
 
             if pd.isna(row["area"]):
-                self.spreadsheet.add_error(i + 1, "area", "'Area' is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "area", "'Area' is missing.", "missing_value")
             
         if len(self.spreadsheet._errors) > 0:
             return False

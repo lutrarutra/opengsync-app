@@ -12,6 +12,7 @@ from .. import exceptions
 
 def create_project(
     self: "DBHandler", name: str, description: str, owner_id: int,
+    group_id: Optional[int] = None,
     status: ProjectStatusEnum = ProjectStatus.DRAFT,
 ) -> models.Project:
     if not (persist_session := self._session is not None):
@@ -19,11 +20,16 @@ def create_project(
 
     if (owner := self.session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
+    
+    if group_id is not None:
+        if self.session.get(models.Group, group_id) is not None:
+            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
 
     project = models.Project(
         name=name.strip(),
         description=description.strip(),
         owner_id=owner_id,
+        group_id=group_id,
         status_id=status.id,
     )
 
@@ -56,6 +62,7 @@ def get_projects(
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None, count_pages: bool = False,
     seq_request_id: Optional[int] = None,
+    group_id: Optional[int] = None,
     status: Optional[ProjectStatusEnum] = None,
     status_in: Optional[list[ProjectStatusEnum]] = None,
 ) -> tuple[list[models.Project], int | None]:
@@ -67,6 +74,11 @@ def get_projects(
     if user_id is not None:
         query = query.where(
             models.Project.owner_id == user_id
+        )
+
+    if group_id is not None:
+        query = query.where(
+            models.Project.group_id == group_id
         )
 
     if seq_request_id is not None:
@@ -185,6 +197,7 @@ def project_contains_sample_with_name(
 def query_projects(
     self: "DBHandler", word: str,
     user_id: Optional[int] = None,
+    group_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Project]:
     if not (persist_session := self._session is not None):
@@ -193,9 +206,10 @@ def query_projects(
     query = self.session.query(models.Project)
 
     if user_id is not None:
-        query = query.where(
-            models.Project.owner_id == user_id
-        )
+        query = query.where(models.Project.owner_id == user_id)
+
+    if group_id is not None:
+        query = query.where(models.Project.group_id == group_id)
 
     query = query.order_by(
         sa.func.similarity(models.Project.name, word).desc()

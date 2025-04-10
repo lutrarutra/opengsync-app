@@ -3,7 +3,7 @@
 <div class="banner-container">
 {% for pool in pools %}
     <a class="element-banner" href="{{ url_for('pools_page.pool_page', pool_id=pool.id) }}">
-        <div class="row title-row">
+        <div class="row">
             <div class="col-3"><b>{{ pool.name }}</b></div>
             <div class="col-2">BA: {% if pool.avg_fragment_size %}✅{% else %}⚠️{% endif %}</div>
             <div class="col-2">Qubit: {% if pool.qubit_concentration %}✅{% else %}⚠️{% endif %}</div>

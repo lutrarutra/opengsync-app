@@ -11,6 +11,7 @@ from ..categories import ProjectStatus, ProjectStatusEnum
 if TYPE_CHECKING:
     from .Sample import Sample
     from .User import User
+    from .Group import Group
 
 
 class Project(Base):
@@ -30,6 +31,9 @@ class Project(Base):
 
     owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="joined")
+
+    group_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), nullable=True)
+    group: Mapped[Optional["Group"]] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_samples"]
 
@@ -51,8 +55,8 @@ class Project(Base):
     def timestamp_created(self) -> datetime:
         return localize(self.timestamp_created_utc)
 
-    def timestamp_created_str(self) -> str:
-        return self.timestamp_created.strftime('%Y-%m-%d %H:%M')
+    def timestamp_created_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        return self.timestamp_created.strftime(fmt)
     
     def __str__(self) -> str:
         return f"Project(id: {self.id}, name: {self.name}, owner_id: {self.owner_id})"
