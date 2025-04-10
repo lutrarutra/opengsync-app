@@ -3,7 +3,7 @@
 .dash {
     display: flex;
     height: calc(100vh - 60px);
-    padding: 10px 0;
+    padding: 0;
     gap: 10px;
 
     .dash-left,
@@ -46,9 +46,10 @@
 
             .dash-component-content {
                 flex: 1; // Take remaining space
-                overflow: auto;
-                padding: 10px;
+                overflow: hidden;
+                padding: 10px 5px 10px 0;
                 margin: 0;
+                height: 100%;
 
                 .tab-pane {
                     height: 100%;
@@ -57,7 +58,7 @@
                     .workflow-container {
                         height: 100%;
                         margin-right: 5px;
-                        padding: 0 5px 10px 15px;
+                        padding: 0 5px 0px 15px;
                         justify-content: space-evenly;
                         align-content: flex-start;
                         overflow-y: auto;
