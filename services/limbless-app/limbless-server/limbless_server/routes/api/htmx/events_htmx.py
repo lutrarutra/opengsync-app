@@ -48,7 +48,7 @@ def render_calendar_month(year: int, month: int):
         it += timedelta(days=1)
 
     return make_response(render_template(
-        "components/calendar-month.html", year=year, month=month, events=events,
+        "components/calendar/month.html", year=year, month=month, events=events,
         month_name=datetime(year, month, 1).strftime("%B"),
         prev_year=year if month > 1 else year - 1,
         prev_month=month - 1 if month > 1 else 12,
@@ -94,7 +94,7 @@ def render_calendar_week(year: int, week: int):
         calendar.pop(datetime.fromisocalendar(year, week, 6))
 
     return make_response(render_template(
-        "components/calendar-week.html",
+        "components/calendar/week.html",
         year=year, week=week, events=events,
         prev_year=year if week > 1 else year - 1,
         prev_week=week - 1 if week > 1 else 52,
@@ -125,6 +125,6 @@ def render_calendar_day(year: int, month: int, day: int):
     )
 
     return make_response(render_template(
-        "components/calendar-day.html", year=year, month=month, day=day, events=events,
+        "components/calendar/day.html", year=year, month=month, day=day, events=events,
         date=start_date
     ))

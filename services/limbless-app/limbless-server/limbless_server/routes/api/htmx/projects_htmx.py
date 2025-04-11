@@ -373,6 +373,6 @@ def get_recent_projects():
 
     return make_response(
         render_template(
-            "components/recent-projects-list.html", projects=projects
+            "components/dashboard/projects-list.html", projects=projects
         )
     )

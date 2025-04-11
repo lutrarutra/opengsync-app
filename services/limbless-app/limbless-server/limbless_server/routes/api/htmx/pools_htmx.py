@@ -509,6 +509,6 @@ def get_recent_pools():
     )
     
     return make_response(render_template(
-        "components/recent-pools-list.html",
+        "components/dashboard/pools-list.html",
         pools=pools, sort_by="id"
     ))

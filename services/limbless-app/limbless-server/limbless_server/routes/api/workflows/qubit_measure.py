@@ -55,6 +55,7 @@ def get_context(request: Request) -> dict:
 
 
 @qubit_measure_workflow.route("begin", methods=["GET"])
+@db_session(db)
 @login_required
 def begin():
     if not current_user.is_insider():
@@ -105,6 +106,7 @@ def select():
 
 
 @qubit_measure_workflow.route("complete/<string:uuid>", methods=["POST"])
+@db_session(db)
 @login_required
 def complete(uuid: str):
     if not current_user.is_insider():
