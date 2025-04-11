@@ -67,7 +67,10 @@ def begin():
         sample_status_filter=[SampleStatus.STORED],
         library_status_filter=[LibraryStatus.PREPARING],
         pool_status_filter=[PoolStatus.STORED],
-        select_lanes=True
+        select_lanes=True,
+        select_pools=True,
+        select_libraries=True,
+        select_samples=True,
     )
     return form.make_response()
 

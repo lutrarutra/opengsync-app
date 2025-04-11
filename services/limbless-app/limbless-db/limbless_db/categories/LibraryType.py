@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
+from .LabProtocol import LabProtocol, LabProtocolEnum
 
 
 @dataclass(eq=False)
@@ -11,7 +12,7 @@ class LibraryTypeEnum(DBEnum):
 
     @property
     def select_name(self) -> str:
-        return self.abbreviation
+        return str(self.id)
 
 
 class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
@@ -58,6 +59,24 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     IMMUNE_SEQ = LibraryTypeEnum(114, "Immune Sequencing", "Immune Sequencing", "IMMUNE", "Immune Sequencing")
     AMPLICON_SEQ = LibraryTypeEnum(115, "Amplicon-seq", "Amplicon-seq", "AMPLICON", "Gene Expression")
     CUT_AND_RUN = LibraryTypeEnum(116, "Cut & Run", "Cut&Run", "CUTNRUN", "Binding Site Quantification")
+
+    @classmethod
+    def get_protocol_library_types(cls, lab_protocol: LabProtocolEnum) -> list[LibraryTypeEnum]:
+        if lab_protocol == LabProtocol.CUSTOM:
+            return LibraryType.as_list()
+        return {
+            LabProtocol.RNA_SEQ: [LibraryType.POLY_A_RNA_SEQ, LibraryType.IMMUNE_SEQ],
+            LabProtocol.QUANT_SEQ: [LibraryType.QUANT_SEQ],
+            LabProtocol.SMART_SEQ: [LibraryType.SMART_SEQ, LibraryType.SMART_SC_SEQ],
+            LabProtocol.WGS: [LibraryType.WGS, LibraryType.ARTIC_SARS_COV_2, LibraryType.RR_BS_SEQ, LibraryType.WG_BS_SEQ, LibraryType.RR_EM_SEQ, LibraryType.WG_EM_SEQ],
+            LabProtocol.WES: [LibraryType.WES],
+            LabProtocol.TENX: [
+                LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_SC_ATAC, LibraryType.TENX_SC_GEX_3PRIME, LibraryType.TENX_SC_GEX_5PRIME,
+                LibraryType.TENX_VISIUM_HD, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM, LibraryType.TENX_ANTIBODY_CAPTURE,
+                LibraryType.TENX_MULTIPLEXING_CAPTURE, LibraryType.TENX_CRISPR_SCREENING, LibraryType.TENX_VDJ_B, LibraryType.TENX_VDJ_T,
+                LibraryType.TENX_VDJ_T_GD, LibraryType.TENX_SC_ABC_FLEX
+            ],
+        }[lab_protocol]
 
 
 identifiers = []
