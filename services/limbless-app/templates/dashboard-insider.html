@@ -3,9 +3,9 @@
 {% from "components/status_bar.jinja2" import seq_request_status_bar, experiment_status_bar with context %}
 
 {% extends "base.html" %}
-{% set active_page = "" %}
+{% set active_page = "dashboard-page" %}
 {% block content %}
-<div class="page-content">
+<div class="page-content dash-container">
     <div class="dash">
         <div class="dash-left">
             <div class="dash-top dash-component-container" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">

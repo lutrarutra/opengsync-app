@@ -91,7 +91,9 @@ def select():
         return abort(HTTPResponse.FORBIDDEN.id)
 
     context = get_context(request)
-    form: SelectSamplesForm = SelectSamplesForm(workflow="ba_report", formdata=request.form, context=context)
+    form: SelectSamplesForm = SelectSamplesForm(
+        workflow="ba_report", formdata=request.form, context=context,
+    )
     if not form.validate():
         return form.make_response()
     

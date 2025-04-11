@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 
 from limbless_db import models
-from limbless_db.categories import LabProtocol
+from limbless_db.categories import LabProtocol, AssayType
 
 from ... import db, logger  # noqa F401
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -16,6 +16,7 @@ class LabPrepForm(HTMXFlaskForm):
     _form_label = "lab_prep_form"
 
     protocol = SelectField("Protocol", choices=LabProtocol.as_selectable(), coerce=int)
+    assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), coerce=int)
     name = StringField("Name")
 
     def __init__(self, form_type: Literal["create", "edit"], lab_prep: Optional[models.LabPrep] = None, formdata: dict = {}):
@@ -35,6 +36,7 @@ class LabPrepForm(HTMXFlaskForm):
     def __fill_form(self, lab_prep: models.LabPrep):
         self.protocol.data = lab_prep.protocol_id
         self.name.data = lab_prep.name
+        self.assay_type.data = lab_prep.assay_type_id
 
     def validate(self) -> bool:
         if (validated := super().validate()) is False:
@@ -44,6 +46,12 @@ class LabPrepForm(HTMXFlaskForm):
             protocol = LabProtocol.get(self.protocol.data)
         except ValueError:
             self.protocol.errors = ("Invalid protocol",)
+            return False
+        
+        try:
+            assay_type = AssayType.get(self.assay_type.data)
+        except ValueError:
+            self.assay_type.errors = ("Invalid assay type",)
             return False
         
         if self.form_type == "edit":
@@ -66,6 +74,7 @@ class LabPrepForm(HTMXFlaskForm):
             raise ValueError("lab_prep must be provided if form_type is 'edit'.")
         
         self.lab_prep.name = self.name.data  # type: ignore
+        self.lab_prep.assay_type = AssayType.get(self.assay_type.data)
 
         flash("Changes saved!", "success")
         return db.update_lab_prep(self.lab_prep)
@@ -74,7 +83,8 @@ class LabPrepForm(HTMXFlaskForm):
         lab_prep = db.create_lab_prep(
             name=self.name.data,
             protocol=LabProtocol.get(self.protocol.data),
-            creator_id=user.id
+            creator_id=user.id,
+            assay_type=AssayType.get(self.assay_type.data)
         )
         flash("Prep created!", "success")
         return lab_prep

@@ -1,8 +1,14 @@
 @import "colors.scss";
 
+.dash-container {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    height: 100%;
+}
+
 .dash {
     display: flex;
-    height: calc(100vh - 60px);
+    height: 100%;
     padding: 0;
     gap: 10px;
 

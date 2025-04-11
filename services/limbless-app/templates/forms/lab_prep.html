@@ -10,8 +10,9 @@
         <div id="lab_prep-form">
             {{ lab_prep_form.csrf_token() }}
             <div class="row">
-                {{ select_input(lab_prep_form.protocol, class="col-6") }}
-                {{ form_group(lab_prep_form.name, class="col-6", placeholder="XXXX") }}
+                {{ select_input(lab_prep_form.assay_type, class="col-4") }}
+                {{ select_input(lab_prep_form.protocol, class="col-4") }}
+                {{ form_group(lab_prep_form.name, class="col-4", placeholder="XXXX") }}
             </div>
         </div>
     </div>

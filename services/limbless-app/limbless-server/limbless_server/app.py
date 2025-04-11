@@ -8,7 +8,7 @@ import pandas as pd
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
-from limbless_db import categories, models, db_session, TIMEZONE, localize, to_utc
+from limbless_db import categories, models, db_session, TIMEZONE, to_utc
 
 from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache
 from .routes import api, pages

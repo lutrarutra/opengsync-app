@@ -7,7 +7,10 @@ from flask import url_for
 from wtforms import StringField
 
 from limbless_db import models
-from limbless_db.categories import SampleStatusEnum, LibraryStatusEnum, PoolStatusEnum, SampleStatus, LibraryStatus, PoolStatus
+from limbless_db.categories import (
+    SampleStatusEnum, LibraryStatusEnum, PoolStatusEnum, SampleStatus, LibraryStatus, PoolStatus,
+    LibraryTypeEnum
+)
 
 from .. import db, logger
 from .HTMXFlaskForm import HTMXFlaskForm
@@ -23,22 +26,15 @@ workflow_settings = {
         select_samples=True,
         select_libraries=True,
         select_pools=True,
-        select_lanes=False
     ),
     "select_experiment_pools": dict(
         pool_status_filter=[PoolStatus.STORED],
-        select_lanes=False,
-        select_libraries=False,
-        select_samples=False,
-    ),
-    "library_prep": dict(
-        select_samples=False, select_pools=False, select_libraries=True,
-        library_status_filter=[LibraryStatus.ACCEPTED], select_all_libraries=True
+        select_pools=True
     ),
     "reseq": dict(
-        select_samples=False, select_pools=False, select_libraries=True,
+        select_libraries=True,
         select_all_libraries=True
-    )
+    ),
 }
 
 
@@ -73,10 +69,13 @@ class SelectSamplesForm(HTMXFlaskForm):
 
     def __init__(
         self, workflow: str, formdata: dict = {}, context: dict = {},
-        select_samples: bool = True, select_libraries: bool = True, select_pools: bool = True,
+        select_samples: bool = False,
+        select_libraries: bool = False,
+        select_pools: bool = False,
         select_lanes: bool = False,
         sample_status_filter: Optional[list[SampleStatusEnum]] = None,
         library_status_filter: Optional[list[LibraryStatusEnum]] = None,
+        library_type_filter: Optional[list[LibraryTypeEnum]] = None,
         pool_status_filter: Optional[list[PoolStatusEnum]] = None,
         selected_samples: list[models.Sample] = [],
         selected_libraries: list[models.Library] = [],
@@ -140,6 +139,8 @@ class SelectSamplesForm(HTMXFlaskForm):
             self._context["sample_url_context"]["status_id_in"] = json.dumps([status.id for status in sample_status_filter])
         if library_status_filter is not None:
             self._context["library_url_context"]["status_id_in"] = json.dumps([status.id for status in library_status_filter])
+        if library_type_filter is not None:
+            self._context["library_url_context"]["type_id_in"] = json.dumps([library_type.id for library_type in library_type_filter])
         if pool_status_filter is not None:
             self._context["pool_url_context"]["status_id_in"] = json.dumps([status.id for status in pool_status_filter])
 

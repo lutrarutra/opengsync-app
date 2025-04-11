@@ -42,7 +42,7 @@
     <script>
         function init_tooltips() {
             const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl, { html: true }));
         }
     </script>
 </head>
@@ -76,17 +76,20 @@
         </div>
         <div id="navbar-container">
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'projects-page' else ''}}" id="project-page" href="{{ url_for('projects_page.projects_page') }}">Projects</a>
+                <a class="nav-link {{'active' if active_page == 'dashboard-page' else ''}}" id="dashboard-page" href="{{ url_for('dashboard') }}">Dashboard</a>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'seq_requests-page' else ''}}" id="seq_requests-page" href="{{ url_for('seq_requests_page.seq_requests_page') }}">Requests</a>
+                <a class="nav-link {{'active' if active_page == 'projects-page' else ''}}" href="{{ url_for('projects_page.projects_page') }}">Projects</a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'seq_requests-page' else ''}}" href="{{ url_for('seq_requests_page.seq_requests_page') }}">Requests</a>
             </div>
             {% if current_user.is_authenticated and current_user.is_insider() %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'lab_preps-page' else ''}}" id="lab_preps-page" href="{{ url_for('lab_preps_page.lab_preps_page') }}">Preps</a>
+                <a class="nav-link {{'active' if active_page == 'lab_preps-page' else ''}}" href="{{ url_for('lab_preps_page.lab_preps_page') }}">Preps</a>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" id="experiments-page" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>
+                <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" href="{{ url_for('experiments_page.experiments_page') }}">Experiments</a>
             </div>
             <div class="nav-item nav-item-dropdown">
                 <p>
@@ -96,13 +99,13 @@
                     </svg>
                 </p>
                 <ul>
-                    <li><a class="nav-link {{'active' if active_page == 'samples-page' else ''}}" id="samples-page" href="{{ url_for('samples_page.samples_page') }}">Bio Samples</a></li>
-                    <li><a class="nav-link {{'active' if active_page == 'libraries-page' else ''}}" id="libraries-page" href="{{ url_for('libraries_page.libraries_page') }}">Libraries</a></li>
-                    <li><a class="nav-link {{'active' if active_page == 'pools-page' else ''}}" id="pools-page" href="{{ url_for('pools_page.pools_page') }}">Pools</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'samples-page' else ''}}" href="{{ url_for('samples_page.samples_page') }}">Bio Samples</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'libraries-page' else ''}}" href="{{ url_for('libraries_page.libraries_page') }}">Libraries</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'pools-page' else ''}}" href="{{ url_for('pools_page.pools_page') }}">Pools</a></li>
                 </ul>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'users-page' else ''}}" id="users-page" href="{{ url_for('users_page.users_page') }}">Users</a>
+                <a class="nav-link {{'active' if active_page == 'users-page' else ''}}" href="{{ url_for('users_page.users_page') }}">Users</a>
             </div>
             {% endif %}
             <div class="nav-item nav-item-dropdown">
