@@ -285,10 +285,20 @@ def edit_barcodes(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if index_kit.type == IndexType.TENX_ATAC_INDEX:
+        cls = forms.EditKitTENXATACBarcodesForm
+    elif index_kit.type == IndexType.DUAL_INDEX:
+        cls = forms.EditDualIndexKitBarcodesForm
+    elif index_kit.type == IndexType.SINGLE_INDEX:
+        cls = forms.EditSingleIndexKitBarcodesForm
+    else:
+        logger.error(f"Unknown index kit type {index_kit.type}")
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
     if request.method == "GET":
-        return forms.EditKitBarcodesForm(index_kit=index_kit).make_response()
+        return cls(index_kit=index_kit).make_response()
     elif request.method == "POST":
-        form = forms.EditKitBarcodesForm(
+        form = cls(
             index_kit=index_kit,
             formdata=request.form
         )

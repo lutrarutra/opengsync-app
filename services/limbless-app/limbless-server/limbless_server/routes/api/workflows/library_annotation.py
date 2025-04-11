@@ -84,7 +84,7 @@ def previous(seq_request_id: int, uuid: str):
     step_name, step = response
 
     prev_step_cls = forms.steps[step_name]
-    prev_step = prev_step_cls(uuid=uuid, seq_request=seq_request, **step.args)
+    prev_step = prev_step_cls(uuid=uuid, seq_request=seq_request, **step.args)  # type: ignore
     prev_step.fill_previous_form()
     return prev_step.make_response()
 
@@ -93,7 +93,7 @@ def previous(seq_request_id: int, uuid: str):
 @library_annotation_workflow.route("<int:seq_request_id>/project_select/<string:workflow_type>", methods=["POST"])
 @db_session(db)
 @login_required
-def select_project(seq_request_id: int, workflow_type: str):
+def select_project(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     if workflow_type not in ["tech", "raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
