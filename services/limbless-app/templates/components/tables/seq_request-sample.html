@@ -36,7 +36,7 @@
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="redirect('{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}');">
+            <tr class="sample-row" id="sample-row-{{sample.id}}" onclick="redirect('{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}');">
                 <th scope="row">{{ sample.id }}</th>
                 <td>{{ sample.name }}</td>
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
@@ -55,4 +55,52 @@
     </table>
     {{ spinner("seq_request-sample-table-spinner") }}
     {{ pagination("seq_request-sample-table", "seq_requests_htmx.get_samples", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
+    <script>
+        var selected_sample_id = null;
+
+        function remove_sample() {
+            Swal.fire({
+                title: `Remove sample (id=${selected_sample_id}) from '{{seq_request.name}}'-request ?`,
+                showDenyButton: true,
+                text: 'Are you sure?',
+                confirmButtonText: 'Yes',
+                icon: 'question',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                    "DELETE", "{{ url_for('seq_requests_htmx.remove_sample', seq_request_id=seq_request.id) }}?sample_id=" + selected_sample_id,
+                    null, {
+                        target: "#seq_request-sample-table",
+                        swapStyle: "outerHTML"
+                    });
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            init_tooltips();
+
+            $(document).off("contextmenu", ".sample-row").on("contextmenu", ".sample-row", function(e) {
+                e.preventDefault();
+                const x = e.pageX;
+                const y = e.pageY;
+                selected_sample_id = $(this).closest("tr").attr("id").split("-")[2];
+                $("#copy-edit-menu").css({
+                    display: "block",
+                    left: x + 8, top: y + 8
+                }).empty().append([
+                    {% if seq_request.status == SeqRequestStatus.DRAFT %}
+                    `<li><a class='dropdown-item' onclick='remove_sample()'>Remove</a></li>`
+                    {% else %}
+                    `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`
+                    {% endif %}
+                ]);
+
+                $("#right-click-bg").css({
+                    display: "block"
+                });
+            });
+        });
+    </script>
 </div>
