@@ -643,7 +643,7 @@ def get_todo_libraries():
     
     return make_response(
         render_template(
-            "components/recent-todo-assays-lists.html", df=df
+            "components/dashboard/todo-assays-lists.html", df=df
         )
     )
 

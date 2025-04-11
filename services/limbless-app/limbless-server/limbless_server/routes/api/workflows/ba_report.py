@@ -63,6 +63,7 @@ def get_context(request: Request) -> dict:
 
 
 @ba_report_workflow.route("begin", methods=["GET"])
+@db_session(db)
 @login_required
 def begin():
     if not current_user.is_insider():

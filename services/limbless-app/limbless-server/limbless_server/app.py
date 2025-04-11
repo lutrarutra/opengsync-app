@@ -52,7 +52,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
 
     logger.info(f"Debug mode: {app.debug}")
     logger.info(f"TIMEZONE: {TIMEZONE}")
-    logger.info(f"Time: {datetime.now().strftime('%H:%M')} {localize(datetime.now(), 'UTC').strftime('%H:%M')} {to_utc(datetime.now()).strftime('%H:%M')}")
+    logger.info(f"Time: {datetime.now().strftime('%H:%M')} {to_utc(datetime.now()).strftime('%H:%M')}")
 
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAIL_SERVER"] = "smtp-relay.sendinblue.com"
