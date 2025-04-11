@@ -112,7 +112,7 @@
                     htmx.ajax(
                     "DELETE", "{{ url_for('seq_requests_htmx.remove_library', seq_request_id=seq_request.id) }}?library_id=" + selected_library_id,
                     null, {
-                        target: "#seq_request-seq_request-library-table",
+                        target: "#seq_request-library-table",
                         swapStyle: "outerHTML"
                     });
                 }
