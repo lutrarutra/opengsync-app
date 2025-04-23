@@ -1,3 +1,5 @@
+@import "colors.scss";
+
 .banner-container {
     display: flex;
     flex-direction: column;
@@ -36,13 +38,18 @@
             justify-content: flex-start;
             align-items: center;
         }
+        
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
 
-        .title {
+        .row div {
+            overflow: hidden;
+            text-overflow: ellipsis;
             white-space: nowrap;
-            overflow-x: hidden;
+        }
+
+        .title {
             font-weight: 600;
         }
 
