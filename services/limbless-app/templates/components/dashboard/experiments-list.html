@@ -1,39 +1,12 @@
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
 
-<div class="dash-component-header" id="experiment_list-container">
-    <div class="dash-component-title-container">
-        <h4>Recent Experiments</h4>
+{% for experiment in experiments %}
+<a class="element-banner" href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
+    <div class="row">
+        <div class="title col-4">{{ experiment.name }}</div>
+        <div class="description col-4">{{ experiment.operator.name }}</span></div>
+        <div class="col-4">{{ experiment.timestamp_created_str("%-d. %b. @ %-H:%M") }}</div>
     </div>
-    <div class="dash-component-controls-container">
-        <div class="btn-group" role="group">
-            <input type="radio" class="btn-check" name="experiment_list-sort-name-btn" id="experiment_list-sort-name-btn" autocomplete="off"
-            {% if sort_by == "name" %}checked{% endif %}
-            hx-get="{{ url_for('experiments_htmx.get_recent_experiments', sort_by='name') }}" hx-target="#experiment_list-container" hx-swap="outerHTML">
-            <label class="btn btn-outline-primary" for="experiment_list-sort-name-btn">Name</label>
-
-            <input type="radio" class="btn-check" name="experiment_list-sort-time-btn" id="experiment_list-sort-time-btn" autocomplete="off"
-            {% if sort_by == "timestamp_created_utc" %}checked{% endif %}
-            hx-get="{{ url_for('experiments_htmx.get_recent_experiments', sort_by='timestamp_created_utc') }}" hx-target="#experiment_list-container" hx-swap="outerHTML">
-            <label class="btn btn-outline-primary" for="experiment_list-sort-time-btn">Time</label>
-
-            <input type="radio" class="btn-check" name="experiment_list-sort-id-btn" id="experiment_list-sort-id-btn" autocomplete="off"
-            {% if sort_by == "id" %}checked{% endif %}
-            hx-get="{{ url_for('experiments_htmx.get_recent_experiments', sort_by='id') }}" hx-target="#experiment_list-container" hx-swap="outerHTML">
-            <label class="btn btn-outline-primary" for="experiment_list-sort-id-btn">ID</label>
-        </div>
-    </div>
-</div>
-<div class="dash-component-content">
-    <div class="banner-container">
-        {% for experiment in experiments %}
-        <a class="element-banner" href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">
-            <div class="row">
-                <div class="title col-4">{{ experiment.name }}</div>
-                <div class="description col-4">{{ experiment.operator.name }}</span></div>
-                <div class="submitted-time col-4">{{ experiment.timestamp_created_str("%-d. %b. @ %-H:%M") }}</div>
-            </div>
-            {{ experiment_status_bar(experiment) }}
-        </a>
-        {% endfor %}
-    </div>
-</div>
+    {{ experiment_status_bar(experiment) }}
+</a>
+{% endfor %}

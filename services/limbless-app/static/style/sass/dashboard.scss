@@ -20,6 +20,11 @@
         flex-direction: column;
         gap: 10px;
 
+        .dash-component-title-container {
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
         .dash-component-container {
             flex: 1; // Makes each cell take equal height
             display: flex;

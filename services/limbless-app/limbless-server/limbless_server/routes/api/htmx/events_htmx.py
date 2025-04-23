@@ -18,13 +18,17 @@ events_htmx = Blueprint("events_htmx", __name__, url_prefix="/api/hmtx/events/")
 
 
 @events_htmx.route("/render_calendar_month/<int:year>/<int:month>", methods=["GET"])
-@events_htmx.route("/render_calendar_month", methods=["GET"], defaults={"year": datetime.now().year, "month": datetime.now().month})
+@events_htmx.route("/render_calendar_month", methods=["GET"], defaults={"year": -1, "month": -1})
 @login_required
 @cache.cached(timeout=60, query_string=True)
 def render_calendar_month(year: int, month: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
+        if month == -1:
+            month = datetime.now().month
+        if year == -1:
+            year = datetime.now().year
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month + 1, 1) if start_date.month < 12 else datetime(year + 1, 1, 1)
     except TypeError:
@@ -60,13 +64,17 @@ def render_calendar_month(year: int, month: int):
 
 
 @events_htmx.route("/render_calendar_week/<int:year>/<int:week>", methods=["GET"])
-@events_htmx.route("/render_calendar_week", methods=["GET"], defaults={"year": datetime.now().year, "week": datetime.now().isocalendar().week})
+@events_htmx.route("/render_calendar_week", methods=["GET"], defaults={"year": -1, "week": -1})
 @db_session(db)
 @login_required
 def render_calendar_week(year: int, week: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
+        if week == -1:
+            week = datetime.now().isocalendar().week
+        if year == -1:
+            year = datetime.now().year
         start_date = datetime.fromisocalendar(year, week, 1)
         end_date = datetime.fromisocalendar(year, week, 7)
     except TypeError:
@@ -107,13 +115,19 @@ def render_calendar_week(year: int, week: int):
 
 
 @events_htmx.route("/render_calendar_day/<int:year>/<int:month>/<int:day>", methods=["GET"])
-@events_htmx.route("/render_calendar_day", methods=["GET"], defaults={"year": datetime.now().year, "month": datetime.now().month, "day": datetime.now().day})
+@events_htmx.route("/render_calendar_day", methods=["GET"], defaults={"year": -1, "month": -1, "day": -1})
 @db_session(db)
 @login_required
 def render_calendar_day(year: int, month: int, day: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
+        if day == -1:
+            day = datetime.now().day
+        if month == -1:
+            month = datetime.now().month
+        if year == -1:
+            year = datetime.now().year
         start_date = datetime(year, month, day)
         end_date = datetime(year, month, day) + timedelta(days=1)
     except TypeError:
