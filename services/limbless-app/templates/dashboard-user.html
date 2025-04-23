@@ -8,8 +8,19 @@
 <div class="page-content">
     <div class="dash">
         <div class="dash-left">
-            <div class="dash-top dash-component-container" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
-                {{ spinner() }}
+            <div class="dash-top dash-component-container">
+                <div class="dash-component-header">
+                    <div class="dash-component-title-container">
+                        <h4>Recent Sequencing Requests</h4>
+                    </div>
+                    <div class="dash-component-controls-container">
+                    </div>
+                </div>
+                <div class="dash-component-content">
+                    <div class="banner-container" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
+                        {{ spinner() }}
+                    </div>
+                </div>
             </div>
         </div>
         <div class="dash-right">
