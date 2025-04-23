@@ -102,6 +102,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
         if assay_type != AssayType.CUSTOM:
             required_type_ids = [library_type.id for library_type in assay_type.library_types]
+            optional_library_type_ids = [library_type.id for library_type in assay_type.optional_library_types]
 
             for sample_name, _df in df.groupby("sample_name"):
                 missing_library_type_mask = pd.Series(required_type_ids).isin(_df["library_type_id"])
@@ -111,7 +112,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
                 for idx, row in _df.iterrows():
                     library_type_id = row["library_type_id"]
-                    if library_type_id not in required_type_ids:
+                    if library_type_id not in required_type_ids and library_type_id not in optional_library_type_ids:
                         self.spreadsheet.add_error(
                             idx + 1, "library_type",  # type: ignore
                             f"Library type '{LibraryType.get(library_type_id).name}' is not part of '{assay_type.name}' assay.",
