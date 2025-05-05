@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from flask import Blueprint, render_template, request, abort, url_for, flash
+from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
@@ -258,21 +258,6 @@ def edit(index_kit_id: int):
         return form.process_request()
     else:
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
-
-
-@index_kits_htmx.route("delete/<int:index_kit_id>", methods=["DELETE"])
-@db_session(db)
-@login_required
-def delete(index_kit_id: int):
-    if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    if (_ := db.get_index_kit(index_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    db.delete_index_kit(id=index_kit_id)
-    flash("Index kit deleted successfully.", "success")
-    return make_response(redirect=url_for("kits_page.index_kits_page"))
 
 
 @index_kits_htmx.route("<int:index_kit_id>/edit_barcodes", methods=["GET", "POST"])

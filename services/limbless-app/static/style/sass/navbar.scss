@@ -15,6 +15,10 @@ nav#navbar {
     top: 0;
     z-index: 15;
 
+    a.user-btn p {
+        cursor: pointer;
+    }
+
     p:hover {
         cursor: default;
     }

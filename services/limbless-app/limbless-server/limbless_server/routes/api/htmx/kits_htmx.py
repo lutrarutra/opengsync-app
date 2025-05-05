@@ -1,13 +1,13 @@
 import json
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, url_for, flash
 from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, db_session, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, IndexType
-from .... import db, logger, cache  # noqa F401
+from .... import db, logger, cache, forms  # noqa F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -22,7 +22,6 @@ kits_htmx = Blueprint("kits_htmx", __name__, url_prefix="/api/hmtx/kits/")
 @kits_htmx.route("get/<int:page>", methods=["GET"])
 @db_session(db)
 @login_required
-@cache.cached(timeout=300, query_string=True)
 def get(page: int):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
@@ -57,3 +56,36 @@ def get(page: int):
 @login_required
 def table_query():
     raise NotImplementedError()
+
+
+@kits_htmx.route("edit/<int:kit_id>", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def edit(kit_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if (index_kit := db.get_kit(kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        return forms.models.KitForm(form_type="edit", kit=index_kit).make_response()
+    elif request.method == "POST":
+        form = forms.models.KitForm(form_type="edit", formdata=request.form, kit=index_kit)
+        return form.process_request()
+    else:
+        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+
+
+@kits_htmx.route("delete/<int:kit_id>", methods=["DELETE"])
+@db_session(db)
+@login_required
+def delete(kit_id: int):
+    if not current_user.is_admin():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (_ := db.get_kit(kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    db.delete_kit(id=kit_id)
+    flash("Index kit deleted successfully.", "success")
+    return make_response(redirect=url_for("kits_page.kits_page"))

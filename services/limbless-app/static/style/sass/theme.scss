@@ -172,8 +172,7 @@ a input {
     box-shadow: none !important;
 }
 
-.swal2-deny.swal2-styled {
+.swal2-deny.swal2-styled, .swal2-styled.swal2-cancel {
     background-color: $cemm-red !important;
     height: 40px;
-    width: 60px;
 }

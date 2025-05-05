@@ -118,7 +118,7 @@ class DBHandler():
     from .model_handlers._index_kit_methods import (
         create_index_kit, get_index_kit, get_index_kits,
         get_index_kit_by_name, update_index_kit,
-        delete_index_kit, remove_all_barcodes_from_kit
+        remove_all_barcodes_from_kit
     )
 
     from .model_handlers._seq_request_methods import (
@@ -145,7 +145,7 @@ class DBHandler():
 
     from .model_handlers._feature_kit_methods import (
         create_feature_kit, get_feature_kit, get_feature_kits,
-        get_feature_kit_by_name, update_feature_kit, delete_feature_kit,
+        get_feature_kit_by_name, update_feature_kit,
         remove_all_features_from_kit
     )
 
@@ -175,7 +175,8 @@ class DBHandler():
     )
 
     from .model_handlers._kit_methods import (
-        create_kit, get_kit, get_kits, query_kits, get_kit_by_name
+        create_kit, get_kit, get_kits, query_kits, get_kit_by_name, delete_kit,
+        update_kit
     )
 
     from .model_handlers._link_methods import (
