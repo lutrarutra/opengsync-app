@@ -28,7 +28,6 @@
         flex-shrink: 0;
         
         .badge {
-            background-color: $cemm-blue;
             font-size: 13px;
         }
 
@@ -67,6 +66,6 @@
     }
 
     .element-banner:hover {
-        background-color: $gray-300;
+        background-color: #dee2e6;
     }
 }

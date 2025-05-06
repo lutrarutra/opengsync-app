@@ -63,7 +63,7 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - ${UPLOADS_DIR}:/uploads
         labels:
-            ofelia.job-local.uploads-cleanup.schedule: "0 1 * * *"  # every night at 1am
+            ofelia.job-local.uploads-cleanup.schedule: "0 0 1 * * *"  # every night at 1am
             ofelia.job-local.uploads-cleanup.command: "find /uploads -type f -mtime +1 -delete"
 
     sass-compiler:
