@@ -231,7 +231,6 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
 
 
 def cli():
-    exit(1)
     parser = argparse.ArgumentParser()
     parser.add_argument("run_folder", type=str)
     parser.add_argument("user", type=str)
