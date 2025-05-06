@@ -33,6 +33,20 @@ def to_identifier(n: int) -> str:
     return out
 
 
+# def _hamming_distance_shared_bases(seq1: str, seq2: str) -> int:
+#     """Calculate Hamming distance using only matching positions (shortest shared length)."""
+#     min_len = min(len(seq1), len(seq2))
+#     return sum(c1 != c2 for c1, c2 in zip(seq1[:min_len], seq2[:min_len]))
+
+
+# def min_hamming_distances(seq_list: list[str]) -> list[int]:
+#     distances = []
+#     for i, ref in enumerate(seq_list):
+#         other_seqs = seq_list[:i] + seq_list[i + 1:]
+#         distances.append(min(_hamming_distance_shared_bases(ref, other) for other in other_seqs))
+#     return distances
+
+
 def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFrame:
     df["error"] = None
     df["warning"] = None
