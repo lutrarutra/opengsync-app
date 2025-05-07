@@ -59,18 +59,6 @@ def get_index_kit_by_name(self: "DBHandler", name: str) -> models.IndexKit | Non
     return res
 
 
-def delete_index_kit(self: "DBHandler", id: int):
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (index_kit := self.session.get(models.IndexKit, id)) is not None:
-        self.session.delete(index_kit)
-        self.session.commit()
-
-    if not persist_session:
-        self.close_session()
-
-
 def remove_all_barcodes_from_kit(
     self: "DBHandler", index_kit_id: int
 ) -> models.IndexKit:

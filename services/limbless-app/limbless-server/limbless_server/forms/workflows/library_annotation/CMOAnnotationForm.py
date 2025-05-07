@@ -7,7 +7,7 @@ from flask import Response, url_for
 from limbless_db import models
 from limbless_db.categories import LibraryType, FeatureType
 
-from .... import logger, tools  # noqa
+from .... import logger, tools, db  # noqa
 from ....tools import SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
@@ -24,13 +24,21 @@ class CMOAnnotationForm(MultiStepForm):
     _step_name = "cmo_annotation"
     columns = [
         SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        SpreadSheetColumn("sample_name", "Sample (Pool) Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         SpreadSheetColumn("kit", "Kit", "text", 170, str),
         SpreadSheetColumn("feature", "Feature", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         SpreadSheetColumn("sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         SpreadSheetColumn("pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
         SpreadSheetColumn("read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
+
+    @classmethod
+    def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:
+        multiplexed_samples = set()
+        for sample_name, _df in df.groupby("sample_name"):
+            if LibraryType.TENX_MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
+                multiplexed_samples.add(sample_name)
+        return list(multiplexed_samples)
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
@@ -39,9 +47,13 @@ class CMOAnnotationForm(MultiStepForm):
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
+        self.upload_path = "uploads/seq_request"
+
+        self.multiplexed_samples = CMOAnnotationForm.__get_multiplexed_samples(self.tables["library_table"])
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
+
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=CMOAnnotationForm.columns, csrf_token=csrf_token,
             post_url=url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id, uuid=self.uuid),
@@ -65,11 +77,11 @@ class CMOAnnotationForm(MultiStepForm):
         for i, (idx, row) in enumerate(df.iterrows()):
             # sample name not defined
             if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(idx, "sample_name", "'Sample Name' must be specified.", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_name", "'Sample (Pool) Name' must be specified.", "missing_value")
 
             # sample name not found in library table
             elif row["sample_name"] not in library_table["sample_name"].values:
-                self.spreadsheet.add_error(idx, "sample_name", f"'Sample Name' must be one of: [{', '.join(set(library_table['sample_name'].values.tolist()))}]", "invalid_value")
+                self.spreadsheet.add_error(idx, "sample_name", f"'Sample (Pool) Name' must be one of: [{', '.join(self.multiplexed_samples)}]", "invalid_value")
 
             # Demux name not defined
             if pd.isna(row["demux_name"]):
@@ -117,7 +129,46 @@ class CMOAnnotationForm(MultiStepForm):
             return self.make_response()
 
         library_table = self.tables["library_table"]
+        sample_table = self.tables["sample_table"]
+        pooling_table = self.tables["pooling_table"]
 
+        sample_data = {
+            "sample_name": [],
+            "cmo_sequence": [],
+            "cmo_pattern": [],
+            "cmo_read": [],
+        }
+
+        pooling_data = {
+            "sample_name": [],
+            "library_name": [],
+        }
+
+        for _, cmo_row in self.cmo_table.iterrows():
+            sample_data["sample_name"].append(cmo_row["demux_name"])
+            sample_data["cmo_sequence"].append(cmo_row["sequence"] if cmo_row["custom_feature"] else None)
+            sample_data["cmo_pattern"].append(cmo_row["pattern"] if cmo_row["custom_feature"] else None)
+            sample_data["cmo_read"].append(cmo_row["read"] if cmo_row["custom_feature"] else None)
+            for _, pooling_row in pooling_table[pooling_table["sample_name"] == cmo_row["sample_name"]].iterrows():
+                pooling_data["sample_name"].append(cmo_row["demux_name"])
+                pooling_data["library_name"].append(pooling_row["library_name"])
+        
+        sample_table = pd.DataFrame(sample_data)
+        sample_table["sample_id"] = None
+        sample_table["flex_barcode"] = None
+        pooling_table = pd.DataFrame(pooling_data)
+
+        if (project_id := self.metadata.get("project_id")) is not None:
+            if (project := db.get_project(project_id)) is None:
+                logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
+                raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
+            
+            for sample in project.samples:
+                sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
+
+        self.update_table("sample_table", sample_table, update_data=False)
+        self.update_table("pooling_table", pooling_table, update_data=False)
+                
         kit_table = self.cmo_table[self.cmo_table["kit"].notna()][["kit"]].drop_duplicates().copy()
         kit_table["type_id"] = FeatureType.CMO.id
         kit_table["kit_id"] = None
@@ -145,5 +196,5 @@ class CMOAnnotationForm(MultiStepForm):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        
+
         return next_form.make_response()

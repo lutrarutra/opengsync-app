@@ -74,7 +74,7 @@ def where(
             models.Library.id == models.links.SampleLibraryLink.library_id
         ).where(
             models.Library.seq_request_id == seq_request_id
-        )
+        ).distinct(models.Sample.id)
 
     if user_id is not None:
         query = query.where(

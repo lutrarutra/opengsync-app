@@ -3,7 +3,7 @@
 
 <div id="cmo-reference-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >6. CMO Reference Input Form</h1>
+        <h1 class="modal-title fs-5" >6. HTO-Multiplexing Annotation Form</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -30,6 +30,14 @@
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                <div style="display: flex; gap: 10px;">
+                    <p>Samples (Pools):</p>
+                    <div>
+                        {% for sample in form.multiplexed_samples %}
+                        <span class="badge">{{ sample }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
                 {{ 
                     spreadsheet_input(
                         element=form.spreadsheet,

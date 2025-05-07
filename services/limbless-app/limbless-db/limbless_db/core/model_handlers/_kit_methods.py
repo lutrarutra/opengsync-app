@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 
 import sqlalchemy as sa
-from ...categories import KitTypeEnum
+from ...categories import KitTypeEnum, KitType
 from ... import PAGE_LIMIT, models
 
 
@@ -13,7 +13,7 @@ def create_kit(
     self: "DBHandler",
     name: str,
     identifier: str,
-    kit_type: KitTypeEnum,
+    kit_type: KitTypeEnum = KitType.LIBRARY_KIT,
 ) -> models.Kit:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -123,3 +123,30 @@ def query_kits(
     if not persist_session:
         self.close_session()
     return res
+
+
+def update_kit(self, kit: models.Kit) -> models.Kit:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    self.session.add(kit)
+    self.session.commit()
+    self.session.refresh(kit)
+
+    if not persist_session:
+        self.close_session()
+    return kit
+
+
+def delete_kit(self: "DBHandler", id: int):
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (kit := self.session.get(models.Kit, id)) is None:
+        raise ValueError(f"Kit with id {id} not found.")
+
+    self.session.delete(kit)
+    self.session.commit()
+
+    if not persist_session:
+        self.close_session()
