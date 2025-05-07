@@ -21,6 +21,7 @@ library_annotation_workflow = Blueprint("library_annotation_workflow", __name__,
 
 # Template sequencing authorization form
 @library_annotation_workflow.route("seq_auth_form/download", methods=["GET"])
+@db_session(db)
 @login_required
 def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
@@ -37,6 +38,7 @@ def download_seq_auth_form():
 
 # 0. Restart form
 @library_annotation_workflow.route("<int:seq_request_id>/begin/<string:workflow_type>", methods=["GET"])
+@db_session(db)
 @login_required
 def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     if workflow_type not in ["raw", "pooled", "tech"]:
@@ -68,6 +70,7 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
 
 # 0. Step
 @library_annotation_workflow.route("<int:seq_request_id>/previous/<string:uuid>", methods=["GET"])
+@db_session(db)
 @login_required
 def previous(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -79,6 +82,7 @@ def previous(seq_request_id: int, uuid: str):
             return abort(HTTPResponse.FORBIDDEN.id)
     
     if (response := MultiStepForm.pop_last_step("library_annotation", uuid)) is None:
+        logger.error("Failed to pop last step")
         return abort(HTTPResponse.NOT_FOUND.id)
     
     step_name, step = response
@@ -205,6 +209,7 @@ def parse_table(seq_request_id: int, uuid: str, form_type: Literal["pooled", "ra
 
 # 6. Specify CMO reference
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_cmo_reference", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_cmo_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -220,6 +225,7 @@ def parse_cmo_reference(seq_request_id: int, uuid: str):
 
 # 7. Specify Features
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/annotate_features", methods=["POST"])
+@db_session(db)
 @login_required
 def annotate_features(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -235,6 +241,7 @@ def annotate_features(seq_request_id: int, uuid: str):
 
 # 8. Map Feature Kits
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/map_feature_kits", methods=["POST"])
+@db_session(db)
 @login_required
 def map_feature_kits(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -250,6 +257,7 @@ def map_feature_kits(seq_request_id: int, uuid: str):
 
 # 9. Visium Annotation
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_visium_reference", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_visium_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -265,6 +273,7 @@ def parse_visium_reference(seq_request_id: int, uuid: str):
 
 # 10. Flex Annotation
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_flex_annotation", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_flex_annotation(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -295,6 +304,7 @@ def parse_sas_form(seq_request_id: int, uuid: str):
     
 # Complete SAS
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/complete", methods=["POST"])
+@db_session(db)
 @login_required
 def complete(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:

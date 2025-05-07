@@ -36,6 +36,17 @@
                     Submit Request
                 </button>
             </span>
+            <span>
+                <button data-bs-toggle="modal" data-bs-target="#fullscreen-modal" class="btn btn-primary"
+                    {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
+                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='raw') }}"
+                    {% elif seq_request.submission_type == SubmissionType.POOLED_LIBRARIES %}
+                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='pooled') }}"
+                    {% endif %}
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
+                    Add Samples
+                </button>
+            </span>
             {% endif %}
             {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.SUBMITTED %}
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#process_request-form-popup">Process</button>

@@ -21,8 +21,8 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     # 10X Base Technologies
     TENX_SC_GEX_FLEX = LibraryTypeEnum(1, "10X Flex Gene Expression", "10X Flex GEX", "10XFLEXGEX", "Gene Expression")
     TENX_SC_ATAC = LibraryTypeEnum(2, "10X Single Cell ATAC", "10X ATAC", "10XATAC", "Chromatin Accessibility")
-    TENX_SC_GEX_3PRIME = LibraryTypeEnum(3, "10X Single Cell Gene Expression 3-P", "10X 3' GEX", "10XGEX3P", "Gene Expression")
-    TENX_SC_GEX_5PRIME = LibraryTypeEnum(4, "10X Single Cell Immune Profiling 5-P", "10X 5' GEX", "10XGEX5P", "Gene Expression")
+    TENX_SC_GEX_3PRIME = LibraryTypeEnum(3, "10X Single Cell 3-P Gene Expression", "10X 3' GEX", "10XGEX3P", "Gene Expression")
+    TENX_SC_GEX_5PRIME = LibraryTypeEnum(4, "10X Single Cell 5-P Gene Expression", "10X 5' GEX", "10XGEX5P", "Gene Expression")
 
     # 10X Visium
     TENX_VISIUM_HD = LibraryTypeEnum(5, "10X HD Spatial Gene Expression", "10X HD Spatial", "10XVISIUMHD", "Spatial Transcriptomics")
@@ -33,9 +33,9 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     TENX_ANTIBODY_CAPTURE = LibraryTypeEnum(8, "10X Antibody Capture", "10X Antibody Capture", "10XABC", "Antibody Capture")
     TENX_MULTIPLEXING_CAPTURE = LibraryTypeEnum(9, "10X Multiplexing Capture", "10X Multiplexing Capture", "10XHTO", "Multiplexing Capture")
     TENX_CRISPR_SCREENING = LibraryTypeEnum(10, "10X CRISPR Screening", "10X CRISPR Screening", "10XCRISPR", "CRISPR Screening")
-    TENX_VDJ_B = LibraryTypeEnum(11, "10X VDJ B", "10X VDJ B", "10XVDJB", "VDJ-B")
-    TENX_VDJ_T = LibraryTypeEnum(12, "10X VDJ T", "10X VDJ T", "10XVDJT", "VDJ-T")
-    TENX_VDJ_T_GD = LibraryTypeEnum(13, "10X VDJ T GD", "10X VDJ T GD", "10XVDJTGD", "VDJ-T-GD")
+    TENX_VDJ_B = LibraryTypeEnum(11, "10X BCR Profiling (VDJ-B)", "10X VDJ B", "10XVDJB", "VDJ-B")
+    TENX_VDJ_T = LibraryTypeEnum(12, "10X TCR alpha-beta Profiling (VDJ-T)", "10X VDJ T", "10XVDJT", "VDJ-T")
+    TENX_VDJ_T_GD = LibraryTypeEnum(13, "10X TCR gamma-delta Profiling (VDJ-T-GD)", "10X VDJ T GD", "10XVDJTGD", "VDJ-T-GD")
     TENX_SC_ABC_FLEX = LibraryTypeEnum(14, "10X Flex Antibody Capture", "10X Flex ABC", "10XFLEXABC", "Antibody Capture")
 
     # RNA-seq

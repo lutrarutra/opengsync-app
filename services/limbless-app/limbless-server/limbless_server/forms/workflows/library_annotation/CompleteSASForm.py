@@ -37,6 +37,7 @@ class CompleteSASForm(MultiStepForm):
         self.visium_table = self.tables.get("visium_table")
         self.flex_table = self.tables.get("flex_table")
         self.comment_table = self.tables.get("comment_table")
+        
         if not formdata:
             self.__prepare()
 
@@ -93,30 +94,29 @@ class CompleteSASForm(MultiStepForm):
                     library_nodes[row["library_name"]] = library_node
                     nodes.append(library_node)
                     node_idx += 1
+
+                    if input_type == "pooled":
+                        for _, library_row in self.library_table[self.library_table["library_name"] == row["library_name"]].iterrows():
+                            if (pool_node := pool_nodes.get(library_row["pool"])) is None:
+                                pool_node = {
+                                    "node": node_idx,
+                                    "name": library_row["pool"],
+                                }
+                                nodes.append(pool_node)
+                                node_idx += 1
+                                pool_nodes[library_row["pool"]] = pool_node
+
+                            links.append({
+                                "source": library_node["node"],
+                                "target": pool_node["node"],
+                                "value": LINK_WIDTH_UNIT * len(self.pooling_table[self.pooling_table["library_name"] == row["library_name"]]),
+                            })
+
                 links.append({
                     "source": sample_node["node"],
                     "target": library_node["node"],
                     "value": LINK_WIDTH_UNIT,
                 })
-
-                if input_type == "raw":
-                    continue
-                
-                for _, library_row in self.library_table[self.library_table["library_name"] == row["library_name"]].iterrows():
-                    if (pool_node := pool_nodes.get(library_row["pool"])) is None:
-                        pool_node = {
-                            "node": node_idx,
-                            "name": library_row["pool"],
-                        }
-                        nodes.append(pool_node)
-                        node_idx += 1
-                        pool_nodes[library_row["pool"]] = pool_node
-
-                    links.append({
-                        "source": library_node["node"],
-                        "target": pool_node["node"],
-                        "value": LINK_WIDTH_UNIT * len(self.pooling_table[self.pooling_table["library_name"] == row["library_name"]]),
-                    })
 
         self._context["nodes"] = nodes
         self._context["links"] = links
