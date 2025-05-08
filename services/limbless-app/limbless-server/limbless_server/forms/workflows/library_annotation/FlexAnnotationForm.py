@@ -44,10 +44,10 @@ class FlexAnnotationForm(MultiStepForm):
             formdata=formdata, allow_new_rows=True
         )
         self.library_table = self.tables["library_table"]
-        flex_libraries = self.library_table[self.library_table['library_type_id'] == LibraryType.TENX_SC_GEX_FLEX.id]
+        self.flex_table = self.library_table[self.library_table['library_type_id'] == LibraryType.TENX_SC_GEX_FLEX.id]
         
         self._context["available_samples"] = StaticSpreadSheet(
-            df=flex_libraries,
+            df=self.flex_table,
             columns=[SpreadSheetColumn("sample_name", "Sample Name", "text", 500, str)],
         )
 

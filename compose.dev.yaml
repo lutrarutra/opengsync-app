@@ -51,7 +51,6 @@ services:
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ${DATA_DIR}/logs/scheduler:/usr/src/app/scheduler/logs
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
             - ${UPLOADS_DIR}:/uploads
         depends_on:

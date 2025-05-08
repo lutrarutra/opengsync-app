@@ -40,7 +40,7 @@ services:
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ${DATA_DIR}/logs/scheduler:/usr/src/app/scheduler/logs
+            - ${DATA_DIR}/logs/scheduler:/usr/src/app/logs
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
             - ${UPLOADS_DIR}:/uploads
         depends_on:
@@ -55,7 +55,7 @@ services:
             --status-update-interval 5
             --upload-folder /uploads
             --upload-folder-file-age-days 7
-            --upload-folder-clean-schedule '0 1 * * *'
+            --upload-folder-clean-schedule '0 0 1 * * *'
 
     sass-compiler:
         container_name: sass-compiler
