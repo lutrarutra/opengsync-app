@@ -67,4 +67,3 @@ cache = Cache()
 msf_cache = RedisMSFFileCache()
 
 DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
-    
