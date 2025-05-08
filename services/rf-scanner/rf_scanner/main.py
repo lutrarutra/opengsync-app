@@ -206,7 +206,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
         else:
             metrics = parse_metrics(run_folder)
 
-            # If for some reason the run is Archived while still in the data is still in the run folder
+            # If for some reason the run is Archived while the data is still in the run folder
             if (seq_run := db.get_seq_run(experiment_name=experiment_name)) is not None:
                 seq_run.status = status
                 seq_run = db.update_seq_run(seq_run)
@@ -226,6 +226,19 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 i2_cycles=parsed_data.get("i2_cycles"),
                 **metrics
             )
+            if run.status == RunStatus.FINISHED:
+                if run.experiment is not None:
+                    run.experiment.status = ExperimentStatus.FINISHED
+                    for pool in run.experiment.pools:
+                        pool.status = PoolStatus.SEQUENCED
+                        for library in pool.libraries:
+                            library.status = LibraryStatus.SEQUENCED
+                run = db.update_seq_run(run)
+            elif run.status == RunStatus.RUNNING:
+                if run.experiment is not None:
+                    run.experiment.status = ExperimentStatus.SEQUENCING
+                run = db.update_seq_run(run)
+                    
             active_runs[experiment_name] = run
             print("Added!")
 
