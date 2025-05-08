@@ -3,15 +3,15 @@
     {% for project in projects %}
     <a class="element-banner" href="{{ url_for('projects_page.project_page', project_id=project.id) }}">
         <div class="row">
-            <div class="title col-5">{{ project.name }}</div>
-            <div class="col-2">{{ project.timestamp_created_str("%-d. %b.") }}</div>
-            <div class="col-5">
+            <div class="title col-8">{{ project.name }}</div>
+            <div class="col-4">
                 <span class="badge">Samples: {{ project.num_samples }}</span>
             </div>
         </div>
         <div class="row">
-            <div class="col-6">{{ project.owner.name }}</div>
-            <div class="col-6">{% if project.group_id %}{{ project.group.name }} <span class="desc">{{ project.group.type.name }} {{ project.group.type.icon }}</span>{% endif %}</div>
+            <div class="col-4">{{ project.owner.name }}</div>
+            <div class="col-4">{{ project.timestamp_created_str("%-d. %b. %Y") }}</div>
+            <div class="col-4">{% if project.group_id %}{{ project.group.name }} <span class="desc">{{ project.group.type.name }} {{ project.group.type.icon }}</span>{% endif %}</div>
         </div>
         {{ project_status_bar(project) }}
     </a>

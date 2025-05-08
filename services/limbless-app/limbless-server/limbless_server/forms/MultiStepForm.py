@@ -113,7 +113,6 @@ class MultiStepForm(HTMXFlaskForm):
 
     @property
     def current_step(self) -> StepFile:
-        logger.debug(f"Current step: {self.step_name}")
         if len(self._steps) == 0:
             self._steps[self.step_name] = StepFile(
                 args=self.step_args,

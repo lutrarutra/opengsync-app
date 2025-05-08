@@ -92,7 +92,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 else:
                     df.at[idx, "pool"] = f"hto_pool_{i + 1}"
 
-        for i, (_, row) in enumerate(df.iterrows()):
+        for idx, row in df.iterrows():
             if pd.isna(row["sample_name"]):
                 self.spreadsheet.add_error(idx, "sample_name", "missing 'Sample Name'", "missing_value")
             elif sample_name_counts[row["sample_name"]] > 1:

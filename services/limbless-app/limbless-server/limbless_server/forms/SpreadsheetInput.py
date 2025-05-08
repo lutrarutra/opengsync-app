@@ -1,7 +1,7 @@
 import json
 import uuid
 import string
-from typing import Optional, Literal, Any, Type, Callable, Hashable
+from typing import Optional, Literal, Hashable
 
 import pandas as pd
 import numpy as np
@@ -33,15 +33,8 @@ class SpreadsheetInput(FlaskForm):
         super().__init__(formdata=formdata)
         self.columns: dict[str, SpreadSheetColumn] = {}
         for col in columns:
-            self.add_column(
-                label=col.label,
-                name=col.name,
-                type=col.type,
-                width=col.width,
-                var_type=col.var_type,
-                source=col.source,
-                clean_up_fnc=col.clean_up_fnc
-            )
+            col.letter = string.ascii_uppercase[len(self.columns)]
+            self.add_column(col.label, col)
 
         self.style: dict[str, str] = {}
         self._errors: list[str] = []
@@ -71,25 +64,10 @@ class SpreadsheetInput(FlaskForm):
 
         self.__df = df
 
-    def add_column(
-        self, label: str, name: str,
-        type: Literal["text", "numeric", "dropdown"],
-        width: float, var_type: Type,
-        source: Optional[Any] = None,
-        clean_up_fnc: Optional[Callable] = None,
-    ):
+    def add_column(self, label: str, column: SpreadSheetColumn):
         if label in self.columns.keys():
             raise ValueError(f"Column with label '{label}' already exists.")
-        self.columns[label] = SpreadSheetColumn(
-            letter=string.ascii_uppercase[len(self.columns)],
-            label=label,
-            name=name,
-            type=type,
-            width=width,
-            var_type=var_type,
-            source=source,
-            clean_up_fnc=clean_up_fnc
-        )
+        self.columns[label] = column
 
     def validate(self) -> bool:
         if not super().validate():
@@ -116,15 +94,29 @@ class SpreadsheetInput(FlaskForm):
         self.__df.columns = [self.col_title_map[col_name] if col_name in self.col_title_map else col_name.lower().replace(" ", "_") for col_name in self.col_names]
         self.__df = self.__df.dropna(how="all")
 
-        for label, column in self.columns.items():
-            if column.clean_up_fnc is not None:
-                self.__df[label] = self.__df[label].apply(column.clean_up_fnc)
-
         if len(self.__df) == 0:
             self._errors = ["Spreadsheet is empty.",]
             return False
+
+        for idx, row in self.__df.iterrows():
+            for label, column in self.columns.items():
+                if not column.validate(row[label]):
+                    if column.required and pd.isna(row[label]):
+                        self.add_error(idx, label, f"Missing value for '{label}'", "missing_value")
+                    elif column.type == "dropdown" and row[label] not in column.source:
+                        if column.source is None:
+                            logger.error(f"Column '{label}' has no choices defined.")
+                            raise ValueError(f"Column '{label}' has no choices defined.")
+                        
+                        self.add_error(idx, label, f"Invalid value '{row[label]}'. Must be one of: {', '.join(column.source)}", "invalid_value")
+                    else:
+                        self.add_error(idx, label, f"Invalid value '{row[label]}'", "invalid_value")
+                self.__df.at[idx, label] = column.clean_up(row[label])
         
         self._data = self.__df.replace(np.nan, "").values.tolist()
+
+        if len(self.errors) > 0:
+            return False
 
         return True
     

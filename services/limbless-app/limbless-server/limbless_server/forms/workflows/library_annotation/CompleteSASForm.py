@@ -69,6 +69,10 @@ class CompleteSASForm(MultiStepForm):
 
         library_nodes = {}
 
+        logger.debug(self.library_table)
+        logger.debug(self.sample_table)
+        logger.debug(self.pooling_table)
+
         for sample_name, _df in self.pooling_table.groupby("sample_name"):
             sample_node = {
                 "node": node_idx,

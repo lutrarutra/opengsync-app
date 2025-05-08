@@ -8,7 +8,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType, FeatureType
 
 from .... import logger, tools, db  # noqa
-from ....tools import SpreadSheetColumn
+from ....tools import SpreadSheetColumn, TextColumn, DropdownColumn
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .KitMappingForm import KitMappingForm
@@ -23,13 +23,13 @@ class CMOAnnotationForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "cmo_annotation"
     columns = [
-        SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("sample_name", "Sample (Pool) Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("kit", "Kit", "text", 170, str),
-        SpreadSheetColumn("feature", "Feature", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        SpreadSheetColumn("read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("demux_name", "Demultiplexed Name", 170, clean_up_fnc=lambda x: tools.make_alpha_numeric(x), required=True),
+        DropdownColumn("sample_name", "Sample (Pool) Name", 170, choices=[], required=True),
+        TextColumn("kit", "Kit", 170),
+        TextColumn("feature", "Feature", 150, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("sequence", "Sequence", 150, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("pattern", "Pattern", 200, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        TextColumn("read", "Read", 100, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
 
     @classmethod
@@ -59,6 +59,7 @@ class CMOAnnotationForm(MultiStepForm):
             post_url=url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )
+        self.spreadsheet.columns["sample_name"].source = self.multiplexed_samples
 
     def validate(self) -> bool:
         if not super().validate():
