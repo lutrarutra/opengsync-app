@@ -9,7 +9,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType, AttributeType
 
 from .... import logger, db  # noqa F401
-from ....tools import SpreadSheetColumn
+from ....tools import SpreadSheetColumn, TextColumn
 from ...MultiStepForm import MultiStepForm
 from .CompleteSASForm import CompleteSASForm
 from ...SpreadsheetInput import SpreadsheetInput
@@ -98,7 +98,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         for col in df.columns:
             if col not in self.spreadsheet.columns.keys():
-                self.spreadsheet.add_column(label=col, name=col.replace("_", " ").title(), type="text", width=100, var_type=str, clean_up_fnc=lambda x: x.strip())
+                self.spreadsheet.add_column(label=col, column=TextColumn(label=col, name=col.replace("_", " ").title(), width=100))
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if pd.isna(row["sample_name"]) or row["sample_name"] == "":

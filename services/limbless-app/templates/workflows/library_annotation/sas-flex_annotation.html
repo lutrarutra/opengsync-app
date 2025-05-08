@@ -4,7 +4,7 @@
 
 <div id="flex-reference-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >10. Flex Annotation</h1>
+        <h1 class="modal-title fs-5" >10. Flex Multiplexing Annotation</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -38,6 +38,14 @@
         <div class="tab-content" id="flex-reference-form">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{ checkbox_input(form.single_plex) }}
+                <div style="display: flex; gap: 10px;">
+                    <p>Samples (Pools):</p>
+                    <div>
+                        {% for sample in form.flex_samples %}
+                        <span class="badge">{{ sample }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
                 {{ spreadsheet_input(element=form.spreadsheet) }}
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">

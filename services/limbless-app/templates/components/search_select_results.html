@@ -5,7 +5,7 @@
         <a id="option-{{ field_name}}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         value="{{ res.search_value() }}"
-        onclick="select_option('{{ res.search_name() }}', '{{ res.search_value() }}', '{{ field_name }}');"
+        onclick="select_option('{{ res.search_name().replace('\'', '') }}', '{{ res.search_value() }}', '{{ field_name }}');"
         aria-controls="{{ field_name }}">
             <span class="search-select-name {{ res.name_class() }}">{{ res.search_name() }}</span>
             {% if res.show_value() %}
