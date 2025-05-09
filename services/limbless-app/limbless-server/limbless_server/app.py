@@ -12,6 +12,7 @@ from limbless_db import categories, models, db_session, TIMEZONE, to_utc
 
 from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache
 from .routes import api, pages
+from .tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
 
 if TYPE_CHECKING:
     current_user: models.User = None   # type: ignore
@@ -211,6 +212,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             PoolType=categories.PoolType,
             KitType=categories.KitType,
             ProjectStatus=categories.ProjectStatus,
+            SpreadSheetErrors=[InvalidCellValue(""), MissingCellValue(""), DuplicateCellValue("")],
             isna=pd.isna,
             notna=pd.notna,
         )

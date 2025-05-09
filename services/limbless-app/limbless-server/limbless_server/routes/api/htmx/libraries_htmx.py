@@ -11,7 +11,7 @@ from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType
 
 from .... import db, forms, logger  # noqa
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -147,9 +147,9 @@ def render_feature_table(library_id: int):
         else:
             width = 200
         columns.append(
-            SpreadSheetColumn(
+            TextColumn(
                 col, col.replace("_", " ").title().replace("Id", "ID"),
-                "text", width, var_type=str
+                width, max_length=1000
             )
         )
     
@@ -566,12 +566,7 @@ def get_flex_table(library_id: int):
             width = 100
         else:
             width = 300
-        columns.append(
-            SpreadSheetColumn(
-                col, col.replace("_", " ").title().replace("Id", "ID"),
-                "text", width, var_type=str
-            )
-        )
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width, max_length=1000))
 
     return make_response(
         render_template(
@@ -600,12 +595,7 @@ def get_hto_table(library_id: int):
 
     columns = []
     for i, col in enumerate(df.columns):
-        columns.append(
-            SpreadSheetColumn(
-                col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
-                "text", 300, var_type=str
-            )
-        )
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"), 300, max_length=1000))
 
     return make_response(
         render_template(

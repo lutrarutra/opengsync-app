@@ -122,12 +122,19 @@ def get_seq_request(self: "DBHandler", seq_request_id: int) -> models.SeqRequest
 def where(
     query: Query, status: Optional[SeqRequestStatusEnum] = None,
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
+    submission_type: Optional[SubmissionTypeEnum] = None,
+    submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
     show_drafts: bool = True, user_id: Optional[int] = None,
     group_id: Optional[int] = None
 ) -> Query:
     if status is not None:
         query = query.where(
             models.SeqRequest.status_id == status.id
+        )
+
+    if submission_type is not None:
+        query = query.where(
+            models.SeqRequest.submission_type_id == submission_type.id
         )
 
     if user_id is not None:
@@ -146,6 +153,12 @@ def where(
         status_ids = [status.id for status in status_in]
         query = query.where(
             models.SeqRequest.status_id.in_(status_ids)  # type: ignore
+        )
+    
+    if submission_type_in is not None:
+        submission_type_ids = [submission_type.id for submission_type in submission_type_in]
+        query = query.where(
+            models.SeqRequest.submission_type_id.in_(submission_type_ids)  # type: ignore
         )
 
     if not show_drafts:
@@ -168,6 +181,8 @@ def get_seq_requests(
     self: "DBHandler",
     status: Optional[SeqRequestStatusEnum] = None,
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
+    submission_type: Optional[SubmissionTypeEnum] = None,
+    submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
     show_drafts: bool = True,
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None,
@@ -180,7 +195,10 @@ def get_seq_requests(
         self.open_session()
 
     query = self.session.query(models.SeqRequest)
-    query = where(query, status_in=status_in, show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status)
+    query = where(
+        query, status_in=status_in, submission_type_in=submission_type_in, submission_type=submission_type,
+        show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status
+    )
 
     if sort_by is not None:
         attr = getattr(models.SeqRequest, sort_by)

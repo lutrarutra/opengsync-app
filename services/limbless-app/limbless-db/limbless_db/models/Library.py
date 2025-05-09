@@ -24,7 +24,7 @@ class Library(Base):
     __tablename__ = "library"
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    name: Mapped[str] = mapped_column(sa.String(86), nullable=False)
     sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)

@@ -1,4 +1,4 @@
-{% from "components/legends.jinja2" import color_legend %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 {% from 'components/form_group.jinja2' import checkbox_input %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input, static_spreadsheet %}
 
@@ -23,12 +23,6 @@
                 Help</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link available-samples-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#available-samples-tab" type="button" role="tab"
-                aria-controls="available-samples-tab" aria-selected="false">
-                Available Samples</button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link example-tab-btn" data-bs-toggle="tab"
                 data-bs-target="#flex-1-example-tab" type="button" role="tab"
                 aria-controls="flex-1-example-tab" aria-selected="true">
@@ -51,9 +45,6 @@
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 {% include "instructions/flex_annotation.html" %}
             </div>
-            <div class="tab-pane fade" id="available-samples-tab" role="tabpanel" tabindex="2">
-                {{ static_spreadsheet(available_samples) }}
-            </div>
             <div class="tab-pane fade" id="flex-1-example-tab" role="tabpanel" tabindex="3">
                 {% include "examples/flex.html" %}
             </div>
@@ -64,7 +55,7 @@
             {{ form.uuid }}
         </div>
         <div class="footer-info">
-            {{ color_legend(form.spreadsheet.colors) }}
+            {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"

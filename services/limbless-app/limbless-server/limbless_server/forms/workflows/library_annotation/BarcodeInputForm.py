@@ -10,7 +10,7 @@ from limbless_db.categories import LibraryType
 from .... import logger, tools, db  # noqa F401
 from ...MultiStepForm import MultiStepForm
 
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...SpreadsheetInput import SpreadsheetInput
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOAnnotationForm import CMOAnnotationForm
@@ -26,14 +26,14 @@ class BarcodeInputForm(MultiStepForm):
     _step_name = "barcode_input"
     
     columns = [
-        SpreadSheetColumn("library_name", "Library Name", "text", 250, str),
-        SpreadSheetColumn("index_well", "Index Well", "text", 100, str),
-        SpreadSheetColumn("kit_i7", "i7 Kit", "text", 200, str),
-        SpreadSheetColumn("name_i7", "i7 Name", "text", 150, str),
-        SpreadSheetColumn("sequence_i7", "i7 Sequence", "text", 180, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
-        SpreadSheetColumn("kit_i5", "i5 Kit", "text", 200, str),
-        SpreadSheetColumn("name_i5", "i5 Name", "text", 150, str),
-        SpreadSheetColumn("sequence_i5", "i5 Sequence", "text", 180, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
+        DropdownColumn("library_name", "Library Name", 250, choices=[], required=True),
+        TextColumn("index_well", "Index Well", 100, max_length=8),
+        TextColumn("kit_i7", "i7 Kit", 200, max_length=models.Kit.name.type.length),
+        TextColumn("name_i7", "i7 Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
+        TextColumn("sequence_i7", "i7 Sequence", 180, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
+        TextColumn("kit_i5", "i5 Kit", 200, max_length=models.Kit.name.type.length),
+        TextColumn("name_i5", "i5 Name", 150, max_length=models.LibraryIndex.name_i5.type.length),
+        TextColumn("sequence_i5", "i5 Sequence", 180, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
     ]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
@@ -53,6 +53,8 @@ class BarcodeInputForm(MultiStepForm):
             post_url=url_for("library_annotation_workflow.parse_barcode_table", seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, df=self.get_template(),
         )
+
+        self.spreadsheet.columns["library_name"].source = self.library_table["library_name"].unique().tolist()
 
     def get_template(self) -> pd.DataFrame:
         barcode_table_data = {
@@ -108,13 +110,11 @@ class BarcodeInputForm(MultiStepForm):
                 self.spreadsheet.add_general_error(f"Missing '{name}'")
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["library_name"]):
-                self.spreadsheet.add_error(idx, "library_name", "missing 'library_name'", "missing_value")
-            elif row["library_name"] not in self.library_table["library_name"].values:
-                self.spreadsheet.add_error(idx, "library_name", "invalid 'library_name'", "invalid_value")
+            if row["library_name"] not in self.library_table["library_name"].values:
+                self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))
 
             if not kit_defined.at[idx] and not manual_defined.at[idx]:
-                self.spreadsheet.add_error(idx, "sequence_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence_i7", InvalidCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
 
         validated = validated and (len(self.spreadsheet._errors) == 0)
 

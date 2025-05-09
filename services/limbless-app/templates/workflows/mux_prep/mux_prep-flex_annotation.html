@@ -1,4 +1,4 @@
-{% from "components/legends.jinja2" import color_legend %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 <div id="flex_annotation-form-container" class="modal-content">
@@ -41,7 +41,7 @@
             {{ form.uuid }}
         </div>
         <div class="footer-info">
-            {{ color_legend(form.spreadsheet.colors) }}
+            {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-primary submit-form-btn" type="button" id="parse-spreadsheet-btn">

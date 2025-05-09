@@ -1,6 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group, select_input, switch_input %}
 {% from "components/table_input.jinja2" import table_input %}
-{% from "components/legends.jinja2" import color_legend %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 {% from "components/search_select.jinja2" import search_select_field %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
@@ -53,7 +53,7 @@
         <div class="text-nowrap text-muted footer-id">
         </div>
         <div class="footer-info">
-            {{ color_legend(form.spreadsheet.colors) }}
+            {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">

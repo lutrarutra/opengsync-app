@@ -1,7 +1,7 @@
 import json
 import uuid
 import string
-from typing import Optional, Literal, Hashable
+from typing import Optional, Hashable
 
 import pandas as pd
 import numpy as np
@@ -11,18 +11,11 @@ from wtforms.validators import DataRequired
 from flask_wtf import FlaskForm
 
 from .. import logger
-from ..tools import SpreadSheetColumn
+from ..tools.spread_sheet_components import SpreadSheetColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue, SpreadSheetException
 
 
 class SpreadsheetInput(FlaskForm):
     spreadsheet = StringField("Spreadsheet", validators=[DataRequired()])
-
-    colors = {
-        "missing_value": "#FAD7A0",
-        "invalid_value": "#F5B7B1",
-        "duplicate_value": "#D7BDE2",
-        "invalid_input": "#AED6F1"
-    }
 
     def __init__(
         self, columns: list[SpreadSheetColumn], post_url: str, csrf_token: Optional[str],
@@ -100,17 +93,20 @@ class SpreadsheetInput(FlaskForm):
 
         for idx, row in self.__df.iterrows():
             for label, column in self.columns.items():
-                if not column.validate(row[label]):
+                try:
+                    column.validate(row[label])
+                except SpreadSheetException as e:
                     if column.required and pd.isna(row[label]):
-                        self.add_error(idx, label, f"Missing value for '{label}'", "missing_value")
+                        self.add_error(idx, label, e)
                     elif column.type == "dropdown" and row[label] not in column.source:
                         if column.source is None:
                             logger.error(f"Column '{label}' has no choices defined.")
                             raise ValueError(f"Column '{label}' has no choices defined.")
-                        
-                        self.add_error(idx, label, f"Invalid value '{row[label]}'. Must be one of: {', '.join(column.source)}", "invalid_value")
+                        self.add_error(idx, label, e)
                     else:
-                        self.add_error(idx, label, f"Invalid value '{row[label]}'", "invalid_value")
+                        self.add_error(idx, label, e)
+                    continue
+                    
                 self.__df.at[idx, label] = column.clean_up(row[label])
         
         self._data = self.__df.replace(np.nan, "").values.tolist()
@@ -126,12 +122,10 @@ class SpreadsheetInput(FlaskForm):
             raise ValueError("Form not validated")
         return self.__df.copy()
     
-    def add_error(
-        self, idx: Hashable, column: str, message: str,
-        color: Literal["missing_value", "invalid_value", "duplicate_value", "invalid_input"]
-    ):
+    def add_error(self, idx: Hashable, column: str, exception: SpreadSheetException):
+        message = exception.message
         row_num = self.df.index.get_loc(idx) + 1  # type: ignore
-        self.style[f"{self.columns[column].letter}{row_num}"] = f"background-color: {SpreadsheetInput.colors[color]};"
+        self.style[f"{self.columns[column].letter}{row_num}"] = f"background-color: {exception.color};"
         message = f"Row {row_num}: {message}"
         if message not in self._errors:
             self._errors.append(message)

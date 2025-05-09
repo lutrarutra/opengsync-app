@@ -7,7 +7,7 @@
   {% set _ = ns.names.append("[" + t.id | string + "] " + t.display_name) %}
 {% endfor %}
 {% endif %}
-<div class="dropdown multi-select" field="{{ field_name }}" {% if selected %}{{ tooltip('<br>'.join(ns.names), position="right") }}{% endif %}>
+<div class="dropdown multi-select" field="{{ field_name }}" {% if selected %}{{ tooltip('<br>'.join(ns.names), position="left") }}{% endif %}>
     <button class="dropdown-toggle multi-select-toggle-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" placeholder="{{ placeholder }}">
         {% if selected %}
             {% for choice in selected %}
@@ -30,7 +30,7 @@
     </ul>
 </div>
 <script>
-    $(document).ready(function(){
+    $(document).ready(function() {
         init_tooltips();
     });
 </script>
