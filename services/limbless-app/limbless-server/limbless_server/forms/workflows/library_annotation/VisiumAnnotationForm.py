@@ -10,7 +10,8 @@ from limbless_db import models
 from limbless_db.categories import LibraryType
 
 from .... import logger # noqa
-from ....tools import SpreadSheetColumn, StaticSpreadSheet
+from ....tools import StaticSpreadSheet
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
 from .FlexAnnotationForm import FlexAnnotationForm
@@ -23,10 +24,10 @@ class VisiumAnnotationForm(MultiStepForm):
     _step_name = "visium_annotation"
 
     columns = [
-        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str),
-        SpreadSheetColumn("image", "Image", "text", 170, str),
-        SpreadSheetColumn("slide", "Slide", "text", 170, str),
-        SpreadSheetColumn("area", "Area", "text", 170, str),
+        DropdownColumn("sample_name", "Sample Name", 170, choices=[], required=True),
+        TextColumn("image", "Image", 170, max_length=models.VisiumAnnotation.image.type.length, required=True),
+        TextColumn("slide", "Slide", 170, max_length=models.VisiumAnnotation.slide.type.length, required=True),
+        TextColumn("area", "Area", 170, max_length=models.VisiumAnnotation.area.type.length, required=True),
     ]
 
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
@@ -40,6 +41,7 @@ class VisiumAnnotationForm(MultiStepForm):
         self._context["seq_request"] = seq_request
         self.library_table = self.tables["library_table"]
         self.visium_libraries = self.library_table[self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])]
+        self.visium_samples = self.visium_libraries["sample_name"].unique().tolist()
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
@@ -50,10 +52,7 @@ class VisiumAnnotationForm(MultiStepForm):
             formdata=formdata, allow_new_rows=False, df=self.get_template()
         )
 
-        self._context["available_samples"] = StaticSpreadSheet(
-            df=self.visium_libraries,
-            columns=[SpreadSheetColumn("sample_name", "Sample Name", "text", 500, str)],
-        )
+        self.spreadsheet.columns["sample_name"].source = self.visium_samples
 
     def get_template(self) -> pd.DataFrame:
         data = {
@@ -81,25 +80,8 @@ class VisiumAnnotationForm(MultiStepForm):
         df = self.spreadsheet.df
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(idx, "sample_name", "'Sample Name' is missing.", "missing_value")
-
-            elif row["sample_name"] not in self.library_table["sample_name"].values:
-                self.spreadsheet.add_error(idx, "sample_name", "'Sample Name' is not found in the library table.", "invalid_value")
-            elif (df["sample_name"] == row["sample_name"]).sum() > 1:
-                self.spreadsheet.add_error(idx, "sample_name", "'Sample Name' is a duplicate.", "duplicate_value")
-            else:
-                if (row["sample_name"] not in self.visium_libraries["sample_name"].values):
-                    self.spreadsheet.add_error(idx, "sample_name", f"Sample, '{row['sample_name']}', is not a Spatial Transcriptomic library.", "invalid_value")
-
-            if pd.isna(row["image"]):
-                self.spreadsheet.add_error(idx, "image", "'Image' is missing.", "missing_value")
-
-            if pd.isna(row["slide"]):
-                self.spreadsheet.add_error(idx, "slide", "'Slide' is missing.", "missing_value")
-
-            if pd.isna(row["area"]):
-                self.spreadsheet.add_error(idx, "area", "'Area' is missing.", "missing_value")
+            if (df["sample_name"] == row["sample_name"]).sum() > 1:
+                self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("'Sample Name' is a duplicate."))
             
         if len(self.spreadsheet._errors) > 0:
             return False

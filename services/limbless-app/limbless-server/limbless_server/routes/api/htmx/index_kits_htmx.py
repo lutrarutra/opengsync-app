@@ -11,7 +11,7 @@ from limbless_db import models, db_session, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, IndexType, BarcodeType, KitType
 
 from .... import db, logger, cache, forms  # noqa F401
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -188,7 +188,7 @@ def render_table(index_kit_id: int):
             width = 100
         else:
             width = 150
-        columns.append(SpreadSheetColumn(col, col, "text", width, var_type=str))
+        columns.append(TextColumn(col, col, width, max_length=1000))
     
     return make_response(
         render_template(

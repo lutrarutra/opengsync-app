@@ -11,7 +11,7 @@ from flask_wtf import FlaskForm
 from limbless_db import models
 
 from .... import logger, tools, db  # noqa F401
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from ...SearchBar import OptionalSearchBar
@@ -35,16 +35,16 @@ class BarcodeInputForm(MultiStepForm):
     _step_name = "barcode_input"
     
     columns = [
-        SpreadSheetColumn("library_id", "ID", "numeric", 50, int),
-        SpreadSheetColumn("library_name", "Library Name", "text", 250, str),
-        SpreadSheetColumn("index_well", "Index Well", "text", 70, str, clean_up_fnc=lambda x: index_well_clean_up_fnc(str(x)) if pd.notna(x) else None),
-        SpreadSheetColumn("pool", "Pool", "text", 70, str),
-        SpreadSheetColumn("kit_i7", "i7 Kit", "text", 200, str),
-        SpreadSheetColumn("name_i7", "i7 Name", "text", 150, str),
-        SpreadSheetColumn("sequence_i7", "i7 Sequence", "text", 180, str),
-        SpreadSheetColumn("kit_i5", "i5 Kit", "text", 200, str),
-        SpreadSheetColumn("name_i5", "i5 Name", "text", 150, str),
-        SpreadSheetColumn("sequence_i5", "i5 Sequence", "text", 180, str),
+        IntegerColumn("library_id", "ID", 50, required=True),
+        DropdownColumn("library_name", "Library Name", 250, required=True, choices=[]),
+        TextColumn("index_well", "Index Well", 70, max_length=8, clean_up_fnc=lambda x: index_well_clean_up_fnc(x)),
+        TextColumn("pool", "Pool", 70, required=True, max_length=models.Pool.name.type.length),
+        TextColumn("kit_i7", "i7 Kit", 200, max_length=models.Kit.name.type.length),
+        TextColumn("name_i7", "i7 Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
+        TextColumn("sequence_i7", "i7 Sequence", 180, max_length=models.LibraryIndex.sequence_i5.type.length),
+        TextColumn("kit_i5", "i5 Kit", 200, max_length=models.Kit.name.type.length),
+        TextColumn("name_i5", "i5 Name", 150, max_length=models.LibraryIndex.name_i5.type.length),
+        TextColumn("sequence_i5", "i5 Sequence", 180, max_length=models.LibraryIndex.sequence_i5.type.length),
     ]
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
@@ -65,6 +65,7 @@ class BarcodeInputForm(MultiStepForm):
             post_url=url_for("library_pooling_workflow.parse_barcodes", lab_prep_id=lab_prep.id, uuid=self.uuid),
             formdata=formdata, df=self.get_template(),
         )
+        self.spreadsheet.columns["library_name"].source = self.prep_libraries_df["name"].tolist()
 
     def get_template(self) -> pd.DataFrame:
         if self.lab_prep.prep_file is not None:
@@ -122,46 +123,40 @@ class BarcodeInputForm(MultiStepForm):
                 continue
             if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "t":
                 if row["library_id"]:
-                    self.spreadsheet.add_error(idx, "pool", "Requested library cannot be marked as control", "invalid_value")
+                    self.spreadsheet.add_error(idx, "pool", InvalidCellValue("Requested library cannot be marked as control"))
                 else:
                     continue
-            if pd.isna(row["pool"]):
-                self.spreadsheet.add_error(idx, "pool", "missing 'pool'", "missing_value")
 
-            if pd.isna(row["library_id"]):
-                self.spreadsheet.add_error(idx, "library_id", "missing 'library_id'", "missing_value")
-            elif row["library_id"] not in self.prep_libraries_df["id"].values:
-                self.spreadsheet.add_error(idx, "library_id", "invalid 'library_id'", "invalid_value")
+            if row["library_id"] not in self.prep_libraries_df["id"].values:
+                self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
             else:
                 try:
                     _id = int(row["library_id"])
                 except ValueError:
-                    self.spreadsheet.add_error(idx, "library_id", "invalid 'library_id'", "invalid_value")
+                    self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                 if (library := db.get_library(_id)) is None:
-                    self.spreadsheet.add_error(idx, "library_id", "invalid 'library_id'", "invalid_value")
+                    self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                 elif library.name != row["library_name"]:
-                    self.spreadsheet.add_error(idx, "library_name", "invalid 'library_name' for 'library_id'", "invalid_value")
+                    self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
                 elif library.lab_prep_id != self.lab_prep.id:
-                    self.spreadsheet.add_error(idx, "library_id", "Library is not part of this lab prep", "invalid_value")
+                    self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("Library is not part of this lab prep"))
 
-            if pd.isna(row["library_name"]):
-                self.spreadsheet.add_error(idx, "library_name", "missing 'library_name'", "missing_value")
-            elif row["library_name"] not in self.prep_libraries_df["name"].values:
-                self.spreadsheet.add_error(idx, "library_name", "invalid 'library_name'", "invalid_value")
+            if row["library_name"] not in self.prep_libraries_df["name"].values:
+                self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))
 
             if self.prep_libraries_df[self.prep_libraries_df["id"] == row["library_id"]]["name"].isin([row["library_name"]]).all() == 0:
-                self.spreadsheet.add_error(idx, "library_name", "invalid 'library_name' for 'library_id'", "invalid_value")
+                self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
 
             if (not kit_defined.at[idx]) and (not manual_defined.at[idx]):
                 if not pd.isna(row["kit_i7"]):
                     if pd.isna(row["index_well"]) and not pd.isna(row["name_i7"]):
-                        self.spreadsheet.add_error(idx, "index_well", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                        self.spreadsheet.add_error(idx, "index_well", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
                     if pd.isna(row["name_i7"]) and not pd.isna(row["index_well"]):
-                        self.spreadsheet.add_error(idx, "name_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                        self.spreadsheet.add_error(idx, "name_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
                 elif not pd.isna(row["index_well"]) or not pd.isna(row["name_i7"]):
-                    self.spreadsheet.add_error(idx, "kit_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                    self.spreadsheet.add_error(idx, "kit_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
                 elif pd.isna(row["sequence_i7"]):
-                    self.spreadsheet.add_error(idx, "sequence_i7", "missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
 
         validated = validated and (len(self.spreadsheet._errors) == 0)
 

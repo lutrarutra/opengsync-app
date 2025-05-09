@@ -11,7 +11,7 @@ from limbless_db.categories import HTTPResponse, KitType
 
 from .... import db, logger, cache  # noqa: F401
 from .... import forms
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -198,7 +198,7 @@ def delete(feature_kit_id: int):
     if (_ := db.get_feature_kit(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.delete_feature_kit(feature_kit_id=feature_kit_id)
+    db.delete_kit(id=feature_kit_id)
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.feature_kits_page"))
 
@@ -221,12 +221,7 @@ def render_table(feature_kit_id: int):
             width = 50
         else:
             width = 200
-        columns.append(
-            SpreadSheetColumn(
-                col, col.replace("_", " ").title().replace("Id", "ID"),
-                "text", width, var_type=str
-            )
-        )
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width, max_length=1000))
     
     return make_response(
         render_template(

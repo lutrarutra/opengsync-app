@@ -8,7 +8,7 @@ from limbless_db import models
 from limbless_db.categories import AssayType, GenomeRef, LibraryType, LibraryTypeEnum, GenomeRefEnum
 
 from .... import logger, db
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
@@ -22,8 +22,8 @@ class DefineSamplesForm(MultiStepForm):
     _step_name = "define_samples"
 
     columns = [
-        SpreadSheetColumn("sample_name", "Sample Name", "text", 300, str),
-        SpreadSheetColumn("genome", "Genome", "dropdown", 300, str, GenomeRef.names()),
+        TextColumn("sample_name", "Sample Name", 300, max_length=models.Sample.name.type.length, min_length=4, required=True),
+        DropdownColumn("genome", "Genome", 300, choices=GenomeRef.names(), required=True),
     ]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
@@ -82,21 +82,14 @@ class DefineSamplesForm(MultiStepForm):
         if self.antibody_multiplexing:
             selected_library_types.append(LibraryType.TENX_MULTIPLEXING_CAPTURE.abbreviation)
 
-        for i, (_, row) in enumerate(df.iterrows()):
-            if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(idx, "sample_name", "missing 'Sample Name'", "missing_value")
-            elif sample_name_counts[row["sample_name"]] > 1:
-                self.spreadsheet.add_error(idx, "sample_name", "duplicate 'Sample Name'", "duplicate_value")
-            elif len(str(row["sample_name"])) < 4:
-                self.spreadsheet.add_error(idx, "sample_name", "Sample Name must be at least 4 characters long", "invalid_input")
+        for idx, row in df.iterrows():
+            if sample_name_counts[row["sample_name"]] > 1:
+                self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("duplicate 'Sample Name'"))
 
             duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
             if (duplicate_library).any():
                 library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore
-                self.spreadsheet.add_error(idx, "sample_name", f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request", "duplicate_value")
-
-            if pd.isna(row["genome"]):
-                self.spreadsheet.add_error(idx, "genome", "missing 'Genome'", "missing_value")
+                self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue(f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request"))
         
         genome_map = {}
         for id, e in GenomeRef.as_tuples():

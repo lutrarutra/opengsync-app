@@ -11,7 +11,7 @@ from limbless_db import models, DBHandler, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, UserRole, SampleStatus, ProjectStatus
 
 from .... import db, forms, logger
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None   # type: ignore
@@ -67,7 +67,7 @@ def get(page: int):
             user_id = current_user.id
         else:
             user_id = None
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by="id", descending=descending, count_pages=True, status_in=status_in)
+        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
 
     return make_response(
         render_template(
@@ -321,7 +321,7 @@ def get_sample_attributes(project_id: int):
             width = 300
         else:
             width = 150
-        columns.append(SpreadSheetColumn(col, col.replace("_", " ").title(), "text", width, var_type=str))
+        columns.append(TextColumn(col, col.replace("_", " ").title(), width, max_length=1000))
 
     return make_response(
         render_template(

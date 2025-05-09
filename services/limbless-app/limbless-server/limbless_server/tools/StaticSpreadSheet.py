@@ -3,7 +3,7 @@ from uuid import uuid4
 import pandas as pd
 
 
-from .SpreadSheetColumn import SpreadSheetColumn
+from .spread_sheet_components import SpreadSheetColumn
 
 
 class StaticSpreadSheet():

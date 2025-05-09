@@ -41,6 +41,16 @@ def get(page: int):
         
         if len(status_in) == 0:
             status_in = None
+
+    if (submission_type_in := request.args.get("submission_type_id_in")) is not None:
+        submission_type_in = json.loads(submission_type_in)
+        try:
+            submission_type_in = [SubmissionType.get(int(submission_type)) for submission_type in submission_type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if len(submission_type_in) == 0:
+            submission_type_in = None
     
     seq_requests: list[models.SeqRequest] = []
 
@@ -48,6 +58,7 @@ def get(page: int):
 
     seq_requests, n_pages = db.get_seq_requests(
         offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
+        submission_type_in=submission_type_in,
         show_drafts=True, status_in=status_in, count_pages=True
     )
 
@@ -59,6 +70,7 @@ def get(page: int):
             sort_by=sort_by, sort_order=sort_order,
             SeqRequestStatus=SeqRequestStatus,
             status_in=status_in,
+            submission_type_in=submission_type_in,
         )
     )
 

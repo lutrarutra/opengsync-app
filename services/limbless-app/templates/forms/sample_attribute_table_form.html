@@ -1,5 +1,5 @@
 {% from 'components/spreadsheet.jinja2' import spreadsheet_input %}
-{% from "components/legends.jinja2" import color_legend %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 
 <div id="sample_attribute_table_form-container" class="modal-content">
     <div class="modal-header">
@@ -21,7 +21,7 @@
             {{ project.name }}
         </div>
         <div class="footer-info">
-            {{ color_legend(sample_attribute_table_form.spreadsheet.colors) }}
+            {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-success submit-form-btn" type="button" id="submit-spreadsheet-btn">

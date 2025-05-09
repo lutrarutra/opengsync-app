@@ -8,7 +8,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType, FeatureType
 
 from .... import logger, tools, db  # noqa
-from ....tools import SpreadSheetColumn, TextColumn, DropdownColumn
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, MissingCellValue, InvalidCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .KitMappingForm import KitMappingForm
@@ -23,13 +23,13 @@ class CMOAnnotationForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "cmo_annotation"
     columns = [
-        TextColumn("demux_name", "Demultiplexed Name", 170, clean_up_fnc=lambda x: tools.make_alpha_numeric(x), required=True),
+        TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         DropdownColumn("sample_name", "Sample (Pool) Name", 170, choices=[], required=True),
-        TextColumn("kit", "Kit", 170),
-        TextColumn("feature", "Feature", 150, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        TextColumn("sequence", "Sequence", 150, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        TextColumn("pattern", "Pattern", 200, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        TextColumn("read", "Read", 100, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("kit", "Kit", 170, max_length=models.Kit.name.type.length),
+        TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
 
     @classmethod
@@ -69,52 +69,39 @@ class CMOAnnotationForm(MultiStepForm):
             return False
         
         df = self.spreadsheet.df
-        library_table: pd.DataFrame = self.tables["library_table"]
 
         kit_feature = pd.notna(df["kit"]) & pd.notna(df["feature"])
         custom_feature = pd.notna(df["sequence"]) & pd.notna(df["pattern"]) & pd.notna(df["read"])
         invalid_feature = (pd.notna(df["kit"]) | pd.notna(df["feature"])) & (pd.notna(df["sequence"]) | pd.notna(df["pattern"]) | pd.notna(df["read"]))
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            # sample name not defined
-            if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(idx, "sample_name", "'Sample (Pool) Name' must be specified.", "missing_value")
-
-            # sample name not found in library table
-            elif row["sample_name"] not in library_table["sample_name"].values:
-                self.spreadsheet.add_error(idx, "sample_name", f"'Sample (Pool) Name' must be one of: [{', '.join(self.multiplexed_samples)}]", "invalid_value")
-
-            # Demux name not defined
-            if pd.isna(row["demux_name"]):
-                self.spreadsheet.add_error(idx, "demux_name", "'Demux Name' must be specified.", "missing_value")
-
             # Not defined custom nor kit feature
             if (not custom_feature.at[idx] and not kit_feature.at[idx]):
-                self.spreadsheet.add_error(idx, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(idx, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(idx, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(idx, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(idx, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                self.spreadsheet.add_error(idx, "kit", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "feature", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "sequence", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "pattern", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "read", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
 
             # Defined both custom and kit feature
             elif custom_feature.at[idx] and kit_feature.at[idx]:
-                self.spreadsheet.add_error(idx, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(idx, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(idx, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(idx, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(idx, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                self.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "sequence", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
 
             elif invalid_feature.at[idx]:
                 if pd.notna(row["kit"]):
-                    self.spreadsheet.add_error(idx, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["feature"]):
-                    self.spreadsheet.add_error(idx, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["sequence"]):
-                    self.spreadsheet.add_error(idx, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "sequence", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["pattern"]):
-                    self.spreadsheet.add_error(idx, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["read"]):
-                    self.spreadsheet.add_error(idx, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
 
         if len(self.spreadsheet._errors) > 0:
             return False

@@ -9,7 +9,8 @@ from limbless_db import models
 from limbless_db.categories import LibraryType, GenomeRef, AssayType
 
 from .... import logger, db
-from ....tools import SpreadSheetColumn, tools
+from ....tools import tools
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .PoolMappingForm import PoolMappingForm
@@ -23,10 +24,10 @@ class PooledLibraryAnnotationForm(MultiStepForm):
     assay_type = SelectField("Assay Type", choices=[(-1, "")] + AssayType.as_selectable(), coerce=int, default=None)
 
     columns = [
-        SpreadSheetColumn("sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
-        SpreadSheetColumn("library_type", "Library Type", "dropdown", 300, str, LibraryType.names()),
-        SpreadSheetColumn("pool", "Pool", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        DropdownColumn("genome", "Genome", 200, choices=GenomeRef.names(), required=True),
+        DropdownColumn("library_type", "Library Type", 300, choices=LibraryType.names(), required=True),
+        TextColumn("pool", "Pool", 200, required=True, max_length=models.Pool.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
     ]
 
     def __init__(
@@ -72,23 +73,17 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(idx, "sample_name", "missing 'Sample Name'", "missing_value")
-
-            if pd.isna(row["pool"]):
-                self.spreadsheet.add_error(idx, "pool", "missing 'Pool'", "missing_value")
-
             if duplicate_sample_libraries.at[idx]:
-                self.spreadsheet.add_error(idx, "sample_name", "Duplicate 'Sample Name' and 'Library Type'", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("Duplicate 'Sample Name' and 'Library Type'"))
 
             if ((seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.name) == row["library_type"])).any():
-                self.spreadsheet.add_error(idx, "library_type", f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request", "duplicate_value")
+                self.spreadsheet.add_error(idx, "library_type", DuplicateCellValue(f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request"))
 
             if pd.isna(row["library_type"]):
-                self.spreadsheet.add_error(idx, "library_type", "missing 'Library Type'", "missing_value")
+                self.spreadsheet.add_error(idx, "library_type", MissingCellValue("missing 'Library Type'"))
 
             if pd.isna(row["genome"]):
-                self.spreadsheet.add_error(idx, "genome", "missing 'Genome'", "missing_value")
+                self.spreadsheet.add_error(idx, "genome", MissingCellValue("missing 'Genome'"))
 
         for sample_name, _df in df.groupby("sample_name"):
             if len(_df) > 1:
@@ -117,8 +112,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                     if library_type_id not in required_type_ids and library_type_id not in optional_library_type_ids:
                         self.spreadsheet.add_error(
                             idx, "library_type",  # type: ignore
-                            f"Library type '{LibraryType.get(library_type_id).name}' is not part of '{assay_type.name}' assay.",
-                            "invalid_value"
+                            InvalidCellValue(f"Library type '{LibraryType.get(library_type_id).name}' is not part of '{assay_type.name}' assay."),
                         )
 
         if len(self.spreadsheet._errors) > 0:

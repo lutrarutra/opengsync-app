@@ -17,7 +17,8 @@ from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
 
 from .... import db, forms, logger  # noqa
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
+
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -557,12 +558,7 @@ def get_mux_table(lab_prep_id: int):
             width = 200
         else:
             width = 250
-        columns.append(
-            SpreadSheetColumn(
-                col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
-                "text", width, var_type=str
-            )
-        )
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"), width, max_length=1000))
 
     return make_response(
         render_template(

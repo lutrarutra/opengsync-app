@@ -8,7 +8,8 @@ from limbless_db import models
 from limbless_db.categories import LibraryType, GenomeRef
 
 from .... import logger, db
-from ....tools import SpreadSheetColumn, tools
+from ....tools import tools
+from ....tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .CMOAnnotationForm import CMOAnnotationForm
@@ -24,10 +25,10 @@ class LibraryAnnotationForm(MultiStepForm):
     _step_name = "library_annotation"
 
     columns = [
-        SpreadSheetColumn("sample_name", "Sample Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("genome", "Genome", "dropdown", 200, str, GenomeRef.names()),
-        SpreadSheetColumn("library_type", "Library Type", "dropdown", 200, str, LibraryType.names()),
-        SpreadSheetColumn("seq_depth", "Sequencing Depth", "numeric", 150, float, clean_up_fnc=lambda x: tools.parse_float(x)),
+        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        DropdownColumn("genome", "Genome", 200, choices=GenomeRef.names(), required=True),
+        DropdownColumn("library_type", "Library Type", 200, choices=LibraryType.names(), required=True),
+        FloatColumn("seq_depth", "Sequencing Depth (M reads)", 200),
     ]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
@@ -61,32 +62,15 @@ class LibraryAnnotationForm(MultiStepForm):
         seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(idx, "sample_name", "missing 'Sample Name'", "missing_value")
-            elif len(df[df["sample_name"] == row["sample_name"]]["genome"].unique()) > 1:
-                self.spreadsheet.add_error(idx, "sample_name", "All libraries of a same sample must have the same genome", "invalid_input")
-                self.spreadsheet.add_error(idx, "genome", "All libraries of a same sample must have the same genome", "invalid_input")
+            if len(df[df["sample_name"] == row["sample_name"]]["genome"].unique()) > 1:
+                self.spreadsheet.add_error(idx, "sample_name", InvalidCellValue("All libraries of a same sample must have the same genome"))
+                self.spreadsheet.add_error(idx, "genome", InvalidCellValue("All libraries of a same sample must have the same genome"))
 
             if duplicate_sample_libraries.at[idx]:
-                self.spreadsheet.add_error(idx, "sample_name", "Duplicate 'Sample Name' and 'Library Type'", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("Duplicate 'Sample Name' and 'Library Type'"))
 
             if ((seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.name) == row["library_type"])).any():
-                self.spreadsheet.add_error(idx, "library_type", f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request", "duplicate_value")
-
-            if pd.isna(row["library_type"]):
-                self.spreadsheet.add_error(idx, "library_type", "missing 'Library Type'", "missing_value")
-
-            if pd.isna(row["genome"]):
-                self.spreadsheet.add_error(idx, "genome", "missing 'Genome'", "missing_value")
-
-            if pd.notna(row["seq_depth"]):
-                try:
-                    if isinstance(row["seq_depth"], str):
-                        row["seq_depth"] = row["seq_depth"].strip().replace(" ", "")
-
-                    row["seq_depth"] = float(row["seq_depth"])
-                except ValueError:
-                    self.spreadsheet.add_error(idx, "seq_depth", "invalid 'Sequencing Depth'", "invalid_value")
+                self.spreadsheet.add_error(idx, "library_type", DuplicateCellValue(f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request"))
 
         if len(self.spreadsheet._errors) > 0:
             return False

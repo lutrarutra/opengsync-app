@@ -9,7 +9,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType
 
 from .... import logger, tools, db
-from ....tools import SpreadSheetColumn, StaticSpreadSheet, TextColumn, DropdownColumn
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
@@ -22,8 +22,8 @@ class FlexAnnotationForm(MultiStepForm):
 
     columns = [
         DropdownColumn("sample_name", "Sample (Pool) Name", 250, choices=[], required=True),
-        TextColumn("demux_name", "Demultiplexed Sample Name", 250, clean_up_fnc=tools.make_alpha_numeric, required=True),
-        TextColumn("barcode_id", "Bardcode ID", 250),
+        TextColumn("demux_name", "Demultiplexed Sample Name", 250, clean_up_fnc=tools.make_alpha_numeric, required=True, max_length=models.Sample.name.type.length, min_length=4),
+        TextColumn("barcode_id", "Bardcode ID", 250, max_length=16),
     ]
 
     single_plex = BooleanField("Single-Plex (do not fill the spreadsheet)", description="Samples were not multiplexed, i.e. one sample per library.", default=False)
@@ -41,11 +41,6 @@ class FlexAnnotationForm(MultiStepForm):
         self.library_table = self.tables["library_table"]
         self.flex_table = self.library_table[self.library_table['library_type_id'] == LibraryType.TENX_SC_GEX_FLEX.id]
         self.flex_samples = self.flex_table["sample_name"].unique().tolist()
-        
-        self._context["available_samples"] = StaticSpreadSheet(
-            df=self.flex_table,
-            columns=[SpreadSheetColumn("sample_name", "Sample Name", "text", 500, str)],
-        )
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=FlexAnnotationForm.columns, csrf_token=csrf_token,
@@ -78,13 +73,11 @@ class FlexAnnotationForm(MultiStepForm):
             return False
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            if row["sample_name"] not in self.flex_table["sample_name"].values:
-                self.spreadsheet.add_error(idx, "sample_name", f"Unknown sample '{row['sample_name']}'. Must be one of: {', '.join(self.flex_table['sample_name'])}", "invalid_value")
-            elif duplicate_barcode.at[idx]:
-                self.spreadsheet.add_error(idx, "barcode_id", "'Barcode ID' is not unique in the library.", "duplicate_value")
+            if duplicate_barcode.at[idx]:
+                self.spreadsheet.add_error(idx, "barcode_id", DuplicateCellValue("'Barcode ID' is not unique in the library."))
 
             if duplicate_samples.at[idx]:
-                self.spreadsheet.add_error(idx, "demux_name", "'Sample Name' is not unique in the library.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "demux_name", DuplicateCellValue("'Sample Name' is not unique in the library."))
 
         if len(self.spreadsheet._errors) > 0:
             return False

@@ -10,7 +10,8 @@ from limbless_db import models
 from limbless_db.categories import IndexType, BarcodeType
 
 from .. import db, logger  # noqa
-from ..tools import SpreadSheetColumn, tools
+from ..tools import tools
+from ..tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue, MissingCellValue, SpreadSheetColumn
 from .HTMXFlaskForm import HTMXFlaskForm
 from .SpreadsheetInput import SpreadsheetInput
 
@@ -18,12 +19,12 @@ from .SpreadsheetInput import SpreadsheetInput
 class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
     _template_path = "forms/edit_kit_barcodes.html"
 
-    columns = [
-        SpreadSheetColumn("well", "Well", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("name_i7", "Name i7", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
-        SpreadSheetColumn("sequence_i7", "Sequence i7", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("name_i5", "Name i5", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
-        SpreadSheetColumn("sequence_i5", "Sequence i5", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+    columns: list[SpreadSheetColumn] = [
+        TextColumn("well", "Well", 100, max_length=8, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("name_i7", "Name i7", 150, max_length=models.LibraryIndex.name_i7.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
+        TextColumn("sequence_i7", "Sequence i7", 200, max_length=models.LibraryIndex.sequence_i7.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("name_i5", "Name i5", 150, max_length=models.LibraryIndex.name_i5.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
+        TextColumn("sequence_i5", "Sequence i5", 200, max_length=models.LibraryIndex.name_i5.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
 
     rc_sequence_i7 = BooleanField("Reverse Complement i7", default=False)
@@ -44,18 +45,7 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
             csrf_token = formdata.get("csrf_token")
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=self.columns, csrf_token=csrf_token,
-            post_url="", formdata=formdata, df=self.__fill_form(),
-            allow_new_rows=True
-        )
-
-        if formdata is None:
-            csrf_token = self.csrf_token._value()  # type: ignore
-        else:
-            csrf_token = formdata.get("csrf_token")
-
-        self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=self.columns, csrf_token=csrf_token,
+            columns=EditDualIndexKitBarcodesForm.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata, df=self.__fill_form(),
             allow_new_rows=True
         )
@@ -99,34 +89,34 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
 
         for idx, row in df.iterrows():
             if row["well"] is None:
-                self.spreadsheet.add_error(idx, "well", "Well is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "well", MissingCellValue("Well is missing."))
             elif duplicate_well.at[idx]:
-                self.spreadsheet.add_error(idx, "well", "Duplicate well.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "well", DuplicateCellValue("Duplicate well."))
 
             if row["name_i7"] is None:
-                self.spreadsheet.add_error(idx, "name_i7", "Name i7 is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "name_i7", MissingCellValue("Name i7 is missing."))
             if row["sequence_i7"] is None:
-                self.spreadsheet.add_error(idx, "sequence_i7", "Sequence i7 is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("Sequence i7 is missing."))
             if row["name_i5"] is None:
-                self.spreadsheet.add_error(idx, "name_i5", "Name i5 is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "name_i5", MissingCellValue("Name i5 is missing."))
             if row["sequence_i5"] is None:
-                self.spreadsheet.add_error(idx, "sequence_i5", "Sequence i5 is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence_i5", MissingCellValue("Sequence i5 is missing."))
 
             if duplicated.at[idx]:
-                self.spreadsheet.add_error(idx, "sequence_i7", "Duplicate sequence combination i7 & i5.", "duplicate_value")
-                self.spreadsheet.add_error(idx, "sequence_i5", "Duplicate sequence combination i7 & i5", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sequence_i7", DuplicateCellValue("Duplicate sequence combination i7 & i5."))
+                self.spreadsheet.add_error(idx, "sequence_i5", DuplicateCellValue("Duplicate sequence combination i7 & i5"))
 
             for _idx, _ in df[(row["name_i7"] == df["name_i7"]) & (row["sequence_i7"] != df["sequence_i7"])].iterrows():
-                self.spreadsheet.add_error(_idx, "name_i7", "Duplicate name i7 with different sequence.", "duplicate_value")
+                self.spreadsheet.add_error(_idx, "name_i7", DuplicateCellValue("Duplicate name i7 with different sequence."))
             
             for _idx, _ in df[(row["name_i7"] != df["name_i7"]) & (row["sequence_i7"] == df["sequence_i7"])].iterrows():
-                self.spreadsheet.add_error(_idx, "sequence_i7", "Duplicate sequence i7 with different name.", "duplicate_value")
+                self.spreadsheet.add_error(_idx, "sequence_i7", DuplicateCellValue("Duplicate sequence i7 with different name."))
 
             for _idx, _ in df[(row["name_i5"] == df["name_i5"]) & (row["sequence_i5"] != df["sequence_i5"])].iterrows():
-                self.spreadsheet.add_error(_idx, "name_i5", "Duplicate name i5 with different sequence.", "duplicate_value")
+                self.spreadsheet.add_error(_idx, "name_i5", DuplicateCellValue("Duplicate name i5 with different sequence."))
 
             for _idx, _ in df[(row["name_i5"] != df["name_i5"]) & (row["sequence_i5"] == df["sequence_i5"])].iterrows():
-                self.spreadsheet.add_error(_idx, "sequence_i5", "Duplicate sequence i5 with different name.", "duplicate_value")
+                self.spreadsheet.add_error(_idx, "sequence_i5", DuplicateCellValue("Duplicate sequence i5 with different name."))
 
         if len(self.spreadsheet._errors) > 0:
             return False
@@ -228,19 +218,19 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
 
         for idx, row in df.iterrows():
             if row["well"] is None:
-                self.spreadsheet.add_error(idx, "well", "Well is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "well", DuplicateCellValue("Well is missing."))
             elif duplicate_well.at[idx]:
-                self.spreadsheet.add_error(idx, "well", "Duplicate well.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "well", DuplicateCellValue("Duplicate well."))
 
             if row["name"] is None:
-                self.spreadsheet.add_error(idx, "name", "Name is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "name", MissingCellValue("Name is missing."))
             if row["sequence"] is None:
-                self.spreadsheet.add_error(idx, "sequence", "Sequence is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence", MissingCellValue("Sequence is missing."))
             
             if (row["name"] == df["name"]).sum() > 1:
-                self.spreadsheet.add_error(idx, "name", "Duplicate name.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "name", DuplicateCellValue("Duplicate name."))
             if (row["sequence"] == df["sequence"]).sum() > 1:
-                self.spreadsheet.add_error(idx, "sequence", "Duplicate sequence.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("Duplicate sequence."))
 
         if len(self.spreadsheet._errors) > 0:
             return False
@@ -340,20 +330,20 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
 
         for idx, row in df.iterrows():
             if row["well"] is None:
-                self.spreadsheet.add_error(idx, "well", "Well is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "well", MissingCellValue("Well is missing."))
             elif duplicate_well.at[idx]:
-                self.spreadsheet.add_error(idx, "well", "Duplicate well.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "well", DuplicateCellValue("Duplicate well."))
             
             if row["name"] is None:
-                self.spreadsheet.add_error(idx, "name", "Name is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "name", MissingCellValue("Name is missing."))
             if row["sequence_1"] is None:
-                self.spreadsheet.add_error(idx, "sequence_1", "Sequence 1 is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence_1", MissingCellValue("Sequence 1 is missing."))
             if row["sequence_2"] is None:
-                self.spreadsheet.add_error(idx, "sequence_2", "Sequence 2 is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence_2", MissingCellValue("Sequence 2 is missing."))
             if row["sequence_3"] is None:
-                self.spreadsheet.add_error(idx, "sequence_3", "Sequence 3 is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence_3", MissingCellValue("Sequence 3 is missing."))
             if row["sequence_4"] is None:
-                self.spreadsheet.add_error(idx, "sequence_4", "Sequence 4 is missing.", "missing_value")
+                self.spreadsheet.add_error(idx, "sequence_4", MissingCellValue("Sequence 4 is missing."))
 
             # TODO: Check for duplicates
 
