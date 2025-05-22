@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_run-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table table-hover">
         <thead>
             <tr>
                 {{
@@ -17,7 +17,7 @@
                 {{
                     table_col(
                         table_container_id='seq_run-table', column_name='Experiment Name', column_var='experiment_name',
-                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
                         query_url="seq_runs_htmx.table_query", current_query=current_query,
                         active_query_field=active_query_field, query_type="text",
                     )
@@ -25,20 +25,20 @@
                 {{
                     table_col(
                         table_container_id='seq_run-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
                         multiselect_choices=RunStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
                 <th scope="col" class="col-1">Cycles</th>
-                <th scope="col" class="col-1">Flowcell ID</th>
-                <th scope="col" class="col-2">Run Folder</th>
+                <th scope="col" class="col-2">Flowcell ID</th>
+                <th scope="col" class="col-3">Run Folder</th>
             </tr>
         </thead>
         <tbody>
             {% for seq_run in seq_runs %}
-            <tr onclick="redirect('{{ url_for('seq_runs_page.seq_run_page', seq_run_id=seq_run.id) }}');">
+            <tr>
                 <th scope="row">{{ seq_run.id }}</th>
-                <td>{{ seq_run.experiment_name }}</td>
+                <td><a href="{{ url_for('seq_runs_page.seq_run_page', seq_run_id=seq_run.id) }}">{{ seq_run.experiment_name }}</a></td>
                 <td>{{ seq_run.status.name }} {{ seq_run.status.icon }}</td>
                 <td>{{ seq_run.cycles_str }}</td>
                 <td>{{ seq_run.flowcell_id }}</td>

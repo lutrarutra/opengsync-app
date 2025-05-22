@@ -83,3 +83,9 @@ class SeqRun(Base):
             res += "-0"
 
         return res
+    
+    def __str__(self) -> str:
+        return f"SeqRun(id={self.id}, experiment_name={self.experiment_name}, status={self.status}, read_type={self.read_type})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
