@@ -6,7 +6,11 @@ from limbless_db import categories
 
 def update_statuses(db: DBHandler):
     logger.info("Updating statuses..")
-    for run in db.get_seq_runs(limit=20, status_in=[categories.RunStatus.FINISHED, categories.RunStatus.RUNNING])[0]:
+    for run in db.get_seq_runs(
+        limit=20, sort_by="id", descending=True,
+        experiment_status_in=[categories.ExperimentStatus.DRAFT, categories.ExperimentStatus.LOADED, categories.ExperimentStatus.SEQUENCING],
+        status_in=[categories.RunStatus.FINISHED, categories.RunStatus.RUNNING]
+    )[0]:
         if run.experiment is not None:
             if run.status == categories.RunStatus.FINISHED:
                 run.experiment.status = categories.ExperimentStatus.FINISHED

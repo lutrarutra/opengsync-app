@@ -1,5 +1,5 @@
 {% from "components/spinner.jinja2" import spinner %}
-{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+{% from "components/legends.jinja2" import color_legend %}
 
 <div class="calendar-container" id="calendar-week-container">
     <div class="header" style="z-index: 2;">
@@ -37,7 +37,7 @@
         </div>
     </div>
     <div style="width: 100%;" class="d-flex justify-content-center">
-        {{ spreadsheet_error_legend() }}
+        {{ color_legend(EventType.to_color_legend()) }}
     </div>
     <div style="position: relative;">
         <div style="position: absolute; width: 100%;">
