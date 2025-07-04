@@ -238,6 +238,7 @@ def get_experiment_laned_pools_df(self: "DBHandler", experiment_id: int) -> pd.D
     ).join(
         models.dilutions.PoolDilution,
         models.dilutions.PoolDilution.id == models.links.LanePoolLink.dilution_id,
+        isouter=True
     )
 
     df = pd.read_sql(query, self._engine)

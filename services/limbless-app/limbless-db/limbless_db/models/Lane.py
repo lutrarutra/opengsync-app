@@ -21,6 +21,7 @@ class Lane(Base):
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
     original_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     sequencing_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    
     total_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     library_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     target_molarity: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)

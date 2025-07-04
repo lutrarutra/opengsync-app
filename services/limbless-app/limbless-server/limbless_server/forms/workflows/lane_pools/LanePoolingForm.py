@@ -27,6 +27,7 @@ class SampleSubForm(FlaskForm):
 
 
 class LaneSubForm(FlaskForm):
+    lane_id = IntegerField(validators=[DataRequired()])
     target_total_volume = FloatField(validators=[DataRequired()], default=DEFAULT_TOTAL_VOLUME_TARGET)
     target_concentration = FloatField("Target Molarity", validators=[DataRequired()], default=DEFAULT_TARGET_NM)
 
@@ -51,20 +52,20 @@ class LanePoolingForm(HTMXFlaskForm):
 
     def prepare(self):
         df = db.get_experiment_laned_pools_df(experiment_id=self.experiment.id)
-        # df["original_qubit_concentration"] = df["qubit_concentration"].copy()
         df["dilutions"] = None
-        df["form_idx"] = None
 
         counter = 0
-        for i, (lane, _df) in enumerate(df.groupby("lane")):
+        for i, ((lane, lane_id), _df) in enumerate(df.groupby(["lane", "lane_id"])):
             if i > len(self.lane_sub_forms) - 1:
                 self.lane_sub_forms.append_entry()
+            
+            lane_sub_form: LaneSubForm = self.lane_sub_forms[i]  # type: ignore
+            lane_sub_form.lane_id.data = lane_id
 
             for idx, row in _df.iterrows():
                 if counter > len(self.sample_sub_forms) - 1:
                     self.sample_sub_forms.append_entry()
 
-                df.at[idx, "form_idx"] = counter
                 sample_sub_form = self.sample_sub_forms[counter]
                 sample_sub_form.pool_id.data = row["pool_id"]
                 sample_sub_form.lane.data = lane
@@ -92,14 +93,38 @@ class LanePoolingForm(HTMXFlaskForm):
             df.loc[_df.index, "share"] = _df["num_m_reads"] / _df["num_m_reads"].sum()
 
         df["pipet"] = DEFAULT_TARGET_NM / df["molarity"] * df["share"] * DEFAULT_TOTAL_VOLUME_TARGET
-
         self._context["df"] = df
     
     def process_request(self, user: models.User) -> Response:
         if not self.validate():
+            logger.debug(self.errors)
             return self.make_response()
+        
+        for lane_sub_form in self.lane_sub_forms:
+            if (lane := db.get_experiment_lane(
+                experiment_id=self.experiment.id,
+                lane_num=lane_sub_form.lane_id.data
+            )) is None:
+                logger.error(f"lane_pools_workflow: Lane {lane_sub_form.lane.data} does not exist for experiment {self.experiment.id}")
+                raise ValueError(f"Lane {lane_sub_form.lane.data} does not exist for experiment {self.experiment.id}")
 
-        for _, pool_reads_form in enumerate(self.sample_sub_forms):
+            lane.target_molarity = lane_sub_form.target_concentration.data
+            lane.total_volume_ul = lane_sub_form.target_total_volume.data
+            lane = db.update_lane(lane)
+
+        data = {
+            "lane": [],
+            "pool": [],
+            "lane_id": [],
+            "pool_id": [],
+            "num_m_reads": [],
+            "qubit_concentration": [],
+            "target_total_volume": [],
+            "target_concentration": [],
+            "avg_fragment_size": [],
+            "dilution": [],
+        }
+        for pool_reads_form in self.sample_sub_forms:
             if (link := db.get_laned_pool_link(
                 experiment_id=self.experiment.id,
                 lane_num=pool_reads_form.lane.data,
@@ -119,55 +144,32 @@ class LanePoolingForm(HTMXFlaskForm):
 
             link = db.update_laned_pool_link(link)
 
-        for lane in self.experiment.lanes:
-            pass
-
-        df = db.get_experiment_laned_pools_df(self.experiment.id)
-        # df["original_qubit_concentration"] = df["qubit_concentration"].copy()
-            
-        for (pool_id, lane, identifier, num_m_reads), _df in df.groupby(["pool_id", "lane", "dilution", "num_m_reads"], dropna=False):
-            # if (pool := db.get_pool(int(pool_id))) is None:
-            #     logger.error(f"lane_pools_workflow: Pool with id {pool_id} does not exist")
-            #     raise ValueError(f"Pool with id {pool_id} does not exist")
-            link = db.get_laned_pool_link(experiment_id=self.experiment, lane_num=lane, pool_id=int(pool_id))
-            
-            pool.num_m_reads = float(num_m_reads) if pd.notna(num_m_reads) else None
-            pool = db.update_pool(pool)
-            if identifier == "Orig.":
-                continue
-            if (dilution := db.get_pool_dilution(int(pool_id), identifier)) is None:
-                logger.error(f"lane_pools_workflow: PoolDilution with pool_id {pool_id} and identifier {identifier} does not exist")
-                raise ValueError(f"PoolDilution with pool_id '{pool_id}' and identifier '{identifier}' does not exist")
-            
-            df.loc[_df.index, "qubit_concentration"] = dilution.qubit_concentration
-
-        data = []
-        for i, lane_target_form in enumerate(self.lane_sub_forms):
-            data.append({
-                "target_total_volume": lane_target_form.target_total_volume.data,
-                "target_concentration": lane_target_form.target_concentration.data,
-            })
-
-        df["pipet"] = None
+            data["lane"].append(link.lane.number)
+            data["pool"].append(link.pool.name)
+            data["lane_id"].append(link.lane.id)
+            data["pool_id"].append(link.pool.id)
+            data["num_m_reads"].append(link.num_m_reads)
+            data["avg_fragment_size"].append(link.pool.avg_fragment_size)
+            data["qubit_concentration"].append(
+                link.dilution.qubit_concentration if link.dilution is not None else link.pool.qubit_concentration
+            )
+            data["target_total_volume"].append(link.lane.total_volume_ul)
+            data["target_concentration"].append(link.lane.target_molarity)
+            data["dilution"].append(link.dilution.identifier if link.dilution is not None else "Orig.")
+        
+        df = pd.DataFrame(data)
         df["share"] = None
-        df["target_total_volume"] = None
-        df["target_concentration"] = None
+        for lane, _df in df.groupby(["lane", "lane_id"]):
+            df.loc[_df.index, "share"] = _df["num_m_reads"].values / _df["num_m_reads"].sum()
+
         df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
+        df["pipet"] = df["target_concentration"] / df["molarity"] * df["share"] * df["target_total_volume"]
 
-        for lane, _df in df.groupby("lane"):
-            target = data[lane - 1]  # type: ignore
-            df.loc[_df.index, "share"] = _df["num_m_reads_requested"] / _df["num_m_reads_requested"].sum()
-            df.loc[_df.index, "target_total_volume"] = target["target_total_volume"]
-            df.loc[_df.index, "target_concentration"] = target["target_concentration"]
-
-        for _, _df in df.groupby("lane"):
-            df.loc[_df.index, "pipet"] = _df["target_concentration"] / _df["molarity"] * _df["share"] * _df["target_total_volume"]
-
-        filename = f"lane_pooling_{experiment.id}"
+        filename = f"lane_pooling_{self.experiment.id}"
         extension = ".tsv"
 
         old_file = None
-        for file in experiment.files:
+        for file in self.experiment.files:
             if file.type == FileType.LANE_POOLING_TABLE:
                 old_file = file
                 break
@@ -189,15 +191,15 @@ class LanePoolingForm(HTMXFlaskForm):
             type=FileType.LANE_POOLING_TABLE,
             extension=extension,
             uploader_id=user.id,
-            experiment_id=experiment.id
+            experiment_id=self.experiment.id
         )
         _ = db.create_comment(
             author_id=user.id,
             file_id=db_file.id,
             text="Added file for pooling ratios",
-            experiment_id=experiment.id
+            experiment_id=self.experiment.id
         )
 
         flash("Laning Completed!", "success")
 
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))

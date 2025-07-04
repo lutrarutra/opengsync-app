@@ -3,50 +3,50 @@
 
 <div id="experiment-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >{% if experiment_form.form_type == "create" %}Create{% elif experiment_form.form_type == "edit" %}Edit{% endif %} Experiment</h1>
+        <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Experiment</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
         <div id="experiment-form">
-            {{ experiment_form.csrf_token() }}
+            {{ form.csrf_token() }}
                 
             <div class="row">
-                {{ form_group(experiment_form.name, class="col-3") }}
+                {{ form_group(form.name, class="col-3") }}
                 {{
                     search_select_field(
-                        experiment_form.operator,
+                        form.operator,
                         query_url=url_for('users_htmx.query', only_insiders=True),
                         class="col-3"
                     )
                 }}
                 {{ 
                     search_select_field(
-                        experiment_form.sequencer,
+                        form.sequencer,
                         query_url=url_for('sequencers_htmx.query'),
                         class="col-3"
                     ) 
                 }}
-                {{ select_input(experiment_form.workflow, class="col-3") }}
+                {{ select_input(form.workflow, class="col-3") }}
             </div>
 
             <div class="row">
-                {{ form_group(experiment_form.r1_cycles, class="col-3") }}
-                {{ form_group(experiment_form.i1_cycles, class="col-3") }}
-                {{ form_group(experiment_form.i2_cycles, class="col-3") }}
-                {{ form_group(experiment_form.r2_cycles, class="col-3") }}
+                {{ form_group(form.r1_cycles, class="col-3") }}
+                {{ form_group(form.i1_cycles, class="col-3") }}
+                {{ form_group(form.i2_cycles, class="col-3") }}
+                {{ form_group(form.r2_cycles, class="col-3") }}
             </div>
-            {{ select_input(experiment_form.status) }}
+            {{ select_input(form.status) }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">
         <div class="text-nowrap text-muted footer-id">
         </div>
         <div class="footer-controls">
-            {% if experiment_form.form_type == "create" %}
+            {% if form.form_type == "create" %}
             <button class="btn btn-success"
                 hx-include="#experiment-form" hx-target="#experiment-form-container" hx-swap="outerHTML"
                 hx-post="{{ url_for('experiments_htmx.create') }}">Submit</button>
-            {% elif experiment_form.form_type == "edit" %}
+            {% elif form.form_type == "edit" %}
             <button class="btn btn-success"
                 hx-include="#experiment-form" hx-target="#experiment-form-container" hx-swap="outerHTML"
                 hx-post="{{ url_for('experiments_htmx.edit', experiment_id=experiment.id) }}">Submit</button>
