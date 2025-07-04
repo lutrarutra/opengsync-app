@@ -143,7 +143,7 @@
                     </thead>
                     <tbody id="selected-samples-table-container">
                         {% for sample in selected_samples %}
-                        <tr onclick="toggle_sample({{sample.id}});" id="selected-sample-row-{{ sample.id }}" class="sample-row selected">
+                        <tr onclick="remove_sample({{sample.id}});" id="selected-sample-row-{{ sample.id }}" class="sample-row selected">
                             <th scope="row">{{ sample.id }}</th>
                             <td>{{ sample.name }}</td>
                             <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
@@ -189,7 +189,7 @@
                     </thead>
                     <tbody id="selected-libraries-table-container">
                     {% for library in selected_libraries %}
-                        <tr onclick="toggle_library({{ library.id }});" id="selected-library-row-{{ library.id }}"
+                        <tr onclick="remove_library({{ library.id }});" id="selected-library-row-{{ library.id }}"
                         class="library-row {% if library.pool_id is not none %}pooled{% endif %} selected">
                             <th scope="row">{{ library.id }}</th>
                             <td>{{ library.name }}</td>
@@ -242,7 +242,7 @@
                     </thead>
                     <tbody id="selected-pools-table-container">
                         {% for pool in selected_pools %}
-                        <tr onclick="toggle_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" class="pool-row">
+                        <tr onclick="remove_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" class="pool-row">
                             <th scope="row">{{ pool.id }}</th>
                             <td>{{ pool.name }}</td>
                             <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
@@ -310,157 +310,16 @@
         </div>
     </div>
     <script>
-        var selected_samples = {{ selected_samples_ids | tojson if selected_samples_ids else [] }};
-        var selected_libraries = {{ selected_libraries_ids | tojson if selected_libraries_ids else [] }};
-        var selected_pools = {{ selected_pools_ids | tojson if selected_pools_ids else [] }};
-        var selected_lanes = {{ selected_lanes_ids | tojson if selected_lanes_ids else [] }};
-
-        var num_selected_samples = selected_samples.length;
-        var num_selected_libraries = selected_libraries.length;
-        var num_selected_pools = selected_pools.length;
-        var num_selected_lanes = selected_lanes.length;
-
         init_tooltips();
 
-        function add_sample(sample_id) {
-            sample_id = parseInt(sample_id);
-            selected_samples.push(sample_id);
-            $(`#sample-row-${sample_id}`).addClass("selected");
-
-            const cloned = $(`#sample-row-${sample_id}`).clone();
-            cloned.attr("id", `selected-sample-row-${sample_id}`);
-            $("#selected-samples-table-container").append(cloned);
-            num_selected_samples += 1;
-        }
-
-        function remove_sample(sample_id) {
-            sample_id = parseInt(sample_id);
-            selected_samples = selected_samples.filter(function(value, index, arr) {
-                return value != sample_id;
-            });
-
-            $(`#sample-row-${sample_id}`).removeClass("selected");
-            $(`#selected-sample-row-${sample_id}`).remove();
-            num_selected_samples -= 1;
-        }
-
-        function toggle_sample(sample_id) {
-            sample_id = parseInt(sample_id);
-            if (selected_samples.includes(sample_id)) {
-                remove_sample(sample_id);
-            } else {
-                add_sample(sample_id);
-            }
-            $("#selected-samples-tab-btn").text(`Selected Samples (${num_selected_samples})`);
-        }
-        
-        function update_samples() {
-            $(".sample-row").each(function() {
-                const sample_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_samples.includes(sample_id)) {
-                    $(this).addClass("selected");
-                }
-            });
-        }
-
-        function remove_library(library_id) {
-            library_id = parseInt(library_id);
-            selected_libraries = selected_libraries.filter(function(value, index, arr) {
-                return value != library_id;
-            });
-
-            $(`#library-row-${library_id}`).removeClass("selected");
-            $(`#selected-library-row-${library_id}`).remove();
-            num_selected_libraries -= 1;
-        }
-
-        function add_library(library_id) {
-            library_id = parseInt(library_id);
-            selected_libraries.push(library_id);
-            $(`#library-row-${library_id}`).addClass("selected");
-            const cloned = $(`#library-row-${library_id}`).clone();
-            cloned.attr("id", `selected-library-row-${library_id}`);
-            $("#selected-libraries-table-container").append(cloned);
-            num_selected_libraries += 1;
-        }
-
-        function toggle_library(library_id) {
-            library_id = parseInt(library_id);
-            if (selected_libraries.includes(library_id)) {
-                remove_library(library_id);
-            } else {
-                add_library(library_id);
-            }
-            $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
-        }
-
-        function update_libraries() {
-            $(".library-row").each(function() {
-                const library_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_libraries.includes(library_id)) {
-                    $(this).addClass("selected");
-                }
-            });
-        }
-
-        function toggle_pool(pool_id) {
-            if (selected_pools.includes(pool_id)) {
-                selected_pools = selected_pools.filter(function(value, index, arr) {
-                    return value != pool_id;
-                });
-
-                $(`#pool-row-${pool_id}`).removeClass("selected");
-                $(`#selected-pool-row-${pool_id}`).remove();
-                num_selected_pools -= 1;
-            } else {
-                selected_pools.push(pool_id);
-                $(`#pool-row-${pool_id}`).addClass("selected");
-
-                const cloned = $(`#pool-row-${pool_id}`).clone();
-                cloned.attr("id", `selected-pool-row-${pool_id}`);
-                $("#selected-pools-table-container").append(cloned);
-                num_selected_pools += 1;
-            }
-            $("#selected-pools-tab-btn").text(`Selected Pools (${num_selected_pools})`);
-        }
-        function update_pools() {
-            $(".pool-row").each(function() {
-                const pool_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_pools.includes(pool_id)) {
-                    $(this).addClass("selected");
-                }
-            });
-        }
-
-        function toggle_lane(lane_id) {
-            if (selected_lanes.includes(lane_id)) {
-                selected_lanes = selected_lanes.filter(function(value, index, arr) {
-                    return value != lane_id;
-                });
-
-                $(`#lane-row-${lane_id}`).removeClass("selected");
-                $(`#selected-lane-row-${lane_id}`).remove();
-                num_selected_lanes -= 1;
-            } else {
-                selected_lanes.push(lane_id);
-                $(`#lane-row-${lane_id}`).addClass("selected");
-
-                const cloned = $(`#lane-row-${lane_id}`).clone();
-                cloned.attr("id", `selected-lane-row-${lane_id}`);
-                $("#selected-lanes-table-container").append(cloned);
-                num_selected_lanes += 1;
-            }
-            $("#selected-lanes-tab-btn").text(`Selected Lanes (${num_selected_lanes})`);
-        }
-
-        function update_lanes() {
-            $(".lane-row").each(function() {
-                const lane_id = parseInt($(this).attr("id").split("-").pop());
-                if (selected_lanes.includes(lane_id)) {
-                    $(this).addClass("selected");
-                }
-            });
-        }
+        let selected_samples = {{ selected_samples_ids | tojson if selected_samples_ids else [] }};
+        let num_selected_samples = selected_samples.length;
+        let selected_libraries = {{ selected_libraries_ids | tojson if selected_libraries_ids else [] }};
+        let num_selected_libraries = selected_libraries.length;
+        let selected_pools = {{ selected_pools_ids | tojson if selected_pools_ids else [] }};
+        let num_selected_pools = selected_pools.length;
+        let selected_lanes = {{ selected_lanes_ids | tojson if selected_lanes_ids else [] }};
+        let num_selected_lanes = selected_lanes.length;
 
         $("#submit-select_samples-form-btn").click(function() {
             if (num_selected_samples + num_selected_libraries + num_selected_pools + num_selected_lanes == 0) {
@@ -486,27 +345,5 @@
             });
 
         });
-        {% if select_all_samples %}
-        $("#select-all-samples-btn").on("click", function() {
-            var state = get_table_state("select-samples-table");
-
-            htmx.ajax("GET", "{{ url_for('samples_htmx.select_all', **url_context) }}", {
-                target: "#select_samples-form-container",
-                swap: "outerHTML",
-                values: state
-            });
-        });
-        {% endif %}
-        {% if select_all_libraries %}
-        $("#select-all-libraries-btn").on("click", function() {
-            var state = get_table_state("select-libraries-table");
-
-            htmx.ajax("GET", "{{ url_for('libraries_htmx.select_all', **url_context) | safe }}", {
-                target: "#select_samples-form-container",
-                swap: "outerHTML",
-                values: state
-            });
-        });
-        {% endif %}
     </script>
 </div>

@@ -28,7 +28,7 @@ class Sample(Base):
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
-    project_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("project.id"), nullable=False)
+    project_id: Mapped[int] = mapped_column(sa.ForeignKey("project.id"), nullable=False)
     project: Mapped["Project"] = relationship("Project", back_populates="samples", lazy="select")
 
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
@@ -43,12 +43,12 @@ class Sample(Base):
         viewonly=True
     )
 
-    owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="samples", lazy="joined")
 
     library_links: Mapped[list["links.SampleLibraryLink"]] = relationship(
         "SampleLibraryLink", back_populates="sample", lazy="select",
-        cascade="save-update, merge, delete"
+        cascade="save-update, merge, delete, delete-orphan"
     )
 
     attributes: Mapped[list["SampleAttribute"]] = relationship(
@@ -91,5 +91,7 @@ class Sample(Base):
         return self.project.name
     
     def is_editable(self) -> bool:
+        if self.status is None:
+            return False
         return self.status == SampleStatus.DRAFT
     

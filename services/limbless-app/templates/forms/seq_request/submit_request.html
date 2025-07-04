@@ -6,6 +6,20 @@
         <button type="button" class="btn-close" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
     <div class="modal-body">
+        <div class="input-help">
+            {% if sample_submission_windows %}
+            <p>Allowed Sample Submission Times:</p>
+            <ul>
+                {% for window in sample_submission_windows %}
+                <li>
+                    <span class="badge">{{ window.weekday }}</span> @ <span class="badge">
+                    {{ window.start_time.strftime("%H:%M") }}</span> - <span class="badge">{{ window.end_time.strftime("%H:%M") }}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
         <div id="submit-seq_request-form">
             {{ checkbox_input(submit_seq_request_form.samples_delivered_by_mail) }}
             {{ datepicker(submit_seq_request_form.sample_submission_time) }}

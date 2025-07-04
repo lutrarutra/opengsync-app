@@ -11,7 +11,7 @@ from flask_wtf import FlaskForm
 from limbless_db import models
 
 from .... import logger, tools, db  # noqa F401
-from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, SpreadSheetColumn
+from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from ...SearchBar import OptionalSearchBar
@@ -87,7 +87,8 @@ class BarcodeInputForm(MultiStepForm):
             library_data["name_i5"].append(library.names_i5_str(";"))
             library_data["sequence_i5"].append(library.sequences_i5_str(";"))
 
-        return pd.DataFrame(library_data)
+        df = pd.DataFrame(library_data).sort_values("library_id", ascending=True)
+        return df
     
     def validate(self) -> bool:
         validated = super().validate()

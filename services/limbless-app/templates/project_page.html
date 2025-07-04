@@ -11,6 +11,23 @@
             <h1>{{ project.name }} {% if project.group_id %}<span class="desc">{{ project.group.name }} {{ project.group.type.icon }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
+            {% if current_user.is_insider() and project.status == ProjectStatus.PROCESSING %}
+            <span {{ tooltip('Mark project and all samples in it completed.', category='success') }}>
+                <button hx-post="{{ url_for('projects_htmx.complete', project_id=project.id) }}" class="btn btn-success"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Complete project \'{{ project.name }}\'',
+                        showDenyButton: true,
+                        text: 'Do you want to proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()">
+                    Complete Project
+                </button>
+            </span>
+            {% endif %}
             <button type="button"  class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#project-form-popup">
                 Edit Project

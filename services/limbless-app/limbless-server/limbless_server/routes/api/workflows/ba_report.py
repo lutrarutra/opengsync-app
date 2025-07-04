@@ -110,7 +110,6 @@ def select():
         metadata["lab_prep_id"] = lab_prep.id
 
     complete_ba_report_form.metadata = metadata
-    logger.debug(lab_prep)
     complete_ba_report_form.add_table("sample_table", form.sample_table)
     complete_ba_report_form.add_table("library_table", form.library_table)
     complete_ba_report_form.add_table("pool_table", form.pool_table)

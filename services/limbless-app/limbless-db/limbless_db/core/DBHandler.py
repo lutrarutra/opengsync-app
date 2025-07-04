@@ -182,10 +182,13 @@ class DBHandler():
     from .model_handlers._link_methods import (
         get_sample_library_link,
         get_sample_library_links,
+        get_laned_pool_link,
         update_sample_library_link,
 
         add_pool_to_lane,
         remove_pool_from_lane,
+
+        update_laned_pool_link,
 
         link_feature_library,
         link_sample_library,

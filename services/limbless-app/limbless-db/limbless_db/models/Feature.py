@@ -23,7 +23,7 @@ class Feature(Base):
 
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    feature_kit_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("feature_kit.id"), nullable=True)
+    feature_kit_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("feature_kit.id"), nullable=True)
     feature_kit: Mapped[Optional["FeatureKit"]] = relationship("FeatureKit", back_populates="features", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "target_name", "target_id", "feature_kit_id"]

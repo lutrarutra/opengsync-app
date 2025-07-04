@@ -8,9 +8,9 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBHandler, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, UserRole, SampleStatus, ProjectStatus
+from limbless_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus
 
-from .... import db, forms, logger
+from .... import db, forms, logger  # noqa: E402
 from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
@@ -156,6 +156,27 @@ def delete(project_id: int):
     db.delete_project(project_id)
     flash(f"Deleted project {project.name}.", "success")
     return make_response(redirect=url_for("projects_page.projects_page"))
+
+
+@projects_htmx.route("<int:project_id>/complete", methods=["POST"])
+@db_session(db)
+@login_required
+def complete(project_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    for sample in project.samples:
+        for link in sample.library_links:
+            if link.library.status not in {LibraryStatus.SHARED, LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED}:
+                flash(f"Cannot complete project {project.name} because some libraries are not shared/failed/rejected/archived.",)
+                return make_response(redirect=url_for("projects_page.project_page", project_id=project_id))
+            
+    project.status = ProjectStatus.DELIVERED
+    project = db.update_project(project)
+    return make_response(redirect=url_for("projects_page.project_page", project_id=project.id))
 
 
 @projects_htmx.route("table_query", methods=["POST"])

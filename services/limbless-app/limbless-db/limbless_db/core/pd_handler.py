@@ -225,7 +225,8 @@ def get_experiment_laned_pools_df(self: "DBHandler", experiment_id: int) -> pd.D
         models.Lane.id.label("lane_id"), models.Lane.number.label("lane"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
-        models.Pool.avg_fragment_size, models.links.LanePoolLink.num_m_reads
+        models.Pool.avg_fragment_size, models.links.LanePoolLink.num_m_reads,
+        models.PoolDilution.id.label("dilution_id"), models.PoolDilution.identifier.label("dilution"),
     ).where(
         models.Lane.experiment_id == experiment_id
     ).join(
@@ -234,6 +235,9 @@ def get_experiment_laned_pools_df(self: "DBHandler", experiment_id: int) -> pd.D
     ).join(
         models.Pool,
         models.Pool.id == models.links.LanePoolLink.pool_id
+    ).join(
+        models.dilutions.PoolDilution,
+        models.dilutions.PoolDilution.id == models.links.LanePoolLink.dilution_id,
     )
 
     df = pd.read_sql(query, self._engine)
@@ -245,8 +249,8 @@ def get_pool_libraries_df(self: "DBHandler", pool_id: int) -> pd.DataFrame:
     columns = [
         models.Pool.id.label("pool_id"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
-        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("sequence_i7"),
-        models.LibraryIndex.name_i7.label("name_i5"), models.LibraryIndex.name_i5.label("sequence_i5"),
+        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+        models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
     ]
     query = sa.select(*columns).where(
         models.Pool.id == pool_id

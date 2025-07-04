@@ -39,17 +39,19 @@ class LanePoolingForm(HTMXFlaskForm):
     sample_sub_forms = FieldList(FormField(SampleSubForm), min_entries=1)
     lane_sub_forms = FieldList(FormField(LaneSubForm), min_entries=1)
 
-    def __init__(self, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
+        self.experiment = experiment
+        self._context["experiment"] = experiment
         self._context["warning_min"] = models.Pool.warning_min_molarity
         self._context["warning_max"] = models.Pool.warning_max_molarity
         self._context["error_min"] = models.Pool.error_min_molarity
         self._context["error_max"] = models.Pool.error_max_molarity
         self._context["enumerate"] = enumerate
 
-    def prepare(self, experiment: models.Experiment):
-        df = db.get_experiment_laned_pools_df(experiment.id)
-        df["original_qubit_concentration"] = df["qubit_concentration"].copy()
+    def prepare(self):
+        df = db.get_experiment_laned_pools_df(experiment_id=self.experiment.id)
+        # df["original_qubit_concentration"] = df["qubit_concentration"].copy()
         df["dilutions"] = None
         df["form_idx"] = None
 
@@ -66,7 +68,7 @@ class LanePoolingForm(HTMXFlaskForm):
                 sample_sub_form = self.sample_sub_forms[counter]
                 sample_sub_form.pool_id.data = row["pool_id"]
                 sample_sub_form.lane.data = lane
-                sample_sub_form.m_reads.data = row["num_m_reads_requested"]
+                sample_sub_form.m_reads.data = row["num_m_reads"]
 
                 if (pool := db.get_pool(row["pool_id"])) is None:
                     logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
@@ -87,31 +89,49 @@ class LanePoolingForm(HTMXFlaskForm):
 
         df["share"] = None
         for _, _df in df.groupby("lane"):
-            df.loc[_df.index, "share"] = _df["num_m_reads_requested"] / _df["num_m_reads_requested"].sum()
+            df.loc[_df.index, "share"] = _df["num_m_reads"] / _df["num_m_reads"].sum()
 
         df["pipet"] = DEFAULT_TARGET_NM / df["molarity"] * df["share"] * DEFAULT_TOTAL_VOLUME_TARGET
 
         self._context["df"] = df
     
-    def process_request(self, experiment: models.Experiment, user: models.User) -> Response:
+    def process_request(self, user: models.User) -> Response:
         if not self.validate():
-            return self.make_response(experiment=experiment)
-        
-        df = db.get_experiment_laned_pools_df(experiment.id)
-        df["original_qubit_concentration"] = df["qubit_concentration"].copy()
-        df["dilution"] = None
+            return self.make_response()
 
         for _, pool_reads_form in enumerate(self.sample_sub_forms):
-            pool_idx = df["pool_id"] == pool_reads_form.pool_id.data
-            lane_idx = df["lane"] == pool_reads_form.lane.data
-            df.loc[pool_idx & lane_idx, "num_m_reads_requested"] = pool_reads_form.m_reads.data
-            df.loc[pool_idx & lane_idx, "dilution"] = pool_reads_form.dilution.data if pool_reads_form.dilution.data else "Orig."
+            if (link := db.get_laned_pool_link(
+                experiment_id=self.experiment.id,
+                lane_num=pool_reads_form.lane.data,
+                pool_id=pool_reads_form.pool_id.data
+            )) is None:
+                logger.error(f"lane_pools_workflow: No link found for lane {pool_reads_form.lane.data} and pool {pool_reads_form.pool_id.data} for experiment {self.experiment.id} in lane_pooling_form")
+                raise ValueError(f"No link found for lane {pool_reads_form.lane.data} and pool {pool_reads_form.pool_id.data} for experiment {self.experiment.id}")
+            
+            link.num_m_reads = float(pool_reads_form.m_reads.data)
+            if pool_reads_form.dilution.data == "Orig.":
+                link.dilution_id = None
+            else:
+                if (dilution := db.get_pool_dilution(link.pool_id, pool_reads_form.dilution.data)) is None:
+                    logger.error(f"lane_pools_workflow: PoolDilution with pool_id {link.pool_id} and identifier {pool_reads_form.dilution.data} does not exist")
+                    raise ValueError(f"PoolDilution with pool_id '{link.pool_id}' and identifier '{pool_reads_form.dilution.data}' does not exist")
+                link.dilution_id = dilution.id
 
-        for (pool_id, lane, identifier, num_m_reads_requested), _df in df.groupby(["pool_id", "lane", "dilution", "num_m_reads_requested"], dropna=False):
-            if (pool := db.get_pool(int(pool_id))) is None:
-                logger.error(f"lane_pools_workflow: Pool with id {pool_id} does not exist")
-                raise ValueError(f"Pool with id {pool_id} does not exist")
-            pool.num_m_reads_requested = float(num_m_reads_requested) if pd.notna(num_m_reads_requested) else None
+            link = db.update_laned_pool_link(link)
+
+        for lane in self.experiment.lanes:
+            pass
+
+        df = db.get_experiment_laned_pools_df(self.experiment.id)
+        # df["original_qubit_concentration"] = df["qubit_concentration"].copy()
+            
+        for (pool_id, lane, identifier, num_m_reads), _df in df.groupby(["pool_id", "lane", "dilution", "num_m_reads"], dropna=False):
+            # if (pool := db.get_pool(int(pool_id))) is None:
+            #     logger.error(f"lane_pools_workflow: Pool with id {pool_id} does not exist")
+            #     raise ValueError(f"Pool with id {pool_id} does not exist")
+            link = db.get_laned_pool_link(experiment_id=self.experiment, lane_num=lane, pool_id=int(pool_id))
+            
+            pool.num_m_reads = float(num_m_reads) if pd.notna(num_m_reads) else None
             pool = db.update_pool(pool)
             if identifier == "Orig.":
                 continue

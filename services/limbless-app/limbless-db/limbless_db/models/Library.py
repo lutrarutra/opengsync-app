@@ -62,7 +62,7 @@ class Library(Base):
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
         links.SampleLibraryLink, back_populates="library", lazy="select",
-        cascade="save-update, merge, delete"
+        cascade="save-update, merge, delete, delete-orphan"
     )
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")

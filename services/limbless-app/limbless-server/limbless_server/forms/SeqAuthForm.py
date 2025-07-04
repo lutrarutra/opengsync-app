@@ -22,6 +22,7 @@ class SeqAuthForm(HTMXFlaskForm):
     def __init__(self, seq_request: models.SeqRequest, formdata: Optional[dict] = None):
         super().__init__(formdata=formdata)
         self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
 
     def validate(self) -> bool:
         if not super().validate():

@@ -29,10 +29,10 @@ class Project(Base):
 
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
 
-    owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="joined")
 
-    group_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), nullable=True)
+    group_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
     group: Mapped[Optional["Group"]] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_samples", "status_id", "group_id", "timestamp_created_utc"]

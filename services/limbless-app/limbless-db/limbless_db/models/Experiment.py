@@ -37,10 +37,10 @@ class Experiment(Base):
     workflow_id: Mapped[int] = mapped_column(sa.SmallInteger)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
 
-    operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped["User"] = relationship("User", lazy="joined")
 
-    sequencer_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sequencer.id"), nullable=False)
+    sequencer_id: Mapped[int] = mapped_column(sa.ForeignKey("sequencer.id"), nullable=False)
     sequencer: Mapped["Sequencer"] = relationship("Sequencer", lazy="select")
 
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)

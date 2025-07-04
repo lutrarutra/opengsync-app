@@ -14,6 +14,7 @@ from itsdangerous import URLSafeTimedSerializer
 from limbless_db import DBHandler
 
 from .tools import RedisMSFFileCache
+from .tools.WeekTimeWindow import WeekTimeWindow
 
 logger.remove()
 
@@ -60,10 +61,21 @@ login_manager = LoginManager()
 mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
-TIMEZONE = pytz.timezone(os.environ['TIMEZONE'])
+TIMEZONE = pytz.timezone(os.environ["TIMEZONE"])
 
 db = DBHandler(logger=logger)
 cache = Cache()
 msf_cache = RedisMSFFileCache()
 
 DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
+
+sample_submission_windows: list[WeekTimeWindow] | None
+
+if (s := os.environ["SAMPLE_SUBMISSION_WINDOWS"]):
+    from .tools.tools import parse_time_windows
+    sample_submission_windows = parse_time_windows(s)
+    for window in sample_submission_windows:
+        logger.info(f"Sample submission window: {window.weekday} {window.start_time} - {window.end_time}")
+else:
+    sample_submission_windows = None
+    logger.warning("No sample submission windows configured..")

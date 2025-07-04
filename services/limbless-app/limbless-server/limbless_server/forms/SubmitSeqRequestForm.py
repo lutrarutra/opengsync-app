@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import DateTimeLocalField, BooleanField
@@ -6,8 +8,9 @@ from wtforms.validators import Optional as OptionalValidator
 from limbless_db import models, to_utc
 from limbless_db.categories import EventType
 
-from .. import db, logger  # noqa F401
+from .. import db, logger, sample_submission_windows  # noqa F401
 from .HTMXFlaskForm import HTMXFlaskForm
+
 
 
 class SubmitSeqRequestForm(HTMXFlaskForm):
@@ -21,6 +24,7 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         super().__init__(formdata=formdata)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
+        self._context["sample_submission_windows"] = sample_submission_windows
 
     def validate(self) -> bool:
         if not super().validate():
@@ -37,12 +41,20 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
             return False
 
         if self.sample_submission_time.data is not None:
-            if self.sample_submission_time.data.weekday() > 4:
-                self.sample_submission_time.errors = ("Sample submission time must be on a weekday.",)
+            if self.sample_submission_time.data < datetime.now():
+                self.sample_submission_time.errors = ("Sample submission time cannot be in the past.",)
                 return False
-            if self.sample_submission_time.data.time().hour < 9 or self.sample_submission_time.data.time().hour > 15:
-                self.sample_submission_time.errors = ("Sample submission time must be between 9:00 and 15:00.",)
-                return False
+            
+            if sample_submission_windows is not None:
+                is_valid = False
+                for window in sample_submission_windows:
+                    if window.contains(self.sample_submission_time.data):
+                        is_valid = True
+                        break
+                    
+                if not is_valid:
+                    self.sample_submission_time.errors = ("Sample submission time must be within allowed time.",)
+                    return False
 
         return True
 

@@ -30,7 +30,8 @@ class CompleteLibraryPoolingForm(MultiStepForm):
     def prepare(self):
         barcode_table = self.tables["barcode_table"]
         barcode_table = tools.check_indices(barcode_table, groupby="pool")
-        self._context["barcode_table"] = barcode_table
+        self._context["df"] = barcode_table
+        self._context["groupby"] = "pool"
 
     def validate(self) -> bool:
         validated = super().validate()
