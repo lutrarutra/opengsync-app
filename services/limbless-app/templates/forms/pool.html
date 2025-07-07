@@ -3,7 +3,7 @@
 
 <div id="pool-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >Create Pool</h1>
+        <h1 class="modal-title fs-5" >Pool Form</h1>
         <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
@@ -16,7 +16,7 @@
                 {{ select_input(pool_form.status, class="col-3") }}
             </div>
             <div class="row">
-                {% if form_type == "create" and current_user.is_insider() %}
+                {% if (form_type == "create" or form_type == "clone") and current_user.is_insider() %}
                 {{
                     search_select_field(
                         pool_form.contact,
@@ -48,6 +48,8 @@
                 hx-post="{{ url_for('pools_htmx.edit', pool_id=pool.id) }}"
                 {% elif form_type == "create" %}
                 hx-post="{{ url_for('pools_htmx.create') }}"
+                {% elif form_type == 'clone' %}
+                hx-post="{{ url_for('pools_htmx.clone', pool_id=pool.id) }}"
                 {% endif %}>
                 Complete
             </button>

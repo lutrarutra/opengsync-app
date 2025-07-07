@@ -53,6 +53,7 @@ class LanePoolingForm(HTMXFlaskForm):
     def prepare(self):
         df = db.get_experiment_laned_pools_df(experiment_id=self.experiment.id)
         df["dilutions"] = None
+        df["sub_form_idx"] = None
 
         counter = 0
         for i, ((lane, lane_id), _df) in enumerate(df.groupby(["lane", "lane_id"])):
@@ -70,6 +71,7 @@ class LanePoolingForm(HTMXFlaskForm):
                 sample_sub_form.pool_id.data = row["pool_id"]
                 sample_sub_form.lane.data = lane
                 sample_sub_form.m_reads.data = row["num_m_reads"]
+                df.at[idx, "sub_form_idx"] = counter
 
                 if (pool := db.get_pool(row["pool_id"])) is None:
                     logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")

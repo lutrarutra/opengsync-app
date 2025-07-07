@@ -147,8 +147,8 @@ def get_form(form_type: Literal["create", "edit"]):
         if not current_user.is_insider() and pool.owner_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
         
-        form = forms.models.PoolForm("edit")
-        form.prepare(pool)
+        form = forms.models.PoolForm("edit", pool=pool)
+        form.prepare()
         return form.make_response()
     
 
@@ -161,7 +161,26 @@ def edit(pool_id: int):
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
         return abort(HTTPResponse.FORBIDDEN.id)
-    return forms.models.PoolForm("edit", formdata=request.form).process_request(user=current_user, pool=pool)
+    return forms.models.PoolForm("edit", pool=pool, formdata=request.form).process_request(user=current_user)
+
+
+@pools_htmx.route("<int:pool_id>/clone", methods=["GET", "POST"])
+@db_session(db)
+@login_required
+def clone(pool_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (pool := db.get_pool(pool_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        form = forms.models.PoolForm("clone", pool=pool)
+        form.prepare()
+        return form.make_response()
+    else:
+        form = forms.models.PoolForm("clone", formdata=request.form, pool=pool)
+        return form.process_request(user=current_user)
 
 
 @pools_htmx.route("<int:pool_id>/remove_library", methods=["DELETE"])

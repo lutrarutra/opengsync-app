@@ -54,12 +54,12 @@ def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
         indices.append("sequence_i5")
 
     df["combined_index"] = ""
-    for index in indices:
-        df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
-        _max = int(df[index].str.len().max())
-        df["combined_index"] += df[index].str.ljust(_max, "N")
-        
     if len(df) > 1:
+        for index in indices:
+            df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
+            _max = int(df[index].str.len().max())
+            df["combined_index"] += df[index].str.ljust(_max, "N")
+        
         if "sequence_i5" in df.columns:
             same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
             df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"

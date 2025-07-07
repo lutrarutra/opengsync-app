@@ -335,6 +335,9 @@ def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
 
     experiment.pools.append(pool)
 
+    for library in pool.libraries:
+        library.experiment_id = experiment_id
+
     if experiment.workflow.combined_lanes:
         for lane in experiment.lanes:
             self.add_pool_to_lane(experiment_id=experiment_id, pool_id=pool_id, lane_num=lane.number)

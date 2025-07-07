@@ -22,7 +22,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
     predefined_columns = [
         DropdownColumn("sample_name", "Sample Name", 170, required=True, choices=[])
-    ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.value.type.length) for i, t in enumerate(AttributeType.as_list()[1:])]
+    ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in AttributeType.as_list()[1:]]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
@@ -60,13 +60,16 @@ class SampleAttributeAnnotationForm(MultiStepForm):
             df[col.label] = ""
 
         for _, row in sample_table[sample_table["sample_id"].notna()].iterrows():
-            attributes = db.get_sample_attributes(sample_id=int(row["sample_id"]))
-            for attr in attributes:
+            if (sample := db.get_sample(sample_id=int(row["sample_id"]))) is None:
+                logger.warning(f"Sample with ID {row['sample_id']} not found in the database.")
+                raise ValueError(f"Sample with ID {row['sample_id']} not found in the database.")
+            
+            for attr in sample.attributes:
                 df.loc[df["sample_name"] == row["sample_name"], attr.name] = attr.value
 
         for col in df.columns:
             if col not in [c.label for c in self.columns]:
-                self.columns.append(TextColumn(col, col.replace("_", " ").title(), 100, max_length=models.SampleAttribute.value.type.length))
+                self.columns.append(TextColumn(col, col.replace("_", " ").title(), 100, max_length=64))
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
@@ -99,7 +102,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         for col in df.columns:
             if col not in self.spreadsheet.columns.keys():
-                self.spreadsheet.add_column(label=col, column=TextColumn(label=col, name=col.replace("_", " ").title(), width=100, max_length=models.SampleAttribute.value.type.length))
+                self.spreadsheet.add_column(label=col, column=TextColumn(label=col, name=col.replace("_", " ").title(), width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
 
         for i, (idx, row) in enumerate(df.iterrows()):
             for col in df.keys():

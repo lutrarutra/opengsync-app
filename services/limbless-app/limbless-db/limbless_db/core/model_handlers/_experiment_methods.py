@@ -178,7 +178,7 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
                 self.session.add(lane)
             
         if experiment.workflow.combined_lanes:
-            lps = set([(link.lane_id, link.pool_id) for link in experiment.laned_pool_links ])
+            lps = set([(link.lane_id, link.pool_id) for link in experiment.laned_pool_links])
             for lane in experiment.lanes:
                 for pool in experiment.pools:
                     if (lane.id, pool.id) not in lps:

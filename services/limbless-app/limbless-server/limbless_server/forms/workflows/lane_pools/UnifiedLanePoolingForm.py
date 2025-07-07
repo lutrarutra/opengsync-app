@@ -57,7 +57,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
 
             sample_sub_form = self.sample_sub_forms[i]
             sample_sub_form.pool_id.data = row["pool_id"]
-            sample_sub_form.m_reads.data = row["num_m_reads"] * self.experiment.flowcell_type.num_lanes
+            sample_sub_form.m_reads.data = row["num_m_reads"]
 
             if (pool := db.get_pool(row["pool_id"])) is None:
                 logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
@@ -114,7 +114,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                     logger.error(f"lane_pools_workflow: Link between lane {lane.number} and pool {pool_reads_form.pool_id.data} does not exist")
                     raise ValueError(f"Link between lane {lane.number} and pool {pool_reads_form.pool_id.data} does not exist")
                 
-                link.num_m_reads = pool_reads_form.m_reads.data
+                link.num_m_reads = pool_reads_form.m_reads.data / self.experiment.num_lanes
                 if pool_reads_form.dilution.data == "Orig.":
                     link.dilution_id = None
                 else:

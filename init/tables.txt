@@ -2,8 +2,11 @@ project
  - id
  - name
  - description
+ - timestamp_created_utc
+ - status_id
  - num_samples
  - owner_id
+ - group_id
 sample
  - id
  - name
@@ -15,6 +18,7 @@ sample
  - project_id
  - ba_report_id
  - owner_id
+ - attributes
 user_affiliation
  - user_id
  - group_id
@@ -35,6 +39,7 @@ lane_pool_link
  - lane_id
  - pool_id
  - experiment_id
+ - dilution_id
  - num_m_reads
  - lane_num
 library_feature_link
@@ -125,6 +130,7 @@ library
  - num_features
  - ba_report_id
  - pool_id
+ - experiment_id
  - owner_id
  - seq_request_id
  - visium_annotation_id
@@ -261,11 +267,6 @@ plate
  - num_cols
  - num_rows
  - owner_id
-sample_attribute
- - sample_id
- - name
- - value
- - type_id
 barcode
  - id
  - sequence

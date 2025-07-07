@@ -47,7 +47,7 @@
                     </thead>
                     <tbody>
                         {% for i, (_, row) in enumerate(_df.iterrows()) %}
-                        {% set sample_sub_form = lane_pooling_form.sample_sub_forms[row["form_idx"]] %}
+                        {% set sample_sub_form = lane_pooling_form.sample_sub_forms[row["sub_form_idx"]] %}
                         {{ sample_sub_form.csrf_token() }}
                         <tr class="pool-row-{{lane}}">
                             <th class="bg-light">{{ row["pool_name"] }}{{ sample_sub_form.pool_id(hidden=true, readonly=true) }}{{ sample_sub_form.lane(hidden=true, readonly=true) }}</th>

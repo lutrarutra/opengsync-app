@@ -332,7 +332,7 @@ def get_sample_attributes(project_id: int):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    df = db.get_project_sample_attributes_df(project_id=project_id)
+    df = db.get_project_samples_df(project_id=project_id).rename(columns={"sample_id": "id", "sample_name": "name"})
 
     columns = []
     for i, col in enumerate(df.columns):

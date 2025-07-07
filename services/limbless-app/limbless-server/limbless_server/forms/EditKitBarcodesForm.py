@@ -51,7 +51,7 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
         )
 
     def __fill_form(self):
-        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id)
+        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id, per_adapter=True)
         barcode_data = {
             "well": [],
             "name_i7": [],
@@ -189,7 +189,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
         )
 
     def __fill_form(self):
-        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id)
+        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id, per_adapter=True)
         barcode_data = {
             "well": [],
             "name": [],
@@ -297,7 +297,7 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
         )
 
     def __fill_form(self):
-        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id)
+        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id, per_adapter=True)
         barcode_data = {
             "well": [],
             "index_name": [],

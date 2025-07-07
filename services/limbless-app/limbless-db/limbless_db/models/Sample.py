@@ -1,10 +1,12 @@
-from typing import Optional, TYPE_CHECKING, ClassVar
+from typing import Optional, TYPE_CHECKING, ClassVar, Any
 from datetime import datetime
+from dataclasses import dataclass
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
 
-from ..categories import SampleStatus, SampleStatusEnum
+from ..categories import SampleStatus, SampleStatusEnum, AttributeType, AttributeTypeEnum
 from .Base import Base
 
 if TYPE_CHECKING:
@@ -13,8 +15,29 @@ if TYPE_CHECKING:
     from .User import User
     from .SeqRequest import SeqRequest
     from .File import File
-    from .SampleAttribute import SampleAttribute
 
+
+@dataclass
+class SampleAttribute:
+    name: str
+    type_id: int
+    value: Any
+
+    MAX_NAME_LENGTH: ClassVar[int] = 64
+
+    @property
+    def type(self) -> AttributeTypeEnum:
+        return AttributeType.get(self.type_id)
+    
+    @staticmethod
+    def from_dict(d: dict[str, dict[str, Any]]) -> list["SampleAttribute"]:
+        attributes = []
+        for name, attr in d.items():
+            type_id = attr["type_id"]
+            value = attr["value"]
+            attributes.append(SampleAttribute(name=name, type_id=type_id, value=value))
+        return attributes
+        
 
 class Sample(Base):
     __tablename__ = "sample"
@@ -51,10 +74,7 @@ class Sample(Base):
         cascade="save-update, merge, delete, delete-orphan"
     )
 
-    attributes: Mapped[list["SampleAttribute"]] = relationship(
-        "SampleAttribute", lazy="select",
-        cascade="save-update, merge, delete, delete-orphan",
-    )
+    _attributes: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=None, name="attributes")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
 
@@ -94,4 +114,29 @@ class Sample(Base):
         if self.status is None:
             return False
         return self.status == SampleStatus.DRAFT
+
+    @property
+    def attributes(self) -> list[SampleAttribute]:
+        if self._attributes is None:
+            return []
+        return SampleAttribute.from_dict(self._attributes)
     
+    def set_attribute(self, key: str, value: Any, type: AttributeTypeEnum):
+        if self._attributes is None:
+            self._attributes = {}
+        self._attributes[key] = {"type_id": type.id, "value": value}
+
+    def update_attrbute(self, key: str, value: Any):
+        if self._attributes is None or key not in self._attributes:
+            raise KeyError(f"Attribute '{key}' does not exist.")
+        self._attributes[key]["value"] = value
+
+    def get_attribute(self, key: str) -> SampleAttribute | None:
+        if self._attributes is None or (attr := self._attributes.get(key)) is None:
+            return None
+        return SampleAttribute(name=key, type_id=attr["type_id"], value=attr["value"])
+    
+    def delete_sample_attribute(self, key: str):
+        if self._attributes is None or key not in self._attributes:
+            raise KeyError(f"Attribute '{key}' does not exist.")
+        del self._attributes[key]

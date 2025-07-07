@@ -160,5 +160,3 @@ def check_seq_request_barcode_clashes(seq_request_id: int):
             
     library_df = pd.DataFrame(library_data)
     return wff.CheckBarcodeClashesForm(library_df, groupby="pool").process_request()
-
-
