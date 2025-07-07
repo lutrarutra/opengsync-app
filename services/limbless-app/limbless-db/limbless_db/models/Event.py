@@ -21,7 +21,7 @@ class Event(Base):
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    creator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     creator: Mapped["User"] = relationship("User", lazy="select")
  
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest")

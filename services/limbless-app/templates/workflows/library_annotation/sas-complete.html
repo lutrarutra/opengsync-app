@@ -76,7 +76,7 @@
                             {% if barcode_table is not none %}
                             <th scope="col" class="col-6">
                                 Barcode
-                                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display('sas-complete')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
                                         <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
                                     </svg>
@@ -96,14 +96,14 @@
                                 {% for _, barcode_row in barcode_table[barcode_table["library_name"] == row["library_name"]].iterrows() %}
                                 {% if notna(barcode_row["name_i7"]) %}
                                     {% if barcode_row["name_i7"] == barcode_row["name_i5"] or isna(barcode_row["name_i5"]) %}
-                                    <span class="badge index-badges" >{{ barcode_row["name_i7"] }}</span>
+                                    <span class="badge index-badge index-badges-sas-complete" >{{ barcode_row["name_i7"] }}</span>
                                     {% else %}
-                                    <span class="badge index-badges" >{{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}</span>
+                                    <span class="badge index-badge index-badges-sas-complete" >{{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}</span>
                                     {% endif %}
                                 {% else %}
-                                <span class="badge index-badges">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
+                                <span class="badge index-badge index-badges-sas-complete">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
                                 {% endif %}
-                                <span class="badge index-badges" style="display: none;">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
+                                <span class="badge index-badge index-badges-sas-complete" style="display: none;">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
                                 {% endfor %}
                             </td>
                             {% endif %}

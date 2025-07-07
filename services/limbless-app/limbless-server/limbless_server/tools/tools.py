@@ -3,10 +3,8 @@ import difflib
 import string
 
 import pandas as pd
-import scipy
-import numpy as np
 
-from .. import logger
+from .WeekTimeWindow import WeekTimeWindow
 
 tab_10_colors = [
     "#1f77b4",
@@ -33,21 +31,21 @@ def to_identifier(n: int) -> str:
     return out
 
 
-# def _hamming_distance_shared_bases(seq1: str, seq2: str) -> int:
-#     """Calculate Hamming distance using only matching positions (shortest shared length)."""
-#     min_len = min(len(seq1), len(seq2))
-#     return sum(c1 != c2 for c1, c2 in zip(seq1[:min_len], seq2[:min_len]))
+def _hamming_distance_shared_bases(seq1: str, seq2: str) -> int:
+    """Calculate Hamming distance using only matching positions (shortest shared length)."""
+    min_len = min(len(seq1), len(seq2))
+    return sum(c1 != c2 and c1 != 'N' and c2 != 'N' for c1, c2 in zip(seq1[:min_len], seq2[:min_len]))
 
 
-# def min_hamming_distances(seq_list: list[str]) -> list[int]:
-#     distances = []
-#     for i, ref in enumerate(seq_list):
-#         other_seqs = seq_list[:i] + seq_list[i + 1:]
-#         distances.append(min(_hamming_distance_shared_bases(ref, other) for other in other_seqs))
-#     return distances
+def min_hamming_distances(seq_list: list[str]) -> list[int]:
+    distances = []
+    for i, ref in enumerate(seq_list):
+        other_seqs = seq_list[:i] + seq_list[i + 1:]
+        distances.append(min(_hamming_distance_shared_bases(ref, other) for other in other_seqs))
+    return distances
 
 
-def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFrame:
+def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
     df["error"] = None
     df["warning"] = None
 
@@ -56,60 +54,59 @@ def check_indices(df: pd.DataFrame, groupby: Optional[str] = None) -> pd.DataFra
         indices.append("sequence_i5")
 
     df["combined_index"] = ""
-    for index in indices:
-        df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
-        _max = int(df[index].str.len().max())
-        df["combined_index"] += df[index].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
-        
     if len(df) > 1:
+        for index in indices:
+            df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
+            _max = int(df[index].str.len().max())
+            df["combined_index"] += df[index].str.ljust(_max, "N")
+        
         if "sequence_i5" in df.columns:
             same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
             df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
-
-        df["min_hamming_dist"] = None
-        df["min_idx"] = None
-
-        def hamming(x, y):
-            return scipy.spatial.distance.hamming(list(x[0]), list(y[0]))
         
+        df["min_hamming_bases"] = None
         if groupby is None:
-            _max = int(df["combined_index"].str.len().max())
-            df["combined_index"] = df["combined_index"].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
-            a = np.array(df["combined_index"]).reshape(-1, 1)
-            dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
-            p_dist = scipy.spatial.distance.squareform(dists)
-            np.fill_diagonal(p_dist, np.nan)
-            min_idx = np.nanargmin(p_dist, axis=0)
-            df["min_idx"] = min_idx
-            df["min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
+            df["min_hamming_bases"] = min_hamming_distances(df["combined_index"].tolist())
         else:
             for _, _df in df.groupby(groupby):
-                if len(_df) > 1:
-                    _max = int(df["combined_index"].str.len().max())
-                    _df["combined_index"] = _df["combined_index"].apply(lambda x: x + " " * (_max - len(x)) if pd.notna(x) else "")
-
-                    a = np.array(_df["combined_index"]).reshape(-1, 1)
-
-                    dists = scipy.spatial.distance.pdist(a, lambda x, y: hamming(x, y))
-                    p_dist = scipy.spatial.distance.squareform(dists)
-                    np.fill_diagonal(p_dist, np.nan)
-                    min_idx = np.nanargmin(p_dist, axis=0)
-                    df.loc[_df.index, "min_idx"] = min_idx
-                    df.loc[_df.index, "min_hamming_dist"] = p_dist[np.arange(p_dist.shape[0]), min_idx]
+                if len(_df) < 2:
+                    _df["min_hamming_bases"] = _df["combined_index"].apply(lambda x: len(x) - x.count("N"))
                 else:
-                    df.loc[_df.index, "min_idx"] = 0
-                    df.loc[_df.index, "min_hamming_dist"] = 1.0
+                    _df["min_hamming_bases"] = min_hamming_distances(_df["combined_index"].tolist())
+                df.loc[_df.index, "min_hamming_bases"] = _df["min_hamming_bases"]
+            
     else:
-        df["min_hamming_dist"] = 1.0
-        df["min_idx"] = 0
+        df["min_hamming_bases"] = df["combined_index"].apply(lambda x: len(x) - x.count("N"))
 
-    df["min_hamming_bases"] = df["min_hamming_dist"] * df["combined_index"].apply(lambda x: len(x))
-    df["min_hamming_bases"] = df["min_hamming_bases"].astype(int)
-
-    df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries on same lane."
-    df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries on same lane."
+    df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries."
+    df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries."
 
     return df
+
+
+def parse_time_windows(s: str) -> list[WeekTimeWindow]:
+    from datetime import time
+    windows = []
+    for entry in s.split(";"):
+        weekday, time_range = entry.split("@")
+        start_time, end_time = time_range.split("-")
+        try:
+            weekday = int(weekday)
+        except ValueError:
+            raise ValueError(f"'{weekday}' is not a valid weekday number (0=Monday,.., 6=Sunday).")
+        
+        try:
+            start_time = time.fromisoformat(start_time)
+        except ValueError:
+            raise ValueError(f"'{start_time}' is not a valid time in HH:MM format.")
+        
+        try:
+            end_time = time.fromisoformat(end_time)
+        except ValueError:
+            raise ValueError(f"'{end_time}' is not a valid time in HH:MM format.")
+        
+        windows.append(WeekTimeWindow(weekday, start_time, end_time))
+    return windows
 
 
 def titlecase_with_acronyms(val: str) -> str:

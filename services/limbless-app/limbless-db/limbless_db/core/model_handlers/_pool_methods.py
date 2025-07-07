@@ -398,7 +398,7 @@ def clone_pool(self: "DBHandler", pool_id: int, seq_request_id: Optional[int] = 
         contact_email=pool.contact.email if pool.contact.email is not None else "unknown",
         contact_name=pool.contact.name,
         contact_phone=pool.contact.phone,
-        pool_type=pool.type
+        pool_type=pool.type,
     )
 
     if not persist_session:

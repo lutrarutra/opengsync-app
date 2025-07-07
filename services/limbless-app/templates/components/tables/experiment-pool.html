@@ -52,7 +52,7 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr class="pool-row" id="pool-row-{{ pool.id }}">
+            <tr class="pool-row" data-id="{{ pool.id }}" data-name="{{ pool.name }}">
                 <th scope="row">{{ pool.id }}</th>
                 <td><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">{{ pool.name }}</a></td>
                 <td>
@@ -117,13 +117,14 @@
     {{ pagination("experiment-pool-table", "experiments_htmx.get_pools", n_pages, active_page, context={"experiment_id": experiment.id}) }}
     <script>
         init_tooltips();
-        var selected_pool_id = null;
+        let selected_pool_id = null;
+        let selected_pool_name = null;
 
         function remove_pool() {
             Swal.fire({
                 title: `Remove Pool from Experiment?`,
                 showDenyButton: true,
-                text: 'You are removing pool ' + selected_pool_id + ' from the experiment. Do you want to continue?',
+                text: `You are removing pool '${selected_pool_name}' [${selected_pool_id}] from the experiment. Do you want to continue?`,
                 icon: 'question',
                 confirmButtonText: 'Yes',
                 denyButtonText: 'No'
@@ -150,7 +151,8 @@
                 const x = e.pageX;
                 const y = e.pageY;
 
-                selected_pool_id = $(this).closest("tr").attr("id").split("-")[2];
+                selected_pool_id = parseInt($(this).data("id"));
+                selected_pool_name = $(this).data("name");
                 $("#copy-edit-menu").css({
                     display: "block",
                     left: x + 8, top: y + 8

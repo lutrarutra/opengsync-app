@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .SeqQuality import SeqQuality
     from .SeqRun import SeqRun
     from .Lane import Lane
+    from .Library import Library
 
 
 class Experiment(Base):
@@ -37,15 +38,16 @@ class Experiment(Base):
     workflow_id: Mapped[int] = mapped_column(sa.SmallInteger)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
 
-    operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped["User"] = relationship("User", lazy="joined")
 
-    sequencer_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sequencer.id"), nullable=False)
+    sequencer_id: Mapped[int] = mapped_column(sa.ForeignKey("sequencer.id"), nullable=False)
     sequencer: Mapped["Sequencer"] = relationship("Sequencer", lazy="select")
 
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name)
 
-    pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", cascade="save-update", back_populates="experiment")
+    pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="experiment")
+    libraries: Mapped[list["Library"]] = relationship("Library", lazy="select", back_populates="experiment")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
     files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")

@@ -27,15 +27,21 @@ class PoolForm(HTMXFlaskForm):
     contact_email = StringField("Contact Email", validators=[OptionalValidator(), Length(max=models.Contact.email.type.length)])
     contact_phone = StringField("Contact Phone", validators=[OptionalValidator(), Length(max=models.Contact.phone.type.length)])
 
-    def __init__(self, form_type: Literal["edit", "create"], formdata=None):
+    def __init__(self, form_type: Literal["edit", "create", "clone"], pool: models.Pool | None = None, formdata=None):
         super().__init__(formdata=formdata)
+        self.pool = pool
+        if form_type in ("edit", "clone") and pool is None:
+            logger.error("Pool must be provided for edit or clone form type")
+            raise ValueError("Pool must be provided for edit or clone form type")
+        else:
+            self._context["pool"] = pool
         self.form_type = form_type
         self._context["form_type"] = form_type
 
-    def validate(self, pool: Optional[models.Pool]) -> bool:
+    def validate(self, user: models.User) -> bool:
         if not super().validate():
             return False
-
+        
         if self.contact.selected.data is None and not self.contact_name.data:
             self.contact_name.errors = ("Select an existing contact or provide a name",)
             return False
@@ -46,39 +52,62 @@ class PoolForm(HTMXFlaskForm):
         
         pool_type = PoolType.get(self.pool_type.data)
         if self.form_type == "edit":
-            if pool is None:
+            if self.pool is None:
                 raise Exception("Pool not passed as argument for edit form")
-            if pool_type != pool.type:
+            if pool_type != self.pool.type:
                 self.pool_type.errors = ("Pool type cannot be changed, please create a new pool",)
                 return False
-
+            for pool in self.pool.owner.pools:
+                if pool.name == self.name.data and self.pool.id != pool.id:
+                    self.name.errors = ("Owner of the pool already has a pool with the same name.",)
+                    return False
+        elif self.form_type == "create":
+            for pool in user.pools:
+                if pool.name == self.name.data:
+                    self.name.errors = ("Owner of the pool already has a pool with the same name.",)
+                    return False
+        elif self.form_type == "clone":
+            if self.pool is None:
+                raise Exception("Pool not passed as argument for clone form")
+            if pool_type != self.pool.type:
+                self.pool_type.errors = ("Pool type cannot be changed, please create a new pool",)
+                return False
+            for pool in self.pool.owner.pools:
+                if pool.name == self.name.data:
+                    self.name.errors = ("Owner of the pool already has a pool with the same name.",)
+                    return False
         return True
 
-    def prepare(self, pool: models.Pool):
-        self.name.data = pool.name
-        self.pool_type.data = pool.type.id
-        self.status.data = pool.status_id
-        self.num_m_reads_requested.data = pool.num_m_reads_requested
-        self.contact_name.data = pool.contact.name
-        self.contact_email.data = pool.contact.email
-        self.contact_phone.data = pool.contact.phone
-        self._context["pool"] = pool
+    def prepare(self):
+        if self.pool is None:
+            logger.error("Pool not passed as argument for edit form")
+            raise ValueError("Pool not passed as argument for edit form")
+        
+        self.name.data = self.pool.name
+        self.pool_type.data = self.pool.type.id
+        self.status.data = self.pool.status_id
+        self.num_m_reads_requested.data = self.pool.num_m_reads_requested
+        if self.pool.contact is not None:
+            self.contact_name.data = self.pool.contact.name
+            self.contact_email.data = self.pool.contact.email
+            self.contact_phone.data = self.pool.contact.phone
 
-    def __edit_existing_pool(self, pool_id: int) -> models.Pool:
-        if (pool := db.get_pool(pool_id)) is None:
-            raise ValueError(f"Pool {pool_id} not found")
-            
-        pool.name = self.name.data  # type: ignore
-        pool.status = PoolStatus.get(self.status.data)
-        pool.type = PoolType.get(self.pool_type.data)
-        pool.num_m_reads_requested = self.num_m_reads_requested.data
-        pool.contact.name = self.contact_name.data  # type: ignore
-        pool.contact.email = self.contact_email.data  # type: ignore
-        pool.contact.phone = self.contact_phone.data  # type: ignore
+    def __edit_existing_pool(self) -> models.Pool:
+        if self.pool is None:
+            logger.error("Pool not passed as argument for edit form")
+            raise ValueError("Pool not passed as argument for edit form")
+        
+        self.pool.name = self.name.data  # type: ignore
+        self.pool.status = PoolStatus.get(self.status.data)
+        self.pool.type = PoolType.get(self.pool_type.data)
+        self.pool.num_m_reads_requested = self.num_m_reads_requested.data
+        self.pool.contact.name = self.contact_name.data  # type: ignore
+        self.pool.contact.email = self.contact_email.data  # type: ignore
+        self.pool.contact.phone = self.contact_phone.data  # type: ignore
 
-        pool = db.update_pool(pool)
+        self.pool = db.update_pool(self.pool)
 
-        return pool
+        return self.pool
 
     def __create_new_pool(self, user: models.User) -> models.Pool:
         if (contact_id := self.contact.selected.data) is not None:
@@ -100,17 +129,41 @@ class PoolForm(HTMXFlaskForm):
         )
         return pool
     
-    def process_request(self, user: models.User, pool: Optional[models.Pool] = None) -> Response:
-        if not self.validate(pool=pool):
-            self._context["pool"] = pool
+    def __clone_pool(self, user: models.User) -> models.Pool:
+        if self.pool is None:
+            logger.error("Pool not passed as argument for clone form")
+            raise ValueError("Pool not passed as argument for clone form")
+        
+        pool = db.create_pool(
+            name=self.name.data,  # type: ignore
+            status=PoolStatus.get(self.status.data),
+            num_m_reads_requested=self.num_m_reads_requested.data,
+            owner_id=user.id,
+            pool_type=self.pool.type,
+            contact_email=self.pool.contact.email if self.pool.contact.email is not None else "unknown",
+            contact_name=self.pool.contact.name,
+            contact_phone=self.pool.contact.phone,
+        )
+
+        for library in self.pool.libraries:
+            clone_library = db.clone_library(library.id, seq_request_id=library.seq_request_id, indexed=True)
+            clone_library = db.pool_library(library_id=clone_library.id, pool_id=pool.id)
+            
+        return pool
+    
+    def process_request(self, user: models.User) -> Response:
+        if not self.validate(user):
             return self.make_response()
         
-        if pool is not None:
-            pool = self.__edit_existing_pool(pool.id)
+        if self.form_type == "edit":
+            pool = self.__edit_existing_pool()
             flash(f"Edited pool {pool.name}", "success")
-        else:
+        elif self.form_type == "create":
             pool = self.__create_new_pool(user)
             flash(f"Created pool {pool.name}", "success")
+        elif self.form_type == "clone":
+            pool = self.__clone_pool(user)
+            flash(f"Cloned pool {pool.name}", "success")
         
         return make_response(redirect=url_for("pools_page.pool_page", pool_id=pool.id))
         

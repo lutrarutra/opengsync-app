@@ -241,18 +241,7 @@ def set_sample_attribute(
     if (sample := self.session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
     
-    if (attribute := self.session.query(models.SampleAttribute).where(
-        and_(models.SampleAttribute.sample_id == sample_id, models.SampleAttribute.name == name)
-    ).first()) is not None:
-        attribute.value = value
-    else:
-        attribute = models.SampleAttribute(
-            value=value,
-            name=name,
-            type_id=type.id
-        )
-
-    sample.attributes.append(attribute)
+    sample.set_attribute(key=name, value=value, type=type)
 
     self.session.add(sample)
     self.session.commit()
@@ -269,31 +258,14 @@ def get_sample_attribute(self: "DBHandler", sample_id: int, name: str) -> models
 
     name = name.lower().strip().replace(" ", "_")
 
-    attribute = self.session.query(models.SampleAttribute).where(
-        and_(
-            models.SampleAttribute.sample_id == sample_id,
-            models.SampleAttribute.name == name
-        )
-    ).first()
+    if (sample := self.session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+    
+    attribute = sample.get_attribute(key=name)
 
     if not persist_session:
         self.close_session()
     return attribute
-
-
-def get_sample_attributes(
-    self: "DBHandler", sample_id: int
-) -> list[models.SampleAttribute]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    attributes = self.session.query(models.SampleAttribute).where(
-        models.SampleAttribute.sample_id == sample_id
-    ).all()
-
-    if not persist_session:
-        self.close_session()
-    return attributes
 
 
 def delete_sample_attribute(
@@ -307,14 +279,10 @@ def delete_sample_attribute(
     if (sample := self.session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
     
-    if (attribute := self.session.query(models.SampleAttribute).where(
-        and_(
-            models.SampleAttribute.sample_id == sample_id,
-            models.SampleAttribute.name == name
-        )
-    ).first()) is not None:
-        sample.attributes.remove(attribute)
-        self.session.delete(attribute)
+    if sample.get_attribute(key=name) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample attribute with name '{name}' does not exist in sample with id '{sample_id}'.")
+    
+    sample.delete_sample_attribute(key=name)
 
     self.session.add(sample)
     self.session.commit()

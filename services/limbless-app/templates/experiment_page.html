@@ -188,7 +188,7 @@
                 <div class="flip-card card{% if all_pools_laned == false %} text-muted disabled{% endif %}"
                     {% if all_pools_laned == true %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('check_barcode_clashes_workflow.begin', experiment_id=experiment.id) }}"
+                    hx-get="{{ url_for('check_barcode_clashes_workflow.check_experiment_barcode_clashes', experiment_id=experiment.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% else %}
                     {{ tooltip("All pools must be assigned atleast one lane.", category="warning") }}

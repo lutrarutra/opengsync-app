@@ -15,6 +15,7 @@
                         <th class="col-1" scope="col">Lane</th>
                         <th class="col-1" scope="col">Avg. Fragment Size</th>
                         <th class="col-1" scope="col">Lane Molarity</th>
+                        <th class="col-1" scope="col">PhiX %</th>
                         <th class="col-1" scope="col">Target Molarity</th>
                         <th class="col-1" scope="col">Sequencing Qubit Conc.</th>
                         <th class="col-1 bg-light" scope="col">Sequencing Molarity</th>
@@ -27,6 +28,7 @@
                     {% for i, (_, row) in enumerate(df.iterrows()) %}
                     {% set sub_form = load_flow_cell_form.input_fields[i] %}
                     {{ sub_form.csrf_token() }}
+                    {{ sub_form.lane_id(hidden=true) }}
                     <tr>
                         <th scope="row">{{ row["lane"] }}</th>
                         <td class="avg_fragment_size-col">
@@ -41,6 +43,7 @@
                                 <div class="unit">nM</div>
                             </div>
                         </td>
+                        <td>{{ form_cell(sub_form.phi_x, input_class="phi_x-col", unit="%") }}</td>
                         <td>{{ form_cell(sub_form.target_molarity, input_class="target_molarity-col", unit="nM") }}</td>
                         <td>{{ form_cell(sub_form.measured_qubit, input_class="measured_qubit-col", unit="ng/μL") }}</td>
                         <td class="sequencing_molarity-col bg-light">

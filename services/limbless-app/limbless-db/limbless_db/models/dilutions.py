@@ -19,15 +19,15 @@ class PoolDilution(Base):
 
     identifier: Mapped[str] = mapped_column(sa.String(4), nullable=False)
     
-    pool_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("pool.id"))
+    pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id"))
     pool: Mapped["Pool"] = relationship("Pool", back_populates="dilutions", lazy="joined")
 
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
 
-    experiment_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=True)
+    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select")
 
-    operator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped[models.User] = relationship("User", lazy="joined")
 
     qubit_concentration: Mapped[float] = mapped_column(sa.Float)

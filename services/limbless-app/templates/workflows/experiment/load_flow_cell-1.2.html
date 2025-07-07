@@ -10,8 +10,9 @@
         <div id="pool-dilution-form">
             {{ form.csrf_token() }}
             <div class="row">
-                {{ form_group(form.target_molarity, class="col-6 target_molarity-col", unit="nM") }}
-                {{ form_group(form.measured_qubit, class="col-6 measured_qubit-col", unit="ng/μL") }}
+                {{ form_group(form.phi_x, class="col-4 target_molarity-col", unit="%") }}
+                {{ form_group(form.target_molarity, class="col-4 target_molarity-col", unit="nM") }}
+                {{ form_group(form.measured_qubit, class="col-4 measured_qubit-col", unit="ng/μL") }}
             </div>
             <div class="row">
                 {{ metadata_group("Avg. Fragment Size", avg_fragment_size, "col-4 avg_fragment_size-col", unit="bp") }}

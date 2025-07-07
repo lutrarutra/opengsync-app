@@ -433,7 +433,7 @@ def overview(experiment_id: int):
     
     LINK_WIDTH_UNIT = 1
     
-    df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_seq_request=True, collapse_lanes=False)
+    df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_indices=False, include_seq_request=True, collapse_lanes=False)
 
     if df.empty:
         return make_response(
@@ -466,7 +466,7 @@ def overview(experiment_id: int):
         lanes[lane] = lane_node
         lane_widths[lane] = 0
 
-    for (_, request_name), _df in df.groupby(["request_id", "request_name"]):
+    for (_, request_name), _df in df.groupby(["seq_request_id", "request_name"]):
         request_node = {
             "node": node_idx,
             "name": request_name

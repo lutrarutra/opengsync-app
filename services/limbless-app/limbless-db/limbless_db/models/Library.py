@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .File import File
     from .LibraryIndex import LibraryIndex
     from .LabPrep import LabPrep
+    from .Experiment import Experiment
 
 
 class Library(Base):
@@ -49,6 +50,10 @@ class Library(Base):
     pool: Mapped[Optional["Pool"]] = relationship(
         "Pool", back_populates="libraries", lazy="joined", cascade="save-update, merge"
     )
+
+    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
+    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="libraries")
+
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="joined")
     
@@ -62,7 +67,7 @@ class Library(Base):
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
         links.SampleLibraryLink, back_populates="library", lazy="select",
-        cascade="save-update, merge, delete"
+        cascade="save-update, merge, delete, delete-orphan"
     )
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")

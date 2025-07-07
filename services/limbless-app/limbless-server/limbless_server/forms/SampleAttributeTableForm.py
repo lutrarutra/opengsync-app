@@ -19,14 +19,14 @@ class SampleAttributeTableForm(HTMXFlaskForm):
     predefined_columns: list[SpreadSheetColumn] = [
         IntegerColumn("id", "ID", 50, required=True),
         DropdownColumn("sample_name", "Sample Name", 200, required=True, choices=[])
-    ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.value.type.length) for _, t in enumerate(AttributeType.as_list()[1:])]
+    ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for _, t in enumerate(AttributeType.as_list()[1:])]
 
     def __init__(self, project: models.Project, formdata: dict = {}):
         super().__init__(formdata=formdata)
         self.project = project
 
         self._context["project"] = project
-        df = db.get_project_sample_attributes_df(self.project.id)
+        df = db.get_project_samples_df(self.project.id)
 
         columns = SampleAttributeTableForm.predefined_columns.copy()
 

@@ -191,12 +191,6 @@ table input.table-query-input{
     .unselectable-row:hover {
         cursor: not-allowed !important;
     }
-    
-    tr.select-pool.selected {
-        th, td {
-            background-color: #EAFAF1;
-        }
-    }
 
     tr.selected {
         th, td {

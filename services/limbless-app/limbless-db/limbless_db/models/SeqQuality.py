@@ -30,8 +30,8 @@ class SeqQuality(Base):
     mean_quality_pf_i2: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     q30_perc_i2: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
-    library_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), nullable=True)
+    library_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("library.id"), nullable=True)
     library: Mapped[Optional["Library"]] = relationship("Library", back_populates="read_qualities", lazy="select")
 
-    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=False)
+    experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=False)
     experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="read_qualities", lazy="select")

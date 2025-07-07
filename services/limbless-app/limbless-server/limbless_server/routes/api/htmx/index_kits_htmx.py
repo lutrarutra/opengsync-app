@@ -134,7 +134,7 @@ def render_table(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    barcodes = db.get_index_kit_barcodes_df(index_kit_id)
+    barcodes = db.get_index_kit_barcodes_df(index_kit_id, per_adapter=True)
 
     if index_kit.type == IndexType.TENX_ATAC_INDEX:
         barcode_data = {

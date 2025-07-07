@@ -1,5 +1,6 @@
 from .Project import Project    # noqa: F401
 from .Sample import Sample  # noqa: F401
+from .Sample import SampleAttribute  # noqa: F401
 from .Pool import Pool  # noqa: F401
 from .User import User  # noqa: F401
 from .Experiment import Experiment  # noqa: F401
@@ -19,7 +20,6 @@ from .SeqRun import SeqRun  # noqa: F401
 from .Lane import Lane  # noqa: F401
 from .dilutions import PoolDilution  # noqa: F401
 from .Plate import Plate  # noqa: F401
-from .SampleAttribute import SampleAttribute  # noqa: F401
 from .Barcode import Barcode  # noqa: F401
 from .LibraryIndex import LibraryIndex  # noqa: F401
 from .LabPrep import LabPrep  # noqa: F401

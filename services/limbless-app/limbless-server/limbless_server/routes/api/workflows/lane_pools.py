@@ -28,11 +28,11 @@ def begin(experiment_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if experiment.workflow.combined_lanes:
-        form = wff.UnifiedLanePoolingForm()
+        form = wff.UnifiedLanePoolingForm(experiment=experiment)
     else:
-        form = wff.LanePoolingForm()
-    form.prepare(experiment)
-    return form.make_response(experiment=experiment)
+        form = wff.LanePoolingForm(experiment=experiment)
+    form.prepare()
+    return form.make_response()
 
 
 @lane_pools_workflow.route("<int:experiment_id>/lane_pools", methods=["POST"])
@@ -46,8 +46,8 @@ def lane_pools(experiment_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if experiment.workflow.combined_lanes:
-        form = wff.UnifiedLanePoolingForm(formdata=request.form)
+        form = wff.UnifiedLanePoolingForm(experiment=experiment, formdata=request.form)
     else:
-        form = wff.LanePoolingForm(formdata=request.form)
+        form = wff.LanePoolingForm(experiment=experiment, formdata=request.form)
 
-    return form.process_request(experiment=experiment, user=current_user)
+    return form.process_request(user=current_user)

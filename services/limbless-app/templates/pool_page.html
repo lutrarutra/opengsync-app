@@ -19,6 +19,10 @@
                     Edit Pool
                 </button>
             </span>
+            {% if current_user.is_insider() %}
+            <button type="button" class="btn btn-primary" hx-get="{{ url_for('pools_htmx.clone', pool_id=pool.id) }}"
+            data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML">Clone Pool</button>
+            {% endif %}
             <span {% if not is_editable %} {{ tooltip("You can only edit draft pools.", "left", "warning") }} {% endif %}>
                 <button type="button" class="btn btn-danger"
                 hx-delete="{{ url_for('pools_htmx.remove_libraries', pool_id=pool.id) }}"

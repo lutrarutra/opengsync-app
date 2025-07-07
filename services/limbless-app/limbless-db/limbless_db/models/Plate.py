@@ -21,7 +21,7 @@ class Plate(Base):
     num_cols: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     num_rows: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    owner_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", lazy="joined")
 
     sample_links: Mapped[list[links.SamplePlateLink]] = relationship(links.SamplePlateLink, back_populates="plate", lazy="select", order_by="SamplePlateLink.well_idx")

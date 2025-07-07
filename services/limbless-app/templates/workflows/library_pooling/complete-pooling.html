@@ -1,6 +1,7 @@
 {% from "components/form_group.jinja2" import form_group %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/categorical_mapping.jinja2" import raw_label_mapping %}
+{% from "components/barcode_clashes_table.jinja2" import barcode_clashes_table with context %}
 
 <div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
@@ -9,48 +10,24 @@
     </div>
     <div class="modal-body" id="library_pooling-form">
         {{ form.csrf_token() }}
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th scope="col" class="col-2">Library</th>
-                    <th scope="col" class="col-2">Pool</th>
-                    <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
-                    <th scope="col" class="col-1">Kit i7</th>
-                    <th scope="col" class="col-1">Name i7</th>
-                    <th scope="col" class="col-1">Sequence i7</th>
-                    <th scope="col" class="col-1">Kit i5</th>
-                    <th scope="col" class="col-1">Name i5</th>
-                    <th scope="col" class="col-1">Sequence i5</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for idx, row in barcode_table.iterrows() %}
-                {% if row["error"] %}
-                <tr {{ tooltip(row["error"], category="error") }}>
-                {% elif row["warning"] %}
-                <tr {{ tooltip(row["warning"], category="warning") }}>
-                {% else %}
-                <tr>
-                {% endif %}
-                    <td>{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_name"] }}</td>
-                    <td>{{ row["pool"] }}</td>
-                    <td {% if row["min_hamming_bases"] < 1 %}
-                    class="cemm-red"
-                    {% elif row["min_hamming_bases"] < 2 %}
-                    class="cemm-yellow"
-                    {% else %}
-                    class="cemm-green"
-                    {% endif %}>{{ row["min_hamming_bases"] }} bp <span class="desc">{{ "%0.2f" % row["min_hamming_dist"] }}</span></td>
-                    <td>{{ row["kit_i7"] if row["kit_i7"] }}</td>
-                    <td>{{ row["name_i7"] if row["name_i7"] }}</td>
-                    <td class="index-cell-1">{{ row["sequence_i7"] if row["sequence_i7"] }}</td>
-                    <td>{{ row["kit_i5"] if row["kit_i5"] }}</td>
-                    <td>{{ row["name_i5"] if row["name_i5"] }}</td>
-                    <td class="index-cell-2">{{ row["sequence_i5"] if row["sequence_i5"] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <ul class="nav nav-tabs" role="tablist">
+            {% for group, _df in df.groupby(groupby) %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if loop.index0 == 0%}active{% endif %} {% if _df['error'].notna().any() %}cemm-red{% elif _df['warning'].notna().any() %}cemm-yellow{% else %}cemm-green{% endif %}" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#group-{{ group }}-tab" type="button" role="tab"
+                aria-controls="group-{{ group }}-tab" aria-selected="true">{{ group }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content">
+            {% for group, _df in df.groupby(groupby) %}
+            <div class="tab-pane fade {% if loop.index0 == 0%}show active{% endif %}" id="group-{{ group }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+                {{ barcode_clashes_table(_df) }}
+            </div>
+            {% endfor %}
+        </div>
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">

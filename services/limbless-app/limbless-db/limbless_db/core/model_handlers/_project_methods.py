@@ -127,7 +127,7 @@ def get_projects(
         group_id=group_id, status=status,
         status_in=status_in, user_id=user_id
     )
-    self.debug(sort_by)
+
     if sort_by is not None:
         attr = getattr(models.Project, sort_by)
         if descending:

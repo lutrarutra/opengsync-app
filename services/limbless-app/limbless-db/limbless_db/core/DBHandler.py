@@ -89,7 +89,7 @@ class DBHandler():
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
         delete_sample, update_sample, query_samples,
-        set_sample_attribute, get_sample_attribute, get_sample_attributes,
+        set_sample_attribute, get_sample_attribute,
         get_user_sample_access_type, delete_sample_attribute
     )
 
@@ -182,10 +182,13 @@ class DBHandler():
     from .model_handlers._link_methods import (
         get_sample_library_link,
         get_sample_library_links,
+        get_laned_pool_link,
         update_sample_library_link,
 
         add_pool_to_lane,
         remove_pool_from_lane,
+
+        update_laned_pool_link,
 
         link_feature_library,
         link_sample_library,
@@ -233,6 +236,7 @@ class DBHandler():
         get_library_features_df, get_library_samples_df, get_experiment_seq_qualities_df,
         get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df,
         get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df,
-        get_sample_attributes_df, get_project_sample_attributes_df, get_lab_prep_libraries_df,
-        get_lab_prep_samples_df, query_barcode_sequences_df
+        get_project_samples_df, get_lab_prep_libraries_df,
+        get_lab_prep_samples_df, query_barcode_sequences_df, get_flowcell_df,
+        get_project_libraries_df
     )

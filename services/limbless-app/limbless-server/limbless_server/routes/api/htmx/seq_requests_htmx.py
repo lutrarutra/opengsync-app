@@ -476,12 +476,11 @@ def remove_sample(seq_request_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    for link in sample.library_links:
-        library = link.library
-        if library.seq_request_id == seq_request.id and len(library.sample_links) == 1:
-            db.delete_library(library.id)
-        else:
-            db.delete_sample(sample.id)
+    for library_link in sample.library_links:
+        if library_link.library.seq_request_id != seq_request_id:
+            continue
+        
+        db.delete_library(library_link.library.id)
 
     flash(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'")

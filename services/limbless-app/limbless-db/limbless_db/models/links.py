@@ -16,13 +16,14 @@ if TYPE_CHECKING:
     from .User import User
     from .Pool import Pool
     from .Lane import Lane
+    from . import PoolDilution
 
 
 class UserAffiliation(Base):
     __tablename__ = "user_affiliation"
 
-    user_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), primary_key=True)
-    group_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("group.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), primary_key=True)
+    group_id: Mapped[int] = mapped_column(sa.ForeignKey("group.id"), primary_key=True)
     
     user: Mapped["User"] = relationship("User", back_populates="affiliations", lazy="select")
     group: Mapped["Group"] = relationship("Group", back_populates="user_links", lazy="select")
@@ -39,11 +40,11 @@ class UserAffiliation(Base):
 
 class SamplePlateLink(Base):
     __tablename__ = "sample_plate_link"
-    plate_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), primary_key=True)
+    plate_id: Mapped[int] = mapped_column(sa.ForeignKey("plate.id"), primary_key=True)
     well_idx: Mapped[int] = mapped_column(sa.Integer, nullable=False, primary_key=True)
     
-    sample_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("sample.id"), nullable=True)
-    library_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), nullable=True)
+    sample_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("sample.id"), nullable=True)
+    library_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("library.id"), nullable=True)
 
     plate: Mapped["Plate"] = relationship("Plate", back_populates="sample_links", lazy="joined")
     sample: Mapped[Optional["Sample"]] = relationship("Sample", back_populates="plate_links", lazy="joined")
@@ -59,8 +60,8 @@ class SampleLibraryLink(Base):
     cmo_read: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True, default=None)
     flex_barcode: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True, default=None)
 
-    sample_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("sample.id"), primary_key=True)
-    library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)
+    sample_id: Mapped[int] = mapped_column(sa.ForeignKey("sample.id"), primary_key=True)
+    library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id"), primary_key=True)
 
     sample: Mapped["Sample"] = relationship(
         "Sample", back_populates="library_links", lazy="joined",
@@ -77,18 +78,16 @@ class SampleLibraryLink(Base):
 
 class LanePoolLink(Base):
     __tablename__ = "lane_pool_link"
-    lane_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lane.id"), primary_key=True)
-    pool_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("pool.id"), primary_key=True)
-    experiment_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=False)
+    lane_id: Mapped[int] = mapped_column(sa.ForeignKey("lane.id"), primary_key=True)
+    lane: Mapped["Lane"] = relationship("Lane", lazy="select", back_populates="pool_links")
+    
+    pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id"), primary_key=True)
+    pool: Mapped["Pool"] = relationship("Pool", lazy="select", back_populates="lane_links")
+    
+    experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=False)
 
-    lane: Mapped["Lane"] = relationship(
-        "Lane", lazy="select", back_populates="pool_links",
-        cascade="save-update, merge"
-    )
-    pool: Mapped["Pool"] = relationship(
-        "Pool", lazy="select", back_populates="lane_links",
-        cascade="save-update, merge"
-    )
+    dilution_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool_dilution.id"), nullable=True, default=None)
+    dilution: Mapped[Optional["PoolDilution"]] = relationship("PoolDilution", lazy="select")
 
     num_m_reads: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     lane_num: Mapped[int] = mapped_column(sa.Integer, nullable=False)
@@ -100,8 +99,8 @@ class LanePoolLink(Base):
 class LibraryFeatureLink(Base):
     __tablename__ = "library_feature_link"
 
-    library_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("library.id"), primary_key=True)
-    feature_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("feature.id"), primary_key=True)
+    library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id"), primary_key=True)
+    feature_id: Mapped[int] = mapped_column(sa.ForeignKey("feature.id"), primary_key=True)
 
     def __str__(self) -> str:
         return f"LibraryFeatureLink(library_id: {self.library_id}, feature_id: {self.feature_id})"
@@ -109,7 +108,7 @@ class LibraryFeatureLink(Base):
 
 class SeqRequestDeliveryEmailLink(Base):
     __tablename__ = "seq_request_delivery_email_link"
-    seq_request_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), primary_key=True, nullable=False)
+    seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), primary_key=True, nullable=False)
     email: Mapped[str] = mapped_column(sa.String(128), primary_key=True, nullable=False, index=True)
     
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=DeliveryStatus.PENDING.id)

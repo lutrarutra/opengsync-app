@@ -40,6 +40,12 @@ def project_page(project_id):
                 (f"User {id}", url_for("users_page.user_page", user_id=id)),
                 (f"Project {project_id}", ""),
             ]
+        elif page == "seq_request":
+            path_list = [
+                ("Requests", url_for("seq_requests_page.seq_requests_page")),
+                (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
+                (f"Project {project_id}", ""),
+            ]
 
     return render_template(
         "project_page.html", project=project,
