@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="index_kit-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -45,7 +45,7 @@
             {% for index_kit in index_kits %}
             <tr>
                 <th scope="row">{{ index_kit.id }}</th>
-                <td>{{ index_kit.identifier }}</td>
+                <td><a href="{{ url_for('kits_page.index_kit_page', index_kit_id=index_kit.id) }}">{{ index_kit.identifier }}</a></td>
                 <td><a href="{{ url_for('kits_page.index_kit_page', index_kit_id=index_kit.id) }}">{{ index_kit.name }}</a></td>
                 <td>{{ index_kit.type.name }}</td>
                 <td>

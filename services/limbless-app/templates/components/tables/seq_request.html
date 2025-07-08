@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_request-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -63,7 +63,7 @@
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
                 <td>{{ seq_request.submission_type.abbreviation }} {{ seq_request.submission_type.icon | safe }}</td>
                 <td>{% if seq_request.group_id %}<a href="{{ url_for('groups_page.group_page', group_id=seq_request.group_id) }}">{{ seq_request.group.name }} {{ seq_request.group.type.icon }}</a>{% endif %}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=seq_request.requestor_id) }}">{{ seq_request.requestor.name }}</a> <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=seq_request.requestor_id) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
             </tr>
             {% endfor %}
         </tbody>

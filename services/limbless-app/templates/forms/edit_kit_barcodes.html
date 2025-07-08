@@ -10,9 +10,13 @@
     </div>
 
     <div class="modal-body" id="kit_barcodes-form">
-        {{ switch_input(form.rc_sequence_i7) }}
         {% if index_kit.type == IndexType.DUAL_INDEX %}
+        {{ switch_input(form.rc_sequence_i7) }}
         {{ switch_input(form.rc_sequence_i5) }}
+        {% elif index_kit.type == IndexType.SINGLE_INDEX %}
+        {{ switch_input(form.rc_sequence) }}
+        {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
+        {{ switch_input(form.rc_sequence) }}
         {% endif %}
         {{ spreadsheet_input(element=form.spreadsheet) }}
     </div>
@@ -42,8 +46,14 @@
             "values": {
                 "spreadsheet": JSON.stringify(data),
                 "columns": JSON.stringify(spread_sheet.getHeaders()),
+                {% if index_kit.type == IndexType.DUAL_INDEX %}
                 "rc_sequence_i7": $("#rc_sequence_i7").prop("checked"),
                 "rc_sequence_i5": $("#rc_sequence_i5").prop("checked"),
+                {% elif index_kit.type == IndexType.SINGLE_INDEX %}
+                "rc_sequence": $("#rc_sequence").prop("checked"),
+                {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
+                "rc_sequence": $("#rc_sequence").prop("checked"),
+                {% endif %}
                 "csrf_token": "{{ form.csrf_token._value() }}",
             },
         });

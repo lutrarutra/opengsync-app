@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, db_session, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, IndexType
+from limbless_db.categories import HTTPResponse, IndexType, KitType
 from .... import db, logger, cache, forms  # noqa F401
 
 if TYPE_CHECKING:
@@ -55,7 +55,44 @@ def get(page: int):
 @kits_htmx.route("table_query", methods=["GET"])
 @login_required
 def table_query():
-    raise NotImplementedError()
+    if (word := request.args.get("name")) is not None:
+        field_name = "name"
+    elif (word := request.args.get("id")) is not None:
+        field_name = "id"
+    elif (word := request.args.get("identifier")) is not None:
+        field_name = "identifier"
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [KitType.get(int(status)) for status in type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(type_in) == 0:
+            type_in = None
+    
+    kits: list[models.Kit] = []
+    if field_name == "id":
+        try:
+            _id = int(word)
+            if (kit := db.get_kit(_id)) is not None:
+                if type_in is None or kit.kit_type in type_in:
+                    kits.append(kit)
+
+        except ValueError:
+            pass
+    elif field_name in ["name", "identifier"]:
+        kits = db.query_kits(word)
+
+    return make_response(
+        render_template(
+            "components/tables/kit.html", kits=kits,
+            active_query_field=field_name, current_query=word, type_in=type_in
+        )
+    )
 
 
 @kits_htmx.route("edit/<int:kit_id>", methods=["GET", "POST"])

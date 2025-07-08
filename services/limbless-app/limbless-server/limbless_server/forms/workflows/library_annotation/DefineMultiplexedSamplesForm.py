@@ -9,7 +9,7 @@ from limbless_db.categories import AssayType, GenomeRef, LibraryType, LibraryTyp
 
 from .... import logger, db
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
-from ...MultiStepForm import MultiStepForm
+from ...MultiStepForm import MultiStepForm, StepFile
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
@@ -53,6 +53,9 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.vdj_t = self.metadata["vdj_t"]
         self.vdj_t_gd = self.metadata["vdj_t_gd"]
         self.crispr_screening = self.metadata["crispr_screening"]
+
+    def fill_previous_form(self, previous_form: StepFile):
+        self.spreadsheet.set_data(previous_form.tables["library_table"])
 
     def validate(self) -> bool:
         if not super().validate():

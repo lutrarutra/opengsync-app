@@ -4,7 +4,7 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 
 <div id="sample-library-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -75,7 +75,7 @@
                     <span class="badge index-badge index-badges-sample-library" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
                     {% endfor %}
                 </td>
-                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='sample@' + sample.id | string) }}">{{ library.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='sample@' + sample.id | string) }}"> {{ library.owner.name }}<span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
             </tr>
             {% endfor %}
         </tbody>

@@ -9,7 +9,7 @@ from flask_htmx import make_response
 from limbless_db import models
 from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType, AssayType, SubmissionType
 
-from .... import db, logger
+from .... import db, logger, tools
 from ...MultiStepForm import MultiStepForm
 
 
@@ -45,7 +45,13 @@ class CompleteSASForm(MultiStepForm):
         self._context["library_table"] = self.library_table
         self._context["sample_table"] = self.sample_table
         self._context["pooling_table"] = self.pooling_table
-        self._context["barcode_table"] = self.barcode_table
+        if self.barcode_table is not None:
+            logger.debug(self.barcode_table[["sequence_i7", "library_name", "name_i7"]])
+            self.barcode_table["pool"] = None
+            for (library_name, pool_name), _ in self.library_table.groupby(["library_name", "pool"]):
+                self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "pool"] = pool_name
+            barcode_table = tools.check_indices(self.barcode_table, groupby="pool")
+        self._context["barcode_table"] = barcode_table
         self._context["feature_table"] = self.feature_table
         self._context["cmo_table"] = self.cmo_table
         self._context["visium_table"] = self.visium_table

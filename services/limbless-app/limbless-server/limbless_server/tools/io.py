@@ -50,7 +50,6 @@ def write_file(path: str, content: str, overwrite: bool = False, chunk_size: int
 def mkdir(path: str) -> str:
     if not os.path.exists(path):
         os.makedirs(path)
-
     return path
 
 

@@ -9,8 +9,8 @@ from limbless_db.categories import LibraryType, GenomeRef
 
 from .... import logger, db
 from ....tools import tools
-from ....tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn
-from ...MultiStepForm import MultiStepForm
+from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn
+from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
 from .CMOAnnotationForm import CMOAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -77,6 +77,9 @@ class LibraryAnnotationForm(MultiStepForm):
         
         self.df = df
         return True
+    
+    def fill_previous_form(self, previous_form: StepFile):
+        self.spreadsheet.set_data(previous_form.tables["library_table"])
     
     def __map_library_types(self):
         library_type_map = {}

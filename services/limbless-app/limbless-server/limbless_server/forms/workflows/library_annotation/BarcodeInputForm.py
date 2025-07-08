@@ -8,9 +8,9 @@ from limbless_db import models
 from limbless_db.categories import LibraryType
 
 from .... import logger, tools, db  # noqa F401
-from ...MultiStepForm import MultiStepForm
+from ...MultiStepForm import MultiStepForm, StepFile
 
-from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue
 from ...SpreadsheetInput import SpreadsheetInput
 from .IndexKitMappingForm import IndexKitMappingForm
 from .CMOAnnotationForm import CMOAnnotationForm
@@ -18,6 +18,7 @@ from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .BarcodeMatchForm import BarcodeMatchForm
 
 
 class BarcodeInputForm(MultiStepForm):
@@ -55,6 +56,9 @@ class BarcodeInputForm(MultiStepForm):
         )
 
         self.spreadsheet.columns["library_name"].source = self.library_table["library_name"].unique().tolist()
+
+    def fill_previous_form(self, previous_form: StepFile):
+        self.spreadsheet.set_data(previous_form.tables["barcode_table"])
 
     def get_template(self) -> pd.DataFrame:
         barcode_table_data = {
@@ -124,7 +128,6 @@ class BarcodeInputForm(MultiStepForm):
 
     def process_request(self) -> Response:
         if not self.validate():
-
             return self.make_response()
         
         barcode_table_data = {
@@ -160,7 +163,10 @@ class BarcodeInputForm(MultiStepForm):
         self.add_table("barcode_table", barcode_table)
         self.update_data()
 
-        if barcode_table["kit_i7"].notna().any():
+        if barcode_table["kit_i7"].isna().all() or barcode_table["kit_i5"].isna().all():
+            # atm only if no kits are defined, we go to barcode matching
+            next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+        elif barcode_table["kit_i7"].notna().any():
             next_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         elif self.library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
             next_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

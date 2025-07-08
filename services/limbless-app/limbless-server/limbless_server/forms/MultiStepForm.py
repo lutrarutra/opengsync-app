@@ -96,7 +96,7 @@ class MultiStepForm(HTMXFlaskForm):
         with open(path, "wb") as f:
             pickle.dump({"header": header, **steps}, f)
 
-    def fill_previous_form(self):
+    def fill_previous_form(self, previous_form: StepFile | None):
         logger.warning(f"Workflow '{self.workflow}', step '{self.step_name}', fill_previous_form() not implemented in subclass...")
 
     def complete(self, path: Optional[str] = None):

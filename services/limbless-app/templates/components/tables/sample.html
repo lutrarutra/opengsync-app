@@ -3,7 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="sample-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -50,7 +50,7 @@
                 <th scope="row">{{ sample.id }}</th>
                 <td><a href="{{ url_for('samples_page.sample_page', sample_id=sample.id) }}">{{ sample.name }}</a></td>
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=sample.owner_id) }}">{{ sample.owner.name }}</a> {% if current_user.id == sample.owner_id %} <span class="desc">me</span>{% endif %}</td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=sample.owner_id) }}">{{ sample.owner.name }} {% if current_user.id == sample.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
                 <td>{{ sample.num_libraries }}</td>
             </tr>
             {% endfor %}

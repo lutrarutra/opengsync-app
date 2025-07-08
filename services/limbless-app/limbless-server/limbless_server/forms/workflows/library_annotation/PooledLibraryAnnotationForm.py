@@ -11,7 +11,7 @@ from limbless_db.categories import LibraryType, GenomeRef, AssayType
 from .... import logger, db
 from ....tools import tools
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
-from ...MultiStepForm import MultiStepForm
+from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
 from .PoolMappingForm import PoolMappingForm
 
@@ -122,6 +122,11 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         self.df = self.__map_existing_samples(df)
         return True
     
+    def fill_previous_form(self, previous_form: StepFile):
+        self.spreadsheet.set_data(previous_form.tables["library_table"])
+        assay_type_id = previous_form.metadata.get("assay_type_id")
+        self.assay_type.data = assay_type_id
+    
     def __map_library_types(self, df: pd.DataFrame) -> pd.DataFrame:
         library_type_map = {}
         for id, e in LibraryType.as_tuples():
@@ -186,7 +191,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
                 library_table_data["library_name"].append(library_name)
                 library_table_data["sample_name"].append(sample_name)
-                library_table_data["genome"].append(genome.name)
+                library_table_data["genome"].append(genome.display_name)
                 library_table_data["genome_id"].append(genome.id)
                 library_table_data["library_type"].append(row["library_type"])
                 library_table_data["library_type_id"].append(row["library_type_id"])
