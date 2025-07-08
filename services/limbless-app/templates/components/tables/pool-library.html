@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="pool-library-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -59,7 +59,7 @@
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
-                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='pool@' + pool.id | string) }}">{{ library.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='pool@' + pool.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
                 <td class="barcode-cell">
                     {% for index in library.indices %}
                     {% if index.name_i7 %}

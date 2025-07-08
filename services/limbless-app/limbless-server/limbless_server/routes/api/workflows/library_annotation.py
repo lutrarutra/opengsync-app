@@ -89,7 +89,7 @@ def previous(seq_request_id: int, uuid: str):
 
     prev_step_cls = forms.steps[step_name]
     prev_step = prev_step_cls(uuid=uuid, seq_request=seq_request, **step.args)  # type: ignore
-    prev_step.fill_previous_form()
+    prev_step.fill_previous_form(step)
     return prev_step.make_response()
 
 
@@ -147,6 +147,20 @@ def parse_barcode_table(seq_request_id: int, uuid: str):
             return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.BarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/barcode_match", methods=["POST"])
+@login_required
+def barcode_match(seq_request_id: int, uuid: str):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
+    return forms.BarcodeMatchForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 1.3 Index Kit Mapping

@@ -7,6 +7,7 @@ from flask import Response, url_for
 
 from limbless_db import models
 from limbless_db.categories import LibraryType, AttributeType
+from limbless_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, MissingCellValue, SpreadSheetColumn
@@ -69,7 +70,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         for col in df.columns:
             if col not in [c.label for c in self.columns]:
-                self.columns.append(TextColumn(col, col.replace("_", " ").title(), 100, max_length=64))
+                self.columns.append(TextColumn(col, col.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
@@ -77,6 +78,21 @@ class SampleAttributeAnnotationForm(MultiStepForm):
             formdata=formdata, allow_new_cols=True, allow_col_rename=True, df=df
         )
         self.spreadsheet.columns["sample_name"].source = sample_table["sample_name"].unique().tolist()
+
+    def fill_previous_form(self, previous_form: StepFile):
+        df = previous_form.tables["sample_table"]
+        for col in df.columns:
+            if col.startswith("_attr_"):
+                col = col.removeprefix("_attr_")
+                if col not in self.spreadsheet.columns.keys():
+                    self.spreadsheet.add_column(
+                        label=col, column=TextColumn(
+                            label=col, name=col.replace("_", " ").title(),
+                            width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH
+                        )
+                    )
+        df.columns = df.columns.str.removeprefix("_attr_")
+        self.spreadsheet.set_data(df)
 
     def validate(self) -> bool:
         validated = super().validate()

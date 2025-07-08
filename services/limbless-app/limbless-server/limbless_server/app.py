@@ -10,7 +10,7 @@ from flask_login import login_required
 
 from limbless_db import categories, models, db_session, TIMEZONE, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools
 from .routes import api, pages
 from .tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
 
@@ -36,8 +36,14 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         db=os.environ["POSTGRES_DB"],
     )
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
-    app.config["MEDIA_FOLDER"] = os.path.join("media")
-    app.config["UPLOADS_FOLDER"] = os.path.join("uploads")
+    app.config["MEDIA_FOLDER"] = tools.io.mkdir(os.path.join("media"))
+    app.config["UPLOADS_FOLDER"] = tools.io.mkdir(os.path.join("uploads"))
+    app.config["APP_DATA_FOLDER"] = tools.io.mkdir(os.path.join("app_data"))
+
+    logger.info(f"MEDIA_FOLDER: {app.config['MEDIA_FOLDER']}")
+    logger.info(f"UPLOADS_FOLDER: {app.config['UPLOADS_FOLDER']}")
+    logger.info(f"APP_DATA_FOLDER: {app.config['APP_DATA_FOLDER']}")
+
     if (REDIS_PORT := os.getenv("REDIS_PORT")) is None:
         raise ValueError("REDIS_PORT env-variable not set")
     cache.init_app(app, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
@@ -225,6 +231,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @app.route("/status")
     def status():
         return make_response("OK", 200)
+    
+    from . import update_index_kits
+    update_index_kits(db, app.config["APP_DATA_FOLDER"])
     
     app.register_blueprint(api.htmx.samples_htmx)
     app.register_blueprint(api.htmx.projects_htmx)

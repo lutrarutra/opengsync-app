@@ -2,7 +2,7 @@
 
 {% macro barcode_clashes_table(df) %}
 {% set uuid = uuid4() %}
-<table class="table table-hover">
+<table class="table">
     <thead>
         <tr>
             <th scope="col" class="col-1">Library ID</th>
@@ -46,10 +46,14 @@
             {% endif %}>{{ row["min_hamming_bases"] }} bp</td>
             <td class="barcode-cell">
                 {% if "name_i7" in df.columns and "name_i5" in df.columns %}
-                {% if row["name_i7"] == row["name_i5"] %}
-                <span class="badge index-badge index-badges-{{ uuid }}" >{{ row["name_i7"] }}</span>
+                {% if row["name_i7"] == row["name_i5"] and row["name_i7"] is not none %}
+                <span class="badge index-badge index-badges-{{ uuid }}" >{{ row["name_i7"] }}aaa</span>
                 {% else %}
+                {% if row["name_i7"] %}
                 <span class="badge index-badge index-badges-{{ uuid }}">{{ row["name_i7"] }}{% if row["name_i5"] %}+{{ row["name_i5"] }}{% endif %}</span>
+                {% else %}
+                <span class="badge index-badge index-badges-{{ uuid }}">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                {% endif %}
                 {% endif %}
                 <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
                 {% else %}

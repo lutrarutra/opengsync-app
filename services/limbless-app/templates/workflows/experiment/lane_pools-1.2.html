@@ -15,7 +15,7 @@
                 {{ metadata_group("Library Volume", "%0.1f" % df["pipet"].sum(), class="col-3", input_id="total_volume", unit="μL") }}
                 {{ metadata_group("EB Volume", "%0.1f" % (lane_pooling_form.target_total_volume.data - df["pipet"].sum()), class="col-3", input_id="eb_volume", unit="μL") }}
             </div>
-            <table class="table table-hover">
+            <table class="table">
                 <thead>
                     <tr>
                         <th class="col-3 bg-light" scope="col">Pool</th>

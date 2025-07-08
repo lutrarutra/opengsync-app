@@ -16,6 +16,7 @@ from .FeatureAnnotationForm import FeatureAnnotationForm  # noqa: F401
 from .FlexAnnotationForm import FlexAnnotationForm  # noqa: F401
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm  # noqa: F401
 from .CompleteSASForm import CompleteSASForm  # noqa: F401
+from .BarcodeMatchForm import BarcodeMatchForm  # noqa: F401
 
 
 if TYPE_CHECKING:
@@ -31,6 +32,7 @@ _steps: list[type["MultiStepForm"]] = [
     PooledLibraryAnnotationForm,
     PoolMappingForm,
     BarcodeInputForm,
+    BarcodeMatchForm,
     IndexKitMappingForm,
     VisiumAnnotationForm,
     CMOAnnotationForm,

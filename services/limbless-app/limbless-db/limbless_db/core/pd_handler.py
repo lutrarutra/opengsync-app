@@ -519,7 +519,7 @@ def get_index_kit_barcodes_df(self: "DBHandler", index_kit_id: int, per_adapter:
     df["name"] = df["name"].astype(str)
     df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
 
-    if per_adapter:
+    if per_adapter or per_index:
         df = df.groupby(
             df.columns.difference(["id", "sequence", "name", "type_id", "type"]).tolist(), as_index=False, dropna=False
         ).agg(
@@ -529,14 +529,58 @@ def get_index_kit_barcodes_df(self: "DBHandler", index_kit_id: int, per_adapter:
         )
 
     if per_index:
-        df = (
-            df.pivot(index="adapter_id", columns=["type_id"], values=["sequence", "name"])
-            .reset_index()
-        )
-        df.columns = [
-            n if not _id else n + {categories.BarcodeType.INDEX_I7.id: "_i7", categories.BarcodeType.INDEX_I5.id: "_i5"}[_id]  # type: ignore
-            for n, _id in df.columns
-        ]
+        if (index_kit := self.get_index_kit(index_kit_id)) is None:
+            raise ValueError(f"Index kit with ID {index_kit_id} not found.")
+        
+        if index_kit.type == categories.IndexType.TENX_ATAC_INDEX:
+            barcode_data = {
+                "well": [],
+                "adapter_id": [],
+                "name": [],
+                "sequence_1": [],
+                "sequence_2": [],
+                "sequence_3": [],
+                "sequence_4": [],
+            }
+            for _, row in df.iterrows():
+                barcode_data["well"].append(row["well"])
+                barcode_data["name"].append(row["names"][0])
+                barcode_data["adapter_id"].append(row["adapter_id"])
+                for i in range(4):
+                    barcode_data[f"sequence_{i + 1}"].append(row["sequences"][i])
+        elif index_kit.type == categories.IndexType.DUAL_INDEX:
+            barcode_data = {
+                "well": [],
+                "adapter_id": [],
+                "name_i7": [],
+                "sequence_i7": [],
+                "name_i5": [],
+                "sequence_i5": [],
+            }
+            for _, row in df.iterrows():
+                barcode_data["well"].append(row["well"])
+                barcode_data["adapter_id"].append(row["adapter_id"])
+                for i in range(2):
+                    if row["types"][i] == categories.BarcodeType.INDEX_I7:
+                        barcode_data["name_i7"].append(row["names"][i])
+                        barcode_data["sequence_i7"].append(row["sequences"][i])
+                    else:
+                        barcode_data["name_i5"].append(row["names"][i])
+                        barcode_data["sequence_i5"].append(row["sequences"][i])
+        elif index_kit.type == categories.IndexType.SINGLE_INDEX:
+            barcode_data = {
+                "well": [],
+                "adapter_id": [],
+                "name": [],
+                "sequence_i7": [],
+            }
+            for _, row in df.iterrows():
+                barcode_data["adapter_id"].append(row["adapter_id"])
+                barcode_data["well"].append(row["well"])
+                barcode_data["name"].append(row["names"][0])
+                barcode_data["sequence_i7"].append(row["sequences"][0])
+
+        df = pd.DataFrame(barcode_data)
 
     return df
 
@@ -637,7 +681,7 @@ def get_project_libraries_df(self: "DBHandler", project_id: int) -> pd.DataFrame
         models.Lane.number.label("lane"), models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Library.id.label("library_id")
     ).where(
-        and_(models.Experiment.id.in_(experiment_ids), models.Library.id.in_(libraries_ids)) 
+        and_(models.Experiment.id.in_(experiment_ids), models.Library.id.in_(libraries_ids))
     ).join(
         models.Lane,
         models.Lane.experiment_id == models.Experiment.id

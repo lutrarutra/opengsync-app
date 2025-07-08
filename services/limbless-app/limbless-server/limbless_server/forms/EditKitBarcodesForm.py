@@ -46,30 +46,10 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=EditDualIndexKitBarcodesForm.columns, csrf_token=csrf_token,
-            post_url="", formdata=formdata, df=self.__fill_form(),
+            post_url="", formdata=formdata,
+            df=db.get_index_kit_barcodes_df(self.index_kit.id, per_index=True),
             allow_new_rows=True
         )
-
-    def __fill_form(self):
-        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id, per_adapter=True)
-        barcode_data = {
-            "well": [],
-            "name_i7": [],
-            "sequence_i7": [],
-            "name_i5": [],
-            "sequence_i5": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            for i in range(2):
-                if row["types"][i] == BarcodeType.INDEX_I7:
-                    barcode_data["name_i7"].append(row["names"][i])
-                    barcode_data["sequence_i7"].append(row["sequences"][i])
-                else:
-                    barcode_data["name_i5"].append(row["names"][i])
-                    barcode_data["sequence_i5"].append(row["sequences"][i])
-
-        return pd.DataFrame(barcode_data)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -184,24 +164,11 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
-            post_url="", formdata=formdata, df=self.__fill_form(),
+            post_url="", formdata=formdata,
+            df=db.get_index_kit_barcodes_df(self.index_kit.id, per_index=True),
             allow_new_rows=True
         )
 
-    def __fill_form(self):
-        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id, per_adapter=True)
-        barcode_data = {
-            "well": [],
-            "name": [],
-            "sequence": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            barcode_data["name"].append(row["names"][0])
-            barcode_data["sequence"].append(row["sequences"][0])
-
-        return pd.DataFrame(barcode_data)
-    
     def validate(self) -> bool:
         if not super().validate():
             return False
@@ -292,27 +259,10 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
-            post_url="", formdata=formdata, df=self.__fill_form(),
+            post_url="", formdata=formdata,
+            df=db.get_index_kit_barcodes_df(self.index_kit.id, per_index=True),
             allow_new_rows=True
         )
-
-    def __fill_form(self):
-        barcodes = db.get_index_kit_barcodes_df(self.index_kit.id, per_adapter=True)
-        barcode_data = {
-            "well": [],
-            "index_name": [],
-            "sequence_1": [],
-            "sequence_2": [],
-            "sequence_3": [],
-            "sequence_4": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            barcode_data["index_name"].append(row["names"][0])
-            for i in range(4):
-                barcode_data[f"sequence_{i + 1}"].append(row["sequences"][i])
-    
-        return pd.DataFrame(barcode_data)
 
     def validate(self) -> bool:
         if not super().validate():

@@ -4,7 +4,7 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 
 <div id="experiment-pool-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -47,7 +47,7 @@
                 }}
                 <th class="col-1" scope="col">Library Size</th>
                 <th class="col-1" scope="col" {{ tooltip("Sample molarity of the pool") }}>Molarity</th>
-                <th class="col-1" scope="col"># Reads</th>
+                <th class="col-2" scope="col"># Reads</th>
             </tr>
         </thead>
         <tbody>
@@ -89,7 +89,7 @@
                     {% endif %}
                 </td>
                 <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }}</a> <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>
                 <td>{{ pool.num_libraries }}</td>
                 <td class="avg_fragment_size-col">
                     <div class="quantity-container">
@@ -105,7 +105,7 @@
                 </td>
                 <td>
                     <div class="quantity-container" {{ tooltip("Planned / Requested") }}>
-                        <div class="value">{{ pool.reads_planned() | int }} / {{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
+                        <div class="value">{{ pool.reads_planned() | int }}/{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
                         <div class="unit">M</div>
                     </div>
                 </td>

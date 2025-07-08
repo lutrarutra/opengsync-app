@@ -129,61 +129,16 @@ def get_adapters(index_kit_id: int, page: int):
 @index_kits_htmx.route("<int:index_kit_id>/render_table", methods=["GET"])
 @db_session(db)
 @login_required
-@cache.cached(timeout=300, query_string=True)
 def render_table(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    barcodes = db.get_index_kit_barcodes_df(index_kit_id, per_adapter=True)
-
-    if index_kit.type == IndexType.TENX_ATAC_INDEX:
-        barcode_data = {
-            "well": [],
-            "index_name": [],
-            "sequence_1": [],
-            "sequence_2": [],
-            "sequence_3": [],
-            "sequence_4": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            barcode_data["index_name"].append(row["names"][0])
-            for i in range(4):
-                barcode_data[f"sequence_{i + 1}"].append(row["sequences"][i])
-    elif index_kit.type == IndexType.DUAL_INDEX:
-        barcode_data = {
-            "well": [],
-            "index_name_i7": [],
-            "sequence_i7": [],
-            "index_name_i5": [],
-            "sequence_i5": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            for i in range(2):
-                if row["types"][i] == BarcodeType.INDEX_I7:
-                    barcode_data["index_name_i7"].append(row["names"][i])
-                    barcode_data["sequence_i7"].append(row["sequences"][i])
-                else:
-                    barcode_data["index_name_i5"].append(row["names"][i])
-                    barcode_data["sequence_i5"].append(row["sequences"][i])
-    elif index_kit.type == IndexType.SINGLE_INDEX:
-        barcode_data = {
-            "well": [],
-            "index_name": [],
-            "sequence_i7": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            barcode_data["index_name"].append(row["names"][0])
-            barcode_data["sequence_i7"].append(row["sequences"][0])
-
-    df = pd.DataFrame(barcode_data)
+    df = db.get_index_kit_barcodes_df(index_kit_id, per_index=True)
 
     columns = []
     for i, col in enumerate(df.columns):
         if "sequence" in col:
-            width = 300
+            width = 200
         elif "well" in col:
             width = 100
         else:

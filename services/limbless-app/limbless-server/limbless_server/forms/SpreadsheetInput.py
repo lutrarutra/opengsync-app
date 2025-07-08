@@ -45,17 +45,19 @@ class SpreadsheetInput(FlaskForm):
         self.col_title_map = dict([(col.name, col.label) for col in self.columns.values()])
 
         if df is not None:
-            _df = df.copy()
-            for col in self.columns.keys():
-                if col not in _df.columns:
-                    _df[col] = None
-                
-            self._data = _df[self.columns.keys()].replace(np.nan, "").values.tolist()
+            self.set_data(df)
 
         if formdata is not None and (data := formdata.get("spreadsheet")) is not None:
             self._data = json.loads(data)
 
-        self.__df = df
+    def set_data(self, data: pd.DataFrame):
+        _df = data.copy()
+        for col in self.columns.keys():
+            if col not in _df.columns:
+                _df[col] = None
+            
+        self._data = _df[self.columns.keys()].replace(np.nan, "").values.tolist()
+        self.__df = _df
 
     def add_column(self, label: str, column: SpreadSheetColumn):
         if label in self.columns.keys():
