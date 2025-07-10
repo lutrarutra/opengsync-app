@@ -126,13 +126,13 @@ def query():
     )
 
 
-@samples_htmx.route("table_query", methods=["POST"])
+@samples_htmx.route("table_query", methods=["GET"])
 @db_session(db)
 @login_required
 def table_query():
-    if (word := request.form.get("name", None)) is not None:
+    if (word := request.args.get("name", None)) is not None:
         field_name = "name"
-    elif (word := request.form.get("id", None)) is not None:
+    elif (word := request.args.get("id", None)) is not None:
         field_name = "id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -162,6 +162,7 @@ def table_query():
             except ValueError:
                 return []
             if (sample := session.get_sample(_id)) is not None:
+                samples = [sample]
                 if _user_id is not None:
                     if sample.owner_id == _user_id:
                         samples = [sample]
@@ -177,6 +178,7 @@ def table_query():
                         samples = [sample]
                     else:
                         samples = []
+                
         else:
             assert False    # This should never happen
 

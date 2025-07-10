@@ -17,7 +17,7 @@
                     table_col(
                         table_container_id='user-project-table', column_name='Name', column_var='name',
                         sort_url='users_htmx.get_projects', context={'user_id': user.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=6
+                        sort_by=sort_by, sort_order=sort_order, col_size=9
                     )
                 }}
                 <th scope="col col-2"># Samples</th>
@@ -25,9 +25,9 @@
         </thead>
         <tbody>
             {% for project in projects %}
-            <tr onclick="redirect('{{ url_for('projects_page.project_page', project_id=project.id, from='user@' + user.id | string) }}');">
+            <tr>
                 <th scope="row">{{ project.id }}</th>
-                <td>{{ project.name }}</td>
+                <td><a href="{{ url_for('projects_page.project_page', project_id=project.id, from='user@' + user.id | string) }}">{{ project.name }}</a></td>
                 <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}

@@ -226,9 +226,10 @@ def table_query():
         try:
             _id = int(word)
             if (library := db.get_library(_id)) is not None:
+                libraries = [library]
                 if user_id is not None:
-                    if library.owner_id == user_id:
-                        libraries = [library]
+                    if library.owner_id != user_id:
+                        libraries = []
                 if status_in is not None and library.status not in status_in:
                     libraries = []
                 if type_in is not None and library.type not in type_in:
@@ -558,11 +559,11 @@ def get_flex_table(library_id: int):
     
     df = db.get_library_samples_df(library.id)
 
-    df = df[["sample_name", "flex_barcode"]]
+    df = df[["sample_name", "mux_barcode"]]
 
     columns = []
     for i, col in enumerate(df.columns):
-        if col == "flex_barcode":
+        if col == "mux_barcode":
             width = 100
         else:
             width = 300
@@ -591,7 +592,7 @@ def get_hto_table(library_id: int):
     
     df = db.get_library_samples_df(library.id)
 
-    df = df[["sample_name", "cmo_sequence", "cmo_pattern", "cmo_read"]]
+    df = df[["sample_name", "mux_barcode", "mux_pattern", "mux_read"]]
 
     columns = []
     for i, col in enumerate(df.columns):

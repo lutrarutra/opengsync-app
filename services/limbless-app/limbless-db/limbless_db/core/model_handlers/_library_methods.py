@@ -7,7 +7,10 @@ from sqlalchemy.sql.operators import or_, and_  # noqa F401
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus, AccessType, AccessTypeEnum, AssayTypeEnum
+from ...categories import (
+    LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus,
+    AccessType, AccessTypeEnum, AssayTypeEnum, MUXTypeEnum
+)
 from .. import exceptions
 
 
@@ -20,6 +23,8 @@ def create_library(
     seq_request_id: int,
     genome_ref: GenomeRefEnum,
     assay_type: AssayTypeEnum,
+    nuclei_isolation: bool = False,
+    mux_type: MUXTypeEnum | None = None,
     pool_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
     visium_annotation_id: Optional[int] = None,
@@ -65,7 +70,9 @@ def create_library(
         lab_prep_id=lab_prep_id,
         status_id=status.id,
         visium_annotation_id=visium_annotation_id,
-        seq_depth_requested=seq_depth_requested
+        seq_depth_requested=seq_depth_requested,
+        nuclei_isolation=nuclei_isolation,
+        mux_type_id=mux_type.id if mux_type is not None else None
     )
 
     self.session.add(library)
@@ -535,16 +542,15 @@ def clone_library(self: "DBHandler", library_id: int, seq_request_id: int, index
         owner_id=library.owner_id, genome_ref=library.genome_ref,
         visium_annotation_id=library.visium_annotation_id,
         assay_type=library.assay_type,
+        mux_type=library.mux_type,
     )
 
     for sample_link in library.sample_links:
         self.link_sample_library(
             sample_id=sample_link.sample_id,
             library_id=cloned_library.id,
-            cmo_sequence=sample_link.cmo_sequence,
-            cmo_read=sample_link.cmo_read,
-            cmo_pattern=sample_link.cmo_pattern,
-            flex_barcode=sample_link.flex_barcode
+            mux=sample_link.mux,
+            mux_type=sample_link.mux_type
         )
 
     for feature in library.features:

@@ -5,7 +5,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from limbless_db import models
-from limbless_db.categories import LibraryType
+from limbless_db.categories import LibraryType, IndexType
 
 from .... import logger, tools, db  # noqa F401
 from ...MultiStepForm import MultiStepForm, StepFile
@@ -13,12 +13,13 @@ from ...MultiStepForm import MultiStepForm, StepFile
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue
 from ...SpreadsheetInput import SpreadsheetInput
 from .IndexKitMappingForm import IndexKitMappingForm
-from .CMOAnnotationForm import CMOAnnotationForm
+from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 from .BarcodeMatchForm import BarcodeMatchForm
+from .OCMAnnotationForm import OCMAnnotationForm
 
 
 class BarcodeInputForm(MultiStepForm):
@@ -131,7 +132,6 @@ class BarcodeInputForm(MultiStepForm):
             return self.make_response()
         
         barcode_table_data = {
-            "library_name": [],
             "index_well": [],
             "kit_i7": [],
             "name_i7": [],
@@ -139,6 +139,7 @@ class BarcodeInputForm(MultiStepForm):
             "kit_i5": [],
             "name_i5": [],
             "sequence_i5": [],
+            "library_name": [],
         }
         
         for idx, row in self.df.iterrows():
@@ -160,21 +161,30 @@ class BarcodeInputForm(MultiStepForm):
         barcode_table["kit_i7_name"] = None
         barcode_table["kit_i5_id"] = None
         barcode_table["kit_i5_name"] = None
+        barcode_table["index_type_id"] = None
+
+        barcode_table.loc[(barcode_table["sequence_i7"].notna() & barcode_table["sequence_i5"].notna()), "index_type_id"] = IndexType.DUAL_INDEX.id
+        barcode_table.loc[(barcode_table["sequence_i7"].notna() & barcode_table["sequence_i5"].isna()), "index_type_id"] = IndexType.SINGLE_INDEX.id
+        for (library_name, library_type_id), _ in self.library_table.groupby(["library_name", "library_type_id"]):
+            if LibraryType.get(library_type_id) == LibraryType.TENX_SC_ATAC:
+                barcode_table.loc[barcode_table["library_name"] == library_name, "index_type_id"] = IndexType.TENX_ATAC_INDEX.id
+
         self.add_table("barcode_table", barcode_table)
         self.update_data()
 
-        if barcode_table["kit_i7"].isna().all() or barcode_table["kit_i5"].isna().all():
-            # atm only if no kits are defined, we go to barcode matching
+        if BarcodeMatchForm.is_applicable(self):
             next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
-        elif barcode_table["kit_i7"].notna().any():
+        elif IndexKitMappingForm.is_applicable(self):
             next_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
-        elif self.library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
-            next_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        elif OCMAnnotationForm.is_applicable(self):
+            next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OligoMuxAnnotationForm.is_applicable(self):
+            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif ((self.library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (self.library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+        elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif LibraryType.TENX_SC_GEX_FLEX.id in self.library_table["library_type_id"].values:
+        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

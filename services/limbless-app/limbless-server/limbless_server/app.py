@@ -219,6 +219,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             KitType=categories.KitType,
             ProjectStatus=categories.ProjectStatus,
             FileType=categories.FileType,
+            MUXType=categories.MUXType,
             SpreadSheetErrors=[InvalidCellValue(""), MissingCellValue(""), DuplicateCellValue("")],
             isna=pd.isna,
             notna=pd.notna,

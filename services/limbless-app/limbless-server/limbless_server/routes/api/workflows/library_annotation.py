@@ -221,6 +221,22 @@ def parse_table(seq_request_id: int, uuid: str, form_type: Literal["pooled", "ra
     return form.process_request()
 
 
+# 6. Specify OCM reference
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_ocm_reference", methods=["POST"])
+@db_session(db)
+@login_required
+def parse_ocm_reference(seq_request_id: int, uuid: str):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
+    return forms.OCMAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+
 # 6. Specify CMO reference
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_cmo_reference", methods=["POST"])
 @db_session(db)
@@ -234,7 +250,7 @@ def parse_cmo_reference(seq_request_id: int, uuid: str):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.CMOAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+    return forms.OligoMuxAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 7. Specify Features

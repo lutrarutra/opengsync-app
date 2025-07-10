@@ -179,13 +179,13 @@ def complete(project_id: int):
     return make_response(redirect=url_for("projects_page.project_page", project_id=project.id))
 
 
-@projects_htmx.route("table_query", methods=["POST"])
+@projects_htmx.route("table_query", methods=["GET"])
 @db_session(db)
 @login_required
 def table_query():
-    if (word := request.form.get("name", None)) is not None:
+    if (word := request.args.get("name", None)) is not None:
         field_name = "name"
-    elif (word := request.form.get("id", None)) is not None:
+    elif (word := request.args.get("id", None)) is not None:
         field_name = "id"
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)

@@ -28,9 +28,9 @@
         </thead>
         <tbody>
             {% for affiliation in affiliations %}
-            <tr onclick="redirect('{{ url_for('groups_page.group_page', group_id=affiliation.group_id, from='user@' + user.id | string) }}');">
+            <tr>
                 <th scope="row">{{ affiliation.group_id }}</th>
-                <td>{{ affiliation.group.name }}</td>
+                <td><a href="{{ url_for('groups_page.group_page', group_id=affiliation.group_id, from='user@' + user.id | string) }}">{{ affiliation.group.name }}</a></td>
                 <td>{{ affiliation.affiliation_type.name }} {{ affiliation.affiliation_type.icon }}</td>
             </tr>
             {% endfor %}

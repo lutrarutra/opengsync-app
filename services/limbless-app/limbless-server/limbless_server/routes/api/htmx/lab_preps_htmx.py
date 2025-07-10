@@ -546,13 +546,13 @@ def get_mux_table(lab_prep_id: int):
     
     df = db.get_lab_prep_samples_df(lab_prep.id)
 
-    df = df[["sample_name", "sample_pool", "flex_barcode", "cmo_sequence", "cmo_pattern", "cmo_read", "library_name"]]
+    df = df[["sample_name", "sample_pool", "mux_barcode", "mux_barcode", "mux_pattern", "mux_read", "library_name"]]
 
     columns = []
     for i, col in enumerate(df.columns):
-        if col == "flex_barcode":
+        if col == "mux_barcode":
             width = 100
-        elif col == "cmo_read":
+        elif col == "mux_read":
             width = 100
         elif "cmo" in col:
             width = 200

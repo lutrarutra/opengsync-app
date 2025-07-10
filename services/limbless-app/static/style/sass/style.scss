@@ -13,6 +13,7 @@
 @import "calendar.scss";
 @import "progress_bar.scss";
 @import "banner.scss";
+@import "form.scss";
 
 .spreadsheet-grid {
     tbody td {
@@ -51,30 +52,17 @@ input[type=number] {
     .no-break { page-break-inside: avoid; }
 }
 
-.row {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-.row>* {
-    padding: 0;
-    padding-left: 10px;
-    padding-right: 10px;
-}
-
-.row>*:first-child {
-    padding-left: 0;
-}
-
-.row>*:last-child {
-    padding-right: 0;
-}
-
 .badge {
     background-color: $cemm-blue;
+    a {
+        color: $white !important;
+        text-decoration: none;
+    }
 }
 
+.row {
+    --bs-gutter-x: 0 !important;
+}
 
 body {
     background-color: $light;

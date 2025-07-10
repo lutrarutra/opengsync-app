@@ -168,7 +168,7 @@ def test_library_links(db: DBHandler):
     libraries = []
     for _ in range(NUM_LIBRARIES):
         library = create_library(db, user, seq_request)
-        db.link_sample_library(sample.id, library.id, cmo_sequence="sequence", cmo_pattern="pattern", cmo_read="read")
+        db.link_sample_library(sample.id, library.id, mux_barcode="sequence", mux_pattern="pattern", mux_read="read")
         libraries.append(library)
     
     with DBSession(db) as session:
@@ -231,7 +231,7 @@ def test_cmos_links(db: DBHandler):
 
     for _ in range(NUM_SAMPLES):
         sample = create_sample(db, user, project)
-        db.link_sample_library(sample.id, library.id, cmo_sequence="sequence", cmo_pattern="pattern", cmo_read="read")
+        db.link_sample_library(sample.id, library.id, mux_barcode="sequence", mux_pattern="pattern", mux_read="read")
 
     with DBSession(db) as session:
         user = session.get_user(user.id)

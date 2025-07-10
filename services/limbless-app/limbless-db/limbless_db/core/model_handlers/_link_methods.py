@@ -2,6 +2,7 @@ import math
 from typing import Optional, TYPE_CHECKING
 
 from ... import models, PAGE_LIMIT
+from ...categories import MUXTypeEnum
 from .. import exceptions
 
 if TYPE_CHECKING:
@@ -45,10 +46,8 @@ def update_sample_library_link(
 
 def link_sample_library(
     self: "DBHandler", sample_id: int, library_id: int,
-    cmo_sequence: Optional[str] = None,
-    cmo_pattern: Optional[str] = None,
-    cmo_read: Optional[str] = None,
-    flex_barcode: Optional[str] = None,
+    mux: Optional[dict] = None,
+    mux_type: Optional[MUXTypeEnum] = None,
 ) -> models.links.SampleLibraryLink:
     
     if not (persist_session := self._session is not None):
@@ -67,11 +66,10 @@ def link_sample_library(
         raise exceptions.LinkAlreadyExists(f"Sample with id {sample_id} and Library with id {library_id} are already linked")
     
     sample_library_link = models.links.SampleLibraryLink(
-        sample_id=sample_id, library_id=library_id,
-        cmo_sequence=cmo_sequence,
-        cmo_pattern=cmo_pattern,
-        cmo_read=cmo_read,
-        flex_barcode=flex_barcode,
+        sample_id=sample_id,
+        library_id=library_id,
+        mux_type_id=mux_type.id if mux_type else None,
+        mux=mux,
     )
 
     self.session.add(sample_library_link)

@@ -5,7 +5,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, FeatureType, SubmissionType
+from limbless_db.categories import LibraryType, FeatureType
 
 from .... import db, logger, tools  # noqa
 from ...MultiStepForm import MultiStepForm
@@ -30,6 +30,10 @@ class FeatureAnnotationForm(MultiStepForm):
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length),
         TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
+
+    @staticmethod
+    def is_applicable(previous_form: MultiStepForm) -> bool:
+        return previous_form.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id]).any()
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
@@ -222,11 +226,11 @@ class FeatureAnnotationForm(MultiStepForm):
         self.add_table("feature_table", self.feature_table)
         self.update_data()
 
-        if kit_table["kit_id"].isna().any():
+        if KitMappingForm.is_applicable(self):
             next_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES and LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

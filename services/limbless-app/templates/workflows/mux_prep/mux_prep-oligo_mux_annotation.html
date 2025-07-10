@@ -2,7 +2,7 @@
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 
-<div id="cmo_annotation-form-container" class="modal-content">
+<div id="oligo_mux_annotation-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Sample Multiplexing</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
@@ -51,8 +51,8 @@
             
 
             $("#parse-spreadsheet-btn").on("click", function() {
-                htmx.ajax("POST", "{{ url_for('mux_prep_workflow.parse_cmo_annotation', lab_prep_id=lab_prep.id, uuid=form.uuid) }}", {
-                    "target": "#cmo_annotation-form-container",
+                htmx.ajax("POST", "{{ url_for('mux_prep_workflow.parse_oligo_mux_annotation', lab_prep_id=lab_prep.id, uuid=form.uuid) }}", {
+                    "target": "#oligo_mux_annotation-form-container",
                     "swap": "outerHTML",
                     "values": {
                         "spreadsheet": JSON.stringify(spread_sheet.getData()),

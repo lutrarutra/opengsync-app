@@ -12,11 +12,12 @@ from ....tools import tools
 from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
-from .CMOAnnotationForm import CMOAnnotationForm
+from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
+from .OCMAnnotationForm import OCMAnnotationForm
 
 
 class LibraryAnnotationForm(MultiStepForm):
@@ -155,10 +156,14 @@ class LibraryAnnotationForm(MultiStepForm):
 
         sample_table = pd.DataFrame(sample_table_data)
         sample_table["sample_id"] = None
-        sample_table["cmo_sequence"] = None
-        sample_table["cmo_pattern"] = None
-        sample_table["cmo_read"] = None
-        sample_table["flex_barcode"] = None
+        sample_table["mux_barcode"] = None
+        sample_table["mux_pattern"] = None
+        sample_table["mux_read"] = None
+        sample_table["mux_type_id"] = None
+
+        for idx, row in sample_table.iterrows():
+            if LibraryType.TENX_MUX_OLIGO.id in library_table.loc[library_table["sample_name"] == row["sample_name"]]["library_type_id"].values:
+                sample_table.at[idx, "mux_type_id"] = LibraryType.TENX_MUX_OLIGO.id
 
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
@@ -175,13 +180,15 @@ class LibraryAnnotationForm(MultiStepForm):
         self.add_table("pooling_table", pooling_table)
         self.update_data()
         
-        if library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
-            next_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        if OCMAnnotationForm.is_applicable(self):
+            next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        if OligoMuxAnnotationForm.is_applicable(self):
+            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+        elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

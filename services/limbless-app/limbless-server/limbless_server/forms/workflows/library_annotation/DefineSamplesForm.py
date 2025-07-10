@@ -44,7 +44,6 @@ class DefineSamplesForm(MultiStepForm):
         )
 
         self.assay_type = AssayType.get(int(self.metadata["assay_type_id"]))
-        self.antibody_multiplexing = self.metadata["antibody_multiplexing"]
         self.nuclei_isolation = self.metadata["nuclei_isolation"]
         self.antibody_capture = self.metadata["antibody_capture"]
         self.vdj_b = self.metadata["vdj_b"]
@@ -82,8 +81,6 @@ class DefineSamplesForm(MultiStepForm):
             selected_library_types.append(LibraryType.TENX_VDJ_T_GD.abbreviation)
         if self.crispr_screening:
             selected_library_types.append(LibraryType.TENX_CRISPR_SCREENING.abbreviation)
-        if self.antibody_multiplexing:
-            selected_library_types.append(LibraryType.TENX_MULTIPLEXING_CAPTURE.abbreviation)
 
         for idx, row in df.iterrows():
             if sample_name_counts[row["sample_name"]] > 1:
@@ -174,10 +171,10 @@ class DefineSamplesForm(MultiStepForm):
 
         sample_table = pd.DataFrame(sample_table_data)
         sample_table["sample_id"] = None
-        sample_table["cmo_sequence"] = None
-        sample_table["cmo_pattern"] = None
-        sample_table["cmo_read"] = None
-        sample_table["flex_barcode"] = None
+        sample_table["mux_barcode"] = None
+        sample_table["mux_pattern"] = None
+        sample_table["mux_read"] = None
+        sample_table["mux_type_id"] = None
 
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
@@ -194,9 +191,9 @@ class DefineSamplesForm(MultiStepForm):
         self.add_table("pooling_table", pooling_table)
         self.update_data()
 
-        if ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+        if FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

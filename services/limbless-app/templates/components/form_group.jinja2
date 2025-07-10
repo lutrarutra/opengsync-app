@@ -1,19 +1,21 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 
-{% macro form_group(field, class="", id=none, disabled=false, trigger_dest_id=none, autocomplete="on", unit=none, placeholder=none) -%}
+{% macro form_group(field, class="", id=none, disabled=false, trigger_dest_id=none, autocomplete="on", unit=none, placeholder=none, hide_label=false) -%}
 <div class="{{class}} form-group">
+    {% if not hide_label %}
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
     {% endif %}>
         {{ field.label }}
     </a>
+    {% endif %}
     {% if unit %}
     <div class="input-with-unit">
     {% endif %}
     {{ 
         field(
             class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else ""), 
-            placeholder=("" if disabled else (placeholder if placeholder else ("Required" if field.flags.required else "Optional"))),
+            placeholder=((placeholder if placeholder else "") if disabled else (placeholder if placeholder else ("Required" if field.flags.required else "Optional"))),
             readonly=disabled, value=field.data if field.data else "",
             onchange="htmx.trigger('#" + trigger_dest_id + "', 'change');" if trigger_dest_id else "",
             id=(id if id else field.name), autocomplete=autocomplete
@@ -34,7 +36,7 @@
 {%- endmacro %}
 
 {% macro switch_input(field, class='', disabled=false, collapse_element_id=none) -%}
-<div class="form-check form-switch {{ class }} pb-3">
+<div class="form-group form-check form-switch {{ class }}">
     {% if collapse_element_id %}
         {% if field.data == True %}
         <input type="checkbox" id="{{ field.id }}" checked name="{{ field.name }}" class="form-check-input" data-bs-toggle="collapse" data-bs-target="#{{collapse_element_id}}" aria-expanded="{{ 'true' if field.data else 'false' }}" aria-controls="{{collapse_element_id}}">
@@ -50,7 +52,7 @@
 
 
 {% macro checkbox_input(field, class='', disabled=false) -%}
-<div class="form-check {{ class }} pb-3">
+<div class="form-group form-check {{ class }}">
     {{ field(class="form-check-input") }}
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
@@ -74,17 +76,19 @@
     {% endif %}>
         {{ field.label }}
     </a>
-    <select class="form-control select-field {% if field.errors %}is-invalid{% endif %}"
-    name="{{ field.name }}" id="{{ field.id }}">
-        {% for choice in field.iter_choices() %}
-        <option value="{{ choice[0] }}"
-        {% if choice[2] %}
-        selected
-        {% endif %}>
-            {{ choice[1] }}
-        </option>
-        {% endfor %}
-    </select>
+    <div class="select-container">
+        <select class="form-control select-field {% if field.errors %}is-invalid{% endif %}"
+        name="{{ field.name }}" id="{{ field.id }}">
+            {% for choice in field.iter_choices() %}
+            <option value="{{ choice[0] }}"
+            {% if choice[2] %}
+            selected
+            {% endif %}>
+                {{ choice[1] }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
     <div class="invalid-feedback-container">
         {% if not disabled %}
         {% for error in field.errors %}
@@ -165,5 +169,26 @@
         {% endfor %}
         {% endif %}
     </div>
+{% endmacro %}
+
+{% macro radio_input(field, class='') %}
+<div class="{{ class }} form-group">
+    <span class="form-check">
+        <label><b>{{ field.label }}</b></label>
+        {% for subfield in field %}
+        <div class="form-check">
+        {{ subfield(class="form-check-input", id=subfield.id) }}
+        <label class="form-check-label" for="{{ subfield.id }}">{{ subfield.label.text }}</label>
+        </div>
+        {% endfor %}
+    </span>
+    <div class="invalid-feedback-container">
+        {% if not disabled %}
+        {% for error in field.errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        {% endif %}
+    </div>
+</div>
 {% endmacro %}
 

@@ -31,7 +31,7 @@ def begin(lab_prep_id: int, multiplexing_type: Literal["cmo", "flex"]):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if multiplexing_type == "cmo":
-        form = forms.CMOMuxForm(lab_prep=lab_prep)
+        form = forms.OligoMuxForm(lab_prep=lab_prep)
         return form.make_response()
     elif multiplexing_type == "flex":
         form = forms.FlexMuxForm(lab_prep=lab_prep)
@@ -40,14 +40,14 @@ def begin(lab_prep_id: int, multiplexing_type: Literal["cmo", "flex"]):
     return abort(HTTPResponse.BAD_REQUEST.id)
 
 
-@mux_prep_workflow.route("<int:lab_prep_id>/parse_cmo_annotation/<string:uuid>", methods=["POST"])
+@mux_prep_workflow.route("<int:lab_prep_id>/parse_oligo_mux_annotation/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def parse_cmo_annotation(lab_prep_id: int, uuid: str):
+def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    return forms.CMOMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
+    return forms.OligoMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
 
 
 @mux_prep_workflow.route("<int:lab_prep_id>/parse_flex_annotation/<string:uuid>", methods=["POST"])

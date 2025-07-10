@@ -4,19 +4,21 @@ from typing import Optional
 import pandas as pd
 
 from flask import Response, current_app
-from wtforms import SelectField
+from wtforms import SelectField, RadioField
+from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, IndexType
+from limbless_db.categories import IndexType, IndexTypeEnum
 
 from .... import logger, tools, db  # noqa F401
 from ...MultiStepForm import MultiStepForm
 
-from .CMOAnnotationForm import CMOAnnotationForm
+from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .OCMAnnotationForm import OCMAnnotationForm
 
 
 class BarcodeMatchForm(MultiStepForm):
@@ -26,7 +28,32 @@ class BarcodeMatchForm(MultiStepForm):
 
     i7_kit = SelectField(label="i7 Kit", coerce=int)
     i5_kit = SelectField(label="i5 Kit", coerce=int)
+    i7_option = RadioField(
+        "Index i7 was not found in the database. Please select how to proceed:",
+        choices=[
+            ("forward", "I have provided i7 barcodes in forward orientation"),
+            ("rc", "I have provided i7 barcodes in reverse complement orientation"),
+            ("idk", "I don't know in which orientation the i7 barcodes are provided"),
+        ],
+        validators=[OptionalValidator()],
+    )
+    i5_option = RadioField(
+        "Index i5 was not found in the database. Please select how to proceed:",
+        choices=[
+            ("forward", "I have provided i5 barcodes in forward orientation"),
+            ("rc", "I have provided i5 barcodes in reverse complement orientation"),
+            ("idk", "I don't know in which orientation the i5 barcodes are provided"),
+        ],
+        validators=[OptionalValidator()],
+    )
 
+    @staticmethod
+    def is_applicable(current_step: MultiStepForm) -> bool:
+        return (
+            current_step.tables["barcode_table"]["kit_i7"].isna().all() or
+            current_step.tables["barcode_table"]["kit_i5"].isna().all()
+        )
+        
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=BarcodeMatchForm._workflow_name,
@@ -37,8 +64,35 @@ class BarcodeMatchForm(MultiStepForm):
         self._context["seq_request"] = seq_request
 
         self.barcode_table = self.tables["barcode_table"]
+        self.index_type = BarcodeMatchForm.check_index_type(self.barcode_table)
+        self._context["index_type"] = self.index_type
+        if self.index_type == IndexType.DUAL_INDEX:
+            self.dual_index_prepare()
+        elif self.index_type == IndexType.SINGLE_INDEX:
+            self.single_index_prepare()
+        elif self.index_type == IndexType.TENX_ATAC_INDEX:
+            raise NotImplementedError("TenX ATAC index type is not yet implemented in the barcode match form.")
+        else:
+            logger.warning("Index type could not be determined")
+        
+    @staticmethod
+    def check_index_type(barcode_table: pd.DataFrame) -> IndexTypeEnum | None:
+        if (barcode_table["index_type_id"] == IndexType.DUAL_INDEX.id).all():
+            return IndexType.DUAL_INDEX
+        elif (barcode_table["index_type_id"] == IndexType.SINGLE_INDEX.id).all():
+            return IndexType.SINGLE_INDEX
+        elif (barcode_table["index_type_id"] == IndexType.TENX_ATAC_INDEX.id).all():
+            return IndexType.TENX_ATAC_INDEX
+        
+        return None
 
-        self.dual_index_prepare()
+    def single_index_prepare(self):
+        path = os.path.join(current_app.config["APP_DATA_FOLDER"], "kits", f"{IndexType.SINGLE_INDEX.id}.pkl")
+        if not os.path.exists(path):
+            logger.error(f"Dual index barcode file not found: {path}")
+            raise FileNotFoundError(f"Dual index barcode file not found: {path}")
+        
+        raise NotImplementedError()
         
     def dual_index_prepare(self):
         path = os.path.join(current_app.config["APP_DATA_FOLDER"], "kits", f"{IndexType.DUAL_INDEX.id}.pkl")
@@ -82,14 +136,25 @@ class BarcodeMatchForm(MultiStepForm):
         self.i7_kit.choices = i7_kit_choices  # type: ignore
         self.i5_kit.choices = i5_kit_choices  # type: ignore
 
-        self.i7_kit.data = i7_kit_choices[-1][0]
-        self.i5_kit.data = i5_kit_choices[-1][0]
+        if self.i7_kit.data is None:
+            self.i7_kit.data = i7_kit_choices[-1][0]
+        if self.i5_kit.data is None:
+            self.i5_kit.data = i5_kit_choices[-1][0]
 
         barcodes = barcodes[barcodes["kit_id"].isin(kits)].reset_index(drop=True)
         self._context["barcodes"] = barcodes
 
     def validate(self) -> bool:
         if not super().validate():
+            return False
+
+        if not self.i7_kit.data and self.i7_option.data is None:
+            self.i7_option.errors = ("Please select how to proceed with the i7 index.",)
+        
+        if not self.i5_kit.data and self.i5_option.data is None:
+            self.i5_option.errors = ("Please select how to proceed with the i5 index.",)
+        
+        if self.errors:
             return False
         
         if kit_i7_id := self.i7_kit.data:
@@ -113,10 +178,11 @@ class BarcodeMatchForm(MultiStepForm):
             except KeyError as e:
                 logger.error(f"Invalid i7 sequence in library table: {e}")
                 raise KeyError(f"Invalid i7 sequence in library table: {e}")
+        elif self.i7_option.data == "rc":
+            self.barcode_table["sequence_i7"] = self.barcode_table["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
         
         if kit_i5_id := self.i5_kit.data:
             selected_i5 = next((name for kit_id, name in self.i5_kit.choices if kit_id == kit_i5_id), None)  # type: ignore
-            logger.debug(f"Selected i5 kit: {selected_i5}")
             rc_i5 = selected_i5.endswith(" (Reverse Complement)") if selected_i5 else False
             if kit_i5_id == kit_i7_id:
                 kit_i5 = kit_i7
@@ -139,6 +205,9 @@ class BarcodeMatchForm(MultiStepForm):
             except KeyError as e:
                 logger.error(f"Invalid i5 sequence in library table: {e}")
                 raise KeyError(f"Invalid i5 sequence in library table: {e}")
+            
+        elif self.i5_option.data == "rc":
+            self.barcode_table["sequence_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
 
         return True
 
@@ -146,17 +215,28 @@ class BarcodeMatchForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
         
-        self.update_table("barcode_table", self.barcode_table)
+        if self.i7_option.data is not None:
+            self.add_comment(
+                context="i7_option",
+                text=f"{dict(self.i7_option.choices)[self.i7_option.data]}: {', '.join(self.barcode_table['library_name'].unique().tolist())}",  # type: ignore
+            )
 
-        library_table = self.tables["library_table"]
-        
-        if library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
-            next_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        if self.i5_option.data is not None:
+            self.add_comment(
+                context="i5_option",
+                text=f"{dict(self.i5_option.choices)[self.i5_option.data]}: {', '.join(self.barcode_table['library_name'].unique().tolist())}",  # type: ignore
+            )
+
+        self.update_table("barcode_table", self.barcode_table)
+        if OCMAnnotationForm.is_applicable(self):
+            next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OligoMuxAnnotationForm.is_applicable(self):
+            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+        elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

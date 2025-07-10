@@ -5,6 +5,7 @@ from wtforms import StringField, FormField, TextAreaField
 from wtforms.validators import Optional as OptionalValidator, Length
 
 from limbless_db import models
+from limbless_server.forms.MultiStepForm import StepFile
 
 from .... import db, logger  # noqa F401
 from ...SearchBar import OptionalSearchBar
@@ -32,6 +33,13 @@ class ProjectSelectForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self._context["workflow_type"] = workflow_type
+
+    def fill_previous_form(self, previous_form: StepFile):
+        self.new_project.data = previous_form.metadata.get("project_description")
+        if (project_id := previous_form.metadata.get("project_id")) is not None:
+            self.existing_project.selected.data = project_id
+            self.existing_project.search_bar.data = project.name if (project := db.get_project(project_id)) is not None else None
+        self.project_description.data = previous_form.metadata.get("project_description")
     
     def validate(self, user: models.User) -> bool:
         if (validated := super().validate()) is False:
@@ -78,15 +86,16 @@ class ProjectSelectForm(MultiStepForm):
 
         self.metadata["project_name"] = self.project_name
         self.metadata["workflow"] = "library_annotation"
+        self.metadata["workflow_type"] = self.workflow_type
         self.metadata["project_id"] = self.project_id
         self.metadata["seq_request_id"] = self.seq_request.id
         self.metadata["user_id"] = user.id
         self.metadata["project_description"] = self.project_description.data
         self.update_data()
 
-        if self.workflow_type == "tech":
+        if SelectAssayForm.is_applicable(self):
             next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
-        elif self.workflow_type == "pooled":
+        elif PooledLibraryAnnotationForm.is_applicable(self):
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
         else:
             next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)

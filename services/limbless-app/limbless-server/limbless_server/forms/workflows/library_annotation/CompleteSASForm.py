@@ -7,7 +7,10 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType, AssayType, SubmissionType
+from limbless_db.categories import (
+    GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType,
+    AssayType, SubmissionType, MUXType
+)
 
 from .... import db, logger, tools
 from ...MultiStepForm import MultiStepForm
@@ -33,10 +36,12 @@ class CompleteSASForm(MultiStepForm):
         self.barcode_table = self.tables.get("barcode_table")
         self.pool_table = self.tables.get("pool_table")
         self.feature_table = self.tables.get("feature_table")
-        self.cmo_table = self.tables.get("cmo_table")
+        self.mux_table = self.tables.get("mux_table")
         self.visium_table = self.tables.get("visium_table")
         self.flex_table = self.tables.get("flex_table")
         self.comment_table = self.tables.get("comment_table")
+        self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] is not None else None
+        self._context["mux_type"] = self.mux_type
         
         if not formdata:
             self.__prepare()
@@ -46,14 +51,13 @@ class CompleteSASForm(MultiStepForm):
         self._context["sample_table"] = self.sample_table
         self._context["pooling_table"] = self.pooling_table
         if self.barcode_table is not None:
-            logger.debug(self.barcode_table[["sequence_i7", "library_name", "name_i7"]])
             self.barcode_table["pool"] = None
             for (library_name, pool_name), _ in self.library_table.groupby(["library_name", "pool"]):
                 self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "pool"] = pool_name
             barcode_table = tools.check_indices(self.barcode_table, groupby="pool")
         self._context["barcode_table"] = barcode_table
         self._context["feature_table"] = self.feature_table
-        self._context["cmo_table"] = self.cmo_table
+        self._context["mux_table"] = self.mux_table
         self._context["visium_table"] = self.visium_table
         self._context["flex_table"] = self.flex_table
         self._context["comment_table"] = self.comment_table
@@ -132,8 +136,8 @@ class CompleteSASForm(MultiStepForm):
         self.update_table("library_table", self.library_table, False)
         if self.visium_table is not None:
             self.update_table("visium_table", self.visium_table, False)
-        if self.cmo_table is not None:
-            self.update_table("cmo_table", self.cmo_table, False)
+        if self.mux_table is not None:
+            self.update_table("mux_table", self.mux_table, False)
 
         self.update_data()
 
@@ -169,14 +173,14 @@ class CompleteSASForm(MultiStepForm):
         predefined_attrs = [f"_attr_{attr.label}" for attr in AttributeType.as_list()]
         custom_sample_attributes = [attr for attr in self.sample_table.columns if attr.startswith("_attr_") and attr not in predefined_attrs]
 
-        for idx, library_row in self.sample_table.iterrows():
-            if pd.notna(library_row["sample_id"]):
-                if (sample := db.get_sample(library_row["sample_id"])) is None:
-                    logger.error(f"{self.uuid}: Sample with id {library_row['sample_id']} not found.")
-                    raise ValueError(f"Sample with id {library_row['sample_id']} not found.")
+        for idx, comment_row in self.sample_table.iterrows():
+            if pd.notna(comment_row["sample_id"]):
+                if (sample := db.get_sample(comment_row["sample_id"])) is None:
+                    logger.error(f"{self.uuid}: Sample with id {comment_row['sample_id']} not found.")
+                    raise ValueError(f"Sample with id {comment_row['sample_id']} not found.")
             else:
                 sample = db.create_sample(
-                    name=library_row["sample_name"],
+                    name=comment_row["sample_name"],
                     project_id=project.id,
                     owner_id=user.id,
                     status=None if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES else SampleStatus.DRAFT
@@ -185,20 +189,20 @@ class CompleteSASForm(MultiStepForm):
 
             for attr in AttributeType.as_list():
                 attr_label = f"_attr_{attr.label}"
-                if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
+                if attr_label in comment_row.keys() and pd.notna(comment_row[attr_label]):
                     sample = db.set_sample_attribute(
                         sample_id=sample.id,
                         type=attr,
-                        value=str(library_row[attr_label]),
+                        value=str(comment_row[attr_label]),
                         name=None
                     )
 
             for attr_label in custom_sample_attributes:
-                if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
+                if attr_label in comment_row.keys() and pd.notna(comment_row[attr_label]):
                     sample = db.set_sample_attribute(
                         sample_id=sample.id,
                         type=AttributeType.CUSTOM,
-                        value=str(library_row[attr_label]),
+                        value=str(comment_row[attr_label]),
                         name=attr_label.removeprefix("_attr_")
                     )
 
@@ -209,21 +213,21 @@ class CompleteSASForm(MultiStepForm):
                 logger.error(f"{self.uuid}: Pool table not found.")
                 raise ValueError("Pool table not found.")
             
-            for idx, library_row in self.pool_table.iterrows():
-                if pd.notna(library_row["pool_id"]):
-                    if (pool := db.get_pool(library_row["pool_id"])) is None:
-                        logger.error(f"{self.uuid}: Pool with id {library_row['pool_id']} not found.")
-                        raise ValueError(f"Pool with id {library_row['pool_id']} not found.")
+            for idx, comment_row in self.pool_table.iterrows():
+                if pd.notna(comment_row["pool_id"]):
+                    if (pool := db.get_pool(comment_row["pool_id"])) is None:
+                        logger.error(f"{self.uuid}: Pool with id {comment_row['pool_id']} not found.")
+                        raise ValueError(f"Pool with id {comment_row['pool_id']} not found.")
                 else:
                     pool = db.create_pool(
-                        name=library_row["pool_name"],
+                        name=comment_row["pool_name"],
                         owner_id=user.id,
                         seq_request_id=self.seq_request.id,
                         pool_type=PoolType.EXTERNAL,
                         contact_name=self.metadata["pool_contact_name"],
                         contact_email=self.metadata["pool_contact_email"],
                         contact_phone=self.metadata["pool_contact_phone"],
-                        num_m_reads_requested=library_row["num_m_reads_requested"]
+                        num_m_reads_requested=comment_row["num_m_reads_requested"]
                     )
 
                 self.pool_table.at[idx, "pool_id"] = pool.id
@@ -231,9 +235,9 @@ class CompleteSASForm(MultiStepForm):
             self.pool_table["pool_id"] = self.pool_table["pool_id"].astype(int)
 
         self.library_table["library_id"] = None
-        for idx, library_row in self.library_table.iterrows():
+        for idx, comment_row in self.library_table.iterrows():
             if self.visium_table is not None:
-                visium_row = self.visium_table[self.visium_table["library_name"] == library_row["library_name"]].iloc[0]
+                visium_row = self.visium_table[self.visium_table["library_name"] == comment_row["library_name"]].iloc[0]
                 visium_annotation_id = int(visium_row["id"])
             else:
                 visium_annotation_id = None
@@ -242,23 +246,25 @@ class CompleteSASForm(MultiStepForm):
                 if self.pool_table is None:
                     logger.error(f"{self.uuid}: Pool table not found.")
                     raise ValueError("Pool table not found.")
-                pool_id = int(self.pool_table[self.pool_table["pool_label"] == library_row["pool"]]["pool_id"].values[0])
+                pool_id = int(self.pool_table[self.pool_table["pool_label"] == comment_row["pool"]]["pool_id"].values[0])
             else:
                 pool_id = None
 
             assay_type = AssayType.get(self.metadata["assay_type_id"])
 
             library = db.create_library(
-                name=library_row["library_name"],
-                sample_name=library_row["sample_name"],
+                name=comment_row["library_name"],
+                sample_name=comment_row["sample_name"],
                 seq_request_id=self.seq_request.id,
-                library_type=LibraryType.get(library_row["library_type_id"]),
+                library_type=LibraryType.get(comment_row["library_type_id"]),
                 owner_id=user.id,
-                genome_ref=GenomeRef.get(library_row["genome_id"]),
+                genome_ref=GenomeRef.get(comment_row["genome_id"]),
                 visium_annotation_id=visium_annotation_id,
                 pool_id=pool_id,
                 assay_type=assay_type,
-                seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
+                mux_type=self.mux_type,
+                nuclei_isolation=self.metadata.get("nuclei_isolation", False),
+                seq_depth_requested=comment_row["seq_depth"] if "seq_depth" in comment_row and pd.notna(comment_row["seq_depth"]) else None,
             )
 
             self.library_table.at[idx, "library_id"] = library.id
@@ -267,7 +273,7 @@ class CompleteSASForm(MultiStepForm):
                 if self.barcode_table is None:
                     logger.error(f"{self.uuid}: Barcode table not found.")
                     raise ValueError("Barcode table not found.")
-                for _, barcode_row in self.barcode_table[self.barcode_table["library_name"] == library_row["library_name"]].iterrows():
+                for _, barcode_row in self.barcode_table[self.barcode_table["library_name"] == comment_row["library_name"]].iterrows():
                     library = db.add_library_index(
                         library_id=library.id,
                         sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
@@ -278,15 +284,39 @@ class CompleteSASForm(MultiStepForm):
                         name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
                     )
 
-            library_samples = self.pooling_table[self.pooling_table["library_name"] == library_row["library_name"]]["sample_name"].values
+            library_samples = self.pooling_table[self.pooling_table["library_name"] == comment_row["library_name"]]["sample_name"].values
             for _, sample_row in self.sample_table[self.sample_table["sample_name"].isin(library_samples)].iterrows():
+                if sample_row["mux_type_id"] == MUXType.TENX_FLEX_PROBE.id:
+                    if pd.isna(sample_row["mux_barcode"]):
+                        logger.error(f"{self.uuid}: Mux barcode is required for TENX_FLEX_PROBE mux type.")
+                        raise ValueError("Mux barcode is required for TENX_FLEX_PROBE mux type.")
+                    mux = {"barcode": sample_row["mux_barcode"]}
+                    mux_type = MUXType.TENX_FLEX_PROBE
+                elif sample_row["mux_type_id"] in [MUXType.TENX_OLIGO.id]:
+                    if pd.isna(sample_row["mux_barcode"]):
+                        logger.error(f"{self.uuid}: Mux barcode is required for TENX_CMO mux type.")
+                        raise ValueError("Mux barcode is required for TENX_CMO mux type.")
+                    if pd.isna(sample_row["mux_pattern"]):
+                        logger.error(f"{self.uuid}: Mux pattern is required for TENX_CMO mux type.")
+                        raise ValueError("Mux pattern is required for TENX_CMO mux type.")
+                    if pd.isna(sample_row["mux_read"]):
+                        logger.error(f"{self.uuid}: Mux read is required for TENX_CMO mux type.")
+                        raise ValueError("Mux read is required for TENX_CMO mux type.")
+                    mux = {
+                        "barcode": sample_row["mux_barcode"],
+                        "pattern": sample_row["mux_pattern"],
+                        "read": sample_row["mux_read"]
+                    }
+                    mux_type = MUXType.get(sample_row["mux_type_id"])
+                elif sample_row["mux_type_id"] == MUXType.TENX_ON_CHIP.id:
+                    mux = {"barcode": sample_row["mux_barcode"]}
+                    mux_type = MUXType.TENX_ON_CHIP
+                else:
+                    mux = None
+                    mux_type = None
+
                 db.link_sample_library(
-                    sample_id=sample_row["sample_id"],
-                    library_id=library.id,
-                    cmo_sequence=sample_row["cmo_sequence"] if pd.notna(sample_row["cmo_sequence"]) else None,
-                    cmo_pattern=sample_row["cmo_pattern"] if pd.notna(sample_row["cmo_pattern"]) else None,
-                    cmo_read=sample_row["cmo_read"] if pd.notna(sample_row["cmo_read"]) else None,
-                    flex_barcode=sample_row["flex_barcode"] if pd.notna(sample_row["flex_barcode"]) else None,
+                    sample_id=sample_row["sample_id"], library_id=library.id, mux=mux, mux_type=mux_type
                 )
 
         self.library_table["library_id"] = self.library_table["library_id"].astype(int)
@@ -306,33 +336,47 @@ class CompleteSASForm(MultiStepForm):
 
             for _, feature_row in self.feature_table.iterrows():
                 libraries = self.library_table[self.library_table["library_name"] == feature_row["library_name"]]
-                for _, library_row in libraries.iterrows():
+                for _, comment_row in libraries.iterrows():
                     db.link_feature_library(
                         feature_id=feature_row["feature_id"],
-                        library_id=library_row["library_id"]
+                        library_id=comment_row["library_id"]
                     )
 
             self.feature_table["feature_id"] = self.feature_table["feature_id"].astype(int)
             
         if self.comment_table is not None:
-            for _, library_row in self.comment_table.iterrows():
-                if library_row["context"] == "visium_instructions":
-                    _ = db.create_comment(
-                        text=f"Visium data instructions: {library_row['text']}",
+            for _, comment_row in self.comment_table.iterrows():
+                if comment_row["context"] == "visium_instructions":
+                    db.create_comment(
+                        text=f"Visium data instructions: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
-                elif library_row["context"] == "custom_genome_reference":
-                    _ = db.create_comment(
-                        text=f"Custom genome reference: {library_row['text']}",
+                elif comment_row["context"] == "custom_genome_reference":
+                    db.create_comment(
+                        text=f"Custom genome reference: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
-                elif library_row["context"] == "assay_tech_selection":
-                    _ = db.create_comment(
-                        text=f"Additional info from assay selection: {library_row['text']}",
+                elif comment_row["context"] == "assay_tech_selection":
+                    db.create_comment(
+                        text=f"Additional info from assay selection: {comment_row['text']}",
+                        author_id=user.id, seq_request_id=self.seq_request.id
+                    )
+                elif comment_row["context"] == "i7_option":
+                    db.create_comment(
+                        text=comment_row['text'],
+                        author_id=user.id, seq_request_id=self.seq_request.id
+                    )
+                elif comment_row["context"] == "i5_option":
+                    db.create_comment(
+                        text=comment_row['text'],
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 else:
-                    raise ValueError(f"Unknown comment context: {library_row['context']}")
+                    logger.warning(f"Unknown comment context: {comment_row['context']}")
+                    db.create_comment(
+                        text=comment_row["context"].replace("_", " ").capitalize() + ": " + comment_row["text"],
+                        author_id=user.id, seq_request_id=self.seq_request.id
+                    )
 
         self.__update_data()
 

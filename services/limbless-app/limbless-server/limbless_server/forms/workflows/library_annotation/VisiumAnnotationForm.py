@@ -10,8 +10,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType
 
 from .... import logger # noqa
-from ....tools import StaticSpreadSheet
-from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
 from .FlexAnnotationForm import FlexAnnotationForm
@@ -31,6 +30,10 @@ class VisiumAnnotationForm(MultiStepForm):
     ]
 
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
+
+    @staticmethod
+    def is_applicable(current_step: MultiStepForm) -> bool:
+        return current_step.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id]).any()
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
@@ -95,27 +98,16 @@ class VisiumAnnotationForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
         
-        library_table = self.tables["library_table"]
-
-        if (comment_table := self.tables.get("comment_table")) is None:  # type: ignore
-            comment_table = pd.DataFrame({
-                "context": ["visium_instructions"],
-                "text": [self.instructions.data]
-            })
-        else:
-            comment_table = pd.concat([
-                comment_table,
-                pd.DataFrame({
-                    "context": ["visium_instructions"],
-                    "text": [self.instructions.data]
-                })
-            ])
+        self.add_comment(
+            context="visium_annotation",
+            text=f"Visium annotation for {len(self.df)} libraries.",
+            update_data=False
+        )
         
         self.add_table("visium_table", self.df)
-        self.add_table("comment_table", comment_table)
         self.update_data()
 
-        if LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        if FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

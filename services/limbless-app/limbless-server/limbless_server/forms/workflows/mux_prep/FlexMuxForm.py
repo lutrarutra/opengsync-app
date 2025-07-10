@@ -6,7 +6,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, LibraryStatus
+from limbless_db.categories import LibraryType, LibraryStatus, MUXType
 
 from .... import logger, tools, db  # noqa F401
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, SpreadSheetColumn, DuplicateCellValue
@@ -22,7 +22,7 @@ class FlexMuxForm(MultiStepForm):
     columns: list[SpreadSheetColumn] = [
         TextColumn("demux_name", "Demultiplexed Name", 300, required=True, min_length=4, max_length=models.Sample.name.type.length, clean_up_fnc=tools.make_alpha_numeric),
         TextColumn("sample_pool", "Sample Pool", 300, required=True, max_length=models.Sample.name.type.length, clean_up_fnc=tools.make_alpha_numeric),
-        TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.flex_barcode.type.length, clean_up_fnc=lambda x: str(x).strip().upper()),
+        TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=lambda x: str(x).strip().upper()),
     ]
 
     allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
@@ -61,7 +61,7 @@ class FlexMuxForm(MultiStepForm):
         for _, row in self.sample_table[self.sample_table["library_type"] == LibraryType.TENX_SC_GEX_FLEX].iterrows():
             template_data["demux_name"].append(row["sample_name"])
             template_data["sample_pool"].append(row["sample_pool"])
-            template_data["barcode_id"].append(row["flex_barcode"])
+            template_data["barcode_id"].append(row["mux_barcode"])
 
         return pd.DataFrame(template_data)
 
@@ -106,9 +106,9 @@ class FlexMuxForm(MultiStepForm):
         barcode_id_map = self.df.set_index("demux_name")["barcode_id"].to_dict()
         
         self.sample_table["new_sample_pool"] = self.sample_table["sample_name"].apply(lambda x: sample_pool_map[x])
-        self.sample_table["flex_barcode"] = self.sample_table["sample_name"].apply(lambda x: barcode_id_map[x])
-        self.sample_table["flex_barcode"] = self.sample_table.apply(
-            lambda row: row["flex_barcode"] if row["library_type"] == LibraryType.TENX_SC_GEX_FLEX else row["flex_barcode"].replace("BC", "AB"),
+        self.sample_table["mux_barcode"] = self.sample_table["sample_name"].apply(lambda x: barcode_id_map[x])
+        self.sample_table["mux_barcode"] = self.sample_table.apply(
+            lambda row: row["mux_barcode"] if row["library_type"] == LibraryType.TENX_SC_GEX_FLEX else row["mux_barcode"].replace("BC", "AB"),
             axis=1
         )
 
@@ -138,13 +138,19 @@ class FlexMuxForm(MultiStepForm):
                     seq_request_id=old_library.seq_request_id,
                     lab_prep_id=self.lab_prep.id,
                     genome_ref=old_library.genome_ref,
-                    assay_type=old_library.assay_type
+                    assay_type=old_library.assay_type,
+                    nuclei_isolation=old_library.nuclei_isolation,
                 )
                 libraries[lib] = new_library
             else:
                 new_library = libraries[lib]
 
-            db.link_sample_library(sample_id=sample.id, library_id=new_library.id, flex_barcode=row["flex_barcode"])
+            db.link_sample_library(
+                sample_id=sample.id,
+                library_id=new_library.id,
+                mux={"barcode": row["mux_barcode"]},
+                mux_type=MUXType.TENX_FLEX_PROBE
+            )
             new_library.features = old_library.features
             new_library = db.update_library(new_library)
 
