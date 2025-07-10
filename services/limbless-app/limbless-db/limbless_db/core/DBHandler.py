@@ -9,20 +9,23 @@ import loguru
 
 
 class DBHandler():
+    Session: orm.scoped_session
+
     def __init__(self, logger: Optional["loguru.Logger"] = None) -> None:
         self._logger = logger
         
     def connect(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432) -> None:
-        self._url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+        self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
-
         try:
             self._engine.connect()
         except Exception as e:
             raise Exception(f"Could not connect to DB '{self._url}':\n{e}")
-        self._session: Optional[orm.Session] = None
-
-        self.log(f"Connected to DB 'postgresql://{host}:{port}/{db}'")
+        self.log(f"Connected to DB '{self._url.split(':')[0]}://{host}:{port}/{db}'")
+        
+        self._session: orm.Session | None = None
+        self.session_factory = orm.sessionmaker(bind=self._engine)
+        DBHandler.Session = orm.scoped_session(self.session_factory)
 
     def log(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
@@ -59,11 +62,11 @@ class DBHandler():
 
     def open_session(self, autoflush: bool = False) -> None:
         if self._session is None:
-            self._session = orm.Session(self._engine, expire_on_commit=False, autoflush=autoflush)
+            self._session = DBHandler.Session(autoflush=autoflush)
 
     def close_session(self) -> None:
         if self._session is not None:
-            self.session.close()
+            DBHandler.Session.remove()
             self._session = None
 
     def __del__(self):
@@ -73,7 +76,7 @@ class DBHandler():
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
         update_project, delete_project,
-        get_num_projects, project_contains_sample_with_name,
+        project_contains_sample_with_name,
         query_projects
     )
 
@@ -86,7 +89,7 @@ class DBHandler():
     from .model_handlers._sample_methods import (
         create_sample, get_sample, get_samples,
         delete_sample, update_sample, query_samples,
-        set_sample_attribute, get_sample_attribute, get_sample_attributes,
+        set_sample_attribute, get_sample_attribute,
         get_user_sample_access_type, delete_sample_attribute
     )
 
@@ -115,7 +118,7 @@ class DBHandler():
     from .model_handlers._index_kit_methods import (
         create_index_kit, get_index_kit, get_index_kits,
         get_index_kit_by_name, update_index_kit,
-        delete_index_kit, remove_all_barcodes_from_kit
+        remove_all_barcodes_from_kit
     )
 
     from .model_handlers._seq_request_methods import (
@@ -142,7 +145,7 @@ class DBHandler():
 
     from .model_handlers._feature_kit_methods import (
         create_feature_kit, get_feature_kit, get_feature_kits,
-        get_feature_kit_by_name, update_feature_kit, delete_feature_kit,
+        get_feature_kit_by_name, update_feature_kit,
         remove_all_features_from_kit
     )
 
@@ -167,21 +170,25 @@ class DBHandler():
     )
 
     from .model_handlers._lab_prep_methods import (
-        create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_identifier,
+        create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_number,
         update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps,
     )
 
     from .model_handlers._kit_methods import (
-        create_kit, get_kit, get_kits, query_kits, get_kit_by_name
+        create_kit, get_kit, get_kits, query_kits, get_kit_by_name, delete_kit,
+        update_kit
     )
 
     from .model_handlers._link_methods import (
         get_sample_library_link,
         get_sample_library_links,
+        get_laned_pool_link,
         update_sample_library_link,
 
         add_pool_to_lane,
         remove_pool_from_lane,
+
+        update_laned_pool_link,
 
         link_feature_library,
         link_sample_library,
@@ -217,7 +224,8 @@ class DBHandler():
     from .model_handlers._group_methods import (
         create_group, get_group, get_groups, update_group,
         query_groups, add_user_to_group, remove_user_from_group,
-        get_group_user_affiliation, get_group_affiliations
+        get_group_user_affiliation, get_group_affiliations,
+        get_group_by_name
     )
 
     from .pd_handler import (
@@ -228,6 +236,7 @@ class DBHandler():
         get_library_features_df, get_library_samples_df, get_experiment_seq_qualities_df,
         get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df,
         get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df,
-        get_sample_attributes_df, get_project_sample_attributes_df, get_lab_prep_libraries_df,
-        get_lab_prep_samples_df, query_barcode_sequences_df
+        get_project_samples_df, get_lab_prep_libraries_df,
+        get_lab_prep_samples_df, query_barcode_sequences_df, get_flowcell_df,
+        get_project_libraries_df
     )

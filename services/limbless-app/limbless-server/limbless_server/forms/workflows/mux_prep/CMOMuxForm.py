@@ -10,7 +10,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType, LibraryStatus
 
 from .... import logger, tools, db  # noqa F401
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, SpreadSheetColumn, DuplicateCellValue
 from ...SearchBar import OptionalSearchBar
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
@@ -24,12 +24,12 @@ class CMOMuxForm(MultiStepForm):
     kit = FormField(OptionalSearchBar, label="Select Kit")
     
     columns = [
-        SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("sample_pool", "Sample Pool", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("feature", "Feature", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        SpreadSheetColumn("read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("demux_name", "Demultiplexed Name", 170, max_length=models.Sample.name.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        DropdownColumn("sample_pool", "Sample Pool", 170, required=True, choices=[]),
+        TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
@@ -95,29 +95,24 @@ class CMOMuxForm(MultiStepForm):
         duplicate_manual_feature = df.duplicated(subset=["sample_pool", "sequence", "read", "pattern"], keep=False)
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["demux_name"]):
-                self.spreadsheet.add_error(i + 1, "demux_name", "'Demux Name' is missing.", "missing_value")
-            elif row["demux_name"] not in self.sample_table["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "demux_name", f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}", "invalid_value")
-            
-            if pd.isna(row["sample_pool"]):
-                self.spreadsheet.add_error(i + 1, "sample_pool", "'Sample Pool' is missing.", "missing_value")
+            if row["demux_name"] not in self.sample_table["sample_name"].values:
+                self.spreadsheet.add_error(idx, "demux_name", InvalidCellValue(f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}"))
 
             if kit is not None:
                 if pd.notna(row["sequence"]):
-                    self.spreadsheet.add_error(i + 1, "sequence", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
+                    self.spreadsheet.add_error(idx, "sequence", InvalidCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 if pd.notna(row["pattern"]):
-                    self.spreadsheet.add_error(i + 1, "pattern", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
+                    self.spreadsheet.add_error(idx, "pattern", InvalidCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 if pd.notna(row["read"]):
-                    self.spreadsheet.add_error(i + 1, "read", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
+                    self.spreadsheet.add_error(idx, "read", InvalidCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 
                 if pd.isna(row["feature"]):
-                    self.spreadsheet.add_error(i + 1, "feature", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
+                    self.spreadsheet.add_error(idx, "feature", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 elif duplicate_kit_feature.at[idx]:
-                    self.spreadsheet.add_error(i + 1, "feature", f"Row {i+1} has duplicate 'Kit' + 'Feature' specified in same pool.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "feature", DuplicateCellValue(f"Row {i+1} has duplicate 'Kit' + 'Feature' specified in same pool."))
                 else:
                     if len(features := db.get_features_from_kit_by_feature_name(row["feature"], kit.id)) == 0:
-                        self.spreadsheet.add_error(i + 1, "feature", f"Feature '{row['feature']}' not found in '{kit.name}'.", "invalid_value")
+                        self.spreadsheet.add_error(idx, "feature", InvalidCellValue(f"Feature '{row['feature']}' not found in '{kit.name}'."))
                     else:
                         feature = features[0]
                         df.at[idx, "sequence"] = feature.sequence
@@ -125,17 +120,17 @@ class CMOMuxForm(MultiStepForm):
                         df.at[idx, "read"] = feature.read
             else:
                 if pd.isna(row["sequence"]):
-                    self.spreadsheet.add_error(i + 1, "sequence", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
+                    self.spreadsheet.add_error(idx, "sequence", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 if pd.isna(row["pattern"]):
-                    self.spreadsheet.add_error(i + 1, "pattern", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
+                    self.spreadsheet.add_error(idx, "pattern", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 if pd.isna(row["read"]):
-                    self.spreadsheet.add_error(i + 1, "read", "Specify Kit + Feature or Sequence + Pattern + Read", "missing_value")
+                    self.spreadsheet.add_error(idx, "read", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 if pd.notna(row["feature"]):
-                    self.spreadsheet.add_error(i + 1, "feature", "Specify Kit + Feature or Sequence + Pattern + Read", "invalid_input")
+                    self.spreadsheet.add_error(idx, "feature", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 if duplicate_manual_feature.at[idx]:
-                    self.spreadsheet.add_error(i + 1, "sequence", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
-                    self.spreadsheet.add_error(i + 1, "pattern", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
-                    self.spreadsheet.add_error(i + 1, "read", f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool.", "duplicate_value")
+                    self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool."))
+                    self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool."))
+                    self.spreadsheet.add_error(idx, "read", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool."))
                 
         if len(self.spreadsheet._errors) > 0:
             return False
@@ -183,7 +178,8 @@ class CMOMuxForm(MultiStepForm):
                     owner_id=old_library.owner_id,
                     seq_request_id=old_library.seq_request_id,
                     lab_prep_id=self.lab_prep.id,
-                    genome_ref=old_library.genome_ref
+                    genome_ref=old_library.genome_ref,
+                    assay_type=old_library.assay_type,
                 )
                 libraries[lib] = new_library
             else:

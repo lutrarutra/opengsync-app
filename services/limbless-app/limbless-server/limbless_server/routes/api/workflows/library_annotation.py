@@ -1,11 +1,11 @@
 import os
 from typing import TYPE_CHECKING, Literal
 
-from flask import Blueprint, request, abort, send_file, current_app, Response
+from flask import Blueprint, request, abort, send_file, current_app
 from flask_login import login_required
 
 from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, SubmissionType
 
 from .... import db, logger  # noqa
 from ....forms.workflows import library_annotation as forms
@@ -19,33 +19,9 @@ else:
 library_annotation_workflow = Blueprint("library_annotation_workflow", __name__, url_prefix="/api/workflows/library_annotation/")
 
 
-# Template sample annotation sheet
-@library_annotation_workflow.route("download_visium_template/<string:uuid>", methods=["GET"])
-@login_required
-def download_visium_template(uuid: str):
-    form = forms.VisiumAnnotationForm(uuid=uuid)
-    template = form.get_template()
-
-    return Response(
-        template.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=visium_annotation.tsv"}
-    )
-
-
-@library_annotation_workflow.route("download_flex_template", methods=["GET"])
-@login_required
-def download_flex_template():
-    form = forms.FlexAnnotationForm()
-    template = form.get_template()
-
-    return Response(
-        template.to_csv(sep="\t", index=False), mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=flex_annotation.tsv"}
-    )
-
-
 # Template sequencing authorization form
 @library_annotation_workflow.route("seq_auth_form/download", methods=["GET"])
+@db_session(db)
 @login_required
 def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
@@ -62,6 +38,7 @@ def download_seq_auth_form():
 
 # 0. Restart form
 @library_annotation_workflow.route("<int:seq_request_id>/begin/<string:workflow_type>", methods=["GET"])
+@db_session(db)
 @login_required
 def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     if workflow_type not in ["raw", "pooled", "tech"]:
@@ -69,6 +46,18 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if workflow_type == "pooled":
+        if seq_request.submission_type != SubmissionType.POOLED_LIBRARIES:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    elif workflow_type == "raw":
+        if seq_request.submission_type != SubmissionType.RAW_SAMPLES:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    elif workflow_type == "tech":
+        if seq_request.submission_type != SubmissionType.RAW_SAMPLES:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
         affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
@@ -81,6 +70,7 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
 
 # 0. Step
 @library_annotation_workflow.route("<int:seq_request_id>/previous/<string:uuid>", methods=["GET"])
+@db_session(db)
 @login_required
 def previous(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -92,13 +82,14 @@ def previous(seq_request_id: int, uuid: str):
             return abort(HTTPResponse.FORBIDDEN.id)
     
     if (response := MultiStepForm.pop_last_step("library_annotation", uuid)) is None:
+        logger.error("Failed to pop last step")
         return abort(HTTPResponse.NOT_FOUND.id)
     
     step_name, step = response
 
     prev_step_cls = forms.steps[step_name]
-    prev_step = prev_step_cls(uuid=uuid, seq_request=seq_request, **step.args)
-    prev_step.fill_previous_form()
+    prev_step = prev_step_cls(uuid=uuid, seq_request=seq_request, **step.args)  # type: ignore
+    prev_step.fill_previous_form(step)
     return prev_step.make_response()
 
 
@@ -106,7 +97,7 @@ def previous(seq_request_id: int, uuid: str):
 @library_annotation_workflow.route("<int:seq_request_id>/project_select/<string:workflow_type>", methods=["POST"])
 @db_session(db)
 @login_required
-def select_project(seq_request_id: int, workflow_type: str):
+def select_project(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     if workflow_type not in ["tech", "raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -156,6 +147,20 @@ def parse_barcode_table(seq_request_id: int, uuid: str):
             return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.BarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/barcode_match", methods=["POST"])
+@login_required
+def barcode_match(seq_request_id: int, uuid: str):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
+    return forms.BarcodeMatchForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 # 1.3 Index Kit Mapping
@@ -218,6 +223,7 @@ def parse_table(seq_request_id: int, uuid: str, form_type: Literal["pooled", "ra
 
 # 6. Specify CMO reference
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_cmo_reference", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_cmo_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -233,6 +239,7 @@ def parse_cmo_reference(seq_request_id: int, uuid: str):
 
 # 7. Specify Features
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/annotate_features", methods=["POST"])
+@db_session(db)
 @login_required
 def annotate_features(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -248,6 +255,7 @@ def annotate_features(seq_request_id: int, uuid: str):
 
 # 8. Map Feature Kits
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/map_feature_kits", methods=["POST"])
+@db_session(db)
 @login_required
 def map_feature_kits(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -263,6 +271,7 @@ def map_feature_kits(seq_request_id: int, uuid: str):
 
 # 9. Visium Annotation
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_visium_reference", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_visium_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -278,6 +287,7 @@ def parse_visium_reference(seq_request_id: int, uuid: str):
 
 # 10. Flex Annotation
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_flex_annotation", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_flex_annotation(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -308,6 +318,7 @@ def parse_sas_form(seq_request_id: int, uuid: str):
     
 # Complete SAS
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/complete", methods=["POST"])
+@db_session(db)
 @login_required
 def complete(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:

@@ -43,7 +43,7 @@ class SeqRun(Base):
     reads_m_pf: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
     yield_g: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
 
-    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="joined", primaryjoin="SeqRun.experiment_name == Experiment.name", foreign_keys=experiment_name)
+    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="joined", primaryjoin="SeqRun.experiment_name == Experiment.name", foreign_keys=experiment_name, cascade="save-update")
 
     sortable_fields: ClassVar[list[str]] = ["id", "experiment_name", "status_id", "read_type_id"]
 
@@ -83,3 +83,9 @@ class SeqRun(Base):
             res += "-0"
 
         return res
+    
+    def __str__(self) -> str:
+        return f"SeqRun(id={self.id}, experiment_name={self.experiment_name}, status={self.status}, read_type={self.read_type})"
+
+    def __repr__(self) -> str:
+        return self.__str__()

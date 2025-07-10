@@ -49,6 +49,7 @@ def create_experiment(
         self.session.add(lane)
 
     self.session.commit()
+    self.session.refresh(experiment)
 
     if not persist_session:
         self.close_session()
@@ -80,8 +81,9 @@ def get_experiments(
     status: Optional[ExperimentStatusEnum] = None,
     status_in: Optional[list[ExperimentStatusEnum]] = None,
     workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False
-) -> tuple[list[models.Experiment], int]:
+    sort_by: Optional[str] = None, descending: bool = False,
+    count_pages: bool = False
+) -> tuple[list[models.Experiment], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -102,7 +104,7 @@ def get_experiments(
     if workflow_in is not None:
         query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if offset is not None:
         query = query.offset(offset)
@@ -174,18 +176,13 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
                     raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
                 lane = models.Lane(number=lane_num, experiment_id=experiment.id)
                 self.session.add(lane)
-
+            
         if experiment.workflow.combined_lanes:
-            for link in experiment.laned_pool_links:
-                self.session.delete(link)
-            
-            self.session.add(experiment)
-            self.session.commit()
-            self.session.refresh(experiment)
-            
+            lps = set([(link.lane_id, link.pool_id) for link in experiment.laned_pool_links])
             for lane in experiment.lanes:
                 for pool in experiment.pools:
-                    lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
+                    if (lane.id, pool.id) not in lps:
+                        lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
         
         self.session.add(experiment)
         self.session.commit()

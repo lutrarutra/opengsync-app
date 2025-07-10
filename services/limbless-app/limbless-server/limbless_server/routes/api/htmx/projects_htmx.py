@@ -8,10 +8,10 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, DBHandler, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, UserRole, SampleStatus
+from limbless_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus
 
-from .... import db, forms
-from ....tools import SpreadSheetColumn
+from .... import db, forms, logger  # noqa: E402
+from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None   # type: ignore
@@ -36,6 +36,16 @@ def get(page: int):
     projects: list[models.Project] = []
     context = {}
 
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [ProjectStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+
     if (user_id := request.args.get("user_id", None)) is not None:
         template = "components/tables/user-project.html"
         try:
@@ -49,7 +59,7 @@ def get(page: int):
         if (user := db.get_user(user_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
+        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
         context["user"] = user
     else:
         template = "components/tables/project.html"
@@ -57,13 +67,14 @@ def get(page: int):
             user_id = current_user.id
         else:
             user_id = None
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by="id", descending=descending)
+        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
 
     return make_response(
         render_template(
             template, projects=projects,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
+            status_in=status_in,
             **context
         )
     )
@@ -79,12 +90,23 @@ def query():
     if word is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    if current_user.role == UserRole.CLIENT:
+    if not current_user.is_insider():
         _user_id = current_user.id
     else:
         _user_id = None
 
-    results = db.query_projects(word, user_id=_user_id)
+    if (group_id := request.args.get("group_id", None)) is not None:
+        try:
+            group_id = int(group_id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if (_ := db.get_group(group_id)) is None:
+            return abort(HTTPResponse.NOT_FOUND.id)
+        
+        _user_id = None
+
+    results = db.query_projects(word, user_id=_user_id, group_id=group_id)
 
     return make_response(
         render_template(
@@ -99,7 +121,7 @@ def query():
 @db_session(db)
 @login_required
 def create():
-    return forms.models.ProjectForm(request.form).process_request(user_id=current_user.id)
+    return forms.models.ProjectForm(formdata=request.form).process_request(user=current_user)
 
 
 @projects_htmx.route("<int:project_id>/edit", methods=["POST"])
@@ -109,11 +131,13 @@ def edit(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
-    return forms.models.ProjectForm(request.form).process_request(
-        user_id=current_user.id, project=project
+    return forms.models.ProjectForm(project=project, formdata=request.form).process_request(
+        user=current_user
     )
 
 
@@ -132,6 +156,27 @@ def delete(project_id: int):
     db.delete_project(project_id)
     flash(f"Deleted project {project.name}.", "success")
     return make_response(redirect=url_for("projects_page.projects_page"))
+
+
+@projects_htmx.route("<int:project_id>/complete", methods=["POST"])
+@db_session(db)
+@login_required
+def complete(project_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    for sample in project.samples:
+        for link in sample.library_links:
+            if link.library.status not in {LibraryStatus.SHARED, LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED}:
+                flash(f"Cannot complete project {project.name} because some libraries are not shared/failed/rejected/archived.",)
+                return make_response(redirect=url_for("projects_page.project_page", project_id=project_id))
+            
+    project.status = ProjectStatus.DELIVERED
+    project = db.update_project(project)
+    return make_response(redirect=url_for("projects_page.project_page", project_id=project.id))
 
 
 @projects_htmx.route("table_query", methods=["POST"])
@@ -209,8 +254,10 @@ def get_samples(project_id: int, page: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -227,7 +274,7 @@ def get_samples(project_id: int, page: int):
         if len(status_in) == 0:
             status_in = None
 
-    samples, n_pages = db.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in)
+    samples, n_pages = db.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True)
 
     return make_response(
         render_template(
@@ -248,8 +295,10 @@ def query_samples(project_id: int, field_name: str):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     samples = []
     if field_name == "name":
@@ -278,10 +327,12 @@ def get_sample_attributes(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
-    df = db.get_project_sample_attributes_df(project_id=project_id)
+    df = db.get_project_samples_df(project_id=project_id).rename(columns={"sample_id": "id", "sample_name": "name"})
 
     columns = []
     for i, col in enumerate(df.columns):
@@ -291,7 +342,7 @@ def get_sample_attributes(project_id: int):
             width = 300
         else:
             width = 150
-        columns.append(SpreadSheetColumn(col, col.replace("_", " ").title(), "text", width, var_type=str))
+        columns.append(TextColumn(col, col.replace("_", " ").title(), width, max_length=1000))
 
     return make_response(
         render_template(
@@ -309,8 +360,10 @@ def edit_sample_attributes(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if project.owner_id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
     
     if request.method == "GET":
         form = forms.SampleAttributeTableForm(project)
@@ -319,3 +372,28 @@ def edit_sample_attributes(project_id: int):
         return forms.SampleAttributeTableForm(project=project, formdata=request.form).process_request()
     
     return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+
+
+@projects_htmx.route("get_recent_projects", methods=["GET"])
+@db_session(db)
+@login_required
+def get_recent_projects():
+    status_in = None
+    if current_user.is_insider():
+        status_in = [
+            ProjectStatus.PROCESSING,
+            ProjectStatus.DELIVERED,
+            ProjectStatus.ARCHIVED
+        ]
+
+    projects, _ = db.get_projects(
+        user_id=current_user.id if not current_user.is_insider() else None,
+        sort_by="id", limit=15,
+        status_in=status_in, descending=True
+    )
+
+    return make_response(
+        render_template(
+            "components/dashboard/projects-list.html", projects=projects
+        )
+    )

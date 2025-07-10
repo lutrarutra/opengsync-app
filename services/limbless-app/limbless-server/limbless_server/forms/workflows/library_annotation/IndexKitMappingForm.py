@@ -11,7 +11,7 @@ from limbless_db import models
 from limbless_db.categories import BarcodeType, KitType, LibraryType
 
 from .... import db, logger
-from ...MultiStepForm import MultiStepForm
+from ...MultiStepForm import MultiStepForm, StepFile
 from ...SearchBar import SearchBar
 from .CMOAnnotationForm import CMOAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -65,6 +65,39 @@ class IndexKitMappingForm(MultiStepForm):
                     selected_kit = db.get_index_kit(index_kit_search_field.selected.data)
                     index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
 
+    def fill_previous_form(self, previous_form: StepFile):
+        self.barcode_table = previous_form.tables["barcode_table"]
+        self.library_table = previous_form.tables["library_table"]
+
+        kits = set()
+
+        counter = 0
+        for (label, kit_name, kit_id), _ in self.barcode_table.groupby(["kit_i7", "kit_i7_name", "kit_i7_id"]):
+            if label in kits:
+                continue
+            kits.add(label)
+            if counter > len(self.input_fields) - 1:
+                self.input_fields.append_entry()
+
+            entry: IndexKitSubForm = self.input_fields[counter]  # type: ignore
+            entry.raw_label.data = label
+            entry.index_kit.selected.data = kit_id
+            entry.index_kit.search_bar.data = kit_name
+            counter += 1
+
+        for (label, kit_name, kit_id), _ in self.barcode_table.groupby(["kit_i5", "kit_i5_name", "kit_i5_id"]):
+            if label in kits:
+                continue
+            kits.add(label)
+            if counter > len(self.input_fields) - 1:
+                self.input_fields.append_entry()
+
+            entry: IndexKitSubForm = self.input_fields[counter]  # type: ignore
+            entry.raw_label.data = label
+            entry.index_kit.selected.data = kit_id
+            entry.index_kit.search_bar.data = kit_name
+            counter += 1
+
     def validate(self) -> bool:
         if not super().validate():
             return False
@@ -75,7 +108,7 @@ class IndexKitMappingForm(MultiStepForm):
             index_kit_search_field: SearchBar = entry.index_kit  # type: ignore
             if (kit_id := index_kit_search_field.selected.data) is None:
                 logger.error(f"Index kit not found for {entry.raw_label.data}")
-                raise ValueError()
+                raise Exception()
             
             if (kit := db.get_index_kit(kit_id)) is None:
                 index_kit_search_field.selected.errors = (f"Index kit {kit_id} not found",)
@@ -83,13 +116,13 @@ class IndexKitMappingForm(MultiStepForm):
 
             if len(kit_df := db.get_index_kit_barcodes_df(kit_id, per_adapter=False)) == 0:
                 logger.error(f"Index kit {kit_id} does not exist")
-                raise ValueError()
+                raise Exception()
             
             kits[kit_id] = (kit, kit_df)
             self.barcode_table.loc[self.barcode_table["kit_i7"] == entry.raw_label.data, "kit_i7_id"] = kit_id
             self.barcode_table.loc[self.barcode_table["kit_i5"] == entry.raw_label.data, "kit_i5_id"] = kit_id
-            self.barcode_table.loc[self.barcode_table["kit_i7_id"] == kit_id, "kit_i7_name"] = kit.identifier
-            self.barcode_table.loc[self.barcode_table["kit_i5_id"] == kit_id, "kit_i5_name"] = kit.identifier
+            self.barcode_table.loc[self.barcode_table["kit_i7_id"] == kit_id, "kit_i7_name"] = kit.search_name()
+            self.barcode_table.loc[self.barcode_table["kit_i5_id"] == kit_id, "kit_i5_name"] = kit.search_name()
 
             for _, row in self.barcode_table[self.barcode_table["kit_i7_id"] == kit_id].iterrows():
                 if pd.notna(row["name_i7"]):
@@ -166,8 +199,8 @@ class IndexKitMappingForm(MultiStepForm):
                     barcode_table_data["kit_i5"].append(row["kit_i5"])
                     barcode_table_data["kit_i7_id"].append(row["kit_i7_id"])
                     barcode_table_data["kit_i5_id"].append(row["kit_i5_id"])
-                    barcode_table_data["kit_i7_name"].append(kit_i7.identifier)
-                    barcode_table_data["kit_i5_name"].append(kit_i5.identifier)
+                    barcode_table_data["kit_i7_name"].append(kit_i7.search_name())
+                    barcode_table_data["kit_i5_name"].append(kit_i5.search_name())
                     barcode_table_data["sequence_i7"].append(barcodes_i7[i] if len(barcodes_i7) > i else None)
                     barcode_table_data["sequence_i5"].append(barcodes_i5[i] if len(barcodes_i5) > i else None)
                     barcode_table_data["name_i7"].append(names_i7[i] if len(names_i7) > i else None)

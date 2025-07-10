@@ -14,7 +14,6 @@ from ..SearchBar import SearchBar
 
 class ExperimentForm(HTMXFlaskForm):
     _template_path = "forms/experiment.html"
-    _form_label = "experiment_form"
 
     name = StringField("Experiment Name", validators=[DataRequired(), Length(min=3, max=models.Experiment.name.type.length)])
     sequencer = FormField(SearchBar, label="Select Sequencer", description="Select the sequencer that will be used for sequencing.")

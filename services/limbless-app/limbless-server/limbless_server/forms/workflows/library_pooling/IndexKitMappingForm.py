@@ -66,6 +66,8 @@ class IndexKitMappingForm(MultiStepForm):
         library_table = self.tables["library_table"]
         library_table.loc[library_table["kit_i7"].notna(), "kit_i7"] = library_table.loc[library_table["kit_i7"].notna(), "kit_i7"].astype(str)
         library_table.loc[library_table["kit_i5"].notna(), "kit_i5"] = library_table.loc[library_table["kit_i5"].notna(), "kit_i5"].astype(str)
+        library_table.loc[library_table["kit_i7_name"].notna(), "kit_i7_name"] = library_table.loc[library_table["kit_i7_name"].notna(), "kit_i7_name"].astype(str)
+        library_table.loc[library_table["kit_i5_name"].notna(), "kit_i5_name"] = library_table.loc[library_table["kit_i5_name"].notna(), "kit_i5_name"].astype(str)
 
         kits: dict[int, tuple[models.IndexKit, pd.DataFrame]] = {}
 

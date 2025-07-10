@@ -18,7 +18,6 @@ def create_feature(
     feature_kit_id: Optional[int] = None,
     target_name: Optional[str] = None,
     target_id: Optional[str] = None,
-    commit: bool = True
 ) -> models.Feature:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -52,10 +51,8 @@ def create_feature(
         feature_kit_id=feature_kit_id
     )
     self.session.add(feature)
-
-    if commit:
-        self.session.commit()
-        self.session.refresh(feature)
+    self.session.commit()
+    self.session.refresh(feature)
 
     if not persist_session:
         self.close_session()
@@ -77,8 +74,9 @@ def get_features(
     self: "DBHandler", feature_kit_id: Optional[int] = None,
     library_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None
-) -> tuple[list[models.Feature], int]:
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    count_pages: bool = False
+) -> tuple[list[models.Feature], int | None]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -98,7 +96,7 @@ def get_features(
             models.links.LibraryFeatureLink.library_id == library_id
         )
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.Feature, sort_by)

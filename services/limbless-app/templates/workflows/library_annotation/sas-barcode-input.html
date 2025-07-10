@@ -1,7 +1,5 @@
-{% from 'components/form_group.jinja2' import form_group, select_input, switch_input %}
-{% from "components/table_input.jinja2" import table_input %}
-{% from "components/legends.jinja2" import color_legend %}
-{% from "components/search_select.jinja2" import search_select_field %}
+{% from 'components/form_group.jinja2' import form_group %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 <div id="barcode-input-container" class="modal-content">
@@ -45,6 +43,7 @@
                 {% include "instructions/barcode_input.html" %}
             </div>
             <div class="tab-pane fade" id="index-1-example-tab" role="tabpanel" tabindex="2">
+                {% include "examples/library-indexing.html" %}
             </div>
         </div>
     </div>
@@ -53,7 +52,7 @@
             {{ form.uuid }}
         </div>
         <div class="footer-info">
-            {{ color_legend(form.spreadsheet.colors) }}
+            {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"

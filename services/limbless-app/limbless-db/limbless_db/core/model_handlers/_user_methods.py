@@ -76,7 +76,8 @@ def get_users(
     role_in: Optional[list[UserRoleEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     group_id: Optional[int] = None, exclude_group_id: Optional[int] = None,
-) -> tuple[list[models.User], int]:
+    count_pages: bool = False
+) -> tuple[list[models.User], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -110,7 +111,7 @@ def get_users(
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if offset is not None:
         query = query.offset(offset)
@@ -229,8 +230,9 @@ def query_users_by_email(
 
 def get_user_affiliations(
     self: "DBHandler", user_id: int, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-    sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None
-) -> tuple[list[models.links.UserAffiliation], int]:
+    sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None,
+    count_pages: bool = False
+) -> tuple[list[models.links.UserAffiliation], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -243,7 +245,7 @@ def get_user_affiliations(
             models.links.UserAffiliation.affiliation_type_id == affiliation_type.id
         )
 
-    n_pages = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.links.UserAffiliation, sort_by)

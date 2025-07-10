@@ -7,8 +7,8 @@ from flask import Response, url_for
 from limbless_db import models
 from limbless_db.categories import LibraryType, FeatureType
 
-from .... import logger, tools  # noqa
-from ....tools import SpreadSheetColumn
+from .... import logger, tools, db  # noqa
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, MissingCellValue, InvalidCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .KitMappingForm import KitMappingForm
@@ -23,14 +23,22 @@ class CMOAnnotationForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "cmo_annotation"
     columns = [
-        SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("kit", "Kit", "text", 170, str),
-        SpreadSheetColumn("feature", "Feature", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        SpreadSheetColumn("read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        DropdownColumn("sample_name", "Sample (Pool) Name", 170, choices=[], required=True),
+        TextColumn("kit", "Kit", 170, max_length=models.Kit.name.type.length),
+        TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
+
+    @classmethod
+    def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:
+        multiplexed_samples = set()
+        for sample_name, _df in df.groupby("sample_name"):
+            if LibraryType.TENX_MULTIPLEXING_CAPTURE.id in _df["library_type_id"].unique():
+                multiplexed_samples.add(sample_name)
+        return list(multiplexed_samples)
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
@@ -39,14 +47,19 @@ class CMOAnnotationForm(MultiStepForm):
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
+        self.upload_path = "uploads/seq_request"
+
+        self.multiplexed_samples = CMOAnnotationForm.__get_multiplexed_samples(self.tables["library_table"])
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
+
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=CMOAnnotationForm.columns, csrf_token=csrf_token,
             post_url=url_for('library_annotation_workflow.parse_cmo_reference', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )
+        self.spreadsheet.columns["sample_name"].source = self.multiplexed_samples
 
     def validate(self) -> bool:
         if not super().validate():
@@ -56,52 +69,39 @@ class CMOAnnotationForm(MultiStepForm):
             return False
         
         df = self.spreadsheet.df
-        library_table: pd.DataFrame = self.tables["library_table"]
 
         kit_feature = pd.notna(df["kit"]) & pd.notna(df["feature"])
         custom_feature = pd.notna(df["sequence"]) & pd.notna(df["pattern"]) & pd.notna(df["read"])
         invalid_feature = (pd.notna(df["kit"]) | pd.notna(df["feature"])) & (pd.notna(df["sequence"]) | pd.notna(df["pattern"]) | pd.notna(df["read"]))
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            # sample name not defined
-            if pd.isna(row["sample_name"]):
-                self.spreadsheet.add_error(i + 1, "sample_name", "'Sample Name' must be specified.", "missing_value")
-
-            # sample name not found in library table
-            elif row["sample_name"] not in library_table["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "sample_name", f"'Sample Name' must be one of: [{', '.join(set(library_table['sample_name'].values.tolist()))}]", "invalid_value")
-
-            # Demux name not defined
-            if pd.isna(row["demux_name"]):
-                self.spreadsheet.add_error(i + 1, "demux_name", "'Demux Name' must be specified.", "missing_value")
-
             # Not defined custom nor kit feature
             if (not custom_feature.at[idx] and not kit_feature.at[idx]):
-                self.spreadsheet.add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(i + 1, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
-                self.spreadsheet.add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified.", "missing_value")
+                self.spreadsheet.add_error(idx, "kit", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "feature", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "sequence", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "pattern", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "read", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
 
             # Defined both custom and kit feature
             elif custom_feature.at[idx] and kit_feature.at[idx]:
-                self.spreadsheet.add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
-                self.spreadsheet.add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                self.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "sequence", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
 
             elif invalid_feature.at[idx]:
                 if pd.notna(row["kit"]):
-                    self.spreadsheet.add_error(i + 1, "kit", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["feature"]):
-                    self.spreadsheet.add_error(i + 1, "feature", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["sequence"]):
-                    self.spreadsheet.add_error(i + 1, "sequence", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "sequence", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["pattern"]):
-                    self.spreadsheet.add_error(i + 1, "pattern", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["read"]):
-                    self.spreadsheet.add_error(i + 1, "read", "must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both.", "invalid_input")
+                    self.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
 
         if len(self.spreadsheet._errors) > 0:
             return False
@@ -117,7 +117,46 @@ class CMOAnnotationForm(MultiStepForm):
             return self.make_response()
 
         library_table = self.tables["library_table"]
+        sample_table = self.tables["sample_table"]
+        pooling_table = self.tables["pooling_table"]
 
+        sample_data = {
+            "sample_name": [],
+            "cmo_sequence": [],
+            "cmo_pattern": [],
+            "cmo_read": [],
+        }
+
+        pooling_data = {
+            "sample_name": [],
+            "library_name": [],
+        }
+
+        for _, cmo_row in self.cmo_table.iterrows():
+            sample_data["sample_name"].append(cmo_row["demux_name"])
+            sample_data["cmo_sequence"].append(cmo_row["sequence"] if cmo_row["custom_feature"] else None)
+            sample_data["cmo_pattern"].append(cmo_row["pattern"] if cmo_row["custom_feature"] else None)
+            sample_data["cmo_read"].append(cmo_row["read"] if cmo_row["custom_feature"] else None)
+            for _, pooling_row in pooling_table[pooling_table["sample_name"] == cmo_row["sample_name"]].iterrows():
+                pooling_data["sample_name"].append(cmo_row["demux_name"])
+                pooling_data["library_name"].append(pooling_row["library_name"])
+        
+        sample_table = pd.DataFrame(sample_data)
+        sample_table["sample_id"] = None
+        sample_table["flex_barcode"] = None
+        pooling_table = pd.DataFrame(pooling_data)
+
+        if (project_id := self.metadata.get("project_id")) is not None:
+            if (project := db.get_project(project_id)) is None:
+                logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
+                raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
+            
+            for sample in project.samples:
+                sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
+
+        self.update_table("sample_table", sample_table, update_data=False)
+        self.update_table("pooling_table", pooling_table, update_data=False)
+                
         kit_table = self.cmo_table[self.cmo_table["kit"].notna()][["kit"]].drop_duplicates().copy()
         kit_table["type_id"] = FeatureType.CMO.id
         kit_table["kit_id"] = None
@@ -145,5 +184,5 @@ class CMOAnnotationForm(MultiStepForm):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        
+
         return next_form.make_response()

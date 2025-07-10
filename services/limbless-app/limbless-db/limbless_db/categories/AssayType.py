@@ -5,7 +5,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 from .LibraryType import LibraryType, LibraryTypeEnum
 
 
-@dataclass
+@dataclass(eq=False)
 class AssayTypeEnum(DBEnum):
     abbreviation: str
     platform: Optional[str] = None

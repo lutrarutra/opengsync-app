@@ -19,7 +19,7 @@ class Adapter(Base):
     barcodes_i7: Mapped[list["Barcode"]] = relationship("Barcode", lazy="joined", cascade="all, save-update, merge, delete", primaryjoin=f"and_(Adapter.id == Barcode.adapter_id, Barcode.type_id == {BarcodeType.INDEX_I7.id})", overlaps="barcodes_i5")
     barcodes_i5: Mapped[list["Barcode"]] = relationship("Barcode", lazy="joined", cascade="all, save-update, merge, delete", primaryjoin=f"and_(Adapter.id == Barcode.adapter_id, Barcode.type_id == {BarcodeType.INDEX_I5.id})", overlaps="barcodes_i7")
     
-    index_kit_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=False)
+    index_kit_id: Mapped[int] = mapped_column(sa.ForeignKey("index_kit.id"), nullable=False)
     index_kit: Mapped["IndexKit"] = relationship("IndexKit", back_populates="adapters", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name"]

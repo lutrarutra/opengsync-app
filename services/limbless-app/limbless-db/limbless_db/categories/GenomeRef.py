@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass
+@dataclass(eq=False)
 class GenomeRefEnum(DBEnum):
     assembly: Optional[str] = None
     organism_latin_name: Optional[str] = None

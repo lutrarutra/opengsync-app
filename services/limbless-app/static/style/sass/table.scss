@@ -42,6 +42,10 @@ table input.table-query-input{
             }
         }
 
+        tbody td, tbody th {
+            font-family: monospace;
+        }
+
         .table-select-buttons {
             display: flex;
             align-items: flex-start;
@@ -77,6 +81,23 @@ table input.table-query-input{
                     background-color: $gray-300;
                 }
             }
+
+            td a {
+                display: block;
+                height: 100%;
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                padding-right: 8px !important;
+                padding-left: 8px !important;
+            }
+
+            td:has(a) {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
             td, th {
                 padding-top: 8px !important;
                 padding-bottom: 8px !important;
@@ -173,6 +194,19 @@ table input.table-query-input{
         background-color: $cemm-blue;
     }
 
+    tr:hover {
+        td, th {
+            background-color: $gray-200 !important;
+        }
+        td:hover {
+            background-color: $gray-300 !important;
+        }
+        cursor: default;
+        td:has(a:hover) {
+            cursor: pointer !important;
+        }
+    }
+
     td .quantity-container {
         display: flex;
         gap: 5px;
@@ -190,12 +224,6 @@ table input.table-query-input{
 
     .unselectable-row:hover {
         cursor: not-allowed !important;
-    }
-    
-    tr.select-pool.selected {
-        th, td {
-            background-color: #EAFAF1;
-        }
     }
 
     tr.selected {

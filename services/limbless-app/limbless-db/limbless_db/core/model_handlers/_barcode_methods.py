@@ -58,7 +58,8 @@ def get_barcodes(
     type: Optional[BarcodeTypeEnum] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-) -> tuple[list[models.Barcode], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Barcode], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -73,7 +74,7 @@ def get_barcodes(
     if adapter_id is not None:
         query = query.filter(models.Barcode.adapter_id == adapter_id)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         column = getattr(models.Barcode, sort_by)

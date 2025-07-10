@@ -4,7 +4,7 @@
 {% from 'components/spinner.jinja2' import spinner %}
 
 <div id="select-lanes-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -30,7 +30,7 @@
         </thead>
         <tbody>
             {% for lane in lanes %}
-            <tr onclick="toggle_lane({{ lane.id }});" id="lane-row-{{ lane.id }}" class="pool-row">
+            <tr id="lane-row-{{ lane.id }}" data-id="{{ lane.id }}" class="lane-row">
                 <th scope="row">{{ lane.experiment.name }}</th>
                 <th>{{ lane.number }}</th>
                 {% if workflow == "qubit_measure" %}
@@ -58,6 +58,55 @@
     <script>
         $(document).ready(function() {
             init_tooltips();
+
+            function add_lane(lane_id) {
+                selected_lanes.push(lane_id);
+                $(`#lane-row-${lane_id}`).addClass("selected");
+
+                const cloned = $(`#lane-row-${lane_id}`).clone();
+                cloned.attr("id", `selected-lane-row-${lane_id}`);
+                cloned.on("click", function() {
+                    remove_lane(lane_id);
+                });
+                $("#selected-lanes-table-container").append(cloned);
+                num_selected_lanes += 1;
+                $("#selected-lanes-tab-btn").text(`Selected Lanes (${num_selected_lanes})`);
+            }
+
+            function remove_lane(lane_id) {
+                selected_lanes = selected_lanes.filter(function(value, index, arr) {
+                    return value != lane_id;
+                });
+                $(`#lane-row-${lane_id}`).removeClass("selected");
+                $(`#selected-lane-row-${lane_id}`).remove();
+                num_selected_lanes -= 1;
+                $("#selected-lanes-tab-btn").text(`Selected Lanes (${num_selected_lanes})`);
+            }
+
+            function toggle_lane(lane_id) {
+                lane_id = parseInt(lane_id);
+                if (selected_lanes.includes(lane_id)) {
+                    remove_lane(lane_id);
+                } else {
+                    add_lane(lane_id);
+                }
+            }
+
+            $(".lane-row").mousedown(function(e) {
+                e.preventDefault();
+                is_mouse_down = true;
+                start_row = $(this);
+                toggle_lane($(this).data("id"));
+            });
+
+            function update_lanes() {
+                $(".lane-row").each(function() {
+                    const lane_id = parseInt($(this).data("id"));
+                    if (selected_lanes.includes(lane_id)) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
             update_lanes();
         });
     </script>

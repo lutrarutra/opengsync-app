@@ -61,7 +61,8 @@ def get_feature_kits(
     self: "DBHandler",
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-) -> tuple[list[models.FeatureKit], int]:
+    count_pages: bool = False
+) -> tuple[list[models.FeatureKit], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -73,7 +74,7 @@ def get_feature_kits(
             sort_attr = sort_attr.desc()
         query = query.order_by(sort_attr)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if offset is not None:
         query = query.offset(offset)

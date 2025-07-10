@@ -1,5 +1,6 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
+{% from "components/status_bar.jinja2" import project_status_bar with context %}
 
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
@@ -7,9 +8,26 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>Project: {{ project.name }}</h1>
+            <h1>{{ project.name }} {% if project.group_id %}<span class="desc">{{ project.group.name }} {{ project.group.type.icon }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
+            {% if current_user.is_insider() and project.status == ProjectStatus.PROCESSING %}
+            <span {{ tooltip('Mark project and all samples in it completed.', category='success') }}>
+                <button hx-post="{{ url_for('projects_htmx.complete', project_id=project.id) }}" class="btn btn-success"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Complete project \'{{ project.name }}\'',
+                        showDenyButton: true,
+                        text: 'Do you want to proceed?',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()">
+                    Complete Project
+                </button>
+            </span>
+            {% endif %}
             <button type="button"  class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#project-form-popup">
                 Edit Project
@@ -35,6 +53,11 @@
             </span>
         </div>
     </div>
+
+    <div class="status_bar">
+        {{ project_status_bar(project) }}
+    </div>
+
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
@@ -80,13 +103,27 @@
                     metadata_group_link(
                         "Owner Name",
                         project.owner.name,
-                        url_for("users_page.user_page", user_id=project.owner.id),
-                        class="col"
+                        url_for("users_page.user_page", user_id=project.owner.id, from="project@" + project.id | string),
+                        class="col-4"
                     )
                 }}
+                {% if project.group_id %}
+                {{ 
+                    metadata_group_link(
+                        "Group",
+                        project.group.name + " " + project.group.type.icon,
+                        url_for("groups_page.group_page", group_id=project.group_id, from="project@" + project.id | string),
+                        class="col-4"
+                    )
+                }}
+                {% else %}
+                {{ 
+                    metadata_group("Group", "", class="col-4")
+                }}
+                {% endif %}
                 {{
                     metadata_group_email_link(
-                        "Owner Email", project.owner.email, class="col",
+                        "Owner Email", project.owner.email, class="col-4",
                         subject="BSF Project: " + project.name + " (" + project.id | string + ")"
                     )
                 }}
@@ -121,7 +158,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {% include project_form._template_path %}
+                {% include form._template_path %}
             </div>
             <div class="modal-footer" id="popup-footer">
                 <button class="btn btn-primary" hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"

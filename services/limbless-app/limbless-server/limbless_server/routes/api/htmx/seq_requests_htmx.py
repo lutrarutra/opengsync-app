@@ -41,6 +41,16 @@ def get(page: int):
         
         if len(status_in) == 0:
             status_in = None
+
+    if (submission_type_in := request.args.get("submission_type_id_in")) is not None:
+        submission_type_in = json.loads(submission_type_in)
+        try:
+            submission_type_in = [SubmissionType.get(int(submission_type)) for submission_type in submission_type_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+        
+        if len(submission_type_in) == 0:
+            submission_type_in = None
     
     seq_requests: list[models.SeqRequest] = []
 
@@ -48,7 +58,8 @@ def get(page: int):
 
     seq_requests, n_pages = db.get_seq_requests(
         offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
-        show_drafts=True, status_in=status_in
+        submission_type_in=submission_type_in,
+        show_drafts=True, status_in=status_in, count_pages=True
     )
 
     return make_response(
@@ -59,6 +70,7 @@ def get(page: int):
             sort_by=sort_by, sort_order=sort_order,
             SeqRequestStatus=SeqRequestStatus,
             status_in=status_in,
+            submission_type_in=submission_type_in,
         )
     )
 
@@ -415,6 +427,10 @@ def remove_library(seq_request_id: int):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
+    if not current_user.is_insider():
+        if seq_request.status != SeqRequestStatus.DRAFT:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
     try:
         library_id = int(library_id)
     except ValueError:
@@ -422,10 +438,6 @@ def remove_library(seq_request_id: int):
     
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if seq_request.requestor_id != current_user.id:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
         
     db.delete_library(library_id)
 
@@ -436,6 +448,46 @@ def remove_library(seq_request_id: int):
         redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
     )
 
+
+@seq_requests_htmx.route("<int:seq_request_id>/remove_sample", methods=["DELETE"])
+@db_session(db)
+@login_required
+def remove_sample(seq_request_id: int):
+    if (sample_id := request.args.get("sample_id")) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if not current_user.is_insider():
+        if seq_request.status != SeqRequestStatus.DRAFT:
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+    try:
+        sample_id = int(sample_id)
+    except ValueError:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (sample := db.get_sample(sample_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    for library_link in sample.library_links:
+        if library_link.library.seq_request_id != seq_request_id:
+            continue
+        
+        db.delete_library(library_link.library.id)
+
+    flash(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'", "success")
+    logger.debug(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'")
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
+    )
+        
 
 @seq_requests_htmx.route("<int:seq_request_id>/remove_all_libraries", methods=["DELETE"])
 @db_session(db)
@@ -744,7 +796,7 @@ def get_libraries(seq_request_id: int, page: int):
 
     libraries, n_pages = db.get_libraries(
         offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending,
-        status_in=status_in, type_in=type_in
+        status_in=status_in, type_in=type_in, count_pages=True
     )
 
     return make_response(
@@ -839,7 +891,7 @@ def get_samples(seq_request_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    samples, n_pages = db.get_samples(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending)
+    samples, n_pages = db.get_samples(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(
@@ -868,7 +920,7 @@ def get_pools(seq_request_id: int, page: int):
     offset = PAGE_LIMIT * page
 
     pools, n_pages = db.get_pools(
-        seq_request_id=seq_request_id, offset=offset, sort_by=sort_by, descending=descending
+        seq_request_id=seq_request_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(
@@ -995,5 +1047,5 @@ def get_recent_seq_requests():
     )
 
     return make_response(
-        render_template("components/recent_seq_requests_list.html", seq_requests=seq_requests, sort_by=sort_by)
+        render_template("components/dashboard/seq_requests-list.html", seq_requests=seq_requests, sort_by=sort_by)
     )

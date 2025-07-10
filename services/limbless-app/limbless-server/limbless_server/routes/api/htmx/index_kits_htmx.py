@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from flask import Blueprint, render_template, request, abort, url_for, flash
+from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
@@ -11,7 +11,7 @@ from limbless_db import models, db_session, PAGE_LIMIT
 from limbless_db.categories import HTTPResponse, IndexType, BarcodeType, KitType
 
 from .... import db, logger, cache, forms  # noqa F401
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -45,7 +45,7 @@ def get(page: int):
         if len(type_in) == 0:
             type_in = None
 
-    index_kits, n_pages = db.get_index_kits(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, type_in=type_in)
+    index_kits, n_pages = db.get_index_kits(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, type_in=type_in, count_pages=True)
 
     return make_response(
         render_template(
@@ -114,7 +114,7 @@ def get_adapters(index_kit_id: int, page: int):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
-    adapters, n_pages = db.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending)
+    adapters, n_pages = db.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(
@@ -129,66 +129,21 @@ def get_adapters(index_kit_id: int, page: int):
 @index_kits_htmx.route("<int:index_kit_id>/render_table", methods=["GET"])
 @db_session(db)
 @login_required
-@cache.cached(timeout=300, query_string=True)
 def render_table(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    barcodes = db.get_index_kit_barcodes_df(index_kit_id)
-
-    if index_kit.type == IndexType.TENX_ATAC_INDEX:
-        barcode_data = {
-            "well": [],
-            "index_name": [],
-            "sequence_1": [],
-            "sequence_2": [],
-            "sequence_3": [],
-            "sequence_4": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            barcode_data["index_name"].append(row["names"][0])
-            for i in range(4):
-                barcode_data[f"sequence_{i + 1}"].append(row["sequences"][i])
-    elif index_kit.type == IndexType.DUAL_INDEX:
-        barcode_data = {
-            "well": [],
-            "index_name_i7": [],
-            "sequence_i7": [],
-            "index_name_i5": [],
-            "sequence_i5": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            for i in range(2):
-                if row["types"][i] == BarcodeType.INDEX_I7:
-                    barcode_data["index_name_i7"].append(row["names"][i])
-                    barcode_data["sequence_i7"].append(row["sequences"][i])
-                else:
-                    barcode_data["index_name_i5"].append(row["names"][i])
-                    barcode_data["sequence_i5"].append(row["sequences"][i])
-    elif index_kit.type == IndexType.SINGLE_INDEX:
-        barcode_data = {
-            "well": [],
-            "index_name": [],
-            "sequence_i7": [],
-        }
-        for _, row in barcodes.iterrows():
-            barcode_data["well"].append(row["well"])
-            barcode_data["index_name"].append(row["names"][0])
-            barcode_data["sequence_i7"].append(row["sequences"][0])
-
-    df = pd.DataFrame(barcode_data)
+    df = db.get_index_kit_barcodes_df(index_kit_id, per_index=True)
 
     columns = []
     for i, col in enumerate(df.columns):
         if "sequence" in col:
-            width = 300
+            width = 200
         elif "well" in col:
             width = 100
         else:
             width = 150
-        columns.append(SpreadSheetColumn(col, col, "text", width, var_type=str))
+        columns.append(TextColumn(col, col, width, max_length=1000))
     
     return make_response(
         render_template(
@@ -260,21 +215,6 @@ def edit(index_kit_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@index_kits_htmx.route("delete/<int:index_kit_id>", methods=["DELETE"])
-@db_session(db)
-@login_required
-def delete(index_kit_id: int):
-    if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    if (_ := db.get_index_kit(index_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    db.delete_index_kit(id=index_kit_id)
-    flash("Index kit deleted successfully.", "success")
-    return make_response(redirect=url_for("kits_page.index_kits_page"))
-
-
 @index_kits_htmx.route("<int:index_kit_id>/edit_barcodes", methods=["GET", "POST"])
 @db_session(db)
 @login_required
@@ -285,10 +225,20 @@ def edit_barcodes(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if index_kit.type == IndexType.TENX_ATAC_INDEX:
+        cls = forms.EditKitTENXATACBarcodesForm
+    elif index_kit.type == IndexType.DUAL_INDEX:
+        cls = forms.EditDualIndexKitBarcodesForm
+    elif index_kit.type == IndexType.SINGLE_INDEX:
+        cls = forms.EditSingleIndexKitBarcodesForm
+    else:
+        logger.error(f"Unknown index kit type {index_kit.type}")
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
     if request.method == "GET":
-        return forms.EditKitBarcodesForm(index_kit=index_kit).make_response()
+        return cls(index_kit=index_kit).make_response()
     elif request.method == "POST":
-        form = forms.EditKitBarcodesForm(
+        form = cls(
             index_kit=index_kit,
             formdata=request.form
         )

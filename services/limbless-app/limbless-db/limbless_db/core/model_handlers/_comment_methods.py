@@ -11,7 +11,7 @@ def create_comment(
     self: "DBHandler", text: str, author_id: int, file_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     experiment_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None
+    lab_prep_id: Optional[int] = None,
 ) -> models.Comment:
     if not (persist_session := self._session is not None):
         self.open_session()

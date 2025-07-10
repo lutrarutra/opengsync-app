@@ -80,12 +80,14 @@ def get_pools(
     experiment_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
+    associated_to_experiment: Optional[bool] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     status: Optional[PoolStatusEnum] = None,
     status_in: Optional[list[PoolStatusEnum]] = None,
     type_in: Optional[list[PoolTypeEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.Pool], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Pool], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -131,13 +133,19 @@ def get_pools(
             models.Pool.type_id.in_([t.id for t in type_in])
         )
 
+    if associated_to_experiment is not None:
+        if associated_to_experiment:
+            query = query.where(models.Pool.experiment_id.isnot(None))
+        else:
+            query = query.where(models.Pool.experiment_id.is_(None))
+
     if sort_by is not None:
         attr = getattr(models.Pool, sort_by)
         if descending:
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
     
     if offset is not None:
         query = query.offset(offset)
@@ -293,7 +301,8 @@ def get_pool_dilutions(
     experiment_id: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.PoolDilution], int]:
+    count_pages: bool = False
+) -> tuple[list[models.PoolDilution], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -320,7 +329,7 @@ def get_pool_dilutions(
             attr = attr.desc()
         query = query.order_by(attr)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
     
     if offset is not None:
         query = query.offset(offset)
@@ -389,7 +398,7 @@ def clone_pool(self: "DBHandler", pool_id: int, seq_request_id: Optional[int] = 
         contact_email=pool.contact.email if pool.contact.email is not None else "unknown",
         contact_name=pool.contact.name,
         contact_phone=pool.contact.phone,
-        pool_type=pool.type
+        pool_type=pool.type,
     )
 
     if not persist_session:

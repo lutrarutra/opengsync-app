@@ -47,13 +47,14 @@ def get_plates(
     self: "DBHandler",
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-) -> tuple[list[models.Plate], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Plate], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self.session.query(models.Plate)
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.Library, sort_by)

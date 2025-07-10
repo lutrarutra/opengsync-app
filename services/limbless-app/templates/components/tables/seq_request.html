@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_request-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -22,7 +22,7 @@
                         sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='seq_requests_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, col_size=4,
+                        active_query_field=active_query_field, col_size=5,
                     )
                 }}
                 {{
@@ -30,6 +30,13 @@
                         table_container_id='seq_request-table', column_name='Status', column_var='status_id',
                         sort_url='seq_requests_htmx.get', context={}, multiselect_choices=SeqRequestStatus.as_list(),
                         sort_by=sort_by, sort_order=sort_order, col_size=1, multiselect_selected=status_in
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='seq_request-table', column_name='Type', column_var='submission_type_id',
+                        sort_url='seq_requests_htmx.get', context={}, multiselect_choices=SubmissionType.as_list(),
+                        sort_by=sort_by, sort_order=sort_order, col_size=1, multiselect_selected=submission_type_in
                     )
                 }}
                 {{
@@ -46,13 +53,6 @@
                         query_url='seq_requests_htmx.table_query', current_query=current_query, active_query_field=active_query_field
                     )
                 }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-table', column_name='Submitted', column_var='timestamp_submitted_utc',
-                        sort_url='seq_requests_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
             </tr>
         </thead>
         <tbody>
@@ -61,9 +61,9 @@
                 <th scope="row">{{ seq_request.id }}</th>
                 <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">{{ seq_request.name }}</a></td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
+                <td>{{ seq_request.submission_type.abbreviation }} {{ seq_request.submission_type.icon | safe }}</td>
                 <td>{% if seq_request.group_id %}<a href="{{ url_for('groups_page.group_page', group_id=seq_request.group_id) }}">{{ seq_request.group.name }} {{ seq_request.group.type.icon }}</a>{% endif %}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=seq_request.requestor_id) }}">{{ seq_request.requestor.name }}</a> <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></td>
-                <td>{{ seq_request.timestamp_submitted_str() }}</td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=seq_request.requestor_id) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
             </tr>
             {% endfor %}
         </tbody>

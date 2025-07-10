@@ -8,10 +8,10 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus
+from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType
 
 from .... import db, forms, logger  # noqa
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -54,7 +54,7 @@ def get(page: int):
         offset=offset,
         user_id=current_user.id if not current_user.is_insider() else None,
         sort_by=sort_by, descending=descending,
-        status_in=status_in, type_in=type_in
+        status_in=status_in, type_in=type_in, count_pages=True
     )
 
     return make_response(
@@ -114,7 +114,7 @@ def get_features(library_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    features, n_pages = db.get_features(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending)
+    features, n_pages = db.get_features(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -147,9 +147,9 @@ def render_feature_table(library_id: int):
         else:
             width = 200
         columns.append(
-            SpreadSheetColumn(
+            TextColumn(
                 col, col.replace("_", " ").title().replace("Id", "ID"),
-                "text", width, var_type=str
+                width, max_length=1000
             )
         )
     
@@ -265,7 +265,7 @@ def get_samples(library_id: int, page: int):
     offset = PAGE_LIMIT * page
     
     samples, n_pages = db.get_samples(
-        offset=offset, library_id=library_id, sort_by=sort_by, descending=descending
+        offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(
@@ -357,7 +357,7 @@ def browse(workflow: str, page: int):
         seq_request_id=seq_request_id, experiment_id=experiment_id,
         type_in=type_in, status_in=status_in,
         pool_id=pool_id,
-        in_lab_prep=False if workflow == "library_prep" else None
+        in_lab_prep=False if workflow == "library_prep" else None, count_pages=True
     )
     context["workflow"] = workflow
 
@@ -566,12 +566,7 @@ def get_flex_table(library_id: int):
             width = 100
         else:
             width = 300
-        columns.append(
-            SpreadSheetColumn(
-                col, col.replace("_", " ").title().replace("Id", "ID"),
-                "text", width, var_type=str
-            )
-        )
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width, max_length=1000))
 
     return make_response(
         render_template(
@@ -600,17 +595,86 @@ def get_hto_table(library_id: int):
 
     columns = []
     for i, col in enumerate(df.columns):
-        columns.append(
-            SpreadSheetColumn(
-                col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
-                "text", 300, var_type=str
-            )
-        )
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"), 300, max_length=1000))
 
     return make_response(
         render_template(
             "components/itable.html", columns=columns,
             spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
             table_id="flex-table"
+        )
+    )
+
+
+@libraries_htmx.route("get_todo_libraries", methods=["GET"])
+@db_session(db)
+@login_required
+def get_todo_libraries():
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    libraries, _ = db.get_libraries(
+        status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
+        limit=512
+    )
+
+    data = {
+        "assay_type": [],
+        "library_name": [],
+        "status": [],
+    }
+
+    for library in libraries:
+        data["assay_type"].append(library.assay_type)
+        data["library_name"].append(library.name)
+        data["status"].append(library.status)
+
+    df = pd.DataFrame(data)
+    
+    return make_response(
+        render_template(
+            "components/dashboard/todo-assays-lists.html", df=df
+        )
+    )
+
+
+@libraries_htmx.route("get_assay_type_todo_libraries/<int:assay_type_id>", methods=["GET"])
+@db_session(db)
+@login_required
+def get_assay_type_todo_libraries(assay_type_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    try:
+        assay_type = AssayType.get(assay_type_id)
+    except ValueError:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    libraries, _ = db.get_libraries(
+        status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
+        assay_type=assay_type, limit=512
+    )
+
+    data = {
+        "library_name": [],
+        "library_type": [],
+        "status": [],
+        "seq_request": [],
+        "sample_name": []
+    }
+
+    for library in libraries:
+        data["library_name"].append(library.name)
+        data["library_type"].append(library.type)
+        data["seq_request"].append(library.seq_request)
+        data["status"].append(library.status)
+        data["sample_name"].append(library.sample_name)
+
+    df = pd.DataFrame(data)
+
+    return make_response(
+        render_template(
+            "components/assay_type-todo-list.html",
+            assay_type=assay_type, df=df
         )
     )

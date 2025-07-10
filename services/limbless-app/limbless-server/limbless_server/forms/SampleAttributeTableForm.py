@@ -7,7 +7,7 @@ from limbless_db import models
 from limbless_db.categories import AttributeType
 
 from .. import logger, db  # noqa F401
-from ..tools import SpreadSheetColumn
+from ..tools.spread_sheet_components import TextColumn, IntegerColumn, DropdownColumn, SpreadSheetColumn, InvalidCellValue
 from .HTMXFlaskForm import HTMXFlaskForm
 from .SpreadsheetInput import SpreadsheetInput
 
@@ -16,17 +16,17 @@ class SampleAttributeTableForm(HTMXFlaskForm):
     _template_path = "forms/sample_attribute_table_form.html"
     _form_label = "sample_attribute_table_form"
 
-    predefined_columns = [
-        SpreadSheetColumn("id", "ID", "text", 50, str),
-        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str),
-    ] + [SpreadSheetColumn(t.label, t.name, "text", 100, str) for i, t in enumerate(AttributeType.as_list()[1:])]
+    predefined_columns: list[SpreadSheetColumn] = [
+        IntegerColumn("id", "ID", 50, required=True),
+        DropdownColumn("sample_name", "Sample Name", 200, required=True, choices=[])
+    ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for _, t in enumerate(AttributeType.as_list()[1:])]
 
     def __init__(self, project: models.Project, formdata: dict = {}):
         super().__init__(formdata=formdata)
         self.project = project
 
         self._context["project"] = project
-        df = db.get_project_sample_attributes_df(self.project.id)
+        df = db.get_project_samples_df(self.project.id)
 
         columns = SampleAttributeTableForm.predefined_columns.copy()
 
@@ -40,6 +40,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             post_url=url_for('projects_htmx.edit_sample_attributes', project_id=project.id),
             formdata=formdata, allow_new_cols=True, df=df, allow_col_rename=True
         )
+        self.spreadsheet.columns["sample_name"].source = [sample.name for sample in self.project.samples]
 
     def validate(self) -> bool:
         if not super().validate() or self.formdata is None:
@@ -67,16 +68,18 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         if df.columns.duplicated().any():
             self.spreadsheet.add_general_error("Duplicate column names",)
             return False
-
-        for i, (idx, row) in enumerate(df.iterrows()):
-            try:
-                df.at[idx, "id"] = int(row["id"])
-            except ValueError:
-                self.spreadsheet.add_error(i + 1, "id", "Invalid ID", "invalid_value")
+            
+        for idx, row in df.iterrows():
+            if (sample := db.get_sample(row["id"])) is None:
+                self.spreadsheet.add_error(idx, "id", InvalidCellValue(f"Sample with ID {row['id']} does not exist"))
                 continue
             
-            if row["id"] not in df["id"].values:
-                self.spreadsheet.add_error(i + 1, "id", "Sample ID not found in the project", "invalid_value")
+            if sample.project_id != self.project.id:
+                self.spreadsheet.add_error(idx, "id", InvalidCellValue(f"Sample with ID {row['id']} does not belong to this project"))
+                continue
+            
+            if sample.name != row["sample_name"]:
+                self.spreadsheet.add_error(idx, "sample_name", InvalidCellValue(f"Sample name does not match sample with ID {row['id']}"))
                 continue
             
         if len(self.spreadsheet._errors) > 0:

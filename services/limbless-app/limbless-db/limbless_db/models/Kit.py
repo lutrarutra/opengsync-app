@@ -36,7 +36,7 @@ class Kit(Base):
         return self.id
     
     def search_name(self) -> str:
-        return self.name
+        return f"{self.name} [{self.identifier}]"
     
     def search_description(self) -> str | None:
         return self.identifier

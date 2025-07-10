@@ -1,91 +1,85 @@
 @import "colors.scss";
 
+.dash-container {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    height: 100%;
+}
+
 .dash {
     display: flex;
-    height: calc(100vh - 60px);
-    padding: 10px 0 10px 0;
+    height: 100%;
+    padding: 0;
     gap: 10px;
 
-    .dash-component-header {
-        display: flex;
-        align-items: center;
-        padding: 0 15px 0 15px;
-        height: 50px !important;
-        h4 {
-            margin: 0;
-            color: $gray-600;
-            height: 50px !important;
-            display: flex;
-            align-items: center;
-        }
-        h4:hover {
-            cursor: default;
-        }
-        margin-bottom: 10px;
-        background-color: $gray-200;
-        border-bottom: solid var(--bs-border-color);
-        justify-content: space-between;
-    }
-
-    .dash-left {
-        width: 50%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-
-        .dash-top {
-            height: 100%;
-            overflow-y: hidden;
-            border: solid var(--bs-border-color);
-            border-radius: var(--bs-border-radius);
-        }
-        .dash-bottom {
-            height: 100%;
-            overflow-y: hidden;
-            border: solid var(--bs-border-color);
-            border-radius: var(--bs-border-radius);
-        }
-        .banner-container {
-            margin-right: 5px;
-            padding: 0 5px 5px 15px;
-            overflow-y: auto;
-            height: calc(100% - 60px);
-        }
-    }
-
+    .dash-left,
     .dash-right {
-        display: flex;
-        flex-direction: column;
         width: 50%;
         height: 100%;
+        display: flex;
+        flex-direction: column;
         gap: 10px;
 
-        .dash-top {
-            height: 100%;
-            overflow-y: hidden;
-            border: solid var(--bs-border-color);
-            border-radius: var(--bs-border-radius);
-            height: 100%;
+        .dash-component-title-container {
+            white-space: nowrap;
+            overflow: hidden;
         }
-        .dash-bottom {
-            height: 100%;
-            overflow-y: hidden;
+
+        .dash-component-container {
+            flex: 1; // Makes each cell take equal height
+            display: flex;
+            flex-direction: column;
             border: solid var(--bs-border-color);
             border-radius: var(--bs-border-radius);
-            .workflow-container {
-                margin-right: 5px;
-                padding: 0 5px 0 15px;
-                justify-content: space-evenly;
-                align-content: flex-start;
+            overflow: hidden;
+
+            .dash-component-header {
+                height: 50px !important;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                padding: 0 10px;
+                background-color: $gray-200;
+                border-bottom: solid var(--bs-border-color);
+                justify-content: space-between;
+
+                h4 {
+                    color: $gray-600;
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+
+                    &:hover {
+                        cursor: default;
+                    }
+                }
+            }
+
+            .dash-component-content {
+                flex: 1; // Take remaining space
+                overflow: hidden;
+                padding: 10px 5px 10px 0;
+                margin: 0;
                 height: 100%;
-                overflow-y: auto;
-                padding-bottom: 70px;
+
+                .tab-pane {
+                    height: 100%;
+                    overflow: hidden;
+
+                    .workflow-container {
+                        height: 100%;
+                        margin-right: 5px;
+                        padding: 0 5px 0px 15px;
+                        justify-content: space-evenly;
+                        align-content: flex-start;
+                        overflow-y: auto;
+                    }
+                }
             }
         }
-        
     }
 }
+
 
 @media screen and (max-width: 768px) {
     .dash {

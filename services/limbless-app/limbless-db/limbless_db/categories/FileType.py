@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass
+@dataclass(eq=False)
 class FileTypeEnum(DBEnum):
     dir: str
     extensions: Optional[list[str]] = None

@@ -1,24 +1,28 @@
+from typing import TYPE_CHECKING
+
 import pandas as pd
 
 import sqlalchemy as sa
 from sqlalchemy.sql.operators import and_  # noqa: F401
+
+if TYPE_CHECKING:
+    from .DBHandler import DBHandler
 
 from .. import models
 from .. import categories
 
 
 def get_experiment_libraries_df(
-    self, experiment_id: int,
+    self: "DBHandler", experiment_id: int,
     include_sample: bool = False, include_index_kit: bool = False,
     include_visium: bool = False, include_seq_request: bool = False,
-    collapse_lanes: bool = False, include_indices: bool = True,
+    collapse_lanes: bool = False, include_indices: bool = False,
     drop_empty_columns: bool = True, collapse_indicies: bool = True
 ) -> pd.DataFrame:
         
     columns = [
         models.Experiment.id.label("experiment_id"), models.Experiment.name.label("experiment_name"),
-        models.Lane.number.label("lane"),
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+        models.Lane.number.label("lane"), models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("reference_id"), models.Library.sample_name.label("sample_name"),
     ]
@@ -31,7 +35,7 @@ def get_experiment_libraries_df(
 
     if include_seq_request:
         columns.extend([
-            models.SeqRequest.id.label("request_id"), models.SeqRequest.name.label("request_name"),
+            models.SeqRequest.id.label("seq_request_id"), models.SeqRequest.name.label("request_name"),
             models.User.id.label("requestor_id"), models.User.email.label("requestor_email"),
         ])
 
@@ -106,7 +110,7 @@ def get_experiment_libraries_df(
     df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
 
     order = [
-        "lane", "library_id", "library_name", "library_type", "reference", "pool_name",
+        "lane", "library_id", "sample_name", "library_name", "library_type", "reference", "pool_name",
         "pool_id", "library_type_id", "reference_id",
     ]
     order += [c for c in df.columns if c not in order]
@@ -132,7 +136,50 @@ def get_experiment_libraries_df(
     return df
 
 
-def get_experiment_barcodes_df(self, experiment_id: int) -> pd.DataFrame:
+def get_flowcell_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
+    columns = [
+        models.Experiment.id.label("experiment_id"), models.Experiment.name.label("experiment_name"),
+        models.Lane.number.label("lane"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+        models.Library.sample_name.label("sample_name"),
+        models.Library.id.label("library_id"), models.Library.name.label("library_name"),
+        models.Library.type_id.label("library_type_id"),
+        models.Library.genome_ref_id.label("reference_id"),
+        models.Library.seq_request_id.label("seq_request_id"),
+        models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
+        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+    ]
+
+    query = sa.select(*columns).where(
+        models.Experiment.id == experiment_id
+    ).join(
+        models.Lane,
+        models.Lane.experiment_id == models.Experiment.id
+    ).join(
+        models.links.LanePoolLink,
+        models.links.LanePoolLink.lane_id == models.Lane.id
+    ).join(
+        models.Pool,
+        models.Pool.id == models.links.LanePoolLink.pool_id
+    ).join(
+        models.Library,
+        models.Library.pool_id == models.Pool.id
+    ).join(
+        models.LibraryIndex,
+        models.LibraryIndex.library_id == models.Library.id,
+    )
+
+    query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
+    df = pd.read_sql(query, self._engine)
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
+    df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
+
+    df = df[["lane", "sample_name", "library_name", "library_type", "reference", "seq_request_id", "sequence_i7", "sequence_i5"]]
+
+    return df
+
+
+def get_experiment_barcodes_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Lane.id.label("lane_id"), models.Lane.number.label("lane"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.sample_name.label("sample_name"),
@@ -160,7 +207,7 @@ def get_experiment_barcodes_df(self, experiment_id: int) -> pd.DataFrame:
     return df
 
 
-def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
+def get_experiment_pools_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Pool.id, models.Pool.name,
         models.Pool.status_id, models.Pool.num_libraries,
@@ -176,7 +223,7 @@ def get_experiment_pools_df(self, experiment_id: int) -> pd.DataFrame:
     return df
 
 
-def get_plate_df(self, plate_id: int) -> pd.DataFrame:
+def get_plate_df(self: "DBHandler", plate_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Plate.id, models.Plate.name, models.links.SamplePlateLink.well_idx,
         models.links.SamplePlateLink.sample_id, models.links.SamplePlateLink.library_id,
@@ -200,7 +247,7 @@ def get_plate_df(self, plate_id: int) -> pd.DataFrame:
     return df
 
 
-def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
+def get_experiment_lanes_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Lane.id, models.Lane.number.label("lane"),
         models.Lane.phi_x, models.Lane.original_qubit_concentration, models.Lane.total_volume_ul,
@@ -215,12 +262,13 @@ def get_experiment_lanes_df(self, experiment_id: int) -> pd.DataFrame:
     return df
 
 
-def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
+def get_experiment_laned_pools_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Lane.id.label("lane_id"), models.Lane.number.label("lane"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
-        models.Pool.avg_fragment_size,
+        models.Pool.avg_fragment_size, models.links.LanePoolLink.num_m_reads,
+        models.PoolDilution.id.label("dilution_id"), models.PoolDilution.identifier.label("dilution"),
     ).where(
         models.Lane.experiment_id == experiment_id
     ).join(
@@ -229,6 +277,10 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
     ).join(
         models.Pool,
         models.Pool.id == models.links.LanePoolLink.pool_id
+    ).join(
+        models.dilutions.PoolDilution,
+        models.dilutions.PoolDilution.id == models.links.LanePoolLink.dilution_id,
+        isouter=True
     )
 
     df = pd.read_sql(query, self._engine)
@@ -236,12 +288,12 @@ def get_experiment_laned_pools_df(self, experiment_id: int) -> pd.DataFrame:
     return df
 
 
-def get_pool_libraries_df(self, pool_id: int) -> pd.DataFrame:
+def get_pool_libraries_df(self: "DBHandler", pool_id: int) -> pd.DataFrame:
     columns = [
         models.Pool.id.label("pool_id"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
-        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("sequence_i7"),
-        models.LibraryIndex.name_i7.label("name_i5"), models.LibraryIndex.name_i5.label("sequence_i5"),
+        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+        models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
     ]
     query = sa.select(*columns).where(
         models.Pool.id == pool_id
@@ -263,7 +315,7 @@ def get_pool_libraries_df(self, pool_id: int) -> pd.DataFrame:
     return df
 
 
-def get_seq_requestor_df(self, seq_request: int) -> pd.DataFrame:
+def get_seq_requestor_df(self: "DBHandler", seq_request: int) -> pd.DataFrame:
     query = sa.select(
         models.SeqRequest.name.label("seq_request_name"),
         models.User.id.label("user_id"), models.User.email.label("email"),
@@ -282,7 +334,7 @@ def get_seq_requestor_df(self, seq_request: int) -> pd.DataFrame:
     return df
 
 
-def get_seq_request_share_emails_df(self, seq_request: int) -> pd.DataFrame:
+def get_seq_request_share_emails_df(self: "DBHandler", seq_request: int) -> pd.DataFrame:
     query = sa.select(
         models.links.SeqRequestDeliveryEmailLink.email.label("email"),
         models.links.SeqRequestDeliveryEmailLink.status_id.label("status_id"),
@@ -296,7 +348,7 @@ def get_seq_request_share_emails_df(self, seq_request: int) -> pd.DataFrame:
     return df
 
 
-def get_library_features_df(self, library_id: int) -> pd.DataFrame:
+def get_library_features_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Feature.id.label("feature_id"), models.Feature.name.label("feature_name"), models.Feature.type_id.label("feature_type_id"),
         models.Feature.target_id.label("target_id"), models.Feature.target_name.label("target_name"),
@@ -319,7 +371,7 @@ def get_library_features_df(self, library_id: int) -> pd.DataFrame:
     return df
 
 
-def get_library_samples_df(self, library_id: int) -> pd.DataFrame:
+def get_library_samples_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
         models.links.SampleLibraryLink.cmo_sequence, models.links.SampleLibraryLink.cmo_pattern, models.links.SampleLibraryLink.cmo_read,
@@ -337,7 +389,7 @@ def get_library_samples_df(self, library_id: int) -> pd.DataFrame:
 
 
 def get_seq_request_libraries_df(
-    self, seq_request_id: int, include_indices: bool = False,
+    self: "DBHandler", seq_request_id: int, include_indices: bool = False,
     collapse_indicies: bool = False
 ) -> pd.DataFrame:
     
@@ -389,19 +441,16 @@ def get_seq_request_libraries_df(
 
 
 def get_seq_request_samples_df(
-    self, seq_request_id: int
+    self: "DBHandler", seq_request_id: int
 ) -> pd.DataFrame:
-    
-    columns = [
+    query = sa.select(
         models.SeqRequest.id.label("seq_request_id"),
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
         models.links.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.links.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.links.SampleLibraryLink.cmo_read.label("cmo_read"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
-    ]
-    
-    query = sa.select(*columns).where(
+    ).where(
         models.SeqRequest.id == seq_request_id
     ).join(
         models.Library,
@@ -428,7 +477,7 @@ def get_seq_request_samples_df(
     return df
 
 
-def get_experiment_seq_qualities_df(self, experiment_id: int) -> pd.DataFrame:
+def get_experiment_seq_qualities_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
         models.SeqQuality.lane, models.SeqQuality.num_lane_reads, models.SeqQuality.num_library_reads,
@@ -454,7 +503,10 @@ def get_experiment_seq_qualities_df(self, experiment_id: int) -> pd.DataFrame:
     return df
 
 
-def get_index_kit_barcodes_df(self, index_kit_id: int, per_adapter: bool = True) -> pd.DataFrame:
+def get_index_kit_barcodes_df(self: "DBHandler", index_kit_id: int, per_adapter: bool = False, per_index: bool = False) -> pd.DataFrame:
+    if per_index and per_adapter:
+        raise ValueError("Cannot set both per_adapter and per_index to True.")
+    
     query = sa.select(
         models.Barcode.id, models.Barcode.sequence.label("sequence"), models.Barcode.well.label("well"),
         models.Barcode.name.label("name"), models.Barcode.adapter_id.label("adapter_id"),
@@ -464,9 +516,10 @@ def get_index_kit_barcodes_df(self, index_kit_id: int, per_adapter: bool = True)
     )
 
     df = pd.read_sql(query, self._engine)
+    df["name"] = df["name"].astype(str)
     df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
 
-    if per_adapter:
+    if per_adapter or per_index:
         df = df.groupby(
             df.columns.difference(["id", "sequence", "name", "type_id", "type"]).tolist(), as_index=False, dropna=False
         ).agg(
@@ -475,10 +528,64 @@ def get_index_kit_barcodes_df(self, index_kit_id: int, per_adapter: bool = True)
             columns={"id": "ids", "sequence": "sequences", "name": "names", "type_id": "type_ids", "type": "types"}
         )
 
+    if per_index:
+        if (index_kit := self.get_index_kit(index_kit_id)) is None:
+            raise ValueError(f"Index kit with ID {index_kit_id} not found.")
+        
+        if index_kit.type == categories.IndexType.TENX_ATAC_INDEX:
+            barcode_data = {
+                "well": [],
+                "adapter_id": [],
+                "name": [],
+                "sequence_1": [],
+                "sequence_2": [],
+                "sequence_3": [],
+                "sequence_4": [],
+            }
+            for _, row in df.iterrows():
+                barcode_data["well"].append(row["well"])
+                barcode_data["name"].append(row["names"][0])
+                barcode_data["adapter_id"].append(row["adapter_id"])
+                for i in range(4):
+                    barcode_data[f"sequence_{i + 1}"].append(row["sequences"][i])
+        elif index_kit.type == categories.IndexType.DUAL_INDEX:
+            barcode_data = {
+                "well": [],
+                "adapter_id": [],
+                "name_i7": [],
+                "sequence_i7": [],
+                "name_i5": [],
+                "sequence_i5": [],
+            }
+            for _, row in df.iterrows():
+                barcode_data["well"].append(row["well"])
+                barcode_data["adapter_id"].append(row["adapter_id"])
+                for i in range(2):
+                    if row["types"][i] == categories.BarcodeType.INDEX_I7:
+                        barcode_data["name_i7"].append(row["names"][i])
+                        barcode_data["sequence_i7"].append(row["sequences"][i])
+                    else:
+                        barcode_data["name_i5"].append(row["names"][i])
+                        barcode_data["sequence_i5"].append(row["sequences"][i])
+        elif index_kit.type == categories.IndexType.SINGLE_INDEX:
+            barcode_data = {
+                "well": [],
+                "adapter_id": [],
+                "name": [],
+                "sequence_i7": [],
+            }
+            for _, row in df.iterrows():
+                barcode_data["adapter_id"].append(row["adapter_id"])
+                barcode_data["well"].append(row["well"])
+                barcode_data["name"].append(row["names"][0])
+                barcode_data["sequence_i7"].append(row["sequences"][0])
+
+        df = pd.DataFrame(barcode_data)
+
     return df
 
 
-def get_feature_kit_features_df(self, feature_kit_id: int) -> pd.DataFrame:
+def get_feature_kit_features_df(self: "DBHandler", feature_kit_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Feature.id.label("feature_id"), models.Feature.name.label("name"),
         models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
@@ -494,7 +601,7 @@ def get_feature_kit_features_df(self, feature_kit_id: int) -> pd.DataFrame:
     return df
 
 
-def get_seq_request_features_df(self, seq_request_id: int) -> pd.DataFrame:
+def get_seq_request_features_df(self: "DBHandler", seq_request_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
         models.Library.sample_name.label("sample_name"),
@@ -519,49 +626,83 @@ def get_seq_request_features_df(self, seq_request_id: int) -> pd.DataFrame:
     return df
 
 
-def get_sample_attributes_df(self, sample_id: int) -> pd.DataFrame:
+def get_project_samples_df(self: "DBHandler", project_id: int, pivot: bool = True) -> pd.DataFrame:
     query = sa.select(
-        models.Sample.id, models.Sample.name,
-        models.SampleAttribute.name.label("attribute_name"), models.SampleAttribute.value.label("attribute_value"),
-        models.SampleAttribute.type_id.label("type_id"),
-    )
-
-    query = query.where(
-        models.Sample.id == sample_id
-    ).join(
-        models.SampleAttribute,
-        models.SampleAttribute.sample_id == models.Sample.id
-    )
-
+        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
+        models.Sample._attributes.label("attributes"),
+    ).where(models.Sample.project_id == project_id)
+    
     df = pd.read_sql(query, self._engine)
-    df["type"] = df["type_id"].map(categories.AttributeType.get)  # type: ignore
+    if pivot:
+        expanded = df["attributes"].apply(pd.Series)
+        for col in expanded.columns:
+            expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)
+
+        df = pd.concat([df.drop(columns=["attributes"]), expanded], axis=1)
     return df
 
 
-def get_project_sample_attributes_df(self, project_id: int, pivot: bool = True) -> pd.DataFrame:
+def get_project_libraries_df(self: "DBHandler", project_id: int) -> pd.DataFrame:
     query = sa.select(
-        models.Sample.id, models.Sample.name.label("sample_name"),
-        models.SampleAttribute.name.label("attribute_name"), models.SampleAttribute.value.label("attribute_value"),
-        models.SampleAttribute.type_id.label("type_id"),
-    )
+        models.Library.id.label("library_id"),
+        models.Library.name.label("library_name"),
+        models.Library.sample_name.label("sample_pool"),
+        models.Library.type_id.label("library_type_id"),
+        models.Library.genome_ref_id.label("genome_ref_id"),
+        models.Library.experiment_id.label("experiment_id"),
 
-    query = query.where(
+        models.Sample.id.label("sample_id"),
+        models.Sample.name.label("sample_name"),
+        models.Sample._attributes.label("attributes"),
+
+        models.SeqRequest.id.label("seq_request_id"),
+    ).where(
         models.Sample.project_id == project_id
     ).join(
-        models.SampleAttribute,
-        models.SampleAttribute.sample_id == models.Sample.id
+        models.links.SampleLibraryLink,
+        models.links.SampleLibraryLink.sample_id == models.Sample.id
+    ).join(
+        models.Library,
+        models.Library.id == models.links.SampleLibraryLink.library_id
+    ).join(
+        models.SeqRequest,
+        models.SeqRequest.id == models.Library.seq_request_id,
     )
 
-    df = pd.read_sql(query, self._engine)
-    if not pivot:
-        df["type"] = df["type_id"].map(categories.AttributeType.get)  # type: ignore
-    else:
-        df = df.pivot(index=["id", "sample_name"], columns="attribute_name", values="attribute_value").reset_index()
-        df.columns.name = None
-    return df
+    libraries = pd.read_sql(query, self._engine)
+    experiment_ids = libraries["experiment_id"].unique().tolist()
+    libraries_ids = libraries["library_id"].unique().tolist()
+
+    libraries["genome_ref"] = libraries["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+    libraries["library_type"] = libraries["library_type_id"].map(categories.LibraryType.get)  # type: ignore
+
+    query = sa.select(
+        models.Experiment.id.label("experiment_id"), models.Experiment.name.label("experiment_name"),
+        models.Lane.number.label("lane"), models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+        models.Library.id.label("library_id")
+    ).where(
+        and_(models.Experiment.id.in_(experiment_ids), models.Library.id.in_(libraries_ids))
+    ).join(
+        models.Lane,
+        models.Lane.experiment_id == models.Experiment.id
+    ).join(
+        models.links.LanePoolLink,
+        models.links.LanePoolLink.lane_id == models.Lane.id
+    ).join(
+        models.Pool,
+        models.Pool.id == models.links.LanePoolLink.pool_id
+    ).join(
+        models.Library,
+        models.Library.pool_id == models.Pool.id
+    )
+
+    lanes = pd.read_sql(query, self._engine)
+    merged = pd.merge(lanes, libraries, on=["library_id", "experiment_id"], how="left")
+    merged = merged[["experiment_name", "lane", "sample_name", "sample_id", "seq_request_id", "library_name", "sample_pool", "genome_ref", "pool_name", "library_type", "attributes"]]
+    return merged
 
 
-def get_lab_prep_libraries_df(self, lab_prep_id: int) -> pd.DataFrame:
+def get_lab_prep_libraries_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Library.id.label("id"),
         models.Library.name.label("name"),
@@ -576,12 +717,11 @@ def get_lab_prep_libraries_df(self, lab_prep_id: int) -> pd.DataFrame:
     df = pd.read_sql(query, self._engine)
     df["status"] = df["status_id"].map(categories.LibraryStatus.get)  # type: ignore
     df["type"] = df["type_id"].map(categories.LibraryType.get)  # type: ignore
-    df["genome_ref"] = df["genome_ref_id"].apply(lambda x: categories.LibraryType.get(x) if pd.notna(x) else None)  # type: ignore
-
+    df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
     return df
 
 
-def get_lab_prep_samples_df(self, lab_prep_id: int) -> pd.DataFrame:
+def get_lab_prep_samples_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
         models.Library.type_id.label("library_type_id"), models.Library.sample_name.label("sample_pool"),
@@ -603,7 +743,7 @@ def get_lab_prep_samples_df(self, lab_prep_id: int) -> pd.DataFrame:
     return df
 
 
-def query_barcode_sequences_df(self, sequence: str, limit: int = 10) -> pd.DataFrame:
+def query_barcode_sequences_df(self: "DBHandler", sequence: str, limit: int = 10) -> pd.DataFrame:
     query = sa.select(
         models.Barcode.id.label("id"), models.Barcode.sequence.label("sequence"),
         models.Barcode.well.label("well"), models.Barcode.name.label("name"),

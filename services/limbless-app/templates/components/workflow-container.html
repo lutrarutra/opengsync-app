@@ -1,0 +1,148 @@
+<div class="workflow-container">
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
+        hx-get="{{ url_for('store_samples_workflow.begin') }}"
+        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+        hx-swap="innerHTML" hx-trigger="click">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/licensed/store.svg') }}" width="90px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Store Samples</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Store samples received from customers.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+        hx-get="{{ url_for('qubit_measure_workflow.begin') }}"
+        hx-target="#xl-modal-content"
+        hx-swap="innerHTML" hx-trigger="click">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/licensed/fluorometer.svg') }}" width="55px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Qubit Concentration</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Measure samples' concentration with Qubit fluorometer.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+        hx-get="{{ url_for('ba_report_workflow.begin') }}"
+        hx-target="#xl-modal-content"
+        hx-swap="innerHTML" hx-trigger="click">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/licensed/analyzer.svg') }}" width="80px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Bio Analyzer Report</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Upload results form Bio Analyzer.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+        hx-get="{{ url_for('check_barcode_clashes_workflow.begin') }}"
+        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/licensed/clash.svg') }}" width="90px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Check Barcode Clashes</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Checks barcode conflicts, in preparation for pooling libraries.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+        hx-get="{{ url_for('lab_preps_htmx.get_form', form_type='create') }}"
+        hx-target="#xl-modal-content" data-bs-toggle="modal"
+        hx-swap="innerHTML" hx-trigger="click">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/licensed/prepare.svg') }}" width="120px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Prepare Libraries</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Prepare libraries in the pool</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+        hx-get="{{ url_for('experiments_htmx.get_form', form_type='create') }}"
+        hx-target="#xl-modal-content"
+        hx-swap="innerHTML" hx-trigger="click">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/licensed/sequencer.svg') }}" width="90px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Create Experiment</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Create a new sequencing experiment.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+        hx-get="{{ url_for('seq_requests_htmx.get_form', form_type='create') }}"
+        hx-target="#xl-modal-content" data-bs-toggle="modal"
+        hx-swap="innerHTML" hx-trigger="click">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="90px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Create Sequencing Request</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Create a new sequencing request.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

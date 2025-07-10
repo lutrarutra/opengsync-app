@@ -1,4 +1,5 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/barcode_clashes_table.jinja2' import barcode_clashes_table with context %}
 
 <div id="complete-sas-form-container" class="modal-content">
     <div class="modal-header">
@@ -30,6 +31,13 @@
                 data-bs-target="#pool-tab" type="button" role="tab"
                 aria-controls="pool-tab" aria-selected="false">
                 Pools ({{ pool_table.shape[0] if pool_table is not none else "0" }})</button>
+            </li>
+            <li class="nav-item" role="presentation"
+            {% if barcode_table is none %}{{ tooltip("Only available when submitting indexed libraries.", category="warning") }}{% endif %}>
+                <button class="nav-link {% if barcode_table is none %}disabled{% else %}{% if barcode_table['error'].notna().any() %}text-danger{% endif %}{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#barcode-tab" type="button" role="tab"
+                aria-controls="barcode-tab" aria-selected="true">
+                Barcodes ({{ barcode_table.shape[0] if barcode_table is not none else "0" }})</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if feature_table is none %}{{ tooltip("No antibody feature libraries detected.", category="warning") }}{% endif %}>
@@ -65,7 +73,7 @@
                 <div class="flow-graph-container" id="submission-overview-graph" style="padding: 10px 10px 10px 10px;"></div>
             </div>
             <div class="tab-pane fade" id="library-tab" role="tabpanel" tabindex="1">
-                <table class="table table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th scope="col" class="col-2">Library Name</th>
@@ -76,7 +84,7 @@
                             {% if barcode_table is not none %}
                             <th scope="col" class="col-6">
                                 Barcode
-                                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display('sas-complete')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
                                         <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
                                     </svg>
@@ -96,14 +104,14 @@
                                 {% for _, barcode_row in barcode_table[barcode_table["library_name"] == row["library_name"]].iterrows() %}
                                 {% if notna(barcode_row["name_i7"]) %}
                                     {% if barcode_row["name_i7"] == barcode_row["name_i5"] or isna(barcode_row["name_i5"]) %}
-                                    <span class="badge index-badges" >{{ barcode_row["name_i7"] }}</span>
+                                    <span class="badge index-badge index-badges-sas-complete" >{{ barcode_row["name_i7"] }}</span>
                                     {% else %}
-                                    <span class="badge index-badges" >{{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}</span>
+                                    <span class="badge index-badge index-badges-sas-complete" >{{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}</span>
                                     {% endif %}
                                 {% else %}
-                                <span class="badge index-badges">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
+                                <span class="badge index-badge index-badges-sas-complete">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
                                 {% endif %}
-                                <span class="badge index-badges" style="display: none;">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
+                                <span class="badge index-badge index-badges-sas-complete" style="display: none;">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
                                 {% endfor %}
                             </td>
                             {% endif %}
@@ -113,7 +121,7 @@
                 </table>
             </div>
             <div class="tab-pane fade" id="sample-tab" role="tabpanel" tabindex="2">
-                <table class="table table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th scope="col" class="col-2">Sample Name</th>
@@ -156,7 +164,7 @@
             </div>
             <div class="tab-pane fade" id="pool-tab" role="tabpanel" tabindex="3">
                 {% if pool_table is not none %}
-                <table class="table table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th scope="col" class="col-8">Name</th>
@@ -176,9 +184,14 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="4">
+            <div class="tab-pane fade" id="barcode-tab" role="tabpanel" tabindex="4">
+                {% if barcode_table is not none %}
+                {{ barcode_clashes_table(barcode_table) }}
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="5">
                 {% if feature_table is not none %}
-                <table class="table table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th scope="col" class="col-2">Feature</th>
@@ -208,9 +221,9 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="5">
+            <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="6">
                 {% if cmo_table is not none %}
-                <table class="table table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th scope="col" class="col-3">Demux Name</th>
@@ -238,9 +251,9 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="6">
+            <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="7">
                 {% if visium_table is not none %}
-                <table class="table table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th scope="col" class="col-3">Library Name</th>
@@ -262,9 +275,9 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="flex-tab" role="tabpanel" tabindex="7">
+            <div class="tab-pane fade" id="flex-tab" role="tabpanel" tabindex="8">
                 {% if flex_table is not none %}
-                <table class="table table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th scope="col" class="col-5">Sample Name</th>

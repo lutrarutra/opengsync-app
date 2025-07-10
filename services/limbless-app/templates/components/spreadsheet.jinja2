@@ -18,7 +18,7 @@
     </div>
 </div>
 <script>
-    jspreadsheet(document.getElementById("{{ element._id }}"), {
+    const spreadsheet = jspreadsheet(document.getElementById("{{ element._id }}"), {
         data: {{ element._data }},
         columns: [
             {% for col in element.columns %}

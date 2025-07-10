@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
+from .LabProtocol import LabProtocol, LabProtocolEnum
 
 
-@dataclass
+@dataclass(eq=False)
 class LibraryTypeEnum(DBEnum):
     abbreviation: str
     identifier: str
@@ -11,7 +12,7 @@ class LibraryTypeEnum(DBEnum):
 
     @property
     def select_name(self) -> str:
-        return self.abbreviation
+        return str(self.id)
 
 
 class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
@@ -20,8 +21,8 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     # 10X Base Technologies
     TENX_SC_GEX_FLEX = LibraryTypeEnum(1, "10X Flex Gene Expression", "10X Flex GEX", "10XFLEXGEX", "Gene Expression")
     TENX_SC_ATAC = LibraryTypeEnum(2, "10X Single Cell ATAC", "10X ATAC", "10XATAC", "Chromatin Accessibility")
-    TENX_SC_GEX_3PRIME = LibraryTypeEnum(3, "10X Single Cell Gene Expression 3-P", "10X 3' GEX", "10XGEX3P", "Gene Expression")
-    TENX_SC_GEX_5PRIME = LibraryTypeEnum(4, "10X Single Cell Immune Profiling 5-P", "10X 5' GEX", "10XGEX5P", "Gene Expression")
+    TENX_SC_GEX_3PRIME = LibraryTypeEnum(3, "10X Single Cell 3-P Gene Expression", "10X 3' GEX", "10XGEX3P", "Gene Expression")
+    TENX_SC_GEX_5PRIME = LibraryTypeEnum(4, "10X Single Cell 5-P Gene Expression", "10X 5' GEX", "10XGEX5P", "Gene Expression")
 
     # 10X Visium
     TENX_VISIUM_HD = LibraryTypeEnum(5, "10X HD Spatial Gene Expression", "10X HD Spatial", "10XVISIUMHD", "Spatial Transcriptomics")
@@ -32,9 +33,9 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     TENX_ANTIBODY_CAPTURE = LibraryTypeEnum(8, "10X Antibody Capture", "10X Antibody Capture", "10XABC", "Antibody Capture")
     TENX_MULTIPLEXING_CAPTURE = LibraryTypeEnum(9, "10X Multiplexing Capture", "10X Multiplexing Capture", "10XHTO", "Multiplexing Capture")
     TENX_CRISPR_SCREENING = LibraryTypeEnum(10, "10X CRISPR Screening", "10X CRISPR Screening", "10XCRISPR", "CRISPR Screening")
-    TENX_VDJ_B = LibraryTypeEnum(11, "10X VDJ B", "10X VDJ B", "10XVDJB", "VDJ-B")
-    TENX_VDJ_T = LibraryTypeEnum(12, "10X VDJ T", "10X VDJ T", "10XVDJT", "VDJ-T")
-    TENX_VDJ_T_GD = LibraryTypeEnum(13, "10X VDJ T GD", "10X VDJ T GD", "10XVDJTGD", "VDJ-T-GD")
+    TENX_VDJ_B = LibraryTypeEnum(11, "10X BCR Profiling (VDJ-B)", "10X VDJ B", "10XVDJB", "VDJ-B")
+    TENX_VDJ_T = LibraryTypeEnum(12, "10X TCR alpha-beta Profiling (VDJ-T)", "10X VDJ T", "10XVDJT", "VDJ-T")
+    TENX_VDJ_T_GD = LibraryTypeEnum(13, "10X TCR gamma-delta Profiling (VDJ-T-GD)", "10X VDJ T GD", "10XVDJTGD", "VDJ-T-GD")
     TENX_SC_ABC_FLEX = LibraryTypeEnum(14, "10X Flex Antibody Capture", "10X Flex ABC", "10XFLEXABC", "Antibody Capture")
 
     # RNA-seq
@@ -57,6 +58,25 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     ARTIC_SARS_COV_2 = LibraryTypeEnum(113, "ARTIC SARS-CoV-2", "ARTIC SARS-CoV-2", "ARTIC", "Viral Sequencing")
     IMMUNE_SEQ = LibraryTypeEnum(114, "Immune Sequencing", "Immune Sequencing", "IMMUNE", "Immune Sequencing")
     AMPLICON_SEQ = LibraryTypeEnum(115, "Amplicon-seq", "Amplicon-seq", "AMPLICON", "Gene Expression")
+    CUT_AND_RUN = LibraryTypeEnum(116, "Cut & Run", "Cut&Run", "CUTNRUN", "Binding Site Quantification")
+
+    @classmethod
+    def get_protocol_library_types(cls, lab_protocol: LabProtocolEnum) -> list[LibraryTypeEnum]:
+        if lab_protocol == LabProtocol.CUSTOM:
+            return LibraryType.as_list()
+        return {
+            LabProtocol.RNA_SEQ: [LibraryType.POLY_A_RNA_SEQ, LibraryType.IMMUNE_SEQ],
+            LabProtocol.QUANT_SEQ: [LibraryType.QUANT_SEQ],
+            LabProtocol.SMART_SEQ: [LibraryType.SMART_SEQ, LibraryType.SMART_SC_SEQ],
+            LabProtocol.WGS: [LibraryType.WGS, LibraryType.ARTIC_SARS_COV_2, LibraryType.RR_BS_SEQ, LibraryType.WG_BS_SEQ, LibraryType.RR_EM_SEQ, LibraryType.WG_EM_SEQ],
+            LabProtocol.WES: [LibraryType.WES],
+            LabProtocol.TENX: [
+                LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_SC_ATAC, LibraryType.TENX_SC_GEX_3PRIME, LibraryType.TENX_SC_GEX_5PRIME,
+                LibraryType.TENX_VISIUM_HD, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM, LibraryType.TENX_ANTIBODY_CAPTURE,
+                LibraryType.TENX_MULTIPLEXING_CAPTURE, LibraryType.TENX_CRISPR_SCREENING, LibraryType.TENX_VDJ_B, LibraryType.TENX_VDJ_T,
+                LibraryType.TENX_VDJ_T_GD, LibraryType.TENX_SC_ABC_FLEX
+            ],
+        }[lab_protocol]
 
 
 identifiers = []

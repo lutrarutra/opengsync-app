@@ -4,7 +4,7 @@
 {% from 'components/spinner.jinja2' import spinner %}
 
 <div id="select-pools-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -49,7 +49,7 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr onclick="toggle_pool({{ pool.id }});" id="pool-row-{{ pool.id }}" class="pool-row">
+            <tr id="pool-row-{{ pool.id }}" data-id="{{ pool.id }}" class="pool-row">
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
                 <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
@@ -85,6 +85,95 @@
     <script>
         $(document).ready(function() {
             init_tooltips();
+
+            let is_mouse_down = false;
+            let start_row = null;
+            let dragging = false;
+            let hovered_pool = null;
+
+            function add_pool(pool_id) {
+                selected_pools.push(pool_id);
+                console.log(pool_id);
+                $(`#pool-row-${pool_id}`).addClass("selected");
+                const cloned = $(`#pool-row-${pool_id}`).clone();
+                cloned.attr("id", `selected-pool-row-${pool_id}`);
+                cloned.on("click", function() {
+                    remove_pool(pool_id);
+                });
+                $("#selected-pools-table-container").append(cloned);
+                num_selected_pools += 1;
+                $("#selected-pools-tab-btn").text(`Selected Pools (${num_selected_pools})`);
+            }
+
+            function remove_pool(pool_id) {
+                console.log('pool_id:');
+                selected_pools = selected_pools.filter(function(value, index, arr) {
+                    return value != pool_id;
+                });
+                $(`#pool-row-${pool_id}`).removeClass("selected");
+                $(`#selected-pool-row-${pool_id}`).remove();
+                num_selected_pools -= 1;
+                $("#selected-pools-tab-btn").text(`Selected Pools (${num_selected_pools})`);
+            }
+
+            function toggle_pool(pool_id) {
+                pool_id = parseInt(pool_id);
+                if (selected_pools.includes(pool_id)) {
+                    remove_pool(pool_id);
+                } else {
+                    add_pool(pool_id);
+                }
+            }
+
+            function update_pools() {
+                $(".pool-row").each(function() {
+                    const pool_id = parseInt($(this).attr("id").split("-").pop());
+                    if (selected_pools.includes(pool_id)) {
+                        $(this).addClass("selected");
+                    } else {
+                        $(this).removeClass("selected");
+                    }
+                });
+            }
+
+            $(".pool-row").mousedown(function(e) {
+                e.preventDefault();
+                is_mouse_down = true;
+                start_row = $(this);
+                toggle_pool($(this).data("id"));
+                hovered_pool = $(this).data("id");
+            });
+
+            $(".pool-row").mousemove(function(e) {
+                if (is_mouse_down) {
+                    dragging = true;
+                    if (hovered_pool != $(this).data("id")) {
+                        hovered_pool = $(this).data("id");
+                        toggle_pool($(this).data("id"));
+                    }
+                }
+            });
+
+            $(".pool-row").mouseup(function(e) {
+                is_mouse_down = false;
+                if (dragging) {
+                    dragging = false;
+                    start_row = null;
+                }
+            });
+
+            $(document).keydown(function(e) {
+                if (e.metaKey && e.key === "a") {
+                    e.preventDefault();
+                    $(".pool-row").each(function() {
+                        if ($(this).is(":visible")) {
+                            if (!$(this).hasClass("selected")) {
+                                add_pool($(this).data("id"));
+                            }
+                        }
+                    });
+                }
+            });
             update_pools();
         });
     </script>

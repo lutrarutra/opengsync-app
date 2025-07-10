@@ -3,7 +3,6 @@
 @import "theme.scss";
 @import "navbar.scss";
 @import "responsive.scss";
-@import "colors.scss";
 @import "tooltip.scss";
 @import "table.scss";
 @import "modal.scss";
@@ -13,6 +12,16 @@
 @import "plating.scss";
 @import "calendar.scss";
 @import "progress_bar.scss";
+@import "banner.scss";
+
+.spreadsheet-grid {
+    tbody td {
+        font-family: monospace !important;
+    }
+    thead td {
+        font-weight: 600;
+    }
+}
 
 .htmx-indicator {
     display: none;
@@ -62,6 +71,10 @@ input[type=number] {
     padding-right: 0;
 }
 
+.badge {
+    background-color: $cemm-blue;
+}
+
 
 body {
     background-color: $light;
@@ -89,48 +102,6 @@ body {
     span {
         flex-grow: 1;
         width: 100%;
-    }
-}
-
-.banner-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    .element-banner {
-        border: 1px solid #ccc;
-        border-radius: 5px;
-
-        a {
-            color: $black;
-            text-decoration: none;
-            padding: 0;
-        }
-        .banner-title {
-            padding: 0 5px 5px 5px;
-            .title {
-                white-space: nowrap;
-                overflow-x: hidden;
-                font-weight: 600;
-            }
-
-            .title-row {
-                text-align: center;
-                vertical-align: middle;
-                font-size: 1rem;
-                padding-bottom: 3px;
-            }
-            .title-row div:first-child {
-                text-align: start;
-            }
-            .title-row div:last-child {
-                text-align: end;
-            }
-        }
-    }
-
-    .element-banner:hover {
-        background-color: $gray-300;
     }
 }
 

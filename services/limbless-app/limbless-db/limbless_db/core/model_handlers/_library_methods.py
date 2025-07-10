@@ -7,7 +7,7 @@ from sqlalchemy.sql.operators import or_, and_  # noqa F401
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
-from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus, AccessType, AccessTypeEnum
+from ...categories import LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus, AccessType, AccessTypeEnum, AssayTypeEnum
 from .. import exceptions
 
 
@@ -19,6 +19,7 @@ def create_library(
     owner_id: int,
     seq_request_id: int,
     genome_ref: GenomeRefEnum,
+    assay_type: AssayTypeEnum,
     pool_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
     visium_annotation_id: Optional[int] = None,
@@ -58,6 +59,7 @@ def create_library(
         seq_request_id=seq_request_id,
         genome_ref_id=genome_ref.id if genome_ref is not None else None,
         type_id=library_type.id,
+        assay_type_id=assay_type.id,
         owner_id=owner_id,
         pool_id=pool_id,
         lab_prep_id=lab_prep_id,
@@ -93,6 +95,7 @@ def get_libraries(
     self: "DBHandler",
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
+    assay_type: Optional[AssayTypeEnum] = None,
     pool_id: Optional[int] = None, lab_prep_id: Optional[int] = None,
     in_lab_prep: Optional[bool] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
@@ -100,7 +103,8 @@ def get_libraries(
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.Library], int]:
+    count_pages: bool = False
+) -> tuple[list[models.Library], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -152,6 +156,9 @@ def get_libraries(
             models.Library.pool_id == pool_id
         )
 
+    if assay_type is not None:
+        query = query.where(models.Library.assay_type_id == assay_type.id)
+
     if lab_prep_id is not None:
         query = query.where(models.Library.lab_prep_id == lab_prep_id)
 
@@ -171,7 +178,7 @@ def get_libraries(
             models.Library.status_id.in_([s.id for s in status_in])
         )
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         attr = getattr(models.Library, sort_by)
@@ -527,6 +534,7 @@ def clone_library(self: "DBHandler", library_id: int, seq_request_id: int, index
         library_type=library.type, seq_request_id=seq_request_id,
         owner_id=library.owner_id, genome_ref=library.genome_ref,
         visium_annotation_id=library.visium_annotation_id,
+        assay_type=library.assay_type,
     )
 
     for sample_link in library.sample_links:

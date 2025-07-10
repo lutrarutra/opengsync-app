@@ -7,9 +7,10 @@ from flask import Response, url_for
 
 from limbless_db import models
 from limbless_db.categories import LibraryType, AttributeType
+from limbless_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, MissingCellValue, SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
 from .CompleteSASForm import CompleteSASForm
 from ...SpreadsheetInput import SpreadsheetInput
@@ -21,8 +22,8 @@ class SampleAttributeAnnotationForm(MultiStepForm):
     _step_name = "sample_attribute_annotation"
 
     predefined_columns = [
-        SpreadSheetColumn("sample_name", "Sample Name", "text", 170, str)
-    ] + [SpreadSheetColumn(t.label, t.name, "text", 100, str) for i, t in enumerate(AttributeType.as_list()[1:])]
+        DropdownColumn("sample_name", "Sample Name", 170, required=True, choices=[])
+    ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in AttributeType.as_list()[1:]]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
@@ -33,7 +34,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self.upload_path = os.path.join("uploads", "seq_request")
-        self.columns = SampleAttributeAnnotationForm.predefined_columns.copy()
+        self.columns: list[SpreadSheetColumn] = SampleAttributeAnnotationForm.predefined_columns.copy()  # type: ignore
 
         if (csrf_token := formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
@@ -60,19 +61,38 @@ class SampleAttributeAnnotationForm(MultiStepForm):
             df[col.label] = ""
 
         for _, row in sample_table[sample_table["sample_id"].notna()].iterrows():
-            attributes = db.get_sample_attributes(sample_id=int(row["sample_id"]))
-            for attr in attributes:
+            if (sample := db.get_sample(sample_id=int(row["sample_id"]))) is None:
+                logger.warning(f"Sample with ID {row['sample_id']} not found in the database.")
+                raise ValueError(f"Sample with ID {row['sample_id']} not found in the database.")
+            
+            for attr in sample.attributes:
                 df.loc[df["sample_name"] == row["sample_name"], attr.name] = attr.value
 
         for col in df.columns:
             if col not in [c.label for c in self.columns]:
-                self.columns.append(SpreadSheetColumn(col, col.replace("_", " ").title(), "text", 100, str))
+                self.columns.append(TextColumn(col, col.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
             post_url=url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_cols=True, allow_col_rename=True, df=df
         )
+        self.spreadsheet.columns["sample_name"].source = sample_table["sample_name"].unique().tolist()
+
+    def fill_previous_form(self, previous_form: StepFile):
+        df = previous_form.tables["sample_table"]
+        for col in df.columns:
+            if col.startswith("_attr_"):
+                col = col.removeprefix("_attr_")
+                if col not in self.spreadsheet.columns.keys():
+                    self.spreadsheet.add_column(
+                        label=col, column=TextColumn(
+                            label=col, name=col.replace("_", " ").title(),
+                            width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH
+                        )
+                    )
+        df.columns = df.columns.str.removeprefix("_attr_")
+        self.spreadsheet.set_data(df)
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -98,19 +118,9 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         for col in df.columns:
             if col not in self.spreadsheet.columns.keys():
-                self.spreadsheet.add_column(label=col, name=col.replace("_", " ").title(), type="text", width=100, var_type=str, clean_up_fnc=lambda x: x.strip())
+                self.spreadsheet.add_column(label=col, column=TextColumn(label=col, name=col.replace("_", " ").title(), width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
 
         for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["sample_name"]) or row["sample_name"] == "":
-                self.spreadsheet.add_error(i + 1, "sample_name", "Missing value", "missing_value")
-                validated = False
-                continue
-            
-            if row["sample_name"] not in self.tables["sample_table"]["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "sample_name", f"Unknown sample name '{row['sample_name']}'", "invalid_value")
-                validated = False
-                continue
-            
             for col in df.keys():
                 if col == "sample_name":
                     continue
@@ -119,7 +129,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
                     continue
                 
                 if pd.isna(row[col]):
-                    self.spreadsheet.add_error(i + 1, col, "Missing value", "missing_value")
+                    self.spreadsheet.add_error(idx, col, MissingCellValue("Missing value"))
                     validated = False
 
         if len(self.spreadsheet._errors) > 0 or not validated:

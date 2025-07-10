@@ -1,0 +1,63 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="group-project-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='group-project-table', column_name='ID', column_var='id',
+                        sort_url='groups_htmx.get_projects', context={'group_id': group.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-project-table', column_name='Name', column_var='name',
+                        sort_url='groups_htmx.get_projects', context={'group_id': group.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=4,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-project-table', column_name='Status', column_var='status_id',
+                        sort_url='groups_htmx.get_projects', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=ProjectStatus.as_list(), multiselect_selected=status_in, context={'group_id': group.id},
+                    )
+                }}
+                <th scope="col" class="col-3">Owner</th>
+                {{
+                    table_col(
+                        table_container_id='group-project-table', column_name='Status', column_var='status_id',
+                        sort_url='groups_htmx.get_projects', context={'group_id': group.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-project-table', column_name='# Samples', column_var='num_samples',
+                        sort_url='groups_htmx.get_projects', context={'group_id': group.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr>
+                <th scope="row">{{ project.id }}</th>
+                <td><a href="{{ url_for('projects_page.project_page', project_id=project.id, from='group@' + group.id | string) }}">{{ project.name }}</a></td>
+                <td>{{ project.status.name }} {{ project.status.icon | safe }}</td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=project.owner_id, from='group@' + group.id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.requestor_id }}</span></a></td>
+                <td>{{ project.timestamp_created_str() }}</td>
+                <td>{{ project.num_samples }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("group-project-table-spinner") }}
+    {{ pagination("group-project-table", "groups_htmx.get_projects", n_pages, active_page) }}
+</div>

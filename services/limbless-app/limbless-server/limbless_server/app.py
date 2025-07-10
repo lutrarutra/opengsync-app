@@ -8,10 +8,11 @@ import pandas as pd
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
-from limbless_db import categories, models, exceptions, db_session, TIMEZONE, localize, to_utc
+from limbless_db import categories, models, db_session, TIMEZONE, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools
 from .routes import api, pages
+from .tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
 
 if TYPE_CHECKING:
     current_user: models.User = None   # type: ignore
@@ -35,8 +36,14 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         db=os.environ["POSTGRES_DB"],
     )
     app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
-    app.config["MEDIA_FOLDER"] = os.path.join("media")
-    app.config["UPLOADS_FOLDER"] = os.path.join("uploads")
+    app.config["MEDIA_FOLDER"] = tools.io.mkdir(os.path.join("media"))
+    app.config["UPLOADS_FOLDER"] = tools.io.mkdir(os.path.join("uploads"))
+    app.config["APP_DATA_FOLDER"] = tools.io.mkdir(os.path.join("app_data"))
+
+    logger.info(f"MEDIA_FOLDER: {app.config['MEDIA_FOLDER']}")
+    logger.info(f"UPLOADS_FOLDER: {app.config['UPLOADS_FOLDER']}")
+    logger.info(f"APP_DATA_FOLDER: {app.config['APP_DATA_FOLDER']}")
+
     if (REDIS_PORT := os.getenv("REDIS_PORT")) is None:
         raise ValueError("REDIS_PORT env-variable not set")
     cache.init_app(app, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
@@ -52,7 +59,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
 
     logger.info(f"Debug mode: {app.debug}")
     logger.info(f"TIMEZONE: {TIMEZONE}")
-    logger.info(f"Time: {datetime.now().strftime('%H:%M')} {localize(datetime.now(), 'UTC').strftime('%H:%M')} {to_utc(datetime.now()).strftime('%H:%M')}")
+    logger.info(f"Time: {datetime.now().strftime('%H:%M')} (UTC: {to_utc(datetime.now()).strftime('%H:%M')})")
 
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAIL_SERVER"] = "smtp-relay.sendinblue.com"
@@ -85,19 +92,17 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @cache.cached(timeout=1500)
     def help_page():
         return render_template("help.html")
-
-    @app.route("/index_page")
-    def _index_page():
-        return redirect(url_for("index_page"))
     
     @app.route("/")
     @db_session(db)
     @login_required
-    def index_page():
+    def dashboard():
         if not current_user.is_authenticated:
-            return redirect(url_for("auth_page.auth_page", next=url_for("index_page")))
-
-        return render_template("index.html")
+            return redirect(url_for("auth_page.auth_page", next=url_for("dashboard")))
+        
+        if current_user.is_insider():
+            return render_template("dashboard-insider.html")
+        return render_template("dashboard-user.html")
 
     @app.route("/pdf_file/<int:file_id>")
     @login_required
@@ -212,6 +217,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             LabProtocol=categories.LabProtocol,
             PoolType=categories.PoolType,
             KitType=categories.KitType,
+            ProjectStatus=categories.ProjectStatus,
+            FileType=categories.FileType,
+            SpreadSheetErrors=[InvalidCellValue(""), MissingCellValue(""), DuplicateCellValue("")],
             isna=pd.isna,
             notna=pd.notna,
         )
@@ -223,6 +231,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @app.route("/status")
     def status():
         return make_response("OK", 200)
+    
+    from . import update_index_kits
+    update_index_kits(db, app.config["APP_DATA_FOLDER"])
     
     app.register_blueprint(api.htmx.samples_htmx)
     app.register_blueprint(api.htmx.projects_htmx)

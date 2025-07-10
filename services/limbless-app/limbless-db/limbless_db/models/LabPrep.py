@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, Optional
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from limbless_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, FileType
-from limbless_db.models import links, Project
+from limbless_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, FileType, AssayTypeEnum, AssayType
 
 from .Base import Base
+from .. import LAB_PROTOCOL_START_NUMBER
 
 if TYPE_CHECKING:
     from .User import User
@@ -21,15 +21,17 @@ class LabPrep(Base):
     __tablename__ = "lab_prep"
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String(32), nullable=False)
+    name: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
+    prep_number: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     protocol_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    assay_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    creator_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     creator: Mapped["User"] = relationship("User", back_populates="preps", lazy="joined")
 
-    plate_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("plate.id"), nullable=True)
+    plate_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("plate.id"), nullable=True)
     plate: Mapped[Optional["Plate"]] = relationship("Plate", lazy="select")
 
     prep_file: Mapped[Optional["File"]] = relationship(
@@ -57,3 +59,31 @@ class LabPrep(Base):
     @status.setter
     def status(self, value: PrepStatusEnum):
         self.status_id = value.id
+
+    @property
+    def assay_type(self) -> AssayTypeEnum:
+        return AssayType.get(self.assay_type_id)
+    
+    @assay_type.setter
+    def assay_type(self, value: AssayTypeEnum):
+        self.assay_type_id = value.id
+
+    @property
+    def identifier(self) -> str:
+        return f"{self.protocol.identifier}{self.prep_number + LAB_PROTOCOL_START_NUMBER:04d}"
+    
+    @property
+    def display_name(self) -> str:
+        if self.name == self.identifier:
+            return self.name
+        
+        return f"{self.name} [{self.identifier}]"
+    
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.name
+    
+    def search_description(self) -> str:
+        return self.identifier

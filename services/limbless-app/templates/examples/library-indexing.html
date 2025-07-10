@@ -1,0 +1,22 @@
+<div class="example-table" id="example-spreadsheet">
+</div>
+<script>
+    $(document).ready(function() {
+        jspreadsheet(document.getElementById('example-spreadsheet'), {
+            data: [
+                ["sample_1_POLYARNA", "A1", "E6440", "", "", "", "", ""],
+                ["sample_2_POLYARNA", "A2", "E6440", "", "", "", "", ""],
+                ["sample_3_POLYARNA", "A3", "E6440", "", "", "", "", ""],
+            ],
+            columns: [
+                {% for col in form.spreadsheet.columns.values() %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                {%- endif -%}
+                {% endfor %}
+            ],
+        });
+    });
+</script>

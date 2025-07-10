@@ -1,9 +1,10 @@
-from flask import Response, url_for
-from flask_htmx import make_response
+from typing import Literal
 
-from limbless_db import models
+import pandas as pd
 
-from .... import db, tools
+from flask import Response
+
+from .... import tools
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -11,21 +12,20 @@ class CheckBarcodeClashesForm(HTMXFlaskForm):
     _template_path = "workflows/check_barcode_clashes/clashes-1.html"
     _form_label = "check_barcode_clashes_form"
 
-    def __init__(self, formdata: dict = {}):
+    def __init__(self, libraries_df: pd.DataFrame, groupby: Literal["lane", "pool"] | None = None, formdata: dict = {}):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-
-    def prepare(self, experiment_id) -> dict:
-        df = db.get_experiment_barcodes_df(experiment_id)
-        df = tools.check_indices(df, "lane")
-        df = df.sort_values(["lane", "pool_name", "library_id"])
-
-        return {
-            "df": df,
-            "warn_user": df["error"].notna().any() or df["warning"].notna().any(),
-        }
+        self.libraries_df = libraries_df
+        self.groupby = groupby
+        self._context["groupby"] = groupby
     
-    def process_request(self, experiment: models.Experiment) -> Response:
-        if not self.validate():
-            return self.make_response()
+    def process_request(self) -> Response:
+        if self.groupby is None:
+            self.libraries_df = tools.check_indices(self.libraries_df)
+        elif self.groupby == "pool":
+            self.libraries_df = tools.check_indices(self.libraries_df, groupby="pool_id").sort_values(["pool_id", "library_id"])
+        elif self.groupby == "lane":
+            self.libraries_df = tools.check_indices(self.libraries_df, groupby="lane_id").sort_values(["lane", "library_id"])
 
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+        return self.make_response(
+            df=self.libraries_df, warn_user=self.libraries_df["error"].notna().any() or self.libraries_df["warning"].notna().any()
+        )

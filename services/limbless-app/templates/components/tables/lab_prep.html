@@ -3,7 +3,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 
 <div id="lab_prep-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -50,10 +50,10 @@
             {% for lab_prep in lab_preps %}
             <tr>
                 <th scope="row">{{ lab_prep.id }}</th>
-                <td><a href="{{ url_for('lab_preps_page.lab_prep_page', lab_prep_id=lab_prep.id) }}">{{ lab_prep.name }}</a></td>
+                <td><a href="{{ url_for('lab_preps_page.lab_prep_page', lab_prep_id=lab_prep.id) }}">{{ lab_prep.display_name }}</a></td>
                 <td>{{ lab_prep.protocol }}</td>
                 <td>{{ lab_prep.status.name }} {{ lab_prep.status.icon }}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=lab_prep.creator_id) }}">{{ lab_prep.creator.name }}</a> <span class="desc">{{ "me" if current_user.id == lab_prep.creator_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=lab_prep.creator_id) }}">{{ lab_prep.creator.name }} <span class="desc">{{ "me" if current_user.id == lab_prep.creator_id }}</span></a></td>
             </tr>
             {% endfor %}
         </tbody>

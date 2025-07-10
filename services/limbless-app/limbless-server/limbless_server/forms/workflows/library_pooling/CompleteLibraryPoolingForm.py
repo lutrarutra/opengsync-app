@@ -30,7 +30,8 @@ class CompleteLibraryPoolingForm(MultiStepForm):
     def prepare(self):
         barcode_table = self.tables["barcode_table"]
         barcode_table = tools.check_indices(barcode_table, groupby="pool")
-        self._context["barcode_table"] = barcode_table
+        self._context["df"] = barcode_table
+        self._context["groupby"] = "pool"
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -134,7 +135,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
             active_sheet = wb["prep_table"]
             
             column_mapping: dict[str, str] = {}
-            for col_i in range(1, active_sheet.max_column):
+            for col_i in range(1, min(active_sheet.max_column, 96)):
                 col = get_column_letter(col_i + 1)
                 column_name = active_sheet[f"{col}1"].value
                 column_mapping[column_name] = col

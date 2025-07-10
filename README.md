@@ -4,8 +4,7 @@ Web app for NGS sample/library/project tracking
 # Containers
 1. `limbless-app` - Flask web server @ `https://localhost:80`
 1. `limbless-db` - PostgreSQL database
-1. `rf-scanenr` - Illumina run folder scanner 
-1. `ofelia` - Scheduled temporary file cleaner (only prod)
+1. `scheduler` - Scheduler for running scheduled tasks in python: old file cleaning, status updates, and run-folder scanner
 1. `nginx` - Reverse proxy for static files (only prod)
 1. `pgadmin` - PostgreSQL admin interface @ `https://localhost:5050`
 1. `yacht` - Web interface for managing docker containers @ `https://localhost:8000`
@@ -29,7 +28,7 @@ Web app for NGS sample/library/project tracking
     - Populate .env as required.
 - `mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin`
 - `mkdir -p db/postgres && sudo chown -R 1001:1001 db/postgres`
-- `mkdir -p backup/postgres && sudo chown -R 1001:1001 backup/postgres`
+- `mkdir -p data/db_backup/wal && sudo chown -R 1001:1001 data/db_backup/wal`
 
 ## Start Production Server (2 options)
 

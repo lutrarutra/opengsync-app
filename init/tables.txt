@@ -1,0 +1,306 @@
+project
+ - id
+ - name
+ - description
+ - timestamp_created_utc
+ - status_id
+ - num_samples
+ - owner_id
+ - group_id
+sample
+ - id
+ - name
+ - status_id
+ - num_libraries
+ - qubit_concentration
+ - avg_fragment_size
+ - timestamp_stored_utc
+ - project_id
+ - ba_report_id
+ - owner_id
+ - attributes
+user_affiliation
+ - user_id
+ - group_id
+ - affiliation_type_id
+sample_plate_link
+ - plate_id
+ - well_idx
+ - sample_id
+ - library_id
+sample_library_link
+ - cmo_sequence
+ - cmo_pattern
+ - cmo_read
+ - flex_barcode
+ - sample_id
+ - library_id
+lane_pool_link
+ - lane_id
+ - pool_id
+ - experiment_id
+ - dilution_id
+ - num_m_reads
+ - lane_num
+library_feature_link
+ - library_id
+ - feature_id
+seq_request_delivery_email_link
+ - seq_request_id
+ - email
+ - status_id
+experiment
+ - id
+ - name
+ - timestamp_created_utc
+ - timestamp_finished_utc
+ - r1_cycles
+ - r2_cycles
+ - i1_cycles
+ - i2_cycles
+ - num_lanes
+ - workflow_id
+ - status_id
+ - operator_id
+ - sequencer_id
+pool
+ - id
+ - name
+ - status_id
+ - type_id
+ - timestamp_stored_utc
+ - num_m_reads_requested
+ - avg_fragment_size
+ - qubit_concentration
+ - num_libraries
+ - owner_id
+ - plate_id
+ - seq_request_id
+ - contact_id
+ - ba_report_id
+ - lab_prep_id
+ - experiment_id
+lims_user
+ - id
+ - first_name
+ - last_name
+ - email
+ - password
+ - role_id
+ - num_projects
+ - num_pools
+ - num_samples
+ - num_seq_requests
+seq_request
+ - id
+ - name
+ - description
+ - special_requirements
+ - billing_code
+ - data_delivery_mode_id
+ - read_type_id
+ - submission_type_id
+ - status_id
+ - timestamp_submitted_utc
+ - timestamp_finished_utc
+ - read_length
+ - num_lanes
+ - num_libraries
+ - organization_contact_id
+ - requestor_id
+ - group_id
+ - bioinformatician_contact_id
+ - contact_person_id
+ - billing_contact_id
+ - sample_submission_event_id
+library
+ - id
+ - name
+ - sample_name
+ - type_id
+ - status_id
+ - genome_ref_id
+ - assay_type_id
+ - timestamp_stored_utc
+ - seq_depth_requested
+ - avg_fragment_size
+ - volume
+ - qubit_concentration
+ - num_samples
+ - num_features
+ - ba_report_id
+ - pool_id
+ - experiment_id
+ - owner_id
+ - seq_request_id
+ - visium_annotation_id
+ - lab_prep_id
+kit
+ - id
+ - name
+ - identifier
+ - kit_type_id
+index_kit
+ - id
+ - type_id
+ - supported_protocol_ids
+contact
+ - id
+ - name
+ - email
+ - phone
+ - address
+sequencer
+ - id
+ - name
+ - model_id
+ - ip
+adapter
+ - id
+ - well
+ - index_kit_id
+feature
+ - id
+ - name
+ - sequence
+ - pattern
+ - read
+ - target_name
+ - target_id
+ - type_id
+ - feature_kit_id
+feature_kit
+ - id
+ - type_id
+file
+ - id
+ - name
+ - extension
+ - type_id
+ - uuid
+ - size_bytes
+ - timestamp_utc
+ - uploader_id
+ - seq_request_id
+ - experiment_id
+ - lab_prep_id
+seqquality
+ - id
+ - lane
+ - num_lane_reads
+ - num_library_reads
+ - mean_quality_pf_r1
+ - q30_perc_r1
+ - mean_quality_pf_r2
+ - q30_perc_r2
+ - mean_quality_pf_i1
+ - q30_perc_i1
+ - mean_quality_pf_i2
+ - q30_perc_i2
+ - library_id
+ - experiment_id
+visiumannotation
+ - id
+ - slide
+ - area
+ - image
+comment
+ - id
+ - text
+ - timestamp_utc
+ - file_id
+ - author_id
+ - seq_request_id
+ - experiment_id
+ - lab_prep_id
+seqrun
+ - id
+ - experiment_name
+ - status_id
+ - instrument_name
+ - run_folder
+ - flowcell_id
+ - read_type_id
+ - rta_version
+ - recipe_version
+ - side
+ - flowcell_mode
+ - r1_cycles
+ - r2_cycles
+ - i1_cycles
+ - i2_cycles
+ - cluster_count_m
+ - cluster_count_m_pf
+ - error_rate
+ - first_cycle_intensity
+ - percent_aligned
+ - percent_q30
+ - percent_occupied
+ - projected_yield
+ - reads_m
+ - reads_m_pf
+ - yield_g
+lane
+ - id
+ - number
+ - phi_x
+ - avg_fragment_size
+ - original_qubit_concentration
+ - sequencing_qubit_concentration
+ - total_volume_ul
+ - library_volume_ul
+ - target_molarity
+ - experiment_id
+ - ba_report_id
+pool_dilution
+ - id
+ - identifier
+ - pool_id
+ - timestamp_utc
+ - experiment_id
+ - operator_id
+ - qubit_concentration
+ - volume_ul
+plate
+ - id
+ - name
+ - num_cols
+ - num_rows
+ - owner_id
+barcode
+ - id
+ - sequence
+ - name
+ - well
+ - type_id
+ - adapter_id
+ - index_kit_id
+library_index
+ - id
+ - library_id
+ - index_kit_i7_id
+ - index_kit_i5_id
+ - name_i7
+ - name_i5
+ - sequence_i7
+ - sequence_i5
+lab_prep
+ - id
+ - name
+ - prep_number
+ - protocol_id
+ - status_id
+ - assay_type_id
+ - creator_id
+ - plate_id
+event
+ - id
+ - title
+ - note
+ - timestamp_utc
+ - type_id
+ - creator_id
+group
+ - id
+ - name
+ - type_id

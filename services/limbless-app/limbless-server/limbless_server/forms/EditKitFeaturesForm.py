@@ -9,7 +9,8 @@ from limbless_db import models
 from limbless_db.categories import FeatureType
 
 from .. import db, logger  # noqa
-from ..tools import SpreadSheetColumn, tools
+from ..tools import tools
+from ..tools.spread_sheet_components import TextColumn, DuplicateCellValue, SpreadSheetColumn
 from .HTMXFlaskForm import HTMXFlaskForm
 from .SpreadsheetInput import SpreadsheetInput
 
@@ -17,13 +18,13 @@ from .SpreadsheetInput import SpreadsheetInput
 class EditKitFeaturesForm(HTMXFlaskForm):
     _template_path = "forms/edit_kit_features.html"
 
-    columns = [
-        SpreadSheetColumn("name", "Name", "text", 250, str),
-        SpreadSheetColumn("sequence", "Sequence", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("pattern", "Pattern", "text", 200, str, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        SpreadSheetColumn("read", "Read", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("target_name", "Target Name", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("target_id", "Target ID", "text", 200, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+    columns: list[SpreadSheetColumn] = [
+        TextColumn("name", "Name", 250, max_length=models.Feature.name.type.length, min_length=4, required=True),
+        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, required=True, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, required=True, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, required=True, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("target_name", "Target Name", 200, max_length=models.Feature.target_name.type.length, min_length=3, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("target_id", "Target ID", 200, max_length=models.Feature.target_id.type.length, min_length=3, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
 
     def __init__(self, feature_kit: models.FeatureKit, formdata: Optional[dict] = None):
@@ -37,7 +38,7 @@ class EditKitFeaturesForm(HTMXFlaskForm):
             csrf_token = formdata.get("csrf_token")
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=self.columns, csrf_token=csrf_token,
+            columns=EditKitFeaturesForm.columns, csrf_token=csrf_token,
             post_url=url_for("feature_kits_htmx.edit_features", feature_kit_id=feature_kit.id),
             formdata=formdata, df=self.__fill_form(), allow_new_rows=True
         )
@@ -58,21 +59,13 @@ class EditKitFeaturesForm(HTMXFlaskForm):
         duplicate_def = df.duplicated(subset=["sequence", "pattern", "read"], keep=False)
         duplicate_feature = df.duplicated(subset=["name"], keep=False) & (self.feature_kit.type in [FeatureType.CMO])
 
-        for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["name"]):
-                self.spreadsheet.add_error(i + 1, "name", "Name cannot be empty.", "missing_value")
-            elif duplicate_feature.at[idx]:
-                self.spreadsheet.add_error(i + 1, "name", f"Duplicate feature name not allowed in '{self.feature_kit.type.name}'-kit.", "duplicate_value")
-            if pd.isna(row["sequence"]):
-                self.spreadsheet.add_error(i + 1, "sequence", "Sequence cannot be empty.", "missing_value")
-            if pd.isna(row["pattern"]):
-                self.spreadsheet.add_error(i + 1, "pattern", "Pattern cannot be empty.", "missing_value")
-            if pd.isna(row["read"]):
-                self.spreadsheet.add_error(i + 1, "read", "Read cannot be empty.", "missing_value")
+        for idx, row in df.iterrows():
+            if duplicate_feature.at[idx]:
+                self.spreadsheet.add_error(idx, "name", DuplicateCellValue(f"Duplicate feature name not allowed in '{self.feature_kit.type.name}'-kit."))
             if duplicate_def.at[idx]:
-                self.spreadsheet.add_error(i + 1, "sequence", "Duplicate sequence + pattern + read combination.", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "pattern", "Duplicate sequence + pattern + read combination.", "duplicate_value")
-                self.spreadsheet.add_error(i + 1, "read", "Duplicate sequence + pattern + read combination.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("Duplicate sequence + pattern + read combination."))
+                self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("Duplicate sequence + pattern + read combination."))
+                self.spreadsheet.add_error(idx, "read", DuplicateCellValue("Duplicate sequence + pattern + read combination."))
         
         if len(self.spreadsheet._errors) > 0:
             return False

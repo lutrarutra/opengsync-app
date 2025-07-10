@@ -112,7 +112,7 @@ class UserForm(HTMXFlaskForm):
 
         flash("Email sent. Check your email for registration link.", "info")
         logger.info(f"Registration email sent to {email}")
-        return make_response(redirect=url_for("index_page"))
+        return make_response(redirect=url_for("dashboard"))
 
 
 class LoginForm(HTMXFlaskForm):
@@ -141,7 +141,7 @@ class LoginForm(HTMXFlaskForm):
         return True
 
     def process_request(self, **context) -> Response:
-        dest = context.get("next", url_for("index_page"))
+        dest = context.get("next", url_for("dashboard"))
         if not self.validate():
             return self.make_response(**context)
         
@@ -193,7 +193,7 @@ class RegisterForm(HTMXFlaskForm):
 
         flash("Email sent. Check your email for registration link.", "info")
         logger.info(f"Registration email sent to {email}")
-        return make_response(redirect=url_for("index_page"))
+        return make_response(redirect=url_for("dashboard"))
 
 
 class CompleteRegistrationForm(HTMXFlaskForm):

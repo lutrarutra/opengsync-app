@@ -122,7 +122,8 @@ def get_sample_library_links(
     seq_request_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT,
     offset: Optional[int] = None,
-) -> tuple[list[models.links.SampleLibraryLink], int]:
+    count_pages: bool = False,
+) -> tuple[list[models.links.SampleLibraryLink], int | None]:
     
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -142,7 +143,7 @@ def get_sample_library_links(
             models.Library.seq_request_id == seq_request_id,
         )
     
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if limit is not None:
         query = query.limit(limit)
@@ -262,9 +263,6 @@ def add_pool_to_lane(
         num_m_reads_per_lane = pool.num_m_reads_requested / experiment.num_lanes if pool.num_m_reads_requested else None
     else:
         num_m_reads_per_lane = pool.num_m_reads_requested / (len(pool.lane_links) + 1) if pool.num_m_reads_requested else None
-    self.debug(len(pool.lane_links))
-    self.debug(pool.num_m_reads_requested)
-    self.debug(num_m_reads_per_lane)
 
     for link in pool.lane_links:
         link.num_m_reads = num_m_reads_per_lane
@@ -337,6 +335,9 @@ def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
 
     experiment.pools.append(pool)
 
+    for library in pool.libraries:
+        library.experiment_id = experiment_id
+
     if experiment.workflow.combined_lanes:
         for lane in experiment.lanes:
             self.add_pool_to_lane(experiment_id=experiment_id, pool_id=pool_id, lane_num=lane.number)
@@ -374,3 +375,43 @@ def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
 
     if not persist_session:
         self.close_session()
+
+
+def get_laned_pool_link(
+    self: "DBHandler", experiment_id: int, lane_num: int, pool_id: int,
+) -> models.links.LanePoolLink | None:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (_ := self.session.get(models.Experiment, experiment_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+    
+    if (_ := self.session.get(models.Pool, pool_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+
+    link = self.session.query(models.links.LanePoolLink).where(
+        models.links.LanePoolLink.experiment_id == experiment_id,
+        models.links.LanePoolLink.lane_num == lane_num,
+        models.links.LanePoolLink.pool_id == pool_id,
+    ).first()
+
+    if not persist_session:
+        self.close_session()
+
+    return link
+
+
+def update_laned_pool_link(
+    self: "DBHandler", link: models.links.LanePoolLink,
+) -> models.links.LanePoolLink:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    self.session.add(link)
+    self.session.commit()
+    self.session.refresh(link)
+
+    if not persist_session:
+        self.close_session()
+
+    return link

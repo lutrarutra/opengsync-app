@@ -29,7 +29,7 @@ def logout():
         logout_user()
         flash("Logged out!", "info")
 
-    return make_response(redirect=url_for("index_page"))
+    return make_response(redirect=url_for("dashboard"))
 
 
 @auth_htmx.route("register", methods=["POST"])

@@ -4,7 +4,8 @@ from typing import Optional
 from limbless_db import DBHandler, models
 from limbless_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
-    ReadType, ExperimentStatus, PoolType, SubmissionType, FileType, GenomeRef, SampleStatus
+    ReadType, ExperimentStatus, PoolType, SubmissionType, FileType, GenomeRef, SampleStatus, AssayType,
+    GroupType
 )
 
 
@@ -71,7 +72,8 @@ def create_library(db: DBHandler, user: models.User, seq_request: models.SeqRequ
         owner_id=user.id,
         seq_request_id=seq_request.id,
         library_type=LibraryType.POLY_A_RNA_SEQ,
-        genome_ref=GenomeRef.CUSTOM
+        genome_ref=GenomeRef.CUSTOM,
+        assay_type=AssayType.CUSTOM
     )
 
 
@@ -135,4 +137,16 @@ def create_file(
         seq_request_id=seq_request.id if seq_request else None,
         experiment_id=experiment.id if experiment else None,
         lab_prep_id=lab_prep.id if lab_prep else None,
+    )
+
+
+def create_group(
+    db: DBHandler,
+    user: models.User,
+) -> models.Group:
+    _uuid = str(uuid.uuid1())
+    return db.create_group(
+        name=_uuid,
+        user_id=user.id,
+        type=GroupType.COLLABORATION
     )

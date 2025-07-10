@@ -55,6 +55,7 @@ def get_context(request: Request) -> dict:
 
 
 @qubit_measure_workflow.route("begin", methods=["GET"])
+@db_session(db)
 @login_required
 def begin():
     if not current_user.is_insider():
@@ -66,7 +67,10 @@ def begin():
         sample_status_filter=[SampleStatus.STORED],
         library_status_filter=[LibraryStatus.PREPARING],
         pool_status_filter=[PoolStatus.STORED],
-        select_lanes=True
+        select_lanes=True,
+        select_pools=True,
+        select_libraries=True,
+        select_samples=True,
     )
     return form.make_response()
 
@@ -105,6 +109,7 @@ def select():
 
 
 @qubit_measure_workflow.route("complete/<string:uuid>", methods=["POST"])
+@db_session(db)
 @login_required
 def complete(uuid: str):
     if not current_user.is_insider():

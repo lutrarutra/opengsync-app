@@ -18,7 +18,8 @@ def kits_page():
 @kits_page_bp.route("/kit/<int:kit_id>")
 @login_required
 def kit_page(kit_id: int):
-    kit = db.get_kit(kit_id)
+    if (kit := db.get_kit(kit_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     path_list = [
         ("Kits", url_for("kits_page.kits_page")),

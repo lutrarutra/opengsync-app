@@ -1,8 +1,6 @@
 from typing import Optional
 import os
-import argparse
 import glob
-import datetime
 
 import pandas as pd
 import interop
@@ -11,6 +9,8 @@ from xml.dom.minidom import parse
 from limbless_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
 from limbless_db.core import DBHandler
 from limbless_db import DBSession
+
+from . import logger
 
 
 def get_dom_value(dom, tag_name: str) -> str | None:
@@ -94,7 +94,7 @@ def parse_metrics(run_folder: str) -> dict:
         reads_m_pf = float(metrics_df["Reads Pf"].values[0] / 1_000_000)
         yield_g = float(metrics_df["Yield G"].values[0])
     except Exception:
-        print("Could not parse metrics...")
+        logger.error("Could not parse metrics...")
         cluster_count_m = None
         cluster_count_m_pf = None
         error_rate = None
@@ -123,7 +123,7 @@ def parse_metrics(run_folder: str) -> dict:
 
 
 def process_run_folder(illumina_run_folder: str, db: DBHandler):
-    print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} Processing run folder: {illumina_run_folder}")
+    logger.info(f"Processing run folder: {illumina_run_folder}")
     
     with DBSession(db) as session:
         active_runs, _ = db.get_seq_runs(
@@ -144,7 +144,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                             library.status = LibraryStatus.SEQUENCED
                 run = session.update_seq_run(run)
                 active_runs[run.experiment_name] = run
-                print(f"Archived: {run.experiment_name} ({run.run_folder})")
+                logger.info(f"Archived: {run.experiment_name} ({run.run_folder})")
     
     for run_parameters_path in glob.glob(os.path.join(illumina_run_folder, "*", "RunParameters.xml")):
         run_folder = os.path.dirname(run_parameters_path)
@@ -158,11 +158,11 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
         parsed_data = parse_run_folder(run_folder)
         
         experiment_name = parsed_data["experiment_name"]
-        print(f"Processing: {experiment_name} ({run_name}): ", end="")
+        logger.info(f"Processing: {experiment_name} ({run_name}): ", end="")
 
         if (run := active_runs.get(experiment_name)) is not None:
             if run.status == status:
-                print("Up to date!")
+                logger.info("Up to date!")
                 continue
             
             if run.status == RunStatus.FINISHED:
@@ -202,11 +202,11 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
 
             run = db.update_seq_run(run)
             active_runs[experiment_name] = run
-            print("Updated!")
+            logger.info("Updated!")
         else:
             metrics = parse_metrics(run_folder)
 
-            # If for some reason the run is Archived while still in the data is still in the run folder
+            # If for some reason the run is Archived while the data is still in the run folder
             if (seq_run := db.get_seq_run(experiment_name=experiment_name)) is not None:
                 seq_run.status = status
                 seq_run = db.update_seq_run(seq_run)
@@ -226,33 +226,18 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 i2_cycles=parsed_data.get("i2_cycles"),
                 **metrics
             )
+            if run.status == RunStatus.FINISHED:
+                if run.experiment is not None:
+                    run.experiment.status = ExperimentStatus.FINISHED
+                    for pool in run.experiment.pools:
+                        pool.status = PoolStatus.SEQUENCED
+                        for library in pool.libraries:
+                            library.status = LibraryStatus.SEQUENCED
+                run = db.update_seq_run(run)
+            elif run.status == RunStatus.RUNNING:
+                if run.experiment is not None:
+                    run.experiment.status = ExperimentStatus.SEQUENCING
+                run = db.update_seq_run(run)
+                    
             active_runs[experiment_name] = run
-            print("Added!")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("run_folder", type=str)
-    parser.add_argument("user", type=str)
-    parser.add_argument("password", type=str)
-    parser.add_argument("host", type=str)
-    parser.add_argument("db", type=str, default="limbless_db")
-    parser.add_argument("port", type=int, default=5432)
-    
-    args = parser.parse_args()
-
-    db = DBHandler()
-    db.connect(
-        user=args.user,
-        password=args.password,
-        host=args.host,
-        db=args.db,
-        port=args.port
-    )
-
-    if not os.path.exists(args.run_folder):
-        raise FileNotFoundError(f"Run folder not found: {args.run_folder}")
-        
-    process_run_folder(args.run_folder, db)
-
-exit(0)
+            logger.info("Added!")

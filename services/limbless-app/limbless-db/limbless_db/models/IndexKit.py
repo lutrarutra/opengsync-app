@@ -18,8 +18,8 @@ class IndexKit(Kit):
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     supported_protocol_ids: Mapped[list[int]] = mapped_column(sa.ARRAY(sa.Integer), nullable=False)
     
-    barcodes: Mapped[list["Barcode"]] = relationship("Barcode", back_populates="index_kit", lazy="select", cascade="all, save-update, merge, delete")
-    adapters: Mapped[list["Adapter"]] = relationship("Adapter", back_populates="index_kit", lazy="select", cascade="all, save-update, merge, delete")
+    barcodes: Mapped[list["Barcode"]] = relationship("Barcode", back_populates="index_kit", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
+    adapters: Mapped[list["Adapter"]] = relationship("Adapter", back_populates="index_kit", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "type_id"]
 
@@ -47,3 +47,4 @@ class IndexKit(Kit):
     
     def __repr__(self) -> str:
         return self.__str__()
+    

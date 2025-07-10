@@ -6,7 +6,7 @@ from wtforms.validators import DataRequired, Length
 
 from flask_htmx import make_response
 
-from limbless_db import models, DBSession
+from limbless_db import models
 from limbless_db.categories import PoolType
 
 from ... import logger, db  # noqa F401
@@ -50,7 +50,6 @@ class PlateForm(HTMXFlaskForm):
             name=self.name.data,  # type: ignore
             num_cols=self.num_cols.data,  # type: ignore
             num_rows=self.num_rows.data,  # type: ignore
-            pool_id=self.pool.id if self.pool else None,
             owner_id=user.id
         )
 
@@ -58,12 +57,11 @@ class PlateForm(HTMXFlaskForm):
             return plate.get_well(i, flipped=flipped)
 
         if self.pool is not None:
-            with DBSession(db) as session:
-                libraries, _ = db.get_libraries(pool_id=self.pool.id, limit=None, sort_by="id")
-                for i, library in enumerate(libraries):
-                    session.add_library_to_plate(
-                        plate_id=plate.id, library_id=library.id, well=get_well(i)
-                    )
+            libraries, _ = db.get_libraries(pool_id=self.pool.id, limit=None, sort_by="id")
+            for i, library in enumerate(libraries):
+                db.add_library_to_plate(
+                    plate_id=plate.id, library_id=library.id, well_idx=i
+                )
 
             flash(f"Plate {plate.name} created", "success")
             return make_response(redirect=url_for("pools_page.pool_page", pool_id=self.pool.id))

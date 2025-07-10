@@ -1,0 +1,71 @@
+@import "colors.scss";
+
+.banner-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 5px 0px 10px;
+    height: 100%;
+    overflow-y: auto;
+
+    a.element-banner {
+        color: black;
+        text-decoration: none;
+    }
+
+    a .progress-bar:hover {
+        cursor: pointer;
+    }
+
+    .element-banner {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin: 0;
+        padding: 7px;
+        flex-shrink: 0;
+        
+        .badge {
+            font-size: 13px;
+        }
+
+        .qc-container {
+            display: flex;
+            gap: 20px;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        .row div {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .title {
+            font-weight: 600;
+        }
+
+        .row {
+            text-align: center;
+            vertical-align: middle;
+            font-size: 1rem;
+        }
+        .row div:first-child {
+            text-align: start;
+        }
+        .row div:last-child {
+            text-align: end;
+        }
+    }
+
+    .element-banner:hover {
+        background-color: #dee2e6;
+    }
+}

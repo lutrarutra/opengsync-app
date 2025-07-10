@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_request-library-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -50,7 +50,7 @@
                 }}
                 <th scope="col" class="col-4">
                     Index
-                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display('seq_request-library')">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
                             <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
                         </svg>
@@ -60,7 +60,7 @@
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr class="library-row" id="library-row-{{library.id}}">
+            <tr class="library-row" data-id="{{ library.id }}" data-name="{{ library.name }}">
                 <th scope="row">{{ library.id }}</th>
                 <td><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">{{ library.name }}</a></td>
                 <td>
@@ -80,14 +80,14 @@
                     {% for index in library.indices %}
                     {% if index.name_i7 %}
                         {% if index.name_i7 == index.name_i5 %}
-                        <span class="badge index-badges" >{{ index.name_i7 }}</span>
+                        <span class="badge index-badge index-badges-seq_request-library" >{{ index.name_i7 }}</span>
                         {% else %}
-                        <span class="badge index-badges">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
+                        <span class="badge index-badge index-badges-seq_request-library">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
                         {% endif %}
                     {% else %}
-                    <span class="badge index-badges">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
+                    <span class="badge index-badge index-badges-seq_request-library">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
                     {% endif %}
-                    <span class="badge index-badges" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
+                    <span class="badge index-badge index-badges-seq_request-library" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
                     {% endfor %}
                 </td>
             </tr>
@@ -97,11 +97,12 @@
     {{ spinner("seq_request-library-table-spinner") }}
     {{ pagination("seq_request-library-table", "seq_requests_htmx.get_libraries", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
     <script>
-        var selected_library_id = null;
+        let selected_library_id = null;
+        let selected_library_name = null;
 
         function remove_library() {
             Swal.fire({
-                title: `Remove library (id=${selected_library_id}) from '{{seq_request.name}}'-request ?`,
+                title: `Remove library '${selected_library_name}' [${selected_library_id}] from '{{seq_request.name}}'-request ?`,
                 showDenyButton: true,
                 text: 'Are you sure?',
                 confirmButtonText: 'Yes',
@@ -112,7 +113,7 @@
                     htmx.ajax(
                     "DELETE", "{{ url_for('seq_requests_htmx.remove_library', seq_request_id=seq_request.id) }}?library_id=" + selected_library_id,
                     null, {
-                        target: "#seq_request-seq_request-library-table",
+                        target: "#seq_request-library-table",
                         swapStyle: "outerHTML"
                     });
                 }
@@ -126,7 +127,8 @@
                 e.preventDefault();
                 const x = e.pageX;
                 const y = e.pageY;
-                selected_library_id = $(this).closest("tr").attr("id").split("-")[2];
+                selected_library_id = parseInt($(this).data("id"));
+                selected_library_name = $(this).data("name");
                 $("#copy-edit-menu").css({
                     display: "block",
                     left: x + 8, top: y + 8

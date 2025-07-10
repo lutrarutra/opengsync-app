@@ -11,7 +11,7 @@ from limbless_db.categories import HTTPResponse, KitType
 
 from .... import db, logger, cache  # noqa: F401
 from .... import forms
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -35,7 +35,7 @@ def get(page: int):
 
     feature_kits, n_pages = db.get_feature_kits(
         offset=PAGE_LIMIT * page,
-        sort_by=sort_by, descending=descending
+        sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(
@@ -118,7 +118,7 @@ def get_features(feature_kit_id: int, page: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
         
     feature_kit = db.get_feature_kit(feature_kit_id)
-    features, n_pages = db.get_features(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending)
+    features, n_pages = db.get_features(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -198,7 +198,7 @@ def delete(feature_kit_id: int):
     if (_ := db.get_feature_kit(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.delete_feature_kit(feature_kit_id=feature_kit_id)
+    db.delete_kit(id=feature_kit_id)
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.feature_kits_page"))
 
@@ -221,12 +221,7 @@ def render_table(feature_kit_id: int):
             width = 50
         else:
             width = 200
-        columns.append(
-            SpreadSheetColumn(
-                col, col.replace("_", " ").title().replace("Id", "ID"),
-                "text", width, var_type=str
-            )
-        )
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width, max_length=1000))
     
     return make_response(
         render_template(

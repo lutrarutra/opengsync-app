@@ -9,7 +9,7 @@ from limbless_db import models
 from limbless_db.categories import LibraryType, LibraryStatus
 
 from .... import logger, tools, db  # noqa F401
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, SpreadSheetColumn, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 
@@ -19,10 +19,10 @@ class FlexMuxForm(MultiStepForm):
     _workflow_name = "mux_prep"
     _step_name = "flex_mux"
     
-    columns = [
-        SpreadSheetColumn("demux_name", "Demultiplexed Name", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("sample_pool", "Sample Pool", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        SpreadSheetColumn("barcode_id", "Bardcode ID", "text", 200, str, clean_up_fnc=lambda x: str(x).strip().upper() if pd.notna(x) else None),
+    columns: list[SpreadSheetColumn] = [
+        TextColumn("demux_name", "Demultiplexed Name", 300, required=True, min_length=4, max_length=models.Sample.name.type.length, clean_up_fnc=tools.make_alpha_numeric),
+        TextColumn("sample_pool", "Sample Pool", 300, required=True, max_length=models.Sample.name.type.length, clean_up_fnc=tools.make_alpha_numeric),
+        TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.flex_barcode.type.length, clean_up_fnc=lambda x: str(x).strip().upper()),
     ]
 
     allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
@@ -49,6 +49,7 @@ class FlexMuxForm(MultiStepForm):
             post_url=url_for("mux_prep_workflow.parse_flex_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
             formdata=formdata, df=self.__get_template()
         )
+        self.spreadsheet.columns["sample_pool"].source = self.sample_table["sample_name"].unique().tolist()
 
     def __get_template(self) -> pd.DataFrame:
         template_data = {
@@ -82,20 +83,13 @@ class FlexMuxForm(MultiStepForm):
         duplicate_barcode = df.duplicated(subset=["sample_pool", "barcode_id"], keep=False)
         
         for i, (idx, row) in enumerate(df.iterrows()):
-            if pd.isna(row["demux_name"]):
-                self.spreadsheet.add_error(i + 1, "demux_name", "'Demux Name' is missing.", "missing_value")
-            elif row["demux_name"] not in self.sample_table["sample_name"].values:
-                self.spreadsheet.add_error(i + 1, "demux_name", f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}", "invalid_value")
-            
-            if pd.isna(row["sample_pool"]):
-                self.spreadsheet.add_error(i + 1, "sample_pool", "'Sample Pool' is missing.", "missing_value")
+            if row["demux_name"] not in self.sample_table["sample_name"].values:
+                self.spreadsheet.add_error(idx, "demux_name", InvalidCellValue(f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}"))
 
-            if pd.isna(row["barcode_id"]):
-                self.spreadsheet.add_error(i + 1, "barcode_id", "'Barcode ID' is missing.", "missing_value")
-            elif row["barcode_id"] not in FlexMuxForm.allowed_barcodes:
-                self.spreadsheet.add_error(i + 1, "barcode_id", f"'Barcode ID' must be one of: {', '.join(FlexMuxForm.allowed_barcodes)}", "invalid_value")
+            if row["barcode_id"] not in FlexMuxForm.allowed_barcodes:
+                self.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(FlexMuxForm.allowed_barcodes)}"))
             elif duplicate_barcode.at[idx]:
-                self.spreadsheet.add_error(i + 1, "barcode_id", "'Barcode ID' is duplicated in library.", "duplicate_value")
+                self.spreadsheet.add_error(idx, "barcode_id", DuplicateCellValue("'Barcode ID' is duplicated in library."))
 
         if len(self.spreadsheet._errors) > 0:
             return False
@@ -144,6 +138,7 @@ class FlexMuxForm(MultiStepForm):
                     seq_request_id=old_library.seq_request_id,
                     lab_prep_id=self.lab_prep.id,
                     genome_ref=old_library.genome_ref,
+                    assay_type=old_library.assay_type
                 )
                 libraries[lib] = new_library
             else:

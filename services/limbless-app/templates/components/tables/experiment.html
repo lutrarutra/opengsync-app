@@ -4,7 +4,7 @@
 {% from 'components/spinner.jinja2' import spinner %}
 
 <div id="experiment-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -52,7 +52,7 @@
                 <th scope="row">{{ experiment.id }}</th>
                 <td><a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
                 <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=experiment.operator_id) }}">{{ experiment.operator.name }}</a> <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></td>
+                <td><a href="{{ url_for('users_page.user_page', user_id=experiment.operator_id) }}">{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></a></td>
                 <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
                 <td>{{ experiment.workflow.name }}</td>
             </tr>

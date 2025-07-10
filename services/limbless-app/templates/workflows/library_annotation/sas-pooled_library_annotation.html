@@ -1,5 +1,5 @@
-{% from "components/legends.jinja2" import color_legend %}
-{% from 'components/form_group.jinja2' import form_group %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+{% from 'components/form_group.jinja2' import form_group, select_input %}
 {% from 'components/spinner.jinja2' import spinner %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
@@ -48,13 +48,10 @@
             </li>
         </ul>
         <div class="tab-content">
+            {{ select_input(form.assay_type) }}
             <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
                 {{ 
-                    spreadsheet_input(
-                        element=form.spreadsheet,
-                        target_element_id="sample-table-submission-container",
-                        submit_btn_id="parse-spreadsheet-btn",
-                    )
+                    spreadsheet_input(element=form.spreadsheet)
                 }}
             </div>
             <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
@@ -79,7 +76,7 @@
             {{ form.uuid }}
         </div>
         <div class="footer-info">
-            {{ color_legend(form.spreadsheet.colors) }}
+            {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"
@@ -98,6 +95,21 @@
             window.onbeforeunload = function() {
                 return "Data will be lost if you leave the page, are you sure?";
             };
+
+            $("#parse-spreadsheet-btn").on("click", function() {
+                var data = spread_sheet.getData();
+
+                htmx.ajax("POST", "{{ form.spreadsheet.post_url }}", {
+                    "target": "#sample-table-submission-container",
+                    "swap": "outerHTML",
+                    "values": {
+                        "spreadsheet": JSON.stringify(data),
+                        "csrf_token": "{{ form.spreadsheet.csrf_token }}",
+                        "assay_type": $("#assay_type").val(),
+                        "columns": JSON.stringify(spread_sheet.getHeaders()),
+                    },
+                });
+            });
         });
     </script>
 </div>

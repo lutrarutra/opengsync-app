@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, url_for, abort, request
 from flask_login import login_required
 
-from limbless_db import models, DBSession
-from limbless_db.categories import HTTPResponse, FileType
+from limbless_db import models
+from limbless_db.categories import HTTPResponse
 
-from ... import forms, db, logger  # noqa
+from ... import db, logger  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore

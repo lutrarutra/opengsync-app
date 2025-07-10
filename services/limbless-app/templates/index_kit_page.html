@@ -1,4 +1,5 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/spinner.jinja2' import spinner %}
 
 {% extends "base.html" %}
 {% set active_page = "barcodes-page" %}
@@ -35,7 +36,7 @@
                         <span {% if not current_user.is_admin() %} {{ tooltip("Only admin can delete kit.", "left", "warning") }} {% endif %}>
                             <button type="button" class="dropdown-item"
                                 {% if current_user.is_admin() %}
-                                hx-delete="{{ url_for('index_kits_htmx.delete', index_kit_id=index_kit.id) }}"
+                                hx-delete="{{ url_for('kits_htmx.delete', kit_id=index_kit.id) }}"
                                 _="on htmx:confirm(issueRequest)
                                 halt the event
                                 call Swal.fire({

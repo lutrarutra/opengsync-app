@@ -1,5 +1,13 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
 {% macro multi_select(choices, field_name, url, table_container_id, selected=none, placeholder="Select...") %}
-<div class="dropdown multi-select" field="{{ field_name }}">
+{% if selected %}
+{% set ns = namespace(names=[]) %}
+{% for t in selected %}
+  {% set _ = ns.names.append("[" + t.id | string + "] " + t.display_name) %}
+{% endfor %}
+{% endif %}
+<div class="dropdown multi-select" field="{{ field_name }}" {% if selected %}{{ tooltip('<br>'.join(ns.names), position="left") }}{% endif %}>
     <button class="dropdown-toggle multi-select-toggle-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" placeholder="{{ placeholder }}">
         {% if selected %}
             {% for choice in selected %}
@@ -21,4 +29,9 @@
         {% endfor %}
     </ul>
 </div>
+<script>
+    $(document).ready(function() {
+        init_tooltips();
+    });
+</script>
 {% endmacro %}

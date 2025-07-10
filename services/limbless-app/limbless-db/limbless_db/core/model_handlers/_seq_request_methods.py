@@ -11,7 +11,12 @@ if TYPE_CHECKING:
 
 from ... import to_utc
 from ... import models, PAGE_LIMIT
-from ...categories import SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum, PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType, SubmissionTypeEnum, AccessType, AccessTypeEnum, SubmissionType
+from ...categories import (
+    SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum,
+    PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType,
+    SubmissionTypeEnum, AccessType, AccessTypeEnum, SubmissionType,
+    ProjectStatus,
+)
 from .. import exceptions
 
 
@@ -117,6 +122,8 @@ def get_seq_request(self: "DBHandler", seq_request_id: int) -> models.SeqRequest
 def where(
     query: Query, status: Optional[SeqRequestStatusEnum] = None,
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
+    submission_type: Optional[SubmissionTypeEnum] = None,
+    submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
     show_drafts: bool = True, user_id: Optional[int] = None,
     group_id: Optional[int] = None
 ) -> Query:
@@ -125,15 +132,33 @@ def where(
             models.SeqRequest.status_id == status.id
         )
 
-    if user_id is not None:
+    if submission_type is not None:
         query = query.where(
-            models.SeqRequest.requestor_id == user_id
+            models.SeqRequest.submission_type_id == submission_type.id
+        )
+
+    if user_id is not None:
+        query = query.join(
+            models.links.UserAffiliation,
+            models.links.UserAffiliation.group_id == models.SeqRequest.group_id,
+            isouter=True
+        ).where(
+            or_(
+                models.links.UserAffiliation.user_id == user_id,
+                models.SeqRequest.requestor_id == user_id,
+            )
         )
 
     if status_in is not None:
         status_ids = [status.id for status in status_in]
         query = query.where(
             models.SeqRequest.status_id.in_(status_ids)  # type: ignore
+        )
+    
+    if submission_type_in is not None:
+        submission_type_ids = [submission_type.id for submission_type in submission_type_in]
+        query = query.where(
+            models.SeqRequest.submission_type_id.in_(submission_type_ids)  # type: ignore
         )
 
     if not show_drafts:
@@ -156,19 +181,24 @@ def get_seq_requests(
     self: "DBHandler",
     status: Optional[SeqRequestStatusEnum] = None,
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
+    submission_type: Optional[SubmissionTypeEnum] = None,
+    submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
     show_drafts: bool = True,
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None,
     group_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-) -> tuple[list[models.SeqRequest], int]:
+    count_pages: bool = False
+) -> tuple[list[models.SeqRequest], int | None]:
 
     if not (persist_session := self._session is not None):
         self.open_session()
 
     query = self.session.query(models.SeqRequest)
-
-    query = where(query, status_in=status_in, show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status)
+    query = where(
+        query, status_in=status_in, submission_type_in=submission_type_in, submission_type=submission_type,
+        show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status
+    )
 
     if sort_by is not None:
         attr = getattr(models.SeqRequest, sort_by)
@@ -177,7 +207,7 @@ def get_seq_requests(
 
         query = query.order_by(sa.nulls_last(attr))
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if offset is not None:
         query = query.offset(offset)
@@ -422,6 +452,10 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
 
     for pool in seq_request.pools:
         pool.status = pool_status
+
+    for project in self.get_projects(seq_request_id=seq_request_id)[0]:
+        project.status = ProjectStatus.PROCESSING
+        self.session.add(project)
 
     self.session.add(seq_request)
     self.session.commit()

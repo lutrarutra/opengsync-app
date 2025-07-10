@@ -1,7 +1,7 @@
 import json
 import uuid
 import string
-from typing import Optional, Literal, Any, Type, Callable
+from typing import Optional, Hashable
 
 import pandas as pd
 import numpy as np
@@ -11,18 +11,11 @@ from wtforms.validators import DataRequired
 from flask_wtf import FlaskForm
 
 from .. import logger
-from ..tools import SpreadSheetColumn
+from ..tools.spread_sheet_components import SpreadSheetColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue, SpreadSheetException
 
 
 class SpreadsheetInput(FlaskForm):
     spreadsheet = StringField("Spreadsheet", validators=[DataRequired()])
-
-    colors = {
-        "missing_value": "#FAD7A0",
-        "invalid_value": "#F5B7B1",
-        "duplicate_value": "#D7BDE2",
-        "invalid_input": "#AED6F1"
-    }
 
     def __init__(
         self, columns: list[SpreadSheetColumn], post_url: str, csrf_token: Optional[str],
@@ -33,15 +26,8 @@ class SpreadsheetInput(FlaskForm):
         super().__init__(formdata=formdata)
         self.columns: dict[str, SpreadSheetColumn] = {}
         for col in columns:
-            self.add_column(
-                label=col.label,
-                name=col.name,
-                type=col.type,
-                width=col.width,
-                var_type=col.var_type,
-                source=col.source,
-                clean_up_fnc=col.clean_up_fnc
-            )
+            col.letter = string.ascii_uppercase[len(self.columns)]
+            self.add_column(col.label, col)
 
         self.style: dict[str, str] = {}
         self._errors: list[str] = []
@@ -59,37 +45,24 @@ class SpreadsheetInput(FlaskForm):
         self.col_title_map = dict([(col.name, col.label) for col in self.columns.values()])
 
         if df is not None:
-            _df = df.copy()
-            for col in self.columns.keys():
-                if col not in _df.columns:
-                    _df[col] = None
-                
-            self._data = _df[self.columns.keys()].replace(np.nan, "").values.tolist()
+            self.set_data(df)
 
         if formdata is not None and (data := formdata.get("spreadsheet")) is not None:
             self._data = json.loads(data)
 
-        self.__df = df
+    def set_data(self, data: pd.DataFrame):
+        _df = data.copy()
+        for col in self.columns.keys():
+            if col not in _df.columns:
+                _df[col] = None
+            
+        self._data = _df[self.columns.keys()].replace(np.nan, "").values.tolist()
+        self.__df = _df
 
-    def add_column(
-        self, label: str, name: str,
-        type: Literal["text", "numeric", "dropdown"],
-        width: float, var_type: Type,
-        source: Optional[Any] = None,
-        clean_up_fnc: Optional[Callable] = None,
-    ):
+    def add_column(self, label: str, column: SpreadSheetColumn):
         if label in self.columns.keys():
             raise ValueError(f"Column with label '{label}' already exists.")
-        self.columns[label] = SpreadSheetColumn(
-            letter=string.ascii_uppercase[len(self.columns)],
-            label=label,
-            name=name,
-            type=type,
-            width=width,
-            var_type=var_type,
-            source=source,
-            clean_up_fnc=clean_up_fnc
-        )
+        self.columns[label] = column
 
     def validate(self) -> bool:
         if not super().validate():
@@ -116,15 +89,32 @@ class SpreadsheetInput(FlaskForm):
         self.__df.columns = [self.col_title_map[col_name] if col_name in self.col_title_map else col_name.lower().replace(" ", "_") for col_name in self.col_names]
         self.__df = self.__df.dropna(how="all")
 
-        for label, column in self.columns.items():
-            if column.clean_up_fnc is not None:
-                self.__df[label] = self.__df[label].apply(column.clean_up_fnc)
-
         if len(self.__df) == 0:
             self._errors = ["Spreadsheet is empty.",]
             return False
+
+        for idx, row in self.__df.iterrows():
+            for label, column in self.columns.items():
+                try:
+                    column.validate(row[label])
+                except SpreadSheetException as e:
+                    if column.required and pd.isna(row[label]):
+                        self.add_error(idx, label, e)
+                    elif column.type == "dropdown" and row[label] not in column.source:
+                        if column.source is None:
+                            logger.error(f"Column '{label}' has no choices defined.")
+                            raise ValueError(f"Column '{label}' has no choices defined.")
+                        self.add_error(idx, label, e)
+                    else:
+                        self.add_error(idx, label, e)
+                    continue
+                    
+                self.__df.at[idx, label] = column.clean_up(row[label])
         
         self._data = self.__df.replace(np.nan, "").values.tolist()
+
+        if len(self.errors) > 0:
+            return False
 
         return True
     
@@ -134,11 +124,10 @@ class SpreadsheetInput(FlaskForm):
             raise ValueError("Form not validated")
         return self.__df.copy()
     
-    def add_error(
-        self, row_num: int, column: str, message: str,
-        color: Literal["missing_value", "invalid_value", "duplicate_value", "invalid_input"]
-    ):
-        self.style[f"{self.columns[column].letter}{row_num}"] = f"background-color: {SpreadsheetInput.colors[color]};"
+    def add_error(self, idx: Hashable, column: str, exception: SpreadSheetException):
+        message = exception.message
+        row_num = self.df.index.get_loc(idx) + 1  # type: ignore
+        self.style[f"{self.columns[column].letter}{row_num}"] = f"background-color: {exception.color};"
         message = f"Row {row_num}: {message}"
         if message not in self._errors:
             self._errors.append(message)

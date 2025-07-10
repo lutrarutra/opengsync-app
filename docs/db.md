@@ -22,7 +22,7 @@ The following functions allow you to query and retrieve various datasets from yo
 16. [get_feature_kit_features_df](#get_feature_kit_features_df)
 17. [get_seq_request_features_df](#get_seq_request_features_df)
 18. [get_sample_attributes_df](#get_sample_attributes_df)
-19. [get_project_sample_attributes_df](#get_project_sample_attributes_df)
+19. [get_project_samples_df](#get_project_samples_df)
 20. [get_lab_prep_libraries_df](#get_lab_prep_libraries_df)
 21. [get_lab_prep_samples_df](#get_lab_prep_samples_df)
 22. [query_barcode_sequences_df](#query_barcode_sequences_df)
@@ -319,10 +319,10 @@ Retrieve a DataFrame of attributes associated with a specific sample.
 
 ---
 
-### `get_project_sample_attributes_df`
+### `get_project_samples_df`
 
 ```python
-get_project_sample_attributes_df(self, project_id: int, pivot: bool = True) -> pd.DataFrame
+get_project_samples_df(self, project_id: int, pivot: bool = True) -> pd.DataFrame
 ```
 
 Retrieve a DataFrame of sample attributes within a project.

@@ -4,7 +4,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_request-sample-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -23,6 +23,7 @@
                         active_query_field=active_query_field, query_type="string", col_size=3
                     )
                 }}
+                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
                 {{
                     table_col(
                         table_container_id='seq_request-samples-table', column_name='Status', column_var='status_id',
@@ -31,16 +32,27 @@
                         multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
-                <th scope="col" class="col-6">Library Types</th>
+                {% endif %}
+                {{
+                    table_col(
+                        table_container_id='seq_request-samples-table', column_name='Project', column_var='project_id',
+                        sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                    )
+                }}
+                <th scope="col" class="col-4">Library Types</th>
             </tr>
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr onclick="redirect('{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}');">
+            <tr class="sample-row" data-id="{{ sample.id }}" data-name="{{ sample.name }}">
                 <th scope="row">{{ sample.id }}</th>
-                <td>{{ sample.name }}</td>
+                <td><a href="{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}">{{ sample.name }}</a></td>
+                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
+                {% endif %}
                 {% set cmo_index = "" %}
+                <td><a href="{{ url_for('projects_page.project_page', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.name }}</a></td>
                 <td>
                     {% for library_link in sample.library_links %}
                     {% set library = library_link.library %}
@@ -55,4 +67,54 @@
     </table>
     {{ spinner("seq_request-sample-table-spinner") }}
     {{ pagination("seq_request-sample-table", "seq_requests_htmx.get_samples", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
+    <script>
+        let selected_sample_id = null;
+        let selected_sample_name = null;
+
+        function remove_sample() {
+            Swal.fire({
+                title: `Remove sample '${selected_sample_name}' [${selected_sample_id}] from '{{seq_request.name}}'-request ?`,
+                showDenyButton: true,
+                text: 'Are you sure?',
+                confirmButtonText: 'Yes',
+                icon: 'question',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                    "DELETE", "{{ url_for('seq_requests_htmx.remove_sample', seq_request_id=seq_request.id) }}?sample_id=" + selected_sample_id,
+                    null, {
+                        target: "#seq_request-sample-table",
+                        swapStyle: "outerHTML"
+                    });
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            init_tooltips();
+
+            $(document).off("contextmenu", ".sample-row").on("contextmenu", ".sample-row", function(e) {
+                e.preventDefault();
+                const x = e.pageX;
+                const y = e.pageY;
+                selected_sample_id = parseInt($(this).data("id"));
+                selected_sample_name = $(this).data("name");
+                $("#copy-edit-menu").css({
+                    display: "block",
+                    left: x + 8, top: y + 8
+                }).empty().append([
+                    {% if seq_request.status == SeqRequestStatus.DRAFT %}
+                    `<li><a class='dropdown-item' onclick='remove_sample()'>Remove</a></li>`
+                    {% else %}
+                    `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`
+                    {% endif %}
+                ]);
+
+                $("#right-click-bg").css({
+                    display: "block"
+                });
+            });
+        });
+    </script>
 </div>

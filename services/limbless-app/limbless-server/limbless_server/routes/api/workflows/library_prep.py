@@ -5,7 +5,7 @@ from flask_login import login_required
 from flask_htmx import make_response
 
 from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, LibraryStatus, LibraryType, LabProtocol
 
 from .... import db, logger, forms  # noqa
 from ....forms.SelectSamplesForm import SelectSamplesForm
@@ -18,6 +18,14 @@ else:
 library_prep_workflow = Blueprint("library_prep_workflow", __name__, url_prefix="/api/workflows/library_prep/")
 
 
+args: dict = dict(
+    workflow="library_prep",
+    select_libraries=True,
+    library_status_filter=[LibraryStatus.ACCEPTED],
+    select_all_libraries=True,
+)
+
+
 @library_prep_workflow.route("begin/<int:lab_prep_id>", methods=["GET"])
 @db_session(db)
 @login_required
@@ -28,7 +36,13 @@ def begin(lab_prep_id: int) -> Response:
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = SelectSamplesForm.create_workflow_form("library_prep", context={"lab_prep": lab_prep})
+    _args = args.copy()
+    if lab_prep.protocol == LabProtocol.CUSTOM:
+        _args["library_type_filter"] = None
+    else:
+        _args["library_type_filter"] = LibraryType.get_protocol_library_types(lab_prep.protocol)
+
+    form = SelectSamplesForm(**_args, context={"lab_prep": lab_prep})
     return form.make_response()
 
 
@@ -42,7 +56,13 @@ def select(lab_prep_id: int) -> Response:
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form: SelectSamplesForm = SelectSamplesForm.create_workflow_form("library_prep", formdata=request.form, context={"lab_prep": lab_prep})
+    _args = args.copy()
+    if lab_prep.protocol == LabProtocol.CUSTOM:
+        _args["library_type_filter"] = None
+    else:
+        _args["library_type_filter"] = LibraryType.get_protocol_library_types(lab_prep.protocol)
+    
+    form = SelectSamplesForm(formdata=request.form, context={"lab_prep": lab_prep}, **_args)
     
     if not form.validate():
         return form.make_response()

@@ -9,10 +9,23 @@ if (__timezone := os.environ.get("TIMEZONE")) is None:
     __timezone = tzlocal.get_localzone_name()
 TIMEZONE: pytz.BaseTzInfo = pytz.timezone(__timezone)
 
+LAB_PROTOCOL_START_NUMBER = int(os.environ.get("LAB_PROTOCOL_START_NUMBER", 0))
+
 
 def localize(timestamp: dt.datetime, timezone: pytz.BaseTzInfo | str = TIMEZONE) -> dt.datetime:
+    """
+    Args:
+        timestamp (dt.datetime): if tzinfo is None, it's assumed to be utc
+        timezone (pytz.BaseTzInfo | str, optional): Timezone to convert to. Defaults to 'tzlocal.get_localzone_name()'.
+
+    Returns:
+        dt.datetime: datetime object in the specified timezone
+    """
     if isinstance(timezone, str):
         timezone = pytz.timezone(timezone)
+    
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=pytz.utc)
     return timestamp.astimezone(timezone)
 
 

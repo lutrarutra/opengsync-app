@@ -24,13 +24,13 @@ class File(Base):
     size_bytes: Mapped[int] = mapped_column(sa.BigInteger, nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
     
-    uploader_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("lims_user.id"), nullable=False)
+    uploader_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     uploader: Mapped["User"] = relationship("User", back_populates="files", lazy="joined")
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="file", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
 
-    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("seq_request.id"), nullable=True)
-    experiment_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("experiment.id"), nullable=True)
-    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("lab_prep.id"), nullable=True)
+    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
+    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
+    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
 
     @property
     def type(self) -> FileTypeEnum:

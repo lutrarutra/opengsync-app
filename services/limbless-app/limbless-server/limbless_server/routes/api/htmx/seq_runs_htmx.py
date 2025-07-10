@@ -22,7 +22,7 @@ seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_r
 @login_required
 @cache.cached(timeout=60, query_string=True)
 def get(page: int):
-    sort_by = request.args.get("sort_by", "experiment_name")
+    sort_by = request.args.get("sort_by", "run_folder")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
@@ -37,7 +37,7 @@ def get(page: int):
         if len(status_in) == 0:
             status_in = None
 
-    seq_runs, n_pages = db.get_seq_runs(offset=offset, sort_by=sort_by, descending=descending, status_in=status_in)
+    seq_runs, n_pages = db.get_seq_runs(offset=offset, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True)
     
     return make_response(render_template(
         "components/tables/seq_run.html", seq_runs=seq_runs, n_pages=n_pages,

@@ -1,0 +1,68 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
+{% macro barcode_clashes_table(df) %}
+{% set uuid = uuid4() %}
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col" class="col-1">Library ID</th>
+            <th scope="col" class="col-3">Name</th>
+            {% if "pool" in df.columns %}
+            <th scope="col" class="col-2">Pool</th>
+            {% endif %}
+            <th scope="col" class="col-3">Combined Index <span class="desc">i7 + i5</span></th>
+            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
+            <th scope="col" class="col-2">
+                Index
+                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display('{{ uuid }}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
+                        <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
+                    </svg>
+                </a>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for _, row in df.iterrows() %}
+        {% if row["error"] %}
+        <tr {{ tooltip(row["error"], category="error") }}>
+        {% elif row["warning"] %}
+        <tr {{ tooltip(row["warning"], category="warning") }}>
+        {% else %}
+        <tr>
+        {% endif %}
+            <th scope="row">{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] }}</th>
+            <td>{{ row["library_name"] }}</td>
+            {% if "pool" in df.columns %}
+            <td>{{ row["pool"] }}</td>
+            {% endif %}
+            <td>{{ row["combined_index"] }}</td>
+            <td {% if row["min_hamming_bases"] < 1 %}
+            class="cemm-red"
+            {% elif row["min_hamming_bases"] < 2 %}
+            class="cemm-yellow"
+            {% else %}
+            class="cemm-green"
+            {% endif %}>{{ row["min_hamming_bases"] }} bp</td>
+            <td class="barcode-cell">
+                {% if "name_i7" in df.columns and "name_i5" in df.columns %}
+                {% if row["name_i7"] == row["name_i5"] and row["name_i7"] is not none %}
+                <span class="badge index-badge index-badges-{{ uuid }}" >{{ row["name_i7"] }}aaa</span>
+                {% else %}
+                {% if row["name_i7"] %}
+                <span class="badge index-badge index-badges-{{ uuid }}">{{ row["name_i7"] }}{% if row["name_i5"] %}+{{ row["name_i5"] }}{% endif %}</span>
+                {% else %}
+                <span class="badge index-badge index-badges-{{ uuid }}">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                {% endif %}
+                {% endif %}
+                <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                {% else %}
+                <span class="badge index-badge index-badges-{{ uuid }}">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endmacro %}

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, request, abort
 from flask_login import login_required
 
-from limbless_db import models, DBSession, db_session
+from limbless_db import models, db_session
 from limbless_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
@@ -18,14 +18,14 @@ dilute_pools_workflow = Blueprint("dilute_pools_workflow", __name__, url_prefix=
 
 
 @dilute_pools_workflow.route("<int:experiment_id>/begin", methods=["GET"])
+@db_session(db)
 @login_required
 def begin(experiment_id: int):
-    with DBSession(db) as session:
-        if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-        if (experiment := session.get_experiment(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     form = wff.DilutePoolsForm()
     context = form.prepare(experiment)

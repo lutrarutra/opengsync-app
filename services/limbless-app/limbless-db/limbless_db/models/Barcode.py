@@ -21,9 +21,9 @@ class Barcode(Base):
 
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    adapter_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("adapter.id"), nullable=False)
+    adapter_id: Mapped[int] = mapped_column(sa.ForeignKey("adapter.id"), nullable=False)
 
-    index_kit_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("index_kit.id"), nullable=False)
+    index_kit_id: Mapped[int] = mapped_column(sa.ForeignKey("index_kit.id"), nullable=False)
     index_kit: Mapped["IndexKit"] = relationship("IndexKit", back_populates="barcodes", lazy="select")
 
     @property

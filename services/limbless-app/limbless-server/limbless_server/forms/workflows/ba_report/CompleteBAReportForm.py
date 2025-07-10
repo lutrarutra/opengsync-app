@@ -214,4 +214,4 @@ class CompleteBAReportForm(MultiStepForm):
         if lab_prep_id is not None:
             return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
         
-        return make_response(redirect=url_for("index_page"))
+        return make_response(redirect=url_for("dashboard"))

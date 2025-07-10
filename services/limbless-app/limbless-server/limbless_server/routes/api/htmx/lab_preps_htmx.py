@@ -17,7 +17,8 @@ from limbless_db import models, PAGE_LIMIT, db_session
 from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
 
 from .... import db, forms, logger  # noqa
-from ....tools import SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn
+
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -62,7 +63,7 @@ def get(page: int):
 
     lab_preps, n_pages = db.get_lab_preps(
         status_in=status_in, protocol_in=protocol_in,
-        offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending
+        offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending, count_pages=True
     )
     
     return render_template(
@@ -276,7 +277,7 @@ def get_libraries(lab_prep_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    libraries, n_pages = db.get_libraries(offset=offset, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending)
+    libraries, n_pages = db.get_libraries(offset=offset, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -304,14 +305,7 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
         logger.error("Static folder not set")
         raise ValueError("Static folder not set")
     
-    if lab_prep.protocol == LabProtocol.RNA_SEQ:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "RNA.xlsx")
-    elif lab_prep.protocol == LabProtocol.WGS:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "WGS.xlsx")
-    elif lab_prep.protocol == LabProtocol.QUANT_SEQ:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "QSEQ.xlsx")
-    else:
-        filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", "template.xlsx")
+    filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
@@ -328,7 +322,7 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     active_sheet = template["prep_table"]
     column_mapping: dict[str, str] = {}
     
-    for col_i in range(0, active_sheet.max_column):
+    for col_i in range(0, min(active_sheet.max_column, 96)):
         col = get_column_letter(col_i + 1)
         column_name = active_sheet[f"{col}1"].value
         column_mapping[column_name] = col
@@ -340,9 +334,13 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
                 cell.fill = openpyxl_styles.PatternFill(start_color="ffffff", end_color="ffffff", fill_type="solid")
 
     for row_idx, cell in enumerate(active_sheet[column_mapping["plate_well"]][1:]):
+        if row_idx > 95:
+            break
         cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
 
     for row_idx, cell in enumerate(active_sheet[column_mapping["index_well"]][1:]):
+        if row_idx > 95:
+            break
         cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
         
     for i, library in enumerate(lab_prep.libraries):
@@ -421,7 +419,7 @@ def get_pools(lab_prep_id: int, page: int):
     offset = PAGE_LIMIT * page
 
     pools, n_pages = db.get_pools(
-        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending
+        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(
@@ -560,12 +558,7 @@ def get_mux_table(lab_prep_id: int):
             width = 200
         else:
             width = 250
-        columns.append(
-            SpreadSheetColumn(
-                col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
-                "text", width, var_type=str
-            )
-        )
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"), width, max_length=1000))
 
     return make_response(
         render_template(

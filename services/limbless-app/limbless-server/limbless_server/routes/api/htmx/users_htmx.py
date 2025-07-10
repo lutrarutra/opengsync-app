@@ -40,7 +40,7 @@ def get(page: int):
 
     users, n_pages = db.get_users(
         offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending,
-        role_in=role_in
+        role_in=role_in, count_pages=True
     )
     
     return make_response(
@@ -143,7 +143,7 @@ def get_projects(user_id: int, page: int):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
     
-    projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending)
+    projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -180,7 +180,7 @@ def get_seq_requests(user_id: int, page: int):
             status_in = None
     
     seq_requests, n_pages = db.get_seq_requests(
-        offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, status_in=status_in
+        offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True
     )
     
     return make_response(
@@ -257,7 +257,7 @@ def get_affiliations(user_id: int, page: int):
     offset = page * PAGE_LIMIT
 
     affiliations, n_pages = db.get_user_affiliations(
-        offset=offset, user_id=user_id, sort_by=sort_by, descending=descending
+        offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True
     )
     
     return make_response(

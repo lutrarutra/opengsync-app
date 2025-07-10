@@ -16,7 +16,7 @@ class GroupForm(HTMXFlaskForm):
     _form_label = "group_form"
 
     name = StringField("Name", validators=[DataRequired(), Length(min=6, max=models.Group.name.type.length)])
-    group_type = SelectField("Type", choices=GroupType.as_selectable(), validators=[DataRequired()], coerce=int)
+    group_type = SelectField("Type", choices=[(-1, "")] + GroupType.as_selectable(), validators=[DataRequired()], coerce=int, default=-1)
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, group: Optional[models.Group] = None):
         super().__init__(formdata=formdata)
@@ -31,13 +31,20 @@ class GroupForm(HTMXFlaskForm):
     def validate(self, group: Optional[models.Group] = None) -> bool:
         if not super().validate():
             return False
+        
+        if self.group_type.data == -1:
+            self.group_type.errors = ("Group type is required.",)
+            return False
+        
+        if not self.name.data:
+            self.name.errors = ("Group name is required.",)
+            return False
 
         # Creating new group
         if group is None:
-            # TODO: check if name is taken
-            pass
-
-        # Editing existing group
+            if db.get_group_by_name(self.name.data) is not None:
+                self.name.errors = ("Group with this name already exists.",)
+                return False
         else:
             pass
 

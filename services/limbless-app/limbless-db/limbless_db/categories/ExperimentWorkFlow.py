@@ -5,7 +5,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 from .FlowCellType import FlowCellType, FlowCellTypeEnum
 
 
-@dataclass
+@dataclass(eq=False)
 class ExperimentWorkFlowEnum(DBEnum):
     volume_target_ul: float
     flow_cell_type: FlowCellTypeEnum

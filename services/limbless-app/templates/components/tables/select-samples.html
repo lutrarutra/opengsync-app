@@ -4,7 +4,7 @@
 {% from 'components/spinner.jinja2' import spinner %}
 
 <div id="select-samples-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -50,8 +50,7 @@
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr id="sample-row-{{ sample.id }}"
-            class="sample-row">
+            <tr id="sample-row-{{ sample.id }}" data-id="{{ sample.id }}" class="sample-row">
                 <th scope="row">{{ sample.id }}</th>
                 <td>{{ sample.name }}</td>
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
@@ -80,27 +79,67 @@
     <script>
         $(document).ready(function() {
             init_tooltips();
-            update_samples();
 
             let is_mouse_down = false;
             let start_row = null;
             let dragging = false;
             let hovered_sample = null;
 
+            function add_sample(sample_id) {
+                selected_samples.push(sample_id);
+                $(`#sample-row-${sample_id}`).addClass("selected");
+                const cloned = $(`#sample-row-${sample_id}`).clone();
+                cloned.attr("id", `selected-sample-row-${sample_id}`);
+                cloned.on("click", function() {
+                    remove_sample(sample_id);
+                });
+                $("#selected-samples-table-container").append(cloned);
+                num_selected_samples += 1;
+                $("#selected-samples-tab-btn").text(`Selected Samples (${num_selected_samples})`);
+            }
+
+            function remove_sample(sample_id) {
+                selected_samples = selected_samples.filter(function(value, index, arr) {
+                    return value != sample_id;
+                });
+                $(`#sample-row-${sample_id}`).removeClass("selected");
+                $(`#selected-sample-row-${sample_id}`).remove();
+                num_selected_samples -= 1;
+                $("#selected-samples-tab-btn").text(`Selected Samples (${num_selected_samples})`);
+            }
+
+            function toggle_sample(sample_id) {
+                sample_id = parseInt(sample_id);
+                if (selected_samples.includes(sample_id)) {
+                    remove_sample(sample_id);
+                } else {
+                    add_sample(sample_id);
+                }
+            }
+            
+            function update_samples() {
+                $(".sample-row").each(function() {
+                    const sample_id = parseInt($(this).attr("id").split("-").pop());
+                    if (selected_samples.includes(sample_id)) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
+
             $(".sample-row").mousedown(function(e) {
                 e.preventDefault();
                 is_mouse_down = true;
                 start_row = $(this);
-                toggle_sample($(this).attr("id").split("-")[2]);
-                hovered_sample = $(this).attr("id").split("-")[2];
+                toggle_sample($(this).data("id"));
+                hovered_sample = $(this).data("id");
             });
 
             $(".sample-row").mousemove(function(e) {
                 if (is_mouse_down) {
                     dragging = true;
-                    if (hovered_sample != $(this).attr("id").split("-")[2]) {
-                        hovered_sample = $(this).attr("id").split("-")[2];
-                        toggle_sample($(this).attr("id").split("-")[2]);
+                    if (hovered_sample != $(this).data("id")) {
+                        hovered_sample = $(this).data("id");
+                        toggle_sample($(this).data("id"));
                     }
                 }
             });
@@ -118,14 +157,27 @@
                     e.preventDefault();
                     $(".sample-row").each(function() {
                         if ($(this).is(":visible")) {
-                            if (!$(this).hasClass("selected")) {
-                                add_sample($(this).attr("id").split("-")[2]);
+                            const sample_id = parseInt($(this).data("id"));
+                            if (!selected_samples.includes(sample_id)) {
+                                add_sample(sample_id);
                             }
                         }
                     });
-                    $("#selected-samples-tab-btn").text(`Selected Samples (${num_selected_samples})`);
                 }
             });
+            update_samples();
+
+            {% if select_all_samples %}
+            $("#select-all-samples-btn").on("click", function() {
+                var state = get_table_state("select-samples-table");
+
+                htmx.ajax("GET", "{{ url_for('samples_htmx.select_all', **url_context) }}", {
+                    target: "#select_samples-form-container",
+                    swap: "outerHTML",
+                    values: state
+                });
+            });
+            {% endif %}
         });
     </script>
 </div>

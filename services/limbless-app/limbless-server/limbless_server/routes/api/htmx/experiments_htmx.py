@@ -53,7 +53,7 @@ def get(page: int):
 
     experiments, n_pages = db.get_experiments(
         offset=offset, sort_by=sort_by, descending=descending,
-        status_in=status_in, workflow_in=workflow_in
+        status_in=status_in, workflow_in=workflow_in, count_pages=True
     )
 
     return make_response(
@@ -433,7 +433,7 @@ def overview(experiment_id: int):
     
     LINK_WIDTH_UNIT = 1
     
-    df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_seq_request=True, collapse_lanes=False)
+    df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_indices=False, include_seq_request=True, collapse_lanes=False)
 
     if df.empty:
         return make_response(
@@ -466,7 +466,7 @@ def overview(experiment_id: int):
         lanes[lane] = lane_node
         lane_widths[lane] = 0
 
-    for (_, request_name), _df in df.groupby(["request_id", "request_name"]):
+    for (_, request_name), _df in df.groupby(["seq_request_id", "request_name"]):
         request_node = {
             "node": node_idx,
             "name": request_name
@@ -592,7 +592,7 @@ def get_libraries(experiment_id: int, page: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     libraries, n_pages = db.get_libraries(
-        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
+        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True
     )
 
     return make_response(
@@ -680,12 +680,12 @@ def get_pool_dilutions(experiment_id: int, page: int):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    dilutions, n_pages = db.get_pool_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
+    dilutions, _ = db.get_pool_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
     
     return make_response(
         render_template(
             "components/tables/experiment-pool-dilution.html",
-            dilutions=dilutions, n_pages=n_pages, active_page=page,
+            dilutions=dilutions, active_page=page,
             sort_by=sort_by, sort_order=sort_order, experiment=experiment,
         )
     )
@@ -707,5 +707,5 @@ def get_recent_experiments():
     experiments, _ = db.get_experiments(sort_by=sort_by, descending=True)
 
     return make_response(
-        render_template("components/recent_experiments_list.html", experiments=experiments, sort_by=sort_by)
+        render_template("components/dashboard/experiments-list.html", experiments=experiments, sort_by=sort_by)
     )

@@ -11,9 +11,10 @@ from flask_mail import Mail
 from flask_caching import Cache
 from itsdangerous import URLSafeTimedSerializer
 
-from limbless_db import DBHandler
+from limbless_db import DBHandler, categories
 
 from .tools import RedisMSFFileCache
+from .tools.WeekTimeWindow import WeekTimeWindow
 
 logger.remove()
 
@@ -60,11 +61,44 @@ login_manager = LoginManager()
 mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
-TIMEZONE = pytz.timezone(os.environ['TIMEZONE'])
+TIMEZONE = pytz.timezone(os.environ["TIMEZONE"])
 
 db = DBHandler(logger=logger)
 cache = Cache()
 msf_cache = RedisMSFFileCache()
 
 DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
-    
+
+sample_submission_windows: list[WeekTimeWindow] | None
+
+if (s := os.environ["SAMPLE_SUBMISSION_WINDOWS"]):
+    from .tools.tools import parse_time_windows
+    sample_submission_windows = parse_time_windows(s)
+    for window in sample_submission_windows:
+        logger.info(f"Sample submission window: {window.weekday} {window.start_time} - {window.end_time}")
+else:
+    sample_submission_windows = None
+    logger.warning("No sample submission windows configured..")
+
+
+def update_index_kits(
+    db: DBHandler, app_data_folder: str,
+    types: list[categories.IndexTypeEnum] = categories.IndexType.as_list()
+):
+    import pandas as pd
+    if not os.path.exists(os.path.join(app_data_folder, "kits")):
+        os.makedirs(os.path.join(app_data_folder, "kits"))
+    for type in types:
+        res = []
+        for kit in db.get_index_kits(limit=None, sort_by="id", descending=True, type_in=[type])[0]:
+            df = db.get_index_kit_barcodes_df(kit.id, per_index=True)
+            df["kit_id"] = kit.id
+            df["kit"] = kit.identifier
+            res.append(df)
+
+        if len(res) == 0:
+            logger.warning(f"No barcodes found for index kit type: {type.id} ({type.name})")
+            continue
+
+        pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
+        logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from . import links
 from .Base import Base
 from .SeqRequest import SeqRequest
-from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum
+from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum, AssayType, AssayTypeEnum
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -18,18 +18,20 @@ if TYPE_CHECKING:
     from .File import File
     from .LibraryIndex import LibraryIndex
     from .LabPrep import LabPrep
+    from .Experiment import Experiment
 
 
 class Library(Base):
     __tablename__ = "library"
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    name: Mapped[str] = mapped_column(sa.String(86), nullable=False)
     sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     genome_ref_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    assay_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
@@ -48,6 +50,10 @@ class Library(Base):
     pool: Mapped[Optional["Pool"]] = relationship(
         "Pool", back_populates="libraries", lazy="joined", cascade="save-update, merge"
     )
+
+    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
+    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="libraries")
+
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="joined")
     
@@ -61,7 +67,7 @@ class Library(Base):
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
         links.SampleLibraryLink, back_populates="library", lazy="select",
-        cascade="save-update, merge, delete"
+        cascade="save-update, merge, delete, delete-orphan"
     )
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
@@ -93,6 +99,14 @@ class Library(Base):
     @genome_ref.setter
     def genome_ref(self, value: GenomeRefEnum):
         self.genome_ref_id = value.id
+
+    @property
+    def assay_type(self) -> AssayTypeEnum:
+        return AssayType.get(self.assay_type_id)
+    
+    @assay_type.setter
+    def assay_type(self, value: AssayTypeEnum):
+        self.assay_type_id = value.id
     
     @property
     def qubit_concentration_str(self) -> str:

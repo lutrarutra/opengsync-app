@@ -11,6 +11,9 @@
         display: flex;
         align-items: center;
         color: $gray-600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     button.populated {
         color: $dark;

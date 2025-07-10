@@ -5,24 +5,35 @@ import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
-from ... import models, PAGE_LIMIT
-from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum
+from ... import models, PAGE_LIMIT, LAB_PROTOCOL_START_NUMBER
+from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum, AssayTypeEnum
 from .. import exceptions
 
 
 def create_lab_prep(
-    self: "DBHandler", name: str, creator_id: int, protocol: LabProtocolEnum,
+    self: "DBHandler",
+    name: str | None,
+    creator_id: int,
+    protocol: LabProtocolEnum,
+    assay_type: AssayTypeEnum
 ) -> models.LabPrep:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if (creator := self.session.get(models.User, creator_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id '{creator_id}', not found.")
+    
+    number = self.get_next_protocol_number(protocol)
+
+    if not name:
+        name = f"{protocol.identifier}{number + LAB_PROTOCOL_START_NUMBER:04d}"
 
     lab_prep = models.LabPrep(
         name=name.strip(),
+        prep_number=number,
         creator_id=creator.id,
         protocol_id=protocol.id,
+        assay_type_id=assay_type.id,
     )
 
     self.session.add(lab_prep)
@@ -53,7 +64,8 @@ def get_lab_preps(
     status_in: Optional[list[PrepStatusEnum]] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-) -> tuple[list[models.LabPrep], int]:
+    count_pages: bool = False
+) -> tuple[list[models.LabPrep], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -69,7 +81,7 @@ def get_lab_preps(
     elif status_in is not None:
         query = query.where(models.LabPrep.status_id.in_([s.id for s in status_in]))
 
-    n_pages: int = math.ceil(query.count() / limit) if limit is not None else 1
+    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
         query = query.order_by(getattr(models.LabPrep, sort_by).desc() if descending else getattr(models.LabPrep, sort_by))
@@ -135,23 +147,26 @@ def query_lab_preps(
     return lab_preps
 
 
-def get_next_protocol_identifier(self: "DBHandler", protocol: LabProtocolEnum) -> str:
+def get_next_protocol_number(self: "DBHandler", protocol: LabProtocolEnum) -> int:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if not protocol.identifier:
         raise TypeError(f"Pool type {protocol} does not have an identifier")
 
-    n_pools = self.session.query(models.LabPrep).where(
+    if (latest_prep := self.session.query(models.LabPrep).where(
         models.LabPrep.protocol_id == protocol.id
-    ).count()
-
-    identifier = f"{protocol.identifier}{n_pools + 1:04d}"
+    ).order_by(
+        models.LabPrep.prep_number.desc()
+    ).first()) is not None:
+        prep_number = latest_prep.prep_number + 1
+    else:
+        prep_number = 1
 
     if not persist_session:
         self.close_session()
 
-    return identifier
+    return prep_number
 
 
 def update_lab_prep(

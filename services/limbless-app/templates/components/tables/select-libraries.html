@@ -4,7 +4,7 @@
 {% from 'components/spinner.jinja2' import spinner %}
 
 <div id="select-libraries-table" class="table-container">
-    <table class="table table-hover table-cursor">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -59,8 +59,7 @@
         </thead>
         <tbody>
             {% for library in libraries %}
-            <tr id="library-row-{{ library.id }}"
-            class="library-row {% if library.pool_id is not none %}pooled{% endif %}">
+            <tr id="library-row-{{ library.id }}" data-id="{{ library.id }}" class="library-row {% if library.pool_id is not none %}pooled{% endif %}">
                 <th scope="row">{{ library.id }}</th>
                 <td>{{ library.name }}</td>
                 <td>
@@ -94,27 +93,69 @@
     <script>
         $(document).ready(function() {
             init_tooltips();
-            update_libraries();
 
             let is_mouse_down = false;
             let start_row = null;
             let dragging = false;
             let hovered_library = null;
 
+            function remove_library(library_id) {
+                library_id = parseInt(library_id);
+                selected_libraries = selected_libraries.filter(function(value, index, arr) {
+                    return value != library_id;
+                });
+                $(`#library-row-${library_id}`).removeClass("selected");
+                $(`#selected-library-row-${library_id}`).remove();
+                num_selected_libraries -= 1;
+                $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
+            }
+
+            function add_library(library_id) {
+                library_id = parseInt(library_id);
+                selected_libraries.push(library_id);
+                $(`#library-row-${library_id}`).addClass("selected");
+                const cloned = $(`#library-row-${library_id}`).clone();
+                cloned.attr("id", `selected-library-row-${library_id}`);
+                cloned.on("click", function() {
+                    remove_library(library_id);
+                });
+                $("#selected-libraries-table-container").append(cloned);
+                num_selected_libraries += 1;
+                $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
+            }
+
+            function toggle_library(library_id) {
+                library_id = parseInt(library_id);
+                if (selected_libraries.includes(library_id)) {
+                    remove_library(library_id);
+                } else {
+                    add_library(library_id);
+                }
+            }
+
+            function update_libraries() {
+                $(".library-row").each(function() {
+                    const library_id = parseInt($(this).attr("id").split("-").pop());
+                    if (selected_libraries.includes(library_id)) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
+
             $(".library-row").mousedown(function(e) {
                 e.preventDefault();
                 is_mouse_down = true;
                 start_row = $(this);
-                toggle_library($(this).attr("id").split("-")[2]);
-                hovered_library = $(this).attr("id").split("-")[2];
+                toggle_library($(this).data("id"));
+                hovered_library = $(this).data("id");
             });
 
             $(".library-row").mousemove(function(e) {
                 if (is_mouse_down) {
                     dragging = true;
-                    if (hovered_library != $(this).attr("id").split("-")[2]) {
-                        hovered_library = $(this).attr("id").split("-")[2];
-                        toggle_library($(this).attr("id").split("-")[2]);
+                    if (hovered_library != $(this).data("id")) {
+                        hovered_library = $(this).data("id");
+                        toggle_library($(this).data("id"));
                     }
                 }
             });
@@ -133,13 +174,25 @@
                     $(".library-row").each(function() {
                         if ($(this).is(":visible")) {
                             if (!$(this).hasClass("selected")) {
-                                add_library($(this).attr("id").split("-")[2]);
+                                add_library($(this).data("id"));
                             }
                         }
                     });
-                    $("#selected-libraries-tab-btn").text(`Selected Libraries (${num_selected_libraries})`);
                 }
             });
+            update_libraries();
+            
+            {% if select_all_libraries %}
+            $("#select-all-libraries-btn").on("click", function() {
+                var state = get_table_state("select-libraries-table");
+
+                htmx.ajax("GET", "{{ url_for('libraries_htmx.select_all', **url_context) | safe }}", {
+                    target: "#select_samples-form-container",
+                    swap: "outerHTML",
+                    values: state
+                });
+            });
+            {% endif %}
         });
     </script>
 </div>

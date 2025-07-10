@@ -4,7 +4,7 @@ from flask import Response, flash, url_for
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
 from wtforms import FloatField, FieldList, FormField
-from wtforms.validators import Optional as OptionalValidator
+from wtforms.validators import Optional as OptionalValidator, DataRequired
 
 from limbless_db import models
 from limbless_db.categories import ExperimentStatus
@@ -16,6 +16,7 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 class UnifiedLoadFlowCellForm(HTMXFlaskForm):
     _template_path = "workflows/experiment/load_flow_cell-1.2.html"
 
+    phi_x = FloatField("Phi X %", validators=[DataRequired()])
     measured_qubit = FloatField(validators=[OptionalValidator()])
     target_molarity = FloatField(validators=[OptionalValidator()])
     total_volume_ul = FloatField(validators=[OptionalValidator()])
@@ -55,6 +56,9 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
         else:
             sequencing_molarity = None
 
+        if pd.notna(row["phi_x"]):
+            self.phi_x.data = row["phi_x"]
+
         self._context["avg_fragment_size"] = row["avg_fragment_size"]
         self._context["lane_molarity"] = lane_molarity
         self._context["library_volume"] = library_volume
@@ -75,6 +79,7 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
             lane.total_volume_ul = self.total_volume_ul.data
             lane.sequencing_qubit_concentration = self.measured_qubit.data
             lane.target_molarity = self.target_molarity.data
+            lane.phi_x = self.phi_x.data
             if ((lane_molarity := lane.original_molarity) is not None) and (lane.target_molarity is not None) and (lane.total_volume_ul is not None):
                 lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane_molarity  # type: ignore
             else:
@@ -91,6 +96,8 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
 
 
 class SubForm(FlaskForm):
+    lane_id = FloatField("Lane ID", validators=[DataRequired()])
+    phi_x = FloatField("Phi X %", validators=[DataRequired()])
     measured_qubit = FloatField("Qubit Concentration After Dilution", validators=[OptionalValidator()])
     target_molarity = FloatField("Target Molarity", validators=[OptionalValidator()])
     total_volume_ul = FloatField("Total Volume", validators=[OptionalValidator()])
@@ -110,6 +117,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
         self._context["error_min"] = models.Lane.error_min_molarity
         self._context["error_max"] = models.Lane.error_max_molarity
         self._context["enumerate"] = enumerate
+        self._context["experiment"] = experiment
 
     def prepare(self):
         df = db.get_experiment_lanes_df(self.experiment.id)
@@ -123,6 +131,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
                 self.input_fields.append_entry()
 
             entry = self.input_fields[i]
+            entry.lane_id.data = int(row["id"])
 
             if pd.notna(row["total_volume_ul"]):
                 entry.total_volume_ul.data = row["total_volume_ul"]
@@ -137,6 +146,9 @@ class LoadFlowCellForm(HTMXFlaskForm):
                 library_volume = entry.total_volume_ul.data * row["target_molarity"] / row["lane_molarity"]
                 df.at[idx, "library_volume"] = library_volume
                 df.at[idx, "eb_volume"] = entry.total_volume_ul.data - library_volume
+
+            if pd.notna(row["phi_x"]):
+                entry.phi_x.data = row["phi_x"]
 
         df["sequencing_molarity"] = df["sequencing_qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
         self._context["df"] = df
@@ -154,16 +166,18 @@ class LoadFlowCellForm(HTMXFlaskForm):
         for i, (_, row) in enumerate(df.iterrows()):
             entry = self.input_fields[i]
             
-            if (lane := db.get_lane(row["id"])) is None:
+            if (lane := db.get_lane(entry.lane_id.data)) is None:
                 raise ValueError(f"Lane with id {row['id']} not found")
             
             lane.target_molarity = entry.target_molarity.data
             lane.total_volume_ul = entry.total_volume_ul.data
             lane.sequencing_qubit_concentration = entry.measured_qubit.data
+            lane.phi_x = entry.phi_x.data
             if (lane.total_volume_ul is not None) and (lane.target_molarity is not None) and (lane.original_molarity is not None):
                 lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity  # type: ignore
             lane = db.update_lane(lane)
             all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
+            logger.debug(f"Lane {lane.id} loaded: {lane.is_loaded()}")
 
         if all_lanes_loaded:
             self.experiment.status = ExperimentStatus.LOADED

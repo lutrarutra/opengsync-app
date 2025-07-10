@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=70.1", "wheel>=0.43"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scheduler"
+version = "1.0"
+description = ""
+authors = [
+    { name = "lutrarutra", email = "artur.gynter@proton.me" }
+]
+requires-python = ">=3.11"
+
+dependencies = [
+    "numpy < 2",
+    "interop",
+    "apscheduler >= 3.11",
+]
+
+[tool.flake8]
+max-line-length = 88
+exclude = [
+    ".git",
+    "__pycache__",
+]
+extend-ignore = ["E501", "W292", "W293"]
+
+[project.urls]
+Repository = "https://github.com/lutrarutra/limbless-app"
+
+[project.scripts]
+py-scheduler = "scheduler.main:cli"

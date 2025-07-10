@@ -84,6 +84,12 @@ def experiment_page(experiment_id: int):
                 (f"Run {id}", url_for("seq_runs_page.seq_run_page", seq_run_id=id)),
                 (f"Experiment {experiment_id}", ""),
             ]
+        elif page == "library":
+            path_list = [
+                ("Libraries", url_for("libraries_page.libraries_page")),
+                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                (f"Experiment {experiment_id}", ""),
+            ]
 
     laning_completed = False
     for file in experiment.files:

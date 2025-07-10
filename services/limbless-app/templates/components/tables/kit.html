@@ -3,7 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="kit-table" class="table-container">
-    <table class="table table-hover">
+    <table class="table">
         <thead>
             <tr>
                 {{
@@ -43,7 +43,15 @@
             {% for kit in kits %}
             <tr>
                 <th scope="row">{{ kit.id }}</th>
-                <td>{{ kit.identifier }}</td>
+                <td><a 
+                    {% if kit.kit_type == KitType.INDEX_KIT %}
+                    href="{{ url_for('kits_page.index_kit_page', index_kit_id=kit.id) }}"
+                    {% elif kit.kit_type == KitType.FEATURE_KIT %}
+                    href="{{ url_for('kits_page.feature_kit_page', feature_kit_id=kit.id) }}"
+                    {% else %}
+                    href="{{ url_for('kits_page.kit_page', kit_id=kit.id) }}"
+                    {% endif %}>{{ kit.identifier }}</a>
+                </td>
                 <td><a 
                     {% if kit.kit_type == KitType.INDEX_KIT %}
                     href="{{ url_for('kits_page.index_kit_page', index_kit_id=kit.id) }}"
