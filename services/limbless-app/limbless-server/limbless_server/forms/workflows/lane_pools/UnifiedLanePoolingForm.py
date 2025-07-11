@@ -57,7 +57,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
 
             sample_sub_form = self.sample_sub_forms[i]
             sample_sub_form.pool_id.data = row["pool_id"]
-            sample_sub_form.m_reads.data = row["num_m_reads"]
+            sample_sub_form.m_reads.data = row["num_m_reads"] * self.experiment.num_lanes
 
             if (pool := db.get_pool(row["pool_id"])) is None:
                 logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")

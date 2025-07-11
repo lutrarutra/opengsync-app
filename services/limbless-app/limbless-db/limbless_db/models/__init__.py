@@ -14,7 +14,6 @@ from .Feature import Feature    # noqa: F401
 from .FeatureKit import FeatureKit  # noqa: F401
 from .File import File  # noqa: F401
 from .SeqQuality import SeqQuality  # noqa: F401
-from .VisiumAnnotation import VisiumAnnotation  # noqa: F401
 from .Comment import Comment  # noqa: F401
 from .SeqRun import SeqRun  # noqa: F401
 from .Lane import Lane  # noqa: F401

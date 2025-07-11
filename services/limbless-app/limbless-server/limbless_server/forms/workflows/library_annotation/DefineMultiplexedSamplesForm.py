@@ -14,6 +14,7 @@ from ...SpreadsheetInput import SpreadsheetInput
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
 class DefineMultiplexedSamplesForm(MultiStepForm):
@@ -260,6 +261,8 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
 
         if FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:

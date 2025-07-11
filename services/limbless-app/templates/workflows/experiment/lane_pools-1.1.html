@@ -24,7 +24,7 @@
             {% set lane_sub_form = lane_pooling_form.lane_sub_forms[loop.index0] %}
             <div class="tab-pane fade {% if lane == 1 %} show active{% endif %}" id="lane-{{ lane }}-tab" role="tabpanel" tabindex="{{ lane }}">
                 {{ lane_sub_form.csrf_token() }}
-                {{ lane_sub_form.lane_id(hidden=true) }}
+                {{ lane_sub_form.lane(hidden=true) }}
                 <div class="row">
                     {{ form_group(lane_sub_form.target_concentration, class="col-6 col-xl-3", id="target_concentration-" + lane | string, unit="nM") }}
                     {{ form_group(lane_sub_form.target_total_volume, class="col-6 col-xl-3", id="target_total_volume-" + lane | string, unit="μL") }}

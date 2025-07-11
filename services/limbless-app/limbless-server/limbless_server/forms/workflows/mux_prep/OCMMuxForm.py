@@ -14,10 +14,10 @@ from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class FlexMuxForm(MultiStepForm):
-    _template_path = "workflows/mux_prep/mux_prep-flex_annotation.html"
+class OCMMuxForm(MultiStepForm):
+    _template_path = "workflows/mux_prep/mux_prep-ocm_annotation.html"
     _workflow_name = "mux_prep"
-    _step_name = "flex_mux_annotation"
+    _step_name = "ocm_annotation"
     
     columns: list[SpreadSheetColumn] = [
         TextColumn("demux_name", "Demultiplexed Name", 300, required=True, min_length=4, max_length=models.Sample.name.type.length, clean_up_fnc=tools.make_alpha_numeric),
@@ -25,13 +25,13 @@ class FlexMuxForm(MultiStepForm):
         TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=lambda x: str(x).strip().upper()),
     ]
 
-    allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
-    mux_type = MUXType.TENX_FLEX_PROBE
+    allowed_barcodes = [f"OB{i}" for i in range(1, 5)]
+    mux_type = MUXType.TENX_ON_CHIP
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
         MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=FlexMuxForm._workflow_name,
-            step_name=FlexMuxForm._step_name, step_args={"mux_type_id": FlexMuxForm.mux_type.id}
+            self, uuid=uuid, formdata=formdata, workflow=OCMMuxForm._workflow_name,
+            step_name=OCMMuxForm._step_name, step_args={"mux_type_id": OCMMuxForm.mux_type.id}
         )
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
@@ -40,12 +40,12 @@ class FlexMuxForm(MultiStepForm):
             csrf_token = self.csrf_token._value()  # type: ignore
 
         self.sample_table = db.get_lab_prep_samples_df(lab_prep.id)
-        self.sample_table = self.sample_table[self.sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])]
+        self.sample_table = self.sample_table[(self.sample_table["mux_type"].isin([MUXType.TENX_ON_CHIP]))]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
-            post_url=url_for("mux_prep_workflow.parse_flex_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
+            post_url=url_for("mux_prep_workflow.parse_ocm_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
             formdata=formdata, df=self.__get_template()
         )
         self.spreadsheet.columns["sample_pool"].source = self.sample_table["sample_name"].unique().tolist()
@@ -78,7 +78,7 @@ class FlexMuxForm(MultiStepForm):
 
         def padded_barcode_id(s: str) -> str:
             number = ''.join(filter(str.isdigit, s))
-            return f"BC{number.zfill(3)}"
+            return f"OB{number}"
         
         df["barcode_id"] = df["barcode_id"].apply(lambda s: padded_barcode_id(s) if pd.notna(s) else None)
 
@@ -88,8 +88,8 @@ class FlexMuxForm(MultiStepForm):
             if row["demux_name"] not in self.sample_table["sample_name"].values:
                 self.spreadsheet.add_error(idx, "demux_name", InvalidCellValue(f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}"))
 
-            if row["barcode_id"] not in FlexMuxForm.allowed_barcodes:
-                self.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(FlexMuxForm.allowed_barcodes)}"))
+            if row["barcode_id"] not in OCMMuxForm.allowed_barcodes:
+                self.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(OCMMuxForm.allowed_barcodes)}"))
             elif duplicate_barcode.at[idx]:
                 self.spreadsheet.add_error(idx, "barcode_id", DuplicateCellValue("'Barcode ID' is duplicated in library."))
 
@@ -109,10 +109,6 @@ class FlexMuxForm(MultiStepForm):
         
         self.sample_table["new_sample_pool"] = self.sample_table["sample_name"].apply(lambda x: sample_pool_map[x])
         self.sample_table["mux_barcode"] = self.sample_table["sample_name"].apply(lambda x: barcode_id_map[x])
-        self.sample_table["mux_barcode"] = self.sample_table.apply(
-            lambda row: row["mux_barcode"] if row["library_type"] == LibraryType.TENX_SC_GEX_FLEX else row["mux_barcode"].replace("BC", "AB"),
-            axis=1
-        )
 
         libraries: dict[str, models.Library] = dict()
         old_libraries: list[int] = []

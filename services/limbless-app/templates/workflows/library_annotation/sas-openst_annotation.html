@@ -2,9 +2,9 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 
-<div id="visium_annotation-form-container" class="modal-content">
+<div id="openst_annotation-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >9. 10X Visium Annotation</h1>
+        <h1 class="modal-title fs-5" >9. OpenST Annotation</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -22,32 +22,20 @@
                 aria-controls="help-tab" aria-selected="false">
                 Help</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#visium-1-example-tab" type="button" role="tab"
-                aria-controls="visium-1-example-tab" aria-selected="true">
-                Example 1.</button>
-            </li>
         </ul>
-        <div class="tab-content" id="visium_annotation-form">
+        <div class="tab-content" id="openst_annotation-form">
             {{ form_group(form.instructions) }}
 
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 <div style="display: flex; gap: 10px;">
                     <p>Samples:</p>
                     <div>
-                        {% for sample in form.visium_samples %}
+                        {% for sample in form.openst_samples %}
                         <span class="badge">{{ sample }}</span>
                         {% endfor %}
                     </div>
                 </div>
                 {{ spreadsheet_input(element=form.spreadsheet) }}
-            </div>
-            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
-                {% include "instructions/visium_annotation.html" %}
-            </div>
-            <div class="tab-pane fade" id="visium-1-example-tab" role="tabpanel" tabindex="3">
-                {% include "examples/visium.html" %}
             </div>
         </div>
     </div>
@@ -60,7 +48,7 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"
-            hx-target="#visium_annotation-form-container" hx-swap="outerHTML"
+            hx-target="#openst_annotation-form-container" hx-swap="outerHTML"
             hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
                 Back
             </button>
@@ -77,7 +65,7 @@
                 var data = spread_sheet.getData();
 
                 htmx.ajax("POST", "{{ form.spreadsheet.post_url }}", {
-                    "target": "#visium_annotation-form-container",
+                    "target": "#openst_annotation-form-container",
                     "swap": "outerHTML",
                     "values": {
                         "spreadsheet": JSON.stringify(data),

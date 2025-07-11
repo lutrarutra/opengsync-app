@@ -37,7 +37,7 @@ class BarcodeInputForm(MultiStepForm):
     columns = [
         IntegerColumn("library_id", "ID", 50, required=True),
         DropdownColumn("library_name", "Library Name", 250, required=True, choices=[]),
-        TextColumn("index_well", "Index Well", 70, max_length=8, clean_up_fnc=lambda x: index_well_clean_up_fnc(x)),
+        TextColumn("index_well", "Well", 70, max_length=8, clean_up_fnc=lambda x: index_well_clean_up_fnc(x)),
         TextColumn("pool", "Pool", 70, required=True, max_length=models.Pool.name.type.length),
         TextColumn("kit_i7", "i7 Kit", 200, max_length=models.Kit.name.type.length),
         TextColumn("name_i7", "i7 Name", 150, max_length=models.LibraryIndex.name_i7.type.length),

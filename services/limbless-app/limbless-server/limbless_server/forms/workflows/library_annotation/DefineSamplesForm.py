@@ -10,10 +10,11 @@ from limbless_db.categories import AssayType, GenomeRef, LibraryType, LibraryTyp
 from .... import logger, db
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
+from ...SpreadsheetInput import SpreadsheetInput
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
-from ...SpreadsheetInput import SpreadsheetInput
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
 class DefineSamplesForm(MultiStepForm):
@@ -190,6 +191,8 @@ class DefineSamplesForm(MultiStepForm):
 
         if FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:

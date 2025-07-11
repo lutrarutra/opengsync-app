@@ -16,6 +16,7 @@ from .FeatureAnnotationForm import FeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
 class OligoMuxAnnotationForm(MultiStepForm):
@@ -29,7 +30,7 @@ class OligoMuxAnnotationForm(MultiStepForm):
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        DropdownColumn("read", "Read", 100, choices=["", "R2", "R1"]),
     ]
 
     @staticmethod
@@ -192,6 +193,8 @@ class OligoMuxAnnotationForm(MultiStepForm):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif KitMappingForm.is_applicable(self):
             next_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):

@@ -1,0 +1,13 @@
+{% from "components/metadata_group.jinja2" import metadata_group %}
+
+{% if library.type in LibraryType.get_visium_library_types() %}
+<div class="row">
+    {{ metadata_group("Image", library.properties["image"], class="col-4") }}
+    {{ metadata_group("Slide", library.properties["slide"], class="col-4") }}
+    {{ metadata_group("Area", library.properties["area"], class="col-4") }}
+</div>
+{% else %}
+<div class="row">
+    {{ metadata_group("Image", library.properties["image"], class="col-4") }}
+</div>
+{% endif %}

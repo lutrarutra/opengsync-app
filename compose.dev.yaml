@@ -69,7 +69,7 @@ services:
 
     redis-cache:
         container_name: redis-cache-dev
-        image: redis:6.2-alpine
+        image: redis:8.0.3-alpine3.21
         environment:
             - TZ=${TIMEZONE}
         ports:
@@ -101,7 +101,7 @@ services:
 
     postgres:
         container_name: postgres-dev
-        image: postgres:16rc1-alpine3.17
+        image: postgres:16.9-alpine3.22
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -126,7 +126,7 @@ services:
 
     pgadmin:
         container_name: pgadmin-dev
-        image: dpage/pgadmin4:latest
+        image: dpage/pgadmin4:9.5.0
         environment:
             PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
             PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}

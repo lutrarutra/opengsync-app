@@ -54,11 +54,11 @@
                 Multiplexing ({{ sample_pooling_table.shape[0] if mux_type else "0" }})</button>
             </li>
             <li class="nav-item" role="presentation"
-            {% if visium_table is none %}{{ tooltip("No visium libraries detected.", category="warning") }}{% endif %}>
-                <button class="nav-link {% if visium_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                data-bs-target="#visium-tab" type="button" role="tab"
-                aria-controls="visium-tab" aria-selected="true">
-                Visium ({{ visium_table.shape[0] if visium_table is not none else "0" }})</button>
+            {% if spatial_table is none %}{{ tooltip("No spatial libraries detected.", category="warning") }}{% endif %}>
+                <button class="nav-link {% if spatial_table is none %}disabled{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#spatial-tab" type="button" role="tab"
+                aria-controls="spatial-tab" aria-selected="true">
+                Spatial ({{ spatial_table.shape[0] if spatial_table is not none else "0" }})</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if flex_table is none %}{{ tooltip("No flex libraries detected.", category="warning") }}{% endif %}>
@@ -255,24 +255,34 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="visium-tab" role="tabpanel" tabindex="7">
-                {% if visium_table is not none %}
+            <div class="tab-pane fade" id="spatial-tab" role="tabpanel" tabindex="7">
+                {% if spatial_table is not none %}
                 <table class="table">
                     <thead>
                         <tr>
+                            <th scope="col" class="col-3">Sample Name</th>
                             <th scope="col" class="col-3">Library Name</th>
                             <th scope="col" class="col-2">Image</th>
+                            {% if "slide" in spatial_table.columns %}
                             <th scope="col" class="col-2">Slide</th>
+                            {% endif %}
+                            {% if "area" in spatial_table.columns %}
                             <th scope="col" class="col-2">Area</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for _, row in visium_table.iterrows() %}
+                        {% for _, row in spatial_table.iterrows() %}
                         <tr>
+                            <th scope="row">{{ row["sample_name"] }}</th>
                             <th scope="row">{{ row["library_name"] }}</th>
                             <td>{{ row["image"] }}</td>
+                            {% if "slide" in spatial_table.columns %}
                             <td>{{ row["slide"] }}</td>
+                            {% endif %}
+                            {% if "area" in spatial_table.columns %}
                             <td>{{ row["area"] }}</td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>

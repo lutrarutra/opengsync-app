@@ -1,14 +1,13 @@
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort, send_file, current_app, Response
 from flask_login import login_required
 
 from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from limbless_db.categories import HTTPResponse, MUXType
 
 from .... import db, logger  # noqa
 from ....forms.workflows import mux_prep as forms
-from ....forms.MultiStepForm import MultiStepForm
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -18,26 +17,28 @@ else:
 mux_prep_workflow = Blueprint("mux_prep_workflow", __name__, url_prefix="/api/workflows/multiplexing_prep/")
 
 
-@mux_prep_workflow.route("<int:lab_prep_id>/begin/<string:multiplexing_type>", methods=["GET"])
+@mux_prep_workflow.route("<int:lab_prep_id>/begin/<int:mux_type_id>", methods=["GET"])
 @login_required
-def begin(lab_prep_id: int, multiplexing_type: Literal["cmo", "flex"]):
+def begin(lab_prep_id: int, mux_type_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if multiplexing_type not in ["cmo", "flex"]:
+    if not (mux_type := MUXType.get(mux_type_id)):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if multiplexing_type == "cmo":
+    if mux_type == MUXType.TENX_OLIGO:
         form = forms.OligoMuxForm(lab_prep=lab_prep)
-        return form.make_response()
-    elif multiplexing_type == "flex":
+    elif mux_type == MUXType.TENX_FLEX_PROBE:
         form = forms.FlexMuxForm(lab_prep=lab_prep)
-        return form.make_response()
+    elif mux_type == MUXType.TENX_ON_CHIP:
+        form = forms.OCMMuxForm(lab_prep=lab_prep)
+    else:
+        raise NotImplementedError(f"Multiplexing type {mux_type} is not implemented.")
 
-    return abort(HTTPResponse.BAD_REQUEST.id)
+    return form.make_response()
 
 
 @mux_prep_workflow.route("<int:lab_prep_id>/parse_oligo_mux_annotation/<string:uuid>", methods=["POST"])
@@ -58,3 +59,13 @@ def parse_flex_annotation(lab_prep_id: int, uuid: str):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.FlexMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
+
+
+@mux_prep_workflow.route("<int:lab_prep_id>/parse_ocm_annotation/<string:uuid>", methods=["POST"])
+@db_session(db)
+@login_required
+def parse_ocm_annotation(lab_prep_id: int, uuid: str):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    return forms.OCMMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()

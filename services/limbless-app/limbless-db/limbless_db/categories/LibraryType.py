@@ -80,6 +80,37 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
                 LibraryType.TENX_VDJ_T_GD, LibraryType.TENX_SC_ABC_FLEX
             ],
         }[lab_protocol]
+    
+    @classmethod
+    def get_visium_library_types(cls) -> list[LibraryTypeEnum]:
+        return [
+            LibraryType.TENX_VISIUM_HD,
+            LibraryType.TENX_VISIUM_FFPE,
+            LibraryType.TENX_VISIUM,
+        ]
+    
+    @classmethod
+    def get_spatial_library_types(cls) -> list[LibraryTypeEnum]:
+        return cls.get_visium_library_types() + [LibraryType.OPENST]
+    
+    @classmethod
+    def get_tenx_library_types(cls) -> list[LibraryTypeEnum]:
+        return [
+            LibraryType.TENX_SC_GEX_FLEX,
+            LibraryType.TENX_SC_ATAC,
+            LibraryType.TENX_SC_GEX_3PRIME,
+            LibraryType.TENX_SC_GEX_5PRIME,
+            LibraryType.TENX_VISIUM_HD,
+            LibraryType.TENX_VISIUM_FFPE,
+            LibraryType.TENX_VISIUM,
+            LibraryType.TENX_ANTIBODY_CAPTURE,
+            LibraryType.TENX_MUX_OLIGO,
+            LibraryType.TENX_CRISPR_SCREENING,
+            LibraryType.TENX_VDJ_B,
+            LibraryType.TENX_VDJ_T,
+            LibraryType.TENX_VDJ_T_GD,
+            LibraryType.TENX_SC_ABC_FLEX
+        ]
 
 
 identifiers = []

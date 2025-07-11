@@ -23,11 +23,11 @@ def create_library(
     seq_request_id: int,
     genome_ref: GenomeRefEnum,
     assay_type: AssayTypeEnum,
+    properties: Optional[dict | None] = None,
     nuclei_isolation: bool = False,
     mux_type: MUXTypeEnum | None = None,
     pool_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
-    visium_annotation_id: Optional[int] = None,
     seq_depth_requested: Optional[float] = None,
     status: Optional[LibraryStatusEnum] = None,
     commit: bool = True
@@ -44,10 +44,6 @@ def create_library(
         seq_request.num_libraries += 1
         self.session.add(seq_request)
 
-    if visium_annotation_id is not None:
-        if (_ := self.session.get(models.VisiumAnnotation, visium_annotation_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Visium annotation with id {visium_annotation_id} does not exist")
-    
     if status is None:
         if pool_id is not None:
             if (pool := self.session.get(models.Pool, pool_id)) is None:
@@ -69,7 +65,7 @@ def create_library(
         pool_id=pool_id,
         lab_prep_id=lab_prep_id,
         status_id=status.id,
-        visium_annotation_id=visium_annotation_id,
+        properties=properties if properties is not None and len(properties) > 0 else None,
         seq_depth_requested=seq_depth_requested,
         nuclei_isolation=nuclei_isolation,
         mux_type_id=mux_type.id if mux_type is not None else None
@@ -540,9 +536,9 @@ def clone_library(self: "DBHandler", library_id: int, seq_request_id: int, index
         name=library.name, sample_name=library.sample_name,
         library_type=library.type, seq_request_id=seq_request_id,
         owner_id=library.owner_id, genome_ref=library.genome_ref,
-        visium_annotation_id=library.visium_annotation_id,
         assay_type=library.assay_type,
         mux_type=library.mux_type,
+        properties=library.properties,
     )
 
     for sample_link in library.sample_links:

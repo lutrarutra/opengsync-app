@@ -15,6 +15,7 @@ from ...SearchBar import SearchBar
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
 class FeatureMappingSubForm(FlaskForm):
@@ -292,7 +293,9 @@ class KitMappingForm(MultiStepForm):
         self.add_table("kit_table", self.kit_table)
         self.update_data()
 
-        if VisiumAnnotationForm.is_applicable(self):
+        if OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
