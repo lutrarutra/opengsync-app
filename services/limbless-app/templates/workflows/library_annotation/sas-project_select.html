@@ -32,7 +32,7 @@
                 </div>
                 {{ form_group(form.new_project, class="col-5", autocomplete="off") }}
             </div>
-            {{ form_group(form.project_description) }}
+            {{ form_group(form.project_description, placeholder="Describe the project with a few sentences. What samples are in the project? What is the hypothesis? What are the goals of the project?") }}
             {{ form.csrf_token() }}
         </div>
     </div>

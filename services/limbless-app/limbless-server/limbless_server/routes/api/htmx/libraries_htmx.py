@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType
+from limbless_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType, MUXType
 
 from .... import db, forms, logger  # noqa
 from ....tools.spread_sheet_components import TextColumn
@@ -162,27 +162,20 @@ def render_feature_table(library_id: int):
     )
 
 
-@libraries_htmx.route("<int:library_id>/get_visium_annotation", methods=["GET"])
+@libraries_htmx.route("<int:library_id>/get_spatial_annotation", methods=["GET"])
 @db_session(db)
 @login_required
-def get_visium_annotation(library_id: int):
+def get_spatial_annotation(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and library.owner_id != current_user.id:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if library.type in [LibraryType.TENX_VISIUM, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM_HD]:
+    if library.type not in LibraryType.get_spatial_library_types():
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    visium_annotation = library.visium_annotation
-    
-    return make_response(
-        render_template(
-            "components/library-visium-annotation.html",
-            visium_annotation=visium_annotation, library=library
-        )
-    )
+    return make_response(render_template("components/library-spatial-annotation.html", library=library))
 
 
 @libraries_htmx.route("table_query", methods=["GET"])
@@ -545,10 +538,10 @@ def select_all(workflow: str):
     return form.make_response(libraries=libraries)
 
 
-@libraries_htmx.route("<int:library_id>/get_flex_table", methods=["GET"])
+@libraries_htmx.route("<int:library_id>/get_mux_table", methods=["GET"])
 @db_session(db)
 @login_required
-def get_flex_table(library_id: int):
+def get_mux_table(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -557,52 +550,62 @@ def get_flex_table(library_id: int):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    df = db.get_library_samples_df(library.id)
+    if library.mux_type is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
-    df = df[["sample_name", "mux_barcode"]]
+    df = db.get_library_mux_table_df(library.id)
 
+    if library.mux_type == MUXType.TENX_OLIGO:
+        mux_data = {
+            "sample_name": [],
+            "barcode": [],
+            "read": [],
+            "pattern": [],
+        }
+        for _, row in df.iterrows():
+            mux_data["sample_name"].append(row["sample_name"])
+            mux_data["barcode"].append(row["mux"]["barcode"] if row.get("mux") else None)
+            mux_data["read"].append(row["mux"]["read"] if row.get("mux") else None)
+            mux_data["pattern"].append(row["mux"]["pattern"] if row.get("mux") else None)
+    elif library.mux_type == MUXType.TENX_FLEX_PROBE:
+        mux_data = {
+            "sample_name": [],
+            "barcode": [],
+        }
+        for _, row in df.iterrows():
+            mux_data["sample_name"].append(row["sample_name"])
+            mux_data["barcode"].append(row["mux"]["barcode"] if row.get("mux") else None)
+        
+    elif library.mux_type == MUXType.TENX_ON_CHIP:
+        mux_data = {
+            "sample_name": [],
+            "barcode": [],
+        }
+        for _, row in df.iterrows():
+            mux_data["sample_name"].append(row["sample_name"])
+            mux_data["barcode"].append(row["mux"]["barcode"] if row.get("mux") else None)
+
+    df = pd.DataFrame(mux_data)
     columns = []
     for i, col in enumerate(df.columns):
-        if col == "mux_barcode":
-            width = 100
-        else:
-            width = 300
-        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width, max_length=1000))
-
-    return make_response(
-        render_template(
-            "components/itable.html", columns=columns,
-            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
-            table_id="flex-table"
+        columns.append(
+            TextColumn(
+                col,
+                col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
+                {
+                    "sample_name": 300,
+                    "barcode": 100,
+                    "read": 80,
+                    "pattern": 150
+                }.get(col, 100),
+                max_length=1000
+            )
         )
-    )
-
-
-@libraries_htmx.route("<int:library_id>/get_hto_table", methods=["GET"])
-@db_session(db)
-@login_required
-def get_hto_table(library_id: int):
-    if (library := db.get_library(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
-    df = db.get_library_samples_df(library.id)
-
-    df = df[["sample_name", "mux_barcode", "mux_pattern", "mux_read"]]
-
-    columns = []
-    for i, col in enumerate(df.columns):
-        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"), 300, max_length=1000))
 
     return make_response(
         render_template(
             "components/itable.html", columns=columns,
             spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
-            table_id="flex-table"
         )
     )
 

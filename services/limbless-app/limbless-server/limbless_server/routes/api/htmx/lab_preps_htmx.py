@@ -14,7 +14,7 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
+from limbless_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, MUXType
 
 from .... import db, forms, logger  # noqa
 from ....tools.spread_sheet_components import TextColumn
@@ -546,24 +546,58 @@ def get_sample_pooling_table(lab_prep_id: int):
     
     df = db.get_lab_prep_samples_df(lab_prep.id)
 
-    df = df[["sample_name", "sample_pool", "mux_barcode", "mux_barcode", "mux_pattern", "mux_read", "library_name"]]
+    mux_table = {
+        "sample_name": [],
+        "library_name": [],
+        "sample_pool": [],
+        "barcode": [],
+        "pattern": [],
+        "read": []
+    }
 
+    for _, row in df.iterrows():
+        if row["mux_type_id"] is None:
+            continue
+        
+        mux_table["sample_name"].append(row["sample_name"])
+        mux_table["library_name"].append(row["library_name"])
+        mux_table["sample_pool"].append(row["sample_pool"])
+        if (mux := row.get("mux")) is None:
+            mux_table["barcode"].append(None)
+            mux_table["pattern"].append(None)
+            mux_table["read"].append(None)
+        else:
+            mux_table["barcode"].append(mux.get("barcode"))
+            mux_table["pattern"].append(mux.get("pattern"))
+            mux_table["read"].append(mux.get("read"))
+
+    df = pd.DataFrame(mux_table)
+    if df["pattern"].isna().all():
+        df = df.drop(columns=["pattern"])
+    if df["read"].isna().all():
+        df = df.drop(columns=["read"])
+        
     columns = []
     for i, col in enumerate(df.columns):
-        if col == "mux_barcode":
-            width = 100
-        elif col == "mux_read":
-            width = 100
-        elif "cmo" in col:
-            width = 200
-        else:
-            width = 250
-        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"), width, max_length=1000))
+        columns.append(
+            TextColumn(
+                col,
+                col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
+                {
+                    "sample_name": 200,
+                    "library_name": 250,
+                    "sample_pool": 200,
+                    "barcode": 100,
+                    "read": 80,
+                    "pattern": 150
+                }.get(col, 100),
+                max_length=1000
+            )
+        )
 
     return make_response(
         render_template(
             "components/itable.html", columns=columns,
             spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
-            table_id="mux-table"
         )
     )

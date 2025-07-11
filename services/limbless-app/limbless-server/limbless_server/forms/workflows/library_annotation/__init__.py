@@ -18,6 +18,7 @@ from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm  # noqa
 from .CompleteSASForm import CompleteSASForm  # noqa: F401
 from .BarcodeMatchForm import BarcodeMatchForm  # noqa: F401
 from .OCMAnnotationForm import OCMAnnotationForm  # noqa: F401
+from .OpenSTAnnotationForm import OpenSTAnnotationForm  # noqa: F401
 
 
 if TYPE_CHECKING:
@@ -43,6 +44,7 @@ _steps: list[type["MultiStepForm"]] = [
     SampleAttributeAnnotationForm,
     CompleteSASForm,
     OCMAnnotationForm,
+    OpenSTAnnotationForm
 ]
 
 steps = dict([(s._step_name, s) for s in _steps])

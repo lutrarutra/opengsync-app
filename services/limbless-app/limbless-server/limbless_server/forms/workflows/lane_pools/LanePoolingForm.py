@@ -27,7 +27,7 @@ class SampleSubForm(FlaskForm):
 
 
 class LaneSubForm(FlaskForm):
-    lane_id = IntegerField(validators=[DataRequired()])
+    lane = IntegerField(validators=[DataRequired()])
     target_total_volume = FloatField(validators=[DataRequired()], default=DEFAULT_TOTAL_VOLUME_TARGET)
     target_concentration = FloatField("Target Molarity", validators=[DataRequired()], default=DEFAULT_TARGET_NM)
 
@@ -61,7 +61,7 @@ class LanePoolingForm(HTMXFlaskForm):
                 self.lane_sub_forms.append_entry()
             
             lane_sub_form: LaneSubForm = self.lane_sub_forms[i]  # type: ignore
-            lane_sub_form.lane_id.data = lane_id
+            lane_sub_form.lane.data = lane
 
             for idx, row in _df.iterrows():
                 if counter > len(self.sample_sub_forms) - 1:
@@ -105,7 +105,7 @@ class LanePoolingForm(HTMXFlaskForm):
         for lane_sub_form in self.lane_sub_forms:
             if (lane := db.get_experiment_lane(
                 experiment_id=self.experiment.id,
-                lane_num=lane_sub_form.lane_id.data
+                lane_num=lane_sub_form.lane.data
             )) is None:
                 logger.error(f"lane_pools_workflow: Lane {lane_sub_form.lane.data} does not exist for experiment {self.experiment.id}")
                 raise ValueError(f"Lane {lane_sub_form.lane.data} does not exist for experiment {self.experiment.id}")

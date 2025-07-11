@@ -114,7 +114,7 @@
             data-bs-target="#mux-tab" type="button" role="tab"
             aria-controls="mux-tab" aria-selected="false"
             {% if not contains_mux_libraries %}disabled{% endif %}>
-            MUX</button>
+            Multiplexing</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -183,7 +183,7 @@
                     {{ tooltip("You cannot edit completed prep.", category="warning") }}
                     {% else %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, multiplexing_type='cmo') }}"
+                    hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_OLIGO.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click"{% endif %}>
                     <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
@@ -192,12 +192,12 @@
                                 <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="120px">
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">HTO Multiplexing Prep</h5>
+                                <h5 class="card-title">Oligo Multiplexing Prep</h5>
                             </div>
                         </div>
                         <div class="card-back">
                             <div class="text-container">
-                                <p class="card-text">Pool samples in to libraries using hashtag oligos (HTOs). Specify multiplexing barcodes.</p>
+                                <p class="card-text">Pool samples in to libraries using oligos. Specify multiplexing barcodes.</p>
                             </div>
                         </div>
                     </div>
@@ -208,7 +208,7 @@
                     {{ tooltip("You cannot edit completed prep.", category="warning") }}
                     {% else %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, multiplexing_type='flex') }}"
+                    hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_FLEX_PROBE.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click"{% endif %}>
                     <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
@@ -223,6 +223,31 @@
                         <div class="card-back">
                             <div class="text-container">
                                 <p class="card-text">Pool samples in to libraries using probe barcodes (10X Flex). Specify multiplexing barcodes.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
+                    {% if lab_prep.status != PrepStatus.PREPARING %}
+                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
+                    {% else %}
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_ON_CHIP.id) }}"
+                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
+                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="120px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">On-Chip Multiplexing Prep</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Pool samples in libraries using on-chip multiplexing (OCM). Specify multiplexing barcodes.</p>
                             </div>
                         </div>
                     </div>

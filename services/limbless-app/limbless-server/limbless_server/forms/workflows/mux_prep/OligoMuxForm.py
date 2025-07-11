@@ -7,10 +7,10 @@ from flask_htmx import make_response
 from wtforms import FormField
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, LibraryStatus, MUXType
+from limbless_db.categories import LibraryStatus, MUXType
 
 from .... import logger, tools, db  # noqa F401
-from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
+from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, DropdownColumn, MissingCellValue, DuplicateCellValue
 from ...SearchBar import OptionalSearchBar
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
@@ -19,23 +19,24 @@ from ...SpreadsheetInput import SpreadsheetInput
 class OligoMuxForm(MultiStepForm):
     _template_path = "workflows/mux_prep/mux_prep-oligo_mux_annotation.html"
     _workflow_name = "mux_prep"
-    _step_name = "cmo_mux"
+    _step_name = "oligo_annotation"
 
     kit = FormField(OptionalSearchBar, label="Select Kit")
+    mux_type = MUXType.TENX_OLIGO
     
     columns = [
         TextColumn("demux_name", "Demultiplexed Name", 170, max_length=models.Sample.name.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        DropdownColumn("sample_pool", "Sample Pool", 170, required=True, choices=[]),
+        TextColumn("sample_pool", "Sample Pool", 170, max_length=models.Library.sample_name.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        DropdownColumn("read", "Read", 100, choices=["", "R2", "R1"]),
     ]
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=OligoMuxForm._workflow_name,
-            step_name=OligoMuxForm._step_name, step_args={"multiplexing_type": "cmo"}
+            step_name=OligoMuxForm._step_name, step_args={"mux_type_id": OligoMuxForm.mux_type.id}
         )
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
@@ -44,8 +45,8 @@ class OligoMuxForm(MultiStepForm):
             csrf_token = self.csrf_token._value()  # type: ignore
 
         self.sample_table = db.get_lab_prep_samples_df(lab_prep.id)
-        mux_pools = self.sample_table[self.sample_table["library_type"].isin([LibraryType.TENX_MUX_OLIGO])]["sample_pool"]
-        self.sample_table = self.sample_table[self.sample_table["sample_pool"].isin(mux_pools)]
+        self.sample_table = self.sample_table[self.sample_table["mux_type"].isin([MUXType.TENX_OLIGO])]
+        self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
@@ -64,14 +65,19 @@ class OligoMuxForm(MultiStepForm):
             "read": [],
         }
 
-        for _, row in self.sample_table[self.sample_table["library_type"].isin([LibraryType.TENX_MUX_OLIGO])].iterrows():
+        for _, row in self.mux_table.iterrows():
             template_data["sample_pool"].append(row["sample_pool"])
             template_data["demux_name"].append(row["sample_name"])
             template_data["kit"].append(None)
             template_data["feature"].append(None)
-            template_data["sequence"].append(row["mux_barcode"])
-            template_data["pattern"].append(row["mux_pattern"])
-            template_data["read"].append(row["mux_read"])
+            if (mux := row.get("mux")) is None:
+                template_data["sequence"].append(None)
+                template_data["pattern"].append(None)
+                template_data["read"].append(None)
+            else:
+                template_data["sequence"].append(mux.get("barcode"))
+                template_data["pattern"].append(mux.get("pattern"))
+                template_data["read"].append(mux.get("read"))
 
         return pd.DataFrame(template_data)
 
@@ -152,14 +158,7 @@ class OligoMuxForm(MultiStepForm):
         self.sample_table["mux_barcode"] = self.sample_table["sample_name"].apply(lambda x: sequence_map[x])
         self.sample_table["mux_pattern"] = self.sample_table["sample_name"].apply(lambda x: pattern_map[x])
         self.sample_table["mux_read"] = self.sample_table["sample_name"].apply(lambda x: read_map[x])
-        self.sample_table["mux_type_id"] = None
-
-        for (sample_pool, library_type), df in self.sample_table.groupby(["sample_pool", "library_type"]):
-            if library_type == LibraryType.TENX_MUX_OLIGO:
-                self.sample_table.loc[df.index, "mux_type_id"] = MUXType.TENX_OLIGO.id
-            else:
-                logger.error(f"Library type {library_type} is not supported for CMO multiplexing.")
-                raise Exception(f"Library type {library_type} is not supported for CMO multiplexing.")
+        self.sample_table["mux_type_id"] = MUXType.TENX_OLIGO.id
                 
         libraries: dict[str, models.Library] = dict()
         old_libraries: list[int] = []
@@ -188,6 +187,7 @@ class OligoMuxForm(MultiStepForm):
                     lab_prep_id=self.lab_prep.id,
                     genome_ref=old_library.genome_ref,
                     assay_type=old_library.assay_type,
+                    mux_type=old_library.mux_type,
                     nuclei_isolation=old_library.nuclei_isolation,
                 )
                 libraries[lib] = new_library

@@ -15,6 +15,7 @@ from .KitMappingForm import KitMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
 class FeatureAnnotationForm(MultiStepForm):
@@ -228,6 +229,8 @@ class FeatureAnnotationForm(MultiStepForm):
 
         if KitMappingForm.is_applicable(self):
             next_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):

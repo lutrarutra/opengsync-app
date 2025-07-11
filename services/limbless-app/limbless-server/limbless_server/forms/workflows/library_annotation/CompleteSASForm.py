@@ -36,10 +36,24 @@ class CompleteSASForm(MultiStepForm):
         self.barcode_table = self.tables.get("barcode_table")
         self.pool_table = self.tables.get("pool_table")
         self.feature_table = self.tables.get("feature_table")
-        self.visium_table = self.tables.get("visium_table")
+        self.library_properties_table = self.tables.get("library_properties_table")
         self.flex_table = self.tables.get("flex_table")
         self.comment_table = self.tables.get("comment_table")
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] is not None else None
+        
+        spatial_library_type_ids = [t.id for t in LibraryType.get_visium_library_types()] + [LibraryType.OPENST.id]
+        self.contains_spatial_samples = self.library_table["library_type_id"].isin(spatial_library_type_ids).any()
+
+        if self.contains_spatial_samples:
+            if self.library_properties_table is None:
+                logger.error(f"{self.uuid}: Library properties table not found for visium samples.")
+                raise Exception("Library properties table not found for visium samples.")
+            
+            spatial_libraries = self.library_table[self.library_table["library_type_id"].isin(spatial_library_type_ids)]["library_name"].values
+            self._context["spatial_table"] = self.library_properties_table[self.library_properties_table["library_name"] == spatial_libraries]
+        else:
+            self._context["spatial_table"] = None
+
         self._context["mux_type"] = self.mux_type
 
         if self.barcode_table is not None:
@@ -57,7 +71,7 @@ class CompleteSASForm(MultiStepForm):
         self._context["sample_pooling_table"] = self.sample_pooling_table
         self._context["barcode_table"] = self.barcode_table
         self._context["feature_table"] = self.feature_table
-        self._context["visium_table"] = self.visium_table
+        self._context["library_properties_table"] = self.library_properties_table
         self._context["flex_table"] = self.flex_table
         self._context["comment_table"] = self.comment_table
         self._context["pool_table"] = self.pool_table
@@ -133,8 +147,8 @@ class CompleteSASForm(MultiStepForm):
     def __update_data(self):
         self.update_table("sample_table", self.sample_table, False)
         self.update_table("library_table", self.library_table, False)
-        if self.visium_table is not None:
-            self.update_table("visium_table", self.visium_table, False)
+        if self.library_properties_table is not None:
+            self.update_table("library_properties_table", self.library_properties_table, False)
         if self.sample_pooling_table is not None:
             self.update_table("sample_pooling_table", self.sample_pooling_table, False)
 
@@ -144,18 +158,6 @@ class CompleteSASForm(MultiStepForm):
         if not self.validate():
             self.__prepare()
             return self.make_response()
-
-        if self.visium_table is not None:
-            self.visium_table["id"] = None
-            for idx, visium_row in self.visium_table.iterrows():
-                visium_annotation = db.create_visium_annotation(
-                    area=visium_row["area"],
-                    image=visium_row["image"],
-                    slide=visium_row["slide"],
-                )
-                self.visium_table.at[idx, "id"] = visium_annotation.id
-
-            self.visium_table["id"] = self.visium_table["id"].astype(int)
 
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
@@ -235,11 +237,13 @@ class CompleteSASForm(MultiStepForm):
 
         self.library_table["library_id"] = None
         for idx, library_row in self.library_table.iterrows():
-            if self.visium_table is not None:
-                visium_row = self.visium_table[self.visium_table["library_name"] == library_row["library_name"]].iloc[0]
-                visium_annotation_id = int(visium_row["id"])
+            if self.library_properties_table is not None:
+                visium_row = self.library_properties_table[self.library_properties_table["library_name"] == library_row["library_name"]].iloc[0]
+                properties = dict([(k, v) for k, v in visium_row.to_dict().items() if pd.notna(v)])
+                properties.pop("library_name", None)
+                properties.pop("sample_name", None)
             else:
-                visium_annotation_id = None
+                properties = None
 
             if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
                 if self.pool_table is None:
@@ -258,10 +262,10 @@ class CompleteSASForm(MultiStepForm):
                 library_type=LibraryType.get(library_row["library_type_id"]),
                 owner_id=user.id,
                 genome_ref=GenomeRef.get(library_row["genome_id"]),
-                visium_annotation_id=visium_annotation_id,
                 pool_id=pool_id,
                 assay_type=assay_type,
                 mux_type=self.mux_type,
+                properties=properties,
                 nuclei_isolation=self.metadata.get("nuclei_isolation", False),
                 seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
             )

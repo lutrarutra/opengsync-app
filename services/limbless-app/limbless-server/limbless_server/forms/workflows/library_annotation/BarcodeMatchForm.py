@@ -19,6 +19,7 @@ from .FeatureAnnotationForm import FeatureAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 from .OCMAnnotationForm import OCMAnnotationForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
 class BarcodeMatchForm(MultiStepForm):
@@ -232,6 +233,8 @@ class BarcodeMatchForm(MultiStepForm):
             next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif OligoMuxAnnotationForm.is_applicable(self):
             next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):

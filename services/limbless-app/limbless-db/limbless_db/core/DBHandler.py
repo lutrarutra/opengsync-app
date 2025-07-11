@@ -205,10 +205,6 @@ class DBHandler():
         create_file, get_file, get_files, file_permissions_check, delete_file
     )
 
-    from .model_handlers._visium_annotation_methods import (
-        create_visium_annotation, get_visium_annotation
-    )
-
     from .model_handlers._comment_methods import (
         create_comment, delete_comment, get_comments, get_comment,
     )
@@ -238,5 +234,5 @@ class DBHandler():
         get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df,
         get_project_samples_df, get_lab_prep_libraries_df,
         get_lab_prep_samples_df, query_barcode_sequences_df, get_flowcell_df,
-        get_project_libraries_df
+        get_project_libraries_df, get_library_mux_table_df
     )

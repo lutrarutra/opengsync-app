@@ -301,6 +301,22 @@ def parse_visium_reference(seq_request_id: int, uuid: str):
     return forms.VisiumAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
+# 9. Visium Annotation
+@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_openst_annotation", methods=["POST"])
+@db_session(db)
+@login_required
+def parse_openst_annotation(seq_request_id: int, uuid: str):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
+    return forms.OpenSTAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+
 # 10. Flex Annotation
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_flex_annotation", methods=["POST"])
 @db_session(db)

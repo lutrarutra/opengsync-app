@@ -19,6 +19,7 @@ from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .OCMAnnotationForm import OCMAnnotationForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
 class LibraryAnnotationForm(MultiStepForm):
@@ -182,6 +183,8 @@ class LibraryAnnotationForm(MultiStepForm):
             next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         if OligoMuxAnnotationForm.is_applicable(self):
             next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):

@@ -2,6 +2,7 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 from datetime import datetime
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import links
@@ -16,7 +17,6 @@ if TYPE_CHECKING:
     from .Pool import Pool
     from .User import User
     from .Feature import Feature
-    from .VisiumAnnotation import VisiumAnnotation
     from .SeqQuality import SeqQuality
     from .File import File
     from .LibraryIndex import LibraryIndex
@@ -48,6 +48,8 @@ class Library(Base):
     num_samples: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     num_features: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
+    properties: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, default=None)
+
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
@@ -65,8 +67,6 @@ class Library(Base):
     seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=False)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")
     
-    visium_annotation_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("visiumannotation.id"), nullable=True, default=None)
-    visium_annotation: Mapped[Optional["VisiumAnnotation"]] = relationship("VisiumAnnotation", lazy="select", cascade="all, delete")
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="libraries", lazy="select")
 

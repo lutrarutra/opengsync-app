@@ -15,9 +15,9 @@ from .. import categories
 def get_experiment_libraries_df(
     self: "DBHandler", experiment_id: int,
     include_sample: bool = False, include_index_kit: bool = False,
-    include_visium: bool = False, include_seq_request: bool = False,
-    collapse_lanes: bool = False, include_indices: bool = False,
-    drop_empty_columns: bool = True, collapse_indicies: bool = True
+    include_seq_request: bool = False, collapse_lanes: bool = False,
+    include_indices: bool = False, drop_empty_columns: bool = True,
+    collapse_indicies: bool = True
 ) -> pd.DataFrame:
         
     columns = [
@@ -42,12 +42,6 @@ def get_experiment_libraries_df(
     if include_index_kit:
         columns.extend([
             models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
-        ])
-
-    if include_visium:
-        columns.extend([
-            models.VisiumAnnotation.slide.label("slide"), models.VisiumAnnotation.area.label("area"),
-            models.VisiumAnnotation.image.label("image")
         ])
 
     if include_sample:
@@ -94,13 +88,6 @@ def get_experiment_libraries_df(
         ).join(
             models.User,
             models.User.id == models.SeqRequest.requestor_id,
-        )
-    
-    if include_visium:
-        query = query.join(
-            models.VisiumAnnotation,
-            models.VisiumAnnotation.id == models.Library.visium_annotation_id,
-            isouter=True
         )
             
     query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
@@ -372,10 +359,9 @@ def get_library_features_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
     return df
 
 
-def get_library_samples_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
+def get_library_samples_df(self: "DBHandler", library_id: int, expand_attributes: bool = True) -> pd.DataFrame:
     query = sa.select(
-        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
+        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"), models.Sample._attributes.label("attributes"),
     ).join(
         models.links.SampleLibraryLink,
         models.links.SampleLibraryLink.sample_id == models.Sample.id
@@ -383,8 +369,32 @@ def get_library_samples_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
         models.links.SampleLibraryLink.library_id == library_id
     )
 
-    df = pd.read_sql(query, self._engine).sort_values("sample_id")
+    df = pd.read_sql(query, self._engine)
+    if expand_attributes:
+        expanded = df["attributes"].apply(pd.Series)
+        for col in expanded.columns:
+            expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)
+
+    return df
+
+
+def get_library_mux_table_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
+    query = sa.select(
+        models.links.SampleLibraryLink.sample_id.label("sample_id"), models.Sample.name.label("sample_name"),
+        models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
+    ).join(
+        models.Sample,
+        models.Sample.id == models.links.SampleLibraryLink.sample_id
+    ).where(
+        models.links.SampleLibraryLink.library_id == library_id
+    )
+
+    df = pd.read_sql(query, self._engine)
     df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+
+    expanded = df["mux"].apply(pd.Series)
+    for col in expanded.columns:
+        expanded[col] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
 
     return df
 
@@ -727,8 +737,9 @@ def get_lab_prep_samples_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame
     query = sa.select(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
         models.Library.type_id.label("library_type_id"), models.Library.sample_name.label("sample_pool"),
+        models.Library.mux_type_id.label("mux_type_id"),
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
+        models.links.SampleLibraryLink.mux.label("mux"),
     ).where(
         models.Library.lab_prep_id == lab_prep_id
     ).join(
