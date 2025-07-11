@@ -40,3 +40,9 @@ class Comment(Base):
     
     def time(self) -> str:
         return self.timestamp.strftime('%H:%M')
+    
+    def __str__(self) -> str:
+        return self.__repr__()
+    
+    def __repr__(self) -> str:
+        return f"Comment(id={self.id}, text={self.text}, timestamp={self.timestamp}, author_id={self.author_id})"
