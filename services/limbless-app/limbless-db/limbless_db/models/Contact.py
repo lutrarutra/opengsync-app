@@ -13,3 +13,9 @@ class Contact(Base):
     email: Mapped[Optional[str]] = mapped_column(sa.String(128), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
     address: Mapped[Optional[str]] = mapped_column(sa.String(128), nullable=True)
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        return f"Contact(id={self.id}, name={self.name}, email={self.email}, phone={self.phone}, address={self.address})"

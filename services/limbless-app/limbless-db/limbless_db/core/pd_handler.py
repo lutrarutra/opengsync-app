@@ -142,7 +142,7 @@ def get_flowcell_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
         models.Experiment.id == experiment_id
     ).join(
         models.Lane,
-        models.Lane.experiment_id == models.Experiment.id
+        models.Lane.experiment_id == models.Experiment.id,
     ).join(
         models.links.LanePoolLink,
         models.links.LanePoolLink.lane_id == models.Lane.id
@@ -151,7 +151,7 @@ def get_flowcell_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
         models.Pool.id == models.links.LanePoolLink.pool_id
     ).join(
         models.Library,
-        models.Library.pool_id == models.Pool.id
+        models.Library.pool_id == models.Pool.id,
     ).join(
         models.LibraryIndex,
         models.LibraryIndex.library_id == models.Library.id,
@@ -374,6 +374,8 @@ def get_library_samples_df(self: "DBHandler", library_id: int, expand_attributes
         expanded = df["attributes"].apply(pd.Series)
         for col in expanded.columns:
             expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)
+
+        df = pd.concat([df.drop(columns=["attributes"]), expanded], axis=1)
 
     return df
 
@@ -654,7 +656,7 @@ def get_project_samples_df(self: "DBHandler", project_id: int, pivot: bool = Tru
     return df
 
 
-def get_project_libraries_df(self: "DBHandler", project_id: int) -> pd.DataFrame:
+def get_project_libraries_df(self: "DBHandler", project_id: int, expand_attributes: bool = True) -> pd.DataFrame:
     query = sa.select(
         models.Library.id.label("library_id"),
         models.Library.name.label("library_name"),
@@ -711,6 +713,14 @@ def get_project_libraries_df(self: "DBHandler", project_id: int) -> pd.DataFrame
     lanes = pd.read_sql(query, self._engine)
     merged = pd.merge(lanes, libraries, on=["library_id", "experiment_id"], how="left")
     merged = merged[["experiment_name", "lane", "sample_name", "sample_id", "seq_request_id", "library_name", "sample_pool", "genome_ref", "pool_name", "library_type", "attributes"]]
+    
+    if expand_attributes:
+        expanded = merged["attributes"].apply(pd.Series)
+        for col in expanded.columns:
+            expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)
+
+        merged = pd.concat([merged.drop(columns=["attributes"]), expanded], axis=1)
+
     return merged
 
 
