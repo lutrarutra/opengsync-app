@@ -51,7 +51,7 @@
             <div class="d-flex align-items-center">
                 {{ select_input(form.assay_type, class="col-6") }}
                 {{ checkbox_input(form.ocm_multiplexing, class="opt-checkbox col-3 pt-3") }}
-                {{ checkbox_input(form.nuclei_isolation, class="opt-checkbox col-3 pt-3") }}
+                {{ checkbox_input(form.nuclei_isolation, class="col-3 pt-3") }}
             </div>
             <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
                 {{ spreadsheet_input(element=form.spreadsheet) }}

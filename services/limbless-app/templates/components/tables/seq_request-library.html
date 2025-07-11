@@ -22,7 +22,7 @@
                         sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='seq_requests_htmx.query_libraries', current_query=current_query,
-                        active_query_field=active_query_field, col_size=4
+                        active_query_field=active_query_field, col_size=3
                     )
                 }}
                 {{
@@ -36,7 +36,7 @@
                     table_col(
                         table_container_id='seq_request-library-table', column_name='Type', column_var='type_id',
                         sort_url='seq_requests_htmx.get_libraries', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
                         multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
                     )
                 }}
@@ -48,7 +48,7 @@
                         multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
-                <th scope="col" class="col-4">
+                <th scope="col" class="col-3">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display('seq_request-library')">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">

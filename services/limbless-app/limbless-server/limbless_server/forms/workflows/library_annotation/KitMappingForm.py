@@ -199,7 +199,7 @@ class KitMappingForm(MultiStepForm):
                         )
         return pd.DataFrame(feature_data)
     
-    def get_mux_table(self, mux_table: pd.DataFrame) -> pd.DataFrame:
+    def get_sample_pooling_table(self, sample_pooling_table: pd.DataFrame) -> pd.DataFrame:
         mux_data = {
             "demux_name": [],
             "sample_name": [],
@@ -229,7 +229,7 @@ class KitMappingForm(MultiStepForm):
             mux_data["read"].append(read)
             mux_data["feature_id"].append(feature_id)
 
-        for i, row in mux_table.iterrows():
+        for i, row in sample_pooling_table.iterrows():
             # Custom CMO
             if pd.isna(kit_id := row["kit_id"]):
                 add_cmo(
@@ -266,24 +266,24 @@ class KitMappingForm(MultiStepForm):
             return self.make_response()
         
         library_table = self.tables["library_table"]
-        mux_table = self.tables.get("mux_table")
+        sample_pooling_table = self.tables.get("sample_pooling_table")
         feature_table = self.tables.get("feature_table")
 
         for _, row in self.kit_table.iterrows():
             if row["type_id"] == FeatureType.CMO.id:
-                if mux_table is None:
+                if sample_pooling_table is None:
                     logger.error("MUX table should not be None")
                     raise Exception("MUX table should not be None")
-                mux_table.loc[mux_table["kit"] == row["kit"], "kit_id"] = row["kit_id"]
+                sample_pooling_table.loc[sample_pooling_table["kit"] == row["kit"], "kit_id"] = row["kit_id"]
             elif row["type_id"] == FeatureType.ANTIBODY.id:
                 if feature_table is None:
                     logger.error("Feature table should not be None")
                     raise Exception("Feature table should not be None")
                 feature_table.loc[feature_table["kit"] == row["name"], "kit_id"] = row["kit_id"]
 
-        if mux_table is not None:
-            mux_table = self.get_mux_table(mux_table)
-            self.update_table("mux_table", mux_table, False)
+        if sample_pooling_table is not None:
+            sample_pooling_table = self.get_sample_pooling_table(sample_pooling_table)
+            self.update_table("sample_pooling_table", sample_pooling_table, False)
 
         if feature_table is not None:
             feature_table = self.get_features(library_table, feature_table)

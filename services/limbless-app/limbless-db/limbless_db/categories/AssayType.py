@@ -32,6 +32,9 @@ class AssayType(ExtendedEnum[AssayTypeEnum], enum_type=AssayTypeEnum):
     TENX_SC_4_PLEX_FLEX = AssayTypeEnum(15, "10X Single Cell Gene Expression Flex 4-Plex", "10X Flex 4-Plex", "10X Chromium", library_types=[LibraryType.TENX_SC_GEX_FLEX], optional_library_types=[LibraryType.TENX_SC_ABC_FLEX])
     TENX_SC_16_PLEX_FLEX = AssayTypeEnum(16, "10X Single Cell Gene Expression Flex 16-Plex", "10X Flex 16-Plex", "10X Chromium", library_types=[LibraryType.TENX_SC_GEX_FLEX], optional_library_types=[LibraryType.TENX_SC_ABC_FLEX])
 
+    # Special
+    OPENST = AssayTypeEnum(50, "Open Spatial Transcriptomics", "Open-ST", library_types=[LibraryType.OPENST])
+
     # RNA
     POLY_A_RNA_SEQ = AssayTypeEnum(101, "Poly-A RNA-Seq", "Poly-A RNA-Seq", library_types=[LibraryType.POLY_A_RNA_SEQ])
     RIBO_DEPL_RNA_SEQ = AssayTypeEnum(102, "Ribo Depletion RNA-Seq", "Ribo Depletion RNA-Seq", library_types=[LibraryType.RIBO_DEPL_RNA_SEQ])

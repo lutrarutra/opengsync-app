@@ -184,7 +184,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
             "pool": []
         }
 
-        pooling_table = {
+        sample_pooling_table = {
             "sample_name": [],
             "library_name": [],
         }
@@ -205,19 +205,19 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                 library_table_data["library_type_id"].append(row["library_type_id"])
                 library_table_data["pool"].append(row["pool"])
 
-                pooling_table["sample_name"].append(sample_name)
-                pooling_table["library_name"].append(library_name)
+                sample_pooling_table["sample_name"].append(sample_name)
+                sample_pooling_table["library_name"].append(library_name)
 
+        sample_pooling_table = pd.DataFrame(sample_pooling_table)
+        sample_pooling_table["mux_type_id"] = None
+        self.add_table("sample_pooling_table", sample_pooling_table)
+        
         library_table = pd.DataFrame(library_table_data)
         library_table["seq_depth"] = None
+        self.add_table("library_table", library_table)
 
         sample_table = pd.DataFrame(sample_table_data)
         sample_table["sample_id"] = None
-        sample_table["mux_barcode"] = None
-        sample_table["mux_pattern"] = None
-        sample_table["mux_read"] = None
-        sample_table["mux_type_id"] = None
-
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
@@ -226,11 +226,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
             for sample in project.samples:
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
-        pooling_table = pd.DataFrame(pooling_table)
-
-        self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)
-        self.add_table("pooling_table", pooling_table)
         self.update_data()
         
         next_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

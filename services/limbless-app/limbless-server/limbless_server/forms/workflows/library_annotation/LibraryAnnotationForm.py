@@ -3,6 +3,7 @@ from typing import Optional
 import pandas as pd
 
 from flask import Response, url_for
+from wtforms import BooleanField
 
 from limbless_db import models
 from limbless_db.categories import LibraryType, GenomeRef
@@ -24,6 +25,8 @@ class LibraryAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-library_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "library_annotation"
+
+    nuclei_isolation = BooleanField("Nuclei Isolation", default=False, description="I want you to isolate nuclei from my samples before sequencing.")
 
     columns = [
         TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -115,6 +118,8 @@ class LibraryAnnotationForm(MultiStepForm):
         self.__map_genome_ref()
         self.__map_existing_samples()
 
+        self.metadata["nuclei_isolation"] = self.nuclei_isolation.data
+
         sample_table_data = {
             "sample_name": [],
         }
@@ -129,7 +134,7 @@ class LibraryAnnotationForm(MultiStepForm):
             "seq_depth": [],
         }
 
-        pooling_table = {
+        sample_pooling_table = {
             "sample_name": [],
             "library_name": [],
         }
@@ -149,21 +154,13 @@ class LibraryAnnotationForm(MultiStepForm):
                 library_table_data["library_type_id"].append(row["library_type_id"])
                 library_table_data["seq_depth"].append(row["seq_depth"])
 
-                pooling_table["sample_name"].append(sample_name)
-                pooling_table["library_name"].append(library_name)
+                sample_pooling_table["sample_name"].append(sample_name)
+                sample_pooling_table["library_name"].append(library_name)
 
         library_table = pd.DataFrame(library_table_data)
 
         sample_table = pd.DataFrame(sample_table_data)
         sample_table["sample_id"] = None
-        sample_table["mux_barcode"] = None
-        sample_table["mux_pattern"] = None
-        sample_table["mux_read"] = None
-        sample_table["mux_type_id"] = None
-
-        for idx, row in sample_table.iterrows():
-            if LibraryType.TENX_MUX_OLIGO.id in library_table.loc[library_table["sample_name"] == row["sample_name"]]["library_type_id"].values:
-                sample_table.at[idx, "mux_type_id"] = LibraryType.TENX_MUX_OLIGO.id
 
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
@@ -173,11 +170,12 @@ class LibraryAnnotationForm(MultiStepForm):
             for sample in project.samples:
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
-        pooling_table = pd.DataFrame(pooling_table)
+        sample_pooling_table = pd.DataFrame(sample_pooling_table)
+        sample_pooling_table["mux_type_id"] = None
 
         self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)
-        self.add_table("pooling_table", pooling_table)
+        self.add_table("sample_pooling_table", sample_pooling_table)
         self.update_data()
         
         if OCMAnnotationForm.is_applicable(self):

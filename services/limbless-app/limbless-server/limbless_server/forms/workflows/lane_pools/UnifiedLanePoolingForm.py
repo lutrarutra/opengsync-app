@@ -115,7 +115,8 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                     raise ValueError(f"Link between lane {lane.number} and pool {pool_reads_form.pool_id.data} does not exist")
                 
                 link.num_m_reads = pool_reads_form.m_reads.data / self.experiment.num_lanes
-                if pool_reads_form.dilution.data == "Orig.":
+                if not pool_reads_form.dilution.data or pool_reads_form.dilution.data == "Orig.":
+                    pool_reads_form.dilution.data = "Orig."
                     link.dilution_id = None
                 else:
                     if (dilution := db.get_pool_dilution(link.pool_id, pool_reads_form.dilution.data)) is None:

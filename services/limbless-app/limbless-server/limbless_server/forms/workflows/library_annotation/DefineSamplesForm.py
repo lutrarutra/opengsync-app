@@ -121,7 +121,7 @@ class DefineSamplesForm(MultiStepForm):
             "library_type_id": [],
         }
 
-        pooling_table = {
+        sample_pooling_table = {
             "sample_name": [],
             "library_name": [],
         }
@@ -129,8 +129,8 @@ class DefineSamplesForm(MultiStepForm):
         def add_library(sample_name: str, library_type: LibraryTypeEnum, genome: GenomeRefEnum):
             library_name = f"{sample_name}_{library_type.identifier}"
 
-            pooling_table["sample_name"].append(sample_name)
-            pooling_table["library_name"].append(library_name)
+            sample_pooling_table["sample_name"].append(sample_name)
+            sample_pooling_table["library_name"].append(library_name)
 
             library_table_data["library_name"].append(library_name)
             library_table_data["sample_name"].append(sample_name)
@@ -171,10 +171,6 @@ class DefineSamplesForm(MultiStepForm):
 
         sample_table = pd.DataFrame(sample_table_data)
         sample_table["sample_id"] = None
-        sample_table["mux_barcode"] = None
-        sample_table["mux_pattern"] = None
-        sample_table["mux_read"] = None
-        sample_table["mux_type_id"] = None
 
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
@@ -184,11 +180,12 @@ class DefineSamplesForm(MultiStepForm):
             for sample in project.samples:
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
-        pooling_table = pd.DataFrame(pooling_table)
+        sample_pooling_table = pd.DataFrame(sample_pooling_table)
+        sample_pooling_table["mux_type_id"] = None
 
         self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)
-        self.add_table("pooling_table", pooling_table)
+        self.add_table("sample_pooling_table", sample_pooling_table)
         self.update_data()
 
         if FeatureAnnotationForm.is_applicable(self):

@@ -60,7 +60,7 @@ class OCMAnnotationForm(MultiStepForm):
         self.spreadsheet.columns["sample_name"].source = self.multiplexed_samples
 
     def fill_previous_form(self, previous_form: StepFile):
-        self.spreadsheet.set_data(previous_form.tables["mux_table"])
+        self.spreadsheet.set_data(previous_form.tables["sample_pooling_table"])
 
     def validate(self) -> bool:
         if not super().validate():
@@ -94,7 +94,7 @@ class OCMAnnotationForm(MultiStepForm):
         if len(self.spreadsheet._errors) > 0:
             return False
         
-        self.mux_table = df
+        self.df = df
         return True
     
     def process_request(self) -> Response:
@@ -102,31 +102,32 @@ class OCMAnnotationForm(MultiStepForm):
             return self.make_response()
 
         sample_table = self.tables["sample_table"]
-        pooling_table = self.tables["pooling_table"]
-
-        sample_data = {
-            "sample_name": [],
-            "mux_barcode": [],
-        }
+        sample_pooling_table = self.tables["sample_pooling_table"]
 
         pooling_data = {
             "sample_name": [],
             "library_name": [],
+            "mux_barcode": [],
+            "mux_type_id": [],
+            "sample_pool": [],
         }
 
-        for _, mux_row in self.mux_table.iterrows():
+        sample_data = {"sample_name": []}
+
+        for _, mux_row in self.df.iterrows():
             sample_data["sample_name"].append(mux_row["demux_name"])
-            sample_data["mux_barcode"].append(mux_row["barcode_id"])
-            for _, pooling_row in pooling_table[pooling_table["sample_name"] == mux_row["sample_name"]].iterrows():
+            for _, pooling_row in sample_pooling_table[sample_pooling_table["sample_name"] == mux_row["sample_name"]].iterrows():
                 pooling_data["sample_name"].append(mux_row["demux_name"])
                 pooling_data["library_name"].append(pooling_row["library_name"])
-        
+                pooling_data["mux_barcode"].append(mux_row["barcode_id"])
+                pooling_data["mux_type_id"].append(MUXType.TENX_ON_CHIP.id)
+                pooling_data["sample_pool"].append(mux_row["sample_name"])
+
+        sample_pooling_table = pd.DataFrame(pooling_data)
+        self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
+
         sample_table = pd.DataFrame(sample_data)
         sample_table["sample_id"] = None
-        sample_table["mux_type_id"] = self.metadata["mux_type_id"]
-
-        pooling_table = pd.DataFrame(pooling_data)
-
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
@@ -136,8 +137,6 @@ class OCMAnnotationForm(MultiStepForm):
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
         self.update_table("sample_table", sample_table, update_data=False)
-        self.update_table("pooling_table", pooling_table, update_data=False)
-        self.add_table("mux_table", self.mux_table)
         self.update_data()
 
         if FeatureAnnotationForm.is_applicable(self):
