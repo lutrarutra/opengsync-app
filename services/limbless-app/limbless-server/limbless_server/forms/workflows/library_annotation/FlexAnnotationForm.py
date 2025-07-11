@@ -6,7 +6,7 @@ from flask import Response, url_for
 from wtforms import BooleanField
 
 from limbless_db import models
-from limbless_db.categories import LibraryType
+from limbless_db.categories import LibraryType, MUXType, SubmissionType
 
 from .... import logger, tools, db
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
@@ -27,6 +27,13 @@ class FlexAnnotationForm(MultiStepForm):
     ]
 
     single_plex = BooleanField("Single-Plex (do not fill the spreadsheet)", description="Samples were not multiplexed, i.e. one sample per library.", default=False)
+
+    @staticmethod
+    def is_applicable(current_step: MultiStepForm, seq_request: models.SeqRequest) -> bool:
+        return (
+            seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] and
+            LibraryType.TENX_SC_GEX_FLEX.id in current_step.tables["library_table"]["library_type_id"].values
+        )
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
@@ -95,33 +102,33 @@ class FlexAnnotationForm(MultiStepForm):
                 raise Exception("Flex table is None.")
             
             sample_table = self.tables["sample_table"]
-            pooling_table = self.tables["pooling_table"]
-            logger.debug(pooling_table)
+            sample_pooling_table = self.tables["sample_pooling_table"]
+
             sample_data = {
                 "sample_name": [],
-                "flex_barcode": [],
             }
 
             pooling_data = {
                 "sample_name": [],
                 "library_name": [],
+                "sample_pool": [],
+                "mux_barcode": [],
+                "mux_type_id": [],
             }
 
             for _, flex_row in self.flex_table.iterrows():
                 sample_data["sample_name"].append(flex_row["demux_name"])
-                sample_data["flex_barcode"].append(flex_row["barcode_id"])
-                for _, pooling_row in pooling_table[pooling_table["sample_name"] == flex_row["sample_name"]].iterrows():
+                for _, pooling_row in sample_pooling_table[sample_pooling_table["sample_name"] == flex_row["sample_name"]].iterrows():
                     pooling_data["sample_name"].append(flex_row["demux_name"])
                     pooling_data["library_name"].append(pooling_row["library_name"])
+                    pooling_data["mux_barcode"].append(flex_row["barcode_id"])
+                    pooling_data["sample_pool"].append(flex_row["sample_name"])
 
+            sample_pooling_table = pd.DataFrame(pooling_data)
+            self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
+            
             sample_table = pd.DataFrame(sample_data)
-            sample_table["cmo_sequence"] = None
-            sample_table["cmo_pattern"] = None
-            sample_table["cmo_read"] = None
             sample_table["sample_id"] = None
-            pooling_table = pd.DataFrame(pooling_data)
-            logger.debug(pooling_table)
-
             if (project_id := self.metadata.get("project_id")) is not None:
                 if (project := db.get_project(project_id)) is None:
                     logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
@@ -131,7 +138,6 @@ class FlexAnnotationForm(MultiStepForm):
                     sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
             self.update_table("sample_table", sample_table, update_data=False)
-            self.update_table("pooling_table", pooling_table, update_data=False)
             self.add_table("flex_table", self.flex_table)
             self.update_data()
         

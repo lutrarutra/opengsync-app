@@ -1,5 +1,5 @@
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-{% from 'components/form_group.jinja2' import form_group, select_input %}
+{% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
 {% from 'components/spinner.jinja2' import spinner %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
@@ -48,11 +48,13 @@
             </li>
         </ul>
         <div class="tab-content">
-            {{ select_input(form.assay_type) }}
+            <div class="d-flex align-items-center">
+                {{ select_input(form.assay_type, class="col-6") }}
+                {{ checkbox_input(form.ocm_multiplexing, class="opt-checkbox col-3 pt-3") }}
+                {{ checkbox_input(form.nuclei_isolation, class="col-3 pt-3") }}
+            </div>
             <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
-                {{ 
-                    spreadsheet_input(element=form.spreadsheet)
-                }}
+                {{ spreadsheet_input(element=form.spreadsheet) }}
             </div>
             <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
                 {% include "instructions/pooled_libraries.html" %}
@@ -90,11 +92,49 @@
         </div>
     </div>
     <script>
+        var assays = {
+            {% for assay_type in AssayType.as_list() %}
+            {{ assay_type.id }}: {
+                optional_library_types: [
+                    {% for library_type in assay_type.optional_library_types %}
+                    {{ library_type.id }},
+                    {% endfor %}
+                ],
+                oligo_multiplexing: {% if assay_type.oligo_multiplexing %}true{% else %}false{% endif %},
+                ocm_multiplexing: {% if assay_type.ocm_multiplexing %}true{% else %}false{% endif %}
+            },
+            {% endfor %}
+        };
+
+        function update_optional_assays() {
+            const assay_id = $("#assay_type").val();
+            console.log(assay_id);
+            if (assay_id == -1) {
+                $("#ocm_multiplexing").addClass("disabled");
+                $("#ocm_multiplexing").prop("disabled", true);
+                $("#ocm_multiplexing").prop("checked", false);
+                return;
+            }
+            const ocm_multiplexing = assays[assay_id].ocm_multiplexing;
+            
+            if (ocm_multiplexing) {
+                $("#ocm_multiplexing").removeClass("disabled");
+                $("#ocm_multiplexing").prop("disabled", false);
+            } else {
+                $("#ocm_multiplexing").addClass("disabled");
+                $("#ocm_multiplexing").prop("disabled", true);
+                $("#ocm_multiplexing").prop("checked", false);
+            }
+        }
+
         $(document).ready(function() {
             init_tooltips();
+            update_optional_assays();
             window.onbeforeunload = function() {
                 return "Data will be lost if you leave the page, are you sure?";
             };
+
+            $("#assay_type").on("change", update_optional_assays);
 
             $("#parse-spreadsheet-btn").on("click", function() {
                 var data = spread_sheet.getData();
@@ -106,6 +146,8 @@
                         "spreadsheet": JSON.stringify(data),
                         "csrf_token": "{{ form.spreadsheet.csrf_token }}",
                         "assay_type": $("#assay_type").val(),
+                        "ocm_multiplexing": $("#ocm_multiplexing").is(":checked"),
+                        "nuclei_isolation": $("#nuclei_isolation").is(":checked"),
                         "columns": JSON.stringify(spread_sheet.getHeaders()),
                     },
                 });

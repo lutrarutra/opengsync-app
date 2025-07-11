@@ -3,6 +3,7 @@ from typing import Optional
 import pandas as pd
 
 from flask import Response, url_for
+from wtforms import BooleanField
 
 from limbless_db import models
 from limbless_db.categories import LibraryType, GenomeRef
@@ -12,17 +13,20 @@ from ....tools import tools
 from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
-from .CMOAnnotationForm import CMOAnnotationForm
+from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
+from .OCMAnnotationForm import OCMAnnotationForm
 
 
 class LibraryAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-library_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "library_annotation"
+
+    nuclei_isolation = BooleanField("Nuclei Isolation", default=False, description="I want you to isolate nuclei from my samples before sequencing.")
 
     columns = [
         TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
@@ -114,6 +118,8 @@ class LibraryAnnotationForm(MultiStepForm):
         self.__map_genome_ref()
         self.__map_existing_samples()
 
+        self.metadata["nuclei_isolation"] = self.nuclei_isolation.data
+
         sample_table_data = {
             "sample_name": [],
         }
@@ -128,7 +134,7 @@ class LibraryAnnotationForm(MultiStepForm):
             "seq_depth": [],
         }
 
-        pooling_table = {
+        sample_pooling_table = {
             "sample_name": [],
             "library_name": [],
         }
@@ -148,17 +154,13 @@ class LibraryAnnotationForm(MultiStepForm):
                 library_table_data["library_type_id"].append(row["library_type_id"])
                 library_table_data["seq_depth"].append(row["seq_depth"])
 
-                pooling_table["sample_name"].append(sample_name)
-                pooling_table["library_name"].append(library_name)
+                sample_pooling_table["sample_name"].append(sample_name)
+                sample_pooling_table["library_name"].append(library_name)
 
         library_table = pd.DataFrame(library_table_data)
 
         sample_table = pd.DataFrame(sample_table_data)
         sample_table["sample_id"] = None
-        sample_table["cmo_sequence"] = None
-        sample_table["cmo_pattern"] = None
-        sample_table["cmo_read"] = None
-        sample_table["flex_barcode"] = None
 
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
@@ -168,20 +170,23 @@ class LibraryAnnotationForm(MultiStepForm):
             for sample in project.samples:
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
-        pooling_table = pd.DataFrame(pooling_table)
+        sample_pooling_table = pd.DataFrame(sample_pooling_table)
+        sample_pooling_table["mux_type_id"] = None
 
         self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)
-        self.add_table("pooling_table", pooling_table)
+        self.add_table("sample_pooling_table", sample_pooling_table)
         self.update_data()
         
-        if library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
-            next_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        if OCMAnnotationForm.is_applicable(self):
+            next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        if OligoMuxAnnotationForm.is_applicable(self):
+            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+        elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

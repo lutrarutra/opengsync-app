@@ -18,7 +18,7 @@
                     table_col(
                         table_container_id='lab_prep-table', column_name='Name', column_var='name',
                         sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=5, query_url='lab_preps_htmx.table_query', current_query=current_query,
+                        col_size=4, query_url='lab_preps_htmx.table_query', current_query=current_query,
                         active_query_field=active_query_field, query_type="text"
                     )
                 }}
@@ -51,7 +51,7 @@
             <tr>
                 <th scope="row">{{ lab_prep.id }}</th>
                 <td><a href="{{ url_for('lab_preps_page.lab_prep_page', lab_prep_id=lab_prep.id) }}">{{ lab_prep.display_name }}</a></td>
-                <td>{{ lab_prep.protocol }}</td>
+                <td>{{ lab_prep.protocol.name }}</td>
                 <td>{{ lab_prep.status.name }} {{ lab_prep.status.icon }}</td>
                 <td><a href="{{ url_for('users_page.user_page', user_id=lab_prep.creator_id) }}">{{ lab_prep.creator.name }} <span class="desc">{{ "me" if current_user.id == lab_prep.creator_id }}</span></a></td>
             </tr>

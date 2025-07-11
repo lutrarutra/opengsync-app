@@ -53,7 +53,7 @@ def get_experiment_libraries_df(
     if include_sample:
         columns.extend([
             models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-            models.links.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.links.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.links.SampleLibraryLink.cmo_read.label("cmo_read"),
+            models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
         ])
 
     query = sa.select(*columns).where(
@@ -108,6 +108,7 @@ def get_experiment_libraries_df(
 
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
     df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
+    df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
 
     order = [
         "lane", "library_id", "sample_name", "library_name", "library_type", "reference", "pool_name",
@@ -374,8 +375,7 @@ def get_library_features_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
 def get_library_samples_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.links.SampleLibraryLink.cmo_sequence, models.links.SampleLibraryLink.cmo_pattern, models.links.SampleLibraryLink.cmo_read,
-        models.links.SampleLibraryLink.flex_barcode
+        models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
     ).join(
         models.links.SampleLibraryLink,
         models.links.SampleLibraryLink.sample_id == models.Sample.id
@@ -384,6 +384,7 @@ def get_library_samples_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
     )
 
     df = pd.read_sql(query, self._engine).sort_values("sample_id")
+    df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
 
     return df
 
@@ -446,7 +447,7 @@ def get_seq_request_samples_df(
     query = sa.select(
         models.SeqRequest.id.label("seq_request_id"),
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.links.SampleLibraryLink.cmo_sequence.label("cmo_sequence"), models.links.SampleLibraryLink.cmo_pattern.label("cmo_pattern"), models.links.SampleLibraryLink.cmo_read.label("cmo_read"),
+        models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
@@ -473,6 +474,7 @@ def get_seq_request_samples_df(
 
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
     df["genome_ref"] = df["genome_ref_id"].apply(lambda x: categories.LibraryType.get(x) if pd.notna(x) else None)  # type: ignore
+    df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
 
     return df
 
@@ -726,8 +728,7 @@ def get_lab_prep_samples_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
         models.Library.type_id.label("library_type_id"), models.Library.sample_name.label("sample_pool"),
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.links.SampleLibraryLink.cmo_sequence, models.links.SampleLibraryLink.cmo_pattern, models.links.SampleLibraryLink.cmo_read,
-        models.links.SampleLibraryLink.flex_barcode
+        models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
     ).where(
         models.Library.lab_prep_id == lab_prep_id
     ).join(
@@ -740,6 +741,7 @@ def get_lab_prep_samples_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame
 
     df = pd.read_sql(query, self._engine).sort_values(["library_id", "sample_id"])
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
+    df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
     return df
 
 

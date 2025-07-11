@@ -7,7 +7,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from . import links
 from .Base import Base
 from .SeqRequest import SeqRequest
-from ..categories import LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef, GenomeRefEnum, AssayType, AssayTypeEnum
+from ..categories import (
+    LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef,
+    GenomeRefEnum, AssayType, AssayTypeEnum, MUXType, MUXTypeEnum
+)
 
 if TYPE_CHECKING:
     from .Pool import Pool
@@ -32,9 +35,11 @@ class Library(Base):
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     genome_ref_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     assay_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    mux_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
 
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
+    nuclei_isolation: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
     seq_depth_requested: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Float, nullable=True, default=None)
     volume: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
@@ -107,6 +112,19 @@ class Library(Base):
     @assay_type.setter
     def assay_type(self, value: AssayTypeEnum):
         self.assay_type_id = value.id
+
+    @property
+    def mux_type(self) -> MUXTypeEnum | None:
+        if self.mux_type_id is None:
+            return None
+        return MUXType.get(self.mux_type_id)
+    
+    @mux_type.setter
+    def mux_type(self, value: MUXTypeEnum | None):
+        if value is None:
+            self.mux_type_id = None
+        else:
+            self.mux_type_id = value.id
     
     @property
     def qubit_concentration_str(self) -> str:
@@ -131,7 +149,7 @@ class Library(Base):
         return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
     
     def is_multiplexed(self) -> bool:
-        return self.num_samples > 1
+        return self.mux_type_id is not None
     
     def is_editable(self) -> bool:
         return self.status == LibraryStatus.DRAFT

@@ -7,7 +7,10 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from limbless_db import models
-from limbless_db.categories import GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType, AssayType, SubmissionType
+from limbless_db.categories import (
+    GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType,
+    AssayType, SubmissionType, MUXType
+)
 
 from .... import db, logger, tools
 from ...MultiStepForm import MultiStepForm
@@ -29,14 +32,21 @@ class CompleteSASForm(MultiStepForm):
 
         self.library_table = self.tables["library_table"]
         self.sample_table = self.tables["sample_table"]
-        self.pooling_table = self.tables["pooling_table"]
+        self.sample_pooling_table = self.tables["sample_pooling_table"]
         self.barcode_table = self.tables.get("barcode_table")
         self.pool_table = self.tables.get("pool_table")
         self.feature_table = self.tables.get("feature_table")
-        self.cmo_table = self.tables.get("cmo_table")
         self.visium_table = self.tables.get("visium_table")
         self.flex_table = self.tables.get("flex_table")
         self.comment_table = self.tables.get("comment_table")
+        self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] is not None else None
+        self._context["mux_type"] = self.mux_type
+
+        if self.barcode_table is not None:
+            self.barcode_table["pool"] = None
+            for (library_name, pool_name), _ in self.library_table.groupby(["library_name", "pool"]):
+                self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "pool"] = pool_name
+            self.barcode_table = tools.check_indices(self.barcode_table, groupby="pool")
         
         if not formdata:
             self.__prepare()
@@ -44,16 +54,9 @@ class CompleteSASForm(MultiStepForm):
     def __prepare(self):
         self._context["library_table"] = self.library_table
         self._context["sample_table"] = self.sample_table
-        self._context["pooling_table"] = self.pooling_table
-        if self.barcode_table is not None:
-            logger.debug(self.barcode_table[["sequence_i7", "library_name", "name_i7"]])
-            self.barcode_table["pool"] = None
-            for (library_name, pool_name), _ in self.library_table.groupby(["library_name", "pool"]):
-                self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "pool"] = pool_name
-            barcode_table = tools.check_indices(self.barcode_table, groupby="pool")
-        self._context["barcode_table"] = barcode_table
+        self._context["sample_pooling_table"] = self.sample_pooling_table
+        self._context["barcode_table"] = self.barcode_table
         self._context["feature_table"] = self.feature_table
-        self._context["cmo_table"] = self.cmo_table
         self._context["visium_table"] = self.visium_table
         self._context["flex_table"] = self.flex_table
         self._context["comment_table"] = self.comment_table
@@ -75,7 +78,7 @@ class CompleteSASForm(MultiStepForm):
 
         library_nodes = {}
 
-        for sample_name, _df in self.pooling_table.groupby("sample_name"):
+        for sample_name, _df in self.sample_pooling_table.groupby("sample_name"):
             sample_node = {
                 "node": node_idx,
                 "name": sample_name,
@@ -86,7 +89,7 @@ class CompleteSASForm(MultiStepForm):
             links.append({
                 "source": project_node["node"],
                 "target": sample_node["node"],
-                "value": LINK_WIDTH_UNIT * len(self.pooling_table[self.pooling_table["sample_name"] == sample_name]),
+                "value": LINK_WIDTH_UNIT * len(self.sample_pooling_table[self.sample_pooling_table["sample_name"] == sample_name]),
             })
 
             for _, row in _df.iterrows():
@@ -115,7 +118,7 @@ class CompleteSASForm(MultiStepForm):
                             links.append({
                                 "source": library_node["node"],
                                 "target": pool_node["node"],
-                                "value": LINK_WIDTH_UNIT * len(self.pooling_table[self.pooling_table["library_name"] == row["library_name"]]),
+                                "value": LINK_WIDTH_UNIT * len(self.sample_pooling_table[self.sample_pooling_table["library_name"] == row["library_name"]]),
                             })
 
                 links.append({
@@ -132,8 +135,8 @@ class CompleteSASForm(MultiStepForm):
         self.update_table("library_table", self.library_table, False)
         if self.visium_table is not None:
             self.update_table("visium_table", self.visium_table, False)
-        if self.cmo_table is not None:
-            self.update_table("cmo_table", self.cmo_table, False)
+        if self.sample_pooling_table is not None:
+            self.update_table("sample_pooling_table", self.sample_pooling_table, False)
 
         self.update_data()
 
@@ -258,6 +261,8 @@ class CompleteSASForm(MultiStepForm):
                 visium_annotation_id=visium_annotation_id,
                 pool_id=pool_id,
                 assay_type=assay_type,
+                mux_type=self.mux_type,
+                nuclei_isolation=self.metadata.get("nuclei_isolation", False),
                 seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
             )
 
@@ -278,16 +283,41 @@ class CompleteSASForm(MultiStepForm):
                         name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
                     )
 
-            library_samples = self.pooling_table[self.pooling_table["library_name"] == library_row["library_name"]]["sample_name"].values
-            for _, sample_row in self.sample_table[self.sample_table["sample_name"].isin(library_samples)].iterrows():
-                db.link_sample_library(
-                    sample_id=sample_row["sample_id"],
-                    library_id=library.id,
-                    cmo_sequence=sample_row["cmo_sequence"] if pd.notna(sample_row["cmo_sequence"]) else None,
-                    cmo_pattern=sample_row["cmo_pattern"] if pd.notna(sample_row["cmo_pattern"]) else None,
-                    cmo_read=sample_row["cmo_read"] if pd.notna(sample_row["cmo_read"]) else None,
-                    flex_barcode=sample_row["flex_barcode"] if pd.notna(sample_row["flex_barcode"]) else None,
-                )
+            for _, pooling_row in self.sample_pooling_table[self.sample_pooling_table["library_name"] == library_row["library_name"]].iterrows():
+                if pooling_row["mux_type_id"] == MUXType.TENX_FLEX_PROBE.id:
+                    if pd.isna(pooling_row["mux_barcode"]):
+                        logger.error(f"{self.uuid}: Mux barcode is required for TENX_FLEX_PROBE mux type.")
+                        raise ValueError("Mux barcode is required for TENX_FLEX_PROBE mux type.")
+                    mux = {"barcode": pooling_row["mux_barcode"]}
+                    mux_type = MUXType.TENX_FLEX_PROBE
+                elif pooling_row["mux_type_id"] in [MUXType.TENX_OLIGO.id]:
+                    if pd.isna(pooling_row["mux_barcode"]):
+                        logger.error(f"{self.uuid}: Mux barcode is required for TENX_CMO mux type.")
+                        raise ValueError("Mux barcode is required for TENX_CMO mux type.")
+                    if pd.isna(pooling_row["mux_pattern"]):
+                        logger.error(f"{self.uuid}: Mux pattern is required for TENX_CMO mux type.")
+                        raise ValueError("Mux pattern is required for TENX_CMO mux type.")
+                    if pd.isna(pooling_row["mux_read"]):
+                        logger.error(f"{self.uuid}: Mux read is required for TENX_CMO mux type.")
+                        raise ValueError("Mux read is required for TENX_CMO mux type.")
+                    mux = {
+                        "barcode": pooling_row["mux_barcode"],
+                        "pattern": pooling_row["mux_pattern"],
+                        "read": pooling_row["mux_read"]
+                    }
+                    mux_type = MUXType.get(pooling_row["mux_type_id"])
+                elif pooling_row["mux_type_id"] == MUXType.TENX_ON_CHIP.id:
+                    mux = {"barcode": pooling_row["mux_barcode"]}
+                    mux_type = MUXType.TENX_ON_CHIP
+                else:
+                    mux = None
+                    mux_type = None
+                
+                sample_ids = self.sample_table[self.sample_table["sample_name"] == pooling_row["sample_name"]]["sample_id"].values
+                if len(sample_ids) != 1:
+                    logger.error(f"{self.uuid}: Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
+                    raise ValueError(f"Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
+                db.link_sample_library(sample_id=sample_ids[0], library_id=library.id, mux=mux, mux_type=mux_type)
 
         self.library_table["library_id"] = self.library_table["library_id"].astype(int)
 
@@ -315,24 +345,38 @@ class CompleteSASForm(MultiStepForm):
             self.feature_table["feature_id"] = self.feature_table["feature_id"].astype(int)
             
         if self.comment_table is not None:
-            for _, library_row in self.comment_table.iterrows():
-                if library_row["context"] == "visium_instructions":
-                    _ = db.create_comment(
-                        text=f"Visium data instructions: {library_row['text']}",
+            for _, comment_row in self.comment_table.iterrows():
+                if comment_row["context"] == "visium_instructions":
+                    db.create_comment(
+                        text=f"Visium data instructions: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
-                elif library_row["context"] == "custom_genome_reference":
-                    _ = db.create_comment(
-                        text=f"Custom genome reference: {library_row['text']}",
+                elif comment_row["context"] == "custom_genome_reference":
+                    db.create_comment(
+                        text=f"Custom genome reference: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
-                elif library_row["context"] == "assay_tech_selection":
-                    _ = db.create_comment(
-                        text=f"Additional info from assay selection: {library_row['text']}",
+                elif comment_row["context"] == "assay_tech_selection":
+                    db.create_comment(
+                        text=f"Additional info from assay selection: {comment_row['text']}",
+                        author_id=user.id, seq_request_id=self.seq_request.id
+                    )
+                elif comment_row["context"] == "i7_option":
+                    db.create_comment(
+                        text=comment_row['text'],
+                        author_id=user.id, seq_request_id=self.seq_request.id
+                    )
+                elif comment_row["context"] == "i5_option":
+                    db.create_comment(
+                        text=comment_row['text'],
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 else:
-                    raise ValueError(f"Unknown comment context: {library_row['context']}")
+                    logger.warning(f"Unknown comment context: {comment_row['context']}")
+                    db.create_comment(
+                        text=comment_row["context"].replace("_", " ").capitalize() + ": " + comment_row["text"],
+                        author_id=user.id, seq_request_id=self.seq_request.id
+                    )
 
         self.__update_data()
 

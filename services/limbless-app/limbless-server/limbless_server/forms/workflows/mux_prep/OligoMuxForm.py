@@ -7,17 +7,17 @@ from flask_htmx import make_response
 from wtforms import FormField
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, LibraryStatus
+from limbless_db.categories import LibraryType, LibraryStatus, MUXType
 
 from .... import logger, tools, db  # noqa F401
-from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, SpreadSheetColumn, DuplicateCellValue
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...SearchBar import OptionalSearchBar
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class CMOMuxForm(MultiStepForm):
-    _template_path = "workflows/mux_prep/mux_prep-cmo_annotation.html"
+class OligoMuxForm(MultiStepForm):
+    _template_path = "workflows/mux_prep/mux_prep-oligo_mux_annotation.html"
     _workflow_name = "mux_prep"
     _step_name = "cmo_mux"
 
@@ -34,8 +34,8 @@ class CMOMuxForm(MultiStepForm):
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
         MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=CMOMuxForm._workflow_name,
-            step_name=CMOMuxForm._step_name, step_args={"multiplexing_type": "cmo"}
+            self, uuid=uuid, formdata=formdata, workflow=OligoMuxForm._workflow_name,
+            step_name=OligoMuxForm._step_name, step_args={"multiplexing_type": "cmo"}
         )
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
@@ -44,12 +44,12 @@ class CMOMuxForm(MultiStepForm):
             csrf_token = self.csrf_token._value()  # type: ignore
 
         self.sample_table = db.get_lab_prep_samples_df(lab_prep.id)
-        mux_pools = self.sample_table[self.sample_table["library_type"] == LibraryType.TENX_MULTIPLEXING_CAPTURE]["sample_pool"]
+        mux_pools = self.sample_table[self.sample_table["library_type"].isin([LibraryType.TENX_MUX_OLIGO])]["sample_pool"]
         self.sample_table = self.sample_table[self.sample_table["sample_pool"].isin(mux_pools)]
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
-            post_url=url_for("mux_prep_workflow.parse_cmo_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
+            post_url=url_for("mux_prep_workflow.parse_oligo_mux_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
             formdata=formdata, df=self.__get_template()
         )
 
@@ -64,14 +64,14 @@ class CMOMuxForm(MultiStepForm):
             "read": [],
         }
 
-        for _, row in self.sample_table[self.sample_table["library_type"] == LibraryType.TENX_MULTIPLEXING_CAPTURE].iterrows():
+        for _, row in self.sample_table[self.sample_table["library_type"].isin([LibraryType.TENX_MUX_OLIGO])].iterrows():
             template_data["sample_pool"].append(row["sample_pool"])
             template_data["demux_name"].append(row["sample_name"])
             template_data["kit"].append(None)
             template_data["feature"].append(None)
-            template_data["sequence"].append(row["cmo_sequence"])
-            template_data["pattern"].append(row["cmo_pattern"])
-            template_data["read"].append(row["cmo_read"])
+            template_data["sequence"].append(row["mux_barcode"])
+            template_data["pattern"].append(row["mux_pattern"])
+            template_data["read"].append(row["mux_read"])
 
         return pd.DataFrame(template_data)
 
@@ -149,10 +149,18 @@ class CMOMuxForm(MultiStepForm):
         read_map = self.df.set_index("demux_name")["read"].to_dict()
         
         self.sample_table["new_sample_pool"] = self.sample_table["sample_name"].apply(lambda x: sample_pool_map[x])
-        self.sample_table["cmo_sequence"] = self.sample_table["sample_name"].apply(lambda x: sequence_map[x])
-        self.sample_table["cmo_pattern"] = self.sample_table["sample_name"].apply(lambda x: pattern_map[x])
-        self.sample_table["cmo_read"] = self.sample_table["sample_name"].apply(lambda x: read_map[x])
+        self.sample_table["mux_barcode"] = self.sample_table["sample_name"].apply(lambda x: sequence_map[x])
+        self.sample_table["mux_pattern"] = self.sample_table["sample_name"].apply(lambda x: pattern_map[x])
+        self.sample_table["mux_read"] = self.sample_table["sample_name"].apply(lambda x: read_map[x])
+        self.sample_table["mux_type_id"] = None
 
+        for (sample_pool, library_type), df in self.sample_table.groupby(["sample_pool", "library_type"]):
+            if library_type == LibraryType.TENX_MUX_OLIGO:
+                self.sample_table.loc[df.index, "mux_type_id"] = MUXType.TENX_OLIGO.id
+            else:
+                logger.error(f"Library type {library_type} is not supported for CMO multiplexing.")
+                raise Exception(f"Library type {library_type} is not supported for CMO multiplexing.")
+                
         libraries: dict[str, models.Library] = dict()
         old_libraries: list[int] = []
         
@@ -180,6 +188,7 @@ class CMOMuxForm(MultiStepForm):
                     lab_prep_id=self.lab_prep.id,
                     genome_ref=old_library.genome_ref,
                     assay_type=old_library.assay_type,
+                    nuclei_isolation=old_library.nuclei_isolation,
                 )
                 libraries[lib] = new_library
             else:
@@ -187,7 +196,12 @@ class CMOMuxForm(MultiStepForm):
 
             db.link_sample_library(
                 sample_id=sample.id, library_id=new_library.id,
-                cmo_sequence=row["cmo_sequence"], cmo_pattern=row["cmo_pattern"], cmo_read=row["cmo_read"]
+                mux={
+                    "barcode": row["mux_barcode"],
+                    "pattern": row["mux_pattern"],
+                    "read": row["mux_read"],
+                },
+                mux_type=MUXType.get(row["mux_type_id"])
             )
             new_library.features = old_library.features
             new_library = db.update_library(new_library)

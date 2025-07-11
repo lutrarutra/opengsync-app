@@ -10,13 +10,14 @@ from .PoolMappingForm import PoolMappingForm    # noqa: F401
 from .BarcodeInputForm import BarcodeInputForm  # noqa: F401
 from .IndexKitMappingForm import IndexKitMappingForm  # noqa: F401
 from .VisiumAnnotationForm import VisiumAnnotationForm  # noqa: F401
-from .CMOAnnotationForm import CMOAnnotationForm    # noqa: F401
+from .OligoMuxAnnotationForm import OligoMuxAnnotationForm    # noqa: F401
 from .KitMappingForm import KitMappingForm    # noqa: F401
 from .FeatureAnnotationForm import FeatureAnnotationForm  # noqa: F401
 from .FlexAnnotationForm import FlexAnnotationForm  # noqa: F401
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm  # noqa: F401
 from .CompleteSASForm import CompleteSASForm  # noqa: F401
 from .BarcodeMatchForm import BarcodeMatchForm  # noqa: F401
+from .OCMAnnotationForm import OCMAnnotationForm  # noqa: F401
 
 
 if TYPE_CHECKING:
@@ -35,12 +36,13 @@ _steps: list[type["MultiStepForm"]] = [
     BarcodeMatchForm,
     IndexKitMappingForm,
     VisiumAnnotationForm,
-    CMOAnnotationForm,
+    OligoMuxAnnotationForm,
     KitMappingForm,
     FeatureAnnotationForm,
     FlexAnnotationForm,
     SampleAttributeAnnotationForm,
     CompleteSASForm,
+    OCMAnnotationForm,
 ]
 
 steps = dict([(s._step_name, s) for s in _steps])

@@ -33,6 +33,27 @@ table input.table-query-input{
     }
 
     table {
+        thead {
+            tr {
+                th.sortable-col {
+                    .asc { cursor: n-resize; }
+                    .desc { cursor: s-resize; }
+                }
+
+                th {
+                    cursor: default;
+                    user-select: none;
+                    -webkit-user-select: none; /* Safari */
+                    -moz-user-select: none;    /* Firefox */
+                    -ms-user-select: none;     /* IE/Edge */
+                }
+            }
+        }
+        tbody {
+            tr { cursor: pointer; }
+            tr.disabled { cursor: not-allowed; }
+            tr .table-cell-tooltip { cursor: pointer; }
+        }
         width: 100%;
 
         thead, tbody {
@@ -93,7 +114,12 @@ table input.table-query-input{
                 padding-left: 8px !important;
             }
 
-            td:has(a) {
+            td span a {
+                padding-right: 0px !important;
+                padding-left: 0px !important;
+            }
+
+            td:has(> a) {
                 padding: 0 !important;
                 margin: 0 !important;
             }
@@ -165,26 +191,6 @@ table input.table-query-input{
     }
 }
 
-.table-cursor {
-    thead {
-        tr {
-            th.sortable-col {
-                .asc { cursor: n-resize; }
-                .desc { cursor: s-resize; }
-            }
-
-            th {
-                cursor: default;
-            }
-        }
-    }
-    tbody {
-        tr { cursor: pointer; }
-        tr.disabled { cursor: not-allowed; }
-        tr .table-cell-tooltip { cursor: pointer; }
-    }
-}
-
 .table tbody {
     td, th {
         vertical-align: middle;
@@ -192,6 +198,10 @@ table input.table-query-input{
 
     td .badge {
         background-color: $cemm-blue;
+    }
+
+    td sup {
+        color: $gray-500 !important;
     }
 
     tr:hover {

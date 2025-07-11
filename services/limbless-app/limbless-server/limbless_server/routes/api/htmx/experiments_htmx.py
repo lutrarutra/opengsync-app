@@ -165,9 +165,9 @@ def query():
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/render_lane_pooling_tables/<int:file_id>", methods=["GET"])
+@experiments_htmx.route("<int:experiment_id>/render_lane_sample_pooling_tables/<int:file_id>", methods=["GET"])
 @login_required
-def render_lane_pooling_tables(experiment_id: int, file_id: int):
+def render_lane_sample_pooling_tables(experiment_id: int, file_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
         

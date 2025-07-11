@@ -44,7 +44,6 @@ class DefineSamplesForm(MultiStepForm):
         )
 
         self.assay_type = AssayType.get(int(self.metadata["assay_type_id"]))
-        self.antibody_multiplexing = self.metadata["antibody_multiplexing"]
         self.nuclei_isolation = self.metadata["nuclei_isolation"]
         self.antibody_capture = self.metadata["antibody_capture"]
         self.vdj_b = self.metadata["vdj_b"]
@@ -82,8 +81,6 @@ class DefineSamplesForm(MultiStepForm):
             selected_library_types.append(LibraryType.TENX_VDJ_T_GD.abbreviation)
         if self.crispr_screening:
             selected_library_types.append(LibraryType.TENX_CRISPR_SCREENING.abbreviation)
-        if self.antibody_multiplexing:
-            selected_library_types.append(LibraryType.TENX_MULTIPLEXING_CAPTURE.abbreviation)
 
         for idx, row in df.iterrows():
             if sample_name_counts[row["sample_name"]] > 1:
@@ -124,7 +121,7 @@ class DefineSamplesForm(MultiStepForm):
             "library_type_id": [],
         }
 
-        pooling_table = {
+        sample_pooling_table = {
             "sample_name": [],
             "library_name": [],
         }
@@ -132,8 +129,8 @@ class DefineSamplesForm(MultiStepForm):
         def add_library(sample_name: str, library_type: LibraryTypeEnum, genome: GenomeRefEnum):
             library_name = f"{sample_name}_{library_type.identifier}"
 
-            pooling_table["sample_name"].append(sample_name)
-            pooling_table["library_name"].append(library_name)
+            sample_pooling_table["sample_name"].append(sample_name)
+            sample_pooling_table["library_name"].append(library_name)
 
             library_table_data["library_name"].append(library_name)
             library_table_data["sample_name"].append(sample_name)
@@ -174,10 +171,6 @@ class DefineSamplesForm(MultiStepForm):
 
         sample_table = pd.DataFrame(sample_table_data)
         sample_table["sample_id"] = None
-        sample_table["cmo_sequence"] = None
-        sample_table["cmo_pattern"] = None
-        sample_table["cmo_read"] = None
-        sample_table["flex_barcode"] = None
 
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
@@ -187,16 +180,17 @@ class DefineSamplesForm(MultiStepForm):
             for sample in project.samples:
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
-        pooling_table = pd.DataFrame(pooling_table)
+        sample_pooling_table = pd.DataFrame(sample_pooling_table)
+        sample_pooling_table["mux_type_id"] = None
 
         self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)
-        self.add_table("pooling_table", pooling_table)
+        self.add_table("sample_pooling_table", sample_pooling_table)
         self.update_data()
 
-        if ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+        if FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

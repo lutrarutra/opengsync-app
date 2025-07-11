@@ -8,16 +8,17 @@ from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import BarcodeType, KitType, LibraryType
+from limbless_db.categories import BarcodeType, KitType, LibraryType, IndexType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SearchBar import SearchBar
-from .CMOAnnotationForm import CMOAnnotationForm
+from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .OCMAnnotationForm import OCMAnnotationForm
 
 
 class IndexKitSubForm(FlaskForm):
@@ -31,6 +32,10 @@ class IndexKitMappingForm(MultiStepForm):
     _step_name = "index_kit_mapping"
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
+
+    @staticmethod
+    def is_applicable(current_step: MultiStepForm) -> bool:
+        return current_step.tables["barcode_table"]["kit_i7"].notna().any()
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
@@ -225,17 +230,25 @@ class IndexKitMappingForm(MultiStepForm):
     def process_request(self) -> Response:
         if not self.validate():
             return self.make_response()
+        
+        self.barcode_table["index_type_id"] = None
+        self.barcode_table.loc[(self.barcode_table["sequence_i7"].notna() & self.barcode_table["sequence_i5"].notna()), "index_type_id"] = IndexType.DUAL_INDEX.id
+        self.barcode_table.loc[(self.barcode_table["sequence_i7"].notna() & self.barcode_table["sequence_i5"].isna()), "index_type_id"] = IndexType.SINGLE_INDEX.id
+        for (library_name, library_type_id), _ in self.library_table.groupby(["library_name", "library_type_id"]):
+            if LibraryType.get(library_type_id) == LibraryType.TENX_SC_ATAC:
+                self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "index_type_id"] = IndexType.TENX_ATAC_INDEX.id
 
         self.update_table("barcode_table", self.barcode_table)
         self.update_data()
-
-        if self.library_table["library_type_id"].isin([LibraryType.TENX_MULTIPLEXING_CAPTURE.id]).any():
-            next_form = CMOAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (self.library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        if OCMAnnotationForm.is_applicable(self):
+            next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif OligoMuxAnnotationForm.is_applicable(self):
+            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif ((self.library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (self.library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+        elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif LibraryType.TENX_SC_GEX_FLEX.id in self.library_table["library_type_id"].values:
+        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

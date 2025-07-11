@@ -47,11 +47,11 @@
                 Features ({{ feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) | length if feature_table is not none else "0" }})</button>
             </li>
             <li class="nav-item" role="presentation"
-            {% if cmo_table is none %}{{ tooltip("No cell multiplexing libraries detected.", category="warning") }}{% endif %}>
-                <button class="nav-link {% if cmo_table is none %}disabled{% endif %}" data-bs-toggle="tab"
-                data-bs-target="#cmo-tab" type="button" role="tab"
-                aria-controls="cmo-tab" aria-selected="true">
-                CMOs ({{ cmo_table.shape[0] if cmo_table is not none else "0" }})</button>
+            {% if not mux_type %}{{ tooltip("No cell multiplexing libraries detected.", category="warning") }}{% endif %}>
+                <button class="nav-link {% if not mux_type %}disabled{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#mux-tab" type="button" role="tab"
+                aria-controls="mux-tab" aria-selected="true">
+                Multiplexing ({{ sample_pooling_table.shape[0] if mux_type else "0" }})</button>
             </li>
             <li class="nav-item" role="presentation"
             {% if visium_table is none %}{{ tooltip("No visium libraries detected.", category="warning") }}{% endif %}>
@@ -131,19 +131,14 @@
                             <th scope="col" class="col-1">{{ col.removeprefix("_attr_").replace("_", " ").title() }}</th>
                             {% endif %}
                             {% endfor %}
-                            {% if cmo_table is not none %}
-                            <th scope="col" class="col-1">Sequence <span class="desc">HTO</span></th>
-                            <th scope="col" class="col-1">Pattern <span class="desc">HTO</span></th>
-                            <th scope="col" class="col-1">Read <span class="desc">HTO</span></th>
-                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for _, row in sample_table.iterrows() %}
                         <tr>
-                            <th scope="row">{{ row["sample_name"] }}</th>
+                            <th scope="row">{{ row["sample_name"] }} <span class="desc">{% if isna(row["sample_id"])%}new{% else %}existing{% endif %}</span></th>
                             <td>
-                                {% for library_name in pooling_table[pooling_table["sample_name"] == row["sample_name"]]["library_name"] %}
+                                {% for library_name in sample_pooling_table[sample_pooling_table["sample_name"] == row["sample_name"]]["library_name"] %}
                                 <span class="badge" >{{ library_table[library_table["library_name"] == library_name]["library_type"].values[0] }}</span>
                                 {% endfor %}
                             </td>
@@ -152,11 +147,6 @@
                             <td>{{ row[col] }}</td>
                             {% endif %}
                             {% endfor %}
-                            {% if cmo_table is not none %}
-                            <td>{{ row["cmo_sequence"] if row["sequence"] }}</td>
-                            <td>{{ row["cmo_pattern"] if row["pattern"] }}</td>
-                            <td>{{ row["cmo_read"] if row["read"] }}</td>
-                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -221,30 +211,44 @@
                 </table>
                 {% endif %}
             </div>
-            <div class="tab-pane fade" id="cmo-tab" role="tabpanel" tabindex="6">
-                {% if cmo_table is not none %}
+            <div class="tab-pane fade" id="mux-tab" role="tabpanel" tabindex="6">
+                {% if mux_type %}
                 <table class="table">
                     <thead>
                         <tr>
-                            <th scope="col" class="col-3">Demux Name</th>
-                            <th scope="col" class="col-2">Sample</th>
+                            <th scope="col" class="col-2">Sample Name</th>
+                            <th scope="col" class="col-2">Library Name</th>
+                            <th scope="col" class="col-2">Sample Pool</th>
+                            {% if mux_type == MUXType.TENX_OLIGO %}
                             <th scope="col" class="col-2">Kit</th>
                             <th scope="col" class="col-2">Feature</th>
                             <th scope="col" class="col-1">Sequence</th>
                             <th scope="col" class="col-1">Pattern</th>
                             <th scope="col" class="col-1">Read</th>
+                            {% elif mux_type == MUXType.TENX_ON_CHIP %}
+                            <th scope="col" class="col-2">Barcode ID</th>
+                            {% elif mux_type == MUXType.TENX_FLEX_PROBE %}
+                            <th scope="col" class="col-2">Barcode ID</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for _, row in cmo_table.iterrows() %}
+                        {% for _, row in sample_pooling_table.iterrows() %}
                         <tr>
-                            <th scope="row">{{ row["demux_name"] }}</th>
-                            <td>{{ row["sample_name"] }}</td>
+                            <th scope="row">{{ row["sample_name"] }}</th>
+                            <td>{{ row["library_name"] }}</td>
+                            <td>{{ row["sample_pool"] }}</td>
+                            {% if mux_type == MUXType.TENX_OLIGO %}
                             <td>{{ row["kit"] if row["kit"] }}</td>
                             <td>{{ row["feature"] if row["feature"] }}</td>
-                            <td>{{ row["sequence"] }}</td>
-                            <td>{{ row["pattern"] }}</td>
-                            <td>{{ row["read"] }}</td>
+                            <td>{{ row["mux_barcode"] }}</td>
+                            <td>{{ row["mux_pattern"] }}</td>
+                            <td>{{ row["mux_read"] }}</td>
+                            {% elif mux_type == MUXType.TENX_ON_CHIP %}
+                            <td>{{ row["mux_barcode"] }}</td>
+                            {% elif mux_type == MUXType.TENX_FLEX_PROBE %}
+                            <td>{{ row["mux_barcode"] }}</td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>

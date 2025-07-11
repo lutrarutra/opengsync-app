@@ -212,32 +212,33 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 seq_run = db.update_seq_run(seq_run)
                 continue
             
-            run = db.create_seq_run(
-                experiment_name=experiment_name,
-                status=status,
-                run_folder=run_name,
-                instrument_name=parsed_data["instrument"],
-                flowcell_id=parsed_data["flowcell_id"],
-                rta_version=parsed_data["rta_version"],
-                read_type=parsed_data["read_type"],
-                r1_cycles=parsed_data.get("r1_cycles"),
-                r2_cycles=parsed_data.get("r2_cycles"),
-                i1_cycles=parsed_data.get("i1_cycles"),
-                i2_cycles=parsed_data.get("i2_cycles"),
-                **metrics
-            )
-            if run.status == RunStatus.FINISHED:
-                if run.experiment is not None:
-                    run.experiment.status = ExperimentStatus.FINISHED
-                    for pool in run.experiment.pools:
-                        pool.status = PoolStatus.SEQUENCED
-                        for library in pool.libraries:
-                            library.status = LibraryStatus.SEQUENCED
-                run = db.update_seq_run(run)
-            elif run.status == RunStatus.RUNNING:
-                if run.experiment is not None:
-                    run.experiment.status = ExperimentStatus.SEQUENCING
-                run = db.update_seq_run(run)
+            with DBSession(db) as session:
+                run = session.create_seq_run(
+                    experiment_name=experiment_name,
+                    status=status,
+                    run_folder=run_name,
+                    instrument_name=parsed_data["instrument"],
+                    flowcell_id=parsed_data["flowcell_id"],
+                    rta_version=parsed_data["rta_version"],
+                    read_type=parsed_data["read_type"],
+                    r1_cycles=parsed_data.get("r1_cycles"),
+                    r2_cycles=parsed_data.get("r2_cycles"),
+                    i1_cycles=parsed_data.get("i1_cycles"),
+                    i2_cycles=parsed_data.get("i2_cycles"),
+                    **metrics
+                )
+                if run.status == RunStatus.FINISHED:
+                    if run.experiment is not None:
+                        run.experiment.status = ExperimentStatus.FINISHED
+                        for pool in run.experiment.pools:
+                            pool.status = PoolStatus.SEQUENCED
+                            for library in pool.libraries:
+                                library.status = LibraryStatus.SEQUENCED
+                    run = session.update_seq_run(run)
+                elif run.status == RunStatus.RUNNING:
+                    if run.experiment is not None:
+                        run.experiment.status = ExperimentStatus.SEQUENCING
+                    run = session.update_seq_run(run)
                     
             active_runs[experiment_name] = run
             logger.info("Added!")

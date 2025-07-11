@@ -1,4 +1,4 @@
-{% from 'components/form_group.jinja2' import form_group, select_input %}
+{% from 'components/form_group.jinja2' import form_group, select_input, radio_input %}
 {% from 'components/spinner.jinja2' import spinner %}
 
 <div id="barcode-match-container" class="modal-content">
@@ -40,6 +40,10 @@
                     {{ select_input(form.i7_kit, class="col-6") }}
                     {{ select_input(form.i5_kit, class="col-6") }}
                 </div>
+                <div class="row">
+                    {{ radio_input(form.i7_option, class="col-6") }}
+                    {{ radio_input(form.i5_option, class="col-6") }}
+                </div>
             </div>
             {% for (kit_id, kit), df in barcodes.groupby(["kit_id", "kit"]) %}
             <div class="tab-pane fade" id="index_kit-{{kit_id}}-tab" role="tabpanel" tabindex="{{ loop.index }}">
@@ -72,6 +76,32 @@
     <script>
         $(document).ready(function() {
             init_tooltips();
+
+            function toggleRadios($select, radioName) {
+                const shouldDisable = $select.val() !== "0";
+                const $radios = $(`input[name="${radioName}"]`);
+                $radios.prop('disabled', shouldDisable);
+
+                if (shouldDisable) {
+                    $radios.prop('checked', false); // clear selection
+                }
+            }
+
+            const $i7Kit = $('[name="i7_kit"]');
+            const $i5Kit = $('[name="i5_kit"]');
+
+            // Initial toggle
+            toggleRadios($i7Kit, "i7_option");
+            toggleRadios($i5Kit, "i5_option");
+
+            // Event listeners
+            $i7Kit.on('change', function () {
+                toggleRadios($i7Kit, "i7_option");
+            });
+
+            $i5Kit.on('change', function () {
+                toggleRadios($i5Kit, "i5_option");
+            });
         });
     </script>
 </div>

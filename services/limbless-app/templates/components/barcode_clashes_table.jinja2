@@ -46,8 +46,8 @@
             {% endif %}>{{ row["min_hamming_bases"] }} bp</td>
             <td class="barcode-cell">
                 {% if "name_i7" in df.columns and "name_i5" in df.columns %}
-                {% if row["name_i7"] == row["name_i5"] and row["name_i7"] is not none %}
-                <span class="badge index-badge index-badges-{{ uuid }}" >{{ row["name_i7"] }}aaa</span>
+                {% if row["name_i7"] == row["name_i5"] and row["name_i7"] %}
+                <span class="badge index-badge index-badges-{{ uuid }}" >{{ row["name_i7"] }}</span>
                 {% else %}
                 {% if row["name_i7"] %}
                 <span class="badge index-badge index-badges-{{ uuid }}">{{ row["name_i7"] }}{% if row["name_i5"] %}+{{ row["name_i5"] }}{% endif %}</span>

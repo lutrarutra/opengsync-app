@@ -31,12 +31,15 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     
     # Optional 10X modalities
     TENX_ANTIBODY_CAPTURE = LibraryTypeEnum(8, "10X Antibody Capture", "10X Antibody Capture", "10XABC", "Antibody Capture")
-    TENX_MULTIPLEXING_CAPTURE = LibraryTypeEnum(9, "10X Multiplexing Capture", "10X Multiplexing Capture", "10XHTO", "Multiplexing Capture")
+    TENX_MUX_OLIGO = LibraryTypeEnum(9, "10X Multiplexing Oligo Capture", "10X Oligo MUX", "10XOMUX", "Multiplexing Capture")
     TENX_CRISPR_SCREENING = LibraryTypeEnum(10, "10X CRISPR Screening", "10X CRISPR Screening", "10XCRISPR", "CRISPR Screening")
     TENX_VDJ_B = LibraryTypeEnum(11, "10X BCR Profiling (VDJ-B)", "10X VDJ B", "10XVDJB", "VDJ-B")
     TENX_VDJ_T = LibraryTypeEnum(12, "10X TCR alpha-beta Profiling (VDJ-T)", "10X VDJ T", "10XVDJT", "VDJ-T")
     TENX_VDJ_T_GD = LibraryTypeEnum(13, "10X TCR gamma-delta Profiling (VDJ-T-GD)", "10X VDJ T GD", "10XVDJTGD", "VDJ-T-GD")
     TENX_SC_ABC_FLEX = LibraryTypeEnum(14, "10X Flex Antibody Capture", "10X Flex ABC", "10XFLEXABC", "Antibody Capture")
+
+    # Special
+    OPENST = LibraryTypeEnum(50, "Open Spatial Transcriptomics", "Open-ST", "OPENST", "Spatial Transcriptomics")
 
     # RNA-seq
     POLY_A_RNA_SEQ = LibraryTypeEnum(101, "Poly-A RNA-Seq", "Poly-A RNA-Seq", "POLYARNA", "Gene Expression")
@@ -73,7 +76,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
             LabProtocol.TENX: [
                 LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_SC_ATAC, LibraryType.TENX_SC_GEX_3PRIME, LibraryType.TENX_SC_GEX_5PRIME,
                 LibraryType.TENX_VISIUM_HD, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM, LibraryType.TENX_ANTIBODY_CAPTURE,
-                LibraryType.TENX_MULTIPLEXING_CAPTURE, LibraryType.TENX_CRISPR_SCREENING, LibraryType.TENX_VDJ_B, LibraryType.TENX_VDJ_T,
+                LibraryType.TENX_MUX_OLIGO, LibraryType.TENX_CRISPR_SCREENING, LibraryType.TENX_VDJ_B, LibraryType.TENX_VDJ_T,
                 LibraryType.TENX_VDJ_T_GD, LibraryType.TENX_SC_ABC_FLEX
             ],
         }[lab_protocol]

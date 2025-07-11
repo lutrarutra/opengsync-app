@@ -7,7 +7,7 @@ from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
 from limbless_db import models
-from limbless_db.categories import LibraryType, FeatureType, KitType, SubmissionType
+from limbless_db.categories import LibraryType, FeatureType, KitType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
@@ -28,6 +28,12 @@ class KitMappingForm(MultiStepForm):
     _step_name = "kit_mapping"
     
     input_fields = FieldList(FormField(FeatureMappingSubForm), min_entries=1)
+
+    @staticmethod
+    def is_applicable(current_step: MultiStepForm) -> bool:
+        if "kit_table" not in current_step.tables:
+            return False
+        return current_step.tables["kit_table"]["kit_id"].isna().any()
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
@@ -193,8 +199,8 @@ class KitMappingForm(MultiStepForm):
                         )
         return pd.DataFrame(feature_data)
     
-    def get_cmos(self, cmo_table: pd.DataFrame) -> pd.DataFrame:
-        cmo_data = {
+    def get_sample_pooling_table(self, sample_pooling_table: pd.DataFrame) -> pd.DataFrame:
+        mux_data = {
             "demux_name": [],
             "sample_name": [],
             "kit": [],
@@ -213,17 +219,17 @@ class KitMappingForm(MultiStepForm):
             kit_id: Optional[int] = None,
             feature_id: Optional[int] = None
         ):
-            cmo_data["demux_name"].append(demux_name)
-            cmo_data["sample_name"].append(sample_name)
-            cmo_data["kit"].append(kit_name)
-            cmo_data["kit_id"].append(kit_id)
-            cmo_data["feature"].append(feature_name)
-            cmo_data["sequence"].append(sequence)
-            cmo_data["pattern"].append(pattern)
-            cmo_data["read"].append(read)
-            cmo_data["feature_id"].append(feature_id)
+            mux_data["demux_name"].append(demux_name)
+            mux_data["sample_name"].append(sample_name)
+            mux_data["kit"].append(kit_name)
+            mux_data["kit_id"].append(kit_id)
+            mux_data["feature"].append(feature_name)
+            mux_data["sequence"].append(sequence)
+            mux_data["pattern"].append(pattern)
+            mux_data["read"].append(read)
+            mux_data["feature_id"].append(feature_id)
 
-        for i, row in cmo_table.iterrows():
+        for i, row in sample_pooling_table.iterrows():
             # Custom CMO
             if pd.isna(kit_id := row["kit_id"]):
                 add_cmo(
@@ -252,7 +258,7 @@ class KitMappingForm(MultiStepForm):
                         read=feature.read
                     )
 
-        return pd.DataFrame(cmo_data)
+        return pd.DataFrame(mux_data)
     
     def process_request(self) -> Response:
         validated = self.validate()
@@ -260,24 +266,24 @@ class KitMappingForm(MultiStepForm):
             return self.make_response()
         
         library_table = self.tables["library_table"]
-        cmo_table = self.tables.get("cmo_table")
+        sample_pooling_table = self.tables.get("sample_pooling_table")
         feature_table = self.tables.get("feature_table")
 
         for _, row in self.kit_table.iterrows():
             if row["type_id"] == FeatureType.CMO.id:
-                if cmo_table is None:
-                    logger.error("CMO table should not be None")
-                    raise Exception("CMO table should not be None")
-                cmo_table.loc[cmo_table["kit"] == row["kit"], "kit_id"] = row["kit_id"]
+                if sample_pooling_table is None:
+                    logger.error("MUX table should not be None")
+                    raise Exception("MUX table should not be None")
+                sample_pooling_table.loc[sample_pooling_table["kit"] == row["kit"], "kit_id"] = row["kit_id"]
             elif row["type_id"] == FeatureType.ANTIBODY.id:
                 if feature_table is None:
                     logger.error("Feature table should not be None")
                     raise Exception("Feature table should not be None")
                 feature_table.loc[feature_table["kit"] == row["name"], "kit_id"] = row["kit_id"]
 
-        if cmo_table is not None:
-            cmo_table = self.get_cmos(cmo_table)
-            self.update_table("cmo_table", cmo_table, False)
+        if sample_pooling_table is not None:
+            sample_pooling_table = self.get_sample_pooling_table(sample_pooling_table)
+            self.update_table("sample_pooling_table", sample_pooling_table, False)
 
         if feature_table is not None:
             feature_table = self.get_features(library_table, feature_table)
@@ -286,9 +292,9 @@ class KitMappingForm(MultiStepForm):
         self.add_table("kit_table", self.kit_table)
         self.update_data()
 
-        if (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        if VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES and LibraryType.TENX_SC_GEX_FLEX.id in library_table["library_type_id"].values:
+        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

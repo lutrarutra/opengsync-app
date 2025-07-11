@@ -534,10 +534,10 @@ def get_comments(lab_prep_id: int):
     )
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/get_mux_table", methods=["GET"])
+@lab_preps_htmx.route("<int:lab_prep_id>/get_sample_pooling_table", methods=["GET"])
 @db_session(db)
 @login_required
-def get_mux_table(lab_prep_id: int):
+def get_sample_pooling_table(lab_prep_id: int):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -546,13 +546,13 @@ def get_mux_table(lab_prep_id: int):
     
     df = db.get_lab_prep_samples_df(lab_prep.id)
 
-    df = df[["sample_name", "sample_pool", "flex_barcode", "cmo_sequence", "cmo_pattern", "cmo_read", "library_name"]]
+    df = df[["sample_name", "sample_pool", "mux_barcode", "mux_barcode", "mux_pattern", "mux_read", "library_name"]]
 
     columns = []
     for i, col in enumerate(df.columns):
-        if col == "flex_barcode":
+        if col == "mux_barcode":
             width = 100
-        elif col == "cmo_read":
+        elif col == "mux_read":
             width = 100
         elif "cmo" in col:
             width = 200

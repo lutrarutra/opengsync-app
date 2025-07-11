@@ -2,15 +2,15 @@ import os
 import pytest
 
 from limbless_db import DBHandler, DBSession
-from limbless_db.categories import ExperimentWorkFlow
+from limbless_db.categories import ExperimentWorkFlow, MUXType
 
 from .create_units import (
-    create_user, create_project, create_contact, create_seq_request, create_sample, create_library, create_pool,
+    create_user, create_project, create_seq_request, create_sample, create_library, create_pool,
     create_feature, create_experiment, create_file, create_group
 )  # noqa
 
 
-@pytest.fixture()
+@pytest.fixture()  # type: ignore
 def db() -> DBHandler:
     db_user = os.environ["POSTGRES_USER"]
     db_password = os.environ["POSTGRES_PASSWORD"]
@@ -168,7 +168,11 @@ def test_library_links(db: DBHandler):
     libraries = []
     for _ in range(NUM_LIBRARIES):
         library = create_library(db, user, seq_request)
-        db.link_sample_library(sample.id, library.id, cmo_sequence="sequence", cmo_pattern="pattern", cmo_read="read")
+        db.link_sample_library(
+            sample.id, library.id,
+            mux=dict(barcode="sequence", pattern="pattern", read="read"),
+            mux_type=MUXType.TENX_OLIGO
+        )
         libraries.append(library)
     
     with DBSession(db) as session:
@@ -231,7 +235,11 @@ def test_cmos_links(db: DBHandler):
 
     for _ in range(NUM_SAMPLES):
         sample = create_sample(db, user, project)
-        db.link_sample_library(sample.id, library.id, cmo_sequence="sequence", cmo_pattern="pattern", cmo_read="read")
+        db.link_sample_library(
+            sample.id, library.id,
+            mux=dict(barcode="sequence", pattern="pattern", read="read"),
+            mux_type=MUXType.TENX_OLIGO
+        )
 
     with DBSession(db) as session:
         user = session.get_user(user.id)
@@ -480,10 +488,10 @@ def test_group_affiliations(db: DBHandler):
     group = create_group(db, user_1)
 
     with DBSession(db) as _:
-        req_1 = create_seq_request(db, user_1)
+        _ = create_seq_request(db, user_1)
         req_2 = create_seq_request(db, user_2)
 
-        p1 = create_project(db, user_1)
+        _ = create_project(db, user_1)
         p2 = create_project(db, user_2)
 
         req_2.group_id = group.id
@@ -496,4 +504,3 @@ def test_group_affiliations(db: DBHandler):
     assert len(db.get_seq_requests(user_id=user_2.id, limit=None)[0]) == 1
     assert len(db.get_projects(user_id=user_1.id, limit=None)[0]) == 2
     assert len(db.get_projects(user_id=user_2.id, limit=None)[0]) == 1
-

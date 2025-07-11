@@ -127,6 +127,14 @@ class MultiStepForm(HTMXFlaskForm):
             )
 
         return self._steps[self.step_name]
+    
+    def add_comment(self, context: str, text: str, update_data: bool = False):
+        if (comment_table := self.tables.get("comment_table")) is None:
+            comment_table = pd.DataFrame(columns=["context", "text"])
+            self.add_table("comment_table", comment_table)
+
+        comment_table.loc[len(comment_table)] = [context, text]
+        self.update_table("comment_table", comment_table, update_data=update_data)
 
     def add_table(self, label: str, table: pd.DataFrame):
         self.current_step.tables[label] = table.copy()

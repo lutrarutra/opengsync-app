@@ -136,8 +136,9 @@ class LanePoolingForm(HTMXFlaskForm):
                 raise ValueError(f"No link found for lane {pool_reads_form.lane.data} and pool {pool_reads_form.pool_id.data} for experiment {self.experiment.id}")
             
             link.num_m_reads = float(pool_reads_form.m_reads.data)
-            if pool_reads_form.dilution.data == "Orig.":
+            if not pool_reads_form.dilution.data or pool_reads_form.dilution.data == "Orig.":
                 link.dilution_id = None
+                pool_reads_form.dilution.data = "Orig."
             else:
                 if (dilution := db.get_pool_dilution(link.pool_id, pool_reads_form.dilution.data)) is None:
                     logger.error(f"lane_pools_workflow: PoolDilution with pool_id {link.pool_id} and identifier {pool_reads_form.dilution.data} does not exist")

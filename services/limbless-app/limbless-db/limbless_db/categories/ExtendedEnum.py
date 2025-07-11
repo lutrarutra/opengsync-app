@@ -35,6 +35,8 @@ class DBEnum():
         return self.id <= other.id
 
     def __eq__(self, other) -> bool:
+        if not isinstance(other, DBEnum):
+            return False
         return self.id == other.id and self.name == other.name
     
     def __hash__(self) -> int:

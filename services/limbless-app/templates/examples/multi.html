@@ -8,10 +8,10 @@
             data: [
                 ["sample_1", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_SC_GEX_5PRIME.name }}", "multi_pool"],
                 ["sample_1", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_ANTIBODY_CAPTURE.name }}", "multi_pool"],
-                ["sample_1", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_MULTIPLEXING_CAPTURE.name }}", "multi_pool"],
+                ["sample_1", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_MUX_OLIGO.name }}", "multi_pool"],
                 ["sample_2", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_SC_GEX_5PRIME.name }}", "multi_pool"],
                 ["sample_2", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_ANTIBODY_CAPTURE.name }}", "multi_pool"],
-                ["sample_2", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_MULTIPLEXING_CAPTURE.name }}", "multi_pool"],
+                ["sample_2", "{{ GenomeRef.HUMAN.display_name }}", "{{ LibraryType.TENX_MUX_OLIGO.name }}", "multi_pool"],
             ],
             columns: [
                 {% for col in form.spreadsheet.columns.values() %}

@@ -1,4 +1,4 @@
-{% from 'components/form_group.jinja2' import form_group, checkbox_input %}
+{% from 'components/form_group.jinja2' import form_group, checkbox_input, select_input %}
 {% from "components/tooltip.jinja2" import tooltip %}
 
 <div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
@@ -31,23 +31,30 @@
             </li>
         </ul>
         <div class="tab-content">
-            <div class="tab-pane fade show active" id="form-tab-form" role="tabpanel" tabindex="0">
-                {{ form_group(form.assay_type) }}
+            <div class="tab-pane fade show active form-container" id="form-tab-form" role="tabpanel" tabindex="0">
+                {{ select_input(form.assay_type) }}
                 {{ form.csrf_token() }}
                 {{ form.optional_assays.csrf_token() }}
                 {{ form.additional_services.csrf_token() }}
                 <h5>Additional Assays for 10X</h5>
-                <div class="d-flex justify-contents-evenly" style="width: 100%; gap: 20px;">
-                    {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
+                <div class="d-flex justify-contents-evenly" style="gap: 20px;">
                     {{ checkbox_input(form.optional_assays.vdj_b, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_B.id | string) }}
                     {{ checkbox_input(form.optional_assays.vdj_t, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_T.id | string) }}
                     {{ checkbox_input(form.optional_assays.vdj_t_gd, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_T_GD.id | string) }}
                     {{ checkbox_input(form.optional_assays.crispr_screening, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_CRISPR_SCREENING.id | string) }}
                 </div>
                 <h5>Additional Services</h5>
-                <div class="d-flex justify-contents-evenly" style="width: 100%; gap: 20px;">
-                    {{ checkbox_input(form.additional_services.multiplexing, class="service-checkbox service-checkbox-multiplexing") }}
-                    {{ checkbox_input(form.additional_services.nuclei_isolation, class="service-checkbox service-checkbox-nuclei_isolation") }}
+                <div class="d-flex align-items-center">
+                    {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{} col-6".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
+                    {{ form_group(form.optional_assays.antibody_capture_kit, class="col-6", placeholder="Kit Name", hide_label=true) }}
+                </div>
+                <div class="d-flex align-items-center">
+                    {{ checkbox_input(form.additional_services.oligo_multiplexing, class="opt-checkbox col-6", disabled=true) }}
+                    {{ form_group(form.additional_services.oligo_multiplexing_kit, class="col-6", placeholder="Kit Name", hide_label=true) }}
+                </div>
+                <div class="d-flex align-items-center" style="gap: 20px;">
+                    {{ checkbox_input(form.additional_services.nuclei_isolation) }}
+                    {{ checkbox_input(form.additional_services.ocm_multiplexing, class="opt-checkbox") }}
                 </div>
                 {{ form_group(form.additional_info) }}
             </div>
@@ -111,43 +118,40 @@
                     {{ library_type.id }},
                     {% endfor %}
                 ],
-                multiplexing: {% if assay_type.can_be_multiplexed %}true{% else %}false{% endif %},
+                oligo_multiplexing: {% if assay_type.oligo_multiplexing %}true{% else %}false{% endif %},
+                ocm_multiplexing: {% if assay_type.ocm_multiplexing %}true{% else %}false{% endif %}
             },
             {% endfor %}
         };
 
-        function update_optional_assays(assay_id) {
+        function update_optional_assays() {
+            const assay_id = $("#assay_type").val();
             const optional_library_types = assays[assay_id].optional_library_types;
-            const multiplexing = assays[assay_id].multiplexing;
+            const oligo_multiplexing = assays[assay_id].oligo_multiplexing;
+            const ocm_multiplexing = assays[assay_id].ocm_multiplexing;
+            const antibody_capture = assays[assay_id].optional_library_types.includes({{LibraryType.TENX_ANTIBODY_CAPTURE.id}}) || assays[assay_id].optional_library_types.includes({{LibraryType.TENX_SC_ABC_FLEX.id}});
             
             $(".opt-checkbox input").each(function() {
                 $(this).addClass("disabled");
                 $(this).prop("disabled", true);
-                $(this).prop("checked", false);
-            });
-            $(".opt-checkbox label").each(function() {
-                $(this).addClass("text-muted");
             });
 
-            if (multiplexing) {
-                $(".service-checkbox-multiplexing input").each(function() {
-                    $(this).removeClass("disabled");
-                    $(this).prop("disabled", false);
-                });
-
-                $(".service-checkbox-multiplexing label").each(function() {
-                    $(this).removeClass("text-muted");
-                });
+            if (antibody_capture) {
+                $("#optional_assays-antibody_capture").removeClass("disabled");
+                $("#optional_assays-antibody_capture").prop("disabled", false);
             } else {
-                $(".service-checkbox-multiplexing input").each(function() {
-                    $(this).addClass("disabled");
-                    $(this).prop("disabled", true);
-                    $(this).prop("checked", false);
-                });
+                $("#optional_assays-antibody_capture").addClass("disabled");
+                $("#optional_assays-antibody_capture").prop("disabled", true);
+                $("#optional_assays-antibody_capture").prop("checked", false);
+            }
 
-                $(".service-checkbox-multiplexing label").each(function() {
-                    $(this).addClass("text-muted");
-                });
+            if (oligo_multiplexing) {
+                $("#additional_services-oligo_multiplexing").removeClass("disabled");
+                $("#additional_services-oligo_multiplexing").prop("disabled", false);
+            } else {
+                $("#additional_services-ocm_multiplexing").addClass("disabled");
+                $("#additional_services-ocm_multiplexing").prop("disabled", true);
+                $("#additional_services-ocm_multiplexing").prop("checked", false);
             }
 
             optional_library_types.forEach(function(library_type_id) {
@@ -155,20 +159,53 @@
                     $(this).removeClass("disabled");
                     $(this).prop("disabled", false);
                 });
-
-                $(`.opt-checkbox-${library_type_id} label`).each(function() {
-                    $(this).removeClass("text-muted");
-                });
             });
+            
+            if (ocm_multiplexing) {
+                $("#additional_services-ocm_multiplexing").removeClass("disabled");
+                $("#additional_services-ocm_multiplexing").prop("disabled", false);
+            } else {
+                $("#additional_services-ocm_multiplexing").addClass("disabled");
+                $("#additional_services-ocm_multiplexing").prop("disabled", true);
+                $("#additional_services-ocm_multiplexing").prop("checked", false);
+            }
+        }
+
+
+        function update_oligo_multiplexing_kit_input() {
+            const is_checked = $("#additional_services-oligo_multiplexing").is(":checked");
+            console.log("hi");
+            if (is_checked) {
+                $("#additional_services-oligo_multiplexing_kit").removeClass("disabled");
+                $("#additional_services-oligo_multiplexing_kit").prop("disabled", false);
+            } else {
+                $("#additional_services-oligo_multiplexing_kit").addClass("disabled");
+                $("#additional_services-oligo_multiplexing_kit").prop("disabled", true);
+                $("#additional_services-oligo_multiplexing_kit").val("");
+            }
+        }
+
+        function update_antibody_kit_input() {
+            const is_checked = $("#optional_assays-antibody_capture").is(":checked");
+            if (is_checked) {
+                $("#optional_assays-antibody_capture_kit").removeClass("disabled");
+                $("#optional_assays-antibody_capture_kit").prop("disabled", false);
+            } else {
+                $("#optional_assays-antibody_capture_kit").addClass("disabled");
+                $("#optional_assays-antibody_capture_kit").prop("disabled", true);
+                $("#optional_assays-antibody_capture_kit").val("");
+            }
         }
 
         $(document).ready(function() {
             init_tooltips();
-            update_optional_assays($("#assay_type").val());
+            update_optional_assays();
+            update_oligo_multiplexing_kit_input();
+            update_antibody_kit_input();
 
-            $("#assay_type").on("change", function() {
-                update_optional_assays($(this).val());
-            });
+            $("#assay_type").on("change", update_optional_assays);
+            $("#optional_assays-antibody_capture").on("change", update_antibody_kit_input);
+            $("#additional_services-oligo_multiplexing").on("change", update_oligo_multiplexing_kit_input);
         });
     </script>
 </div>

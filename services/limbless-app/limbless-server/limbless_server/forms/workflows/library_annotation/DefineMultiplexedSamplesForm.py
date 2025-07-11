@@ -5,15 +5,15 @@ import pandas as pd
 from flask import Response, url_for
 
 from limbless_db import models
-from limbless_db.categories import AssayType, GenomeRef, LibraryType, LibraryTypeEnum, GenomeRefEnum
+from limbless_db.categories import AssayType, GenomeRef, LibraryType, LibraryTypeEnum, GenomeRefEnum, MUXType
 
 from .... import logger, db
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
+from ...SpreadsheetInput import SpreadsheetInput
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
-from ...SpreadsheetInput import SpreadsheetInput
 
 
 class DefineMultiplexedSamplesForm(MultiStepForm):
@@ -24,8 +24,12 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
     columns = [
         TextColumn("sample_name", "Sample Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4),
         DropdownColumn("genome", "Genome", 300, choices=GenomeRef.names(), required=True),
-        TextColumn("pool", "Pool", 300, max_length=models.Pool.name.type.length, min_length=4),
+        TextColumn("pool", "Pool", 300, max_length=models.Library.name.type.length, min_length=4),
     ]
+
+    @staticmethod
+    def is_applicable(current_step: MultiStepForm) -> bool:
+        return current_step.metadata["mux_type_id"] is not None
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
         MultiStepForm.__init__(
@@ -46,8 +50,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         )
 
         self.assay_type = AssayType.get(int(self.metadata["assay_type_id"]))
-        self.antibody_multiplexing = self.metadata["antibody_multiplexing"]
-        self.nuclei_isolation = self.metadata["nuclei_isolation"]
+        self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] else None
         self.antibody_capture = self.metadata["antibody_capture"]
         self.vdj_b = self.metadata["vdj_b"]
         self.vdj_t = self.metadata["vdj_t"]
@@ -55,7 +58,17 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.crispr_screening = self.metadata["crispr_screening"]
 
     def fill_previous_form(self, previous_form: StepFile):
-        self.spreadsheet.set_data(previous_form.tables["library_table"])
+        sample_pooling_table = previous_form.tables["sample_pooling_table"].rename(
+            columns={"sample_pool": "pool"}
+        )
+        sample_pooling_table = sample_pooling_table.drop_duplicates(subset=["sample_name", "pool"])
+        genome_mapping = {}
+        for _, row in previous_form.tables["library_table"].iterrows():
+            genome_mapping[row["library_name"]] = GenomeRef.get(row["genome_id"]).display_name
+
+        sample_pooling_table["genome"] = sample_pooling_table["library_name"].map(genome_mapping)
+        logger.debug(sample_pooling_table)
+        self.spreadsheet.set_data(sample_pooling_table)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -83,9 +96,9 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             selected_library_types.append(LibraryType.TENX_VDJ_T_GD.abbreviation)
         if self.crispr_screening:
             selected_library_types.append(LibraryType.TENX_CRISPR_SCREENING.abbreviation)
-        if self.antibody_multiplexing:
-            selected_library_types.append(LibraryType.TENX_MULTIPLEXING_CAPTURE.abbreviation)
-
+        if self.mux_type == MUXType.TENX_OLIGO:
+            selected_library_types.append(LibraryType.TENX_MUX_OLIGO.abbreviation)
+        
         if df["pool"].isna().all():
             for i, (idx, row) in enumerate(df.iterrows()):
                 if self.assay_type == AssayType.TENX_SC_4_PLEX_FLEX:
@@ -145,9 +158,10 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             "library_type_id": [],
         }
 
-        pooling_table = {
+        sample_pooling_table = {
             "sample_name": [],
             "library_name": [],
+            "sample_pool": [],
         }
 
         def add_library(sample_pool: str, library_type: LibraryTypeEnum, genome: GenomeRefEnum):
@@ -172,8 +186,8 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 else:
                     add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE, genome)
 
-            if self.antibody_multiplexing:
-                add_library(sample_pool, LibraryType.TENX_MULTIPLEXING_CAPTURE, genome)
+            if self.mux_type == MUXType.TENX_OLIGO:
+                add_library(sample_pool, LibraryType.TENX_MUX_OLIGO, genome)
 
             if self.vdj_b:
                 add_library(sample_pool, LibraryType.TENX_VDJ_B, genome)
@@ -191,29 +205,35 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 sample_name = row["sample_name"]
                 sample_table_data["sample_name"].append(sample_name)
                 for library_type in self.assay_type.library_types:
-                    pooling_table["sample_name"].append(sample_name)
-                    pooling_table["library_name"].append(f"{sample_pool}_{library_type.identifier}")
-                if self.antibody_multiplexing:
-                    pooling_table["sample_name"].append(sample_name)
-                    pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_MULTIPLEXING_CAPTURE.identifier}")
+                    sample_pooling_table["sample_name"].append(sample_name)
+                    sample_pooling_table["sample_pool"].append(sample_pool)
+                    sample_pooling_table["library_name"].append(f"{sample_pool}_{library_type.identifier}")
+                if self.mux_type == MUXType.TENX_OLIGO:
+                    sample_pooling_table["sample_name"].append(sample_name)
+                    sample_pooling_table["sample_pool"].append(sample_pool)
+                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_MUX_OLIGO.identifier}")
                 if self.antibody_capture:
-                    pooling_table["sample_name"].append(sample_name)
+                    sample_pooling_table["sample_name"].append(sample_name)
+                    sample_pooling_table["sample_pool"].append(sample_pool)
                     if self.assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
-                        pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_SC_ABC_FLEX.identifier}")
+                        sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_SC_ABC_FLEX.identifier}")
                     else:
-                        pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_ANTIBODY_CAPTURE.identifier}")
+                        sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_ANTIBODY_CAPTURE.identifier}")
                 if self.vdj_b:
-                    pooling_table["sample_name"].append(sample_name)
-                    pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_B.identifier}")
+                    sample_pooling_table["sample_name"].append(sample_name)
+                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_B.identifier}")
                 if self.vdj_t:
-                    pooling_table["sample_name"].append(sample_name)
-                    pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_T.identifier}")
+                    sample_pooling_table["sample_name"].append(sample_name)
+                    sample_pooling_table["sample_pool"].append(sample_pool)
+                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_T.identifier}")
                 if self.vdj_t_gd:
-                    pooling_table["sample_name"].append(sample_name)
-                    pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_T_GD.identifier}")
+                    sample_pooling_table["sample_name"].append(sample_name)
+                    sample_pooling_table["sample_pool"].append(sample_pool)
+                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_T_GD.identifier}")
                 if self.crispr_screening:
-                    pooling_table["sample_name"].append(sample_name)
-                    pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_CRISPR_SCREENING.identifier}")
+                    sample_pooling_table["sample_name"].append(sample_name)
+                    sample_pooling_table["sample_pool"].append(sample_pool)
+                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_CRISPR_SCREENING.identifier}")
 
         library_table = pd.DataFrame(library_table_data)
         library_table["seq_depth"] = None
@@ -221,10 +241,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
 
         sample_table = pd.DataFrame(sample_table_data)
         sample_table["sample_id"] = None
-        sample_table["cmo_sequence"] = None
-        sample_table["cmo_pattern"] = None
-        sample_table["cmo_read"] = None
-        sample_table["flex_barcode"] = None
+        
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
@@ -233,16 +250,17 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             for sample in project.samples:
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
-        pooling_table = pd.DataFrame(pooling_table)
+        sample_pooling_table = pd.DataFrame(sample_pooling_table)
+        sample_pooling_table["mux_type_id"] = None
 
         self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)
-        self.add_table("pooling_table", pooling_table)
+        self.add_table("sample_pooling_table", sample_pooling_table)
         self.update_data()
-        
-        if ((library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)).any():
+
+        if FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif (library_table["library_type_id"].isin([LibraryType.TENX_VISIUM.id, LibraryType.TENX_VISIUM_FFPE.id, LibraryType.TENX_VISIUM_HD.id])).any():
+        elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
         else:
             next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)

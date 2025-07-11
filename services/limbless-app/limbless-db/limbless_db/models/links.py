@@ -1,11 +1,12 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
 
 from .Base import Base
 
-from limbless_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum
+from limbless_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum, MUXType, MUXTypeEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -52,13 +53,12 @@ class SamplePlateLink(Base):
 
 
 class SampleLibraryLink(Base):
+    MAX_MUX_FIELD_LENGTH: ClassVar[int] = 64
     __tablename__ = "sample_library_link"
     __mapper_args__ = {"confirm_deleted_rows": False}
 
-    cmo_sequence: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, default=None)
-    cmo_pattern: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True, default=None)
-    cmo_read: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True, default=None)
-    flex_barcode: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True, default=None)
+    mux: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, default=None)
+    mux_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
 
     sample_id: Mapped[int] = mapped_column(sa.ForeignKey("sample.id"), primary_key=True)
     library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id"), primary_key=True)
@@ -72,8 +72,21 @@ class SampleLibraryLink(Base):
         cascade="save-update, merge"
     )
 
+    @property
+    def mux_type(self) -> MUXTypeEnum | None:
+        if self.mux_type_id is None:
+            return None
+        return MUXType.get(self.mux_type_id)
+    
+    @mux_type.setter
+    def mux_type(self, value: MUXTypeEnum | None):
+        if value is None:
+            self.mux_type_id = None
+        else:
+            self.mux_type_id = value.id
+
     def __str__(self) -> str:
-        return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, is_multiplexed: {self.cmo_sequence is not None})"
+        return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, is_multiplexed: {self.mux_type_id is not None})"
     
 
 class LanePoolLink(Base):

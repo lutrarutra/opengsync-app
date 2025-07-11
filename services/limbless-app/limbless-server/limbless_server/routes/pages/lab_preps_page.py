@@ -33,7 +33,7 @@ def lab_prep_page(lab_prep_id: int):
     for library in lab_prep.libraries:
         if library.status.id < LibraryStatus.POOLED.id:
             can_be_completed = False
-        if library.type in [LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_MULTIPLEXING_CAPTURE]:
+        if library.type in [LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_MUX_OLIGO]:
             contains_mux_libraries = True
         if can_be_completed and contains_mux_libraries:
             break
