@@ -28,6 +28,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         raise FileNotFoundError(f"Template folder not found: {template_folder}")
     
     app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
+
     db.connect(
         user=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
@@ -35,7 +36,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         port=os.environ["POSTGRES_PORT"],
         db=os.environ["POSTGRES_DB"],
     )
-    app.debug = os.getenv("opengsync_DEBUG") == "1"
+    app.debug = os.getenv("OPENGSYNC_DEBUG") == "1"
     app.config["MEDIA_FOLDER"] = tools.io.mkdir(os.path.join("media"))
     app.config["UPLOADS_FOLDER"] = tools.io.mkdir(os.path.join("uploads"))
     app.config["APP_DATA_FOLDER"] = tools.io.mkdir(os.path.join("app_data"))

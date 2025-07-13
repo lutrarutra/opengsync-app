@@ -7,14 +7,24 @@ name = "scheduler"
 version = "1.0"
 description = ""
 authors = [
-    { name = "lutrarutra", email = "artur.gynter@proton.me" }
+    { name = "lutrarutra", email = "lutrarutra@pm.me" }
 ]
 requires-python = ">=3.11"
 
 dependencies = [
-    "numpy < 2",
+    "numpy < 2",   # Required for interop
     "interop",
     "apscheduler >= 3.11",
+    "pandas",
+    "numba",
+    "numexpr",
+    "itsdangerous >= 2.1.2",
+    "loguru >= 0.7.2",
+    "psycopg[binary]",
+    "SQLAlchemy >= 2.0.28",
+    "pytz >= 2023.3.post1",
+    "tzlocal >= 5.2",
+    "Werkzeug >= 3.0.3",
 ]
 
 [tool.flake8]
