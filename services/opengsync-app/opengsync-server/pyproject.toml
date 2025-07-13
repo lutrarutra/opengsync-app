@@ -7,7 +7,7 @@ name = "opengsync_server"
 version = "1.0"
 description = "Web server for NGS sample/library/project tracking"
 authors = [
-    { name = "lutrarutra", email = "artur.gynter@proton.me" }
+    { name = "lutrarutra", email = "lutrarutra@pm.me" }
 ]
 requires-python = ">=3.11"
 

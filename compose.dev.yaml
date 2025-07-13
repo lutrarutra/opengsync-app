@@ -21,9 +21,9 @@ services:
             TZ: ${TIMEZONE}
         env_file: .env
         ports:
-            - ${opengsync_PORT}:${opengsync_PORT}
+            - ${OPENGSYNC_PORT}:${OPENGSYNC_PORT}
         expose:
-            - ${opengsync_PORT}
+            - ${OPENGSYNC_PORT}
         restart: always
         depends_on:
             postgres:
@@ -36,7 +36,7 @@ services:
                 condition: service_healthy
                 restart: true
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://opengsync-app:${opengsync_PORT}/status"]
+            test: ["CMD", "curl", "-f", "http://opengsync-app:${OPENGSYNC_PORT}/status"]
             interval: 60s
             timeout: 10s
             retries: 5

@@ -7,10 +7,11 @@ name = "opengsync_db"
 version = "1.0"
 description = "Database for NGS sample/library/project tracking app."
 authors = [
-    { name = "lutrarutra", email = "artur.gynter@proton.me" }
+    { name = "lutrarutra", email = "lutrarutra@pm.me" }
 ]
 requires-python = ">=3.11"
 
+# If you change these, also change the ones in services/scheduler/pyproject.toml
 dependencies = [
     "numpy >= 2",
     "pandas >= 2.2.2",
@@ -36,4 +37,6 @@ extend-ignore = ["E501", "W292", "W293"]
 [project.urls]
 Repository = "https://github.com/lutrarutra/opengsync-app"
 
+[project.scripts]
+opengsync-init-db = "opengsync_db.cli_init:main"
 

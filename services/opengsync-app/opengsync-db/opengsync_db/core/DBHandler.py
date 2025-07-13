@@ -1,11 +1,13 @@
 from datetime import datetime
 from typing import Optional, Union
 
+import loguru
+
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from opengsync_db.models.Base import Base
-import loguru
+from ..models.Base import Base
+from .. import models
 
 
 class DBHandler():
@@ -16,13 +18,14 @@ class DBHandler():
         
     def connect(self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432) -> None:
         self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
+        self.public_url = f"{self._url.split(':')[0]}://{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
         try:
             self._engine.connect()
         except Exception as e:
-            raise Exception(f"Could not connect to DB '{self._url}':\n{e}")
-        self.log(f"Connected to DB '{self._url.split(':')[0]}://{host}:{port}/{db}'")
-        
+            raise Exception(f"Could not connect to DB '{self.public_url}':\n{e}")
+        self.log(f"Connected to DB '{self.public_url}'")
+
         self._session: orm.Session | None = None
         self.session_factory = orm.sessionmaker(bind=self._engine)
         DBHandler.Session = orm.scoped_session(self.session_factory)
@@ -41,6 +44,13 @@ class DBHandler():
         else:
             print(f"ERROR: {message}")
 
+    def warn(self, *values: object) -> None:
+        message = " ".join([str(value) for value in values])
+        if self._logger is not None:
+            self._logger.warning(message)
+        else:
+            print(f"WARNING: {message}")
+
     def debug(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
         if self._logger is not None:
@@ -58,7 +68,11 @@ class DBHandler():
         return datetime.now()
 
     def create_tables(self) -> None:
-        Base.metadata.create_all(self._engine)
+        if not sa.inspect(self._engine).has_table(models.User.__tablename__):
+            self.log("Creating tables...")
+            Base.metadata.create_all(self._engine)
+        else:
+            self.warn("Tables already exist, skipping creation...")
 
     def open_session(self, autoflush: bool = False) -> None:
         if self._session is None:
