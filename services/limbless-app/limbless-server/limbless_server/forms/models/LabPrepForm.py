@@ -4,8 +4,8 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import StringField, SelectField
 
-from limbless_db import models
-from limbless_db.categories import LabProtocol, AssayType
+from opengsync_db import models
+from opengsync_db.categories import LabProtocol, AssayType
 
 from ... import db, logger  # noqa F401
 from ..HTMXFlaskForm import HTMXFlaskForm

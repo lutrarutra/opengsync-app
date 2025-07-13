@@ -7,8 +7,8 @@ from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, DBHandler, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus
+from opengsync_db import models, DBHandler, PAGE_LIMIT, db_session
+from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus
 
 from .... import db, forms, logger  # noqa: E402
 from ....tools.spread_sheet_components import TextColumn

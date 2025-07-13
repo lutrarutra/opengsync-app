@@ -3,7 +3,7 @@ from typing import Optional
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 
-from limbless_db import models
+from opengsync_db import models
 from ... import db
 from .CommentForm import CommentForm
 

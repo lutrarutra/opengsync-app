@@ -5,8 +5,8 @@ import pandas as pd
 from flask import Response, url_for
 from wtforms import BooleanField
 
-from limbless_db import models
-from limbless_db.categories import LibraryType, MUXType, SubmissionType
+from opengsync_db import models
+from opengsync_db.categories import LibraryType, MUXType, SubmissionType
 
 from .... import logger, tools, db
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue

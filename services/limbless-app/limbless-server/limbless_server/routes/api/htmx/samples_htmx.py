@@ -5,8 +5,8 @@ from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT, DBHandler, db_session
-from limbless_db.categories import HTTPResponse, UserRole, SampleStatus
+from opengsync_db import models, PAGE_LIMIT, DBHandler, db_session
+from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus
 from .... import db, logger, forms
 
 if TYPE_CHECKING:

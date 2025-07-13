@@ -6,8 +6,8 @@ import json
 from flask import url_for
 from wtforms import StringField
 
-from limbless_db import models
-from limbless_db.categories import (
+from opengsync_db import models
+from opengsync_db.categories import (
     SampleStatusEnum, LibraryStatusEnum, PoolStatusEnum, SampleStatus, LibraryStatus, PoolStatus,
     LibraryTypeEnum
 )

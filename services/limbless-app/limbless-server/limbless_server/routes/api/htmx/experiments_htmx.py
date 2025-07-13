@@ -8,8 +8,8 @@ from flask import Blueprint, url_for, render_template, flash, abort, request, cu
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow
+from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow
 
 from .... import db, forms, logger
 

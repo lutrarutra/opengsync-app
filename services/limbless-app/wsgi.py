@@ -1,1 +1,1 @@
-from limbless_server.app import create_app
+from opengsync_server.app import create_app

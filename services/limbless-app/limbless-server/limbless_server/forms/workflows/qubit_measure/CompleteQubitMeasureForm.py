@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from wtforms import FloatField, IntegerField, FieldList, FormField
 from wtforms.validators import NumberRange, DataRequired
 
-from limbless_db.categories import PoolStatus, LibraryStatus
+from opengsync_db.categories import PoolStatus, LibraryStatus
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm

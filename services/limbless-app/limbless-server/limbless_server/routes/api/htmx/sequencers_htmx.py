@@ -4,8 +4,8 @@ from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import PAGE_LIMIT, exceptions, models, db_session
-from limbless_db.categories import HTTPResponse, UserRole
+from opengsync_db import PAGE_LIMIT, exceptions, models, db_session
+from opengsync_db.categories import HTTPResponse, UserRole
 from .... import db, forms, cache
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/hmtx/sequencers/")

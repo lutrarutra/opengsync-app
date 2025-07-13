@@ -4,8 +4,8 @@ from flask import Response
 from wtforms import StringField, FormField, TextAreaField
 from wtforms.validators import Optional as OptionalValidator, Length
 
-from limbless_db import models
-from limbless_server.forms.MultiStepForm import StepFile
+from opengsync_db import models
+from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import db, logger  # noqa F401
 from ...SearchBar import OptionalSearchBar

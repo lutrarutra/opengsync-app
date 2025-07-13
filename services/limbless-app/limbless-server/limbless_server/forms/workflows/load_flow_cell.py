@@ -6,8 +6,8 @@ from flask_wtf import FlaskForm
 from wtforms import FloatField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from limbless_db import models
-from limbless_db.categories import ExperimentStatus
+from opengsync_db import models
+from opengsync_db.categories import ExperimentStatus
 
 from ... import db, logger   # noqa
 from ..HTMXFlaskForm import HTMXFlaskForm

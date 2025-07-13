@@ -6,8 +6,8 @@ from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length
 
 
-from limbless_db import models
-from limbless_db.categories import SampleStatus
+from opengsync_db import models
+from opengsync_db.categories import SampleStatus
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
 

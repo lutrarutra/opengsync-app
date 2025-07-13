@@ -1,14 +1,14 @@
 services:
-    limbless-pytest:
-        container_name: limbless-pytest
+    opengsync-pytest:
+        container_name: opengsync-pytest
         build:
             context: ./services
             dockerfile: pytest/Dockerfile
         command: "pytest tests/ -s"
         volumes:
             - ./services/pytest/tests:/usr/src/app/tests:ro
-            - ./services/limbless-app/static/resources/templates/library_prep/:/usr/src/app/prep_tables:ro
-            - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db:ro
+            - ./services/opengsync-app/static/resources/templates/library_prep/:/usr/src/app/prep_tables:ro
+            - ./services/opengsync-app/opengsync-db:/usr/src/app/opengsync-db:ro
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password
@@ -24,8 +24,8 @@ services:
                 restart: true
 
     postgres:
-        container_name: limbless-postgres-db-test
-        image: postgres:16rc1-alpine3.17
+        container_name: opengsync-postgres-db-test
+        image: postgres:17.5-alpine3.22
         command: "-c logging_collector=on"
         environment:
             POSTGRES_USER: admin

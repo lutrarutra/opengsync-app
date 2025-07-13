@@ -5,8 +5,8 @@ from wtforms.validators import DataRequired, Optional as OptionalValidator, Leng
 from wtforms import SelectField, TextAreaField
 from flask import Response
 
-from limbless_db import models
-from limbless_db.categories import FileType
+from opengsync_db import models
+from opengsync_db.categories import FileType
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 

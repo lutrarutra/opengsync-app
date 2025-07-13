@@ -9,9 +9,9 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType, SampleStatus, SubmissionType, PoolStatus
-from limbless_db.core import exceptions
+from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType, SampleStatus, SubmissionType, PoolStatus
+from opengsync_db.core import exceptions
 from .... import db, forms, logger
 
 if TYPE_CHECKING:

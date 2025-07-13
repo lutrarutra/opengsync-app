@@ -6,7 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import FloatField, IntegerField, FieldList, FormField
 from wtforms.validators import DataRequired
 
-from limbless_db import models
+from opengsync_db import models
 
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm

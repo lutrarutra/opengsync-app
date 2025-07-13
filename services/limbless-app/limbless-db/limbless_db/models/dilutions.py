@@ -4,7 +4,7 @@ from datetime import datetime
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from limbless_db import models
+from opengsync_db import models
 
 from .Base import Base
 

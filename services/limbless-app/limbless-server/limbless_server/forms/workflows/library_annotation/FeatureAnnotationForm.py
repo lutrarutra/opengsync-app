@@ -4,8 +4,8 @@ import pandas as pd
 
 from flask import Response, url_for
 
-from limbless_db import models
-from limbless_db.categories import LibraryType, FeatureType
+from opengsync_db import models
+from opengsync_db.categories import LibraryType, FeatureType
 
 from .... import db, logger, tools  # noqa
 from ...MultiStepForm import MultiStepForm

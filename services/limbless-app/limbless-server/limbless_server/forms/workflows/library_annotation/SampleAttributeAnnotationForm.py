@@ -5,9 +5,9 @@ import pandas as pd
 
 from flask import Response, url_for
 
-from limbless_db import models
-from limbless_db.categories import LibraryType, AttributeType
-from limbless_server.forms.MultiStepForm import StepFile
+from opengsync_db import models
+from opengsync_db.categories import LibraryType, AttributeType
+from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, MissingCellValue, SpreadSheetColumn

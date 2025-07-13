@@ -6,8 +6,8 @@ from wtforms.validators import DataRequired, Length
 
 from flask_htmx import make_response
 
-from limbless_db import models
-from limbless_db.categories import PoolType
+from opengsync_db import models
+from opengsync_db.categories import PoolType
 
 from ... import logger, db  # noqa F401
 from ..HTMXFlaskForm import HTMXFlaskForm

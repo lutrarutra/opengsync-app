@@ -6,7 +6,7 @@ import time
 from apscheduler.schedulers.background import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from limbless_db.core import DBHandler
+from opengsync_db.core import DBHandler
 
 from scheduler.rf_scanner import process_run_folder
 from scheduler.status_updater import update_statuses

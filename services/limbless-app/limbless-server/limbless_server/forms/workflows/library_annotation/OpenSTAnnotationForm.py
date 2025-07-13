@@ -6,9 +6,9 @@ from wtforms import TextAreaField
 from wtforms.validators import DataRequired, Length
 from flask import Response, url_for
 
-from limbless_db import models
-from limbless_db.categories import LibraryType
-from limbless_server.forms.MultiStepForm import StepFile
+from opengsync_db import models
+from opengsync_db.categories import LibraryType
+from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger # noqa
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue

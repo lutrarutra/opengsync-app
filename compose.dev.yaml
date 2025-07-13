@@ -1,29 +1,29 @@
 services:
-    limbless-app:
-        container_name: limbless-app-dev
+    opengsync-app:
+        container_name: opengsync-app-dev
         build:
-            context: ./services/limbless-app
+            context: ./services/opengsync-app
             dockerfile: Dockerfile.dev
         volumes:
-            - ./services/limbless-app/limbless-server:/usr/src/app/limbless-server
-            - ./services/limbless-app/limbless-db:/usr/src/app/limbless-db
-            - ./services/limbless-app/static/images:/usr/src/app/static/images:ro
-            - ./services/limbless-app/static/js:/usr/src/app/static/js:ro
-            - ./services/limbless-app/static/resources:/usr/src/app/static/resources:ro
-            - ./services/limbless-app/templates:/usr/src/app/templates:ro
+            - ./services/opengsync-app/opengsync-server:/usr/src/app/opengsync-server
+            - ./services/opengsync-app/opengsync-db:/usr/src/app/opengsync-db
+            - ./services/opengsync-app/static/images:/usr/src/app/static/images:ro
+            - ./services/opengsync-app/static/js:/usr/src/app/static/js:ro
+            - ./services/opengsync-app/static/resources:/usr/src/app/static/resources:ro
+            - ./services/opengsync-app/templates:/usr/src/app/templates:ro
             - ./cert:/usr/src/app/cert
             - ${UPLOADS_DIR}:/usr/src/app/uploads
             - ${DATA_DIR}/media:/usr/src/app/media
-            - ${DATA_DIR}/logs/limbless:/usr/src/app/logs
+            - ${DATA_DIR}/logs/opengsync:/usr/src/app/logs
             - ${DB_DIR}/dev_init:/usr/src/app/init
             - compiled_css:/usr/src/app/static/style/compiled:ro
         environment:
             TZ: ${TIMEZONE}
         env_file: .env
         ports:
-            - ${LIMBLESS_PORT}:${LIMBLESS_PORT}
+            - ${opengsync_PORT}:${opengsync_PORT}
         expose:
-            - ${LIMBLESS_PORT}
+            - ${opengsync_PORT}
         restart: always
         depends_on:
             postgres:
@@ -36,7 +36,7 @@ services:
                 condition: service_healthy
                 restart: true
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://limbless-app:${LIMBLESS_PORT}/status"]
+            test: ["CMD", "curl", "-f", "http://opengsync-app:${opengsync_PORT}/status"]
             interval: 60s
             timeout: 10s
             retries: 5
@@ -88,7 +88,7 @@ services:
         container_name: sass-compiler-dev
         build: ./services/sass-compiler
         volumes:
-            - ./services/limbless-app/static/style/sass:/usr/src/app/static/style/sass:ro
+            - ./services/opengsync-app/static/style/sass:/usr/src/app/static/style/sass:ro
             - compiled_css:/usr/src/app/static/style/compiled
         command: "sass --watch /usr/src/app/static/style/sass:/usr/src/app/static/style/compiled"
         environment:
@@ -101,7 +101,7 @@ services:
 
     postgres:
         container_name: postgres-dev
-        image: postgres:16.9-alpine3.22
+        image: postgres:17.5-alpine3.22
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

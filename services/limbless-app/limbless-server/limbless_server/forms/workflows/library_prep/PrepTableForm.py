@@ -3,8 +3,8 @@ from flask_htmx import make_response
 from flask_wtf.file import FileField, FileAllowed
 from wtforms.validators import Optional as OptionalValidator
 
-from limbless_db import models
-from limbless_db.categories import FileType
+from opengsync_db import models
+from opengsync_db.categories import FileType
 
 from .... import logger, db  # noqa F401
 from ...HTMXFlaskForm import HTMXFlaskForm

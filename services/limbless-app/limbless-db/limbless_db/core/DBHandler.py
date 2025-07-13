@@ -4,7 +4,7 @@ from typing import Optional, Union
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from limbless_db.models.Base import Base
+from opengsync_db.models.Base import Base
 import loguru
 
 
@@ -14,7 +14,7 @@ class DBHandler():
     def __init__(self, logger: Optional["loguru.Logger"] = None) -> None:
         self._logger = logger
         
-    def connect(self, user: str, password: str, host: str, db: str = "limbless_db", port: Union[str, int] = 5432) -> None:
+    def connect(self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432) -> None:
         self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
         try:

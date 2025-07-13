@@ -4,8 +4,8 @@ import pandas as pd
 
 from flask import Response, url_for
 
-from limbless_db import models
-from limbless_db.categories import LibraryType, FeatureType, MUXType
+from opengsync_db import models
+from opengsync_db.categories import LibraryType, FeatureType, MUXType
 
 from .... import logger, tools, db  # noqa
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, MissingCellValue, InvalidCellValue, DuplicateCellValue

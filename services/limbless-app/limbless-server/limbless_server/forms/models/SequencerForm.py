@@ -5,8 +5,8 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from limbless_db import models
-from limbless_db.categories import SequencerModel
+from opengsync_db import models
+from opengsync_db.categories import SequencerModel
 
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm

@@ -8,7 +8,7 @@ from flask import Response, current_app, url_for
 from wtforms import SelectField, FormField
 from flask_wtf import FlaskForm
 
-from limbless_db import models
+from opengsync_db import models
 
 from .... import logger, tools, db  # noqa F401
 from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue

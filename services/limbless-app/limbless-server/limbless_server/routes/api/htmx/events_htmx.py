@@ -5,8 +5,8 @@ from flask import Blueprint, render_template, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from opengsync_db import models, db_session
+from opengsync_db.categories import HTTPResponse
 from .... import db, forms, logger, cache  # noqa
 
 if TYPE_CHECKING:

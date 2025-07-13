@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required
 
-from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from opengsync_db import models, db_session
+from opengsync_db.categories import HTTPResponse
 from ... import forms, db, logger  # noqa
 
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)

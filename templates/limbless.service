@@ -4,9 +4,9 @@ After=docker.service
 
 [Service]
 Restart=always
-WorkingDirectory=~/limbless-app-prod
-ExecStart=/usr/bin/docker compose --env-file=.env -f compose.yaml -p limbless-prod up --build
-ExecStop=/usr/bin/docker compose -f compose.yaml -p limbless-prod down
+WorkingDirectory=~/opengsync-app-prod
+ExecStart=/usr/bin/docker compose --env-file=.env -f compose.yaml -p opengsync-prod up --build
+ExecStop=/usr/bin/docker compose -f compose.yaml -p opengsync-prod down
 
 [Install]
 WantedBy=multi-user.target

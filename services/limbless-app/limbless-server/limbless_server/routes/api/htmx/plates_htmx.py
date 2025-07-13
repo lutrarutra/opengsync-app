@@ -5,8 +5,8 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 
-from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse, UserRole
+from opengsync_db import models, db_session
+from opengsync_db.categories import HTTPResponse, UserRole
 from .... import db, logger, forms
 
 if TYPE_CHECKING:

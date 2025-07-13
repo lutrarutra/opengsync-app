@@ -4,7 +4,7 @@ from flask_htmx import make_response
 from flask import Response, render_template
 from wtforms import StringField
 
-from limbless_db import models
+from opengsync_db import models
 
 from .. import db, logger, tools  # noqa: F401
 from .HTMXFlaskForm import HTMXFlaskForm

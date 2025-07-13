@@ -1,7 +1,7 @@
 from . import logger
 
-from limbless_db.core import DBHandler
-from limbless_db import categories
+from opengsync_db.core import DBHandler
+from opengsync_db import categories
 
 
 def update_statuses(db: DBHandler):

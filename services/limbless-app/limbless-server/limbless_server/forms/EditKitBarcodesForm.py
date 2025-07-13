@@ -4,8 +4,8 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 from wtforms import BooleanField
 
-from limbless_db import models
-from limbless_db.categories import IndexType, BarcodeType
+from opengsync_db import models
+from opengsync_db.categories import IndexType, BarcodeType
 
 from .. import db, logger, update_index_kits  # noqa
 from ..tools import tools

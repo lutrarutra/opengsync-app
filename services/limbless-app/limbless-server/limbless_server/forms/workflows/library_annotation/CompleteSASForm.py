@@ -6,8 +6,8 @@ import pandas as pd
 from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
-from limbless_db import models
-from limbless_db.categories import (
+from opengsync_db import models
+from opengsync_db.categories import (
     GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType,
     AssayType, SubmissionType, MUXType
 )

@@ -7,8 +7,8 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, db_session, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, IndexType, BarcodeType, KitType
+from opengsync_db import models, db_session, PAGE_LIMIT
+from opengsync_db.categories import HTTPResponse, IndexType, BarcodeType, KitType
 
 from .... import db, logger, cache, forms  # noqa F401
 from ....tools.spread_sheet_components import TextColumn

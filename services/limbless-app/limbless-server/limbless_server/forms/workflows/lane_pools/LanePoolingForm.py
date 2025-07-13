@@ -9,8 +9,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from limbless_db import models
-from limbless_db.categories import FileType
+from opengsync_db import models
+from opengsync_db.categories import FileType
 
 from .... import db, logger
 from ...HTMXFlaskForm import HTMXFlaskForm

@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import EmailField
 from wtforms.validators import DataRequired, Length, Email
 
-from limbless_db import models
+from opengsync_db import models
 from .. import logger, db
 from .HTMXFlaskForm import HTMXFlaskForm
 

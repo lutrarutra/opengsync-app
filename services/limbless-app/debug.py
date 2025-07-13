@@ -2,8 +2,8 @@ import argparse
 
 from flask import Flask
 
-from limbless_server.app import create_app
-from limbless_server import logger
+from opengsync_server.app import create_app
+from opengsync_server import logger
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

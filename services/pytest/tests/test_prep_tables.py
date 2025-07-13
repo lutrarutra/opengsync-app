@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import openpyxl
 
-from limbless_db.categories import LabProtocol
+from opengsync_db.categories import LabProtocol
 
 common_columns = [
     "library_id",

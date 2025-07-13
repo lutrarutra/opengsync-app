@@ -7,8 +7,8 @@ from flask import Response, current_app
 from wtforms import SelectField, RadioField
 from wtforms.validators import Optional as OptionalValidator
 
-from limbless_db import models
-from limbless_db.categories import IndexType, IndexTypeEnum
+from opengsync_db import models
+from opengsync_db.categories import IndexType, IndexTypeEnum
 
 from .... import logger, tools, db  # noqa F401
 from ...MultiStepForm import MultiStepForm

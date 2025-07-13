@@ -2,7 +2,7 @@ from flask import Response
 from wtforms import TextAreaField
 from wtforms.validators import DataRequired, Length
 
-from limbless_db import models
+from opengsync_db import models
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 

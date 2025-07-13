@@ -5,8 +5,8 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField, IntegerField, FloatField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from limbless_db import models
-from limbless_db.categories import RunStatus, ReadType, ExperimentStatus
+from opengsync_db import models
+from opengsync_db.categories import RunStatus, ReadType, ExperimentStatus
 from ... import db, logger  # noqa
 from ..HTMXFlaskForm import HTMXFlaskForm
 

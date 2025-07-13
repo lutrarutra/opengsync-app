@@ -5,8 +5,8 @@ from flask import Blueprint, request, abort, Response, flash, url_for
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus, SeqRequestStatus, SubmissionType
+from opengsync_db import models, db_session
+from opengsync_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus, SeqRequestStatus, SubmissionType
 
 from .... import db, logger  # noqa
 from ....forms import SelectSamplesForm

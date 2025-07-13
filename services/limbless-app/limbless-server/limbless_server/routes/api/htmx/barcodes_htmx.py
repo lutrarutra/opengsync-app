@@ -4,8 +4,8 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT, db_session
-from limbless_db.categories import HTTPResponse, KitType
+from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db.categories import HTTPResponse, KitType
 from .... import db, logger, forms  # noqa
 
 if TYPE_CHECKING:

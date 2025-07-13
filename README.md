@@ -1,9 +1,9 @@
-# Limbless
+# OpeNGSync
 Web app for NGS sample/library/project tracking
 
 # Containers
-1. `limbless-app` - Flask web server @ `https://localhost:80`
-1. `limbless-db` - PostgreSQL database
+1. `opengsync-app` - Flask web server @ `https://localhost:80`
+1. `opengsync-db` - PostgreSQL database
 1. `scheduler` - Scheduler for running scheduled tasks in python: old file cleaning, status updates, and run-folder scanner
 1. `nginx` - Reverse proxy for static files (only prod)
 1. `pgadmin` - PostgreSQL admin interface @ `https://localhost:5050`
@@ -33,20 +33,20 @@ Web app for NGS sample/library/project tracking
 ## Start Production Server (2 options)
 
 ### 1. Start production server as systemd service
-- `sudo cp templates/limbless.service /lib/systemd/system/limbless.service`
+- `sudo cp templates/opengsync.service /lib/systemd/system/opengsync.service`
 - `sudo systemctl daemon-reload`
-- `sudo systemctl enable limbless`
-- `sudo systemctl start limbless`
+- `sudo systemctl enable opengsync`
+- `sudo systemctl start opengsync`
 
 #### Logs
 - View
-    - `sudo journalctl -u limbless -e`
+    - `sudo journalctl -u opengsync -e`
 - Stream
-    - `sudo journalctl -u limbless -e -f`
+    - `sudo journalctl -u opengsync -e -f`
 #### Check service status
-- `sudo systemctl status limbless`
+- `sudo systemctl status opengsync`
 #### Restart service (e.g. update)
-- `sudo systemctl restart limbless`
+- `sudo systemctl restart opengsync`
 
 ### Update
 - `prod-update.sh`
@@ -73,8 +73,8 @@ Web app for NGS sample/library/project tracking
 * ✅ Compilation of scss files on change.
 
 ```bash
-pip install -e services/limbless-app/limbless-db
-pip install -e services/limbless-app/limbless-server
+pip install -e services/opengsync-app/opengsync-db
+pip install -e services/opengsync-app/opengsync-server
 mkdir db/dev_pgadmin
 sudo chown -R 5050:5050 db/dev_pgadmin
 ```
@@ -95,7 +95,7 @@ sudo chown -R 5050:5050 db/dev_pgadmin
 - host: `postgres` & port: `$(POSTGRES_PORT)` or
 - Find the IP address of the container:
     1. `docker ps`
-    2. `docker inspect limbless-postgres-db | grep IPAddress`
+    2. `docker inspect opengsync-postgres-db | grep IPAddress`
 - username: `$(POSTGRES_USER)`
 - password: `$(POSTGRES_PASSWORD)`
 

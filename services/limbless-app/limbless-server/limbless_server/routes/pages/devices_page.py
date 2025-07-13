@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required, current_user
 
-from limbless_db.categories import UserRole, HTTPResponse
+from opengsync_db.categories import UserRole, HTTPResponse
 from ... import forms, db
 
 devices_page_bp = Blueprint("devices_page", __name__)
