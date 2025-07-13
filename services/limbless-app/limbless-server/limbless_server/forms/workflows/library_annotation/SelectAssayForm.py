@@ -5,8 +5,8 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, TextAreaField, BooleanField, FormField, StringField
 from wtforms.validators import Optional as OptionalValidator, Length, DataRequired
 
-from limbless_db import models
-from limbless_db.categories import AssayType, GenomeRef, MUXType
+from opengsync_db import models
+from opengsync_db.categories import AssayType, GenomeRef, MUXType
 
 from .... import logger, db  # noqa
 from ...MultiStepForm import MultiStepForm

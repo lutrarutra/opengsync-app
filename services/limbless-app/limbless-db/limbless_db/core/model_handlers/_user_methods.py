@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 
-from limbless_db import models
+from opengsync_db import models
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler

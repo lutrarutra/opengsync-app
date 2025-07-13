@@ -7,8 +7,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
-from limbless_db import models
-from limbless_db.categories import BarcodeType, KitType
+from opengsync_db import models
+from opengsync_db.categories import BarcodeType, KitType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm

@@ -7,7 +7,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, FormField, FieldList
 from wtforms.validators import Length, Optional as OptionalValidator, DataRequired
 
-from limbless_db import models
+from opengsync_db import models
 
 from .... import logger, db  # noqa F401
 from ...MultiStepForm import MultiStepForm, StepFile

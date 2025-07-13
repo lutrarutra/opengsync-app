@@ -1,8 +1,8 @@
 import os
 import pytest
 
-from limbless_db import DBHandler, DBSession
-from limbless_db.categories import ExperimentWorkFlow, MUXType
+from opengsync_db import DBHandler, DBSession
+from opengsync_db.categories import ExperimentWorkFlow, MUXType
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library, create_pool,

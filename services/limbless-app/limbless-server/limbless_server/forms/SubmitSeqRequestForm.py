@@ -5,8 +5,8 @@ from flask_htmx import make_response
 from wtforms import DateTimeLocalField, BooleanField
 from wtforms.validators import Optional as OptionalValidator
 
-from limbless_db import models, to_utc
-from limbless_db.categories import EventType
+from opengsync_db import models, to_utc
+from opengsync_db.categories import EventType
 
 from .. import db, logger, sample_submission_windows  # noqa F401
 from .HTMXFlaskForm import HTMXFlaskForm

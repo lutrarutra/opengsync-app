@@ -5,8 +5,8 @@ import pandas as pd
 from flask import Blueprint, request, abort
 from flask_login import login_required
 
-from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from opengsync_db import models, db_session
+from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger
 from ....forms.workflows import check_barcode_clashes as wff

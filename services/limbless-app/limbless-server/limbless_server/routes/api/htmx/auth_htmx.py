@@ -5,8 +5,8 @@ from flask_htmx import make_response
 from flask_mail import Message
 from flask_login import logout_user, login_required
 
-from limbless_db import models
-from limbless_db.categories import HTTPResponse, UserRole
+from opengsync_db import models
+from opengsync_db.categories import HTTPResponse, UserRole
 from .... import db, forms, logger, mail, serializer, EMAIL_SENDER
 
 if TYPE_CHECKING:
@@ -64,7 +64,7 @@ def reset_password_email(user_id: int):
     url = url_for("auth_page.reset_password_page", token=token, _external=True)
 
     msg = Message(
-        "Limbless Reset Password",
+        "opengsync Reset Password",
         sender=EMAIL_SENDER,
         recipients=[user.email],
         body=f"""Follow the link to reset your password:\n

@@ -11,7 +11,7 @@ from flask_mail import Mail
 from flask_caching import Cache
 from itsdangerous import URLSafeTimedSerializer
 
-from limbless_db import DBHandler, categories
+from opengsync_db import DBHandler, categories
 
 from .tools import RedisMSFFileCache
 from .tools.WeekTimeWindow import WeekTimeWindow
@@ -22,7 +22,7 @@ fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} ({file}:{line} in {function}):
 >   {message}"""
 
 
-if os.getenv("LIMBLESS_DEBUG") == "1":
+if os.getenv("opengsync_DEBUG") == "1":
     logger.add(
         sys.stdout, colorize=True,
         format=fmt, level="DEBUG"

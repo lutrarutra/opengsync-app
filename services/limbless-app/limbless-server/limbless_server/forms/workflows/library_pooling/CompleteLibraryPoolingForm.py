@@ -8,8 +8,8 @@ from openpyxl.utils import get_column_letter
 from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
-from limbless_db import models
-from limbless_db.categories import PoolType, SeqRequestStatus, LibraryStatus
+from opengsync_db import models
+from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus
 
 from .... import logger, db, tools
 from ...MultiStepForm import MultiStepForm

@@ -1,8 +1,8 @@
 import uuid
 from typing import Optional
 
-from limbless_db import DBHandler, models
-from limbless_db.categories import (
+from opengsync_db import DBHandler, models
+from opengsync_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
     ReadType, ExperimentStatus, PoolType, SubmissionType, FileType, GenomeRef, SampleStatus, AssayType,
     GroupType

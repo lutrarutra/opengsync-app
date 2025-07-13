@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Any
 from flask import Blueprint, request, abort, Request
 from flask_login import login_required
 
-from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse, PoolStatus, LibraryStatus, SampleStatus
+from opengsync_db import models, db_session
+from opengsync_db.categories import HTTPResponse, PoolStatus, LibraryStatus, SampleStatus
 
 from .... import db, logger  # noqa
 from ....forms.workflows import qubit_measure as wff

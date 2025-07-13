@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required
 
-from limbless_db import db_session, models
-from limbless_db.categories import HTTPResponse, UserRole, AffiliationType
+from opengsync_db import db_session, models
+from opengsync_db.categories import HTTPResponse, UserRole, AffiliationType
 
 from ... import db, forms, logger  # noqa
 

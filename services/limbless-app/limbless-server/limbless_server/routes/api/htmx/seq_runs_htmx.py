@@ -5,8 +5,8 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from limbless_db import models, PAGE_LIMIT
-from limbless_db.categories import HTTPResponse, RunStatus
+from opengsync_db import models, PAGE_LIMIT
+from opengsync_db.categories import HTTPResponse, RunStatus
 from .... import db, logger, cache  # noqa F401
 
 if TYPE_CHECKING:

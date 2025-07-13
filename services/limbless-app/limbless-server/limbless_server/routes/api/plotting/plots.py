@@ -9,8 +9,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from .... import db, logger
-from limbless_db import models
-from limbless_db.categories import HTTPResponse
+from opengsync_db import models
+from opengsync_db.categories import HTTPResponse
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore

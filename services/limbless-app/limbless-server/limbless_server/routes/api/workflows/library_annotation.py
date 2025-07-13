@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Literal
 from flask import Blueprint, request, abort, send_file, current_app
 from flask_login import login_required
 
-from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse, SubmissionType
+from opengsync_db import models, db_session
+from opengsync_db.categories import HTTPResponse, SubmissionType
 
 from .... import db, logger  # noqa
 from ....forms.workflows import library_annotation as forms

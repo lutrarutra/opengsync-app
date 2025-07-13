@@ -7,8 +7,8 @@ from wtforms import StringField, TextAreaField, EmailField, BooleanField, Select
 from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
 
-from limbless_db import models
-from limbless_db.categories import ReadType, DataDeliveryMode, SubmissionType
+from opengsync_db import models
+from opengsync_db.categories import ReadType, DataDeliveryMode, SubmissionType
 
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm

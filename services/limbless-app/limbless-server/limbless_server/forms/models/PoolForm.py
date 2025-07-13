@@ -6,8 +6,8 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 
 from flask_htmx import make_response
 
-from limbless_db import models
-from limbless_db.categories import PoolStatus, PoolType
+from opengsync_db import models
+from opengsync_db.categories import PoolStatus, PoolType
 
 from ... import logger, db  # noqa F401
 from ..SearchBar import OptionalSearchBar

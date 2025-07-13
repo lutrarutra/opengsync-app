@@ -5,8 +5,8 @@ from flask_mail import Message
 from wtforms import EmailField, PasswordField, StringField, SelectField
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 
-from limbless_db.categories import UserRole
-from limbless_db import models
+from opengsync_db.categories import UserRole
+from opengsync_db import models
 from .. import bcrypt, db, serializer, logger, EMAIL_SENDER, mail, DOMAIN_WHITE_LIST
 from .HTMXFlaskForm import HTMXFlaskForm
 
@@ -100,7 +100,7 @@ class UserForm(HTMXFlaskForm):
 
         url = url_for("auth_page.register_page", token=token, _external=True)
         msg = Message(
-            "Limbless Registration",
+            "opengsync Registration",
             sender=EMAIL_SENDER,
             recipients=[email],
             body=f"""Follow the link to register:\n
@@ -182,7 +182,7 @@ class RegisterForm(HTMXFlaskForm):
             email=email, role=UserRole.CLIENT, serializer=serializer
         )
         msg = Message(
-            "Limbless Registration",
+            "opengsync Registration",
             sender=EMAIL_SENDER,
             recipients=[email],
             body=f"""Click the following link to register:\n

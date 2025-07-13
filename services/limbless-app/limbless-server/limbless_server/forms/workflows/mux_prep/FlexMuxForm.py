@@ -5,8 +5,8 @@ import pandas as pd
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
-from limbless_db import models
-from limbless_db.categories import LibraryType, LibraryStatus, MUXType
+from opengsync_db import models
+from opengsync_db.categories import LibraryType, LibraryStatus, MUXType
 
 from .... import logger, tools, db  # noqa F401
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, SpreadSheetColumn, DuplicateCellValue

@@ -6,8 +6,8 @@ import pandas as pd
 from flask import Response, current_app, url_for, flash
 from flask_htmx import make_response
 
-from limbless_db import models, to_utc
-from limbless_db.categories import FileType, LibraryStatus
+from opengsync_db import models, to_utc
+from opengsync_db.categories import FileType, LibraryStatus
 
 from .... import logger, db  # noqa F401
 from .PrepTableForm import PrepTableForm

@@ -4,7 +4,7 @@ from flask_htmx import make_response
 from wtforms import FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-from limbless_db import models
+from opengsync_db import models
 
 from .... import db
 from ...HTMXFlaskForm import HTMXFlaskForm

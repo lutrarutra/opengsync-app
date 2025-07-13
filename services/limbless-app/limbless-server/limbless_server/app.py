@@ -8,7 +8,7 @@ import pandas as pd
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
 from flask_login import login_required
 
-from limbless_db import categories, models, db_session, TIMEZONE, to_utc
+from opengsync_db import categories, models, db_session, TIMEZONE, to_utc
 
 from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools
 from .routes import api, pages
@@ -35,7 +35,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         port=os.environ["POSTGRES_PORT"],
         db=os.environ["POSTGRES_DB"],
     )
-    app.debug = os.getenv("LIMBLESS_DEBUG") == "1"
+    app.debug = os.getenv("opengsync_DEBUG") == "1"
     app.config["MEDIA_FOLDER"] = tools.io.mkdir(os.path.join("media"))
     app.config["UPLOADS_FOLDER"] = tools.io.mkdir(os.path.join("uploads"))
     app.config["APP_DATA_FOLDER"] = tools.io.mkdir(os.path.join("app_data"))

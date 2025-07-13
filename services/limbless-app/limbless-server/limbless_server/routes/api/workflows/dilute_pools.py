@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, request, abort
 from flask_login import login_required
 
-from limbless_db import models, db_session
-from limbless_db.categories import HTTPResponse
+from opengsync_db import models, db_session
+from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import dilute_pools as wff

@@ -10,8 +10,8 @@ from wtforms.validators import NumberRange, DataRequired
 from wtforms import IntegerField, FieldList, FormField
 from flask_wtf import FlaskForm
 
-from limbless_db import models
-from limbless_db.categories import PoolStatus, FileType, LibraryStatus
+from opengsync_db import models
+from opengsync_db.categories import PoolStatus, FileType, LibraryStatus
 
 from .... import db, logger  # noqa
 from ...MultiStepForm import MultiStepForm

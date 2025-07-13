@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required, current_user
 
-from limbless_db import db_session
-from limbless_db.categories import HTTPResponse, LibraryStatus, LibraryType
+from opengsync_db import db_session
+from opengsync_db.categories import HTTPResponse, LibraryStatus, LibraryType
 
 from ... import db, logger, forms  # noqa
 

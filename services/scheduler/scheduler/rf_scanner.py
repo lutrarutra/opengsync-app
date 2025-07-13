@@ -6,9 +6,9 @@ import pandas as pd
 import interop
 from xml.dom.minidom import parse
 
-from limbless_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
-from limbless_db.core import DBHandler
-from limbless_db import DBSession
+from opengsync_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
+from opengsync_db.core import DBHandler
+from opengsync_db import DBSession
 
 from . import logger
 

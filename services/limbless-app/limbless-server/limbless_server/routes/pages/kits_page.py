@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, url_for, abort, make_response, request
 from flask_login import login_required
 
-from limbless_db import db_session
-from limbless_db.categories import HTTPResponse
+from opengsync_db import db_session
+from opengsync_db.categories import HTTPResponse
 
 from ... import db
 

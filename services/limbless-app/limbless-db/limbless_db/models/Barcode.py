@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 
-from limbless_db.categories import BarcodeType, BarcodeTypeEnum
+from opengsync_db.categories import BarcodeType, BarcodeTypeEnum
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit

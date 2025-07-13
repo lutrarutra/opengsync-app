@@ -2,8 +2,8 @@
 
 mkdir ./tmp
 cd ./tmp
-git clone https://github.com/lutrarutra/limbless-app
-cd limbless-app
+git clone https://github.com/lutrarutra/opengsync-app
+cd opengsync-app
 bash ./test.sh --build
 STATUS=$?
 
@@ -23,10 +23,10 @@ git pull
 
 echo "Restarting production server service..."
 
-sudo systemctl restart limbless
+sudo systemctl restart opengsync
 
 echo "Production server starting as service..."
-echo "View logs: 'sudo journalctl -u limbless -e -f'"
+echo "View logs: 'sudo journalctl -u opengsync -e -f'"
 
 
 

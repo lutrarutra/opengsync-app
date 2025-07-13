@@ -1,8 +1,8 @@
 import os
 import pytest
 
-from limbless_db import DBHandler
-from limbless_db.categories import UserRole
+from opengsync_db import DBHandler
+from opengsync_db.categories import UserRole
 
 
 @pytest.fixture()

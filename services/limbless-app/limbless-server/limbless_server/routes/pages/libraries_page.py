@@ -2,9 +2,9 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import login_required
 
-from limbless_db import db_session
-from limbless_db.models import User
-from limbless_db.categories import HTTPResponse
+from opengsync_db import db_session
+from opengsync_db.models import User
+from opengsync_db.categories import HTTPResponse
 from ... import db, forms
 
 if TYPE_CHECKING:
