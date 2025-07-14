@@ -29,6 +29,15 @@ Web app for NGS sample/library/project tracking
 - `mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin`
 - `mkdir -p db/postgres && sudo chown -R 999:999 db/postgres`
 - `mkdir -p data/db_backup/wal && sudo chown -R 999:999 data/db_backup/wal`
+- `mkdir -p data/db_backup/base && sudo chown -R 999:999 data/db_backup/base`
+```sh
+pg_basebackup \
+  -U <user> \
+  -D /var/lib/postgresql/base \
+  -F tar \
+  -X fetch \
+  -P
+```
 
 ## Start Production Server (2 options)
 
