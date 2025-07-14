@@ -25,5 +25,7 @@ class Adapter(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "name"]
     
     def __str__(self) -> str:
-        return f"Adapter({self.id})"
+        return f"Adapter({self.id}, '{self.well}')"
         
+    def __repr__(self) -> str:
+        return self.__str__()

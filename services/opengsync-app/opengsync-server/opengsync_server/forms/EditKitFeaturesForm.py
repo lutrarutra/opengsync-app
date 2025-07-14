@@ -45,7 +45,7 @@ class EditKitFeaturesForm(HTMXFlaskForm):
 
     def __fill_form(self):
         template = db.get_feature_kit_features_df(self.feature_kit.id)
-        return template[self.spreadsheet.labels()]
+        return template
 
     def validate(self) -> bool:
         if not super().validate():
