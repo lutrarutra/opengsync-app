@@ -123,6 +123,7 @@ class FlexAnnotationForm(MultiStepForm):
                     pooling_data["library_name"].append(pooling_row["library_name"])
                     pooling_data["mux_barcode"].append(flex_row["barcode_id"])
                     pooling_data["sample_pool"].append(flex_row["sample_name"])
+                    pooling_data["mux_type_id"].append(MUXType.TENX_FLEX_PROBE.id)
 
             sample_pooling_table = pd.DataFrame(pooling_data)
             self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)

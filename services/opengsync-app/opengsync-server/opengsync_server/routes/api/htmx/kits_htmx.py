@@ -99,7 +99,7 @@ def table_query():
 @db_session(db)
 @login_required
 def edit(kit_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     if (index_kit := db.get_kit(kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

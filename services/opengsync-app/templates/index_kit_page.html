@@ -8,9 +8,9 @@
     <div class="page-header">
         <div class="page-title">
             <h1><b>[{{ index_kit.identifier }}]</b> {{ index_kit.name }} <span class="desc">{{ index_kit.type.name }}</span></h1>
-        </div>
+    </div>
         <div class="page-controls">
-            {% if current_user.is_insider() %}
+            {% if current_user.is_admin() %}
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Manage

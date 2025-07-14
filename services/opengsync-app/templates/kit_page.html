@@ -7,7 +7,7 @@
             <h1><b>[{{ kit.identifier }}]</b> {{ kit.name }}</h1>
         </div>
         <div class="page-controls">
-            {% if current_user.is_insider() %}
+            {% if current_user.is_admin() %}
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Manage

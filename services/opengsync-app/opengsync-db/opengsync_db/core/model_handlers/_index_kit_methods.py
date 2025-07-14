@@ -59,6 +59,19 @@ def get_index_kit_by_name(self: "DBHandler", name: str) -> models.IndexKit | Non
     return res
 
 
+def get_index_kit_by_identifier(
+    self: "DBHandler", identifier: str
+) -> models.IndexKit | None:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    res = self.session.query(models.IndexKit).where(models.IndexKit.identifier == identifier).first()
+
+    if not persist_session:
+        self.close_session()
+    return res
+
+
 def remove_all_barcodes_from_kit(
     self: "DBHandler", index_kit_id: int
 ) -> models.IndexKit:
