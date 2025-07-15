@@ -665,7 +665,7 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes:
         models.Library.sample_name.label("sample_pool"),
         models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
-        models.Library.genome_ref_id.label("seq_request_id"),
+        models.Library.seq_request_id.label("seq_request_id"),
 
         models.Sample.id.label("sample_id"),
         models.Sample.name.label("sample_name"),
