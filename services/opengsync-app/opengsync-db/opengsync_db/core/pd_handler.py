@@ -657,7 +657,7 @@ def get_project_samples_df(self: "DBHandler", project_id: int, pivot: bool = Tru
     return df
 
 
-def get_project_libraries_df(self: "DBHandler", project_id: int) -> pd.DataFrame:
+def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes: bool = True) -> pd.DataFrame:
     query = sa.select(
         models.Library.experiment_id.label("experiment_id"),
         models.Library.id.label("library_id"),
@@ -708,14 +708,26 @@ def get_project_libraries_df(self: "DBHandler", project_id: int) -> pd.DataFrame
         models.Library,
         models.Library.pool_id == models.Pool.id
     )
-
+    
     lanes = pd.read_sql(query, self._engine)
+    if collapse_lanes:
+        order = [
+            "sample_name", "library_name", "sample_pool",
+            "library_type", "genome_ref", "experiment_name", "lanes",
+            "mux", "mux_type", "library_id", "sample_id",
+        ]
+        lanes = lanes.groupby(
+            lanes.columns.difference(["lane"]).tolist(), as_index=False, dropna=False
+        ).agg({"lane": list}).rename(columns={"lane": "lanes"})
+    else:
+        order = [
+            "sample_name", "library_name", "sample_pool",
+            "library_type", "genome_ref", "experiment_name", "lane",
+            "mux", "mux_type", "library_id", "sample_id",
+        ]
+
     merged = pd.merge(lanes, libraries, on=["library_id", "experiment_id"], how="left")
-    return merged[[
-        "lane", "sample_name", "library_name", "sample_pool",
-        "library_type", "genome_ref", "experiment_name",
-        "mux", "mux_type", "library_id", "sample_id"
-    ]]
+    return merged[order]
 
 
 def get_lab_prep_libraries_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame:
