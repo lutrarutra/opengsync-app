@@ -657,20 +657,20 @@ def get_project_samples_df(self: "DBHandler", project_id: int, pivot: bool = Tru
     return df
 
 
-def get_project_libraries_df(self: "DBHandler", project_id: int, expand_attributes: bool = True) -> pd.DataFrame:
+def get_project_libraries_df(self: "DBHandler", project_id: int) -> pd.DataFrame:
     query = sa.select(
+        models.Library.experiment_id.label("experiment_id"),
         models.Library.id.label("library_id"),
         models.Library.name.label("library_name"),
         models.Library.sample_name.label("sample_pool"),
         models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
-        models.Library.experiment_id.label("experiment_id"),
 
         models.Sample.id.label("sample_id"),
         models.Sample.name.label("sample_name"),
-        models.Sample._attributes.label("attributes"),
 
-        models.SeqRequest.id.label("seq_request_id"),
+        models.links.SampleLibraryLink.mux.label("mux"),
+        models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
     ).where(
         models.Sample.project_id == project_id
     ).join(
@@ -679,15 +679,13 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, expand_attribut
     ).join(
         models.Library,
         models.Library.id == models.links.SampleLibraryLink.library_id
-    ).join(
-        models.SeqRequest,
-        models.SeqRequest.id == models.Library.seq_request_id,
     )
 
     libraries = pd.read_sql(query, self._engine)
     experiment_ids = libraries["experiment_id"].unique().tolist()
     libraries_ids = libraries["library_id"].unique().tolist()
 
+    libraries["mux_type"] = libraries["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
     libraries["genome_ref"] = libraries["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
     libraries["library_type"] = libraries["library_type_id"].map(categories.LibraryType.get)  # type: ignore
 
@@ -713,16 +711,11 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, expand_attribut
 
     lanes = pd.read_sql(query, self._engine)
     merged = pd.merge(lanes, libraries, on=["library_id", "experiment_id"], how="left")
-    merged = merged[["experiment_name", "lane", "sample_name", "sample_id", "seq_request_id", "library_name", "sample_pool", "genome_ref", "pool_name", "library_type", "attributes"]]
-    
-    if expand_attributes:
-        expanded = merged["attributes"].apply(pd.Series)
-        for col in expanded.columns:
-            expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)
-
-        merged = pd.concat([merged.drop(columns=["attributes"]), expanded], axis=1)
-
-    return merged
+    return merged[[
+        "lane", "sample_name", "library_name", "sample_pool",
+        "library_type", "genome_ref", "experiment_name",
+        "mux", "mux_type", "library_id", "sample_id"
+    ]]
 
 
 def get_lab_prep_libraries_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame:
