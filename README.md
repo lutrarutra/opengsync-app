@@ -24,13 +24,36 @@ Web app for NGS sample/library/project tracking
 # Production Server service
 
 ## Initial Setup
+
+### 1. Create folders with correct permissions
 - `cp templates/template.env .env`
     - Populate .env as required.
-- `mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin`
-- `mkdir -p db/postgres && sudo chown -R 999:999 db/postgres`
-- `mkdir -p data/db_backup/wal && sudo chown -R 999:999 data/db_backup/wal`
-- `mkdir -p data/db_backup/base && sudo chown -R 999:999 data/db_backup/base`
+
 ```sh
+mkdir -p db
+mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
+mkdir -p db/postgres && sudo chown -R 999:999 db/postgres
+mkdir -p data/db_backup/wal && sudo chown -R 999:999 data/db_backup/wal
+mkdir -p data/db_backup/base && sudo chown -R 999:999 data/db_backup/base
+```
+
+### 2. Start production server as systemd service
+```sh
+sudo cp templates/opengsync.service /lib/systemd/system/opengsync.service
+sudo systemctl daemon-reload
+sudo systemctl enable opengsync
+sudo systemctl start opengsync
+```
+or
+`./prod.sh`
+
+- Wait for startup: `sudo journalctl -u opengsync -e -f`
+
+### 3. Create Base Backup
+```sh
+# host
+docker exec -it postgres sh
+# In postgres container 
 pg_basebackup \
   -U <user> \
   -D /var/lib/postgresql/base \
@@ -38,14 +61,6 @@ pg_basebackup \
   -X fetch \
   -P
 ```
-
-## Start Production Server (2 options)
-
-### 1. Start production server as systemd service
-- `sudo cp templates/opengsync.service /lib/systemd/system/opengsync.service`
-- `sudo systemctl daemon-reload`
-- `sudo systemctl enable opengsync`
-- `sudo systemctl start opengsync`
 
 #### Logs
 - View

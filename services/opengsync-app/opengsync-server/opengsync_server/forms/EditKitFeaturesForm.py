@@ -19,7 +19,7 @@ class EditKitFeaturesForm(HTMXFlaskForm):
     _template_path = "forms/edit_kit_features.html"
 
     columns: list[SpreadSheetColumn] = [
-        TextColumn("name", "Name", 250, max_length=models.Feature.name.type.length, min_length=4, required=True),
+        TextColumn("name", "Name", 250, max_length=models.Feature.name.type.length, min_length=3, required=True),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, required=True, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, required=True, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
         TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, required=True, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),

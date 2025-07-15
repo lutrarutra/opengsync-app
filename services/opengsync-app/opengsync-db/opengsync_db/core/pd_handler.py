@@ -95,7 +95,8 @@ def get_experiment_libraries_df(
 
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
     df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
-    df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+    if "mux_type_id" in df.columns:
+        df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
 
     order = [
         "lane", "library_id", "sample_name", "library_name", "library_type", "reference", "pool_name",

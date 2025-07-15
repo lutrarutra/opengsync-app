@@ -66,8 +66,9 @@ class CompleteSASForm(MultiStepForm):
         n_library_names = len(self.library_table["library_name"].unique())
         n_libraries_pooled = len(self.sample_pooling_table.duplicated(subset=["library_name", "mux_type_id"], keep=False))
         if n_libraries != n_library_names or n_libraries_pooled != n_libraries:
-            logger.error(f"{self.uuid}: Library table contains duplicate library names or pooling entries.")
-            raise ValueError("Library table contains duplicate library names or pooling entries.")
+            logger.warning(self.sample_pooling_table[self.sample_pooling_table.duplicated(subset=["library_name", "mux_type_id"], keep=False)][["library_name", "mux_type_id", "sample_name"]])
+            # logger.error(f"{self.uuid}: Library table contains duplicate library names or pooling entries.")
+            # raise ValueError("Library table contains duplicate library names or pooling entries.")
         
         self.library_table["mux_type_id"] = None
         for (library_name, mux_type_id), _df in self.sample_pooling_table.groupby(["library_name", "mux_type_id"]):
