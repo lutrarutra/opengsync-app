@@ -61,6 +61,17 @@ class CompleteSASForm(MultiStepForm):
             for (library_name, pool_name), _ in self.library_table.groupby(["library_name", "pool"]):
                 self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "pool"] = pool_name
             self.barcode_table = tools.check_indices(self.barcode_table, groupby="pool")
+
+        n_libraries = len(self.library_table)
+        n_library_names = len(self.library_table["library_name"].unique())
+        n_libraries_pooled = len(self.sample_pooling_table.duplicated(subset=["library_name", "mux_type_id"], keep=False))
+        if n_libraries != n_library_names or n_libraries_pooled != n_libraries:
+            logger.error(f"{self.uuid}: Library table contains duplicate library names or pooling entries.")
+            raise ValueError("Library table contains duplicate library names or pooling entries.")
+        
+        self.library_table["mux_type_id"] = None
+        for (library_name, mux_type_id), _df in self.sample_pooling_table.groupby(["library_name", "mux_type_id"]):
+            self.library_table.loc[self.library_table["library_name"] == library_name, "mux_type_id"] = mux_type_id
         
         if not formdata:
             self.__prepare()
@@ -264,8 +275,8 @@ class CompleteSASForm(MultiStepForm):
                 genome_ref=GenomeRef.get(library_row["genome_id"]),
                 pool_id=pool_id,
                 assay_type=assay_type,
-                mux_type=self.mux_type,
                 properties=properties,
+                mux_type=MUXType.get(library_row["mux_type_id"]) if pd.notna(library_row["mux_type_id"]) else None,
                 nuclei_isolation=self.metadata.get("nuclei_isolation", False),
                 seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
             )

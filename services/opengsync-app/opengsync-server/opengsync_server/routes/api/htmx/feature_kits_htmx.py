@@ -136,7 +136,7 @@ def get_features(feature_kit_id: int, page: int):
 @db_session(db)
 @login_required
 def create():
-    if not current_user.is_insider():
+    if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if request.method == "GET":
@@ -152,7 +152,7 @@ def create():
 @db_session(db)
 @login_required
 def edit(feature_kit_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -170,7 +170,7 @@ def edit(feature_kit_id: int):
 @db_session(db)
 @login_required
 def edit_features(feature_kit_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
