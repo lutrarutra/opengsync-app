@@ -72,7 +72,7 @@ class BarcodeMatchForm(MultiStepForm):
         elif self.index_type == IndexType.SINGLE_INDEX:
             self.single_index_prepare()
         elif self.index_type == IndexType.TENX_ATAC_INDEX:
-            raise NotImplementedError("TenX ATAC index type is not yet implemented in the barcode match form.")
+            self.tenx_atac_index_prepare()
         else:
             logger.warning("Index type could not be determined")
         
@@ -86,22 +86,61 @@ class BarcodeMatchForm(MultiStepForm):
             return IndexType.TENX_ATAC_INDEX
         
         return None
+    
+    def tenx_atac_index_prepare(self):
+        logger.warning("TenX ATAC index type is not yet implemented in the barcode match form.")
+        self.i7_kit.choices = [(0, "Custom")]  # type: ignore
+        self.i5_kit.choices = [(0, "Custom")]  # type: ignore
+        self.i5_kit.data = 0
+        self.i7_kit.data = 0
+        self._context["barcodes"] = pd.DataFrame(columns=["kit_id", "kit"])
 
     def single_index_prepare(self):
         path = os.path.join(current_app.config["APP_DATA_FOLDER"], "kits", f"{IndexType.SINGLE_INDEX.id}.pkl")
         if not os.path.exists(path):
-            logger.error(f"Dual index barcode file not found: {path}")
-            raise FileNotFoundError(f"Dual index barcode file not found: {path}")
+            logger.warning(f"Singe-index barcode file not found: {path}")
+            barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7"])
+        else:
+            barcodes = pd.read_pickle(path)
+
+        df = self.barcode_table.copy()
+        df["rc_sequence_i7"] = df["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
         
-        raise NotImplementedError()
+        barcodes["fc_i7"] = barcodes["sequence_i7"].isin(df["sequence_i7"])
+        barcodes["rc_i7"] = barcodes["sequence_i7"].isin(df["rc_sequence_i7"])
+        
+        groupby = barcodes.groupby(["kit_id", "kit"])
+        groupby = groupby[["fc_i7", "rc_i7"]].sum()
+
+        i7_kit_choices = [(0, "Custom")]
+
+        kits = set()
+
+        for kit_id, kit in groupby.index:
+            if groupby.loc[(kit_id, kit), "fc_i7"] == df.shape[0]:
+                i7_kit_choices.append((kit_id, kit))
+                kits.add(kit_id)
+            elif groupby.loc[(kit_id, kit), "rc_i7"] == df.shape[0]:
+                i7_kit_choices.append((kit_id, kit + " (Reverse Complement)"))
+                kits.add(kit_id)
+
+        self.i7_kit.choices = i7_kit_choices  # type: ignore
+        self.i5_kit.choices = [(0, "Custom")]  # type: ignore
+
+        if self.i7_kit.data is None:
+            self.i7_kit.data = i7_kit_choices[-1][0]
+        self.i5_kit.data = 0
+
+        barcodes = barcodes[barcodes["kit_id"].isin(kits)].reset_index(drop=True)
+        self._context["barcodes"] = barcodes
         
     def dual_index_prepare(self):
         path = os.path.join(current_app.config["APP_DATA_FOLDER"], "kits", f"{IndexType.DUAL_INDEX.id}.pkl")
         if not os.path.exists(path):
-            logger.error(f"Dual index barcode file not found: {path}")
-            raise FileNotFoundError(f"Dual index barcode file not found: {path}")
-        
-        barcodes = pd.read_pickle(path)
+            logger.warning(f"Dual index barcode file not found: {path}")
+            barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7", "sequence_i5"])
+        else:
+            barcodes = pd.read_pickle(path)
 
         df = self.barcode_table.copy()
         df["rc_sequence_i7"] = df["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
@@ -152,7 +191,7 @@ class BarcodeMatchForm(MultiStepForm):
         if not self.i7_kit.data and self.i7_option.data is None:
             self.i7_option.errors = ("Please select how to proceed with the i7 index.",)
         
-        if not self.i5_kit.data and self.i5_option.data is None:
+        if not self.i5_kit.data and self.i5_option.data is None and self.index_type == IndexType.DUAL_INDEX:
             self.i5_option.errors = ("Please select how to proceed with the i5 index.",)
         
         if self.errors:

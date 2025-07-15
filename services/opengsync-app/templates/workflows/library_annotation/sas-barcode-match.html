@@ -38,11 +38,19 @@
                 {{ form.csrf_token() }}
                 <div class="row">
                     {{ select_input(form.i7_kit, class="col-6") }}
+                    {% if index_type == IndexType.DUAL_INDEX %}
                     {{ select_input(form.i5_kit, class="col-6") }}
+                    {% else %}
+                    {{ select_input(form.i5_kit, class="col-6", disabled=true) }}
+                    {% endif %}
                 </div>
                 <div class="row">
                     {{ radio_input(form.i7_option, class="col-6") }}
+                    {% if index_type == IndexType.DUAL_INDEX %}
                     {{ radio_input(form.i5_option, class="col-6") }}
+                    {% else %}
+                    {{ radio_input(form.i5_option, class="col-6", disabled=true) }}
+                    {% endif %}
                 </div>
             </div>
             {% for (kit_id, kit), df in barcodes.groupby(["kit_id", "kit"]) %}
@@ -87,21 +95,19 @@
                 }
             }
 
-            const $i7Kit = $('[name="i7_kit"]');
-            const $i5Kit = $('[name="i5_kit"]');
-
-            // Initial toggle
-            toggleRadios($i7Kit, "i7_option");
-            toggleRadios($i5Kit, "i5_option");
-
-            // Event listeners
-            $i7Kit.on('change', function () {
-                toggleRadios($i7Kit, "i7_option");
+            const i7_kit = $('[name="i7_kit"]');
+            toggleRadios(i7_kit, "i7_option");
+            i7_kit.on('change', function () {
+                toggleRadios(i7_kit, "i7_option");
             });
 
-            $i5Kit.on('change', function () {
-                toggleRadios($i5Kit, "i5_option");
+            {% if index_type == IndexType.DUAL_INDEX %}
+            const i5_kit = $('[name="i5_kit"]');
+            toggleRadios(i5_kit, "i5_option");
+            i5_kit.on('change', function () {
+                toggleRadios(i5_kit, "i5_option");
             });
+            {% endif %}
         });
     </script>
 </div>

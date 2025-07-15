@@ -77,7 +77,8 @@
         {{ field.label }}
     </a>
     <div class="select-container">
-        <select class="form-control select-field {% if field.errors %}is-invalid{% endif %}"
+        <select class="form-control select-field {% if field.errors %}is-invalid{% endif %} {'disabled' if disabled else ''}" 
+        {% if disabled %}disabled{% endif %}
         name="{{ field.name }}" id="{{ field.id }}">
             {% for choice in field.iter_choices() %}
             <option value="{{ choice[0] }}"
@@ -171,13 +172,13 @@
     </div>
 {% endmacro %}
 
-{% macro radio_input(field, class='') %}
+{% macro radio_input(field, class='', disabled=false) %}
 <div class="{{ class }} form-group">
     <span class="form-check">
         <label><b>{{ field.label }}</b></label>
         {% for subfield in field %}
-        <div class="form-check">
-        {{ subfield(class="form-check-input", id=subfield.id) }}
+        <div class="form-check {{ 'disabled' if disabled else '' }}">
+        {{ subfield(class="form-check-input", id=subfield.id, disabled=disabled) }}
         <label class="form-check-label" for="{{ subfield.id }}">{{ subfield.label.text }}</label>
         </div>
         {% endfor %}
