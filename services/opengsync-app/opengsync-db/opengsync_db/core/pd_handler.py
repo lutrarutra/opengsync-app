@@ -665,6 +665,7 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes:
         models.Library.sample_name.label("sample_pool"),
         models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
+        models.Library.genome_ref_id.label("seq_request_id"),
 
         models.Sample.id.label("sample_id"),
         models.Sample.name.label("sample_name"),
@@ -714,7 +715,7 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes:
         order = [
             "sample_name", "library_name", "sample_pool",
             "library_type", "genome_ref", "experiment_name", "lanes",
-            "mux", "mux_type", "library_id", "sample_id",
+            "mux", "mux_type", "library_id", "sample_id", "seq_request_id"
         ]
         lanes = lanes.groupby(
             lanes.columns.difference(["lane"]).tolist(), as_index=False, dropna=False
@@ -723,7 +724,7 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes:
         order = [
             "sample_name", "library_name", "sample_pool",
             "library_type", "genome_ref", "experiment_name", "lane",
-            "mux", "mux_type", "library_id", "sample_id",
+            "mux", "mux_type", "library_id", "sample_id", "seq_request_id"
         ]
 
     merged = pd.merge(lanes, libraries, on=["library_id", "experiment_id"], how="left")
