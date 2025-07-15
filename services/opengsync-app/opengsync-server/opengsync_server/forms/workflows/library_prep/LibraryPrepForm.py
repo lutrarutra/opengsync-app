@@ -41,6 +41,7 @@ class LibraryPrepForm(PrepTableForm):
         prep_table = pd.read_excel(self.file.data, "prep_table")
         self.file.data.seek(0)
         libraries = dict([(library.id, library.name) for library in self.lab_prep.libraries])
+        prep_table["library_id"] = prep_table["library_id"].apply(lambda x: int(x) if pd.notna(x) else None)
 
         for i, (idx, row) in enumerate(prep_table.iterrows()):
             if pd.notna(row["library_id"]) and pd.isna(row["library_name"]):

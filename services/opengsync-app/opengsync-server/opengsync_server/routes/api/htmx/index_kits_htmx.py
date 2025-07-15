@@ -158,7 +158,7 @@ def render_table(index_kit_id: int):
 @db_session(db)
 @login_required
 def get_form(form_type: str):
-    if not current_user.is_insider():
+    if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     if form_type == "edit":
         if (index_kit_id := request.args.get("index_kit_id")) is None:
@@ -185,7 +185,7 @@ def get_form(form_type: str):
 @db_session(db)
 @login_required
 def create():
-    if not current_user.is_insider():
+    if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if request.method == "GET":
@@ -201,7 +201,7 @@ def create():
 @db_session(db)
 @login_required
 def edit(index_kit_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -219,7 +219,7 @@ def edit(index_kit_id: int):
 @db_session(db)
 @login_required
 def edit_barcodes(index_kit_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if (index_kit := db.get_index_kit(index_kit_id)) is None:

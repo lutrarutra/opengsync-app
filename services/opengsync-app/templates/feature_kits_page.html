@@ -7,7 +7,7 @@
             <h1>Feature Kits</h1>
         </div>
         <div class="page-controls">
-            {% if current_user.is_insider() %}
+            {% if current_user.is_admin() %}
             <button  type="button" class="btn btn-primary"  data-bs-toggle="modal" data-bs-target="#xl-modal" 
                 hx-get="{{ url_for('feature_kits_htmx.create') }}"
                 hx-target="#xl-modal-content" data-bs-toggle="modal" hx-swap="innerHTML">
