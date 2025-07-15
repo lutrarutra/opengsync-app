@@ -58,7 +58,7 @@ class LibraryPrepForm(PrepTableForm):
             if pd.isna(row["library_id"]) and pd.isna(row["library_name"]):
                 continue
             
-            if libraries[row["library_id"]] != row["library_name"]:
+            if libraries[int(row["library_id"])] != row["library_name"]:
                 self.file.errors = (f"Library ID and name mismatch in row {i + 2}",)
                 return False
             
@@ -92,28 +92,30 @@ class LibraryPrepForm(PrepTableForm):
 
         prep_table = pd.read_excel(path, sheet_name="prep_table")
         for _, row in prep_table.iterrows():
-            if pd.isna(row["library_id"]):
+            if pd.isna(library_id := row["library_id"]):
                 continue
+
+            library_id = int(library_id)
             
             if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
-                if (library := db.get_library(row["library_id"])) is None:
-                    logger.error(f"Library {row['library_id']} not found")
-                    raise ValueError(f"Library {row['library_id']} not found")
+                if (library := db.get_library(library_id)) is None:
+                    logger.error(f"Library {library_id} not found")
+                    raise ValueError(f"Library {library_id} not found")
                 
                 library.status = LibraryStatus.FAILED
                 library = db.update_library(library)
                 continue
             
             if pd.notna(row["lib_conc_ng_ul"]):
-                if (library := db.get_library(row["library_id"])) is None:
-                    logger.error(f"Library {row['library_id']} not found")
-                    raise ValueError(f"Library {row['library_id']} not found")
+                if (library := db.get_library(library_id)) is None:
+                    logger.error(f"Library {library_id} not found")
+                    raise ValueError(f"Library {library_id} not found")
                 
                 library.qubit_concentration = float(row["lib_conc_ng_ul"])
                 library = db.update_library(library)
 
             well_idx = plate.get_well_idx(row["plate_well"].strip())
-            db.add_library_to_plate(plate_id=plate.id, library_id=row["library_id"], well_idx=well_idx)
+            db.add_library_to_plate(plate_id=plate.id, library_id=library_id, well_idx=well_idx)
 
         if self.lab_prep.prep_file is not None:
             size_bytes = os.path.getsize(path)

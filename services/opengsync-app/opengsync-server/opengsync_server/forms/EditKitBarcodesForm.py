@@ -142,7 +142,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
     columns = [
         SpreadSheetColumn("well", "Well", "text", 100, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         SpreadSheetColumn("name", "Name", "text", 150, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, replace_white_spaces_with="")),
-        SpreadSheetColumn("sequence", "Sequence", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        SpreadSheetColumn("sequence_i7", "Sequence", "text", 300, str, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
 
     rc_sequence = BooleanField("Reverse Complement Sequences", default=False)
@@ -190,13 +190,13 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
 
             if row["name"] is None:
                 self.spreadsheet.add_error(idx, "name", MissingCellValue("Name is missing."))
-            if row["sequence"] is None:
-                self.spreadsheet.add_error(idx, "sequence", MissingCellValue("Sequence is missing."))
+            if row["sequence_i7"] is None:
+                self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("Sequence is missing."))
             
             if (row["name"] == df["name"]).sum() > 1:
                 self.spreadsheet.add_error(idx, "name", DuplicateCellValue("Duplicate name."))
-            if (row["sequence"] == df["sequence"]).sum() > 1:
-                self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("Duplicate sequence."))
+            if (row["sequence_i7"] == df["sequence_i7"]).sum() > 1:
+                self.spreadsheet.add_error(idx, "sequence_i7", DuplicateCellValue("Duplicate sequence."))
 
         if len(self.spreadsheet._errors) > 0:
             return False
@@ -218,7 +218,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
             )
             db.create_barcode(
                 name=row["name"],
-                sequence=row["sequence"] if not self.rc_sequence.data else models.Barcode.reverse_complement(row["sequence"]),
+                sequence=row["sequence_i7"] if not self.rc_sequence.data else models.Barcode.reverse_complement(row["sequence_i7"]),
                 well=row["well"],
                 adapter_id=adapter.id,
                 type=BarcodeType.INDEX_I7,

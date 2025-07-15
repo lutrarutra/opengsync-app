@@ -45,7 +45,6 @@ class KitMappingForm(MultiStepForm):
         self._context["seq_request"] = seq_request
 
         self.kit_table = self.tables["kit_table"]
-        logger.debug(self.kit_table)
         self.feature_table = self.tables["feature_table"]
         
         if not formdata:
