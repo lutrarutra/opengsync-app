@@ -374,44 +374,33 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     )
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/file_upload_form", methods=["GET"])
+@lab_preps_htmx.route("<int:lab_prep_id>/prep_table_upload_form", methods=["GET", "POST"])
 @db_session(db)
 @login_required
-def file_upload_form(lab_prep_id: int) -> Response:
+def prep_table_upload_form(lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = forms.workflows.library_prep.LibraryPrepForm(lab_prep=lab_prep)
-    return form.make_response()
-
-
-@lab_preps_htmx.route("<int:lab_prep_id>/upload_file", methods=["POST"])
-@db_session(db)
-@login_required
-def upload_file(lab_prep_id: int) -> Response:
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+    if request.method == "GET":
+        form = forms.workflows.library_prep.LibraryPrepForm(lab_prep=lab_prep)
+        return form.make_response()
+    else:
+        form = forms.workflows.library_prep.LibraryPrepForm(lab_prep=lab_prep, formdata=request.form | request.files)
+        return form.process_request(user=current_user)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
-    form = forms.workflows.library_prep.LibraryPrepForm(lab_prep=lab_prep, formdata=request.form | request.files)
-    
-    return form.process_request(user=current_user)
-
 
 @lab_preps_htmx.route("<int:lab_prep_id>/get_pools/<int:page>", methods=["GET"])
 @lab_preps_htmx.route("<int:lab_prep_id>/get_pools", methods=["GET"], defaults={"page": 0})
 @login_required
 def get_pools(lab_prep_id: int, page: int):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -435,11 +424,11 @@ def get_pools(lab_prep_id: int, page: int):
 @db_session(db)
 @login_required
 def get_files(lab_prep_id: int):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)    
 
     return make_response(
         render_template(
@@ -454,11 +443,11 @@ def get_files(lab_prep_id: int):
 @db_session(db)
 @login_required
 def delete_file(lab_prep_id: int, file_id: int):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if (file := db.get_file(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -480,11 +469,11 @@ def delete_file(lab_prep_id: int, file_id: int):
 @db_session(db)
 @login_required
 def file_form(lab_prep_id: int):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
         form = forms.file.LabPrepAttachmentForm(lab_prep=lab_prep)
@@ -496,15 +485,28 @@ def file_form(lab_prep_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
     
 
+@lab_preps_htmx.route("<int:lab_prep_id>/plates_tab", methods=["GET"])
+@db_session(db)
+@login_required
+def plates_tab(lab_prep_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    return make_response(render_template("components/plates.html", plates=lab_prep.plates))
+    
+
 @lab_preps_htmx.route("<int:lab_prep_id>/comment_form", methods=["GET", "POST"])
 @db_session(db)
 @login_required
 def comment_form(lab_prep_id: int):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-    
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
         form = forms.comment.LabPrepCommentForm(lab_prep=lab_prep)
@@ -538,11 +540,11 @@ def get_comments(lab_prep_id: int):
 @db_session(db)
 @login_required
 def get_sample_pooling_table(lab_prep_id: int):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
     
     df = db.get_lab_prep_samples_df(lab_prep.id)
 

@@ -31,8 +31,7 @@ class LabPrep(Base):
     creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     creator: Mapped["User"] = relationship("User", back_populates="preps", lazy="joined")
 
-    plate_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("plate.id"), nullable=True)
-    plate: Mapped[Optional["Plate"]] = relationship("Plate", lazy="select")
+    plates: Mapped[list["Plate"]] = relationship("Plate", back_populates="lab_prep", cascade="save-update, merge, delete, delete-orphan", lazy="select", order_by="Plate.id")
 
     prep_file: Mapped[Optional["File"]] = relationship(
         "File", lazy="joined", viewonly=True,

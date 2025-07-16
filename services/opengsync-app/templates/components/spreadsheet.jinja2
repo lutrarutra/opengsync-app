@@ -102,3 +102,60 @@
     
 </script>
 {%- endmacro %}
+
+
+{% macro spreadsheet_file(element, class="", id=none, disabled=false) %}
+<div class="{{class}} form-group">
+    <a {% if element.file.description %}
+    {{ tooltip(element.file.description, "top") }}
+    {% endif %}>
+        {{ element.file.label }}
+    </a>
+    {{ 
+        element.file(
+            class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (element.file.errors and not disabled) else ""), 
+            readonly=disabled,
+            id=(id if id else element.file.name),
+        ) 
+    }}
+    <div class="invalid-feedback-container">
+        {% if not disabled %}
+        {% for error in element.file.errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% if element._data %}
+<div class="spreadsheet-container" style="width: 100%;">
+    <div id="{{ element.file.id }}-spreadsheet" class="spreadsheet-grid">
+    </div>
+</div>
+<script>
+    jspreadsheet(document.getElementById("{{ element.file.id }}-spreadsheet"), {
+        data: {{ element._data }},
+        columns: [
+            {% for label in element.cell_errors.keys() %}
+            {% set col = element.columns[label] %}
+            {%- if col.type == "text" or col.type == "numeric" -%}
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+            {%- elif col["type"] == "dropdown" -%}
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+            {%- endif -%}
+            {% endfor %}
+        ],
+        allowInsertRow: true,
+        allowManualInsertRow: false,
+        allowDeleteRow: false,
+        allowDeleteColumn: false,
+        allowInsertColumn: true,
+        allowRenameColumn: false,
+        editable: false,
+        tableOverflow: true,
+        tableWidth: "100%",
+        tableHeight: "100%",
+        style: {{ element.style | tojson }},
+    });
+</script>
+{% endif %}
+{% endmacro %}

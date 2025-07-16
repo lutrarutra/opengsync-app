@@ -1,6 +1,7 @@
 import os
 from uuid import uuid4
 
+import numpy as np
 import pandas as pd
 
 from flask import Response, current_app, url_for, flash
@@ -10,65 +11,84 @@ from opengsync_db import models, to_utc
 from opengsync_db.categories import FileType, LibraryStatus
 
 from .... import logger, db  # noqa F401
-from .PrepTableForm import PrepTableForm
+from ...HTMXFlaskForm import HTMXFlaskForm
+from ....forms.SpreadsheetFile import SpreadsheetFile
+from ....tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn, IntegerColumn
 
 
-class LibraryPrepForm(PrepTableForm):
-    def get_table(self) -> pd.DataFrame:
-        if self.lab_prep.prep_file is not None:
-            prep_table = pd.read_csv(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), sep="\t")
-        else:
-            if current_app.static_folder is None:
-                raise ValueError("Static folder not set")
-            prep_table = pd.read_csv(os.path.join(current_app.static_folder, "resources", "templates", "rna-prep.csv"), sep="\t")
-            prep_table["sample_name"] = prep_table["sample_name"].astype(str).replace("nan", None)
+class LibraryPrepForm(HTMXFlaskForm):
+    _template_path = "workflows/library_prep/prep_table.html"
 
-        for library in self.lab_prep.libraries:
-            if library.name not in prep_table["sample_name"].values:
-                prep_table.loc[prep_table[prep_table["sample_name"].isna()].index[0], "sample_name"] = library.name
+    columns = [
+        IntegerColumn("library_id", "library_id", 100),
+        TextColumn("library_name", "library_name", 250),
+        TextColumn("requestor", "requestor", 200),
+        TextColumn("pool", "pool", 200),
+        TextColumn("plate", "plate", 100, optional_col=True),
+        TextColumn("plate_well", "plate_well", 150),
+        TextColumn("index_well", "index_well", 150),
+        TextColumn("kit_i7", "kit_i7", 100),
+        TextColumn("name_i7", "name_i7", 100),
+        TextColumn("sequence_i7", "sequence_i7", 100),
+        TextColumn("kit_i5", "kit_i5", 100,),
+        TextColumn("name_i5", "name_i5", 100),
+        TextColumn("sequence_i5", "sequence_i5", 100),
+        FloatColumn("lib_conc_ng_ul", "lib_conc_ng_ul", 100),
+    ]
 
-        return prep_table
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}):
+        HTMXFlaskForm.__init__(self, formdata=formdata)
+        self.lab_prep = lab_prep
+        self._context["lab_prep"] = lab_prep
+
+        if (csrf_token := formdata.get("csrf_token")) is None:
+            csrf_token = self.csrf_token._value()  # type: ignore
+
+        self.table: SpreadsheetFile = SpreadsheetFile(
+            columns=LibraryPrepForm.columns,
+            post_url=url_for("lab_preps_htmx.prep_table_upload_form", lab_prep_id=lab_prep.id),
+            csrf_token=csrf_token,
+            sheet_name="prep_table",
+            formdata=formdata,
+        )
+        self.table.cell_errors["library_name"] = []  # this makes sure that library_name col is always showed for errors
     
     def validate(self) -> bool:
-        max_bytes = LibraryPrepForm.MAX_SIZE_MBYTES * 1024 * 1024
-        size_bytes = len(self.file.data.read())
-        self.file.data.seek(0)
-
-        if size_bytes > max_bytes:
-            self.file.errors = (f"File size exceeds {LibraryPrepForm.MAX_SIZE_MBYTES} MB",)
+        if not super().validate():
             return False
         
-        prep_table = pd.read_excel(self.file.data, "prep_table")
-        self.file.data.seek(0)
-        libraries = dict([(library.id, library.name) for library in self.lab_prep.libraries])
-        prep_table["library_id"] = prep_table["library_id"].apply(lambda x: int(x) if pd.notna(x) else None)
+        if not self.table.validate():
+            return False
+        
+        prep_table = self.table.df
+        
+        cols = [col.label for col in self.columns]
+        for col in cols:
+            if col not in prep_table.columns:
+                prep_table[col] = None
 
-        for i, (idx, row) in enumerate(prep_table.iterrows()):
-            if pd.notna(row["library_id"]) and pd.isna(row["library_name"]):
-                self.file.errors = (f"Library name missing in row {i + 2}",)
-                return False
-            
+        prep_table = prep_table.dropna(subset=["library_id", "library_name"], how="all")
+        libraries = dict([(library.id, library.name) for library in self.lab_prep.libraries])
+        duplicate_plate_well = prep_table.duplicated(subset=["plate_well", "plate"], keep=False)
+
+        for idx, row in prep_table.iterrows():
             if str(row["pool"]).strip().lower() == "t":
                 continue
             
-            if pd.isna(row["library_id"]) and pd.notna(row["library_name"]):
-                self.file.errors = (f"Library ID missing in row {i + 2}",)
-                return False
+            if pd.notna(row["library_id"]) and pd.isna(row["library_name"]):
+                self.table.add_error(idx, "library_name", MissingCellValue("Library Name is required when Library ID is provided"))
             
-            if pd.isna(row["library_id"]) and pd.isna(row["library_name"]):
-                continue
+            if duplicate_plate_well.at[idx]:
+                self.table.add_error(idx, ["plate_well", "plate"], DuplicateCellValue(f"Plate Well '{row['plate_well']}' is duplicated."))
             
-            if libraries[int(row["library_id"])] != row["library_name"]:
-                self.file.errors = (f"Library ID and name mismatch in row {i + 2}",)
-                return False
-            
-            if row["lib_conc_ng_ul"] is not None:
-                try:
-                    float(row["lib_conc_ng_ul"])
-                except ValueError:
-                    self.file.errors = (f"Invalid library concentration in row {i + 2}",)
-                    return False
-                    
+            if pd.notna(row["library_id"]) and libraries[int(row["library_id"])] != row["library_name"]:
+                self.table.add_error(idx, ["library_name", "library_id"], InvalidCellValue(f"Library Name '{row['library_name']}' does not match the existing library name '{libraries[int(row['library_id'])]}'.. Did you move the rows?"))
+
+        if self.table.errors:
+            self.table._data = prep_table[[label for label in self.table.cell_errors.keys()]].replace(np.nan, "").values.tolist()
+            return False
+        
+        self.df = prep_table
         return True
 
     def process_request(self, user: models.User) -> Response:
@@ -77,45 +97,60 @@ class LibraryPrepForm(PrepTableForm):
         
         hash = str(uuid4())
         path = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LIBRARY_PREP_FILE.dir, f"{hash}.xlsx")
-        self.file.data.save(path)
+        self.table.file.data.save(path)
         size_bytes = os.path.getsize(path)
 
-        if self.lab_prep.plate_id is not None:
-            plate = db.clear_plate(self.lab_prep.plate_id)
-        else:
-            plate = db.create_plate(
-                name=f"P-{self.lab_prep.name}",
-                num_cols=12, num_rows=8,
-                owner_id=user.id
-            )
-            self.lab_prep.plate_id = plate.id
+        for plate in self.lab_prep.plates:
+            db.delete_plate(plate.id)
 
-        prep_table = pd.read_excel(path, sheet_name="prep_table")
-        for _, row in prep_table.iterrows():
-            if pd.isna(library_id := row["library_id"]):
-                continue
-
-            library_id = int(library_id)
-            
-            if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
-                if (library := db.get_library(library_id)) is None:
-                    logger.error(f"Library {library_id} not found")
-                    raise ValueError(f"Library {library_id} not found")
+        for plate, _df in self.df.groupby("plate", dropna=False):
+            if pd.isna(plate):
+                plate = db.create_plate(
+                    name=f"P-{self.lab_prep.name}",
+                    num_cols=12, num_rows=8,
+                    owner_id=user.id
+                )
+            else:
+                try:
+                    plate = int(plate)  # type: ignore
+                except ValueError:
+                    pass
                 
-                library.status = LibraryStatus.FAILED
-                library = db.update_library(library)
-                continue
-            
-            if pd.notna(row["lib_conc_ng_ul"]):
-                if (library := db.get_library(library_id)) is None:
-                    logger.error(f"Library {library_id} not found")
-                    raise ValueError(f"Library {library_id} not found")
-                
-                library.qubit_concentration = float(row["lib_conc_ng_ul"])
-                library = db.update_library(library)
+                plate = db.create_plate(
+                    name=f"P-{self.lab_prep.name}-{plate}",
+                    num_cols=12, num_rows=8,
+                    owner_id=user.id
+                )
 
-            well_idx = plate.get_well_idx(row["plate_well"].strip())
-            db.add_library_to_plate(plate_id=plate.id, library_id=library_id, well_idx=well_idx)
+            for _, row in _df.iterrows():
+                if pd.isna(library_id := row["library_id"]):
+                    continue
+
+                library_id = int(library_id)
+                
+                if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
+                    if (library := db.get_library(library_id)) is None:
+                        logger.error(f"Library {library_id} not found")
+                        raise ValueError(f"Library {library_id} not found")
+                    
+                    library.status = LibraryStatus.FAILED
+                    library = db.update_library(library)
+                    continue
+                
+                if pd.notna(row["lib_conc_ng_ul"]):
+                    if (library := db.get_library(library_id)) is None:
+                        logger.error(f"Library {library_id} not found")
+                        raise ValueError(f"Library {library_id} not found")
+                    
+                    library.qubit_concentration = float(row["lib_conc_ng_ul"])
+                    library = db.update_library(library)
+
+                well_idx = plate.get_well_idx(row["plate_well"].strip())
+                plate = db.add_library_to_plate(plate_id=plate.id, library_id=library_id, well_idx=well_idx)
+            
+            self.lab_prep.plates.append(plate)
+        
+        self.lab_prep = db.update_lab_prep(self.lab_prep)
 
         if self.lab_prep.prep_file is not None:
             size_bytes = os.path.getsize(path)

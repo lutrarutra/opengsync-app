@@ -40,6 +40,7 @@ class SpreadSheetColumn:
     clean_up_fnc: Optional[Callable] = None
     letter: Optional[str] = None
     required: bool = False
+    optional_col: bool = False
 
     def clean_up(self, value: Any) -> Any:
         if pd.isna(value):
@@ -66,8 +67,8 @@ class SpreadSheetColumn:
 
 
 class TextColumn(SpreadSheetColumn):
-    def __init__(self, label: str, name: str, width: float, max_length: int, min_length: int = 0, required: bool = False, clean_up_fnc: Optional[Callable] = None, letter: Optional[str] = None):
-        super().__init__(label=label, name=name, type="text", width=width, var_type=str, clean_up_fnc=clean_up_fnc, letter=letter, required=required)
+    def __init__(self, label: str, name: str, width: float, max_length: int = 1024, min_length: int = 0, required: bool = False, optional_col: bool = False, clean_up_fnc: Optional[Callable] = None, letter: Optional[str] = None):
+        super().__init__(label=label, name=name, type="text", width=width, var_type=str, clean_up_fnc=clean_up_fnc, letter=letter, required=required, optional_col=optional_col)
         self.max_length = max_length
         self.min_length = min_length
 
@@ -84,8 +85,8 @@ class TextColumn(SpreadSheetColumn):
         
 
 class IntegerColumn(SpreadSheetColumn):
-    def __init__(self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None):
-        super().__init__(label=label, name=name, type="numeric", width=width, var_type=int, letter=letter, required=required)
+    def __init__(self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None, optional_col: bool = False):
+        super().__init__(label=label, name=name, type="numeric", width=width, var_type=int, letter=letter, required=required, optional_col=optional_col)
 
     def validate(self, value: Any):
         super().validate(value)
@@ -103,8 +104,8 @@ class IntegerColumn(SpreadSheetColumn):
 
 
 class FloatColumn(SpreadSheetColumn):
-    def __init__(self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None):
-        super().__init__(label=label, name=name, type="numeric", width=width, var_type=float, letter=letter, required=required)
+    def __init__(self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None, optional_col: bool = False):
+        super().__init__(label=label, name=name, type="numeric", width=width, var_type=float, letter=letter, required=required, optional_col=optional_col)
 
     def validate(self, value: Any):
         super().validate(value)
@@ -121,8 +122,8 @@ class FloatColumn(SpreadSheetColumn):
     
 
 class DropdownColumn(SpreadSheetColumn):
-    def __init__(self, label: str, name: str, width: float, choices: list[Any], required: bool = False, letter: Optional[str] = None):
-        super().__init__(label=label, name=name, type="dropdown", width=width, var_type=str, source=choices, letter=letter, required=required)
+    def __init__(self, label: str, name: str, width: float, choices: list[Any], required: bool = False, letter: Optional[str] = None, optional_col: bool = False):
+        super().__init__(label=label, name=name, type="dropdown", width=width, var_type=str, source=choices, letter=letter, required=required, optional_col=optional_col)
 
     def validate(self, value: Any):
         super().validate(value)

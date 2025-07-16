@@ -16,9 +16,17 @@
 @import "form.scss";
 
 .spreadsheet-grid {
-    tbody td {
-        font-family: monospace !important;
-        text-align: left !important;
+    tbody tr {
+        td {
+            font-family: monospace !important;
+            text-align: right !important;
+        }
+        td:first-child {
+            text-align: right !important;
+        }
+        td.jexcel_dropdown {
+            text-align: center !important;
+        }
     }
     thead td {
         font-weight: 600;

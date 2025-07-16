@@ -1,0 +1,6 @@
+{% for plate in plates %}
+<h3>{{ plate.name }}</h3>
+<div class="pb-3">
+    {% include "components/plate.html" %}
+</div>
+{% endfor %}
