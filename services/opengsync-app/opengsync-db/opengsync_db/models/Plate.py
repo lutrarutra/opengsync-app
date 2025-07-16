@@ -1,5 +1,5 @@
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,6 +11,7 @@ from . import links
 
 if TYPE_CHECKING:
     from .User import User
+    from .LabPrep import LabPrep
 
 
 class Plate(Base):
@@ -23,6 +24,9 @@ class Plate(Base):
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", lazy="joined")
+    
+    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+    lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="plates")
 
     sample_links: Mapped[list[links.SamplePlateLink]] = relationship(links.SamplePlateLink, back_populates="plate", lazy="select", order_by="SamplePlateLink.well_idx")
 

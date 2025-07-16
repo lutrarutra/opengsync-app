@@ -26,6 +26,7 @@ class FlexAnnotationForm(MultiStepForm):
         TextColumn("barcode_id", "Bardcode ID", 250, max_length=16),
     ]
 
+    allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
     single_plex = BooleanField("Single-Plex (do not fill the spreadsheet)", description="Samples were not multiplexed, i.e. one sample per library.", default=False)
 
     @staticmethod

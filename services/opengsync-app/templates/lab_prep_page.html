@@ -106,8 +106,8 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#plate-tab" type="button" role="tab"
             aria-controls="plate-tab" aria-selected="false"
-            {% if not lab_prep.plate_id %}disabled{% endif %}>
-            Plate</button>
+            {% if lab_prep.plates | length == 0 %}disabled{% endif %}>
+            Plates</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -257,9 +257,9 @@
                     {% if lab_prep.status != PrepStatus.PREPARING %}
                     {{ tooltip("You cannot edit completed prep.", category="warning") }}
                     {% else %}
-                    data-bs-toggle="modal" data-bs-target="#xl-modal"
-                    hx-get="{{ url_for('lab_preps_htmx.file_upload_form', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#xl-modal-content" data-bs-toggle="modal"
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('lab_preps_htmx.prep_table_upload_form', lab_prep_id=lab_prep.id) }}"
+                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click"{% endif %}>
                     <div class="flip-card-container">
                         <div class="card-front">
@@ -352,8 +352,8 @@
         </div>
 
         <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="4">
-            {% if lab_prep.plate_id %}
-            <div hx-get="{{ url_for('plates_htmx.plate_tab', plate_id=lab_prep.plate_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            {% if lab_prep.plates | length > 0 %}
+            <div hx-get="{{ url_for('lab_preps_htmx.plates_tab', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
             {% endif %}

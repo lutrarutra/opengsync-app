@@ -11,7 +11,7 @@ from wtforms.validators import DataRequired
 from flask_wtf import FlaskForm
 
 from .. import logger
-from ..tools.spread_sheet_components import SpreadSheetColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue, SpreadSheetException
+from ..tools.spread_sheet_components import SpreadSheetColumn, SpreadSheetException
 
 
 class SpreadsheetInput(FlaskForm):
@@ -124,10 +124,13 @@ class SpreadsheetInput(FlaskForm):
             raise ValueError("Form not validated")
         return self.__df.copy()
     
-    def add_error(self, idx: Hashable, column: str, exception: SpreadSheetException):
+    def add_error(self, idx: Hashable, column: str | list[str], exception: SpreadSheetException):
         message = exception.message
         row_num = self.df.index.get_loc(idx) + 1  # type: ignore
-        self.style[f"{self.columns[column].letter}{row_num}"] = f"background-color: {exception.color};"
+        if isinstance(column, str):
+            column = [column]
+        for col in column:
+            self.style[f"{self.columns[col].letter}{row_num}"] = f"background-color: {exception.color};"
         message = f"Row {row_num}: {message}"
         if message not in self._errors:
             self._errors.append(message)
