@@ -25,7 +25,7 @@ class LibraryPrepForm(HTMXFlaskForm):
         TextColumn("requestor", "requestor", 200),
         TextColumn("pool", "pool", 200),
         TextColumn("plate", "plate", 100, optional_col=True),
-        TextColumn("plate_well", "plate_well", 150),
+        TextColumn("plate_well", "plate_well", 150, clean_up_fnc=lambda x: x.strip().upper()),
         TextColumn("index_well", "index_well", 150),
         TextColumn("kit_i7", "kit_i7", 100),
         TextColumn("name_i7", "name_i7", 100),
@@ -69,6 +69,7 @@ class LibraryPrepForm(HTMXFlaskForm):
 
         prep_table = prep_table.dropna(subset=["library_id", "library_name"], how="all")
         libraries = dict([(library.id, library.name) for library in self.lab_prep.libraries])
+
         duplicate_plate_well = prep_table.duplicated(subset=["plate_well", "plate"], keep=False)
 
         for idx, row in prep_table.iterrows():

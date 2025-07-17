@@ -495,7 +495,7 @@ def plates_tab(lab_prep_id: int):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    return make_response(render_template("components/plates.html", plates=lab_prep.plates))
+    return make_response(render_template("components/plates.html", plates=lab_prep.plates, from_page=f"lab_prep@{lab_prep.id}"))
     
 
 @lab_preps_htmx.route("<int:lab_prep_id>/comment_form", methods=["GET", "POST"])
