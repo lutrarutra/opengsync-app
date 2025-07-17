@@ -9,7 +9,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import (
     GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType,
-    AssayType, SubmissionType, MUXType
+    AssayType, SubmissionType, MUXType, IndexType
 )
 
 from .... import db, logger, tools
@@ -288,7 +288,25 @@ class CompleteSASForm(MultiStepForm):
                 if self.barcode_table is None:
                     logger.error(f"{self.uuid}: Barcode table not found.")
                     raise ValueError("Barcode table not found.")
-                for _, barcode_row in self.barcode_table[self.barcode_table["library_name"] == library_row["library_name"]].iterrows():
+
+                library_barcodes = self.barcode_table[self.barcode_table["library_name"] == library_row["library_name"]]
+                if library.type == LibraryType.TENX_SC_ATAC:
+                    if len(library_barcodes) != 4:
+                        logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for TENX_SC_ATAC library, found {len(library_barcodes)}.")
+                    index_type = IndexType.TENX_ATAC_INDEX
+                else:
+                    if library_barcodes["sequence_i5"].isna().all():
+                        index_type = IndexType.SINGLE_INDEX
+                    elif library_barcodes["sequence_i5"].isna().any():
+                        logger.warning(f"{self.uuid}: Mixed index types found for library {library_row['library_name']}.")
+                        index_type = IndexType.DUAL_INDEX
+                    else:
+                        index_type = IndexType.DUAL_INDEX
+
+                library.index_type = index_type
+                library = db.update_library(library)
+
+                for _, barcode_row in library_barcodes.iterrows():
                     library = db.add_library_index(
                         library_id=library.id,
                         sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,

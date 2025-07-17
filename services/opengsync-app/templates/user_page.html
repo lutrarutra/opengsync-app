@@ -5,11 +5,17 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ user.role.icon }} {{ user.email }} <span class="desc">{{ user.role.name }}</span></h1>
+            <h2>{{ user.role.icon }} {{ user.email }} <span class="desc">{{ user.role.name }}</span></h2>
         </div>
         <div class="page-controls">
-            {% if current_user.id == user.id or current_user.role == UserRole.ADMIN %}
-            <button id="reset-btn" class="btn btn-warning"
+            {% if current_user.id == user.id %}
+            <button class="btn btn-warning"
+            hx-get="{{ url_for('auth_htmx.change_password', user_id=user.id) }}"
+            data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
+                Change Password
+            </button>
+            {% elif current_user.role == UserRole.ADMIN %}
+            <button class="btn btn-warning"
             hx-get="{{ url_for('auth_htmx.reset_password_email', user_id=user.id) }}"
             _="on htmx:confirm(issueRequest)
                 halt the event
@@ -21,7 +27,7 @@
                     denyButtonText: 'No'
                 })
                 if result.isConfirmed issueRequest()">
-                Change Password
+                Reset Password
             </button>
             {% endif %}
             {% if current_user.id == user.id %}

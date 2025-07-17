@@ -9,6 +9,7 @@ from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
 from opengsync_db.categories import BarcodeType, KitType
+from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
@@ -28,12 +29,18 @@ class IndexKitMappingForm(MultiStepForm):
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
-    def __init__(self, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    @staticmethod
+    def is_applicable(current_step: MultiStepForm) -> bool:
+        return current_step.tables["library_table"]["kit_i7"].notna().any()
+        
+    def __init__(self, lab_prep: models.LabPrep, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=IndexKitMappingForm._workflow_name,
             step_name=IndexKitMappingForm._step_name, uuid=uuid,
             formdata=formdata, previous_form=previous_form, step_args={}
         )
+        self.lab_prep = lab_prep
+        self._context["lab_prep"] = lab_prep
 
     def prepare(self):
         library_table = self.tables["library_table"]
@@ -58,6 +65,38 @@ class IndexKitMappingForm(MultiStepForm):
             else:
                 selected_kit = db.get_index_kit(index_kit_search_field.selected.data)
                 index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
+
+    def fill_previous_form(self, previous_form: StepFile):
+        library_table = previous_form.tables["library_table"]
+
+        kits = set()
+
+        counter = 0
+        for (label, kit_id), _ in library_table.groupby(["kit_i7", "kit_i7_id"]):
+            if label in kits:
+                continue
+            kits.add(label)
+            if counter > len(self.input_fields) - 1:
+                self.input_fields.append_entry()
+
+            entry: IndexKitSubForm = self.input_fields[counter]  # type: ignore
+            entry.raw_label.data = label
+            entry.index_kit.selected.data = kit_id
+            entry.index_kit.search_bar.data = label
+            counter += 1
+
+        for (label, kit_id), _ in library_table.groupby(["kit_i5", "kit_i5_id"]):
+            if label in kits:
+                continue
+            kits.add(label)
+            if counter > len(self.input_fields) - 1:
+                self.input_fields.append_entry()
+
+            entry: IndexKitSubForm = self.input_fields[counter]  # type: ignore
+            entry.raw_label.data = label
+            entry.index_kit.selected.data = kit_id
+            entry.index_kit.search_bar.data = label
+            counter += 1
 
     def validate(self) -> bool:
         if not super().validate():
@@ -196,6 +235,6 @@ class IndexKitMappingForm(MultiStepForm):
         self.add_table("barcode_table", self.barcode_table)
         self.update_data()
 
-        complete_pool_indexing_form = CompleteLibraryPoolingForm(previous_form=self, uuid=self.uuid)
+        complete_pool_indexing_form = CompleteLibraryPoolingForm(lab_prep=self.lab_prep, previous_form=self, uuid=self.uuid)
         complete_pool_indexing_form.prepare()
         return complete_pool_indexing_form.make_response()

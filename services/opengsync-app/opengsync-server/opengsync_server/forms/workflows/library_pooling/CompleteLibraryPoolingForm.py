@@ -9,7 +9,7 @@ from flask import Response, url_for, flash, current_app
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus
+from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus, LibraryType, IndexType
 
 from .... import logger, db, tools
 from ...MultiStepForm import MultiStepForm
@@ -20,12 +20,14 @@ class CompleteLibraryPoolingForm(MultiStepForm):
     _workflow_name = "library_pooling"
     _step_name = "complete_library_pooling"
 
-    def __init__(self, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, lab_prep: models.LabPrep, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=CompleteLibraryPoolingForm._workflow_name,
             step_name=CompleteLibraryPoolingForm._step_name, uuid=uuid,
             formdata=formdata, previous_form=previous_form, step_args={}
         )
+        self.lab_prep = lab_prep
+        self._context["lab_prep"] = lab_prep
 
     def prepare(self):
         barcode_table = self.tables["barcode_table"]
@@ -109,6 +111,22 @@ class CompleteLibraryPoolingForm(MultiStepForm):
 
                 kit_i7_id = row["kit_i7_id"] if pd.notna(row["kit_i7_id"]) else None
                 kit_i5_id = row["kit_i5_id"] if pd.notna(row["kit_i5_id"]) else None
+
+                if library.type == LibraryType.TENX_SC_ATAC:
+                    if len(df) != 4:
+                        logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for TENX_SC_ATAC library, found {len(df)}.")
+                    index_type = IndexType.TENX_ATAC_INDEX
+                else:
+                    if df["sequence_i5"].isna().all():
+                        index_type = IndexType.SINGLE_INDEX
+                    elif df["sequence_i5"].isna().any():
+                        logger.warning(f"{self.uuid}: Mixed index types found for library {df['library_name']}.")
+                        index_type = IndexType.DUAL_INDEX
+                    else:
+                        index_type = IndexType.DUAL_INDEX
+
+                library.index_type = index_type
+                library = db.update_library(library)
 
                 for j in range(max(len(seq_i7s), len(seq_i5s))):
                     library = db.add_library_index(

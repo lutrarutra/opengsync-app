@@ -25,6 +25,12 @@ class StepFile():
             "tables": self.tables
         }
     
+    def __str__(self) -> str:
+        return f"StepFile(args: {self.args}, metadata: {self.metadata}, tables: {list(self.tables.keys())})"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
+    
 
 class MultiStepForm(HTMXFlaskForm):
     _step_name: str = None  # type: ignore

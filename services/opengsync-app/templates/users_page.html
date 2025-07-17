@@ -9,7 +9,8 @@
             <h1>Users</h1>
         </div>
         <div class="page-controls">
-            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#new-user-popup">
+            <button type="button"  class="btn btn-primary" hx-get="{{ url_for('auth_htmx.register') }}"
+            data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
                 New User
             </button>
         </div>
@@ -19,25 +20,6 @@
 <div class="page-content">
     <div hx-get="{{ url_for('users_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
-    </div>
-
-    <div class="modal fade" id="new-user-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5" >New User</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                {% include "forms/user.html" %}
-            </div>
-            <div class="modal-footer" id="popup-footer">
-                <button class="btn btn-primary"
-                hx-include="#user-form" hx-target="#user-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('auth_htmx.custom_register') }}">Submit</button>
-            </div>
-          </div>
-        </div>
     </div>
 </div>
 {% endblock content %}
