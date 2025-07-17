@@ -5,28 +5,32 @@
         <div class="plate-row" id="plate-row-{{row}}">
         {% for col in range(-1, plate.num_cols) %}
             {% if row == -1 or col == -1 %}
-            <div class="plate-header">
-                {% if row == col %}
-                {% elif col == -1 %}
-                {{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[row] }}
-                {% else %}
-                {{ col + 1 }}
-                {% endif %}
-            </div>
+            {% if row == col %}
+            <div class="plate-index"></div>
+            {% elif col == -1 %}
+            <div class="plate-index">{{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[row] }}</div>
+            {% else %}
+            <div class="plate-header">{{ col + 1 }}</div>
+            {% endif %}
             {% else %}
             {% set well_sample = plate.get_sample_xy(row, col) %}
             {% if well_sample %}
             {% if well_sample.__tablename__ == "sample" %}
-            <a href="{{ url_for('samples_page.sample_page', sample_id=sample.id) }}">
-            {% elif well_sample.__tablename__ == "library" %}
-            <a href="{{ url_for('libraries_page.library_page', library_id=well_sample.id) }}">
-            {% endif %}
-            {% endif %}
-                <div class="plate-cell {% if well_sample %}filled{% else %}empty{% endif %} {% if well_sample == sample %}selected{% endif %}" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}">
-                    {% if well_sample %}{{ well_sample.name }} [{{ well_sample.id }}]{% endif %}</span>
-                </div>
-            {% if well_sample %}
+            <a href="{% if from_page %}{{ url_for('samples_page.sample_page', sample_id=sample.id, from=from_page) }}{% else %}{{ url_for('samples_page.sample_page', sample_id=well_sample.id) }}{% endif %}"
+                class="plate-cell {% if well_sample %}filled{% else %}empty{% endif %} {% if well_sample == sample %}selected{% endif %}" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}">
+                {{ well_sample.name }}
             </a>
+            {% elif well_sample.__tablename__ == "library" %}
+            <a href="{% if from_page %}{{ url_for('libraries_page.library_page', library_id=well_sample.id, from=from_page) }}{% else %}{{ url_for('libraries_page.library_page', library_id=well_sample.id) }}{% endif %}"
+                class="plate-cell {% if well_sample %}filled{% else %}empty{% endif %} {% if well_sample == sample %}selected{% endif %}" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}">
+                <div>{{ well_sample.sample_name }}</div>
+                <div>{{ well_sample.type.identifier}}</div>
+            </a>
+            {% endif %}
+            {% else %}
+            <div class="plate-cell empty" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}">
+                &nbsp;
+            </div>
             {% endif %}
             {% endif %}
         {% endfor %}
