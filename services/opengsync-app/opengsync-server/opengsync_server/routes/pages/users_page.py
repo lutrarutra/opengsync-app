@@ -5,7 +5,7 @@ from flask_login import login_required
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
-from ... import db, forms
+from ... import db
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -21,7 +21,7 @@ def users_page():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    return render_template("users_page.html", user_form=forms.UserForm())
+    return render_template("users_page.html")
 
 
 @users_page_bp.route("/user", defaults={"user_id": None})

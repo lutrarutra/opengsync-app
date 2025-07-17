@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 from ... import models, PAGE_LIMIT
 from ...categories import (
     LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus,
-    AccessType, AccessTypeEnum, AssayTypeEnum, MUXTypeEnum
+    AccessType, AccessTypeEnum, AssayTypeEnum, IndexTypeEnum, MUXTypeEnum
 )
 from .. import exceptions
 
@@ -24,6 +24,7 @@ def create_library(
     genome_ref: GenomeRefEnum,
     assay_type: AssayTypeEnum,
     properties: Optional[dict | None] = None,
+    index_type: IndexTypeEnum | None = None,
     nuclei_isolation: bool = False,
     mux_type: MUXTypeEnum | None = None,
     pool_id: Optional[int] = None,
@@ -65,6 +66,7 @@ def create_library(
         pool_id=pool_id,
         lab_prep_id=lab_prep_id,
         status_id=status.id,
+        index_type_id=index_type.id if index_type is not None else None,
         properties=properties if properties is not None and len(properties) > 0 else None,
         seq_depth_requested=seq_depth_requested,
         nuclei_isolation=nuclei_isolation,
@@ -539,6 +541,7 @@ def clone_library(self: "DBHandler", library_id: int, seq_request_id: int, index
         assay_type=library.assay_type,
         mux_type=library.mux_type,
         properties=library.properties,
+        index_type=library.index_type,
     )
 
     for sample_link in library.sample_links:

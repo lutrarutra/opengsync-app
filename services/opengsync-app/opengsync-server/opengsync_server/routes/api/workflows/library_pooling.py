@@ -8,6 +8,7 @@ from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import library_pooling as forms
+from ....forms.MultiStepForm import MultiStepForm
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -29,7 +30,29 @@ def begin(lab_prep_id: int) -> Response:
     
     form = forms.BarcodeInputForm(lab_prep=lab_prep)
     return form.make_response()
+
+
+@library_pooling_workflow.route("<int:lab_prep_id>/previous/<string:uuid>", methods=["GET"])
+@db_session(db)
+@login_required
+def previous(lab_prep_id: int, uuid: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
     
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if (response := MultiStepForm.pop_last_step("library_pooling", uuid)) is None:
+        logger.error("Failed to pop last step")
+        return abort(HTTPResponse.INTERNAL_SERVER_ERROR.id)
+    
+    step_name, step = response
+
+    prev_step_cls = forms.steps[step_name]
+    prev_step = prev_step_cls(uuid=uuid, lab_prep=lab_prep, **step.args)  # type: ignore
+    prev_step.fill_previous_form(step)
+    return prev_step.make_response()
+
 
 @library_pooling_workflow.route("<int:lab_prep_id>/parse_barcodes/<string:uuid>", methods=["POST"])
 @db_session(db)
@@ -45,23 +68,29 @@ def parse_barcodes(lab_prep_id: int, uuid: str) -> Response:
     return form.process_request()
 
 
-@library_pooling_workflow.route("map_index_kits/<string:uuid>", methods=["POST"])
+@library_pooling_workflow.route("<int:lab_prep_id>/map_index_kits/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def map_index_kits(uuid: str) -> Response:
+def map_index_kits(lab_prep_id: int, uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    form = forms.IndexKitMappingForm(uuid=uuid, formdata=request.form)
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    form = forms.IndexKitMappingForm(lab_prep=lab_prep, uuid=uuid, formdata=request.form)
     return form.process_request()
 
 
-@library_pooling_workflow.route("complete_pooling/<string:uuid>", methods=["POST"])
+@library_pooling_workflow.route("<int:lab_prep_id>/complete_pooling/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def complete_pooling(uuid: str) -> Response:
+def complete_pooling(lab_prep_id: int, uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    form = forms.CompleteLibraryPoolingForm(uuid=uuid, formdata=request.form)
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    form = forms.CompleteLibraryPoolingForm(lab_prep=lab_prep, uuid=uuid, formdata=request.form)
     return form.process_request(user=current_user)

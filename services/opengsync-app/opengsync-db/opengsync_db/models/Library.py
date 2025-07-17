@@ -10,7 +10,7 @@ from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import (
     LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef,
-    GenomeRefEnum, AssayType, AssayTypeEnum, MUXType, MUXTypeEnum
+    GenomeRefEnum, AssayType, AssayTypeEnum, MUXType, MUXTypeEnum, IndexType, IndexTypeEnum
 )
 
 if TYPE_CHECKING:
@@ -36,6 +36,7 @@ class Library(Base):
     genome_ref_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     assay_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     mux_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
+    index_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
 
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
 
@@ -76,7 +77,7 @@ class Library(Base):
     )
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
-    indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete")
+    indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete, delete-orphan")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="delete")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter"]
@@ -125,6 +126,19 @@ class Library(Base):
             self.mux_type_id = None
         else:
             self.mux_type_id = value.id
+
+    @property
+    def index_type(self) -> IndexTypeEnum | None:
+        if self.index_type_id is None:
+            return None
+        return IndexType.get(self.index_type_id)
+    
+    @index_type.setter
+    def index_type(self, value: IndexTypeEnum | None):
+        if value is None:
+            self.index_type_id = None
+        else:
+            self.index_type_id = value.id
     
     @property
     def qubit_concentration_str(self) -> str:

@@ -71,24 +71,32 @@ class BarcodeInputForm(MultiStepForm):
         if self.lab_prep.prep_file is not None:
             prep_table = pd.read_excel(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), "prep_table")  # type: ignore
             prep_table = prep_table.dropna(subset=["library_id", "library_name"])
-            return prep_table[[col.label for col in BarcodeInputForm.columns]].copy()
-        
-        library_data = dict([(col.label, []) for col in BarcodeInputForm.columns])
+            df = prep_table[[col.label for col in BarcodeInputForm.columns]].copy()
+        else:
+            library_data = dict([(col.label, []) for col in BarcodeInputForm.columns])
+            for library in self.lab_prep.libraries:
+                library_data["library_id"].append(library.id)
+                library_data["library_name"].append(library.name)
+                library_data["index_well"].append(None)
+                library_data["pool"].append(None)
+                library_data["kit_i7"].append(None)
+                library_data["name_i7"].append(library.names_i7_str(";"))
+                library_data["sequence_i7"].append(library.sequences_i7_str(";"))
+                library_data["kit_i5"].append(None)
+                library_data["name_i5"].append(library.names_i5_str(";"))
+                library_data["sequence_i5"].append(library.sequences_i5_str(";"))
 
-        for library in self.lab_prep.libraries:
-            library_data["library_id"].append(library.id)
-            library_data["library_name"].append(library.name)
-            library_data["index_well"].append(None)
-            library_data["pool"].append(None)
-            library_data["kit_i7"].append(None)
-            library_data["name_i7"].append(library.names_i7_str(";"))
-            library_data["sequence_i7"].append(library.sequences_i7_str(";"))
-            library_data["kit_i5"].append(None)
-            library_data["name_i5"].append(library.names_i5_str(";"))
-            library_data["sequence_i5"].append(library.sequences_i5_str(";"))
+            df = pd.DataFrame(library_data).sort_values("library_id", ascending=True)
 
-        df = pd.DataFrame(library_data).sort_values("library_id", ascending=True)
+        df.loc[df["kit_i7"].notna(), ["sequence_i7"]] = None
+        df.loc[df["kit_i5"].notna(), ["sequence_i5"]] = None
+        df.loc[df["name_i7"].notna(), "name_i7"] = df.loc[df["name_i7"].notna(), "name_i7"].apply(lambda x: ";".join(list(set(x.split(";")))))
+        df.loc[df["name_i5"].notna(), "name_i5"] = df.loc[df["name_i5"].notna(), "name_i5"].apply(lambda x: ";".join(list(set(x.split(";")))))
+
         return df
+    
+    def fill_previous_form(self, previous_form: MultiStepForm):
+        self.spreadsheet.set_data(previous_form.tables["library_table"])
     
     def validate(self) -> bool:
         validated = super().validate()
@@ -149,12 +157,11 @@ class BarcodeInputForm(MultiStepForm):
                 self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
 
             if (not kit_defined.at[idx]) and (not manual_defined.at[idx]):
-                if not pd.isna(row["kit_i7"]):
-                    if pd.isna(row["index_well"]) and not pd.isna(row["name_i7"]):
-                        self.spreadsheet.add_error(idx, "index_well", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
-                    if pd.isna(row["name_i7"]) and not pd.isna(row["index_well"]):
-                        self.spreadsheet.add_error(idx, "name_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
-                elif not pd.isna(row["index_well"]) or not pd.isna(row["name_i7"]):
+                logger.debug(row)
+                if pd.notna(row["kit_i7"]):
+                    if pd.isna(row["index_well"]) and pd.isna(row["name_i7"]):
+                        self.spreadsheet.add_error(idx, ["index_well", "name_i7"], MissingCellValue("'index_well' or 'name_i7' must be defined when kit is defined"))
+                elif pd.notna(row["index_well"]) or pd.notna(row["name_i7"]):
                     self.spreadsheet.add_error(idx, "kit_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
                 elif pd.isna(row["sequence_i7"]):
                     self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
@@ -174,14 +181,6 @@ class BarcodeInputForm(MultiStepForm):
         self.df["kit_i7_id"] = None
         self.df["kit_i5_id"] = None
 
-        if self.df["kit_i7"].notna().any():
-            index_kit_mapping_form = IndexKitMappingForm(uuid=self.uuid)
-            index_kit_mapping_form.metadata["lab_prep_id"] = self.lab_prep.id
-            index_kit_mapping_form.add_table("library_table", self.df)
-            index_kit_mapping_form.update_data()
-            index_kit_mapping_form.prepare()
-            return index_kit_mapping_form.make_response()
-        
         barcode_table_data = {
             "library_id": [],
             "library_name": [],
@@ -208,10 +207,16 @@ class BarcodeInputForm(MultiStepForm):
         
         barcode_table = pd.DataFrame(barcode_table_data)
 
-        complete_pool_indexing_form = CompleteLibraryPoolingForm(uuid=self.uuid)
-        complete_pool_indexing_form.metadata["lab_prep_id"] = self.lab_prep.id
-        complete_pool_indexing_form.add_table("library_table", self.df)
-        complete_pool_indexing_form.add_table("barcode_table", barcode_table)
-        complete_pool_indexing_form.update_data()
-        complete_pool_indexing_form.prepare()
-        return complete_pool_indexing_form.make_response()
+        self.metadata["lab_prep_id"] = self.lab_prep.id
+        self.add_table("barcode_table", barcode_table)
+        self.add_table("library_table", self.df)
+        self.update_data()
+
+        if IndexKitMappingForm.is_applicable(self):
+            form = IndexKitMappingForm(lab_prep=self.lab_prep, uuid=self.uuid)
+            form.prepare()
+            return form.make_response()
+
+        form = CompleteLibraryPoolingForm(lab_prep=self.lab_prep, uuid=self.uuid)
+        form.prepare()
+        return form.make_response()

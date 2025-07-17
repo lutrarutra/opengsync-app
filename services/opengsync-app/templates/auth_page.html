@@ -1,39 +1,22 @@
 {% extends "base.html" %}
 {% set active_page = "" %}
 {% block content %}
-<div class="page-header-container">
+<div class="page-header-container mb-2" style="border-bottom: 1px solid #ced4da;">
     <div class="page-header">
         <div class="page-title">
             <h1>Authentication</h1>
         </div>
-    </div>
-    <ul class="nav nav-tabs" id="auth-tab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="login-form-tab-btn" data-bs-toggle="tab"
-            data-bs-target="#login-form-tab" type="button" role="tab"
-            aria-controls="login-form-tab" aria-selected="true">
-            Sign In
-        </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="register-form-tab-btn" data-bs-toggle="tab"
-            data-bs-target="#register-form-tab" type="button" role="tab"
-            aria-controls="register-form-tab" aria-selected="false">
-            Register
+        <div class="page-controls">
+            <button type="button"  class="btn btn-warning" hx-get="{{ url_for('auth_htmx.register') }}"
+            data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
+                Register
             </button>
-        </li>
-    </ul>
+        </div>
+    </div>
 </div>
 <div class="page-content">
-    <div id="auth-form">
-        <div class="tab-content pt-3">
-            <div class="tab-pane fade show active" id="login-form-tab" role="tabpanel" aria-labelledby="login-form-tab-btn" tabindex="0">
-                {% include login_form._template_path %}
-            </div>
-            <div class="tab-pane fade" id="register-form-tab" role="tabpanel" aria-labelledby="register-form-tab-btn" tabindex="1">
-                {% include register_form._template_path %}
-            </div>
-        </div>
+    <div hx-get="{{ url_for('auth_htmx.login', next=next) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+        {{ spinner() }}
     </div>
 </div>
 {% endblock content %}

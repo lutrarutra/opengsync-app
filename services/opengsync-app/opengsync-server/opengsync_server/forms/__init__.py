@@ -1,4 +1,3 @@
-from .auth_forms import LoginForm, RegisterForm, CompleteRegistrationForm, UserForm, ResetPasswordForm  # noqa
 from .MultiStepForm import MultiStepForm    # noqa
 from .SeqAuthForm import SeqAuthForm    # noqa
 from .SearchBar import SearchBar    # noqa
@@ -12,4 +11,4 @@ from .EditKitBarcodesForm import EditDualIndexKitBarcodesForm, EditKitTENXATACBa
 from .EditKitFeaturesForm import EditKitFeaturesForm  # noqa
 from .QueryBarcodeSequencesForm import QueryBarcodeSequencesForm  # noqa
 
-from . import models, comment, file, workflows  # noqa
+from . import models, comment, file, workflows, auth  # noqa

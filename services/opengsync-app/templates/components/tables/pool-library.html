@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div id="pool-library-table" class="table-container">
     <table class="table">
@@ -61,18 +62,7 @@
                 </td>
                 <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='pool@' + pool.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
                 <td class="barcode-cell">
-                    {% for index in library.indices %}
-                    {% if index.name_i7 %}
-                        {% if index.name_i7 == index.name_i5 %}
-                        <span class="badge index-badge index-badges-pool-library" >{{ index.name_i7 }}</span>
-                        {% else %}
-                        <span class="badge index-badge index-badges-pool-library">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
-                        {% endif %}
-                    {% else %}
-                    <span class="badge index-badge index-badges-pool-library">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
-                    {% endif %}
-                    <span class="badge index-badge index-badges-pool-library" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
-                    {% endfor %}
+                    {{ library_index_cell(library) }}
                 </td>
             </tr>
             {% endfor %}
