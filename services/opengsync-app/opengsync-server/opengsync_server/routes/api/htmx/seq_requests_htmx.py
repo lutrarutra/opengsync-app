@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Literal
 from flask import Blueprint, url_for, render_template, flash, abort, request, Response, current_app
 from flask_htmx import make_response
 from flask_login import login_required
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename  # type: ignore
 import pandas as pd
 
 from opengsync_db import models, PAGE_LIMIT, db_session

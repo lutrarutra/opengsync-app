@@ -85,7 +85,7 @@
     $("#{{ submit_btn_id }}").on("click", function() {
         var data = spread_sheet.getData();
 
-        htmx.ajax("POST", "{{ element.post_url }}", {
+        htmx.ajax("POST", "{{ element.post_url | safe }}", {
             "target": "#{{ target_element_id }}",
             "swap": "outerHTML",
             "values": {

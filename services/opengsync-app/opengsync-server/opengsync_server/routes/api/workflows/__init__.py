@@ -12,3 +12,4 @@ from .library_pooling import library_pooling_workflow  # noqa: F401
 from .library_prep import library_prep_workflow  # noqa: F401
 from .mux_prep import mux_prep_workflow  # noqa: F401
 from .dist_reads import dist_reads_workflow  # noqa: F401
+from .reindex import reindex_workflow  # noqa: F401

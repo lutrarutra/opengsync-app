@@ -11,22 +11,25 @@
             {{ form.csrf_token() }}
                 
             <div class="row">
-                {{ form_group(form.name, class="col-3") }}
-                {{
-                    search_select_field(
-                        form.operator,
-                        query_url=url_for('users_htmx.query', only_insiders=True),
-                        class="col-3"
-                    )
-                }}
+                {{ form_group(form.name, class="col-4") }}
+                {{ select_input(form.workflow, class="col-4") }}
                 {{ 
                     search_select_field(
                         form.sequencer,
                         query_url=url_for('sequencers_htmx.query'),
-                        class="col-3"
+                        class="col-4"
                     ) 
                 }}
-                {{ select_input(form.workflow, class="col-3") }}
+            </div>
+            <div class="row">
+                {{
+                    search_select_field(
+                        form.operator,
+                        query_url=url_for('users_htmx.query', only_insiders=True),
+                        class="col-6"
+                    )
+                }}
+                {{ select_input(form.status, class="col-6") }}
             </div>
 
             <div class="row">
@@ -35,7 +38,6 @@
                 {{ form_group(form.i2_cycles, class="col-3") }}
                 {{ form_group(form.r2_cycles, class="col-3") }}
             </div>
-            {{ select_input(form.status) }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">

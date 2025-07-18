@@ -336,7 +336,7 @@
                 {% endif %}
                 {% endif %}
                 {% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES %}
-                <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.POOLED_LIBRARIES and current_user.is_insider() %}muted{% endif %}"
+                <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %}"
                     style="width: 250px;"
                     {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
@@ -362,6 +362,30 @@
                         </div>
                     </div>
                 </div>
+                {% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES or seq_request.submission_type == SubmissionType.UNPOOLED_LIBRARIES %}
+                <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %}"
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('reindex_workflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
+                    {% else %}{{ tooltip("You can no longer edit libraries after the request has been submitted.", category="warning") }}{% endif %}>
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="90px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Re-Index Libraries</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Make changes to library indices.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('check_barcode_clashes_workflow.check_seq_request_barcode_clashes', seq_request_id=seq_request.id) }}"

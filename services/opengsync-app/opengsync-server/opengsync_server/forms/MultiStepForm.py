@@ -36,7 +36,7 @@ class MultiStepForm(HTMXFlaskForm):
     _step_name: str = None  # type: ignore
     _workflow_name: str = None  # type: ignore
 
-    def __init__(self, workflow: str, uuid: str | None, formdata: dict, step_name: str, step_args: dict, previous_form: Optional["MultiStepForm"] = None):
+    def __init__(self, workflow: str, uuid: str | None, formdata: dict | None, step_name: str, step_args: dict, previous_form: Optional["MultiStepForm"] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         if uuid is None:
             uuid = str(uuid4())
