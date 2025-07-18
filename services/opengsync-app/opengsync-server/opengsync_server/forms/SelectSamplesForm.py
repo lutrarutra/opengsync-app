@@ -13,7 +13,7 @@ from opengsync_db.categories import (
 )
 
 from .. import db, logger
-from .HTMXFlaskForm import HTMXFlaskForm
+from ..forms.MultiStepForm import MultiStepForm
 
 
 workflow_settings = {
@@ -38,9 +38,10 @@ workflow_settings = {
 }
 
 
-class SelectSamplesForm(HTMXFlaskForm):
+class SelectSamplesForm(MultiStepForm):
     _template_path = "forms/select-samples.html"
     _form_label = "select_samples_form"
+    _step_name = "select_samples"
 
     selected_sample_ids = StringField()
     selected_library_ids = StringField()
@@ -84,7 +85,17 @@ class SelectSamplesForm(HTMXFlaskForm):
         select_all_samples: bool = False,
         select_all_libraries: bool = False,
     ):
-        HTMXFlaskForm.__init__(self, formdata=formdata)
+        url_context = {"workflow": workflow}
+        if "pool" in context.keys():
+            url_context["pool_id"] = context["pool"].id
+        if "seq_request" in context.keys():
+            url_context["seq_request_id"] = context["seq_request"].id
+        if "experiment" in context.keys():
+            url_context["experiment_id"] = context["experiment"].id
+        if "lab_prep" in context.keys():
+            url_context["lab_prep_id"] = context["lab_prep"].id
+
+        MultiStepForm.__init__(self, uuid=None, formdata=formdata, step_name=SelectSamplesForm._step_name, step_args=url_context, workflow=workflow)
         self.select_samples = select_samples
         self.select_libraries = select_libraries
         self.select_pools = select_pools
@@ -111,21 +122,16 @@ class SelectSamplesForm(HTMXFlaskForm):
         self._context["workflow"] = workflow
         self._context = {**self._context, **context}
 
-        url_context = {"workflow": workflow}
         if "pool" in context.keys():
-            url_context["pool_id"] = context["pool"].id
             self._context["context"] = f"{context['pool'].name} ({context['pool'].id})"
         if "seq_request" in context.keys():
-            url_context["seq_request_id"] = context["seq_request"].id
             self._context["context"] = f"{context['seq_request'].name} ({context['seq_request'].id})"
         if "experiment" in context.keys():
-            url_context["experiment_id"] = context["experiment"].id
             self._context["context"] = f"{context['experiment'].name} ({context['experiment'].id})"
             if workflow in ["qubit_measure", "ba_report"]:
                 self._context["select_samples"] = False
                 self._context["select_libraries"] = False
         if "lab_prep" in context.keys():
-            url_context["lab_prep_id"] = context["lab_prep"].id
             self._context["context"] = f"{context['lab_prep'].name} ({context['lab_prep'].id})"
 
         self._context["post_url"] = url_for(f"{workflow}_workflow.select", **url_context)  # type: ignore

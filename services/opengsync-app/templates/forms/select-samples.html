@@ -327,7 +327,7 @@
                 return false;
             }
 
-            htmx.ajax("POST", "{{ post_url }}", {
+            htmx.ajax("POST", "{{ post_url | safe }}", {
                 target: "#select_samples-form-container",
                 swap: "outerHTML",
                 values: {

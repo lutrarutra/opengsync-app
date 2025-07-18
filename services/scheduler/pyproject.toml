@@ -12,17 +12,17 @@ authors = [
 requires-python = ">=3.11"
 
 dependencies = [
-    "numpy < 2",   # Required for interop
-    "interop",
+    "numpy>= 2.2",   # Required for interop
+    "interop >= 1.5",
     "apscheduler >= 3.11",
-    "pandas",
-    "numba",
-    "numexpr",
-    "itsdangerous >= 2.1.2",
-    "loguru >= 0.7.2",
-    "psycopg[binary]",
-    "SQLAlchemy >= 2.0.28",
-    "pytz >= 2023.3.post1",
+    "pandas >= 2.3",
+    "numba >= 0.61",
+    "numexpr >= 2.11",
+    "itsdangerous >= 2.1",
+    "loguru >= 0.7",
+    "psycopg[binary] >= 3.2",
+    "SQLAlchemy >= 2.0",
+    "pytz >= 2023.3",
     "tzlocal >= 5.2",
     "Werkzeug >= 3.0.3",
 ]

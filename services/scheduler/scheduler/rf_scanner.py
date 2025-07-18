@@ -3,12 +3,11 @@ import os
 import glob
 
 import pandas as pd
-import interop
+import interop  # type: ignore
 from xml.dom.minidom import parse
 
 from opengsync_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
 from opengsync_db.core import DBHandler
-from opengsync_db import DBSession
 
 from . import logger
 
@@ -124,27 +123,27 @@ def parse_metrics(run_folder: str) -> dict:
 
 def process_run_folder(illumina_run_folder: str, db: DBHandler):
     logger.info(f"Processing run folder: {illumina_run_folder}")
+    db.open_session()
     
-    with DBSession(db) as session:
-        active_runs, _ = db.get_seq_runs(
-            status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
-            limit=None
-        )
+    active_runs, _ = db.get_seq_runs(
+        status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
+        limit=None
+    )
 
-        active_runs = dict([(run.experiment_name, run) for run in active_runs])
+    active_runs = dict([(run.experiment_name, run) for run in active_runs])
 
-        for run in active_runs.values():
-            if not os.path.exists(os.path.join(illumina_run_folder, run.run_folder)):
-                run.status = RunStatus.ARCHIVED
-                if run.experiment is not None:
-                    run.experiment.status = ExperimentStatus.ARCHIVED
-                    for pool in run.experiment.pools:
-                        pool.status = PoolStatus.SEQUENCED
-                        for library in pool.libraries:
-                            library.status = LibraryStatus.SEQUENCED
-                run = session.update_seq_run(run)
-                active_runs[run.experiment_name] = run
-                logger.info(f"Archived: {run.experiment_name} ({run.run_folder})")
+    for run in active_runs.values():
+        if not os.path.exists(os.path.join(illumina_run_folder, run.run_folder)):
+            run.status = RunStatus.ARCHIVED
+            if run.experiment is not None:
+                run.experiment.status = ExperimentStatus.ARCHIVED
+                for pool in run.experiment.pools:
+                    pool.status = PoolStatus.SEQUENCED
+                    for library in pool.libraries:
+                        library.status = LibraryStatus.SEQUENCED
+            run = db.update_seq_run(run)
+            active_runs[run.experiment_name] = run
+            logger.info(f"Archived: {run.experiment_name} ({run.run_folder})")
     
     for run_parameters_path in glob.glob(os.path.join(illumina_run_folder, "*", "RunParameters.xml")):
         run_folder = os.path.dirname(run_parameters_path)
@@ -212,33 +211,34 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 seq_run = db.update_seq_run(seq_run)
                 continue
             
-            with DBSession(db) as session:
-                run = session.create_seq_run(
-                    experiment_name=experiment_name,
-                    status=status,
-                    run_folder=run_name,
-                    instrument_name=parsed_data["instrument"],
-                    flowcell_id=parsed_data["flowcell_id"],
-                    rta_version=parsed_data["rta_version"],
-                    read_type=parsed_data["read_type"],
-                    r1_cycles=parsed_data.get("r1_cycles"),
-                    r2_cycles=parsed_data.get("r2_cycles"),
-                    i1_cycles=parsed_data.get("i1_cycles"),
-                    i2_cycles=parsed_data.get("i2_cycles"),
-                    **metrics
-                )
-                if run.status == RunStatus.FINISHED:
-                    if run.experiment is not None:
-                        run.experiment.status = ExperimentStatus.FINISHED
-                        for pool in run.experiment.pools:
-                            pool.status = PoolStatus.SEQUENCED
-                            for library in pool.libraries:
-                                library.status = LibraryStatus.SEQUENCED
-                    run = session.update_seq_run(run)
-                elif run.status == RunStatus.RUNNING:
-                    if run.experiment is not None:
-                        run.experiment.status = ExperimentStatus.SEQUENCING
-                    run = session.update_seq_run(run)
+            run = db.create_seq_run(
+                experiment_name=experiment_name,
+                status=status,
+                run_folder=run_name,
+                instrument_name=parsed_data["instrument"],
+                flowcell_id=parsed_data["flowcell_id"],
+                rta_version=parsed_data["rta_version"],
+                read_type=parsed_data["read_type"],
+                r1_cycles=parsed_data.get("r1_cycles"),
+                r2_cycles=parsed_data.get("r2_cycles"),
+                i1_cycles=parsed_data.get("i1_cycles"),
+                i2_cycles=parsed_data.get("i2_cycles"),
+                **metrics
+            )
+            if run.status == RunStatus.FINISHED:
+                if run.experiment is not None:
+                    run.experiment.status = ExperimentStatus.FINISHED
+                    for pool in run.experiment.pools:
+                        pool.status = PoolStatus.SEQUENCED
+                        for library in pool.libraries:
+                            library.status = LibraryStatus.SEQUENCED
+                run = db.update_seq_run(run)
+            elif run.status == RunStatus.RUNNING:
+                if run.experiment is not None:
+                    run.experiment.status = ExperimentStatus.SEQUENCING
+                run = db.update_seq_run(run)
                     
             active_runs[experiment_name] = run
             logger.info("Added!")
+
+    db.close_session()

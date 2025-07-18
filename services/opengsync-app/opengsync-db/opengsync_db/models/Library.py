@@ -1,5 +1,6 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
 from datetime import datetime
+from dataclasses import dataclass
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
@@ -22,6 +23,18 @@ if TYPE_CHECKING:
     from .LibraryIndex import LibraryIndex
     from .LabPrep import LabPrep
     from .Experiment import Experiment
+
+
+@dataclass
+class LibraryAdapter:
+    name_i7: str
+    _name_i5: str | None
+    sequences_i7: list[str]
+    sequences_i5: list[str | None]
+
+    @property
+    def name_i5(self) -> str:
+        return self._name_i5 if self._name_i5 is not None else self.name_i7
 
 
 class Library(Base):
@@ -78,7 +91,7 @@ class Library(Base):
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete, delete-orphan")
-    read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="delete")
+    read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter"]
     
@@ -180,6 +193,26 @@ class Library(Base):
     def __repr__(self) -> str:
         return str(self)
     
+    def adapters_i7(self) -> dict[tuple[int, str], list[str]]:
+        adapters = {}
+        for index in self.indices:
+            idx = (index.index_kit_i7_id, index.name_i7)
+            if idx not in adapters:
+                adapters[idx] = []
+            adapters[idx].append(index.sequence_i7)
+        return adapters
+    
+    def adapters_i5(self) -> dict[tuple[int, str], list[str]]:
+        adapters = {}
+        for index in self.indices:
+            if index.sequence_i5 is None:
+                continue
+            idx = (index.index_kit_i5_id, index.name_i5)
+            if idx not in adapters:
+                adapters[idx] = []
+            adapters[idx].append(index.sequence_i5)
+        return adapters
+
     def sequences_i7_str(self, sep: str = ", ") -> str:
         i7s = []
         for index in self.indices:

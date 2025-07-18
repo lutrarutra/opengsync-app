@@ -41,10 +41,10 @@ class BarcodeInputForm(MultiStepForm):
         TextColumn("pool", "Pool", 70, required=True, max_length=models.Pool.name.type.length),
         TextColumn("kit_i7", "i7 Kit", 200, max_length=models.Kit.name.type.length),
         TextColumn("name_i7", "i7 Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
-        TextColumn("sequence_i7", "i7 Sequence", 180, max_length=models.LibraryIndex.sequence_i5.type.length),
+        TextColumn("sequence_i7", "i7 Sequence", 180),
         TextColumn("kit_i5", "i5 Kit", 200, max_length=models.Kit.name.type.length),
         TextColumn("name_i5", "i5 Name", 150, max_length=models.LibraryIndex.name_i5.type.length),
-        TextColumn("sequence_i5", "i5 Sequence", 180, max_length=models.LibraryIndex.sequence_i5.type.length),
+        TextColumn("sequence_i5", "i5 Sequence", 180),
     ]
 
     def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
@@ -120,6 +120,8 @@ class BarcodeInputForm(MultiStepForm):
 
         kit_defined = df["kit_i7"].notna() & (df["index_well"].notna() | df["name_i7"].notna())
         manual_defined = df["sequence_i7"].notna()
+        seq_i7_max_length = df["sequence_i7"].apply(lambda x: max(((len(s) for s in x.split(";") if pd.notna(s)) if pd.notna(x) else ""), default=0))
+        seq_i5_max_length = df["sequence_i5"].apply(lambda x: max(((len(s) for s in x.split(";") if pd.notna(s)) if pd.notna(x) else ""), default=0))
 
         df.loc[df["kit_i5"].isna(), "kit_i5"] = df.loc[df["kit_i5"].isna(), "kit_i7"]
         df.loc[df["name_i5"].isna(), "name_i5"] = df.loc[df["name_i5"].isna(), "name_i7"]
@@ -165,6 +167,12 @@ class BarcodeInputForm(MultiStepForm):
                     self.spreadsheet.add_error(idx, "kit_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
                 elif pd.isna(row["sequence_i7"]):
                     self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
+
+            if seq_i7_max_length.at[idx] > models.LibraryIndex.sequence_i7.type.length:
+                self.spreadsheet.add_error(idx, "sequence_i7", InvalidCellValue(f"i7 sequence too long ({seq_i7_max_length.at[idx]} > {models.LibraryIndex.sequence_i7.type.length})"))
+            
+            if seq_i5_max_length.at[idx] > models.LibraryIndex.sequence_i5.type.length:
+                self.spreadsheet.add_error(idx, "sequence_i5", InvalidCellValue(f"i5 sequence too long ({seq_i5_max_length.at[idx]} > {models.LibraryIndex.sequence_i5.type.length})"))
 
         validated = validated and (len(self.spreadsheet._errors) == 0)
 

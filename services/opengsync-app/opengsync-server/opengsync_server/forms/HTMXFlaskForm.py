@@ -14,7 +14,7 @@ class HTMXFlaskForm(FlaskForm):
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, **kwargs):
         super().__init__(formdata=ImmutableMultiDict(formdata), **kwargs)
-        self.formdata = formdata
+        self.formdata = formdata if formdata is not None else dict()
         self._context = {}
 
     def process_request(self) -> Response:

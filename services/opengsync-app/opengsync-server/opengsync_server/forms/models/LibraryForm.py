@@ -44,7 +44,7 @@ class LibraryForm(HTMXFlaskForm):
         self.library.type = LibraryType.get(int(self.library_type.data))
         self.library.genome_ref = GenomeRef.get(self.genome.data)
         self.library.status = LibraryStatus.get(self.status.data)
-        self.library.mux_type = MUXType.get(self.mux_type.data) if self.mux_type.data is not None else None
+        self.library.mux_type = MUXType.get(self.mux_type.data) if self.mux_type.data != -1 else None
         self.library.nuclei_isolation = self.nuclei_isolation.data
 
         self.library = db.update_library(self.library)

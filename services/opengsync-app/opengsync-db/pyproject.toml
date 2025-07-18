@@ -13,17 +13,17 @@ requires-python = ">=3.11"
 
 # If you change these, also change the ones in services/scheduler/pyproject.toml
 dependencies = [
-    "numpy >= 2",
-    "pandas >= 2.2.2",
-    "numba",
-    "numexpr",
+    "numpy>= 2.2",
+    "pandas>= 2.3",
+    "numba >= 0.61",
+    "numexpr >= 2.11",
     "itsdangerous >= 2.1.2",
-    "loguru >= 0.7.2",
-    "psycopg[binary]",
-    "SQLAlchemy >= 2.0.28",
+    "loguru >= 0.7",
+    "psycopg[binary] >= 3.2",
+    "SQLAlchemy >= 2.0",
     "pytz >= 2023.3.post1",
     "tzlocal >= 5.2",
-    "Werkzeug >= 3.0.3",
+    "Werkzeug >= 3.0",
 ]
 
 [tool.flake8]

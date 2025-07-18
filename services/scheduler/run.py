@@ -3,8 +3,8 @@ import os
 import atexit
 import time
 
-from apscheduler.schedulers.background import BlockingScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.background import BlockingScheduler  # type: ignore
+from apscheduler.triggers.cron import CronTrigger  # type: ignore
 
 from opengsync_db.core import DBHandler
 
@@ -43,9 +43,7 @@ def cli():
         
     def process_run_folder_wrapper():
         db = connect()
-        db.open_session()
         process_run_folder(args.run_folder, db)
-        db.close_session()
 
     def update_statuses_wrapper():
         db = connect()

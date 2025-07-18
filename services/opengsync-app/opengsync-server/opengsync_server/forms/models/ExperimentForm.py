@@ -17,6 +17,7 @@ class ExperimentForm(HTMXFlaskForm):
 
     name = StringField("Experiment Name", validators=[DataRequired(), Length(min=3, max=models.Experiment.name.type.length)])
     sequencer = FormField(SearchBar, label="Select Sequencer", description="Select the sequencer that will be used for sequencing.")
+    operator = FormField(SearchBar, label="Operator")
 
     workflow = SelectField(
         "Workflow", choices=ExperimentWorkFlow.as_selectable(),
@@ -33,8 +34,6 @@ class ExperimentForm(HTMXFlaskForm):
     r2_cycles = IntegerField("R2 Cycles", validators=[OptionalValidator()])
     i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
     i2_cycles = IntegerField("I2 Cycles", validators=[OptionalValidator()])
-
-    operator = FormField(SearchBar, label="Sequencer Operator")
 
     def __init__(self, form_type: Literal["create", "edit"], current_user: Optional[models.User] = None, experiment: Optional[models.Experiment] = None, formdata: Optional[dict] = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)

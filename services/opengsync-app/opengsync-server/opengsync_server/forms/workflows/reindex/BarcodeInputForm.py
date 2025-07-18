@@ -2,7 +2,8 @@ from typing import Optional
 
 import pandas as pd
 
-from flask import Response, url_for
+from flask import Response, url_for, flash
+from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, IndexType
@@ -10,22 +11,14 @@ from opengsync_db.categories import LibraryType, IndexType
 from .... import logger, tools, db  # noqa F401
 from ...MultiStepForm import MultiStepForm, StepFile
 
-from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue
+from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, IntegerColumn
 from ...SpreadsheetInput import SpreadsheetInput
 from .IndexKitMappingForm import IndexKitMappingForm
-from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FeatureAnnotationForm import FeatureAnnotationForm
-from .FlexAnnotationForm import FlexAnnotationForm
-from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
-from .BarcodeMatchForm import BarcodeMatchForm
-from .OCMAnnotationForm import OCMAnnotationForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
 class BarcodeInputForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-barcode-input.html"
-    _workflow_name = "library_annotation"
+    _template_path = "workflows/reindex/barcode-input.html"
+    _workflow_name = "reindex"
     _step_name = "barcode_input"
     
     columns = [
@@ -39,53 +32,39 @@ class BarcodeInputForm(MultiStepForm):
         TextColumn("sequence_i5", "i5 Sequence", 180, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
     ]
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
+    def __init__(
+        self, seq_request: models.SeqRequest | None = None, lab_prep: models.LabPrep | None = None, formdata: dict | None = None, previous_form: Optional[MultiStepForm] = None,
+        uuid: Optional[str] = None
+    ):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=BarcodeInputForm._workflow_name,
             step_name=BarcodeInputForm._step_name, previous_form=previous_form,
             step_args={}
         )
         self.seq_request = seq_request
+        self.lab_prep = lab_prep
         self._context["seq_request"] = seq_request
-
+        self._context["lab_prep"] = lab_prep
         self.library_table = self.tables["library_table"]
-        if (csrf_token := formdata.get("csrf_token")) is None:
+
+        if (csrf_token := self.formdata.get("csrf_token")) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
+
+        if self.seq_request is not None:
+            self.post_url = url_for("reindex_workflow.reindex", uuid=self.uuid, seq_request_id=self.seq_request.id)
+        elif self.lab_prep is not None:
+            self.post_url = url_for("reindex_workflow.reindex", uuid=self.uuid, lab_prep_id=self.lab_prep.id)
+        else:
+            self.post_url = url_for("reindex_workflow.reindex", uuid=self.uuid)
+
+        logger.debug(self.post_url)
+            
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=BarcodeInputForm.columns, csrf_token=csrf_token,
-            post_url=url_for("library_annotation_workflow.parse_barcode_table", seq_request_id=seq_request.id, uuid=self.uuid),
-            formdata=formdata, df=self.get_template(),
+            post_url=self.post_url, formdata=formdata, df=self.library_table
         )
+        self.spreadsheet.columns["library_name"].source = self.library_table["library_name"].values.tolist() if self.library_table is not None else []
 
-        self.spreadsheet.columns["library_name"].source = self.library_table["library_name"].unique().tolist()
-
-    def fill_previous_form(self, previous_form: StepFile):
-        self.spreadsheet.set_data(previous_form.tables["barcode_table"])
-
-    def get_template(self) -> pd.DataFrame:
-        barcode_table_data = {
-            "library_name": [],
-            "index_well": [],
-            "kit_i7": [],
-            "name_i7": [],
-            "sequence_i7": [],
-            "kit_i5": [],
-            "name_i5": [],
-            "sequence_i5": [],
-        }
-
-        for _, row in self.library_table.iterrows():
-            barcode_table_data["library_name"].append(row["library_name"])
-            barcode_table_data["index_well"].append(None)
-            barcode_table_data["kit_i7"].append(None)
-            barcode_table_data["name_i7"].append(None)
-            barcode_table_data["sequence_i7"].append(None)
-            barcode_table_data["kit_i5"].append(None)
-            barcode_table_data["name_i5"].append(None)
-            barcode_table_data["sequence_i5"].append(None)
-        
-        return pd.DataFrame(barcode_table_data)
-    
     def validate(self) -> bool:
         validated = super().validate()
             
@@ -103,24 +82,18 @@ class BarcodeInputForm(MultiStepForm):
         df["sequence_i7"] = df["sequence_i7"].apply(lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with=""))
         df["sequence_i5"] = df["sequence_i5"].apply(lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with=""))
 
+        seq_i7_max_length = df["sequence_i7"].apply(lambda x: max(((len(s) for s in x.split(";") if pd.notna(s)) if pd.notna(x) else ""), default=0))
+        seq_i5_max_length = df["sequence_i5"].apply(lambda x: max(((len(s) for s in x.split(";") if pd.notna(s)) if pd.notna(x) else ""), default=0))
+
         df.loc[df["index_well"].notna(), "index_well"] = df.loc[df["index_well"].notna(), "index_well"].str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         kit_defined = df["kit_i7"].notna() & (df["index_well"].notna() | df["name_i7"].notna())
         manual_defined = df["sequence_i7"].notna()
-        seq_i7_max_length = df["sequence_i7"].apply(lambda x: max(((len(s) for s in x.split(";") if pd.notna(s)) if pd.notna(x) else ""), default=0))
-        seq_i5_max_length = df["sequence_i5"].apply(lambda x: max(((len(s) for s in x.split(";") if pd.notna(s)) if pd.notna(x) else ""), default=0))
 
         df.loc[df["kit_i5"].isna(), "kit_i5"] = df.loc[df["kit_i5"].isna(), "kit_i7"]
         df.loc[df["name_i5"].isna(), "name_i5"] = df.loc[df["name_i5"].isna(), "name_i7"]
 
-        for name in self.library_table["library_name"].values:
-            if name not in df["library_name"].values:
-                self.spreadsheet.add_general_error(f"Missing '{name}'")
-
         for i, (idx, row) in enumerate(df.iterrows()):
-            if row["library_name"] not in self.library_table["library_name"].values:
-                self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))
-
             if not kit_defined.at[idx] and not manual_defined.at[idx]:
                 self.spreadsheet.add_error(idx, "sequence_i7", InvalidCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
 
@@ -137,9 +110,11 @@ class BarcodeInputForm(MultiStepForm):
 
     def process_request(self) -> Response:
         if not self.validate():
+            logger.debug(self.errors)
             return self.make_response()
         
         barcode_table_data = {
+            "library_name": [],
             "index_well": [],
             "kit_i7": [],
             "name_i7": [],
@@ -147,7 +122,6 @@ class BarcodeInputForm(MultiStepForm):
             "kit_i5": [],
             "name_i5": [],
             "sequence_i5": [],
-            "library_name": [],
         }
         
         for idx, row in self.df.iterrows():
@@ -177,25 +151,63 @@ class BarcodeInputForm(MultiStepForm):
             if LibraryType.get(library_type_id) == LibraryType.TENX_SC_ATAC:
                 barcode_table.loc[barcode_table["library_name"] == library_name, "index_type_id"] = IndexType.TENX_ATAC_INDEX.id
 
-        self.add_table("barcode_table", barcode_table)
-        self.update_data()
+        if IndexKitMappingForm.is_applicable(self):
+            if self.seq_request is not None:
+                self.metadata["seq_request_id"] = self.seq_request.id
+            if self.lab_prep is not None:
+                self.metadata["lab_prep_id"] = self.lab_prep.id
+            self.add_table("barcode_table", barcode_table)
+            self.update_data()
+            form = IndexKitMappingForm(uuid=self.uuid, previous_form=self, lab_prep=self.lab_prep, seq_request=self.seq_request)
+            form.prepare()
+            return form.make_response()
+        
+        for i, (idx, row) in enumerate(self.library_table.iterrows()):
+            if (library := db.get_library(row["library_id"])) is None:
+                logger.error(f"{self.uuid}: Library {row['library_id']} not found")
+                raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
 
-        if BarcodeMatchForm.is_applicable(self):
-            next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
-        elif IndexKitMappingForm.is_applicable(self):
-            next_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
-        elif OCMAnnotationForm.is_applicable(self):
-            next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif OligoMuxAnnotationForm.is_applicable(self):
-            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
-        return next_form.make_response()
+            library = db.remove_library_indices(library_id=library.id)
+            df = barcode_table[barcode_table["library_id"] == row["library_id"]].copy()
+
+            seq_i7s = df["sequence_i7"].values
+            seq_i5s = df["sequence_i5"].values
+            name_i7s = df["name_i7"].values
+            name_i5s = df["name_i5"].values
+
+            kit_i7_id = row["kit_i7_id"] if pd.notna(row["kit_i7_id"]) else None
+            kit_i5_id = row["kit_i5_id"] if pd.notna(row["kit_i5_id"]) else None
+
+            if library.type == LibraryType.TENX_SC_ATAC:
+                if len(df) != 4:
+                    logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for TENX_SC_ATAC library, found {len(df)}.")
+                index_type = IndexType.TENX_ATAC_INDEX
+            else:
+                if df["sequence_i5"].isna().all():
+                    index_type = IndexType.SINGLE_INDEX
+                elif df["sequence_i5"].isna().any():
+                    logger.warning(f"{self.uuid}: Mixed index types found for library {df['library_name']}.")
+                    index_type = IndexType.DUAL_INDEX
+                else:
+                    index_type = IndexType.DUAL_INDEX
+
+            library.index_type = index_type
+            library = db.update_library(library)
+
+            for j in range(max(len(seq_i7s), len(seq_i5s))):
+                library = db.add_library_index(
+                    library_id=library.id, index_kit_i7_id=kit_i7_id, index_kit_i5_id=kit_i5_id,
+                    name_i7=name_i7s[j] if len(name_i7s) > j and pd.notna(name_i7s[j]) else None,
+                    name_i5=name_i5s[j] if len(name_i5s) > j and pd.notna(name_i5s[j]) else None,
+                    sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
+                    sequence_i5=seq_i5s[j] if len(seq_i5s) > j and pd.notna(seq_i5s[j]) else None,
+                )
+
+        flash("Libraries Re-Indexed!")
+        if self.seq_request is not None:
+            return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))
+        
+        if self.lab_prep is not None:
+            return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=self.lab_prep.id))
+        
+        return make_response(redirect=url_for("dashboard"))
