@@ -240,7 +240,11 @@
         }
 
         document.addEventListener("DOMContentLoaded", function () {
-            const hash = window.location.hash;
+            var hash = window.location.hash;
+            if (!hash) {
+                const params = new URLSearchParams(window.location.search);
+                hash = "#" + params.get("tab");
+            }
             if (hash) {
                 const trigger = document.querySelector(`button[data-bs-target="${hash}"]`);
                 if (trigger) {

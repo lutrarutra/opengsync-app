@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import PoolStatus, PoolType
+from opengsync_db.categories import PoolStatus, PoolType, LibraryStatus
 
 from ... import logger, db  # noqa F401
 from ..SearchBar import OptionalSearchBar
@@ -143,11 +143,15 @@ class PoolForm(HTMXFlaskForm):
             contact_email=self.pool.contact.email if self.pool.contact.email is not None else "unknown",
             contact_name=self.pool.contact.name,
             contact_phone=self.pool.contact.phone,
+            seq_request_id=self.pool.seq_request_id,
+            original_pool_id=self.pool.original_pool_id if self.pool.original_pool_id is not None else self.pool.id,
         )
 
         for library in self.pool.libraries:
-            clone_library = db.clone_library(library.id, seq_request_id=library.seq_request_id, indexed=True)
-            clone_library = db.pool_library(library_id=clone_library.id, pool_id=pool.id)
+            clone_library = db.clone_library(
+                library.id, seq_request_id=library.seq_request_id, indexed=True, status=LibraryStatus.POOLED
+            )
+            clone_library = db.add_library_to_pool(library_id=clone_library.id, pool_id=pool.id)
             
         return pool
     

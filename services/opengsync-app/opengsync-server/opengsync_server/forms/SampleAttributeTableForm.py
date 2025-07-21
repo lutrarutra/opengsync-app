@@ -17,7 +17,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
     _form_label = "sample_attribute_table_form"
 
     predefined_columns: list[SpreadSheetColumn] = [
-        IntegerColumn("id", "ID", 50, required=True),
+        IntegerColumn("sample_id", "ID", 50, required=True),
         DropdownColumn("sample_name", "Sample Name", 200, required=True, choices=[])
     ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for _, t in enumerate(AttributeType.as_list()[1:])]
 
@@ -51,7 +51,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         
         df = self.spreadsheet.df
         
-        if "id" not in df.columns:
+        if "sample_id" not in df.columns:
             self.spreadsheet.add_general_error("Missing 'id' column",)
             return False
         
@@ -59,7 +59,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             self.spreadsheet.add_general_error("Missing 'sample_name' column",)
             return False
 
-        _df = df.drop(columns=["id", "sample_name"])
+        _df = df.drop(columns=["sample_id", "sample_name"])
         if _df.columns.str.len().min() < 3:
             shortest_col = _df.columns[_df.columns.str.len() == _df.columns.str.len().min()].values[0]
             self.spreadsheet.add_general_error(f"Column: '{shortest_col}', specify more descriptive column name by right-clicking column and 'Rename this column'",)
@@ -70,12 +70,12 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             return False
             
         for idx, row in df.iterrows():
-            if (sample := db.get_sample(row["id"])) is None:
-                self.spreadsheet.add_error(idx, "id", InvalidCellValue(f"Sample with ID {row['id']} does not exist"))
+            if (sample := db.get_sample(row["sample_id"])) is None:
+                self.spreadsheet.add_error(idx, "sample_id", InvalidCellValue(f"Sample with ID {row['id']} does not exist"))
                 continue
             
             if sample.project_id != self.project.id:
-                self.spreadsheet.add_error(idx, "id", InvalidCellValue(f"Sample with ID {row['id']} does not belong to this project"))
+                self.spreadsheet.add_error(idx, "sample_id", InvalidCellValue(f"Sample with ID {row['id']} does not belong to this project"))
                 continue
             
             if sample.name != row["sample_name"]:
@@ -94,16 +94,17 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             return self.make_response()
 
         for idx, row in self.df.iterrows():
-            sample_id = row["id"]
+            sample_id = row["sample_id"]
             for attribute_name in self.df.columns:
-                if attribute_name in ["id", "sample_name"]:
+                if attribute_name in ["sample_id", "sample_name"]:
                     continue
                 attribute_type = AttributeType.get_attribute_by_label(attribute_name)
+                logger.debug(row)
                 if pd.isna(val := row[attribute_name]):
-                    if (_ := db.get_sample_attribute(sample_id=row["id"], name=attribute_name)) is not None:
+                    if (_ := db.get_sample_attribute(sample_id=row["sample_id"], name=attribute_name)) is not None:
                         db.delete_sample_attribute(sample_id=sample_id, name=attribute_name)
                 else:
                     db.set_sample_attribute(sample_id=sample_id, name=attribute_name, value=val, type=attribute_type)
 
         flash("Sample attributes updated", "success")
-        return make_response(redirect=url_for("projects_page.project_page", project_id=self.project.id))
+        return make_response(redirect=url_for("projects_page.project_page", project_id=self.project.id, tab="project-attributes-tab"))

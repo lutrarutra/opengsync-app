@@ -40,10 +40,8 @@
                 }}
                 {{
                     table_col(
-                        table_container_id='library-table', column_name='Owner', column_var='owner_id',
+                        table_container_id='library-table', column_name='Request', column_var='seq_request_id',
                         sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        query_url='libraries_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text"
                     )
                 }}
                 <th scope="col" class="col-4">
@@ -60,14 +58,18 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td><a href="{{ url_for('libraries_page.library_page', library_id=library.id) }}">{{ library.name }}</a></td>
+                <td>
+                    <a href="{{ url_for('libraries_page.library_page', library_id=library.id) }}">
+                        {{ library.name }}{% if library.clone_number > 0 %}<sup>(re:{{ library.clone_number }})</sup>{% endif %}
+                    </a>
+                </td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
                 <td>{{ library.status.icon }} {{ library.status.name }}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=library.owner_id) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
                 <td class="barcode-cell">
                     {{ library_index_cell(library) }}
                 </td>

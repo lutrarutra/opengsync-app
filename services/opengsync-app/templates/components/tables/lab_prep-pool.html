@@ -50,7 +50,9 @@
             <tr>
                 <th scope="row">{{ pool.id }}</th>
                 <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">
-                    <a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='lab_prep@' + lab_prep.id | string) }}">{{ pool.name }}</a>
+                    <a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='lab_prep@' + lab_prep.id | string) }}">
+                        {{ pool.name }}{% if pool.clone_number > 0 %}<sup>(re:{{ pool.clone_number }})</sup>{% endif %}
+                    </a>
                 </td>
                 <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>

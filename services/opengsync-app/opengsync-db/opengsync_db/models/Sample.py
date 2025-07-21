@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
 
 from ..categories import SampleStatus, SampleStatusEnum, AttributeType, AttributeTypeEnum
 from .Base import Base
@@ -74,7 +75,7 @@ class Sample(Base):
         cascade="save-update, merge, delete, delete-orphan"
     )
 
-    _attributes: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=None, name="attributes")
+    _attributes: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="attributes")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
 
@@ -126,7 +127,7 @@ class Sample(Base):
             self._attributes = {}
         self._attributes[key] = {"type_id": type.id, "value": value}
 
-    def update_attrbute(self, key: str, value: Any):
+    def update_attribute(self, key: str, value: Any):
         if self._attributes is None or key not in self._attributes:
             raise KeyError(f"Attribute '{key}' does not exist.")
         self._attributes[key]["value"] = value

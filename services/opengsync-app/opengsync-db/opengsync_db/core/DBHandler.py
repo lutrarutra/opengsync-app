@@ -111,14 +111,15 @@ class DBHandler():
         create_pool, get_pool, get_pools,
         delete_pool, update_pool, query_pools, dilute_pool,
         get_pool_dilution, get_pool_dilutions, get_user_pool_access_type,
-        clone_pool
+        clone_pool, get_number_of_cloned_pools
     )
 
     from .model_handlers._library_methods import (
         get_libraries, get_library, create_library,
         update_library, query_libraries, delete_library,
-        pool_library, set_library_seq_quality, add_library_index,
-        remove_library_indices, get_user_library_access_type, clone_library
+        add_library_to_pool, set_library_seq_quality, add_library_index,
+        remove_library_indices, get_user_library_access_type, clone_library,
+        get_number_of_cloned_libraries
     )
 
     from .model_handlers._user_methods import (
@@ -186,6 +187,7 @@ class DBHandler():
     from .model_handlers._lab_prep_methods import (
         create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_number,
         update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps,
+        delete_lab_prep
     )
 
     from .model_handlers._kit_methods import (

@@ -529,17 +529,17 @@ def clone_seq_request(self: "DBHandler", seq_request_id: int, method: Literal["p
     if method == "pooled":
         pools: dict[int, models.Pool] = {}
         for library in seq_request.libraries:
-            cloned_library = self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True)
+            cloned_library = self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True, status=LibraryStatus.POOLED)
             if library.pool_id is not None:
                 if library.pool_id not in pools.keys():
-                    pools[library.pool_id] = self.clone_pool(library.pool_id, seq_request_id=cloned_request.id)
-                self.pool_library(library_id=cloned_library.id, pool_id=pools[library.pool_id].id)
+                    pools[library.pool_id] = self.clone_pool(library.pool_id, seq_request_id=cloned_request.id, status=PoolStatus.STORED)
+                self.add_library_to_pool(library_id=cloned_library.id, pool_id=pools[library.pool_id].id)
     elif method == "indexed":
         for library in seq_request.libraries:
-            self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True)
+            self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True, status=LibraryStatus.STORED)
     elif method == "raw":
         for library in seq_request.libraries:
-            self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=False)
+            self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=False, status=LibraryStatus.ACCEPTED)
 
     self.session.add(cloned_request)
     self.session.commit()

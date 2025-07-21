@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.mutable import MutableDict
 
 from . import links
 from .Base import Base
@@ -43,6 +44,8 @@ class Library(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(86), nullable=False)
     sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    original_library_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("library.id", ondelete="SET NULL"), nullable=True, default=None)
 
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
@@ -62,7 +65,7 @@ class Library(Base):
     num_samples: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     num_features: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
-    properties: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, default=None)
+    properties: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")

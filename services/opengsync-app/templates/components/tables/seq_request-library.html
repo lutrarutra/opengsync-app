@@ -64,7 +64,7 @@
             <tr class="library-row" data-id="{{ library.id }}" data-name="{{ library.name }}">
                 <th scope="row">{{ library.id }}</th>
                 <td><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">
-                    {{ library.name }}
+                    {{ library.name }}{% if library.clone_number > 0 %}<sup>(re:{{ library.clone_number }})</sup>{% endif %}
                 </a></td>
                 <td>
                 {% if library.pool_id %}
@@ -125,7 +125,7 @@
                     display: "block",
                     left: x + 8, top: y + 8
                 }).empty().append([
-                    {% if seq_request.status == SeqRequestStatus.DRAFT %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_admin() %}
                     `<li><a class='dropdown-item' onclick='remove_library()'>Remove</a></li>`
                     {% else %}
                     `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`

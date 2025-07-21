@@ -18,6 +18,7 @@ def create_pool(
     contact_name: str,
     contact_email: str,
     pool_type: PoolTypeEnum,
+    original_pool_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
     num_m_reads_requested: Optional[float] = None,
@@ -33,7 +34,12 @@ def create_pool(
     if seq_request_id is not None:
         if self.session.get(models.SeqRequest, seq_request_id) is None:
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
-
+        
+    if original_pool_id is not None:
+        if self.session.get(models.Pool, original_pool_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Original Pool with id {original_pool_id} does not exist")
+        clone_number = self.get_number_of_cloned_pools(original_pool_id) + 1
+        
     pool = models.Pool(
         name=name.strip(),
         owner_id=owner_id,
@@ -47,7 +53,9 @@ def create_pool(
         ),
         lab_prep_id=lab_prep_id,
         status_id=status.id,
-        timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None
+        timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None,
+        clone_number=clone_number,
+        original_pool_id=original_pool_id,
     )
     user.num_pools += 1
 
@@ -345,6 +353,20 @@ def get_pool_dilutions(
     return dilutions, n_pages
 
 
+def get_number_of_cloned_pools(self: "DBHandler", original_pool_id: int) -> int:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    count = self.session.query(models.Pool).where(
+        models.Pool.original_pool_id == original_pool_id
+    ).count()
+
+    if not persist_session:
+        self.close_session()
+
+    return count
+
+
 def get_user_pool_access_type(self: "DBHandler", pool_id: int, user_id: int) -> AccessTypeEnum | None:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -382,7 +404,7 @@ def get_user_pool_access_type(self: "DBHandler", pool_id: int, user_id: int) -> 
     return access_type
 
 
-def clone_pool(self: "DBHandler", pool_id: int, seq_request_id: Optional[int] = None) -> models.Pool:
+def clone_pool(self: "DBHandler", pool_id: int, status: PoolStatusEnum, seq_request_id: Optional[int] = None) -> models.Pool:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -390,7 +412,7 @@ def clone_pool(self: "DBHandler", pool_id: int, seq_request_id: Optional[int] = 
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     cloned_pool = self.create_pool(
-        name=f"re: {pool.name}"[:models.Pool.name.type.length],
+        name=pool.name,
         owner_id=pool.owner_id,
         seq_request_id=seq_request_id,
         num_m_reads_requested=pool.num_m_reads_requested,
@@ -399,6 +421,8 @@ def clone_pool(self: "DBHandler", pool_id: int, seq_request_id: Optional[int] = 
         contact_name=pool.contact.name,
         contact_phone=pool.contact.phone,
         pool_type=pool.type,
+        original_pool_id=pool.original_pool_id if pool.original_pool_id is not None else pool.id,
+        status=status,
     )
 
     if not persist_session:

@@ -445,7 +445,11 @@ def remove_library(seq_request_id: int):
     logger.debug(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'")
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
+        redirect=url_for(
+            "seq_requests_page.seq_request_page",
+            seq_request_id=seq_request_id,
+            tab="request-libraries-tab"
+        ),
     )
 
 

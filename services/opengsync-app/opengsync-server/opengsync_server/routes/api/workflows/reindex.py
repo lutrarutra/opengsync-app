@@ -6,13 +6,12 @@ from flask import Blueprint, request, abort, Response
 from flask_login import login_required
 
 from opengsync_db import models, db_session
-from opengsync_db.categories import HTTPResponse, IndexType
+from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import reindex as forms
 from ....forms import SelectSamplesForm
 from ....tools import exceptions
-from ....forms.MultiStepForm import MultiStepForm
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore

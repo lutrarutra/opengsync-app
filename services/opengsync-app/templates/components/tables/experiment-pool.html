@@ -54,7 +54,11 @@
             {% for pool in pools %}
             <tr class="pool-row" data-id="{{ pool.id }}" data-name="{{ pool.name }}">
                 <th scope="row">{{ pool.id }}</th>
-                <td><a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">{{ pool.name }}</a></td>
+                <td>
+                    <a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
+                        {{ pool.name }}{% if pool.clone_number > 0 %}<sup>(re:{{ pool.clone_number }})</sup>{% endif %}
+                    </a>
+                </td>
                 <td>
                     {% if experiment.workflow.combined_lanes %}
                     <span class="table-btn" {{ tooltip("You cannot edit laning configurations in this workflow.", "top", category="warning") }}>
