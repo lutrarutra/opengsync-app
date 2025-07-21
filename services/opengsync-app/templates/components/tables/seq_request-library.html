@@ -51,7 +51,7 @@
                 }}
                 <th scope="col" class="col-3">
                     Index
-                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display('seq_request-library')">
+                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
                             <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
                         </svg>
@@ -64,7 +64,7 @@
             <tr class="library-row" data-id="{{ library.id }}" data-name="{{ library.name }}">
                 <th scope="row">{{ library.id }}</th>
                 <td><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">
-                    {{ library.name }}
+                    {{ library.name }}{% if library.clone_number > 0 %}<sup>(re:{{ library.clone_number }})</sup>{% endif %}
                 </a></td>
                 <td>
                 {% if library.pool_id %}
@@ -125,7 +125,7 @@
                     display: "block",
                     left: x + 8, top: y + 8
                 }).empty().append([
-                    {% if seq_request.status == SeqRequestStatus.DRAFT %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_admin() %}
                     `<li><a class='dropdown-item' onclick='remove_library()'>Remove</a></li>`
                     {% else %}
                     `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`

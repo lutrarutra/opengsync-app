@@ -98,6 +98,27 @@ def get_lab_preps(
     return lab_preps, n_pages
 
 
+def delete_lab_prep(self: "DBHandler", lab_prep_id: int) -> None:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (lab_prep := self.session.get(models.LabPrep, lab_prep_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Lab prep with id '{lab_prep_id}', not found.")
+
+    for library in lab_prep.libraries:
+        library.lab_prep_id = None
+
+    for pool in lab_prep.pools:
+        for library in pool.libraries:
+            library.pool_id = None
+
+    self.session.delete(lab_prep)
+    self.session.commit()
+
+    if not persist_session:
+        self.close_session()
+
+
 def query_lab_preps(
     self: "DBHandler", name: Optional[str] = None, creator: Optional[str] = None,
     procotol: Optional[LabProtocolEnum] = None,

@@ -213,6 +213,25 @@ def complete(lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
 
 
+@lab_preps_htmx.route("<int:lab_prep_id>/delete", methods=["DELETE"])
+@db_session(db)
+@login_required
+def delete(lab_prep_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if lab_prep.status != PrepStatus.PREPARING:
+        flash("Cannot delete completed prep.", "warning")
+        return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+    
+    db.delete_lab_prep(lab_prep_id=lab_prep.id)
+    flash("Lab prep deleted!", "success")
+    return make_response(redirect=url_for("lab_preps_page.lab_preps_page"))
+
+
 @lab_preps_htmx.route("<int:lab_prep_id>/uncomplete", methods=["POST"])
 @db_session(db)
 @login_required

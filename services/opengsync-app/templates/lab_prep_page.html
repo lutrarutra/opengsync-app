@@ -37,6 +37,23 @@
                     Complete Prep
                 </button>
             </span>
+            {% if lab_prep.status == PrepStatus.PREPARING %}
+            <button class="btn btn-danger"
+                hx-delete="{{ url_for('lab_preps_htmx.delete', lab_prep_id=lab_prep.id) }}"
+                _="on htmx:confirm(issueRequest)
+                halt the event
+                call Swal.fire({
+                    title: 'Delete Library Prep?',
+                    showDenyButton: true,
+                    text: 'You will not be able to undo this. Are you sure?',
+                    icon: 'question',
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'No'
+                })
+                if result.isConfirmed issueRequest()">
+                Delete Prep
+            </button>
+            {% endif %}
             {% endif %}
             {% if lab_prep.status >= PrepStatus.COMPLETED %}
             <button class="btn btn-warning"
@@ -348,6 +365,31 @@
                         <div class="card-back">
                             <div class="text-container">
                                 <p class="card-text">Make changes to library indices.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
+                    {% if lab_prep.status != PrepStatus.PREPARING %}
+                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
+                    {% else %}
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('reseq_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click" {% endif %}>
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/redo.svg') }}" width="70px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Re-Sequence Libraries</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Clone libraries for re-sequencing. Libraries will be added to the original sequencing request.</p>
                             </div>
                         </div>
                     </div>

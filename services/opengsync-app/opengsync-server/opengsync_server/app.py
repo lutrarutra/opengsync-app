@@ -276,6 +276,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.mux_prep_workflow)
     app.register_blueprint(api.workflows.dist_reads_workflow)
     app.register_blueprint(api.workflows.reindex_workflow)
+    app.register_blueprint(api.workflows.reseq_workflow)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

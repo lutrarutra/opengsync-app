@@ -141,7 +141,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
 
                 library.pool_id = None
                 library = db.update_library(library)
-                library = db.pool_library(library_id=library.id, pool_id=pools[row["pool"]].id)
+                library = db.add_library_to_pool(library_id=library.id, pool_id=pools[row["pool"]].id)
                 library.status = LibraryStatus.POOLED
                 library = db.update_library(library)
 

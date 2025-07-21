@@ -118,8 +118,8 @@ function table_query(url, table_container_id, field_name, word) {
     })
 }
 
-function toggle_index_display(subset) {
-    $(".index-badges-" + subset).each(function() {
+function toggle_index_display() {
+    $(".index-badge").each(function() {
         if ($(this).is(":hidden")) {
             $(this).show();
         } else {

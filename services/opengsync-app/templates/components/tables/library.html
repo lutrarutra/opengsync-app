@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div id="library-table" class="table-container">
     <table class="table">
@@ -39,15 +40,13 @@
                 }}
                 {{
                     table_col(
-                        table_container_id='library-table', column_name='Owner', column_var='owner_id',
+                        table_container_id='library-table', column_name='Request', column_var='seq_request_id',
                         sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        query_url='libraries_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text"
                     )
                 }}
                 <th scope="col" class="col-4">
                     Index
-                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display('library')">
+                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
                             <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
                         </svg>
@@ -59,27 +58,20 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td><a href="{{ url_for('libraries_page.library_page', library_id=library.id) }}">{{ library.name }}</a></td>
+                <td>
+                    <a href="{{ url_for('libraries_page.library_page', library_id=library.id) }}">
+                        {{ library.name }}{% if library.clone_number > 0 %}<sup>(re:{{ library.clone_number }})</sup>{% endif %}
+                    </a>
+                </td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
                 <td>{{ library.status.icon }} {{ library.status.name }}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=library.owner_id) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
                 <td class="barcode-cell">
-                    {% for index in library.indices %}
-                    {% if index.name_i7 %}
-                        {% if index.name_i7 == index.name_i5 %}
-                        <span class="badge index-badge index-badges-library" >{{ index.name_i7 }}</span>
-                        {% else %}
-                        <span class="badge index-badge index-badges-library">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
-                        {% endif %}
-                    {% else %}
-                    <span class="badge index-badge index-badges-library">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
-                    {% endif %}
-                    <span class="badge index-badge index-badges-library" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
-                    {% endfor %}
+                    {{ library_index_cell(library) }}
                 </td>
             </tr>
             {% endfor %}

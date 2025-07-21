@@ -23,6 +23,7 @@ projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/hmtx/proje
 
 @projects_htmx.route("get/<int:page>", methods=["GET"])
 @projects_htmx.route("get", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
@@ -81,6 +82,7 @@ def get(page: int):
 
 
 @projects_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))
@@ -142,6 +144,7 @@ def edit(project_id: int):
 
 
 @projects_htmx.route("<int:project_id>/delete", methods=["DELETE"])
+@db_session(db)
 @login_required
 def delete(project_id: int):
     if (project := db.get_project(project_id)) is None:
@@ -249,6 +252,7 @@ def table_query():
 
 @projects_htmx.route("<int:project_id>/get_samples", methods=["GET"], defaults={"page": 0})
 @projects_htmx.route("<int:project_id>/get_samples/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get_samples(project_id: int, page: int):
     if (project := db.get_project(project_id)) is None:
@@ -287,6 +291,7 @@ def get_samples(project_id: int, page: int):
 
 
 @projects_htmx.route("<int:project_id>/query_samples/<string:field_name>", methods=["POST"])
+@db_session(db)
 @login_required
 def query_samples(project_id: int, field_name: str):
     if (word := request.form.get(field_name)) is None:
@@ -322,6 +327,7 @@ def query_samples(project_id: int, field_name: str):
 
 
 @projects_htmx.route("<int:project_id>/get_sample_attributes", methods=["GET"])
+@db_session(db)
 @login_required
 def get_sample_attributes(project_id: int):
     if (project := db.get_project(project_id)) is None:
@@ -355,6 +361,7 @@ def get_sample_attributes(project_id: int):
 
 
 @projects_htmx.route("<int:project_id>/edit_sample_attributes", methods=["GET", "POST"])
+@db_session(db)
 @login_required
 def edit_sample_attributes(project_id: int):
     if (project := db.get_project(project_id)) is None:

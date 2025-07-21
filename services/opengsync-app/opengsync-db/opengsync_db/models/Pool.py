@@ -2,7 +2,6 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 from datetime import datetime
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
@@ -30,6 +29,8 @@ class Pool(Base):
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
+    clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
+    original_pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True, default=None)
     
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)

@@ -23,6 +23,7 @@ def create_library(
     seq_request_id: int,
     genome_ref: GenomeRefEnum,
     assay_type: AssayTypeEnum,
+    original_library_id: Optional[int] = None,
     properties: Optional[dict | None] = None,
     index_type: IndexTypeEnum | None = None,
     nuclei_isolation: bool = False,
@@ -55,6 +56,13 @@ def create_library(
         else:
             status = LibraryStatus.DRAFT
 
+    if original_library_id is not None:
+        if self.session.get(models.Library, original_library_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Original library with id {original_library_id} does not exist")
+        clone_number = self.get_number_of_cloned_libraries(original_library_id) + 1
+    else:
+        clone_number = 0
+        
     library = models.Library(
         name=name.strip(),
         sample_name=sample_name,
@@ -70,7 +78,9 @@ def create_library(
         properties=properties if properties is not None and len(properties) > 0 else None,
         seq_depth_requested=seq_depth_requested,
         nuclei_isolation=nuclei_isolation,
-        mux_type_id=mux_type.id if mux_type is not None else None
+        mux_type_id=mux_type.id if mux_type is not None else None,
+        clone_number=clone_number,
+        original_library_id=original_library_id,
     )
 
     self.session.add(library)
@@ -255,6 +265,20 @@ def update_library(self: "DBHandler", library: models.Library) -> models.Library
     return library
 
 
+def get_number_of_cloned_libraries(self: "DBHandler", original_library_id: int) -> int:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    count = self.session.query(models.Library).where(
+        models.Library.original_library_id == original_library_id
+    ).count()
+
+    if not persist_session:
+        self.close_session()
+
+    return count
+
+
 def query_libraries(
     self: "DBHandler", name: Optional[str] = None, owner: Optional[str] = None,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
@@ -356,7 +380,7 @@ def query_libraries(
     return libraries
 
 
-def pool_library(self: "DBHandler", library_id: int, pool_id: int) -> models.Library:
+def add_library_to_pool(self: "DBHandler", library_id: int, pool_id: int) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -527,7 +551,9 @@ def get_user_library_access_type(
     return access_type
 
 
-def clone_library(self: "DBHandler", library_id: int, seq_request_id: int, indexed: bool) -> models.Library:
+def clone_library(
+    self: "DBHandler", library_id: int, seq_request_id: int, indexed: bool, status: LibraryStatusEnum
+) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -535,13 +561,19 @@ def clone_library(self: "DBHandler", library_id: int, seq_request_id: int, index
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
 
     cloned_library = self.create_library(
-        name=library.name, sample_name=library.sample_name,
-        library_type=library.type, seq_request_id=seq_request_id,
-        owner_id=library.owner_id, genome_ref=library.genome_ref,
+        name=library.name,
+        sample_name=library.sample_name,
+        library_type=library.type,
+        seq_request_id=seq_request_id,
+        owner_id=library.owner_id,
+        genome_ref=library.genome_ref,
         assay_type=library.assay_type,
         mux_type=library.mux_type,
         properties=library.properties,
         index_type=library.index_type,
+        nuclei_isolation=library.nuclei_isolation,
+        original_library_id=library.original_library_id if library.original_library_id is not None else library.id,
+        status=status
     )
 
     for sample_link in library.sample_links:

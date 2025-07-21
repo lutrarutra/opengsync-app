@@ -23,6 +23,7 @@ libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/hmtx/lib
 
 @libraries_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @libraries_htmx.route("get/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
@@ -80,6 +81,7 @@ def edit(library_id):
 
 
 @libraries_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     field_name = next(iter(request.args.keys()))
@@ -101,6 +103,7 @@ def query():
 
 @libraries_htmx.route("<int:library_id>/get_feautres", methods=["GET"], defaults={"page": 0})
 @libraries_htmx.route("<int:library_id>/get_feautres/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get_features(library_id: int, page: int):
     if (library := db.get_library(library_id)) is None:
@@ -179,6 +182,7 @@ def get_spatial_annotation(library_id: int):
 
 
 @libraries_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if (word := request.args.get("name")) is not None:
@@ -243,6 +247,7 @@ def table_query():
 
 @libraries_htmx.route("<int:library_id>/get_samples", methods=["GET"], defaults={"page": 0})
 @libraries_htmx.route("<int:library_id>/get_samples/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get_samples(library_id: int, page: int):
     if (library := db.get_library(library_id)) is None:
@@ -288,6 +293,7 @@ def reads_tab(library_id: int):
 
 @libraries_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
 @libraries_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def browse(workflow: str, page: int):
     if not current_user.is_insider():
@@ -377,6 +383,7 @@ def browse(workflow: str, page: int):
 
 
 @libraries_htmx.route("<string:workflow>/browse_query", methods=["GET"])
+@db_session(db)
 @login_required
 def browse_query(workflow: str):
     if not current_user.is_insider():
@@ -478,6 +485,7 @@ def browse_query(workflow: str):
 
 
 @libraries_htmx.route("<string:workflow>/select_all", methods=["GET"])
+@db_session(db)
 @login_required
 def select_all(workflow: str):
     if not current_user.is_insider():
