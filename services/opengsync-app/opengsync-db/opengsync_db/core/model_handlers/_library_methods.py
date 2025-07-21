@@ -60,6 +60,8 @@ def create_library(
         if self.session.get(models.Library, original_library_id) is None:
             raise exceptions.ElementDoesNotExist(f"Original library with id {original_library_id} does not exist")
         clone_number = self.get_number_of_cloned_libraries(original_library_id) + 1
+    else:
+        clone_number = 0
         
     library = models.Library(
         name=name.strip(),

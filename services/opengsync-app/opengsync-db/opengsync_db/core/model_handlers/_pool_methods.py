@@ -39,6 +39,8 @@ def create_pool(
         if self.session.get(models.Pool, original_pool_id) is None:
             raise exceptions.ElementDoesNotExist(f"Original Pool with id {original_pool_id} does not exist")
         clone_number = self.get_number_of_cloned_pools(original_pool_id) + 1
+    else:
+        clone_number = 0
         
     pool = models.Pool(
         name=name.strip(),
