@@ -18,6 +18,7 @@ mux_prep_workflow = Blueprint("mux_prep_workflow", __name__, url_prefix="/api/wo
 
 
 @mux_prep_workflow.route("<int:lab_prep_id>/begin/<int:mux_type_id>", methods=["GET"])
+@db_session(db)
 @login_required
 def begin(lab_prep_id: int, mux_type_id: int):
     if not current_user.is_insider():

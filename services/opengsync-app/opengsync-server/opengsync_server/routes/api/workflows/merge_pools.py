@@ -4,11 +4,11 @@ from flask import Blueprint, request, abort, Response
 from flask_login import login_required
 
 from opengsync_db import models, db_session
-from opengsync_db.categories import HTTPResponse
+from opengsync_db.categories import HTTPResponse, PoolStatus, PoolType
 
 from .... import db, logger  # noqa
-from ....forms.workflows import reseq as forms
 from ....forms import SelectSamplesForm
+from ....forms.workflows.MergePoolsForm import MergePoolsForm
 from ....tools import exceptions
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 else:
     from flask_login import current_user  # noqa
 
-reseq_workflow = Blueprint("reseq_workflow", __name__, url_prefix="/api/workflows/reseq/")
+merge_pools_workflow = Blueprint("merge_pools_workflow", __name__, url_prefix="/api/workflows/merge_pools/")
 
 
 def get_context(args: dict) -> dict:
@@ -44,12 +44,10 @@ def get_context(args: dict) -> dict:
     return context
 
 
-@reseq_workflow.route("begin", methods=["GET"])
+@merge_pools_workflow.route("begin", methods=["GET"])
 @db_session(db)
 @login_required
 def begin() -> Response:
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
     try:
         context = get_context(request.args)
     except ValueError:
@@ -58,18 +56,23 @@ def begin() -> Response:
         return abort(e.response.id)
         
     form = SelectSamplesForm(
-        "reseq", context=context,
-        select_libraries=True,
+        "merge_pools",
+        context=context,
+        select_pools=True,
+        pool_status_filter=[
+            PoolStatus.DRAFT,
+            PoolStatus.SUBMITTED,
+            PoolStatus.ACCEPTED,
+            PoolStatus.STORED,
+        ]
     )
     return form.make_response()
 
 
-@reseq_workflow.route("select", methods=["POST"])
+@merge_pools_workflow.route("select", methods=["POST"])
 @db_session(db)
 @login_required
 def select() -> Response:
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
     try:
         context = get_context(request.args)
     except ValueError:
@@ -77,32 +80,44 @@ def select() -> Response:
     except exceptions.OpenGSyncException as e:
         return abort(e.response.id)
 
-    form = SelectSamplesForm(
-        "reseq", formdata=request.form, context=context,
-        select_libraries=True,
+    form: SelectSamplesForm = SelectSamplesForm(
+        "merge_pools", formdata=request.form, context=context,
         select_pools=True,
+        pool_status_filter=[
+            PoolStatus.DRAFT,
+            PoolStatus.SUBMITTED,
+            PoolStatus.ACCEPTED,
+            PoolStatus.STORED,
+        ]
     )
 
+    # TODO: Check if the user has permission to merge pools
     if not form.validate():
         return form.make_response()
 
-    form.add_table("library_table", form.library_table.rename(columns={"id": "library_id", "name": "library_name"}))
-    if "seq_request" in context:
-        form.metadata["seq_request_id"] = context["seq_request"].id
-    elif "lab_prep" in context:
-        form.metadata["lab_prep_id"] = context["lab_prep"].id
-    form.metadata["workflow"] = "reseq"
+    form.add_table("pool_table", form.pool_table)
+    form.metadata = form.metadata | context
     form.update_data()
+    
+    next_form = MergePoolsForm(
+        uuid=form.uuid,
+        formdata=request.form,
+        previous_form=form
+    )
+    next_form.contact.selected.data = current_user.id
+    next_form.contact.search_bar.data = current_user.name
 
-    next_form = forms.ReseqLibrariesForm(form.uuid, previous_form=form)
+    if current_user.is_insider():
+        next_form.pool_type.data = PoolType.INTERNAL.id
+    else:
+        next_form.pool_type.data = PoolType.EXTERNAL.id
+
     return next_form.make_response()
 
 
-@reseq_workflow.route("reseq/<string:uuid>", methods=["POST"])
+@merge_pools_workflow.route("merge/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def reseq(uuid: str) -> Response:
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-
-    return forms.ReseqLibrariesForm(uuid=uuid, formdata=request.form).process_request()
+def merge(uuid: str) -> Response:
+    form = MergePoolsForm(formdata=request.form, uuid=uuid)
+    return form.process_request(current_user)

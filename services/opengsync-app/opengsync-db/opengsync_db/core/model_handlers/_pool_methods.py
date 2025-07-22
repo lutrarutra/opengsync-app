@@ -1,6 +1,6 @@
 import math
 import string
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Sequence
 
 import sqlalchemy as sa
 
@@ -23,12 +23,13 @@ def create_pool(
     lab_prep_id: Optional[int] = None,
     num_m_reads_requested: Optional[float] = None,
     status: PoolStatusEnum = PoolStatus.DRAFT,
-    contact_phone: Optional[str] = None
+    contact_phone: Optional[str] = None,
+    flush: bool = True
 ) -> models.Pool:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (user := self.session.get(models.User, owner_id)) is None:
+    if (_ := self.session.get(models.User, owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
     
     if seq_request_id is not None:
@@ -59,11 +60,11 @@ def create_pool(
         clone_number=clone_number,
         original_pool_id=original_pool_id,
     )
-    user.num_pools += 1
-
+    
     self.session.add(pool)
-    self.session.commit()
-    self.session.refresh(pool)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -171,17 +172,17 @@ def get_pools(
     return pools, n_pages
 
 
-def delete_pool(self: "DBHandler", pool_id: int):
+def delete_pool(self: "DBHandler", pool_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
-    pool.owner.num_pools -= 1
-
     self.session.delete(pool)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -192,8 +193,6 @@ def update_pool(self: "DBHandler", pool: models.Pool,) -> models.Pool:
         self.open_session()
 
     self.session.add(pool)
-    self.session.commit()
-    self.session.refresh(pool)
 
     if not persist_session:
         self.close_session()
@@ -239,9 +238,7 @@ def dilute_pool(
     )
 
     pool.dilutions.append(dilution)
-
-    self.session.add(dilution)
-    self.session.commit()
+    self.session.add(pool)
     self.session.refresh(pool)
 
     if not persist_session:
@@ -431,3 +428,41 @@ def clone_pool(self: "DBHandler", pool_id: int, status: PoolStatusEnum, seq_requ
         self.close_session()
 
     return cloned_pool
+
+
+def merge_pools(self: "DBHandler", merged_pool_id: int, pool_ids: Sequence[int], flush: bool = True) -> models.Pool:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if merged_pool_id in pool_ids:
+        raise exceptions.InvalidOperation("Cannot merge a pool into itself")
+
+    if (merged_pool := self.session.get(models.Pool, merged_pool_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"New Pool with id {merged_pool} does not exist")
+
+    pools = self.session.query(models.Pool).where(
+        models.Pool.id.in_(pool_ids)
+    ).all()
+
+    for pool in pools:
+        for library in pool.libraries:
+            merged_pool.libraries.append(library)
+            merged_pool.num_libraries += 1
+        self.session.delete(pool)
+
+    self.session.add(merged_pool)
+
+    if flush:
+        self.session.flush()
+
+    if not persist_session:
+        self.close_session()
+
+    return merged_pool
+
+
+
+
+    
+    
+    

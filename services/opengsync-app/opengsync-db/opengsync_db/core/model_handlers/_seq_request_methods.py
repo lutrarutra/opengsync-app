@@ -36,6 +36,7 @@ def create_seq_request(
     num_lanes: Optional[int] = None,
     special_requirements: Optional[str] = None,
     billing_code: Optional[str] = None,
+    flush: bool = True
 ) -> models.SeqRequest:
 
     if not (persist_session := self._session is not None):
@@ -88,19 +89,17 @@ def create_seq_request(
         email=requestor.email,
         status_id=DeliveryStatus.PENDING.id,
     ))
-    self.session.add(seq_request)
-    self.session.add(requestor)
-    self.session.commit()
-    self.session.refresh(seq_request)
 
     if bioinformatician_contact is not None:
         seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
             email=bioinformatician_contact.email,
             status_id=DeliveryStatus.PENDING.id,
         ))
-        self.session.add(seq_request)
-        self.session.commit()
-        self.session.refresh(seq_request)
+
+    self.session.add(seq_request)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -242,39 +241,25 @@ def submit_seq_request(self: "DBHandler", seq_request_id: int) -> models.SeqRequ
         pool.status = PoolStatus.SUBMITTED
         self.session.add(pool)
 
-    self.session.commit()
-    self.session.refresh(seq_request)
-
     if not persist_session:
         self.close_session()
 
     return seq_request
 
 
-def update_seq_request(
-    self: "DBHandler", seq_request: models.SeqRequest,
-    commit: bool = True
-) -> models.SeqRequest:
+def update_seq_request(self: "DBHandler", seq_request: models.SeqRequest) -> models.SeqRequest:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     self.session.add(seq_request)
 
-    if commit:
-        self.session.commit()
-        self.session.refresh(seq_request)
-        self.session.refresh(seq_request.billing_contact)
-        self.session.refresh(seq_request.contact_person)
-        if seq_request.bioinformatician_contact_id is not None:
-            self.session.refresh(seq_request.bioinformatician_contact)
-
     if not persist_session:
         self.close_session()
 
     return seq_request
 
 
-def delete_seq_request(self: "DBHandler", seq_request_id: int) -> None:
+def delete_seq_request(self: "DBHandler", seq_request_id: int, flush: bool = True) -> None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -290,7 +275,9 @@ def delete_seq_request(self: "DBHandler", seq_request_id: int) -> None:
 
     seq_request.requestor.num_seq_requests -= 1
     self.session.delete(seq_request)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -366,8 +353,6 @@ def add_seq_request_share_email(self: "DBHandler", seq_request_id: int, email: s
     ))
 
     self.session.add(seq_request)
-    self.session.commit()
-    self.session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()
@@ -391,8 +376,6 @@ def remove_seq_request_share_email(self: "DBHandler", seq_request_id: int, email
     seq_request.delivery_email_links.remove(delivery_link)
     self.session.delete(delivery_link)
     self.session.add(seq_request)
-    self.session.commit()
-    self.session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()
@@ -458,8 +441,6 @@ def process_seq_request(self: "DBHandler", seq_request_id: int, status: SeqReque
         self.session.add(project)
 
     self.session.add(seq_request)
-    self.session.commit()
-    self.session.refresh(seq_request)
 
     if not persist_session:
         self.close_session()
@@ -542,8 +523,6 @@ def clone_seq_request(self: "DBHandler", seq_request_id: int, method: Literal["p
             self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=False, status=LibraryStatus.ACCEPTED)
 
     self.session.add(cloned_request)
-    self.session.commit()
-    self.session.refresh(cloned_request)
 
     if not persist_session:
         self.close_session()

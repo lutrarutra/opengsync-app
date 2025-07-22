@@ -2,9 +2,10 @@ import uuid
 from typing import Optional
 
 from opengsync_db import DBHandler, models
+
 from opengsync_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
-    ReadType, ExperimentStatus, PoolType, SubmissionType, FileType, GenomeRef, SampleStatus, AssayType,
+    ReadType, ExperimentStatus, PoolType, SubmissionType, FileType, GenomeRef, AssayType,
     GroupType
 )
 
@@ -60,7 +61,7 @@ def create_sample(db: DBHandler, user: models.User, project: models.Project) -> 
         name=_uuid,
         owner_id=user.id,
         project_id=project.id,
-        status=None
+        status=None,
     )
 
 
@@ -73,7 +74,7 @@ def create_library(db: DBHandler, user: models.User, seq_request: models.SeqRequ
         seq_request_id=seq_request.id,
         library_type=LibraryType.POLY_A_RNA_SEQ,
         genome_ref=GenomeRef.CUSTOM,
-        assay_type=AssayType.CUSTOM
+        assay_type=AssayType.CUSTOM,
     )
 
 
@@ -89,12 +90,25 @@ def create_pool(db: DBHandler, user: models.User, seq_request: models.SeqRequest
     )
 
 
-def create_feature(db: DBHandler) -> models.Feature:
+def create_feature(db: DBHandler, kit: models.FeatureKit | None = None) -> models.Feature:
+    _uuid = str(uuid.uuid1())[:10]
     return db.create_feature(
-        name="name",
-        sequence="sequence",
+        name=_uuid,
+        sequence=_uuid,
         pattern="pattern",
-        read="read",
+        read="R2",
+        type=FeatureType.ANTIBODY,
+        feature_kit_id=kit.id if kit else None,
+    )
+
+
+def create_feature_kit(
+    df: DBHandler,
+) -> models.FeatureKit:
+    _uuid = str(uuid.uuid1())
+    return df.create_feature_kit(
+        name=_uuid,
+        identifier=_uuid[:10],
         type=FeatureType.ANTIBODY
     )
 
@@ -131,7 +145,7 @@ def create_file(
         name=_uuid,
         type=FileType.CUSTOM,
         extension=".txt",
-        uploader_id=1,
+        uploader_id=create_user(db).id,
         size_bytes=1,
         uuid=_uuid,
         seq_request_id=seq_request.id if seq_request else None,

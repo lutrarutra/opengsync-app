@@ -18,6 +18,7 @@ auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/hmtx/auth/")
 
 
 @auth_htmx.route("login", methods=["GET", "POST"])
+@db_session(db)
 def login():
     if current_user.is_authenticated:
         return make_response(redirect=url_for("dashboard"))
@@ -30,6 +31,7 @@ def login():
 
 
 @auth_htmx.route("logout", methods=["GET"])
+@db_session(db)
 def logout():
     if current_user.is_authenticated:
         logout_user()
@@ -52,6 +54,7 @@ def register():
     
 
 @auth_htmx.route("complete_registration/<string:token>", methods=["POST"])
+@db_session(db)
 def complete_registration(token: str):
     return forms.auth.CompleteRegistrationForm(request.form).process_request(token=token)
 

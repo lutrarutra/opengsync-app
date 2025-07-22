@@ -4,9 +4,8 @@ from .DBHandler import DBHandler
 
 
 class DBSession():
-    def __init__(self, db_handler: DBHandler, commit: bool = True):
+    def __init__(self, db_handler: DBHandler):
         self.db_handler = db_handler
-        self.commit = commit
 
     def __enter__(self):
         self.db_handler.open_session()

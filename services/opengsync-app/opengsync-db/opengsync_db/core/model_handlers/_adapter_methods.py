@@ -11,7 +11,7 @@ from .. import exceptions
 
 def create_adapter(
     self: "DBHandler", index_kit_id: int,
-    well: Optional[str] = None,
+    well: Optional[str] = None, flush: bool = True
 ) -> models.Adapter:
     
     if not (persist_session := self._session is not None):
@@ -27,10 +27,10 @@ def create_adapter(
             raise exceptions.NotUniqueValue(f"Adapter with plate_well '{well}', already exists.")
 
     adapter = models.Adapter(well=well, index_kit_id=index_kit_id,)
-
     self.session.add(adapter)
-    self.session.commit()
-    self.session.refresh(adapter)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

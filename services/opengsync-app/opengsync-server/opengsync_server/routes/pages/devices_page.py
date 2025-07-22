@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, url_for, abort
 from flask_login import login_required, current_user
 
+from opengsync_db import db_session
 from opengsync_db.categories import UserRole, HTTPResponse
 from ... import forms, db
 
@@ -8,6 +9,7 @@ devices_page_bp = Blueprint("devices_page", __name__)
 
 
 @devices_page_bp.route("/devices")
+@db_session(db)
 @login_required
 def devices_page():
     if current_user.role != UserRole.ADMIN:
@@ -18,6 +20,7 @@ def devices_page():
 
 
 @devices_page_bp.route("/sequencers/<int:sequencer_id>", methods=["GET"])
+@db_session(db)
 @login_required
 def sequencer_page(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:

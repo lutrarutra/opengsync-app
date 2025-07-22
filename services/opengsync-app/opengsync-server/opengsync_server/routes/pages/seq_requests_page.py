@@ -16,6 +16,7 @@ else:
 
 
 @seq_requests_page_bp.route("/seq_requests")
+@db_session(db)
 @login_required
 def seq_requests_page():
     return render_template("seq_requests_page.html")

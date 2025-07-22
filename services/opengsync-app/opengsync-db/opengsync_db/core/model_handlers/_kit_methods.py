@@ -14,6 +14,7 @@ def create_kit(
     name: str,
     identifier: str,
     kit_type: KitTypeEnum = KitType.LIBRARY_KIT,
+    flush: bool = True
 ) -> models.Kit:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -25,8 +26,9 @@ def create_kit(
     )
 
     self.session.add(kit)
-    self.session.commit()
-    self.session.refresh(kit)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -130,15 +132,13 @@ def update_kit(self, kit: models.Kit) -> models.Kit:
         self.open_session()
 
     self.session.add(kit)
-    self.session.commit()
-    self.session.refresh(kit)
 
     if not persist_session:
         self.close_session()
     return kit
 
 
-def delete_kit(self: "DBHandler", id: int):
+def delete_kit(self: "DBHandler", id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -146,7 +146,9 @@ def delete_kit(self: "DBHandler", id: int):
         raise ValueError(f"Kit with id {id} not found.")
 
     self.session.delete(kit)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

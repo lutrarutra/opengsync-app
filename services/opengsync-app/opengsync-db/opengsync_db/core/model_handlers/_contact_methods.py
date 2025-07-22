@@ -11,7 +11,7 @@ def create_contact(
     email: Optional[str] = None,
     phone: Optional[str] = None,
     address: Optional[str] = None,
-    commit: bool = True
+    flush: bool = True
 ) -> models.Contact:
 
     if not (persist_session := self._session is not None):
@@ -25,9 +25,8 @@ def create_contact(
     )
 
     self.session.add(contact)
-    if commit:
-        self.session.commit()
-        self.session.refresh(contact)
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -42,7 +41,6 @@ def update_contact(
     email: Optional[str] = None,
     phone: Optional[str] = None,
     address: Optional[str] = None,
-    commit: bool = True
 ) -> models.Contact:
     
     if not (persist_session := self._session is not None):
@@ -62,10 +60,6 @@ def update_contact(
 
     if address is not None:
         contact.address = address
-
-    if commit:
-        self.session.commit()
-        self.session.refresh(contact)
 
     if not persist_session:
         self.close_session()

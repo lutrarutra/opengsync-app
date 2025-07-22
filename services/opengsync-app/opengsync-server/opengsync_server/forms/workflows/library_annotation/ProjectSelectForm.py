@@ -35,7 +35,7 @@ class ProjectSelectForm(MultiStepForm):
         self._context["workflow_type"] = workflow_type
 
     def fill_previous_form(self, previous_form: StepFile):
-        self.new_project.data = previous_form.metadata.get("project_description")
+        self.new_project.data = previous_form.metadata.get("project_name")
         if (project_id := previous_form.metadata.get("project_id")) is not None:
             self.existing_project.selected.data = project_id
             self.existing_project.search_bar.data = project.name if (project := db.get_project(project_id)) is not None else None

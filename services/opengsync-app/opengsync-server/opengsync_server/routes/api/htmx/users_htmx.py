@@ -19,6 +19,7 @@ users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 
 @users_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @users_htmx.route("get/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
@@ -54,6 +55,7 @@ def get(page: int):
 
 
 @users_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))
@@ -84,6 +86,7 @@ def query():
 
 
 @users_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if (word := request.args.get("last_name")) is not None:
@@ -156,6 +159,7 @@ def get_projects(user_id: int, page: int):
 
 @users_htmx.route("<int:user_id>/get_seq_requests", methods=["GET"], defaults={"page": 0})
 @users_htmx.route("<int:user_id>/get_seq_requests/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get_seq_requests(user_id: int, page: int):
     if (user := db.get_user(user_id)) is None:
@@ -193,6 +197,7 @@ def get_seq_requests(user_id: int, page: int):
 
 
 @users_htmx.route("<int:user_id>/query_seq_requests", methods=["GET"])
+@db_session(db)
 @login_required
 def query_seq_requests(user_id: int):
     if (word := request.args.get("name")) is not None:

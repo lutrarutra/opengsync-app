@@ -13,7 +13,7 @@ from ...categories import ExperimentWorkFlowEnum, ExperimentStatusEnum, Experime
 def create_experiment(
     self: "DBHandler", name: str, workflow: ExperimentWorkFlowEnum, status: ExperimentStatusEnum,
     sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
-    r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None
+    r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None, flush: bool = True
 ) -> models.Experiment:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -30,26 +30,17 @@ def create_experiment(
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
         status_id=status.id,
-        num_lanes=workflow.flow_cell_type.num_lanes,
         operator_id=operator_id,
     )
 
-    comment = models.Comment(
-        text=f"Created experiment: {experiment.name} ({experiment.workflow.name}) [{experiment.id}]",
-        author_id=operator_id,
-    )
-    self.session.add(comment)
-
-    self.session.add(experiment)
-    self.session.commit()
-    self.session.refresh(experiment)
-
     for lane_num in range(1, workflow.flow_cell_type.num_lanes + 1):
         lane = models.Lane(number=lane_num, experiment_id=experiment.id)
-        self.session.add(lane)
+        experiment.lanes.append(lane)
 
-    self.session.commit()
-    self.session.refresh(experiment)
+    self.session.add(experiment)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -130,7 +121,7 @@ def get_num_experiments(self: "DBHandler") -> int:
     return res
 
 
-def delete_experiment(self: "DBHandler", experiment_id: int):
+def delete_experiment(self: "DBHandler", experiment_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
     
@@ -138,7 +129,9 @@ def delete_experiment(self: "DBHandler", experiment_id: int):
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
     self.session.delete(experiment)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -148,21 +141,16 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (prev_experiment := self.session.query(models.Experiment.workflow_id).where(
+    if (prev_workflow_id := self.session.query(models.Experiment.workflow_id).where(
         models.Experiment.id == experiment.id,
     ).first()) is None:
         raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment.id} does not exist")
     
-    prev_workflow = ExperimentWorkFlow.get(prev_experiment[0])
-
-    self.session.add(experiment)
-    self.session.commit()
-    self.session.refresh(experiment)
+    prev_workflow = ExperimentWorkFlow.get(prev_workflow_id[0])
 
     if experiment.workflow != prev_workflow:
         workflow = experiment.workflow
         experiment.workflow = workflow
-        experiment.num_lanes = workflow.flow_cell_type.num_lanes
 
         if prev_workflow.flow_cell_type.num_lanes > workflow.flow_cell_type.num_lanes:
             lanes = experiment.lanes.copy()
@@ -184,9 +172,7 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
                     if (lane.id, pool.id) not in lps:
                         lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
         
-        self.session.add(experiment)
-        self.session.commit()
-        self.session.refresh(experiment)
+    self.session.add(experiment)
 
     if not persist_session:
         self.close_session()

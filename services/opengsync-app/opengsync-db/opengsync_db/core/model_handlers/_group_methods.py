@@ -14,7 +14,7 @@ from ...categories import AffiliationType, AffiliationTypeEnum, GroupTypeEnum
 
 
 def create_group(
-    self: "DBHandler", name: str, user_id: int, type: GroupTypeEnum
+    self: "DBHandler", name: str, user_id: int, type: GroupTypeEnum, flush: bool = True
 ) -> models.Group:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -35,8 +35,8 @@ def create_group(
 
     self.session.add(group)
 
-    self.session.commit()
-    self.session.refresh(group)
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -217,8 +217,6 @@ def update_group(self: "DBHandler", group: models.Group) -> models.Group:
         self.open_session()
 
     self.session.add(group)
-    self.session.commit()
-    self.session.refresh(group)
 
     if not persist_session:
         self.close_session()
@@ -249,8 +247,6 @@ def add_user_to_group(self: "DBHandler", user_id: int, group_id: int, affiliatio
     ))
 
     self.session.add(group)
-    self.session.commit()
-    self.session.refresh(group)
 
     if not persist_session:
         self.close_session()
@@ -278,8 +274,6 @@ def remove_user_from_group(self: "DBHandler", user_id: int, group_id: int) -> mo
     self.session.delete(affiliation)
 
     self.session.add(group)
-    self.session.commit()
-    self.session.refresh(group)
 
     if not persist_session:
         self.close_session()

@@ -73,6 +73,7 @@ def get(page: int):
 
 
 @lab_preps_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if (word := request.args.get("name")) is not None:
@@ -413,6 +414,7 @@ def prep_table_upload_form(lab_prep_id: int) -> Response:
 
 @lab_preps_htmx.route("<int:lab_prep_id>/get_pools/<int:page>", methods=["GET"])
 @lab_preps_htmx.route("<int:lab_prep_id>/get_pools", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get_pools(lab_prep_id: int, page: int):
     if not current_user.is_insider():

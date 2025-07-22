@@ -10,6 +10,7 @@ lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
 
 
 @lab_preps_page_bp.route("/preps", methods=["GET"])
+@db_session(db)
 @login_required
 def lab_preps_page():
     if not current_user.is_insider():

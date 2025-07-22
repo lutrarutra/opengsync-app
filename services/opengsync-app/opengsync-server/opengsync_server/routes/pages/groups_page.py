@@ -17,6 +17,7 @@ groups_page_bp = Blueprint("groups_page", __name__)
 
 
 @groups_page_bp.route("/groups")
+@db_session(db)
 @login_required
 def groups_page():
     group_form = forms.models.GroupForm()

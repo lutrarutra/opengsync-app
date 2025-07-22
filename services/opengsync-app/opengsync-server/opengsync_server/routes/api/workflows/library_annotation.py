@@ -136,6 +136,7 @@ def define_pools(seq_request_id: int, uuid: str):
 
 # 1.2. Specify Barcodes
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_barcode_table", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_barcode_table(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -150,6 +151,7 @@ def parse_barcode_table(seq_request_id: int, uuid: str):
 
 
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/barcode_match", methods=["POST"])
+@db_session(db)
 @login_required
 def barcode_match(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -165,6 +167,7 @@ def barcode_match(seq_request_id: int, uuid: str):
 
 # 1.3 Index Kit Mapping
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/map_index_kits", methods=["POST"])
+@db_session(db)
 @login_required
 def map_index_kits(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -335,6 +338,7 @@ def parse_flex_annotation(seq_request_id: int, uuid: str):
 
 # 11. Parse sample annotations
 @library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_sas_form", methods=["POST"])
+@db_session(db)
 @login_required
 def parse_sas_form(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:

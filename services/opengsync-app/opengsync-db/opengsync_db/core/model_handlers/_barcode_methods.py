@@ -11,7 +11,8 @@ from .. import exceptions
 
 
 def create_barcode(
-    self: "DBHandler", name: str, sequence: str, well: str | None, type: BarcodeTypeEnum, adapter_id: int
+    self: "DBHandler", name: str, sequence: str, well: str | None,
+    type: BarcodeTypeEnum, adapter_id: int, flush: bool = True
 ) -> models.Barcode:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -29,8 +30,9 @@ def create_barcode(
     )
 
     self.session.add(barcode)
-    self.session.commit()
-    self.session.refresh(barcode)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

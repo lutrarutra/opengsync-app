@@ -3,7 +3,7 @@ from typing import Optional, Any
 from flask import Response, render_template
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
-from werkzeug.datastructures import ImmutableMultiDict
+from werkzeug.datastructures import ImmutableMultiDict  # type: ignore
 
 from ..tools import classproperty
 
@@ -29,9 +29,13 @@ class HTMXFlaskForm(FlaskForm):
     @classproperty
     def form_label(self) -> str:
         return self._form_label
+    
+    def get_context(self, **context) -> dict:
+        context = context | self._context | {self._form_label: self}
+        return context
 
     def make_response(self, **context) -> Response:
-        context = context | {self._form_label: self} | self._context
+        context = self.get_context(**context)
         return make_response(
             render_template(
                 self.template_path, **context

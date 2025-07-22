@@ -1,0 +1,5 @@
+{
+  "exclude": ["build", "dist", "node_modules", "**/__pycache__"],
+  "extraPaths": ["./services/opengsync-app/opengsync-db"],
+  "reportIncompatibleMethodOverride": false
+}

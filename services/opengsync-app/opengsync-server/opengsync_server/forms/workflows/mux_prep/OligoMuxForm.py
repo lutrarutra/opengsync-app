@@ -100,7 +100,7 @@ class OligoMuxForm(MultiStepForm):
         duplicate_kit_feature = df.duplicated(subset=["sample_pool", "feature"], keep=False)
         duplicate_manual_feature = df.duplicated(subset=["sample_pool", "sequence", "read", "pattern"], keep=False)
 
-        for i, (idx, row) in enumerate(df.iterrows()):
+        for idx, row in df.iterrows():
             if row["demux_name"] not in self.sample_table["sample_name"].values:
                 self.spreadsheet.add_error(idx, "demux_name", InvalidCellValue(f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}"))
 
@@ -115,7 +115,7 @@ class OligoMuxForm(MultiStepForm):
                 if pd.isna(row["feature"]):
                     self.spreadsheet.add_error(idx, "feature", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 elif duplicate_kit_feature.at[idx]:
-                    self.spreadsheet.add_error(idx, "feature", DuplicateCellValue(f"Row {i+1} has duplicate 'Kit' + 'Feature' specified in same pool."))
+                    self.spreadsheet.add_error(idx, "feature", DuplicateCellValue("Duplicate 'Kit' + 'Feature' specified in same pool."))
                 else:
                     if len(features := db.get_features_from_kit_by_feature_name(row["feature"], kit.id)) == 0:
                         self.spreadsheet.add_error(idx, "feature", InvalidCellValue(f"Feature '{row['feature']}' not found in '{kit.name}'."))
@@ -134,9 +134,9 @@ class OligoMuxForm(MultiStepForm):
                 if pd.notna(row["feature"]):
                     self.spreadsheet.add_error(idx, "feature", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
                 if duplicate_manual_feature.at[idx]:
-                    self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool."))
-                    self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool."))
-                    self.spreadsheet.add_error(idx, "read", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same pool."))
+                    self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same pool."))
+                    self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same pool."))
+                    self.spreadsheet.add_error(idx, "read", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same pool."))
                 
         if len(self.spreadsheet._errors) > 0:
             return False

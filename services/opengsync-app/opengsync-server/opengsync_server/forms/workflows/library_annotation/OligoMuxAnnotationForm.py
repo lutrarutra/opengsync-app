@@ -146,6 +146,8 @@ class OligoMuxAnnotationForm(MultiStepForm):
             "mux_barcode": [],
             "mux_pattern": [],
             "mux_read": [],
+            "kit": [],
+            "feature": [],
             "mux_type_id": [],
             "sample_pool": [],
         }
@@ -158,6 +160,8 @@ class OligoMuxAnnotationForm(MultiStepForm):
                 pooling_data["mux_barcode"].append(mux_row["sequence"] if mux_row["custom_feature"] else None)
                 pooling_data["mux_pattern"].append(mux_row["pattern"] if mux_row["custom_feature"] else None)
                 pooling_data["mux_read"].append(mux_row["read"] if mux_row["custom_feature"] else None)
+                pooling_data["kit"].append(mux_row["kit"] if mux_row["kit_feature"] else None)
+                pooling_data["feature"].append(mux_row["feature"] if mux_row["kit_feature"] else None)
                 pooling_data["mux_type_id"].append(MUXType.TENX_OLIGO.id)
                 pooling_data["sample_pool"].append(mux_row["sample_name"])
         

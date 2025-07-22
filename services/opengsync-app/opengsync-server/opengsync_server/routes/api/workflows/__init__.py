@@ -14,3 +14,4 @@ from .mux_prep import mux_prep_workflow  # noqa: F401
 from .dist_reads import dist_reads_workflow  # noqa: F401
 from .reindex import reindex_workflow  # noqa: F401
 from .reseq import reseq_workflow  # noqa: F401
+from .merge_pools import merge_pools_workflow  # noqa: F401

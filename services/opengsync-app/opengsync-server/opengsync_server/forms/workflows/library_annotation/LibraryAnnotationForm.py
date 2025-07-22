@@ -120,6 +120,7 @@ class LibraryAnnotationForm(MultiStepForm):
         self.__map_existing_samples()
 
         self.metadata["nuclei_isolation"] = self.nuclei_isolation.data
+        self.metadata["mux_type_id"] = None
 
         sample_table_data = {
             "sample_name": [],

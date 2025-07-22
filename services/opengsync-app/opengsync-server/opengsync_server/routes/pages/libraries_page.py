@@ -16,6 +16,7 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 
 
 @libraries_page_bp.route("/libraries")
+@db_session(db)
 @login_required
 def libraries_page():
     return render_template("libraries_page.html")

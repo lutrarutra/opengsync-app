@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 from flask import Blueprint, render_template, url_for, abort, request
 from flask_login import login_required
 
-from opengsync_db import models
+from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse
 from ... import db
 
@@ -16,6 +16,7 @@ users_page_bp = Blueprint("users_page", __name__)
 
 
 @users_page_bp.route("/users")
+@db_session(db)
 @login_required
 def users_page():
     if not current_user.is_insider():
@@ -26,6 +27,7 @@ def users_page():
 
 @users_page_bp.route("/user", defaults={"user_id": None})
 @users_page_bp.route("/user/<int:user_id>")
+@db_session(db)
 @login_required
 def user_page(user_id: Optional[int]):
     if user_id is None:

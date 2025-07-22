@@ -12,6 +12,7 @@ def create_comment(
     seq_request_id: Optional[int] = None,
     experiment_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
+    flush: bool = True
 ) -> models.Comment:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -50,8 +51,9 @@ def create_comment(
         lab_prep_id=lab_prep_id
     )
     self.session.add(comment)
-    self.session.commit()
-    self.session.refresh(comment)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -101,7 +103,7 @@ def get_comments(
     return res
 
 
-def delete_comment(self: "DBHandler", comment_id: int) -> None:
+def delete_comment(self: "DBHandler", comment_id: int, flush: bool = True) -> None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -109,7 +111,9 @@ def delete_comment(self: "DBHandler", comment_id: int) -> None:
         raise exceptions.ElementDoesNotExist(f"Comment with id {comment_id} does not exist")
 
     self.session.delete(comment)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

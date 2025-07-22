@@ -17,6 +17,7 @@ samples_page_bp = Blueprint("samples_page", __name__)
 
 
 @samples_page_bp.route("/samples")
+@db_session(db)
 @login_required
 def samples_page():
     return render_template("samples_page.html")

@@ -84,6 +84,27 @@
     </div>
     <div class="flip-card card"
         data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
+        hx-get="{{ url_for('merge_pools_workflow.begin') }}"
+        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+        hx-swap="innerHTML" hx-trigger="click">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/merge.svg') }}" width="60px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Merge Pools</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Merge pools by combining all libraries from selected pools into a new pool.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
         hx-get="{{ url_for('reindex_workflow.begin') }}"
         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
         hx-swap="innerHTML" hx-trigger="click">

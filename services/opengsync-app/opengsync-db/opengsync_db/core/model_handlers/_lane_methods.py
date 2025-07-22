@@ -28,8 +28,6 @@ def create_lane(
     )
 
     self.session.add(lane)
-    self.session.commit()
-    self.session.refresh(lane)
 
     if not persist_session:
         self.close_session()
@@ -106,8 +104,6 @@ def update_lane(self: "DBHandler", lane: models.Lane) -> models.Lane:
         self.open_session()
 
     self.session.add(lane)
-    self.session.commit()
-    self.session.refresh(lane)
 
     if not persist_session:
         self.close_session()
@@ -115,7 +111,7 @@ def update_lane(self: "DBHandler", lane: models.Lane) -> models.Lane:
     return lane
 
 
-def delete_lane(self: "DBHandler", lane_id: int):
+def delete_lane(self: "DBHandler", lane_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -127,7 +123,9 @@ def delete_lane(self: "DBHandler", lane_id: int):
     
     lane.experiment.lanes.remove(lane)
     self.session.delete(lane)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

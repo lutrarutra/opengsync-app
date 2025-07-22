@@ -26,6 +26,10 @@ class ElementIsReferenced(Exception):
     pass
 
 
+class InvalidOperation(Exception):
+    pass
+
+
 class FileExistsException(Exception):
     def __init__(self, file_path):
         self.message = f"File '{file_path}' already exists..."

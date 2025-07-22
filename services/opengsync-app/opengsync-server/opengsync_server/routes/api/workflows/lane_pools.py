@@ -18,6 +18,7 @@ lane_pools_workflow = Blueprint("lane_pools_workflow", __name__, url_prefix="/ap
 
 
 @lane_pools_workflow.route("<int:experiment_id>/begin", methods=["GET"])
+@db_session(db)
 @login_required
 @db_session(db)
 def begin(experiment_id: int):
@@ -36,6 +37,7 @@ def begin(experiment_id: int):
 
 
 @lane_pools_workflow.route("<int:experiment_id>/lane_pools", methods=["POST"])
+@db_session(db)
 @login_required
 @db_session(db)
 def lane_pools(experiment_id: int):

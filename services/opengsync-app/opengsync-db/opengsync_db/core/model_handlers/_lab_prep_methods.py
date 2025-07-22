@@ -15,7 +15,8 @@ def create_lab_prep(
     name: str | None,
     creator_id: int,
     protocol: LabProtocolEnum,
-    assay_type: AssayTypeEnum
+    assay_type: AssayTypeEnum,
+    flush: bool = True
 ) -> models.LabPrep:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -37,8 +38,9 @@ def create_lab_prep(
     )
 
     self.session.add(lab_prep)
-    self.session.commit()
-    self.session.refresh(lab_prep)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -98,7 +100,7 @@ def get_lab_preps(
     return lab_preps, n_pages
 
 
-def delete_lab_prep(self: "DBHandler", lab_prep_id: int) -> None:
+def delete_lab_prep(self: "DBHandler", lab_prep_id: int, flush: bool = True) -> None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -113,7 +115,9 @@ def delete_lab_prep(self: "DBHandler", lab_prep_id: int) -> None:
             library.pool_id = None
 
     self.session.delete(lab_prep)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -197,8 +201,6 @@ def update_lab_prep(
         self.open_session()
 
     self.session.add(lab_prep)
-    self.session.commit()
-    self.session.refresh(lab_prep)
 
     if not persist_session:
         self.close_session()
@@ -221,8 +223,6 @@ def add_library_to_prep(
     lab_prep.libraries.append(library)
 
     self.session.add(lab_prep)
-    self.session.commit()
-    self.session.refresh(lab_prep)
 
     if not persist_session:
         self.close_session()
@@ -248,8 +248,6 @@ def remove_library_from_prep(
     lab_prep.libraries.remove(library)
 
     self.session.add(lab_prep)
-    self.session.commit()
-    self.session.refresh(lab_prep)
 
     if not persist_session:
         self.close_session()

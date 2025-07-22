@@ -166,7 +166,7 @@ class CompleteSASForm(MultiStepForm):
 
         self.update_data()
 
-    def process_request(self, user: models.User) -> Response:
+    def process_request(self, user: models.User) -> Response:  # type: ignore
         if not self.validate():
             self.__prepare()
             return self.make_response()
@@ -365,18 +365,13 @@ class CompleteSASForm(MultiStepForm):
                     read=read,
                     type=FeatureType.ANTIBODY
                 )
-                feature_id = feature.id
-                self.feature_table.loc[_df.index, "feature_id"] = feature_id
-
-            for _, feature_row in self.feature_table.iterrows():
-                libraries = self.library_table[self.library_table["library_name"] == feature_row["library_name"]]
-                for _, library_row in libraries.iterrows():
-                    db.link_feature_library(
-                        feature_id=feature_row["feature_id"],
-                        library_id=library_row["library_id"]
-                    )
+                self.feature_table.loc[_df.index, "feature_id"] = feature.id
 
             self.feature_table["feature_id"] = self.feature_table["feature_id"].astype(int)
+            
+            for _, library_row in self.library_table.iterrows():
+                if len(ids := self.feature_table[self.feature_table["library_name"] == library_row["library_name"]]["feature_id"].values.tolist()) > 0:
+                    db.link_features_library(feature_ids=ids, library_id=int(library_row["library_id"]))
             
         if self.comment_table is not None:
             for _, comment_row in self.comment_table.iterrows():

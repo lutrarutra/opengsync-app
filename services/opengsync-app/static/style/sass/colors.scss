@@ -103,3 +103,15 @@ $cemm-green-dark: #75952f;
 .print-window .cemm-red,
 .print-window .cemm-green
 { color: black !important; }
+
+sup.cell-type {
+    color: $cemm-red-dark !important;
+}
+
+sup.clone-number {
+    color: $gray-500 !important;
+}
+
+sup.mux-type {
+    color: $cemm-green-dark !important;
+}

@@ -277,7 +277,7 @@ def get_experiment_laned_pools_df(self: "DBHandler", experiment_id: int) -> pd.D
     return df
 
 
-def get_pool_libraries_df(self: "DBHandler", pool_id: int) -> pd.DataFrame:
+def get_pool_libraries_df(self: "DBHandler", pool_id: int, per_index: bool = True) -> pd.DataFrame:
     columns = [
         models.Pool.id.label("pool_id"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
@@ -298,8 +298,9 @@ def get_pool_libraries_df(self: "DBHandler", pool_id: int) -> pd.DataFrame:
     query = query.order_by(models.Library.id)
 
     df = pd.read_sql(query, self._engine).drop(columns=["pool_id"])
-
-    df = df.groupby(df.columns.difference(["name_i7", "sequence_i7", "name_i5", "sequence_i5"]).tolist(), as_index=False, dropna=False).agg({"name_i7": list, "sequence_i7": list, "name_i5": list, "sequence_i5": list}).rename(columns={"name_i7": "names_i7", "sequence_i7": "sequences_i7", "name_i5": "names_i5", "sequence_i5": "sequences_i5"})
+    
+    if not per_index:
+        df = df.groupby(df.columns.difference(["name_i7", "sequence_i7", "name_i5", "sequence_i5"]).tolist(), as_index=False, dropna=False).agg({"name_i7": list, "sequence_i7": list, "name_i5": list, "sequence_i5": list}).rename(columns={"name_i7": "names_i7", "sequence_i7": "sequences_i7", "name_i5": "names_i5", "sequence_i5": "sequences_i5"})
 
     return df
 

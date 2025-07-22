@@ -32,7 +32,7 @@ def create_library(
     lab_prep_id: Optional[int] = None,
     seq_depth_requested: Optional[float] = None,
     status: Optional[LibraryStatusEnum] = None,
-    commit: bool = True
+    flush: bool = True
 ) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -85,9 +85,8 @@ def create_library(
 
     self.session.add(library)
 
-    if commit:
-        self.session.commit()
-        self.session.refresh(library)
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -215,7 +214,10 @@ def get_libraries(
     return libraries, n_pages
 
 
-def delete_library(self: "DBHandler", library_id: int, delete_orphan_samples: bool = True):
+def delete_library(
+    self: "DBHandler", library_id: int, delete_orphan_samples: bool = True,
+    flush: bool = True
+):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -224,29 +226,16 @@ def delete_library(self: "DBHandler", library_id: int, delete_orphan_samples: bo
 
     for link in library.sample_links:
         link.sample.num_libraries -= 1
-            
         if link.sample.num_libraries == 0 and delete_orphan_samples:
             self.delete_sample(link.sample_id)
 
-    if library.pool_id is not None and library.pool is not None:
-        library.pool.num_libraries -= 1
-        if library.pool.num_libraries == 0:
-            self.delete_pool(library.pool_id)
-
-    orphan_features = set()
-    for feature in library.features:
-        if feature.feature_kit_id is None:
-            if self.session.query(models.links.LibraryFeatureLink).where(
-                models.links.LibraryFeatureLink.feature_id == feature.id
-            ).count() == 1:
-                orphan_features.add(feature)
-
     library.seq_request.num_libraries -= 1
     self.session.delete(library)
-    self.session.commit()
 
-    for feature in orphan_features:
-        self.session.delete(feature)
+    if flush:
+        self.session.flush()
+        
+    self.delete_orphan_features(flush=flush)
 
     if not persist_session:
         self.close_session()
@@ -257,8 +246,6 @@ def update_library(self: "DBHandler", library: models.Library) -> models.Library
         self.open_session()
     
     self.session.add(library)
-    self.session.commit()
-    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()
@@ -380,7 +367,10 @@ def query_libraries(
     return libraries
 
 
-def add_library_to_pool(self: "DBHandler", library_id: int, pool_id: int) -> models.Library:
+def add_library_to_pool(
+    self: "DBHandler", library_id: int, pool_id: int,
+    flush: bool = True
+) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -403,7 +393,8 @@ def add_library_to_pool(self: "DBHandler", library_id: int, pool_id: int) -> mod
     pool.num_libraries += 1
     self.session.add(pool)
 
-    self.session.commit()
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -458,8 +449,6 @@ def set_library_seq_quality(
         )
 
     self.session.add(quality)
-    self.session.commit()
-    self.session.refresh(quality)
 
     if not persist_session:
         self.close_session()
@@ -497,8 +486,6 @@ def add_library_index(
     ))
 
     self.session.add(library)
-    self.session.commit()
-    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()
@@ -515,9 +502,6 @@ def remove_library_indices(self: "DBHandler", library_id: int) -> models.Library
 
     for index in library.indices:
         self.session.delete(index)
-
-    self.session.commit()
-    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()

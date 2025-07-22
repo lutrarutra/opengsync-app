@@ -106,6 +106,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return render_template("dashboard-user.html")
 
     @app.route("/pdf_file/<int:file_id>")
+    @db_session(db)
     @login_required
     @cache.cached(timeout=60)
     def pdf_file(file_id: int):
@@ -133,6 +134,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return response
     
     @app.route("/img_file/<int:file_id>")
+    @db_session(db)
     @login_required
     @cache.cached(timeout=60)
     def img_file(file_id: int):
@@ -160,6 +162,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return response
     
     @app.route("/download_file/<int:file_id>")
+    @db_session(db)
     @login_required
     @cache.cached(timeout=60)
     def download_file(file_id: int):
@@ -277,6 +280,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.workflows.dist_reads_workflow)
     app.register_blueprint(api.workflows.reindex_workflow)
     app.register_blueprint(api.workflows.reseq_workflow)
+    app.register_blueprint(api.workflows.merge_pools_workflow)
 
     app.register_blueprint(pages.samples_page_bp)
     app.register_blueprint(pages.projects_page_bp)

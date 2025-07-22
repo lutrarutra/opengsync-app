@@ -10,7 +10,7 @@ from .. import exceptions
 
 
 def create_plate(
-    self: "DBHandler", name: str, num_cols: int, num_rows: int, owner_id: int,
+    self: "DBHandler", name: str, num_cols: int, num_rows: int, owner_id: int, flush: bool = True
 ) -> models.Plate:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -22,8 +22,8 @@ def create_plate(
         name=name, num_cols=num_cols, num_rows=num_rows, owner=owner
     )
 
-    self.session.add(plate)
-    self.session.commit()
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -87,7 +87,6 @@ def delete_plate(self: "DBHandler", plate_id: int):
         self.session.delete(sample_link)
 
     self.session.delete(plate)
-    self.session.commit()
 
     if not persist_session:
         self.close_session()
@@ -113,8 +112,6 @@ def add_sample_to_plate(
     ))
 
     self.session.add(plate)
-    self.session.commit()
-    self.session.refresh(plate)
 
     if not persist_session:
         self.close_session()
@@ -142,8 +139,6 @@ def add_library_to_plate(
     ))
 
     self.session.add(plate)
-    self.session.commit()
-    self.session.refresh(plate)
 
     if not persist_session:
         self.close_session()
@@ -162,8 +157,6 @@ def clear_plate(self: "DBHandler", plate_id: int) -> models.Plate:
         self.session.delete(link)
     
     self.session.add(plate)
-    self.session.commit()
-    self.session.refresh(plate)
 
     if not persist_session:
         self.close_session()

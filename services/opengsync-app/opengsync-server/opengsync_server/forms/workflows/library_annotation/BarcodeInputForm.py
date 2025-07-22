@@ -63,28 +63,13 @@ class BarcodeInputForm(MultiStepForm):
         self.spreadsheet.set_data(previous_form.tables["barcode_table"])
 
     def get_template(self) -> pd.DataFrame:
-        barcode_table_data = {
-            "library_name": [],
-            "index_well": [],
-            "kit_i7": [],
-            "name_i7": [],
-            "sequence_i7": [],
-            "kit_i5": [],
-            "name_i5": [],
-            "sequence_i5": [],
-        }
+        barcode_table = self.library_table[["library_name"]].copy()
+        barcode_table[[
+            "index_well", "kit_i7", "name_i7", "sequence_i7",
+            "kit_i5", "name_i5", "sequence_i5"
+        ]] = None
 
-        for _, row in self.library_table.iterrows():
-            barcode_table_data["library_name"].append(row["library_name"])
-            barcode_table_data["index_well"].append(None)
-            barcode_table_data["kit_i7"].append(None)
-            barcode_table_data["name_i7"].append(None)
-            barcode_table_data["sequence_i7"].append(None)
-            barcode_table_data["kit_i5"].append(None)
-            barcode_table_data["name_i5"].append(None)
-            barcode_table_data["sequence_i5"].append(None)
-        
-        return pd.DataFrame(barcode_table_data)
+        return barcode_table
     
     def validate(self) -> bool:
         validated = super().validate()

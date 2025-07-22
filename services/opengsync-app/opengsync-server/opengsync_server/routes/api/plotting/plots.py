@@ -1,16 +1,17 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 import json
 
-from flask import Blueprint, render_template, request, abort, url_for
+from flask import Blueprint, request, abort, url_for
 from flask_login import login_required
 from flask_htmx import make_response
+
 import plotly
 import plotly.express as px
 import plotly.graph_objects as go
 
-from .... import db, logger
-from opengsync_db import models
+from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse
+from .... import db, logger
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -28,6 +29,7 @@ def _add_traces(to_figure, from_figure):
 
 
 @plots_api.route("<int:experiment_id>/experiment_library_reads", methods=["POST"])
+@db_session(db)
 @login_required
 def experiment_library_reads(experiment_id: int):
     if not current_user.is_insider():
@@ -56,7 +58,7 @@ def experiment_library_reads(experiment_id: int):
 
     barplot = px.bar(
         df, x="num_library_reads", y="y_ticks", color="lane", barmode="group",
-        text=df["perc_reads"].apply(lambda x: f"{x*100:.1f} %"),
+        text=df["perc_reads"].apply(lambda x: f"{x * 100:.1f} %"),
         labels={
             "num_library_reads": "# Reads",
             "y_ticks": "Library",

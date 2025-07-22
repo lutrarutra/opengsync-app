@@ -35,8 +35,6 @@ def update_sample_library_link(
         self.open_session()
 
     self.session.add(link)
-    self.session.commit()
-    self.session.refresh(link)
 
     if not persist_session:
         self.close_session()
@@ -48,6 +46,7 @@ def link_sample_library(
     self: "DBHandler", sample_id: int, library_id: int,
     mux: Optional[dict] = None,
     mux_type: Optional[MUXTypeEnum] = None,
+    flush: bool = True
 ) -> models.links.SampleLibraryLink:
     
     if not (persist_session := self._session is not None):
@@ -72,12 +71,12 @@ def link_sample_library(
         mux=mux,
     )
 
-    self.session.add(sample_library_link)
     sample.num_libraries += 1
     library.num_samples += 1
+    self.session.add(sample_library_link)
 
-    self.session.commit()
-    self.session.refresh(sample_library_link)
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -107,7 +106,6 @@ def unlink_sample_library(self: "DBHandler", sample_id: int, library_id: int):
     self.session.add(sample)
     self.session.add(library)
     self.session.delete(link)
-    self.session.commit()
 
     if not persist_session:
         self.close_session()
@@ -202,11 +200,39 @@ def link_feature_library(self: "DBHandler", feature_id: int, library_id: int):
     library.features.append(feature)
     library.num_features += 1
     self.session.add(library)
-    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
+
+def link_features_library(
+    self: "DBHandler", feature_ids: list[int], library_id: int,
+    flush: bool = True
+) -> models.Library:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+    
+    ids = set(feature_ids)
+
+    if (library := self.session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    features = self.session.query(models.Feature).where(
+        models.Feature.id.in_(ids)
+    ).all()
+
+    library.features.extend(features)
+    library.num_features = len(library.features)
+    self.session.add(library)
+
+    if flush:
+        self.session.flush()
+
+    if not persist_session:
+        self.close_session()
+
+    return library
+    
 
 def unlink_feature_library(self: "DBHandler", feature_id: int, library_id: int):
     if not (persist_session := self._session is not None):
@@ -227,14 +253,13 @@ def unlink_feature_library(self: "DBHandler", feature_id: int, library_id: int):
     library.features.remove(feature)
     library.num_features -= 1
     self.session.add(library)
-    self.session.commit()
 
     if not persist_session:
         self.close_session()
 
 
 def add_pool_to_lane(
-    self: "DBHandler", experiment_id: int, pool_id: int, lane_num: int
+    self: "DBHandler", experiment_id: int, pool_id: int, lane_num: int, flush: bool = True
 ) -> models.Lane:
 
     if not (persist_session := self._session is not None):
@@ -273,8 +298,9 @@ def add_pool_to_lane(
     )
     
     self.session.add(link)
-    self.session.commit()
-    self.session.refresh(lane)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -282,7 +308,7 @@ def add_pool_to_lane(
     return lane
 
 
-def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, lane_num: int) -> models.Lane:
+def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, lane_num: int, flush: bool = True) -> models.Lane:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -304,15 +330,14 @@ def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, l
     ).first()) is None:
         raise exceptions.LinkDoesNotExist(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are not linked.")
     
-    pool.lane_links.remove(link)
     self.session.delete(link)
     
     for link in pool.lane_links:
         link.num_m_reads = pool.num_m_reads_requested / len(pool.lane_links) if pool.num_m_reads_requested else None
         self.session.add(link)
-    
-    self.session.commit()
-    self.session.refresh(lane)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -341,7 +366,6 @@ def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
             self.add_pool_to_lane(experiment_id=experiment_id, pool_id=pool_id, lane_num=lane.number)
 
     self.session.add(experiment)
-    self.session.commit()
 
     if not persist_session:
         self.close_session()
@@ -365,11 +389,9 @@ def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
             models.links.LanePoolLink.lane_id == lane.id,
         ).first()) is not None:
             self.session.delete(link)
-            self.session.commit()
 
     experiment.pools.remove(pool)
     self.session.add(experiment)
-    self.session.commit()
 
     if not persist_session:
         self.close_session()
@@ -406,8 +428,6 @@ def update_laned_pool_link(
         self.open_session()
 
     self.session.add(link)
-    self.session.commit()
-    self.session.refresh(link)
 
     if not persist_session:
         self.close_session()

@@ -103,6 +103,7 @@ def table_query():
 
 @index_kits_htmx.route("<int:index_kit_id>/get_adapters", methods=["GET"], defaults={"page": 0})
 @index_kits_htmx.route("<int:index_kit_id>/get_adapters/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 @cache.cached(timeout=300, query_string=True)
 def get_adapters(index_kit_id: int, page: int):

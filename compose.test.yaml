@@ -4,7 +4,7 @@ services:
         build:
             context: ./services
             dockerfile: pytest/Dockerfile
-        command: "pytest tests/ -s"
+        command: "pytest tests/ --capture=tee-sys"
         volumes:
             - ./services/pytest/tests:/usr/src/app/tests:ro
             - ./services/opengsync-app/static/resources/templates/library_prep/:/usr/src/app/prep_tables:ro

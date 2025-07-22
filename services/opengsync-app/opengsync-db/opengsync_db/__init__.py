@@ -42,7 +42,7 @@ def db_session(db: DBHandler):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            with DBSession(db) as _:
+            with DBSession(db):
                 return func(*args, **kwargs)
         return wrapper
     return decorator

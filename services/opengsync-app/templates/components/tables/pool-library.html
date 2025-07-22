@@ -56,7 +56,7 @@
                 <th scope="row">{{ library.id }}</th>
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}">
                     <a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='pool@' + pool.id | string) }}">
-                        {{ library.name }}{% if library.clone_number > 0 %}<sup>(re:{{ library.clone_number }})</sup>{% endif %}
+                        {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
                 <td>

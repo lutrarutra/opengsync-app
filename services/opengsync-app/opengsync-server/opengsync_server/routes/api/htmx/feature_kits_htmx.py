@@ -49,6 +49,7 @@ def get(page: int):
 
 
 @feature_kits_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     field_name = next(iter(request.form.keys()))
@@ -70,6 +71,7 @@ def query():
 
 
 @feature_kits_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if not current_user.is_insider():
@@ -106,6 +108,7 @@ def table_query():
 
 @feature_kits_htmx.route("<int:feature_kit_id>/get_features", methods=["GET"], defaults={"page": 0})
 @feature_kits_htmx.route("<int:feature_kit_id>/get_features/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 @cache.cached(timeout=300, query_string=True)
 def get_features(feature_kit_id: int, page: int):
