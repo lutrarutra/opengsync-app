@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from itsdangerous import SignatureExpired, BadSignature, URLSafeTimedSerializer
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from .Base import Base
 from . import links

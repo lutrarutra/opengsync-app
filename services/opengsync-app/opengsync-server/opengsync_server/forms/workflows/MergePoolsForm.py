@@ -56,7 +56,7 @@ class MergePoolsForm(MultiStepForm):
             dfs.append(df)
 
         df = pd.concat(dfs, ignore_index=True).reset_index(drop=True)
-        df = tools.check_indices(df, groupby="pool_id")
+        df = tools.check_indices(df)
         context["library_table"] = df
 
         if not self.num_m_reads_requested.data:

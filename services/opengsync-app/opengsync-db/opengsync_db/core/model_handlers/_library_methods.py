@@ -1,8 +1,9 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
+from sqlalchemy.orm.query import Query
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -117,6 +118,7 @@ def get_libraries(
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    custom_query: Callable[[Query], Query] | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.Library], int | None]:
     if not (persist_session := self._session is not None):
@@ -191,6 +193,9 @@ def get_libraries(
         query = query.where(
             models.Library.status_id.in_([s.id for s in status_in])
         )
+
+    if custom_query is not None:
+        query = custom_query(query)
 
     n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 

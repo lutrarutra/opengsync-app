@@ -101,6 +101,7 @@ services:
 
     postgres:
         container_name: postgres-dev
+        user: "999:999"
         image: postgres:17.5-alpine3.22
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
@@ -142,17 +143,17 @@ services:
                 restart: true
         attach: false  # no logs
 
-    yacht:
-        container_name: yacht-dev
-        environment:
-            TZ: ${TIMEZONE}
-        image: selfhostedpro/yacht:latest
-        ports:
-            - ${YACHT_PORT}:8000
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - yacht:/config
-        restart: always
+    # yacht:
+    #     container_name: yacht-dev
+    #     environment:
+    #         TZ: ${TIMEZONE}
+    #     image: selfhostedpro/yacht:latest
+    #     ports:
+    #         - ${YACHT_PORT}:8000
+    #     volumes:
+    #         - /var/run/docker.sock:/var/run/docker.sock
+    #         - yacht:/config
+    #     restart: always
 
 volumes:
     compiled_css:

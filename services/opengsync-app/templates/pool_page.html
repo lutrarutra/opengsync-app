@@ -122,6 +122,29 @@
                 </div>
             </div>
             <div class="workflow-container">
+                {% if current_user.is_insider() %}
+                <div class="flip-card card"
+                    data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                    hx-get="{{ url_for('select_pool_libraries_workflow.begin', pool_id=pool.id) }}"
+                    hx-target="#xl-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click">
+                    <div class="flip-card-container">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="90px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Add Libraries</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Select existing libraries to add to this pool.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% if current_user.is_insider() %}

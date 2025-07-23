@@ -365,10 +365,11 @@ def browse(workflow: str, page: int):
         sort_by=sort_by, descending=descending, offset=offset,
         seq_request_id=seq_request_id, experiment_id=experiment_id,
         type_in=type_in, status_in=status_in,
-        pool_id=pool_id,
+        pool_id=pool_id if workflow != "select_pool_libraries" else None,
         lab_prep_id=lab_prep_id if workflow != "library_prep" else None,
         in_lab_prep=False if workflow == "library_prep" else None,
         count_pages=True,
+        custom_query=(lambda q: q.where(models.Library.pool_id.is_(None))) if workflow == "select_pool_libraries" else None
     )
     context["workflow"] = workflow
 
@@ -603,6 +604,8 @@ def get_mux_table(library_id: int):
         for _, row in df.iterrows():
             mux_data["sample_name"].append(row["sample_name"])
             mux_data["barcode"].append(row["mux"]["barcode"] if row.get("mux") else None)
+    else:
+        raise NotImplementedError(f"Unsupported MUX type: {library.mux_type}")
 
     df = pd.DataFrame(mux_data)
     columns = []

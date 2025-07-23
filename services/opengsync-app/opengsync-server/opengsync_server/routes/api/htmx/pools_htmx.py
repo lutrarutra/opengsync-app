@@ -109,7 +109,8 @@ def remove_libraries(pool_id: int):
 
     for library in pool.libraries:
         library.pool_id = None
-        library.status = LibraryStatus.PREPARING
+        if library.status == LibraryStatus.POOLED:
+            library.status = LibraryStatus.STORED
 
     pool.num_libraries = 0
     db.update_pool(pool)
@@ -210,7 +211,8 @@ def remove_library(pool_id: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     library.pool_id = None
-    library.status = LibraryStatus.PREPARING
+    if library.status == LibraryStatus.POOLED:
+        library.status = LibraryStatus.STORED
     library = db.update_library(library)
 
     flash("Library removed from pool", "success")
