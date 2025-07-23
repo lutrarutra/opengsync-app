@@ -1,14 +1,20 @@
+from abc import ABC, abstractmethod
 from typing import Optional, Any
 
 from flask import Response, render_template
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
+from wtforms.form import FormMeta
 from werkzeug.datastructures import ImmutableMultiDict  # type: ignore
 
 from ..tools import classproperty
 
 
-class HTMXFlaskForm(FlaskForm):
+class ABCHTMXFlaskForm(FormMeta, ABC):
+    pass
+
+
+class HTMXFlaskForm(FlaskForm, metaclass=ABCHTMXFlaskForm):
     _template_path: Optional[str] = None
     _form_label: str = "form"
 
@@ -17,8 +23,9 @@ class HTMXFlaskForm(FlaskForm):
         self.formdata = formdata if formdata is not None else dict()
         self._context = {}
 
+    @abstractmethod
     def process_request(self) -> Response:
-        raise NotImplementedError("You must implement this method in your subclass.")
+        ...
 
     @classproperty
     def template_path(self) -> str:
@@ -30,11 +37,16 @@ class HTMXFlaskForm(FlaskForm):
     def form_label(self) -> str:
         return self._form_label
     
+    def prepare(self) -> None:
+        """Prepare the form for rendering or processing."""
+        pass
+    
     def get_context(self, **context) -> dict:
         context = context | self._context | {self._form_label: self}
         return context
 
     def make_response(self, **context) -> Response:
+        self.prepare()
         context = self.get_context(**context)
         return make_response(
             render_template(

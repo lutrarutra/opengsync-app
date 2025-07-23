@@ -94,7 +94,7 @@ def select() -> Response:
     form.metadata["workflow"] = "reseq"
     form.update_data()
 
-    next_form = forms.ReseqLibrariesForm(form.uuid, previous_form=form)
+    next_form = forms.ReseqLibrariesForm(form.uuid)
     return next_form.make_response()
 
 

@@ -36,10 +36,10 @@ class FlexAnnotationForm(MultiStepForm):
             LibraryType.TENX_SC_GEX_FLEX.id in current_step.tables["library_table"]["library_type_id"].values
         )
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=FlexAnnotationForm._workflow_name, step_name=FlexAnnotationForm._step_name,
-            uuid=uuid, formdata=formdata, previous_form=previous_form, step_args={}
+            uuid=uuid, formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -143,5 +143,5 @@ class FlexAnnotationForm(MultiStepForm):
             self.add_table("flex_table", self.flex_table)
             self.update_data()
         
-        next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

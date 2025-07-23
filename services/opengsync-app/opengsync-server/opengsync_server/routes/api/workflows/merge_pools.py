@@ -99,11 +99,7 @@ def select() -> Response:
     form.metadata = form.metadata | context
     form.update_data()
     
-    next_form = MergePoolsForm(
-        uuid=form.uuid,
-        formdata=request.form,
-        previous_form=form
-    )
+    next_form = MergePoolsForm(uuid=form.uuid, formdata=request.form)
     next_form.contact.selected.data = current_user.id
     next_form.contact.search_bar.data = current_user.name
 

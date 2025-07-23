@@ -44,10 +44,10 @@ class SelectAssayForm(MultiStepForm):
     def is_applicable(current_step: MultiStepForm) -> bool:
         return current_step.metadata["workflow_type"] == "tech"
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=SelectAssayForm._workflow_name,
-            step_name=SelectAssayForm._step_name, previous_form=previous_form,
+            step_name=SelectAssayForm._step_name,
             step_args={}
         )
         self.seq_request = seq_request
@@ -118,9 +118,9 @@ class SelectAssayForm(MultiStepForm):
         self.update_data()
 
         if DefineMultiplexedSamplesForm.is_applicable(self):
-            next_form = DefineMultiplexedSamplesForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = DefineMultiplexedSamplesForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = DefineSamplesForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = DefineSamplesForm(seq_request=self.seq_request, uuid=self.uuid)
 
         return next_form.make_response()
         

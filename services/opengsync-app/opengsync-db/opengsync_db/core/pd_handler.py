@@ -595,6 +595,8 @@ def get_index_kit_barcodes_df(self: "DBHandler", index_kit_id: int, per_adapter:
                 barcode_data["well"].append(row["well"])
                 barcode_data["name"].append(row["names"][0])
                 barcode_data["sequence_i7"].append(row["sequences"][0])
+        else:
+            raise ValueError(f"Unsupported index kit type: {index_kit.type}")
 
         df = pd.DataFrame(barcode_data)
 
@@ -734,20 +736,25 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes:
 
 def get_lab_prep_libraries_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame:
     query = sa.select(
-        models.Library.id.label("id"),
-        models.Library.name.label("name"),
+        models.Library.id.label("library_id"),
+        models.Library.name.label("library_name"),
         models.Library.status_id.label("status_id"),
-        models.Library.type_id.label("type_id"),
+        models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
         models.Library.sample_name.label("sample_name"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+    ).outerjoin(
+        models.Pool,
+        models.Pool.id == models.Library.pool_id
     ).where(
         models.Library.lab_prep_id == lab_prep_id
     )
 
     df = pd.read_sql(query, self._engine)
     df["status"] = df["status_id"].map(categories.LibraryStatus.get)  # type: ignore
-    df["type"] = df["type_id"].map(categories.LibraryType.get)  # type: ignore
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
     df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+
     return df
 
 

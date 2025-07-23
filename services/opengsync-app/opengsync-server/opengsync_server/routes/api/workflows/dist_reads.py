@@ -32,7 +32,6 @@ def begin(experiment_id: int) -> Response:
     else:
         form = forms.DistributeReadsSeparateForm(experiment=experiment)
     
-    form.prepare()
     return form.make_response()
 
 

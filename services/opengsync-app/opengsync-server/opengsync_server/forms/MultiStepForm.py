@@ -33,13 +33,18 @@ class StepFile():
     
 
 class MultiStepForm(HTMXFlaskForm):
-    _step_name: str = None  # type: ignore
-    _workflow_name: str = None  # type: ignore
+    _step_name: str
+    _workflow_name: str
 
-    def __init__(self, workflow: str, uuid: str | None, formdata: dict | None, step_name: str, step_args: dict, previous_form: Optional["MultiStepForm"] = None):
+    def __init__(self, workflow: str, uuid: str | None, formdata: dict | None, step_name: str, step_args: dict):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         if uuid is None:
             uuid = str(uuid4())
+
+        if (csrf_token := self.formdata.get("csrf_token")) is None:
+            self._csrf_token = self.csrf_token._value()  # type: ignore
+        else:
+            self._csrf_token = csrf_token
 
         self.step_name = step_name
         self.step_args = step_args
@@ -102,7 +107,7 @@ class MultiStepForm(HTMXFlaskForm):
         with open(path, "wb") as f:
             pickle.dump({"header": header, **steps}, f)
 
-    def fill_previous_form(self, previous_form: StepFile | None):
+    def fill_previous_form(self, previous_form: StepFile):
         logger.warning(f"Workflow '{self.workflow}', step '{self.step_name}', fill_previous_form() not implemented in subclass...")
 
     def complete(self, path: Optional[str] = None):

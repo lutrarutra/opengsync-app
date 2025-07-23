@@ -30,10 +30,10 @@ class MergePoolsForm(MultiStepForm):
     contact_email = StringField("Contact Email", validators=[OptionalValidator(), Length(max=models.Contact.email.type.length)])
     contact_phone = StringField("Contact Phone", validators=[OptionalValidator(), Length(max=models.Contact.phone.type.length)])
 
-    def __init__(self, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata=None):
+    def __init__(self, uuid: str, formdata=None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, step_name=MergePoolsForm._step_name,
-            workflow=MergePoolsForm._workflow_name, step_args={}, previous_form=previous_form
+            workflow=MergePoolsForm._workflow_name, step_args={}
         )
         self.pool_table = self.tables["pool_table"]
         self.post_url = url_for("merge_pools_workflow.merge", uuid=uuid)

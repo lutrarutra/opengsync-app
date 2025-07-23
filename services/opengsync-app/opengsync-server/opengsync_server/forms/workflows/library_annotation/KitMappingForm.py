@@ -36,10 +36,10 @@ class KitMappingForm(MultiStepForm):
             return False
         return current_step.tables["kit_table"]["kit_id"].isna().any()
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=KitMappingForm._workflow_name, step_name=KitMappingForm._step_name,
-            uuid=uuid, previous_form=previous_form, formdata=formdata, step_args={}
+            uuid=uuid, formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -298,12 +298,12 @@ class KitMappingForm(MultiStepForm):
         self.update_data()
 
         if OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
             
         return next_form.make_response()

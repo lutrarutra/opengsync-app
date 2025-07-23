@@ -94,10 +94,10 @@ class ProjectSelectForm(MultiStepForm):
         self.update_data()
 
         if SelectAssayForm.is_applicable(self):
-            next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid)
         elif PooledLibraryAnnotationForm.is_applicable(self):
-            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         
         return next_form.make_response()

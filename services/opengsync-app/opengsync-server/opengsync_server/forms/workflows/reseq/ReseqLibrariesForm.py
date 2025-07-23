@@ -33,12 +33,12 @@ class ReseqLibrariesForm(MultiStepForm):
     ]
 
     def __init__(
-        self, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict | None = None
+        self, uuid: str | None, formdata: dict | None = None
     ):
         MultiStepForm.__init__(
             self, workflow=ReseqLibrariesForm._workflow_name,
             step_name=ReseqLibrariesForm._step_name, uuid=uuid,
-            formdata=formdata, previous_form=previous_form, step_args={}
+            formdata=formdata, step_args={}
         )
         self.library_table = self.tables["library_table"]
         self.post_url = url_for("reseq_workflow.reseq", uuid=self.uuid)

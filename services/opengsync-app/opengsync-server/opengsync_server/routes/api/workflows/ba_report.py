@@ -115,8 +115,6 @@ def select():
     complete_ba_report_form.add_table("pool_table", form.pool_table)
     complete_ba_report_form.add_table("lane_table", form.lane_table)
     complete_ba_report_form.update_data()
-
-    complete_ba_report_form.prepare()
     return complete_ba_report_form.make_response()
 
 

@@ -32,7 +32,6 @@ def begin(experiment_id: int):
     else:
         form = wff.LoadFlowCellForm(experiment=experiment)
         
-    form.prepare()
     return form.make_response()
 
 

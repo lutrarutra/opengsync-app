@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Literal
 
 from flask import Response, url_for, flash
 from wtforms import StringField, SelectField, FloatField, FormField

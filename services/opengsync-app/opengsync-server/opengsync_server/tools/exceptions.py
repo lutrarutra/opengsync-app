@@ -26,3 +26,9 @@ class InternalServerErrorException(OpenGSyncException):
     @property
     def response(self) -> DBEnum:
         return HTTPResponse.INTERNAL_SERVER_ERROR
+    
+    
+class WorkflowException(OpenGSyncException):
+    @property
+    def response(self) -> DBEnum:
+        return HTTPResponse.INTERNAL_SERVER_ERROR

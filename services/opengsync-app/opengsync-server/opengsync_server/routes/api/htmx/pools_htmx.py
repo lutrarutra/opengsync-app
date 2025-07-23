@@ -151,7 +151,6 @@ def get_form(form_type: Literal["create", "edit"]):
             return abort(HTTPResponse.FORBIDDEN.id)
         
         form = forms.models.PoolForm("edit", pool=pool)
-        form.prepare()
         return form.make_response()
     
 
@@ -179,7 +178,6 @@ def clone(pool_id: int):
     
     if request.method == "GET":
         form = forms.models.PoolForm("clone", pool=pool)
-        form.prepare()
         return form.make_response()
     else:
         form = forms.models.PoolForm("clone", formdata=request.form, pool=pool)
@@ -368,7 +366,6 @@ def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
     form = forms.models.PlateForm(form_type=form_type, pool=pool, formdata=request.form)
     
     if request.method == "GET":
-        form.prepare()
         return form.make_response()
     
     return form.process_request(user=current_user)

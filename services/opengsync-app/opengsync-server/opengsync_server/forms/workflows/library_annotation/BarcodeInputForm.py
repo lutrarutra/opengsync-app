@@ -39,21 +39,20 @@ class BarcodeInputForm(MultiStepForm):
         TextColumn("sequence_i5", "i5 Sequence", 180, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[";"], replace_white_spaces_with="")),
     ]
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=BarcodeInputForm._workflow_name,
-            step_name=BarcodeInputForm._step_name, previous_form=previous_form,
+            step_name=BarcodeInputForm._step_name,
             step_args={}
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
         self.library_table = self.tables["library_table"]
-        if (csrf_token := formdata.get("csrf_token")) is None:
-            csrf_token = self.csrf_token._value()  # type: ignore
+
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=BarcodeInputForm.columns, csrf_token=csrf_token,
-            post_url=url_for("library_annotation_workflow.parse_barcode_table", seq_request_id=seq_request.id, uuid=self.uuid),
+            columns=BarcodeInputForm.columns, csrf_token=self._csrf_token,
+            post_url=url_for(f"{BarcodeInputForm._workflow_name}_workflow.parse_barcode_table", seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, df=self.get_template(),
         )
 
@@ -166,21 +165,21 @@ class BarcodeInputForm(MultiStepForm):
         self.update_data()
 
         if BarcodeMatchForm.is_applicable(self):
-            next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid)
         elif IndexKitMappingForm.is_applicable(self):
-            next_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OCMAnnotationForm.is_applicable(self):
-            next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OligoMuxAnnotationForm.is_applicable(self):
-            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

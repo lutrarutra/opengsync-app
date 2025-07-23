@@ -38,11 +38,11 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,
-        formdata: dict = {}, previous_form: Optional[MultiStepForm] = None
+        formdata: dict = {}
     ):
         MultiStepForm.__init__(
             self, uuid=uuid, workflow=PooledLibraryAnnotationForm._workflow_name,
-            step_name=PooledLibraryAnnotationForm._step_name, previous_form=previous_form,
+            step_name=PooledLibraryAnnotationForm._step_name,
             formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
@@ -235,7 +235,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         self.add_table("sample_table", sample_table)
         self.update_data()
         
-        next_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        next_form = PoolMappingForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()
 
         

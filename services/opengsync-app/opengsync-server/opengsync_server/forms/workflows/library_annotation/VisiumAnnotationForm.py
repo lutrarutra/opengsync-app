@@ -36,10 +36,10 @@ class VisiumAnnotationForm(MultiStepForm):
     def is_applicable(current_step: MultiStepForm) -> bool:
         return current_step.tables["library_table"]["library_type_id"].isin([t.id for t in LibraryType.get_visium_library_types()]).any()
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=VisiumAnnotationForm._workflow_name, step_name=VisiumAnnotationForm._step_name,
-            uuid=uuid, previous_form=previous_form, formdata=formdata, step_args={}
+            uuid=uuid, formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -127,8 +127,8 @@ class VisiumAnnotationForm(MultiStepForm):
         self.update_data()
 
         if FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()
  

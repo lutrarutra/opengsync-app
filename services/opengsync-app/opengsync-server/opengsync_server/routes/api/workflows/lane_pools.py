@@ -32,7 +32,6 @@ def begin(experiment_id: int):
         form = wff.UnifiedLanePoolingForm(experiment=experiment)
     else:
         form = wff.LanePoolingForm(experiment=experiment)
-    form.prepare()
     return form.make_response()
 
 

@@ -21,10 +21,10 @@ class CompleteSASForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "complete_sas"
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=CompleteSASForm._workflow_name, step_name=CompleteSASForm._step_name,
-            uuid=uuid, formdata=formdata, previous_form=previous_form, step_args={}
+            uuid=uuid, formdata=formdata, step_args={}
         )
         
         self.seq_request = seq_request

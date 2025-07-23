@@ -20,11 +20,11 @@ class CompleteLibraryPoolingForm(MultiStepForm):
     _workflow_name = "library_pooling"
     _step_name = "complete_library_pooling"
 
-    def __init__(self, lab_prep: models.LabPrep, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, lab_prep: models.LabPrep, uuid: str | None, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=CompleteLibraryPoolingForm._workflow_name,
             step_name=CompleteLibraryPoolingForm._step_name, uuid=uuid,
-            formdata=formdata, previous_form=previous_form, step_args={}
+            formdata=formdata, step_args={}
         )
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep

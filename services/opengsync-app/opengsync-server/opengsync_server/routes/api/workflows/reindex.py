@@ -39,6 +39,12 @@ def get_context(args: dict) -> dict:
             raise exceptions.NotFoundException()
         context["lab_prep"] = lab_prep
 
+    elif (pool_id := args.get("pool_id")) is not None:
+        pool_id = int(pool_id)
+        if (pool := db.get_pool(pool_id)) is None:
+            raise exceptions.NotFoundException()
+        context["pool"] = pool
+
     if not current_user.is_insider():
         if "seq_request" not in context:
             return abort(HTTPResponse.FORBIDDEN.id)
@@ -149,13 +155,13 @@ def select():
             library_data["index_well"].append(None)
             library_data["library_name"].append(library.name)
             library_data["library_type_id"].append(library.type.id if library.type else None)
-            library_data["kit_i7"].append(";".join(kit_i7s))
-            library_data["name_i7"].append(";".join(names_i7))
-            library_data["sequence_i7"].append(";".join(sequences_i7))
-            library_data["kit_i5"].append(";".join(kit_i5s))
-            library_data["name_i5"].append(";".join(names_i5))
-            library_data["sequence_i5"].append(";".join(sequences_i5))
-    
+            library_data["kit_i7"].append(";".join(kit_i7s) if len(kit_i7s) else None)
+            library_data["name_i7"].append(";".join(names_i7) if len(names_i7) else None)
+            library_data["sequence_i7"].append(";".join(sequences_i7) if len(sequences_i7) else None)
+            library_data["kit_i5"].append(";".join(kit_i5s) if len(kit_i5s) else None)
+            library_data["name_i5"].append(";".join(names_i5) if len(names_i5) else None)
+            library_data["sequence_i5"].append(";".join(sequences_i5) if len(sequences_i5) else None)
+
     df = pd.DataFrame(library_data)
     form.add_table("library_table", df)
     form.update_data()
@@ -163,16 +169,17 @@ def select():
     next_form = forms.BarcodeInputForm(
         seq_request=context.get("seq_request"),
         lab_prep=context.get("lab_prep"),
+        pool=context.get("pool"),
         uuid=form.uuid,
-        previous_form=form
+        formdata=None
     )
     return next_form.make_response()
 
         
-@reindex_workflow.route("reindex/<string:uuid>", methods=["POST"])
+@reindex_workflow.route("upload_barcode_form/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def reindex(uuid: str):
+def upload_barcode_form(uuid: str):
     try:
         context = get_context(request.args)
     except ValueError:
@@ -183,7 +190,8 @@ def reindex(uuid: str):
     form = forms.BarcodeInputForm(
         uuid=uuid, formdata=request.form,
         seq_request=context.get("seq_request"),
-        lab_prep=context.get("lab_prep")
+        lab_prep=context.get("lab_prep"),
+        pool=context.get("pool")
     )
     return form.process_request()
 
@@ -203,6 +211,7 @@ def map_index_kits(uuid: str):
         uuid=uuid, formdata=request.form,
         seq_request=context.get("seq_request"),
         lab_prep=context.get("lab_prep"),
+        pool=context.get("pool"),
     )
     return form.process_request()
     
