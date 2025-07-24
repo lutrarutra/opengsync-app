@@ -152,7 +152,6 @@ class FlexMuxForm(MultiStepForm):
                 sample_id=sample.id,
                 library_id=new_library.id,
                 mux={"barcode": row["mux_barcode"]},
-                mux_type=MUXType.TENX_FLEX_PROBE
             )
             new_library.features = old_library.features
             new_library = db.update_library(new_library)

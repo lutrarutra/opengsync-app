@@ -20,7 +20,6 @@ def test_mux_links(db: DBHandler):
         db.link_sample_library(
             sample.id, library.id,
             mux=dict(barcode="sequence", pattern="pattern", read="read"),
-            mux_type=MUXType.TENX_OLIGO
         )
 
     user = db.get_user(user.id)

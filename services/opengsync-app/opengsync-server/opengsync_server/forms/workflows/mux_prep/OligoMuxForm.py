@@ -201,7 +201,6 @@ class OligoMuxForm(MultiStepForm):
                     "pattern": row["mux_pattern"],
                     "read": row["mux_read"],
                 },
-                mux_type=MUXType.get(row["mux_type_id"])
             )
             new_library.features = old_library.features
             new_library = db.update_library(new_library)
