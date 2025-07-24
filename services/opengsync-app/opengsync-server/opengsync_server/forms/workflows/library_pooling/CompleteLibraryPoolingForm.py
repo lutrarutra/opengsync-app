@@ -92,10 +92,12 @@ class CompleteLibraryPoolingForm(MultiStepForm):
             )
 
         request_ids = []
-        for i, (idx, row) in enumerate(library_table.iterrows()):
+        for _, row in library_table.iterrows():
             if (library := db.get_library(row["library_id"])) is None:
                 logger.error(f"{self.uuid}: Library {row['library_id']} not found")
                 raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
+            
+            db.refresh(library)
 
             if str(row["pool"]).strip().lower() == "t":
                 continue
@@ -150,7 +152,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 column_name = active_sheet[f"{col}1"].value
                 column_mapping[column_name] = col
             
-            for i, (idx, row) in enumerate(library_table.iterrows()):
+            for i, (_, row) in enumerate(library_table.iterrows()):
                 if (library := db.get_library(int(row["library_id"]))) is None:
                     logger.error(f"{self.uuid}: Library {row['library_id']} not found")
                     raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")

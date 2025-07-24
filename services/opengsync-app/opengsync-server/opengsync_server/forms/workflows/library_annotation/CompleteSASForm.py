@@ -319,21 +319,21 @@ class CompleteSASForm(MultiStepForm):
 
             for _, pooling_row in self.sample_pooling_table[self.sample_pooling_table["library_name"] == library_row["library_name"]].iterrows():
                 if pooling_row["mux_type_id"] == MUXType.TENX_FLEX_PROBE.id:
-                    if pd.isna(pooling_row["mux_barcode"]):
+                    if self.workflow == "pooled" and pd.isna(pooling_row["mux_barcode"]):
                         logger.error(f"{self.uuid}: Mux barcode is required for TENX_FLEX_PROBE mux type.")
                         raise ValueError("Mux barcode is required for TENX_FLEX_PROBE mux type.")
                     mux = {"barcode": pooling_row["mux_barcode"]}
                     mux_type = MUXType.TENX_FLEX_PROBE
                 elif pooling_row["mux_type_id"] in [MUXType.TENX_OLIGO.id]:
-                    if pd.isna(pooling_row["mux_barcode"]):
-                        logger.error(f"{self.uuid}: Mux barcode is required for TENX_CMO mux type.")
-                        raise ValueError("Mux barcode is required for TENX_CMO mux type.")
-                    if pd.isna(pooling_row["mux_pattern"]):
-                        logger.error(f"{self.uuid}: Mux pattern is required for TENX_CMO mux type.")
-                        raise ValueError("Mux pattern is required for TENX_CMO mux type.")
-                    if pd.isna(pooling_row["mux_read"]):
-                        logger.error(f"{self.uuid}: Mux read is required for TENX_CMO mux type.")
-                        raise ValueError("Mux read is required for TENX_CMO mux type.")
+                    if self.workflow == "pooled" and pd.isna(pooling_row["mux_barcode"]):
+                        logger.error(f"{self.uuid}: Mux barcode is required for TENX_OLIGO mux type.")
+                        raise ValueError("Mux barcode is required for TENX_OLIGO mux type.")
+                    if self.workflow == "pooled" and pd.isna(pooling_row["mux_pattern"]):
+                        logger.error(f"{self.uuid}: Mux pattern is required for TENX_OLIGO mux type.")
+                        raise ValueError("Mux pattern is required for TENX_OLIGO mux type.")
+                    if self.workflow == "pooled" and pd.isna(pooling_row["mux_read"]):
+                        logger.error(f"{self.uuid}: Mux read is required for TENX_OLIGO mux type.")
+                        raise ValueError("Mux read is required for TENX_OLIGO mux type.")
                     mux = {
                         "barcode": pooling_row["mux_barcode"],
                         "pattern": pooling_row["mux_pattern"],

@@ -29,7 +29,7 @@ class FeatureAnnotationForm(MultiStepForm):
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length),
-        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        DropdownColumn("read", "Read", 100, choices=["", "R2", "R1"]),
     ]
 
     @staticmethod

@@ -70,7 +70,7 @@ class Library(Base):
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
 
-    pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True)
+    pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True)
     pool: Mapped[Optional["Pool"]] = relationship(
         "Pool", back_populates="libraries", lazy="joined", cascade="save-update, merge"
     )
