@@ -1,13 +1,10 @@
 from flask import Response
 
-import pandas as pd
-
 from flask_wtf import FlaskForm
-from wtforms import StringField, FieldList, FormField
+from wtforms import StringField, FormField
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import BarcodeType, KitType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import db, logger

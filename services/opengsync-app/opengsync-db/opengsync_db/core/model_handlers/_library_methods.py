@@ -451,6 +451,7 @@ def add_library_index(
     self: "DBHandler", library_id: int,
     index_kit_i7_id: Optional[int], name_i7: Optional[str], sequence_i7: Optional[str],
     index_kit_i5_id: Optional[int], name_i5: Optional[str], sequence_i5: Optional[str],
+    flush: bool = True
 ) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -478,6 +479,9 @@ def add_library_index(
 
     self.session.add(library)
 
+    if flush:
+        self.session.flush()
+
     if not persist_session:
         self.close_session()
 
@@ -493,6 +497,10 @@ def remove_library_indices(self: "DBHandler", library_id: int) -> models.Library
 
     for index in library.indices:
         self.session.delete(index)
+
+    library.indices.clear()
+
+    self.session.add(library)
 
     if not persist_session:
         self.close_session()

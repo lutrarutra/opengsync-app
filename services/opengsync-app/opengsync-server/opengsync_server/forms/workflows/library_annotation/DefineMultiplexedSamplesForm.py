@@ -252,7 +252,8 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
         sample_pooling_table = pd.DataFrame(sample_pooling_table)
-        sample_pooling_table["mux_type_id"] = self.mux_type
+        sample_pooling_table["mux_type_id"] = self.mux_type.id
+        sample_pooling_table["mux_barcode"] = None
 
         self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)
