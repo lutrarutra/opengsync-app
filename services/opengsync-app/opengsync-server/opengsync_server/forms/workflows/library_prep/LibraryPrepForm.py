@@ -81,8 +81,10 @@ class LibraryPrepForm(HTMXFlaskForm):
             
             if duplicate_plate_well.at[idx]:
                 self.table.add_error(idx, ["plate_well", "plate"], DuplicateCellValue(f"Plate Well '{row['plate_well']}' is duplicated."))
-            
-            if pd.notna(row["library_id"]) and libraries[int(row["library_id"])] != row["library_name"]:
+
+            if int(row["library_id"]) not in libraries:
+                self.table.add_error(idx, "library_id", InvalidCellValue(f"Library ID '{row['library_id']}' is not part of this prep."))
+            elif pd.notna(row["library_id"]) and libraries[int(row["library_id"])] != row["library_name"]:
                 self.table.add_error(idx, ["library_name", "library_id"], InvalidCellValue(f"Library Name '{row['library_name']}' does not match the existing library name '{libraries[int(row['library_id'])]}'.. Did you move the rows?"))
 
         if self.table.errors:

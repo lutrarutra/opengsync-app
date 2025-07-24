@@ -46,7 +46,7 @@
         </thead>
         <tbody>
             {% for sample in samples %}
-            <tr>
+            <tr class="sample-row" data-id="{{ sample.id }}" data-name="{{ library.name }}">
                 <th scope="row">{{ sample.id }}</th>
                 <td><a href="{{ url_for('samples_page.sample_page', sample_id=sample.id, from='library@' + library.id | string) }}">{{ sample.name }}</a></td>
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
@@ -57,4 +57,54 @@
     </table>
     {{ spinner("library-sample-table-spinner") }}
     {{ pagination("library-sample-table", "libraries_htmx.get_samples", n_pages, active_page, context={ "library_id":library.id }) }}
+    <script>
+        let selected_sample_id = null;
+        let selected_sample_name = null;
+
+        function remove_sample() {
+            Swal.fire({
+                title: `Remove sample '${selected_sample_name}' [${selected_sample_id}] from '{{library.name}}'-library ?`,
+                showDenyButton: true,
+                text: 'Are you sure?',
+                confirmButtonText: 'Yes',
+                icon: 'question',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                    "DELETE", "{{ url_for('libraries_htmx.remove_sample', library_id=library.id) }}?sample_id=" + selected_sample_id,
+                    null, {
+                        target: "#library-sample-table",
+                        swapStyle: "outerHTML"
+                    });
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            init_tooltips();
+
+            $(document).off("contextmenu", ".sample-row").on("contextmenu", ".sample-row", function(e) {
+                e.preventDefault();
+                const x = e.pageX;
+                const y = e.pageY;
+                selected_sample_id = parseInt($(this).data("id"));
+                selected_sample_name = $(this).data("name");
+                $("#copy-edit-menu").css({
+                    display: "block",
+                    left: x + 8, top: y + 8
+                }).empty().append([
+                    {% if library.status == LibraryStatus.DRAFT or current_user.is_insider() %}
+                    `<li><a class='dropdown-item' onclick='remove_sample()'>Remove</a></li>`
+                    {% else %}
+                    `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`
+                    {% endif %}
+                ]);
+
+                $("#right-click-bg").css({
+                    display: "block"
+                });
+            });
+        });
+    </script>
 </div>

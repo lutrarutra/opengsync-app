@@ -51,7 +51,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         )
 
         self.assay_type = AssayType.get(int(self.metadata["assay_type_id"]))
-        self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] else None
+        self.mux_type = MUXType.get(self.metadata["mux_type_id"])
         self.antibody_capture = self.metadata["antibody_capture"]
         self.vdj_b = self.metadata["vdj_b"]
         self.vdj_t = self.metadata["vdj_t"]
@@ -252,7 +252,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
         sample_pooling_table = pd.DataFrame(sample_pooling_table)
-        sample_pooling_table["mux_type_id"] = None
+        sample_pooling_table["mux_type_id"] = self.mux_type
 
         self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)

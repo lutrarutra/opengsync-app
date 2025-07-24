@@ -101,7 +101,6 @@ services:
 
     postgres:
         container_name: postgres-dev
-        user: "999:999"
         image: postgres:17.5-alpine3.22
         environment:
             POSTGRES_USER: ${POSTGRES_USER}

@@ -4,7 +4,7 @@ from flask import Response
 
 from opengsync_db import models
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn, InvalidCellValue
 from ...MultiStepForm import MultiStepForm
 from ..common import CommonBarcodeInputForm

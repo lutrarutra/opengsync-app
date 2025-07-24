@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response, url_for
@@ -9,7 +7,7 @@ from opengsync_db import models
 from opengsync_db.categories import LibraryType, GenomeRef
 
 from .... import logger, db
-from ....tools import tools
+from ....tools import utils
 from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
@@ -30,7 +28,7 @@ class LibraryAnnotationForm(MultiStepForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False, description="I want you to isolate nuclei from my samples before sequencing.")
 
     columns = [
-        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.make_alpha_numeric(x)),
         DropdownColumn("genome", "Genome", 200, choices=GenomeRef.names(), required=True),
         DropdownColumn("library_type", "Library Type", 200, choices=LibraryType.names(), required=True),
         FloatColumn("seq_depth", "Sequencing Depth (M reads)", 200),

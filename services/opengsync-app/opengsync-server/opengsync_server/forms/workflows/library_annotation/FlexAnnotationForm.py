@@ -21,8 +21,8 @@ class FlexAnnotationForm(MultiStepForm):
     _step_name = "flex_annotation"
 
     columns = [
-        DropdownColumn("sample_name", "Sample (Pool) Name", 250, choices=[], required=True),
         TextColumn("demux_name", "Demultiplexed Sample Name", 250, clean_up_fnc=tools.make_alpha_numeric, required=True, max_length=models.Sample.name.type.length, min_length=4),
+        DropdownColumn("sample_name", "Sample (Pool) Name", 250, choices=[], required=True),
         TextColumn("barcode_id", "Bardcode ID", 250, max_length=16),
     ]
 

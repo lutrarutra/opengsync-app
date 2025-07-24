@@ -6,6 +6,7 @@ from opengsync_db import models
 from opengsync_db.categories import LibraryType, IndexType
 
 from .... import logger, tools, db  # noqa F401
+from ....tools import utils
 from ....tools import exceptions
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
@@ -17,6 +18,7 @@ class CommonBarcodeInputForm(MultiStepForm):
     spreadsheet: SpreadsheetInput
     library_table: pd.DataFrame
     df: pd.DataFrame
+    index_col: str
     
     columns = [
         TextColumn("index_well", "Index Well", 100, max_length=8),
@@ -46,18 +48,32 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
         self.pool = pool
+
+        if workflow == "library_annotation":
+            self.index_col = "library_name"
+        else:
+            self.index_col = "library_id"
+
+        if self.index_col not in [col.label for col in self.columns + additional_columns]:
+            logger.error(f"Index column '{self.index_col}' not found in columns")
+            raise exceptions.InternalServerErrorException(f"Index column '{self.index_col}' not found in columns")
         
         if (library_table := self.tables.get("library_table")) is None:
             if workflow == "library_pooling":
-                if lab_prep is None:
+                if self.lab_prep is None:
                     logger.error("lab_prep must be provided for library pooling workflow")
                     raise ValueError("lab_prep must be provided for library pooling workflow")
-                self.library_table = db.get_lab_prep_libraries_df(lab_prep_id=lab_prep.id)
+                
+                self.library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
             else:
                 logger.error(f"Library table not found for workflow {workflow}")
                 raise exceptions.WorkflowException("Library table not found for workflow")
         else:
             self.library_table = library_table
+        
+        if self.index_col not in self.library_table.columns:
+            logger.error(f"Index column '{self.index_col}' not found in library_table")
+            raise exceptions.InternalServerErrorException(f"Index column '{self.index_col}' not found in library_table")
 
         self.url_context = {}
         if seq_request is not None:
@@ -129,7 +145,7 @@ class CommonBarcodeInputForm(MultiStepForm):
     
     def get_barcode_table(self) -> pd.DataFrame:
         barcode_table_data = {
-            "library_name": [],
+            self.index_col: [],
             "index_well": [],
             "kit_i7": [],
             "name_i7": [],
@@ -144,7 +160,7 @@ class CommonBarcodeInputForm(MultiStepForm):
             index_i5_seqs = row["sequence_i5"].split(";") if pd.notna(row["sequence_i5"]) else [None]
 
             for i in range(max(len(index_i7_seqs), len(index_i5_seqs))):
-                barcode_table_data["library_name"].append(row["library_name"])
+                barcode_table_data[self.index_col].append(row[self.index_col])
                 barcode_table_data["index_well"].append(row["index_well"])
                 barcode_table_data["kit_i7"].append(row["kit_i7"])
                 barcode_table_data["name_i7"].append(row["name_i7"])
@@ -162,8 +178,8 @@ class CommonBarcodeInputForm(MultiStepForm):
 
         barcode_table.loc[(barcode_table["sequence_i7"].notna() & barcode_table["sequence_i5"].notna()), "index_type_id"] = IndexType.DUAL_INDEX.id
         barcode_table.loc[(barcode_table["sequence_i7"].notna() & barcode_table["sequence_i5"].isna()), "index_type_id"] = IndexType.SINGLE_INDEX.id
-        for (library_name, library_type_id), _ in self.library_table.groupby(["library_name", "library_type_id"], dropna=False):
+        for (idx, library_type_id), _ in self.library_table.groupby([self.index_col, "library_type_id"], dropna=False):
             if LibraryType.get(library_type_id) == LibraryType.TENX_SC_ATAC:
-                barcode_table.loc[barcode_table["library_name"] == library_name, "index_type_id"] = IndexType.TENX_ATAC_INDEX.id
+                barcode_table.loc[barcode_table[self.index_col] == idx, "index_type_id"] = IndexType.TENX_ATAC_INDEX.id
 
         return barcode_table

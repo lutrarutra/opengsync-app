@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import url_for
@@ -11,7 +9,8 @@ from flask_wtf import FlaskForm
 
 from opengsync_db.categories import KitType, BarcodeType
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, db  # noqa F401
+from ....tools import exceptions
 from ...MultiStepForm import MultiStepForm
 from ...SearchBar import SearchBar
 
@@ -26,6 +25,7 @@ class CommonIndexKitMappingForm(MultiStepForm):
     _step_name = "index_kit_mapping"
     barcode_table: pd.DataFrame
     df: pd.DataFrame
+    index_col: str
 
     input_fields = FieldList(FormField(IndexKitSubForm), min_entries=1)
 
@@ -64,6 +64,16 @@ class CommonIndexKitMappingForm(MultiStepForm):
 
         self.post_url = url_for("reindex_workflow.map_index_kits", uuid=self.uuid, **self._url_context)
         self.barcode_table = self.tables["barcode_table"]
+
+        if workflow == "library_annotation":
+            self.index_col = "library_name"
+        else:
+            self.index_col = "library_id"
+
+        if self.index_col not in self.barcode_table.columns:
+            logger.error(f"Index column '{self.index_col}' not found in columns")
+            raise exceptions.InternalServerErrorException(f"Index column '{self.index_col}' not found in columns")
+        
         self.index_kits = list(set(self.barcode_table["kit_i7"].unique().tolist() + self.barcode_table["kit_i5"].unique().tolist()))
         self.index_kits = [kit for kit in self.index_kits if pd.notna(kit) and kit]
     
@@ -145,7 +155,7 @@ class CommonIndexKitMappingForm(MultiStepForm):
         kit_defined = self.barcode_table["kit_i7"].notna() | self.barcode_table["kit_i5"].notna()
 
         barcode_table_data = {
-            "library_name": [],
+            self.index_col: [],
             "index_well": [],
             "kit_i7": [],
             "name_i7": [],
@@ -190,7 +200,7 @@ class CommonIndexKitMappingForm(MultiStepForm):
                     raise ValueError()
                 
                 for i in range(max(len(barcodes_i7), len(barcodes_i5))):
-                    barcode_table_data["library_name"].append(row["library_name"])
+                    barcode_table_data[self.index_col].append(row[self.index_col])
                     barcode_table_data["index_well"].append(row["index_well"])
                     barcode_table_data["kit_i7"].append(row["kit_i7"])
                     barcode_table_data["kit_i5"].append(row["kit_i5"])
@@ -203,7 +213,7 @@ class CommonIndexKitMappingForm(MultiStepForm):
                     barcode_table_data["name_i7"].append(names_i7[i] if len(names_i7) > i else None)
                     barcode_table_data["name_i5"].append(names_i5[i] if len(names_i5) > i else None)
             else:
-                barcode_table_data["library_name"].append(row["library_name"])
+                barcode_table_data[self.index_col].append(row[self.index_col])
                 barcode_table_data["index_well"].append(row["index_well"])
                 barcode_table_data["kit_i7"].append(None)
                 barcode_table_data["kit_i5"].append(None)

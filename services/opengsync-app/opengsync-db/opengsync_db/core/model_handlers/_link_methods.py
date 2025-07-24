@@ -232,6 +232,32 @@ def link_features_library(
         self.close_session()
 
     return library
+
+
+def unlink_sample_from_library(self: "DBHandler", sample_id: int, library_id: int):
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    if (sample := self.session.get(models.Sample, sample_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+    
+    if (library := self.session.get(models.Library, library_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    if (link := self.session.query(models.links.SampleLibraryLink).where(
+        models.links.SampleLibraryLink.sample_id == sample_id,
+        models.links.SampleLibraryLink.library_id == library_id,
+    ).first()) is None:
+        raise exceptions.LinkDoesNotExist(f"Sample with id {sample_id} and Library with id {library_id} are not linked")
+    
+    sample.num_libraries -= 1
+    library.num_samples -= 1
+    self.session.add(sample)
+    self.session.add(library)
+    self.session.delete(link)
+
+    if not persist_session:
+        self.close_session()
     
 
 def unlink_feature_library(self: "DBHandler", feature_id: int, library_id: int):

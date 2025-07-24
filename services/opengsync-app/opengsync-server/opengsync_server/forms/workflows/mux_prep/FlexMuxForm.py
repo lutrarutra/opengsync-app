@@ -40,6 +40,7 @@ class FlexMuxForm(MultiStepForm):
             csrf_token = self.csrf_token._value()  # type: ignore
 
         self.sample_table = db.get_lab_prep_samples_df(lab_prep.id)
+        logger.debug(self.sample_table)
         self.sample_table = self.sample_table[self.sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 

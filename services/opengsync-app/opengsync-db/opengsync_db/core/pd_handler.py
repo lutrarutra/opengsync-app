@@ -741,11 +741,15 @@ def get_lab_prep_libraries_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFra
         models.Library.status_id.label("status_id"),
         models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
-        models.Library.sample_name.label("sample_name"),
-        models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool"),
+        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+        models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
     ).outerjoin(
         models.Pool,
         models.Pool.id == models.Library.pool_id
+    ).outerjoin(
+        models.LibraryIndex,
+        models.LibraryIndex.library_id == models.Library.id,
     ).where(
         models.Library.lab_prep_id == lab_prep_id
     )

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
 from flask_login import login_required
 
@@ -558,6 +558,34 @@ def select_all(workflow: str):
 
     form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)
     return form.make_response(libraries=libraries)
+
+
+@libraries_htmx.route("<int:library_id>/remove_sample", methods=["DELETE"])
+@db_session(db)
+@login_required
+def remove_sample(library_id: int):
+    if (library := db.get_library(library_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and library.owner_id != current_user.id:
+        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
+    if (sample_id := request.args.get("sample_id")) is None:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    try:
+        sample_id = int(sample_id)
+    except ValueError:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+    
+    if (sample := db.get_sample(sample_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    db.unlink_sample_library(sample_id=sample.id, library_id=library.id)
+
+    flash("Sample removed from library successfully.", "success")
+    return make_response(redirect=url_for("libraries_page.library_page", library_id=library.id))
 
 
 @libraries_htmx.route("<int:library_id>/get_mux_table", methods=["GET"])

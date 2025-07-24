@@ -72,7 +72,7 @@ DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
 sample_submission_windows: list[WeekTimeWindow] | None
 
 if (s := os.environ["SAMPLE_SUBMISSION_WINDOWS"]):
-    from .tools.tools import parse_time_windows
+    from .tools.utils import parse_time_windows
     sample_submission_windows = parse_time_windows(s)
     for window in sample_submission_windows:
         logger.info(f"Sample submission window: {window.weekday} {window.start_time} - {window.end_time}")

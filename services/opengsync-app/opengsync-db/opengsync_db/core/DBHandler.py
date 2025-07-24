@@ -262,11 +262,11 @@ class DBHandler():
         link_features_library,
         link_feature_library,
         link_sample_library,
-        unlink_sample_library,
         link_pool_experiment,
 
         is_sample_in_seq_request,
 
+        unlink_sample_library,
         unlink_feature_library,
         unlink_pool_experiment,
     )

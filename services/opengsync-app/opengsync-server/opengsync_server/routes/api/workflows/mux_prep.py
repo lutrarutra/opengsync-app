@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, request, abort, send_file, current_app, Response
+from flask import Blueprint, request, abort
 from flask_login import login_required
 
 from opengsync_db import models, db_session

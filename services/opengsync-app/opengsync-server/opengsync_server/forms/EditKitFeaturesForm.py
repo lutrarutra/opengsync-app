@@ -9,7 +9,7 @@ from opengsync_db import models
 from opengsync_db.categories import FeatureType
 
 from .. import db, logger  # noqa
-from ..tools import tools
+from ..tools import utils
 from ..tools.spread_sheet_components import TextColumn, DuplicateCellValue, SpreadSheetColumn
 from .HTMXFlaskForm import HTMXFlaskForm
 from .SpreadsheetInput import SpreadsheetInput
@@ -20,11 +20,11 @@ class EditKitFeaturesForm(HTMXFlaskForm):
 
     columns: list[SpreadSheetColumn] = [
         TextColumn("name", "Name", 250, max_length=models.Feature.name.type.length, min_length=3, required=True),
-        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, required=True, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, required=True, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, required=True, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, required=True, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        TextColumn("target_name", "Target Name", 200, max_length=models.Feature.target_name.type.length, min_length=3, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        TextColumn("target_id", "Target ID", 200, max_length=models.Feature.target_id.type.length, min_length=3, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, required=True, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("target_name", "Target Name", 200, max_length=models.Feature.target_name.type.length, min_length=3, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+        TextColumn("target_id", "Target ID", 200, max_length=models.Feature.target_id.type.length, min_length=3, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
 
     def __init__(self, feature_kit: models.FeatureKit, formdata: Optional[dict] = None):

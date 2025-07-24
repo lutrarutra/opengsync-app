@@ -49,7 +49,7 @@ def previous(lab_prep_id: int, uuid: str):
     step_name, step = response
 
     prev_step_cls = forms.steps[step_name]
-    prev_step = prev_step_cls(uuid=uuid, lab_prep=lab_prep, **step.args)  # type: ignore
+    prev_step = prev_step_cls(uuid=uuid, lab_prep=lab_prep, formdata=None, **step.args)  # type: ignore
     prev_step.fill_previous_form(step)
     return prev_step.make_response()
 
