@@ -21,7 +21,6 @@ def test_library_links(db: DBHandler):
         db.link_sample_library(
             sample.id, library.id,
             mux=dict(barcode="sequence", pattern="pattern", read="read"),
-            mux_type=MUXType.TENX_OLIGO
         )
         libraries.append(library)
     
